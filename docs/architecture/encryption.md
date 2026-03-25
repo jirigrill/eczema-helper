@@ -98,19 +98,26 @@ The app stores medical photos of an infant's skin condition. These are sensitive
 2. ENCODE FOR API
    Convert decrypted ArrayBuffers to base64 strings
 
-3. CALL AI
-   Browser sends decrypted images directly to Claude Vision API
-     → HTTPS POST to api.anthropic.com
-     → request includes both images + structured prompt
-     → response: JSON with trend, scores, explanation
+3. SEND TO SERVER PROXY
+   Browser sends decrypted images to POST /api/analyze
+     → multipart/form-data with both images + structured context
+     → HTTPS in transit (TLS 1.3)
 
-4. STORE RESULT
-   Analysis result (text only, no images) sent to server
-     → POST /api/analysis-results
+4. SERVER FORWARDS TO CLAUDE
+   Server reads CLAUDE_API_KEY from environment
+     → forwards images to Claude Vision API (api.anthropic.com)
+     → images held in server memory only during the request
+     → images are NEVER written to disk or logged
+     → server discards image data from memory after response
+
+5. STORE RESULT
+   Analysis result (text only, no images) sent back to client
+     → client stores via POST /api/analysis
      → stored in PostgreSQL as plaintext (not sensitive)
 
-NOTE: The server never handles decrypted photos during analysis.
-      The browser decrypts locally and calls Claude directly.
+NOTE: The server holds decrypted photos briefly in a memory buffer only
+      during the AI analysis request. The API key stays server-side.
+      See auth-overview.md for the canonical server proxy description.
 ```
 
 ### Key Management
@@ -152,6 +159,16 @@ PASSPHRASE LOST:
     → structured data (food logs, analysis results) remains accessible
     → users can set a new passphrase and continue with new photos
 ```
+
+## Encryption Key Caching (Reducing Passphrase Friction)
+
+To avoid prompting the user for the encryption passphrase on every page refresh or app reopening, the derived `CryptoKey` can be cached:
+
+- **IndexedDB persistence:** The `CryptoKey` object (marked as `non-extractable`) can be stored in IndexedDB. Since the key material cannot be exported from the CryptoKey, this is safe against JavaScript-level extraction. The key survives page refreshes and service worker restarts.
+- **Session-scoped caching:** On trusted devices, the derived key is cached for the session duration without re-prompting. The user enters the passphrase once after login, and it remains available until logout or timeout.
+- **"Remember on this device" toggle:** A user-facing option stores a verification token in IndexedDB so the passphrase is only needed once per device until the user explicitly logs out. This reduces daily friction from 2 password entries (login + passphrase) to 1 (login only), or zero if combined with a persistent login session.
+- **Auto-lock timeout:** After N minutes of inactivity (configurable, default 15 minutes), the cached key is cleared from memory. The user must re-enter the passphrase to decrypt photos again. This protects against unattended device access.
+- **Logout cleanup:** On logout, ALL cached key material is cleared from both IndexedDB and in-memory references. No key material persists after logout.
 
 ---
 
@@ -302,7 +319,7 @@ async function decrypt(
 | Shoulder surfing | Photos are displayed in plaintext on screen when viewing | User responsibility; app could add a "hide photos" toggle |
 | Passphrase brute force (offline) | If attacker has the encrypted blob and salt, they can attempt offline brute force | 600,000 PBKDF2 iterations make brute force expensive (~$10K+ for a strong passphrase) |
 | Weak passphrase | Short or common passphrases reduce brute-force resistance | UI enforces minimum length (12+ characters) and provides strength indicator |
-| Claude API key exposure | API key is used client-side to call Claude | Key stored in environment; consider server-side proxy in the future |
+| Server-side photo exposure during AI analysis | Decrypted photos exist briefly in server memory during AI analysis requests | Photos are never written to disk; server discards from memory after Claude API response. Buffer is not logged. |
 | Metadata analysis | An attacker with database access can see when photos were taken, which body areas, severity scores, food log entries | Accept this risk; metadata is less sensitive than the images themselves |
 | Browser memory dump | Decrypted photos exist briefly in browser memory | Revoke object URLs promptly; minimize time photos are held in memory |
 
@@ -313,7 +330,7 @@ TRUSTED (runs on user's device):
   - Browser (Svelte app, Web Crypto, IndexedDB)
   - Passphrase entry
   - Decrypted photos (in memory only)
-  - Claude API calls (from browser)
+  - Decrypted photos (sent to server proxy for AI analysis)
 
 UNTRUSTED (server, could be compromised):
   - VPS filesystem (stores encrypted blobs)
@@ -322,7 +339,7 @@ UNTRUSTED (server, could be compromised):
   - Docker containers
 
 EXTERNAL (third-party):
-  - Claude API (Anthropic) -- receives decrypted photos for analysis
+  - Claude API (Anthropic) -- receives decrypted photos via server proxy for analysis
   - Let's Encrypt (certificate authority)
   - Web Push service (browser vendor's push server)
 ```

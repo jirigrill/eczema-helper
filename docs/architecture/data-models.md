@@ -91,7 +91,8 @@ interface FoodCategory {
   slug: string;          // URL-safe identifier: "dairy", "eggs", "wheat"
   nameCs: string;        // Czech display name: "Mléčné výrobky"
   icon: string;          // Emoji or icon identifier: "🥛"
-  subItems: FoodSubItem[];
+  sortOrder: number;     // Display order in the UI
+  subItems: FoodSubItem[];  // Populated via JOIN in repository adapter, not stored as a column
 }
 ```
 
@@ -105,6 +106,7 @@ interface FoodSubItem {
   categoryId: string;
   slug: string;          // "cows-milk", "butter", "cheese"
   nameCs: string;        // "Kravské mléko", "Máslo", "Sýr"
+  sortOrder: number;
 }
 ```
 
@@ -174,7 +176,7 @@ interface TrackingPhoto {
   photoType: 'skin' | 'stool';
 
   // Skin-specific fields (used when photoType === 'skin')
-  bodyArea?: 'face' | 'arms' | 'legs' | 'torso' | 'hands' | 'other';
+  bodyArea?: 'face' | 'arms' | 'legs' | 'torso' | 'hands' | 'feet' | 'neck' | 'scalp';
   severityManual?: number;   // Manual eczema severity rating 1-5
 
   // Stool-specific fields (used when photoType === 'stool')
@@ -218,6 +220,7 @@ interface AnalysisResultBase {
   explanation: string;       // AI-generated natural language explanation (Czech)
   analyzerUsed: string;      // "claude-sonnet-4-6" or similar identifier
   createdAt: string;
+  updatedAt: string;
 }
 
 interface SkinAnalysisResult extends AnalysisResultBase {
@@ -297,6 +300,27 @@ Per-user, per-child notification preferences. Controls when and how often the us
 ---
 
 ## PostgreSQL Schema
+
+### Reusable updated_at Trigger
+
+All mutable tables use this trigger to automatically set `updated_at` on every UPDATE:
+
+```sql
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Applied to each mutable table, e.g.:
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+-- (Repeat for: children, food_logs, meals, tracking_photos, analysis_results, push_subscriptions, reminder_configs)
+```
+
+This prevents bugs where a developer forgets to set `updated_at` in an UPDATE query, which would break the offline sync conflict resolution strategy (last-write-wins by `updatedAt`).
 
 ### users
 
@@ -484,7 +508,8 @@ CREATE TABLE analysis_results (
 
   explanation TEXT NOT NULL,
   analyzer_used TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_analysis_results_child ON analysis_results(child_id);
@@ -578,6 +603,24 @@ users ── google_doc_connections
 - **Users to Push Subscriptions:** One-to-many. Each device has its own subscription.
 - **Users + Children to Reminder Configs:** One-to-one per user-child pair. Each parent can set different reminder preferences for each child.
 - **Users to Google Doc Connections:** One-to-one. Each user can connect one Google account for Google Doc export with inline photos.
+
+---
+
+## System Tables
+
+### _migrations
+
+The migration runner (`scripts/migrate.ts`) automatically creates and manages a `_migrations` table to track which migration files have been executed:
+
+```sql
+CREATE TABLE IF NOT EXISTS _migrations (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  executed_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+This table is not part of the domain model and should not be referenced by application code.
 
 ---
 
@@ -767,7 +810,23 @@ The following food categories represent the most common allergens relevant to at
 | corn-starch | Kukuricny skrob |
 | sweet-corn | Sladka kukurice |
 
-#### 13. Ostatni (Other)
+#### 13. Sezam (Sesame)
+
+| slug | nameCs | icon |
+|---|---|---|
+| **Category:** sesame | Sezamové výrobky | sesame seed |
+
+**Sub-items:**
+
+| slug | nameCs |
+|---|---|
+| sesame-seeds | Sezamová semínka |
+| sesame-oil | Sezamový olej |
+| tahini | Tahini |
+
+> Sesame is a recognized top allergen in the EU (Regulation 1169/2011).
+
+#### 14. Ostatni (Other)
 
 | slug | nameCs | icon |
 |---|---|---|
@@ -798,7 +857,7 @@ VALUES
   ((SELECT id FROM dairy), 'casein', 'Kasein', 8);
 ```
 
-The full seed script follows the same pattern for all 13 categories and their sub-items. It should be idempotent (using `ON CONFLICT DO NOTHING` or checking existence before insert).
+The full seed script follows the same pattern for all 14 categories and their sub-items. It should be idempotent (using `ON CONFLICT DO NOTHING` or checking existence before insert).
 
 ---
 
@@ -820,6 +879,7 @@ The domain layer uses camelCase (TypeScript convention) while the database uses 
 | `childId` | `child_id` | UserChild, FoodLog, TrackingPhoto, etc. |
 | `birthDate` | `birth_date` | Child |
 | `nameCs` | `name_cs` | FoodCategory, FoodSubItem |
+| `sortOrder` | `sort_order` | FoodCategory, FoodSubItem |
 | `categoryId` | `category_id` | FoodSubItem, FoodLog, MealItem |
 | `subItemId` | `sub_item_id` | FoodLog, MealItem |
 | `createdBy` | `created_by` | FoodLog, TrackingPhoto |
@@ -835,6 +895,9 @@ The domain layer uses camelCase (TypeScript convention) while the database uses 
 | `hasBlood` | `has_blood` | TrackingPhoto |
 | `encryptedBlobRef` | `encrypted_blob_path` | TrackingPhoto |
 | `thumbnailRef` | `encrypted_thumb_path` | TrackingPhoto |
+
+> **Note:** The semantic mismatch between `encryptedBlobRef` (TypeScript) and `encrypted_blob_path` (PostgreSQL) is intentional — the TypeScript field uses "Ref" (reference) while PostgreSQL uses "path" (filesystem). The `PostgresRepository` adapter must map between these names explicitly. The `blobRef` returned by the `PhotoStorage` port is the same value stored as `encrypted_blob_path`.
+
 | `analysisType` | `analysis_type` | AnalysisResult |
 | `photo1Id` | `photo1_id` | AnalysisResult |
 | `photo2Id` | `photo2_id` | AnalysisResult |
@@ -844,6 +907,7 @@ The domain layer uses camelCase (TypeScript convention) while the database uses 
 | `colorAssessment` | `color_assessment` | StoolAnalysisResult |
 | `consistencyAssessment` | `consistency_assessment` | StoolAnalysisResult |
 | `hasAbnormalities` | `has_abnormalities` | StoolAnalysisResult |
+| `updatedAt` | `updated_at` | AnalysisResult |
 | `analyzerUsed` | `analyzer_used` | AnalysisResult |
 | `foodLogReminder` | `food_log_reminder` | ReminderConfig |
 | `foodLogReminderTime` | `food_log_reminder_time` | ReminderConfig |
