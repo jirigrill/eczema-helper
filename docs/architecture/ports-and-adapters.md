@@ -215,6 +215,16 @@ interface PhotoStorage {
    * Delete a photo and its thumbnail.
    */
   delete(blobRef: string): Promise<void>;
+
+  /**
+   * Get photos that have been captured locally but not yet uploaded to server.
+   */
+  getPendingUploads(): Promise<{ photoId: string; encryptedBlob: ArrayBuffer; encryptedThumb: ArrayBuffer; metadata: any }[]>;
+
+  /**
+   * Mark a photo as successfully uploaded to the server.
+   */
+  markUploaded(photoId: string): Promise<void>;
 }
 ```
 
@@ -252,6 +262,13 @@ interface DataRepository {
    * based on the latest action for each category.
    */
   getCurrentEliminationState(childId: string): Promise<Map<string, 'eliminated' | 'reintroduced'>>;
+
+  // --- Meals ---
+  getMealsForDate(userId: string, date: string): Promise<Meal[]>;
+  getMealWithItems(mealId: string): Promise<Meal & { items: MealItem[] } | null>;
+  createMeal(meal: Omit<Meal, 'id' | 'createdAt' | 'updatedAt'>, items: Omit<MealItem, 'id'>[]): Promise<Meal>;
+  updateMeal(id: string, updates: Partial<Meal>): Promise<Meal>;
+  deleteMeal(id: string): Promise<void>;
 
   // --- Photos ---
   getPhotos(childId: string, dateRange: { from: string; to: string }): Promise<TrackingPhoto[]>;
@@ -328,7 +345,7 @@ interface NotificationService {
 - Constructs a prompt requesting structured comparison output (trend, scores, explanation).
 - Parses Claude's response into the `AnalysisResult` format.
 - Handles rate limiting and error retries.
-- API key is stored as an environment variable on the client side (or entered by the user in settings).
+- API key is stored as a server-side environment variable (`CLAUDE_API_KEY`). The client sends decrypted photos to `POST /api/analyze`, and the server forwards them to the Claude API. The key never reaches the client.
 
 **Future alternatives:**
 - `GptVisionAnalyzer` -- Same interface, calls OpenAI GPT-4 Vision.
@@ -615,4 +632,46 @@ UI components catch domain errors and display them via a toast notification syst
     }
   }
 </script>
+```
+
+---
+
+## Logging Conventions
+
+### Strategy
+
+Use `pino` for structured JSON logging in production. In development, use `pino-pretty` for human-readable output.
+
+### Log Levels
+
+| Level | Usage | Examples |
+|-------|-------|---------|
+| `error` | Unrecoverable failures | Database connection lost, encryption failure, unhandled exception |
+| `warn` | Degraded operation | Claude API rate limit hit, push notification delivery failed, slow query |
+| `info` | Significant events | User login/logout, photo uploaded, sync completed, AI analysis requested |
+| `debug` | Development details | SQL queries, API request/response shapes, cache hits/misses |
+
+### What Must NEVER Be Logged
+
+- Passwords or passphrase material
+- Decrypted photo data or base64 image content
+- Session tokens or cookie values
+- API keys (CLAUDE_API_KEY, VAPID_PRIVATE_KEY, etc.)
+- Google OAuth refresh tokens
+
+### Request Correlation
+
+Attach a unique `requestId` (UUID) to every incoming request via `hooks.server.ts`. Pass it through to all log calls so that all entries for a single request can be traced:
+
+```typescript
+// hooks.server.ts
+event.locals.requestId = crypto.randomUUID();
+```
+
+### Setup
+
+Install in Phase 0:
+```bash
+npm install pino
+npm install -D pino-pretty
 ```
