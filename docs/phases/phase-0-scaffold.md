@@ -32,7 +32,7 @@ None. This is the first phase.
 - [ ] **AC-4 (Feature 4):** The `src/` directory contains at minimum: `lib/domain/`, `lib/domain/ports/`, `lib/adapters/`, `lib/crypto/`, `lib/i18n/`, `lib/stores/`, `lib/components/`, `routes/`, `routes/login/`, `routes/(app)/`.
 - [ ] **AC-5 (Feature 5):** `models.ts` exports TypeScript interfaces for `User`, `Session`, `Child`, `UserChild`, `FoodCategory`, `FoodSubItem`, `FoodLog`, `Meal`, `MealItem`, `TrackingPhoto`, `AnalysisResult` (discriminated union: `SkinAnalysisResult | StoolAnalysisResult`), `PushSubscription`, `ReminderConfig`, `GoogleDocConnection`. Each interface has an `id` field typed as `string`.
 - [ ] **AC-6 (Feature 6):** Port files export interfaces: `DataRepository` (with entity-specific query methods per `ports-and-adapters.md`), `EczemaAnalyzer` (with `comparePhotos` and `assessSeverity` methods), `PhotoStorage` (with `upload`, `uploadThumbnail`, `download`, `downloadThumbnail`, `delete`), `NotificationService` (with `sendNotification`, `sendReminder`, `processScheduledReminders`).
-- [ ] **AC-7 (Feature 7):** Importing the Dexie database instance and calling `db.open()` resolves without error. The database declares tables for `children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`.
+- [ ] **AC-7 (Feature 7):** Importing the Dexie database instance and calling `db.open()` resolves without error. The database declares tables for `children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`.
 - [ ] **AC-8 (Feature 8):** On a 375px-wide viewport the app shell renders a bottom navigation bar pinned to the bottom with exactly five tabs. Tapping each tab navigates to its route (`/calendar`, `/food`, `/photos`, `/trends`, `/settings`). The active tab is visually highlighted.
 - [ ] **AC-9 (Feature 9):** Navigating to `/login` renders a form with an email input, a password input, and a submit button. The form does not submit to any backend.
 - [ ] **AC-10 (Feature 10):** Running `docker compose -f docker-compose.dev.yml up -d` starts a PostgreSQL 16 container accessible on `localhost:5432` and the app container accessible on `0.0.0.0:3000`.
@@ -110,9 +110,23 @@ npm install -D @types/bcryptjs
 # Database driver (needed in Phase 1)
 npm install postgres
 
+# Logging
+npm install pino
+npm install -D pino-pretty
+
+# Input validation
+npm install zod
+
 # Dev tools
 npm install -D @sveltejs/adapter-node
+
+# Testing
+npm install -D fake-indexeddb
 ```
+
+> **Zod:** Use Zod for schema validation on all API request bodies. Define validation schemas alongside route handlers.
+
+> **fake-indexeddb:** Required for running Dexie.js tests in Node.js (Vitest), since IndexedDB is not natively available outside browsers.
 
 #### Step 3: Configure Tailwind CSS 4
 
@@ -122,7 +136,7 @@ Create `src/app.css`:
 @import 'tailwindcss';
 
 @theme {
-  --color-primary: #4f7cac;
+  --color-primary: #3d6994;  /* Darkened from #4f7cac to #3d6994 to meet WCAG AA contrast ratio of 4.5:1 on the #f8f9fa surface background. */
   --color-primary-light: #a0c4e8;
   --color-surface: #f8f9fa;
   --color-surface-dark: #e9ecef;
@@ -172,6 +186,20 @@ Ensure `tsconfig.json` includes:
     "noUnusedParameters": true
   }
 }
+```
+
+Ensure CSRF protection is active in all environments (including development, since the app is LAN-accessible via Caddy):
+
+```typescript
+// svelte.config.js
+export default {
+  kit: {
+    adapter: adapter(),
+    csrf: {
+      checkOrigin: true  // Active in ALL environments, not just production
+    }
+  }
+};
 ```
 
 #### Step 5: Create the directory structure
@@ -225,6 +253,7 @@ export class AtopicHelperDB extends Dexie {
   mealItems!: Table<MealItem>;
   trackingPhotos!: Table<TrackingPhoto>;
   analysisResults!: Table<AnalysisResult>;
+  photoBlobs!: Table<{ id: string; photoId: string; type: 'full' | 'thumbnail'; blob: ArrayBuffer }>;
 
   constructor() {
     super('atopic-helper');
@@ -236,7 +265,8 @@ export class AtopicHelperDB extends Dexie {
       meals: 'id, userId, date, [userId+date]',
       mealItems: 'id, mealId',
       trackingPhotos: 'id, childId, date, photoType, [childId+date], syncedAt',
-      analysisResults: 'id, childId, [photo1Id+photo2Id]'
+      analysisResults: 'id, childId, [photo1Id+photo2Id]',
+      photoBlobs: 'id, photoId, type'  // type: 'full' | 'thumbnail'
     });
   }
 }
@@ -279,13 +309,13 @@ Use `goto('/calendar')` in `onMount` or a `+page.server.ts` `load` function that
 
 ```json
 {
-  "name": "Eczema Tracker",
-  "short_name": "EczemaTrack",
-  "description": "Track elimination diet for infant atopic eczema",
+  "name": "Sledování ekzému",
+  "short_name": "Ekzém",
+  "description": "Sledování eliminační diety pro atopický ekzém kojence",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8f9fa",
-  "theme_color": "#4f7cac",
+  "theme_color": "#3d6994",
   "icons": [
     { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
@@ -421,9 +451,17 @@ RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 COPY --from=build /app/build ./build
 COPY --from=build /app/package*.json ./
 RUN npm ci --omit=dev
+
+RUN mkdir -p /data/photos && chown -R appuser:appgroup /data/photos
+USER appuser
+
 EXPOSE 3000
 CMD ["node", "build"]
 ```
@@ -455,8 +493,8 @@ npm run dev -- --host 0.0.0.0
 #### Step 22: Update `app.html`
 
 Ensure the `<head>` includes:
-- `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">` for mobile.
-- `<meta name="theme-color" content="#4f7cac">`.
+- `<meta name="viewport" content="width=device-width, initial-scale=1">` for mobile. Prevent unwanted zoom on input focus using CSS `font-size: 16px` on inputs rather than disabling zoom entirely.
+- `<meta name="theme-color" content="#3d6994">`.
 - `<link rel="manifest" href="/manifest.webmanifest">`.
 - `<meta name="apple-mobile-web-app-capable" content="yes">`.
 - `<meta name="apple-mobile-web-app-status-bar-style" content="default">`.
@@ -507,7 +545,7 @@ export interface DataRepository {
 **Bottom navigation active tab detection:**
 
 ```typescript
-import { page } from '$app/stores';
+import { page } from '$app/state';
 
 const tabs = [
   { href: '/calendar', label: 'Calendar', icon: 'calendar-icon' },
@@ -517,7 +555,7 @@ const tabs = [
   { href: '/settings', label: 'Settings', icon: 'settings-icon' }
 ];
 
-$: activeTab = tabs.find(t => $page.url.pathname.startsWith(t.href));
+const activeTab = $derived(tabs.find(t => page.url.pathname.startsWith(t.href)));
 ```
 
 ## Post-Implementation State
@@ -543,7 +581,7 @@ The app shell runs on the developer's laptop in Docker and is accessible via HTT
 | # | Test Case | Details |
 |---|---|---|
 | 6 | Database opens without error | Call `db.open()` and assert it resolves. Call `db.close()` in teardown. |
-| 7 | All expected tables exist | After opening, assert `db.tables.map(t => t.name)` contains `children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`. |
+| 7 | All expected tables exist | After opening, assert `db.tables.map(t => t.name)` contains `children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`. |
 | 8 | FoodLogs compound index works | Insert a food log with `childId` and `date`, query using `.where('[childId+date]')`, assert the record is returned. |
 
 **Test file: `src/lib/i18n/cs.test.ts`**
@@ -609,6 +647,28 @@ The app shell runs on the developer's laptop in Docker and is accessible via HTT
 1. Navigate to `http://localhost:5173/`.
 2. **Expected:** The browser redirects to `/calendar`. The URL bar shows `/calendar`.
 
+### CI Pipeline Script
+
+Create `scripts/test-all.sh` as the minimum CI gate:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+echo "=== Type Check ==="
+npx tsc --noEmit
+
+echo "=== Unit + Integration Tests ==="
+npx vitest run
+
+echo "=== Build ==="
+npm run build
+
+echo "=== All checks passed ==="
+```
+
+This script should be run before every push to main. A GitHub Actions workflow can be added later (Phase 8) for automated CI.
+
 ### Regression Checks
 
 Since this is Phase 0 (the first phase), there are no prior phases to regress against. However, establish these baseline checks that must pass in every subsequent phase:
@@ -622,4 +682,4 @@ Since this is Phase 0 (the first phase), there are no prior phases to regress ag
 - [ ] The login page renders without console errors.
 - [ ] `docker compose -f docker-compose.dev.yml up -d` starts PostgreSQL and the app, both accepting connections.
 - [ ] `https://192.168.x.x` loads the app on a phone without certificate warnings.
-- [ ] All Dexie.js tables (`children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`) are accessible after `db.open()`.
+- [ ] All Dexie.js tables (`children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`) are accessible after `db.open()`.
