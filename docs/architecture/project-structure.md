@@ -263,6 +263,16 @@ SvelteKit `+server.ts` files define HTTP endpoints. These run server-side only.
 | `api/food-logs/+server.ts` | GET, POST, DELETE | CRUD for food elimination logs |
 | `api/photos/+server.ts` | GET, POST, DELETE | Upload/download encrypted photo blobs, photo metadata CRUD |
 | `api/children/+server.ts` | GET, POST, PUT | Child management |
+| `api/meals/+server.ts` | GET, POST, PUT, DELETE | Meal CRUD with meal items |
+| `api/meals/[id]/+server.ts` | PUT, DELETE | Individual meal operations |
+| `api/analyze/+server.ts` | POST | Server proxy to Claude Vision API for photo analysis |
+| `api/analysis/+server.ts` | GET, POST | Analysis results CRUD |
+| `api/analysis/[id]/+server.ts` | GET | Individual analysis result |
+| `api/sync/push/+server.ts` | POST | Batch push of offline changes |
+| `api/sync/pull/+server.ts` | GET | Delta sync pull (records since timestamp) |
+| `api/auth/password/+server.ts` | PUT | Password change |
+| `api/health/+server.ts` | GET | Health check endpoint |
+| `api/google/+server.ts` | GET, POST, DELETE | Google OAuth and export |
 | `api/push/+server.ts` | POST, DELETE | Push subscription registration and removal |
 
 #### `app.html`

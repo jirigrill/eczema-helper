@@ -278,8 +278,6 @@ VPS (Ubuntu 24.04 LTS / Debian 12)
 ### docker-compose.yml
 
 ```yaml
-version: "3.8"
-
 services:
   app:
     build:
@@ -287,6 +285,12 @@ services:
       dockerfile: Dockerfile
     container_name: eczema-app
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     ports:
       - "127.0.0.1:3000:3000"    # Only listen on localhost (Nginx proxies)
     environment:
@@ -314,6 +318,12 @@ services:
     image: postgres:16-alpine
     container_name: eczema-postgres
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
     environment:
       - POSTGRES_DB=eczema
       - POSTGRES_USER=eczema
@@ -382,6 +392,18 @@ USER appuser
 
 EXPOSE 3000
 CMD ["node", "build"]
+```
+
+### Graceful Shutdown
+
+Set `stop_grace_period: 30s` on the app service in Docker Compose. SvelteKit's adapter-node handles SIGTERM by default — it stops accepting new connections and waits for in-flight requests to complete. Ensure the PostgreSQL connection pool is drained on shutdown:
+
+```typescript
+// In the server startup or hooks
+process.on('SIGTERM', async () => {
+  await sql.end({ timeout: 10 });  // drain postgres.js pool
+  process.exit(0);
+});
 ```
 
 ---
@@ -505,6 +527,8 @@ server {
 
 **CSRF Protection:** SvelteKit's `+server.ts` endpoints automatically check the `Origin` header on non-GET requests when running in production mode. This prevents cross-site POST/PUT/DELETE attacks without additional CSRF tokens. The `SameSite=Lax` cookie attribute provides a second layer of protection.
 
+**CSP Note:** This is the canonical CSP configuration. Phase 8 should use the same CSP. Avoid `'unsafe-inline'` for `script-src` — SvelteKit can be configured to use nonces instead. The `connect-src 'self'` is correct because the AI analysis uses a server proxy (client never calls api.anthropic.com directly). If `'unsafe-inline'` for `script-src` cannot be avoided due to SvelteKit's inline scripts, document this as a known trade-off.
+
 ### Enable the Site
 
 ```bash
@@ -602,13 +626,26 @@ echo "Photo backup completed"
 30 3 * * * root /opt/eczema-backup/backup-photos.sh >> /var/log/eczema-backup.log 2>&1
 ```
 
-### Off-site Backup (Optional)
+### Off-site Backup (Required)
 
-For disaster recovery, sync backups to a remote location weekly:
+For disaster recovery, sync backups to a remote location weekly. Since encrypted photos are irreplaceable (lost passphrase = unrecoverable by design, lost data = unrecoverable by physics), single-point-of-failure for backups is unacceptable.
 
 ```bash
-# Using rclone to a remote storage (e.g., Hetzner Storage Box, Backblaze B2)
+# Weekly sync to remote storage (e.g., Hetzner Storage Box ~3 EUR/month, Backblaze B2 free tier)
 rclone sync /backups/ remote:eczema-backups/ --transfers 4
+```
+
+**Backup verification:** After the weekly off-site sync, restore the latest DB dump to a temporary database and verify data integrity:
+
+```bash
+# Verify backup can be decrypted and restored
+openssl enc -aes-256-cbc -d -pbkdf2 -pass file:/opt/eczema-backup/backup.key \
+  < /backups/db/eczema_latest.sql.gz.enc | gunzip | head -5
+```
+
+Schedule weekly:
+```cron
+0 4 * * 0 root /opt/eczema-backup/offsite-sync.sh >> /var/log/eczema-backup.log 2>&1
 ```
 
 ### Restore Procedures
@@ -762,7 +799,12 @@ At this rate, a 20 GB disk allocation for photos would last over 25 years. Disk 
 cd /opt/eczema-tracker
 git pull origin main
 docker compose build app
+# Run migrations BEFORE restarting the app (new schema, old code is safe)
+docker exec eczema-app node build/migrate.js
+# Now restart with new code
 docker compose up -d app
+# Verify health
+curl -s https://eczema.example.com/api/health | jq .
 ```
 
 The PostgreSQL container does not need to be restarted for app updates. The zero-downtime goal is not critical for a personal app (a few seconds of downtime during restart is acceptable).
