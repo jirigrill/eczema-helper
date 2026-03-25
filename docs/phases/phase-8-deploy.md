@@ -610,8 +610,18 @@ Make it executable and add to cron:
 ```bash
 chmod +x scripts/backup.sh
 # Add to root's crontab:
+# MAILTO=admin@example.com
 # 0 2 * * * /opt/eczema-tracker/scripts/backup.sh >> /var/log/eczema-backup.log 2>&1
 ```
+
+### External Monitoring
+
+Set up an external uptime monitor (free tier of UptimeRobot, Hetrix, or similar):
+- Ping `GET /api/health` every 5 minutes
+- Send email/push alerts on 2 consecutive failures
+- This catches scenarios where the entire VPS is down (which Docker's internal healthcheck cannot detect)
+
+**Backup failure alerting:** Add `MAILTO=admin@example.com` to the cron configuration so backup script failures send an email notification.
 
 #### Step 7: Create the Restore Script
 
@@ -878,6 +888,38 @@ Test the following scenarios manually:
 **Centralized i18n**: All Czech strings live in `src/lib/i18n/cs.ts` as a single typed object. Components import and reference specific keys, making it easy to audit completeness and consistency.
 
 **PWA install prompt**: The `beforeinstallprompt` event is captured and deferred. A custom Svelte component shows the install prompt with Czech text. On iOS, which does not fire this event, a separate instruction overlay is shown. The prompt is dismissed for the session after the user clicks "Pozdeji".
+
+### Account Deletion
+
+Add a "Smazat účet" (Delete account) button in Settings with a confirmation dialog:
+
+> "Toto smaže veškerá data včetně fotek. Tuto akci nelze vrátit zpět." (This will delete all data including photos. This action cannot be undone.)
+
+Implementation:
+1. Delete all children (cascades to food_logs, tracking_photos, analysis_results)
+2. Delete photo blob files from filesystem
+3. Delete Google Doc connection (revoke token)
+4. Delete push subscriptions
+5. Delete the user record (cascades to sessions)
+6. Clear all Dexie tables
+7. Redirect to login page
+
+### Data Export
+
+Before account deletion, offer a JSON data export:
+
+```typescript
+GET /api/export/data → {
+  user: User,
+  children: Child[],
+  foodLogs: FoodLog[],
+  meals: Meal[],
+  photos: TrackingPhoto[], // metadata only, not blobs
+  analysisResults: AnalysisResult[]
+}
+```
+
+Photos (encrypted blobs) are not included in the JSON export — they can be exported via the PDF feature.
 
 ## Post-Implementation State
 

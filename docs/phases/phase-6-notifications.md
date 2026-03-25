@@ -19,8 +19,10 @@ This phase adds Web Push notifications to the Eczema Tracker PWA, enabling paren
 2. **Push subscription flow**: Request notification permission from the user, subscribe via the Push API, persist the subscription (endpoint + keys) to the server.
 3. **Reminder configuration page**: UI in settings for enabling/disabling reminders, setting times, and configuring intervals. All labels in Czech.
 4. **Server-side cron job**: Periodic task that checks `reminder_configs` and `push_subscriptions` tables, determines which reminders are due, and sends push notifications via the `web-push` library.
-5. **Food log reminder**: "Zaznamenala jsi dnes jidlo?" notification sent at a configurable evening time (default 20:00). Only sent if no food log entry exists for the current day.
-6. **Photo reminder**: "Cas na kontrolni fotku" notification sent at a configurable interval (default every 3 days) and time (default 10:00). Only sent if no photo was taken within the configured interval.
+5. **Food log reminder**: "Dnešní záznam jídla pomůže lépe sledovat změny." notification sent at a configurable evening time (default 20:00). Only sent if no food log entry exists for the current day.
+6. **Photo reminder**: "{childName}: Kontrolní fotka pomůže vidět pokrok." notification sent at a configurable interval (default every 3 days) and time (default 10:00). Only sent if no photo was taken within the configured interval.
+
+> **Note:** Include the child's name in photo reminders for personalization. Avoid question format ('Did you...?') as it implies judgment.
 
 ## Acceptance Criteria
 
@@ -115,6 +117,8 @@ CREATE TABLE reminder_configs (
 );
 ```
 
+**Schema note:** The authoritative schema for `push_subscriptions` and `reminder_configs` is defined in Phase 1's `001_initial_schema.sql` migration. This phase does NOT create these tables — it uses the existing schema. If additional columns are needed (such as `last_photo_notification_at`), add them via a new migration file (e.g., `004_notification_enhancements.sql`).
+
 #### Step 3: Define the Notifications Port
 
 Create `src/lib/domain/ports/notifications.ts`:
@@ -136,7 +140,13 @@ export interface ReminderConfig {
     photoReminder: boolean;
     photoReminderIntervalDays: number;  // e.g. 3
     photoReminderTime: string;          // "HH:MM" format, e.g. "10:00"
+    quietHoursStart?: string;           // "HH:MM" format, e.g. "22:00" (disabled if not set)
+    quietHoursEnd?: string;             // "HH:MM" format, e.g. "07:00" (disabled if not set)
 }
+
+**Snooze:** Notifications include an action button "Za hodinu" (In an hour) that reschedules the reminder for 1 hour later via the service worker's notification action handler.
+
+**Quiet hours:** Add a `quietHoursStart` and `quietHoursEnd` field to `ReminderConfig` (e.g., 22:00–07:00). The cron scheduler skips notifications during quiet hours. Default: disabled. Czech parents of newborns are often awake at night but cannot act on reminders during feedings.
 
 export interface NotificationPayload {
     title: string;
@@ -348,8 +358,8 @@ export class NotificationScheduler {
         for (const reminder of dueReminders) {
             const subscriptions = await this.deps.notifications.getSubscriptions(reminder.userId);
             const payload: NotificationPayload = {
-                title: 'Eczema Tracker',
-                body: 'Zaznamenala jsi dnes jidlo?',
+                title: 'Sledování ekzému',
+                body: 'Dnešní záznam jídla pomůže lépe sledovat změny.',
                 icon: '/icons/icon-192x192.png',
                 badge: '/icons/badge-72x72.png',
                 tag: `food-log-${reminder.childId}-${now.toISOString().slice(0, 10)}`,
@@ -372,8 +382,8 @@ export class NotificationScheduler {
         for (const reminder of dueReminders) {
             const subscriptions = await this.deps.notifications.getSubscriptions(reminder.userId);
             const payload: NotificationPayload = {
-                title: 'Eczema Tracker',
-                body: 'Cas na kontrolni fotku',
+                title: 'Sledování ekzému',
+                body: `${reminder.childName}: Kontrolní fotka pomůže vidět pokrok.`,
                 icon: '/icons/icon-192x192.png',
                 badge: '/icons/badge-72x72.png',
                 tag: `photo-${reminder.childId}`,
@@ -439,6 +449,17 @@ export function stopNotificationCron(): void {
 ```
 
 Initialize the cron job in your SvelteKit server hooks or startup file so it runs when the server starts.
+
+**Missed windows on restart:** If the app container restarts, the `node-cron` scheduler resets. Reminders due during the restart window are missed. To mitigate, on cron start, check for any reminders that should have fired since the last recorded check time:
+
+```typescript
+// On scheduler startup
+const lastCheck = await getLastCronCheckTime();
+if (lastCheck && Date.now() - lastCheck.getTime() > 2 * 60 * 1000) {
+  // More than 2 minutes since last check — catch up
+  await processScheduledReminders();
+}
+```
 
 #### Step 7: Create the Push Subscription API
 
@@ -697,8 +718,8 @@ Users can navigate to the settings page and configure push notification reminder
    - Edge case: interval of 0 days (invalid) does not cause errors.
 
 3. **NotificationPayload construction**
-   - Food log reminder payload has title "Eczema Tracker", body "Zaznamenala jsi dnes jidlo?", tag containing the child ID and date, and data.url = "/food-log".
-   - Photo reminder payload has title "Eczema Tracker", body "Cas na kontrolni fotku", tag containing the child ID, and data.url = "/photos/capture".
+   - Food log reminder payload has title "Sledování ekzému", body "Dnešní záznam jídla pomůže lépe sledovat změny.", tag containing the child ID and date, and data.url = "/food-log".
+   - Photo reminder payload has title "Sledování ekzému", body containing the child's name and "Kontrolní fotka pomůže vidět pokrok.", tag containing the child ID, and data.url = "/photos/capture".
    - Payloads include icon and badge paths.
 
 4. **WebPushAdapter.sendNotification**
@@ -750,12 +771,12 @@ Users can navigate to the settings page and configure push notification reminder
    - Accept the browser permission prompt.
    - Verify the UI updates to show "Notifikace povoleny" (Notifications enabled).
    - Enable food log reminder, set time to 1 minute from now.
-   - Wait for the cron to fire; verify a push notification appears with the text "Zaznamenala jsi dnes jidlo?"
+   - Wait for the cron to fire; verify a push notification appears with the text "Dnešní záznam jídla pomůže lépe sledovat změny."
    - Click the notification; verify the app opens to the food log page.
 
 2. **Photo reminder end-to-end**
    - Enable photo reminders with interval = 1 day and time = 1 minute from now.
-   - Wait for the notification "Cas na kontrolni fotku".
+   - Wait for the notification containing the child's name and "Kontrolní fotka pomůže vidět pokrok."
    - Click the notification; verify the app opens to the photo capture page.
    - Verify the notification does not fire again for the configured interval.
 

@@ -37,10 +37,10 @@ A personal progressive web application for tracking a breastfed newborn's atopic
 | [architecture/data-models.md](architecture/data-models.md) | TypeScript interfaces and PostgreSQL schema |
 | [architecture/encryption.md](architecture/encryption.md) | E2E encryption flow and key management |
 | [architecture/auth-overview.md](architecture/auth-overview.md) | Passwords, sessions, API keys, OAuth tokens, env vars |
-| [architecture/auth-overview.md](architecture/auth-overview.md) | Passwords, sessions, API keys, OAuth tokens, env vars |
 | [architecture/offline-strategy.md](architecture/offline-strategy.md) | Offline-first architecture, Dexie sync, conflict resolution |
 | [architecture/api-routes.md](architecture/api-routes.md) | Complete API endpoint reference (all methods, auth, request/response) |
 | [architecture/deployment.md](architecture/deployment.md) | Local dev (Docker + mkcert) and production VPS deployment |
+| [architecture/testing-strategy.md](architecture/testing-strategy.md) | Test pyramid, conventions, database strategy, mock boundaries, CI pipeline |
 | architecture/ui-design.md | UI wireframes, navigation flow, design system, mobile UX conventions *(created in Phase 1 after testing on real phone)* |
 
 ## Implementation Phases
