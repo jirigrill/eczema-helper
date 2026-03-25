@@ -82,6 +82,20 @@ LOGIN:
     -> Rate limit check before bcrypt.compare()
 ```
 
+### Per-Account Login Lockout
+
+To prevent credential stuffing from rotating IPs, track failed login attempts per account:
+
+```sql
+ALTER TABLE users ADD COLUMN failed_login_attempts INT DEFAULT 0;
+ALTER TABLE users ADD COLUMN locked_until TIMESTAMPTZ;
+```
+
+**Logic:**
+1. Before `bcrypt.compare()`, check if `locked_until > NOW()`. If so, return 401 with generic "Invalid credentials" (same message as wrong password to prevent enumeration).
+2. On failed login: increment `failed_login_attempts`. If >= 5, set `locked_until = NOW() + 15 minutes`.
+3. On successful login: reset `failed_login_attempts = 0` and `locked_until = NULL`.
+
 ---
 
 ## Sessions
@@ -93,7 +107,7 @@ LOGIN:
 | Cookie name | `session_id` |
 | Cookie flags | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` |
 | Session storage | PostgreSQL `sessions` table |
-| Session ID format | `crypto.randomUUID()` (128-bit random) |
+| Session ID format | `crypto.randomBytes(32).toString('hex')` (256-bit random) |
 | Expiration | 30 days from creation |
 | Renewal | Extended on each authenticated request (sliding window) |
 
@@ -115,7 +129,7 @@ CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 
 ```
 LOGIN:
-  -> Generate session_id = crypto.randomUUID()
+  -> Generate session_id = crypto.randomBytes(32).toString('hex')
   -> INSERT INTO sessions (id, user_id, expires_at)
      VALUES (session_id, user_id, now() + 30 days)
   -> Set-Cookie: session_id=...; HttpOnly; Secure; SameSite=Lax;
@@ -126,6 +140,8 @@ EACH REQUEST (SvelteKit hooks):
   -> SELECT * FROM sessions WHERE id = session_id AND expires_at > now()
   -> If valid: attach user to event.locals,
      extend expires_at (sliding: now + 30 days)
+     NOTE: Only extend if less than 15 days remain on the session.
+     This reduces database writes from every request to ~once per 15 days.
   -> If invalid/expired: clear cookie, redirect to /login
 
 LOGOUT:
@@ -137,6 +153,20 @@ CLEANUP (periodic):
   -> Run daily via server-side cron or on each request
      with probabilistic check
 ```
+
+### Session Cleanup
+
+Expired sessions are cleaned up daily via the existing cron infrastructure (Phase 6 `node-cron`):
+
+```typescript
+// Run daily at 03:00
+cron.schedule('0 3 * * *', async () => {
+  await sql`DELETE FROM sessions WHERE expires_at < NOW()`;
+  logger.info('Expired sessions cleaned up');
+});
+```
+
+Alternatively, add to the daily backup cron: `docker exec eczema-postgres psql -U eczema -d eczema -c "DELETE FROM sessions WHERE expires_at < NOW()"`.
 
 ---
 
@@ -192,12 +222,29 @@ This keeps the API key server-side and provides a single auditable point for all
 
 The refresh token is encrypted server-side before storage using Node.js `crypto` module:
 
+**Key derivation:** To maintain key separation (SESSION_SECRET is also used for session management), derive a dedicated token encryption key using HKDF:
+
+```typescript
+import { hkdf } from 'crypto';
+
+async function deriveTokenKey(secret: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    hkdf('sha256', Buffer.from(secret, 'hex'), '', 'google-token-encryption', 32, (err, key) => {
+      if (err) reject(err);
+      else resolve(Buffer.from(key));
+    });
+  });
+}
+```
+
+Use this derived key instead of `Buffer.from(secret, 'hex').subarray(0, 32)` in the encrypt/decrypt functions below.
+
 ```typescript
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 function encryptToken(token: string, secret: string): string {
   const key = Buffer.from(secret, 'hex').subarray(0, 32);
-  const iv = randomBytes(16);
+  const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([
     cipher.update(token, 'utf8'),

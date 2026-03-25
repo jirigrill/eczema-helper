@@ -37,6 +37,7 @@ Features that require a network connection:
 | `mealItems` | Server + local | Bidirectional sync, local-first |
 | `trackingPhotos` | Server + local | Metadata bidirectional; encrypted blobs cached for offline gallery |
 | `analysisResults` | Server | Downloaded from server, read-only locally |
+| `photoBlobs` | Local | Encrypted photo blobs (full + thumbnail) stored as ArrayBuffer. Keyed by `photoId`. Type field distinguishes `'full'` vs `'thumbnail'`. Full-size blobs evicted under storage pressure; thumbnails always kept. |
 
 ---
 
@@ -71,7 +72,7 @@ Subsequent syncs only fetch records where `updated_at > lastSyncTimestamp`.
 
 ## 5. Conflict Resolution
 
-Strategy: **last-write-wins by `updatedAt` timestamp**.
+Strategy: **last-write-wins by server-side `updatedAt` timestamp**.
 
 When pulling server data that conflicts with a local record:
 
@@ -88,6 +89,10 @@ This is acceptable because:
 Edge case: if both parents edit the same food log within the same second, the server version wins (server `updatedAt` is set on insert).
 
 No conflict log is maintained. This would be over-engineering for a 2-user app. If needed in the future, a `conflicts` Dexie table could be added.
+
+**Server-side timestamps:** When a record is pushed from Dexie to the server, the server sets `updated_at = NOW()` (ignoring the client's `updatedAt`). This eliminates clock-skew issues between devices. The push order determines the winner — if both parents edit the same record offline, the one who syncs first gets their version as the baseline, and the second sync overwrites it with the later server timestamp.
+
+**Duplicate logical records:** To prevent both parents from logging the same food elimination independently, add a unique constraint on `(child_id, date, category_id, action)` in the `food_logs` table, with `ON CONFLICT DO NOTHING` in the batch sync upsert.
 
 ---
 
@@ -169,7 +174,62 @@ This ensures no data leaks between users on a shared device.
 
 ---
 
-## 10. Service Worker Caching Strategy
+## 10. Dexie Schema Evolution
+
+When adding new tables or indexes across phases, bump the Dexie version number and provide an upgrade hook if data transformation is needed:
+
+```typescript
+// Adding a new table in Phase 3
+this.version(2).stores({
+  // ... all existing tables unchanged ...
+  photoBlobs: 'id, photoId, type'  // new table
+});
+
+// Adding a new index in a later phase
+this.version(3).stores({
+  // ... existing stores with the new index added ...
+  trackingPhotos: 'id, childId, date, photoType, [childId+date], [childId+photoType], syncedAt'
+}).upgrade(tx => {
+  // Optional data migration if needed
+});
+```
+
+**Rules:**
+- Never modify a published version's store definition. Always create a new version.
+- Dexie handles adding new tables and indexes automatically.
+- Use `.upgrade(tx => ...)` only when existing data needs transformation.
+- After a schema upgrade, the sync engine should perform a full re-sync to ensure consistency.
+- Test schema migrations by creating a database at version N-1, populating with test data, opening at version N, and verifying data is preserved.
+
+---
+
+## 11. IndexedDB Storage Quota Management
+
+Browser storage quotas vary: Safari limits IndexedDB to ~1 GB per origin, Chrome is more generous but can evict data under storage pressure.
+
+**Detection:**
+```typescript
+const estimate = await navigator.storage.estimate();
+const usagePct = (estimate.usage! / estimate.quota!) * 100;
+```
+
+**Eviction strategy (when usage > 80%):**
+1. Evict full-size blobs from `photoBlobs` (LRU order), keeping only thumbnails.
+2. Show a Czech-language warning: "Úložiště zařízení je téměř plné. Plné fotky budou staženy ze serveru při zobrazení."
+3. Never evict thumbnails — they are essential for offline gallery.
+
+**Persistent storage:** Request via `navigator.storage.persist()` after PWA installation to reduce the risk of browser-initiated eviction.
+
+**Sync status indicator:** Display a sync status icon in the app header:
+- Green cloud: all data synced
+- Orange cloud: syncing in progress
+- Grey cloud with slash: offline
+- Show a brief toast on sync completion: "Všechna data synchronizována."
+- On items created offline, show an inline label: "Uloženo lokálně, bude synchronizováno."
+
+---
+
+## 12. Service Worker Caching Strategy
 
 Using Workbox via `@vite-pwa/sveltekit`:
 
@@ -182,7 +242,7 @@ Using Workbox via `@vite-pwa/sveltekit`:
 
 ---
 
-## 11. What Works Offline vs Online-Only
+## 13. What Works Offline vs Online-Only
 
 | Feature | Offline | Online required |
 |---|---|---|

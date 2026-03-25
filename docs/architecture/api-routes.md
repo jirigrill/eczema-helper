@@ -17,6 +17,7 @@ All routes except `/api/auth/register`, `/api/auth/login`, and `/api/health` req
 | POST | `/api/auth/register` | No | `{ email, password, name }` | 201: User (no password) | 409 if email taken. 400 if invalid. Disabled when `REGISTRATION_ENABLED=false` (403). |
 | POST | `/api/auth/login` | No | `{ email, password }` | 200: User + Set-Cookie | 401 if invalid. Cookie: `session_id`, 30-day sliding. |
 | POST | `/api/auth/logout` | Yes | -- | 200 | Deletes session, clears cookie. |
+| PUT | `/api/auth/password` | Yes | `{ currentPassword, newPassword }` | 200 | 401 if current password wrong. Validates new password (8-72 bytes). Invalidates all other sessions for the user. |
 
 ### Children (Phase 1)
 
@@ -44,6 +45,13 @@ All routes except `/api/auth/register`, `/api/auth/login`, and `/api/health` req
 | POST | `/api/meals` | Yes | `{ date, mealType, label?, items: MealItem[] }` | 201: `Meal` | Creates meal + items in one request. |
 | PUT | `/api/meals/[id]` | Yes | Partial `Meal` | 200: `Meal` | Verifies ownership. |
 | DELETE | `/api/meals/[id]` | Yes | -- | 204 | Cascades to `meal_items`. |
+
+### Sync (Phase 2)
+
+| Method | Path | Auth | Request Body | Response | Notes |
+|--------|------|------|--------------|----------|-------|
+| POST | `/api/sync/push` | Yes | `{ foodLogs?: FoodLog[], meals?: Meal[], mealItems?: MealItem[] }` | 200: `{ synced: { foodLogs: number, meals: number } }` | Batch upsert. Server sets `updated_at = NOW()` on each record. Returns count of synced records. Max 100 records per request. |
+| GET | `/api/sync/pull?since=ISO_TIMESTAMP&childId=UUID` | Yes | -- | 200: `{ foodLogs, meals, mealItems, trackingPhotos, analysisResults, serverTime }` | Returns all records updated since timestamp. Photos are metadata only (no blobs). `serverTime` is used as the next `since` value. |
 
 ### Photos (Phase 3)
 
@@ -121,3 +129,11 @@ Handled by Nginx `limit_req`:
 |-------|-------|-------|
 | Auth endpoints (`/api/auth/*`) | 5 req/min per IP | 3 |
 | All other API endpoints (`/api/*`) | 30 req/min per IP | 10 |
+
+**Photo upload rate limit:** The `/api/photos` POST endpoint should be additionally limited to 10 req/min per IP to prevent disk exhaustion from rapid uploads. Add a dedicated Nginx zone:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=photos:10m rate=10r/m;
+```
+
+**Application-level rate limiting:** As a fallback for when Nginx is bypassed (development), implement per-email login throttling in `hooks.server.ts` using `rate-limiter-flexible` backed by PostgreSQL. Track failed login attempts per email (5 failures per 15 minutes locks the account).
