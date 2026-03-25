@@ -232,6 +232,46 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 };
 ```
 
+### Claude API Resilience
+
+**Request timeout:** Set a 60-second timeout on the Claude API call. If exceeded, return a timeout error to the client:
+
+```typescript
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 60_000);
+
+try {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    signal: controller.signal,
+    // ... headers, body
+  });
+} finally {
+  clearTimeout(timeout);
+}
+```
+
+**Concurrency limit:** Allow maximum 2 simultaneous Claude API calls. Queue additional requests or return a "busy" status:
+
+```typescript
+let activeAnalyses = 0;
+const MAX_CONCURRENT = 2;
+
+if (activeAnalyses >= MAX_CONCURRENT) {
+  return json({ error: 'Analýza je momentálně zaneprázdněna. Zkuste to za chvíli.', code: 'ANALYSIS_BUSY' }, { status: 503 });
+}
+```
+
+**Circuit breaker:** After 3 consecutive Claude API failures, stop sending requests for 5 minutes and return an error immediately. Reset on the first success.
+
+**Memory management:** After forwarding photos to Claude and receiving the response, explicitly dereference the photo buffers:
+
+```typescript
+// After sending to Claude
+photo1Buffer = null;
+photo2Buffer = null;
+// Response streaming preferred over full buffering
+```
+
 **System prompts for structured output (type-specific):**
 
 ```typescript
@@ -404,3 +444,18 @@ After completing Phase 4 the application supports AI-powered eczema comparison a
 - [ ] Offline photo capture and sync from Phase 3 still function.
 - [ ] The comparison page layout accommodates the new "Analyzovat" button and result card without breaking existing styling.
 - [ ] Navigation to the new analysis history page does not break existing route guards or layouts.
+
+### Test Fixtures
+
+Create `tests/fixtures/claude-responses/` with sample JSON response files:
+- `valid-skin-analysis.json` — Standard successful skin comparison
+- `valid-stool-analysis.json` — Standard successful stool comparison
+- `malformed-response.json` — Missing required fields
+- `markdown-wrapped.json` — Response wrapped in markdown code blocks (Claude sometimes does this)
+- `rate-limited.json` — 429 response body
+
+Use these fixtures in unit tests for `ClaudeVisionAnalyzer` response parsing. This makes regression detection trivial when Claude's response format changes.
+
+### Navigation
+
+Access analysis history via the Photos tab: add a sub-navigation within the photos page: **Galerie** | **Srovnání** | **Historie analýz** (Gallery | Compare | Analysis History). The analysis history shows a chronological list of past AI comparisons with trend badges.
