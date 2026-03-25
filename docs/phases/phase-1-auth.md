@@ -79,6 +79,15 @@ Phase 0 must be complete. Specifically:
 This migration creates all tables matching the canonical schema in `docs/architecture/data-models.md`. PostgreSQL 16's native `gen_random_uuid()` is used (no extensions needed).
 
 ```sql
+-- Reusable trigger for updating updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- === Auth ===
 
 CREATE TABLE users (
@@ -91,6 +100,9 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_users_email ON users(email);
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -110,6 +122,9 @@ CREATE TABLE children (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON children
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TABLE user_children (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -154,6 +169,9 @@ CREATE TABLE food_logs (
 CREATE INDEX idx_food_logs_child_date ON food_logs(child_id, date);
 CREATE INDEX idx_food_logs_child_category ON food_logs(child_id, category_id);
 
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON food_logs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- === Meals ===
 
 CREATE TABLE meals (
@@ -166,6 +184,9 @@ CREATE TABLE meals (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_meals_user_date ON meals(user_id, date);
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON meals
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TABLE meal_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -202,6 +223,9 @@ CREATE TABLE tracking_photos (
 CREATE INDEX idx_tracking_photos_child_date ON tracking_photos(child_id, date);
 CREATE INDEX idx_tracking_photos_type ON tracking_photos(child_id, photo_type);
 
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON tracking_photos
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- === Analysis results (discriminated: skin vs stool) ===
 
 CREATE TABLE analysis_results (
@@ -229,16 +253,22 @@ CREATE INDEX idx_analysis_results_photos ON analysis_results(photo1_id, photo2_i
 CREATE TABLE push_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  endpoint TEXT NOT NULL,
-  p256dh TEXT NOT NULL,
-  auth TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh_key TEXT NOT NULL,
+  auth_key TEXT NOT NULL,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON push_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- === Reminder configs ===
 
 CREATE TABLE reminder_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   child_id UUID REFERENCES children(id) ON DELETE CASCADE,
   food_log_reminder BOOLEAN DEFAULT true,
@@ -246,8 +276,14 @@ CREATE TABLE reminder_configs (
   photo_reminder BOOLEAN DEFAULT true,
   photo_reminder_interval_days INT DEFAULT 3,
   photo_reminder_time TIME DEFAULT '10:00',
-  PRIMARY KEY (user_id, child_id)
+  last_photo_notification_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, child_id)
 );
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON reminder_configs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- === Google Doc export ===
 
@@ -323,14 +359,18 @@ export async function createSession(userId: string): Promise<string> {
 
 export async function validateAndExtendSession(sessionId: string): Promise<{ userId: string } | null> {
   const rows = await sql`
-    SELECT user_id FROM sessions
+    SELECT user_id, expires_at FROM sessions
     WHERE id = ${sessionId} AND expires_at > NOW()
   `;
   if (rows.length === 0) return null;
 
-  // Sliding session: extend expiry on each validated request
-  const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
-  await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
+  // Sliding session: extend expiry, but only if less than 15 days remaining
+  // This reduces database writes from every request to approximately once per 15 days
+  const fifteenDays = 15 * 24 * 60 * 60 * 1000;
+  if (rows[0].expires_at.getTime() - Date.now() < fifteenDays) {
+    const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+    await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
+  }
 
   return { userId: rows[0].user_id };
 }
@@ -427,6 +467,45 @@ In `src/routes/(app)/+layout.svelte`, add a header bar above the main content ar
 #### Step 14: Update the (app) layout server load function
 
 In `src/routes/(app)/+layout.server.ts`, load the user's children from the database and pass them to the layout as page data. Also pass the user object.
+
+### Audit Logging
+
+Add a simple audit log table for security-sensitive events:
+
+```sql
+CREATE TABLE audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  details JSONB,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_audit_log_user ON audit_log(user_id);
+CREATE INDEX idx_audit_log_action ON audit_log(action);
+```
+
+Log as a cross-cutting concern in `hooks.server.ts`:
+- `login_success`, `login_failure` (with email, not password)
+- `logout`
+- `registration`
+- `photo_upload`, `photo_delete`
+- `analysis_requested`
+
+Never log passwords, passphrases, or photo content.
+
+### Onboarding Flow
+
+Design a 3-step onboarding wizard for first-time users:
+
+1. **Account + Child** (single screen): Create account fields (email, name, password) + child fields (name, birth date). Combine registration and child creation to reduce friction.
+2. **Brief intro**: One-screen explanation of what the app does with a simple visual. "Sledujte eliminační dietu a stav ekzému vašeho dítěte." (Track your child's elimination diet and eczema condition.)
+3. **Encryption passphrase**: Clear, non-technical Czech explanation: "Toto heslo chrání fotky vašeho dítěte. Bez něj nelze fotky obnovit — uložte si ho na bezpečné místo." (This password protects your child's photos. Without it, photos cannot be recovered — store it in a safe place.)
+
+After onboarding, land on the calendar with a coach-mark highlighting "Klepněte na dnešek a zaznamenejte první eliminaci." (Tap today and record your first elimination.)
+
+**Defer passphrase setup:** Consider deferring the encryption passphrase prompt until the user first attempts to take a photo, so the food tracking workflow is not blocked.
 
 ### Key Code Patterns
 
@@ -650,6 +729,6 @@ All Phase 0 baseline checks must still pass:
 - [ ] The service worker registers successfully.
 - [ ] The bottom navigation bar renders correctly on a 375px viewport.
 - [ ] `docker compose up -d` starts PostgreSQL and it accepts connections.
-- [ ] All Dexie.js tables (`children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`) are still accessible after `db.open()`.
+- [ ] All Dexie.js tables (`children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`) are still accessible after `db.open()`.
 - [ ] The login page still renders correctly (now with backend wiring).
 - [ ] Navigating to `/` still redirects to `/calendar` (which now redirects to `/login` if unauthenticated).

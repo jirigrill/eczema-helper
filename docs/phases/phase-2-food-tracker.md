@@ -33,10 +33,11 @@ Phase 0 and Phase 1 must be complete. Specifically:
 
 These decisions are deferred to user testing during Phase 1 (when the app shell runs on a real phone). The architecture is UI-agnostic — domain services, ports, and adapters do not depend on the UI approach, so multiple patterns can be prototyped without changing business logic.
 
-1. **Day detail view**: Navigate to a new page (`/calendar/[date]`) vs open a bottom sheet over the calendar. Candidates:
-   - **New page**: simpler routing, full-screen space for food grid + meals.
-   - **Bottom sheet**: keeps calendar context visible, feels more native on iOS.
-   - Decision recorded in `ui-design.md` after testing both approaches on an iPhone.
+1. **Day detail view**: ~~Navigate to a new page (`/calendar/[date]`) vs open a bottom sheet over the calendar.~~ **Resolved:** Use a **bottom sheet** for the day detail view. This keeps the calendar visible for context (the user can see neighboring days) and matches iOS native patterns. The sheet should be draggable to:
+   - **Half-height:** Food status overview (category icons with elimination badges)
+   - **Full-height:** Full food grid + meal log tabs
+
+   Tab layout within the sheet: "Eliminace" | "Jídla" (Eliminations | Meals).
 
 2. **Meal composer**: Inline expandable section vs separate route (`/meals/new?date=...`). Candidates:
    - **Inline**: faster for quick logging, fewer navigations.
@@ -133,9 +134,10 @@ import type { FoodLog, FoodSubItem } from '$lib/domain/models';
 export type FoodStatus = 'neutral' | 'eliminated' | 'reintroduced';
 
 /**
- * Determine the current status of a food item on a given day.
- * Looks at all food logs for the item on that date and returns
- * the status from the most recent log entry.
+ * Cumulative elimination state: returns the most recent FoodLog action
+ * for the given category on or before the given date. If no log exists
+ * for that category before the date, the food is considered "neutral"
+ * (neither eliminated nor reintroduced).
  */
 export function getFoodStatus(
   logs: FoodLog[],
@@ -143,8 +145,13 @@ export function getFoodStatus(
   date: string
 ): FoodStatus {
   const itemLogs = logs
-    .filter(l => l.categoryId === categoryId && l.date === date)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .filter(l => l.categoryId === categoryId && l.date <= date)
+    .sort((a, b) => {
+      // Sort by date descending, then by createdAt descending
+      const dateCmp = b.date.localeCompare(a.date);
+      if (dateCmp !== 0) return dateCmp;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   if (itemLogs.length === 0) return 'neutral';
   return itemLogs[0].action;
@@ -162,8 +169,8 @@ export function getNextStatus(current: FoodStatus): FoodStatus {
 
 /**
  * Count active eliminations for a given day.
- * An item is "actively eliminated" if its latest log entry
- * for that date has action = 'eliminated'.
+ * An item is "actively eliminated" if the most recent log entry
+ * on or before the given date has action = 'eliminated'.
  */
 export function countActiveEliminations(
   logs: FoodLog[],
@@ -223,6 +230,33 @@ export function getPreviousDate(isoDate: string): string {
 }
 ```
 
+**Cumulative elimination state (server-side):**
+
+The domain service method for server-side queries:
+
+```typescript
+// Domain service method
+async getFoodStatus(childId: string, categoryId: string, date: string): Promise<'eliminated' | 'reintroduced' | 'neutral'> {
+  const log = await this.repository.getMostRecentFoodLog(childId, categoryId, date);
+  return log?.action ?? 'neutral';
+}
+```
+
+Add to the DataRepository port:
+```typescript
+getMostRecentFoodLog(childId: string, categoryId: string, onOrBeforeDate: string): Promise<FoodLog | null>;
+```
+
+SQL implementation:
+```sql
+SELECT * FROM food_logs
+WHERE child_id = $1 AND category_id = $2 AND date <= $3
+ORDER BY date DESC, created_at DESC
+LIMIT 1;
+```
+
+Also update `getCurrentEliminationState` to accept a `date` parameter so that the elimination state can be queried for any date, not just "now".
+
 #### Step 2: Create calendar utility functions
 
 Within the calendar components or a shared utility, implement:
@@ -237,20 +271,22 @@ Within the calendar components or a shared utility, implement:
 ```svelte
 <!-- src/lib/components/calendar/CalendarHeader.svelte -->
 <script lang="ts">
-  export let year: number;
-  export let month: number;
-  export let onPrev: () => void;
-  export let onNext: () => void;
+  let { year, month, onPrev, onNext } = $props<{
+    year: number;
+    month: number;
+    onPrev: () => void;
+    onNext: () => void;
+  }>();
 </script>
 
 <div class="flex items-center justify-between px-4 py-3">
-  <button on:click={onPrev} class="p-2 text-primary" aria-label="Previous month">
+  <button onclick={onPrev} class="p-2 text-primary" aria-label="Previous month">
     <!-- Left arrow SVG -->
   </button>
   <h2 class="text-lg font-semibold text-text">
     {formatMonthYear(year, month, 'cs-CZ')}
   </h2>
-  <button on:click={onNext} class="p-2 text-primary" aria-label="Next month">
+  <button onclick={onNext} class="p-2 text-primary" aria-label="Next month">
     <!-- Right arrow SVG -->
   </button>
 </div>
@@ -301,7 +337,7 @@ Fetches food categories (from the store or server load data) and renders them as
     <FoodCategoryTile
       {category}
       isExpanded={expandedCategoryId === category.id}
-      on:toggle={() => toggleCategory(category.id)}
+      ontoggle={() => toggleCategory(category.id)}
     />
   {/each}
 </div>
@@ -320,6 +356,16 @@ Displays the emoji and Czech name. When tapped, dispatches a `toggle` event. Whe
 - A visual status indicator: neutral (grey circle), eliminated (red circle with X), reintroduced (green circle with checkmark).
 - On tap, calls the food tracking service to compute the next status and dispatches a mutation.
 
+**Undo support:** After each food toggle (eliminate/reintroduce), show a toast notification with an "Zpět" (Undo) button for 5 seconds. If tapped, delete the FoodLog entry that was just created. This prevents accidental toggles from corrupting the elimination timeline and correlation data.
+
+```svelte
+<!-- Toast with undo -->
+<Toast duration={5000}>
+  {action === 'eliminated' ? 'Vyřazeno' : 'Znovuzavedeno'}: {categoryName}
+  <button onclick={undoLastToggle}>Zpět</button>
+</Toast>
+```
+
 #### Step 10: Build the "Copy from yesterday" button
 
 Renders a button that, when tapped:
@@ -335,20 +381,17 @@ Renders a button that, when tapped:
   import CalendarHeader from '$lib/components/calendar/CalendarHeader.svelte';
   import CalendarGrid from '$lib/components/calendar/CalendarGrid.svelte';
   import SwipeContainer from '$lib/components/calendar/SwipeContainer.svelte';
-  import { calendarStore } from '$lib/stores/calendar';
+  import { getYear, getMonth, navigateMonth } from '$lib/stores/calendar.svelte';
 
-  let { year, month } = $calendarStore;
+  const year = $derived(getYear());
+  const month = $derived(getMonth());
 
   function prevMonth() {
-    if (month === 0) { year--; month = 11; }
-    else { month--; }
-    calendarStore.set({ year, month });
+    navigateMonth(-1);
   }
 
   function nextMonth() {
-    if (month === 11) { year++; month = 0; }
-    else { month++; }
-    calendarStore.set({ year, month });
+    navigateMonth(1);
   }
 </script>
 
@@ -617,16 +660,20 @@ A searchable input that:
 
 ```svelte
 <script lang="ts">
-  export let subItems: FoodSubItem[];
-  export let selectedItems: MealItem[];
-  export let onAdd: (item: Partial<MealItem>) => void;
-  export let onRemove: (index: number) => void;
+  let { subItems, selectedItems, onAdd, onRemove } = $props<{
+    subItems: FoodSubItem[];
+    selectedItems: MealItem[];
+    onAdd: (item: Partial<MealItem>) => void;
+    onRemove: (index: number) => void;
+  }>();
 
-  let query = '';
+  let query = $state('');
 
-  $: filtered = query.length >= 2
-    ? subItems.filter(si => si.nameCs.toLowerCase().includes(query.toLowerCase()))
-    : [];
+  const filtered = $derived(
+    query.length >= 2
+      ? subItems.filter(si => si.nameCs.toLowerCase().includes(query.toLowerCase()))
+      : []
+  );
 </script>
 
 <div class="relative">
@@ -642,7 +689,7 @@ A searchable input that:
         <li>
           <button
             class="w-full text-left px-3 py-2 hover:bg-gray-100"
-            on:click={() => { onAdd({ subItemId: item.id, categoryId: item.categoryId }); query = ''; }}
+            onclick={() => { onAdd({ subItemId: item.id, categoryId: item.categoryId }); query = ''; }}
           >
             {item.nameCs}
           </button>
@@ -656,7 +703,7 @@ A searchable input that:
   {#each selectedItems as item, i}
     <span class="inline-flex items-center bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm">
       {getMealItemDisplayName(item, subItems)}
-      <button on:click={() => onRemove(i)} class="ml-1">&times;</button>
+      <button onclick={() => onRemove(i)} class="ml-1">&times;</button>
     </span>
   {/each}
 </div>
@@ -758,6 +805,18 @@ function toggleCategory(categoryId: string) {
   expandedCategoryId = expandedCategoryId === categoryId ? null : categoryId;
 }
 ```
+
+### Empty States
+
+Design encouraging empty states for first-time users:
+
+- **Calendar (no food logs):** "Klepněte na dnešek a zaznamenejte první eliminaci." with a pointing-hand illustration.
+- **Food grid (no eliminations today):** "Žádné změny v dietě pro tento den. Klepněte na kategorii pro eliminaci."
+- **Meals (no meals logged):** "Přidejte první jídlo dne klepnutím na +."
+
+### Two-User Attribution
+
+Show the author's initials on food log entries: "Přidala M" (Added by M) as a small label next to each log entry. On the day detail view, show "Poslední úprava: [name] v [time]" (Last edit by [name] at [time]) to indicate whether the other parent has contributed today.
 
 ## Post-Implementation State
 
