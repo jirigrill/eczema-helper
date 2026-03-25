@@ -19,6 +19,16 @@ This phase introduces a trends and correlation dashboard that visualizes eczema 
 3. **Combined overlay view** -- severity line chart with food elimination bars underneath, sharing the same time axis for visual correlation.
 4. **Correlation detection** -- algorithm that identifies when severity improvements align with food eliminations (5-14 day window) or when worsening aligns with reintroductions (3-7 day window).
 5. **Correlation callout annotations** -- highlighted markers on the combined chart with Czech text like "Vylouceni mlecnych vyrobku 5.3. -- zlepseni do 12.3."
+
+### Confounding Variable Warning
+
+When multiple food eliminations overlap in their response windows (both eliminated within the same 5-14 day period), display a callout:
+
+> **Pozor:** Bylo eliminováno více potravin současně ({food1}, {food2}). Nelze určit, která způsobila zlepšení. Zvažte postupnou eliminaci — odebírejte potraviny jednu po druhé.
+>
+> (Warning: Multiple foods were eliminated simultaneously. Cannot determine which caused the improvement. Consider sequential elimination — remove foods one at a time.)
+
+This callout appears on the correlation card whenever `overlappingEliminations.length > 1` for a detected correlation.
 6. **Date range filter** -- interactive date picker to narrow the dashboard view to a specific period.
 7. **Per-child data** -- dashboard scoped to the selected child (child selector if multiple children tracked).
 8. **Meal log context** -- alongside the food elimination timeline, display logged meals as contextual data points (what the mother actually ate on each day), giving a fuller picture without driving the correlation algorithm.
@@ -161,6 +171,23 @@ This phase introduces a trends and correlation dashboard that visualizes eczema 
    }
    ```
 
+### Stool Quality in Correlations
+
+Extend the correlation algorithm to include stool quality alongside skin severity:
+
+**Stool quality score** (1–5, derived from metadata):
+| Score | Criteria |
+|-------|----------|
+| 1 | Yellow/brown, soft/formed, no mucus, no blood (normal) |
+| 2 | Slightly green or slightly liquid |
+| 3 | Green, liquid, OR mucus present |
+| 4 | Green + mucus + liquid |
+| 5 | Blood present (any combination) |
+
+The correlation engine computes severity averages for both skin and stool independently. When detecting correlations, check both metrics: "dairy elimination correlated with skin improvement" AND/OR "dairy elimination correlated with stool improvement."
+
+Display stool correlation results alongside skin results in the dashboard, with separate trend badges.
+
    Key thresholds:
    - Improvement: average severity in the response window is less than 70 % of the pre-elimination average.
    - Worsening: average severity in the response window is more than 130 % of the pre-reintroduction average.
@@ -174,6 +201,13 @@ This phase introduces a trends and correlation dashboard that visualizes eczema 
    - Secondary Y-axis (right): AI redness score 1-10, plotted as a dashed red line.
    - Toggle buttons to show/hide AI dryness score (dashed orange line) and area percentage (filled area, light purple).
    - Responsive: on mobile, legend collapses to an icon-only row.
+
+### Chart Accessibility
+
+- **Data table toggle:** Below each chart, add "Zobrazit jako tabulku" (Show as table) link that reveals the underlying data in an accessible HTML table.
+- **Pattern fills:** Use pattern fills (dots, stripes, crosshatch) in addition to color for food timeline bars to support colorblind users.
+- **ARIA labels:** Add `aria-label` to chart containers describing the general trend: e.g., `aria-label="Trend závažnosti za posledních 30 dní: mírné zlepšení"`.
+- **Simplify mobile view:** On mobile, default to showing only the manual severity line. AI scores hidden behind a "Detail" toggle. Replace dual Y-axis charts with two separate stacked mini-charts (dual axes are consistently misread in usability testing).
 
 5. **Build the food elimination timeline** (`src/lib/components/charts/FoodTimeline.svelte`):
    - Horizontal bar chart with time on X-axis (same scale as severity chart).

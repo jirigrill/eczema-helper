@@ -16,10 +16,18 @@ This phase introduces the core photo diary functionality with end-to-end encrypt
 
 These decisions are deferred to user testing (on a real phone with the app shell from Phase 1). The architecture is UI-agnostic — PhotoDiaryService and PhotoStorage port do not depend on the UI pattern.
 
-1. **Photo capture flow**: Candidates:
-   - **Multi-step wizard** (type → camera → metadata → save, each screen): focused, guided, less overwhelming.
-   - **Single scrollable page**: faster for repeat use, all steps visible at once.
-   - Decision recorded in `ui-design.md` after testing.
+1. **Photo capture flow**:
+
+**Streamlined photo capture:** Minimize steps during time-pressured scenarios (diaper changes, fussy baby):
+
+1. **Select type** — "Kůže" (Skin) or "Stolice" (Stool) buttons on gallery page
+2. **Capture** — Camera opens immediately. Ghost overlay loads asynchronously. One tap to capture.
+3. **Quick save with defaults** — Photo saved immediately with sensible defaults:
+   - Stool: defaults to yellow, soft, no mucus, no blood. Shows a single "Potvrdit" (Confirm) button for the common case. "Upravit detaily" (Edit details) link expands the full metadata form only when needed.
+   - Skin: defaults to last-used body area. Severity defaults to previous value for that area. "Změnit" (Change) link to modify.
+4. **Encrypt & upload** — Happens in background after save.
+
+**Metadata is editable later:** All metadata can be edited from the photo detail view. Capture should be as fast as possible — one tap to save.
 
 2. **Gallery layout**: Candidates:
    - **Simple grid**: clean, fast rendering, familiar pattern.
@@ -37,29 +45,49 @@ These decisions are deferred to user testing (on a real phone with the app shell
 2. **Key derivation** -- PBKDF2 with 600 000 iterations derives an AES-256-GCM key from the passphrase + salt on every session start.
 3. **Photo type selector** -- before capture, user selects photo type: "Kuze" (Skin) or "Stolice" (Stool).
 4. **Camera capture page** -- opens the rear camera, captures a JPEG frame, and prompts for type-specific metadata.
-5. **Ghost overlay** -- when a previous photo of the same type (and same body area for skin) exists, it is decrypted and displayed as a semi-transparent overlay (~30% opacity) on top of the live camera feed, helping the user align the camera consistently for better comparison. Toggleable on/off. When no previous photo exists, a static SVG silhouette (body area outline for skin, diaper framing guide for stool) is shown as fallback. Lighting-check hint ("Zajistete dostatecne osvetleni").
+5. **Ghost overlay** -- when a previous photo of the same type (and same body area for skin) exists, it is decrypted and displayed as a semi-transparent overlay on top of the live camera feed, helping the user align the camera consistently for better comparison. Toggleable on/off. When no previous photo exists, a static SVG silhouette (body area outline for skin, diaper framing guide for stool) is shown as fallback. Lighting-check hint ("Zajistete dostatecne osvetleni").
+
+**Ghost overlay improvements:**
+- Allow opacity adjustment via a slider (10%–50%) rather than fixed 30%.
+- Rename toggle label from "Překryv: zap/vyp" to "Předchozí fotka" (Previous photo) with a ghost icon.
+- Add a brief tooltip on first use: "Porovnejte polohu s předchozí fotkou pro lepší srovnání." (Compare position with the previous photo for better comparison.)
 6. **Body area selector (skin)** -- enumerated areas: `face`, `arms`, `legs`, `torso`, `hands`, `other`.
 7. **Stool metadata form (stool)** -- color picker (yellow/green/brown/red/black/white), consistency selector (liquid/soft/formed/hard), mucus toggle (yes/no), blood toggle (yes/no).
 6. **Image compression** -- captured image resized to max 1920 px on the longest edge, re-encoded as JPEG at 80 % quality.
 7. **Client-side encryption** -- compressed JPEG encrypted with AES-256-GCM; a separate smaller thumbnail (320 px) is encrypted independently.
-8. **Server upload** -- encrypted blobs (full + thumbnail) uploaded via `POST /api/photos` with metadata (body area, severity, timestamp, IV, child ID).
+8. **Server upload** -- encrypted blobs (full + thumbnail, each with IV prepended) uploaded via `POST /api/photos` with metadata (body area, severity, timestamp, child ID). IVs are embedded in the blob data, not sent separately.
 9. **Photo gallery page** -- grid of thumbnails sorted newest-first, grouped by date. Thumbnails decrypted in the browser on scroll. Filter tabs for "Vse" (All), "Kuze" (Skin), "Stolice" (Stool).
 10. **Photo detail view** -- full-size image decrypted and displayed with type-specific metadata (body area + severity for skin; color + consistency + mucus + blood for stool).
 11. **Side-by-side comparison view** -- user picks two photos of the same type; the app shows them side by side with metadata.
 12. **Manual severity rating (skin)** -- integer scale 1-5 assigned per skin photo at capture time (editable later).
+
+**Severity scale with verbal anchors:** Display the label dynamically as the slider moves:
+
+| Score | Czech Label | Description |
+|-------|-------------|-------------|
+| 1 | Mírný | Lehké zarudnutí (Light redness) |
+| 2 | Lehký | Viditelné zarudnutí, suchá kůže (Visible redness, dry skin) |
+| 3 | Střední | Výrazné zarudnutí, loupání (Pronounced redness, peeling) |
+| 4 | Těžký | Intenzivní zarudnutí, praskliny (Intense redness, cracking) |
+| 5 | Velmi těžký | Mokvání, krvácení (Weeping, bleeding) |
 13. **Offline support** -- encrypted blobs stored in IndexedDB via Dexie.js; a background sync adapter uploads pending blobs when connectivity is restored.
 
 ## Acceptance Criteria
 
 - [ ] First-time user is prompted to set a passphrase before any photo functionality is available.
-- [ ] Passphrase must be at least 12 characters. The UI enforces this with a validation message in Czech.
-- [ ] A passphrase strength indicator is shown during setup (weak/medium/strong based on length and character variety).
+- [ ] **Passphrase requirements:**
+  - Minimum 12 characters (enforced)
+  - Strength indicator using `zxcvbn` library (install: `npm install zxcvbn`)
+  - Require minimum zxcvbn score of 3 (out of 4)
+  - Show estimated crack time in the strength indicator
+  - Guide users toward diceware-style passphrases (4+ random Czech words)
+  - Clear warning: "Toto heslo chrání lékařské fotky vašeho dítěte a nelze ho obnovit." (This password protects your child's medical photos and cannot be recovered.)
 - [ ] Passphrase can be re-entered on subsequent sessions to derive the same key (deterministic given same salt).
 - [ ] Entering a wrong passphrase results in a decryption failure surfaced as a user-friendly Czech error message.
 - [ ] Photo type selector offers "Kuze" (Skin) and "Stolice" (Stool) options before capture.
 - [ ] Camera capture opens the rear-facing camera and produces a JPEG frame.
 - [ ] When a previous photo of the same type (and same body area for skin) exists, it is shown as a ghost overlay at ~30% opacity on the live camera feed.
-- [ ] The ghost overlay can be toggled on/off with a visible button ("Prekryv: zap/vyp").
+- [ ] The ghost overlay can be toggled on/off with a visible button ("Předchozí fotka" with ghost icon). Opacity adjustable via slider (10%–50%).
 - [ ] When no previous photo exists (first photo of that type/area), a static SVG silhouette is shown as fallback (body area outline for skin, diaper framing guide for stool).
 - [ ] Ghost overlay decryption happens asynchronously and does not block camera startup -- camera feed is usable immediately, ghost appears once ready.
 - [ ] Captured images are resized so the longest edge does not exceed 1920 px.
@@ -89,7 +117,7 @@ These decisions are deferred to user testing (on a real phone with the app shell
 | `src/lib/stores/photos.svelte.ts` | Svelte 5 runes store for photo list state, selected photos for comparison |
 | `src/lib/adapters/encrypted-storage.ts` | Adapter implementing the storage port -- writes/reads encrypted blobs to IndexedDB (Dexie) and server |
 | `src/lib/components/photo/CameraCapture.svelte` | Camera access, frame capture, ghost/fallback overlay |
-| `src/lib/components/photo/GhostOverlay.svelte` | Decrypts and displays previous photo at 30% opacity over camera feed, with toggle button. Falls back to static SVG silhouette. |
+| `src/lib/components/photo/GhostOverlay.svelte` | Decrypts and displays previous photo over camera feed with adjustable opacity (10%–50%), toggle button ("Předchozí fotka"), and first-use tooltip. Falls back to static SVG silhouette. |
 | `src/lib/components/photo/PhotoTypeSelector.svelte` | Toggle between "Kuze" (Skin) and "Stolice" (Stool) photo types |
 | `src/lib/components/photo/BodyAreaSelector.svelte` | Radio/button group for the six body areas (skin photos) |
 | `src/lib/components/photo/StoolMetadataForm.svelte` | Color picker, consistency selector, mucus/blood toggles (stool photos) |
@@ -101,15 +129,15 @@ These decisions are deferred to user testing (on a real phone with the app shell
 | `src/routes/(app)/photos/capture/+page.svelte` | Camera capture page |
 | `src/routes/(app)/photos/compare/+page.svelte` | Side-by-side comparison page |
 | `src/routes/api/photos/+server.ts` | `POST` (upload), `GET` (list/download) encrypted blobs |
-| Database migration | `tracking_photos` table: `id`, `user_id`, `child_id`, `photo_type`, `body_area`, `severity_manual`, `stool_color`, `stool_consistency`, `has_mucus`, `has_blood`, `iv`, `created_at`; blob stored on filesystem |
+| Database migration | `tracking_photos` table: `id`, `user_id`, `child_id`, `photo_type`, `body_area`, `severity_manual`, `stool_color`, `stool_consistency`, `has_mucus`, `has_blood`, `created_at`; blob stored on filesystem (IV prepended to encrypted blob, not stored separately) |
 
 ### Step-by-Step Instructions
 
 1. **Create the encryption module** (`src/lib/crypto/encryption.ts`):
    - `generateSalt()` -- returns a 16-byte `Uint8Array` from `crypto.getRandomValues`.
    - `deriveKey(passphrase: string, salt: Uint8Array)` -- imports the passphrase as a `CryptoKey`, runs `PBKDF2` with SHA-256 and 600 000 iterations, derives an AES-256-GCM `CryptoKey`.
-   - `encrypt(data: ArrayBuffer, key: CryptoKey)` -- generates a 12-byte IV, calls `crypto.subtle.encrypt` with AES-256-GCM, returns `{ iv: Uint8Array, ciphertext: ArrayBuffer }`.
-   - `decrypt(ciphertext: ArrayBuffer, iv: Uint8Array, key: CryptoKey)` -- calls `crypto.subtle.decrypt`, returns the plaintext `ArrayBuffer`. Throws a typed `DecryptionError` on failure.
+   - `encrypt(plaintext: ArrayBuffer, key: CryptoKey, aad?: string)` -- generates a 12-byte IV, calls `crypto.subtle.encrypt` with AES-256-GCM (passing `aad` as `additionalData` when provided), returns a single `ArrayBuffer` with IV prepended (12 bytes IV + N bytes ciphertext+tag). The AAD parameter should be `childId + ":" + photoId`.
+   - `decrypt(data: ArrayBuffer, key: CryptoKey, aad?: string)` -- splits the first 12 bytes as IV, rest as ciphertext+tag, calls `crypto.subtle.decrypt` with AES-256-GCM (passing `aad` as `additionalData` when provided), returns the plaintext `ArrayBuffer`. Throws a typed `DecryptionError` on failure.
 
 2. **Create image utilities** (`src/lib/utils/image.ts`):
    - `resizeImage(blob: Blob, maxPx: number): Promise<Blob>` -- draws to an OffscreenCanvas (or regular Canvas), scales proportionally so the longest edge equals `maxPx`, returns a new Blob.
@@ -150,10 +178,39 @@ These decisions are deferred to user testing (on a real phone with the app shell
    - Render `CompareView` -- two images side by side with type-specific metadata (body area + severity for skin; color + consistency for stool) and date labels.
 
 7. **Server API** (`src/routes/api/photos/+server.ts`):
-   - `POST /api/photos` -- accepts `multipart/form-data` with fields: `blob` (encrypted full), `thumbnail` (encrypted thumbnail), `metadata` (JSON: body_area, severity, iv_full, iv_thumb, child_id, created_at). Stores blob on disk (or S3-compatible storage), metadata in PostgreSQL `photos` table. Returns the photo ID.
+   - `POST /api/photos` -- accepts `multipart/form-data` with fields: `blob` (encrypted full, IV prepended), `thumbnail` (encrypted thumbnail, IV prepended), `metadata` (JSON: body_area, severity, child_id, created_at). IVs are embedded in the blob data (first 12 bytes), not sent separately. Stores blob on disk (or S3-compatible storage), metadata in PostgreSQL `photos` table. Returns the photo ID.
    - `GET /api/photos` -- returns metadata list for the authenticated user's children.
    - `GET /api/photos/:id/blob` -- streams the encrypted blob.
    - `GET /api/photos/:id/thumbnail` -- streams the encrypted thumbnail.
+
+**Path traversal protection:** When constructing the filesystem path for photo storage, validate all components:
+
+```typescript
+// Validate path components before constructing storage path
+function validatePhotoPath(childId: string, date: string, photoId: string): string {
+  if (!/^[0-9a-f-]{36}$/.test(childId)) throw new Error('Invalid childId');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date');
+  if (!/^[0-9a-f-]{36}$/.test(photoId)) throw new Error('Invalid photoId');
+
+  const basePath = '/data/photos';
+  const fullPath = path.resolve(basePath, childId, date, `${photoId}.enc`);
+
+  // Verify resolved path is still under base directory
+  if (!fullPath.startsWith(basePath)) throw new Error('Path traversal detected');
+
+  return fullPath;
+}
+```
+
+**Server-side size validation:** Reject blobs larger than 5 MB at the application level (Nginx allows up to 10 MB as a first line of defense, but the app enforces a tighter limit since encrypted JPEG at 80% quality from a 1920px image should be well under 3 MB):
+
+```typescript
+// POST /api/photos handler
+const MAX_BLOB_SIZE = 5 * 1024 * 1024; // 5 MB
+if (blob.size > MAX_BLOB_SIZE) {
+  return json({ error: 'Soubor je příliš velký (max 5 MB)', code: 'FILE_TOO_LARGE' }, { status: 413 });
+}
+```
 
 8. **Offline adapter** (`src/lib/adapters/encrypted-storage.ts`):
    - On capture, always write to Dexie first (encrypted blob + metadata).
@@ -185,20 +242,31 @@ export async function deriveKey(passphrase: string, salt: Uint8Array): Promise<C
 }
 
 export async function encrypt(
-  data: ArrayBuffer,
-  key: CryptoKey
-): Promise<{ iv: Uint8Array; ciphertext: ArrayBuffer }> {
+  plaintext: ArrayBuffer,
+  key: CryptoKey,
+  aad?: string
+): Promise<ArrayBuffer> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
-  return { iv, ciphertext };
+  const params: AesGcmParams = { name: 'AES-GCM', iv };
+  if (aad) params.additionalData = new TextEncoder().encode(aad);
+  const ciphertext = await crypto.subtle.encrypt(params, key, plaintext);
+  // Return IV prepended to ciphertext (12 bytes IV + N bytes ciphertext+tag)
+  const result = new Uint8Array(12 + ciphertext.byteLength);
+  result.set(iv, 0);
+  result.set(new Uint8Array(ciphertext), 12);
+  return result.buffer;
 }
 
 export async function decrypt(
-  ciphertext: ArrayBuffer,
-  iv: Uint8Array,
-  key: CryptoKey
+  data: ArrayBuffer,
+  key: CryptoKey,
+  aad?: string
 ): Promise<ArrayBuffer> {
-  return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  const iv = new Uint8Array(data.slice(0, 12));
+  const ciphertext = data.slice(12);
+  const params: AesGcmParams = { name: 'AES-GCM', iv };
+  if (aad) params.additionalData = new TextEncoder().encode(aad);
+  return crypto.subtle.decrypt(params, key, ciphertext);
 }
 ```
 
@@ -235,6 +303,13 @@ export interface PhotoStorage {
 }
 ```
 
+### Loading States for Encryption-Heavy Operations
+
+- **PBKDF2 key derivation** (500ms–2s on mobile): Run in a Web Worker to avoid main-thread blocking. Show an animated lock icon during derivation.
+- **Gallery thumbnails**: Use placeholder shimmer animations (skeleton screens) while per-thumbnail decryption is in progress.
+- **Photo detail view**: Show a blurred low-resolution preview (from the thumbnail) while the full image decrypts.
+- **Photo encryption after capture**: Show a brief "Šifruji..." (Encrypting...) indicator, then transition to upload progress.
+
 ## Post-Implementation State
 
 After completing Phase 3 the application supports the full photo diary workflow:
@@ -244,7 +319,7 @@ After completing Phase 3 the application supports the full photo diary workflow:
 - For skin photos: the user selects a body area from six predefined regions and assigns a severity rating (1-5). A body area silhouette overlay helps with framing.
 - For stool photos: the user records color (yellow/green/brown/red/black/white), consistency (liquid/soft/formed/hard), and toggles for mucus and blood presence. A diaper framing guide assists with capture.
 - The captured image is resized to at most 1920 px, compressed to JPEG 80 %, and a 320 px thumbnail is generated. Both are encrypted with AES-256-GCM using a unique IV per blob.
-- Encrypted blobs are uploaded to the server; metadata (type-specific fields, IVs, timestamps) is stored in PostgreSQL in the `tracking_photos` table.
+- Encrypted blobs (with IV prepended) are uploaded to the server; metadata (type-specific fields, timestamps) is stored in PostgreSQL in the `tracking_photos` table. IVs are embedded in the blob data, not stored separately.
 - The gallery page shows a date-grouped grid of thumbnails with filter tabs (All / Skin / Stool), each decrypted on demand in the browser.
 - The detail view decrypts and displays the full-size image with type-specific metadata.
 - The comparison view renders two photos of the same type side by side for visual tracking.
@@ -264,8 +339,8 @@ After completing Phase 3 the application supports the full photo diary workflow:
 | 3 | `deriveKey` with the same passphrase and salt returns a key that produces identical ciphertext when IV is fixed (determinism check) | Ciphertext matches across two calls |
 | 4 | `deriveKey` with the same passphrase but different salts produces different keys | Encrypting the same plaintext with both keys yields different ciphertext |
 | 5 | `generateSalt` returns a `Uint8Array` of length 16 | `salt.length === 16` |
-| 6 | `encrypt` produces a 12-byte IV | `result.iv.length === 12` |
-| 7 | Two consecutive `encrypt` calls produce different IVs | `iv1 !== iv2` byte-wise |
+| 6 | `encrypt` output starts with a 12-byte IV (first 12 bytes differ from ciphertext) | `new Uint8Array(result.slice(0, 12)).length === 12` |
+| 7 | Two consecutive `encrypt` calls produce different IV prefixes | First 12 bytes of output1 !== first 12 bytes of output2 |
 | 8 | `encrypt` with an empty `ArrayBuffer` succeeds and `decrypt` returns empty buffer | Round-trip succeeds; output `byteLength === 0` |
 | 9 | `encrypt` with a large payload (5 MB) completes within 2 seconds | No timeout; round-trip succeeds |
 
