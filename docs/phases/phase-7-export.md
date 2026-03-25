@@ -51,6 +51,21 @@ This phase adds two export methods for sharing tracking data with the pediatrici
 21. The Google Doc is created in a dedicated "Eczema Tracker" folder on the user's Google Drive. The folder and document can be shared with the pediatrician via standard Google Drive sharing.
 22. Privacy notice is shown before first Google export: "Vybrane fotky budou nahrane na Google Drive. Pokracovat?" (Selected photos will be uploaded to Google Drive. Continue?)
 
+### Navigation
+
+Access the export feature via:
+1. **Trends page:** Add an "Exportovat" (Export) button on the trends dashboard, since users reviewing trends are the most likely to want to share with their pediatrician.
+2. **Settings page:** Alternative access point in the settings menu.
+3. **Bottom nav:** The Export page is accessible at `/export` but does NOT have its own tab (5 tabs is the iOS maximum).
+
+### Large Export Warning
+
+When the selected date range contains more than 20 photos, show a warning before generation:
+
+> "Export obsahuje {count} fotek ({estimatedSize} MB). Generování může trvat déle." (Export contains {count} photos ({estimatedSize} MB). Generation may take longer.)
+
+Offer a "Pouze náhledy" (Thumbnails only) option for smaller PDFs.
+
 ## Implementation Details
 
 ### Files Created / Modified
@@ -223,7 +238,7 @@ export class ExportService {
             })
             .toArray();
 
-        const allPhotos = await this.db.photos
+        const allPhotos = await this.db.trackingPhotos
             .where('childId').equals(options.childId)
             .and(photo => {
                 const photoDate = new Date(photo.date);
@@ -251,16 +266,17 @@ export class ExportService {
             })
         );
 
-        const severityData = await this.db.severityRatings
-            .where('childId').equals(options.childId)
-            .and(r => {
-                const d = new Date(r.date);
-                return d >= options.dateFrom && d <= options.dateTo;
-            })
-            .toArray();
+        // Severity is stored on trackingPhotos records as severityManual
+        const severityData = decryptedPhotos
+            .filter(p => p.severityRating != null)
+            .map(p => ({
+                date: p.date,
+                severity: p.severityRating,
+                bodyArea: p.bodyArea
+            }));
 
         const aiAnalyses = options.includeAiSummaries
-            ? await this.db.analyses
+            ? await this.db.analysisResults
                 .where('childId').equals(options.childId)
                 .and(a => {
                     const d = new Date(a.date);
