@@ -116,16 +116,7 @@ check-tools:
     #!/usr/bin/env bash
     for tool in node bun docker mkcert caddy just; do
         if command -v "$tool" &> /dev/null; then
-            if [[ "$tool" == "node" ]]; then
-                NODE_VERSION=$(node --version | sed 's/v//')
-                if node -e "process.exit(process.version.slice(1).localeCompare('20.15.0', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null; then
-                    echo "✅ node $NODE_VERSION"
-                else
-                    echo "⚠️  node $NODE_VERSION (need 20.15.0+)"
-                fi
-            else
-                echo "✅ $tool"
-            fi
+            echo "✅ $tool"
         else
             echo "❌ $tool"
         fi
