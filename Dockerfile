@@ -8,7 +8,8 @@ RUN bun run build
 FROM oven/bun:1-slim
 WORKDIR /app
 
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+# Create non-root user (Debian syntax)
+RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
 
 COPY --from=build /app/build ./build
 COPY --from=build /app/package.json ./

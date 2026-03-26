@@ -42,7 +42,14 @@ just check-tools
 - mkcert (HTTPS certificates)
 - Caddy (reverse proxy)
 
-## Step 3: Configure Environment
+## Step 3: Install Dependencies
+
+```bash
+# Install Node.js dependencies
+bun install
+```
+
+## Step 4: Configure Environment
 
 ```bash
 # Generate .env template
@@ -54,7 +61,7 @@ nano .env
 
 **Note:** The dev environment uses Docker for PostgreSQL, so the default `.env` values work for initial testing.
 
-## Step 4: Generate HTTPS Certificates
+## Step 5: Generate HTTPS Certificates
 
 ```bash
 just setup-certs
@@ -70,7 +77,7 @@ This creates HTTPS certificates for your local IP address (e.g., `192.168.1.x`).
    Then: Settings > General > About > Certificate Trust Settings > Enable Full Trust
 4. **Android**: Settings > Security > Encryption & credentials > Install certificate > CA certificate
 
-## Step 5: Start Development Server
+## Step 6: Start Development Server
 
 ```bash
 just dev
@@ -82,7 +89,7 @@ This starts:
 - Caddy with HTTPS on port 443
 - SvelteKit dev server on port 5173
 
-## Step 6: Access from Your Phone
+## Step 7: Access from Your Phone
 
 On your phone (connected to same WiFi):
 
