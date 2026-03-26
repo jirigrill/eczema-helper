@@ -111,7 +111,7 @@ setup-linux-debian:
     
     # Install base dependencies
     echo "📦 Installing base dependencies..."
-    sudo apt-get install -y curl wget gnupg2 ca-certificates lsb-release software-properties-common
+    sudo apt-get install -y curl wget unzip gnupg2 ca-certificates lsb-release software-properties-common
     
     # Install Docker
     if ! command -v docker &> /dev/null; then
@@ -182,7 +182,7 @@ setup-linux-redhat:
     echo "📦 Installing dependencies for RedHat/Fedora..."
     
     # Install base dependencies
-    sudo dnf install -y curl wget
+    sudo dnf install -y curl wget unzip
     
     # Install Docker
     if ! command -v docker &> /dev/null; then
