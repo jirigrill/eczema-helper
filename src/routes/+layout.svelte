@@ -33,7 +33,7 @@
       <a
         href={tab.href}
         class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors"
-        style="color: {pathname.startsWith(tab.href) ? '#3d6994' : '#6c757d'}"
+        style="color: {pathname.startsWith(tab.href) ? 'red' : '#6c757d'}; font-weight: {pathname.startsWith(tab.href) ? 'bold' : 'normal'}"
       >
         <span class="text-xl leading-none">{tab.icon}</span>
         <span>{tab.label}</span>
