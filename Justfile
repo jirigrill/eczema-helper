@@ -131,22 +131,23 @@ dev:
     node -e "process.exit(process.version.slice(1).localeCompare('20.15.0', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null || { echo "❌ Node.js 20.15.0+ required. Run: just setup"; exit 1; }
     
     # Clean up any leftover processes
-    pkill -f caddy 2>/dev/null || true
-    sleep 1
+    pkill -9 -f caddy 2>/dev/null || true
+    sleep 2
     
     # Start PostgreSQL (remove orphans from old docker-compose.dev.yml)
     docker compose -f docker-compose.postgres.yml up -d --remove-orphans
     echo "✅ PostgreSQL ready"
     
-    # Start Caddy
+    # Start Caddy (admin API disabled in Caddyfile to avoid port 2019 conflicts)
     caddy run --config Caddyfile &
+    sleep 1
     echo "✅ Caddy started"
     
     # Start dev server
     bun run dev -- --host 0.0.0.0
     
     # Cleanup on exit
-    pkill -f caddy 2>/dev/null || true
+    pkill -9 -f caddy 2>/dev/null || true
 
 # Start PostgreSQL only
 dev-db:
