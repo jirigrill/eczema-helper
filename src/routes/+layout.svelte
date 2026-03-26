@@ -32,8 +32,8 @@
     {#each tabs as tab}
       <a
         href={tab.href}
-        class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors"
-        style="color: {pathname.startsWith(tab.href) ? 'red' : '#6c757d'}; font-weight: {pathname.startsWith(tab.href) ? 'bold' : 'normal'}"
+        class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors {pathname.startsWith(tab.href) ? 'font-semibold' : 'text-text-muted'}"
+        style="color: {pathname.startsWith(tab.href) ? 'var(--color-primary)' : ''}"
       >
         <span class="text-xl leading-none">{tab.icon}</span>
         <span>{tab.label}</span>
