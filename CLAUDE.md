@@ -25,12 +25,14 @@ When adding/changing a feature, update all affected docs:
 ## Tech Stack
 
 - **Framework:** SvelteKit 2 + TypeScript (strict mode)
+- **Runtime:** Bun
 - **Styling:** Tailwind CSS 4 (mobile-first)
 - **Server DB:** PostgreSQL 16
 - **Local DB:** Dexie.js (IndexedDB, offline-first)
 - **Encryption:** Web Crypto API (AES-256-GCM)
 - **AI:** Claude Vision API (server-side proxy — API key stays on server, photos forwarded in memory)
 - **PWA:** @vite-pwa/sveltekit
+- **Adapter:** @sveltejs/adapter-bun
 - **Deployment (dev):** Docker Compose + Caddy + mkcert (HTTPS on LAN)
 - **Deployment (prod):** Docker + Nginx + Let's Encrypt on VPS
 
@@ -60,11 +62,11 @@ Defined in `docs/architecture/data-models.md`. Core entities:
 # Local dev environment
 docker compose -f docker-compose.dev.yml up -d   # PostgreSQL + app
 caddy run --config Caddyfile                       # HTTPS proxy (mkcert)
-npm run dev -- --host 0.0.0.0                      # SvelteKit dev server
+bun run dev -- --host 0.0.0.0                      # SvelteKit dev server
 
 # Build and type check
-npm run build
-npx tsc --noEmit
+bun run build
+bunx tsc --noEmit
 
 # Access from phone on same WiFi
 # https://192.168.x.x (mkcert cert must be trusted on the device)

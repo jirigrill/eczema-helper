@@ -26,7 +26,7 @@ None. This is the first phase.
 
 ## Acceptance Criteria
 
-- [ ] **AC-1 (Feature 1):** Running `npm run dev` starts a SvelteKit dev server on `localhost:5173` without errors and TypeScript strict mode rejects `any` usage.
+- [ ] **AC-1 (Feature 1):** Running `bun run dev` starts a SvelteKit dev server on `localhost:5173` without errors and TypeScript strict mode rejects `any` usage.
 - [ ] **AC-2 (Feature 2):** Tailwind utility classes (e.g., `bg-blue-500`, `p-4`) render correctly in the browser; the Tailwind config file exports a theme with at least `primary`, `surface`, and `danger` custom colours.
 - [ ] **AC-3 (Feature 3):** Navigating to `localhost:5173` in Chrome DevTools > Application tab shows a valid Web App Manifest with `name`, `short_name`, `start_url`, `display: standalone`, and at least two icon sizes (192x192, 512x512). A service worker is registered.
 - [ ] **AC-4 (Feature 4):** The `src/` directory contains at minimum: `lib/domain/`, `lib/domain/ports/`, `lib/adapters/`, `lib/crypto/`, `lib/i18n/`, `lib/stores/`, `lib/components/`, `routes/`, `routes/login/`, `routes/(app)/`.
@@ -89,39 +89,39 @@ None. This is the first phase.
 #### Step 1: Create the SvelteKit project
 
 ```bash
-npm create svelte@latest atopic_helper
+bunx sv create eczema_helper
 # Select: Skeleton project, TypeScript, ESLint, Prettier
-cd atopic_helper
+cd eczema_helper
 ```
 
 #### Step 2: Install all dependencies
 
 ```bash
 # Core
-npm install dexie @vite-pwa/sveltekit
+bun add dexie @vite-pwa/sveltekit
 
 # Styling
-npm install -D tailwindcss @tailwindcss/vite
+bun add -d tailwindcss @tailwindcss/vite
 
 # Auth (needed in Phase 1 but install now to avoid churn)
-npm install bcryptjs
-npm install -D @types/bcryptjs
+bun add bcryptjs
+bun add -d @types/bcryptjs
 
 # Database driver (needed in Phase 1)
-npm install postgres
+bun add postgres
 
 # Logging
-npm install pino
-npm install -D pino-pretty
+bun add pino
+bun add -d pino-pretty
 
 # Input validation
-npm install zod
+bun add zod
 
 # Dev tools
-npm install -D @sveltejs/adapter-node
+bun add -d @sveltejs/adapter-bun
 
 # Testing
-npm install -D fake-indexeddb
+bun add -d fake-indexeddb
 ```
 
 > **Zod:** Use Zod for schema validation on all API request bodies. Define validation schemas alongside route handlers.
@@ -442,28 +442,28 @@ SESSION_SECRET=change-me-to-a-random-64-char-string
 #### Step 19: Create the Dockerfile
 
 ```dockerfile
-FROM node:20-alpine AS build
+FROM oven/bun:1 AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN bun run build
 
-FROM node:20-alpine
+FROM oven/bun:1-slim
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --from=build /app/build ./build
-COPY --from=build /app/package*.json ./
-RUN npm ci --omit=dev
+COPY --from=build /app/package.json ./
+RUN bun install --frozen-lockfile --production
 
 RUN mkdir -p /data/photos && chown -R appuser:appgroup /data/photos
 USER appuser
 
 EXPOSE 3000
-CMD ["node", "build"]
+CMD ["bun", "run", "build/index.js"]
 ```
 
 #### Step 20: Update .gitignore
@@ -486,7 +486,7 @@ docker compose -f docker-compose.dev.yml up -d
 caddy run --config Caddyfile
 
 # Or during active development, use SvelteKit dev server:
-npm run dev -- --host 0.0.0.0
+bun run dev -- --host 0.0.0.0
 # Update Caddyfile to proxy to localhost:5173 instead of :3000
 ```
 
@@ -656,13 +656,13 @@ Create `scripts/test-all.sh` as the minimum CI gate:
 set -euo pipefail
 
 echo "=== Type Check ==="
-npx tsc --noEmit
+bunx tsc --noEmit
 
 echo "=== Unit + Integration Tests ==="
-npx vitest run
+bun run test
 
 echo "=== Build ==="
-npm run build
+bun run build
 
 echo "=== All checks passed ==="
 ```
@@ -673,9 +673,9 @@ This script should be run before every push to main. A GitHub Actions workflow c
 
 Since this is Phase 0 (the first phase), there are no prior phases to regress against. However, establish these baseline checks that must pass in every subsequent phase:
 
-- [ ] `npm run dev` starts without errors.
-- [ ] `npm run build` completes without errors.
-- [ ] TypeScript compilation (`npx tsc --noEmit`) passes with zero errors.
+- [ ] `bun run dev` starts without errors.
+- [ ] `bun run build` completes without errors.
+- [ ] TypeScript compilation (`bunx tsc --noEmit`) passes with zero errors.
 - [ ] The PWA manifest is valid (check via Chrome DevTools > Application > Manifest).
 - [ ] The service worker registers successfully.
 - [ ] The bottom navigation bar renders correctly on a 375px viewport.

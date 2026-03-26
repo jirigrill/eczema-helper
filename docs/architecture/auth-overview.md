@@ -26,7 +26,7 @@ All secrets are stored in a `.env` file (never committed to git). The `.env.exam
 
 | Variable | Local Dev | Production |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://atopic:atopic_dev@localhost:5432/atopic_helper` | Strong password, internal Docker network |
+| `DATABASE_URL` | `postgresql://eczema:eczema_dev@localhost:5432/eczema_helper` | Strong password, internal Docker network |
 | `SESSION_SECRET` | `dev-secret-change-in-production` | Randomly generated 64-char hex |
 
 ### Rotation Policy
@@ -295,7 +295,7 @@ There is no admin role or admin panel. This is a personal app with 2 users (both
 
 | Need | Solution |
 |---|---|
-| Database access | Direct `psql` via Docker: `docker exec -it eczema-postgres-dev psql -U atopic -d atopic_helper` |
+| Database access | Direct `psql` via Docker: `docker exec -it eczema-postgres-dev psql -U eczema -d eczema_helper` |
 | User management | Direct SQL. Disable registration after both parents register (set `REGISTRATION_ENABLED=false`). |
 | Log access | `docker logs eczema-app-dev` |
 | Backup management | Server-side scripts (see `deployment.md`) |

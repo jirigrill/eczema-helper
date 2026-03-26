@@ -108,7 +108,7 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: atopic_test
+          POSTGRES_DB: eczema_test
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
         ports: ['5432:5432']

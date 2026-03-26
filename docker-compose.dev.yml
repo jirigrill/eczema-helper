@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eczema-app-dev
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://eczema:eczema_dev@postgres:5432/eczema_helper
+      - SESSION_SECRET=dev-secret-change-in-production
+    volumes:
+      - ./data/photos:/data/photos
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: eczema-postgres-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=eczema_helper
+      - POSTGRES_USER=eczema
+      - POSTGRES_PASSWORD=eczema_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eczema -d eczema_helper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata-dev:
+
+networks:
+  internal:
+    driver: bridge

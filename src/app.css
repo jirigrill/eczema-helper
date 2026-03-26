@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: #3d6994;
+  --color-primary-light: #a0c4e8;
+  --color-surface: #f8f9fa;
+  --color-surface-dark: #e9ecef;
+  --color-danger: #dc3545;
+  --color-success: #28a745;
+  --color-warning: #ffc107;
+  --color-text: #212529;
+  --color-text-muted: #6c757d;
+}
+
+input, select, textarea {
+  font-size: 16px; /* prevent iOS zoom on focus */
+}

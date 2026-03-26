@@ -68,7 +68,7 @@ ipconfig getifaddr en0
 Generate a certificate that covers both localhost and your LAN IP:
 
 ```bash
-cd atopic_helper
+cd eczema_helper
 mkdir -p certs
 mkcert -cert-file certs/local.pem -key-file certs/local-key.pem \
   localhost 127.0.0.1 192.168.1.42
@@ -135,7 +135,7 @@ services:
       - "0.0.0.0:3000:3000"     # Accessible from LAN
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://atopic:atopic_dev@postgres:5432/atopic_helper
+      - DATABASE_URL=postgresql://eczema:eczema_dev@postgres:5432/eczema_helper
       - SESSION_SECRET=dev-secret-change-in-production
     volumes:
       - ./data/photos:/data/photos
@@ -150,9 +150,9 @@ services:
     container_name: eczema-postgres-dev
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=atopic_helper
-      - POSTGRES_USER=atopic
-      - POSTGRES_PASSWORD=atopic_dev
+      - POSTGRES_DB=eczema_helper
+      - POSTGRES_USER=eczema
+      - POSTGRES_PASSWORD=eczema_dev
     ports:
       - "127.0.0.1:5432:5432"   # Only accessible from laptop (for DB tools)
     volumes:
@@ -160,7 +160,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atopic -d atopic_helper"]
+      test: ["CMD-SHELL", "pg_isready -U eczema -d eczema_helper"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -224,6 +224,114 @@ Both give you console access, network inspection, and DOM debugging on the real 
 | Photo storage | ./data/photos/ (local dir) | /data/photos/ (server dir) |
 | Backups | Not needed | Automated daily |
 | Push notifications | Can test (VAPID keys optional) | Full VAPID setup |
+
+---
+
+## Stage 1b: Home LAN Server (Linux)
+
+This stage covers running the app on a dedicated Linux machine on the home network — the primary way to use the app with a real phone without relying on the dev laptop staying on. The architecture is identical to the laptop setup (Docker + Caddy + mkcert), but the steps use Linux tooling instead of Homebrew.
+
+### Prerequisites
+
+```bash
+# Docker Engine
+sudo apt update
+sudo apt install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list
+sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo usermod -aG docker $USER   # allow running docker without sudo (re-login to take effect)
+
+# Caddy
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+  | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+  | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install caddy
+sudo systemctl stop caddy   # disable default Caddy service — we'll run it manually with our Caddyfile
+
+# mkcert
+sudo apt install mkcert   # Ubuntu 22.04+; if unavailable:
+# curl -L https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64 \
+#   -o mkcert && chmod +x mkcert && sudo mv mkcert /usr/local/bin/
+```
+
+### Deploy the App
+
+```bash
+# Clone the repository
+git clone git@github.com:you/eczema-tracker.git /opt/eczema-tracker
+cd /opt/eczema-tracker
+
+# Create .env from example and fill in secrets
+cp .env.example .env
+# Edit DATABASE_URL and SESSION_SECRET (at minimum, generate a strong SESSION_SECRET)
+
+# Generate mkcert certs for the server's LAN IP
+SERVER_IP=$(hostname -I | awk '{print $1}')
+mkcert -install
+mkdir -p certs
+mkcert -cert-file certs/local.pem -key-file certs/local-key.pem localhost 127.0.0.1 $SERVER_IP
+
+# Update Caddyfile to use the server's actual LAN IP
+sed -i "s/192.168.1.42/$SERVER_IP/g" Caddyfile
+
+# Start PostgreSQL and the app
+docker compose -f docker-compose.dev.yml up -d
+```
+
+### Run Caddy as a Systemd Service
+
+The default Caddy systemd unit uses its own config. Override it to use the project Caddyfile:
+
+```bash
+# Create a systemd override
+sudo mkdir -p /etc/systemd/system/caddy.service.d
+sudo tee /etc/systemd/system/caddy.service.d/override.conf > /dev/null <<EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/caddy run --environ --config /opt/eczema-tracker/Caddyfile
+ExecReload=
+ExecReload=/usr/bin/caddy reload --config /opt/eczema-tracker/Caddyfile --force
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now caddy
+```
+
+Caddy now starts automatically on boot and serves HTTPS on the server's LAN IP.
+
+### Trust the CA on Devices
+
+The mkcert root CA on the Linux server is at `$(mkcert -CAROOT)/rootCA.pem`. Copy it to each device:
+
+```bash
+# Serve the CA file temporarily for easy download on phones
+python3 -m http.server 8080 --directory $(mkcert -CAROOT)
+# Then open http://<server-ip>:8080/rootCA.pem on the phone
+```
+
+Install on **iPhone**: Settings > General > VPN & Device Management > install the profile, then Settings > General > About > Certificate Trust Settings > enable full trust.
+
+Install on **Android**: Settings > Security > Encryption & credentials > Install a certificate > CA certificate.
+
+### Access the App
+
+On any device on the same WiFi, navigate to `https://<server-ip>`. The certificate is trusted (no warnings). Use Safari on iPhone to add to Home Screen for PWA installation.
+
+### Updating
+
+```bash
+cd /opt/eczema-tracker
+git pull
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+This rebuilds the app image and restarts only the app container. PostgreSQL and its data are unaffected.
 
 ---
 
