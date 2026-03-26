@@ -385,6 +385,17 @@ check-tools:
 # Start full development environment (PostgreSQL, Caddy, dev server)
 dev:
     #!/usr/bin/env bash
+    # Ensure bun is in PATH (installed to ~/.bun/bin by default)
+    export PATH="$HOME/.bun/bin:$PATH"
+    
+    # Check bun is available
+    if ! command -v bun &> /dev/null; then
+        echo "❌ Bun not found. Please install it:"
+        echo "   curl -fsSL https://bun.sh/install | bash"
+        echo "   Then restart your terminal or run: source ~/.bashrc"
+        exit 1
+    fi
+    
     echo "🚀 Starting development environment..."
     docker compose -f docker-compose.postgres.yml up -d
     echo "✅ PostgreSQL started"
@@ -418,9 +429,11 @@ logs:
 
 # Type-check, build, and verify
 build:
+    #!/usr/bin/env bash
+    export PATH="$HOME/.bun/bin:$PATH"
     bunx tsc --noEmit
     bun run build
-    @echo "✅ Build successful"
+    echo "✅ Build successful"
 
 # Run all tests
 test:
@@ -433,6 +446,8 @@ test-watch:
 
 # Run E2E tests (requires dev environment running)
 test-e2e:
+    #!/usr/bin/env bash
+    export PATH="$HOME/.bun/bin:$PATH"
     bun run test:e2e
 
 # Run all checks (type-check, test, build)
@@ -452,14 +467,20 @@ clean:
 
 # Generate new migration
 db-migrate-generate name:
+    #!/usr/bin/env bash
+    export PATH="$HOME/.bun/bin:$PATH"
     bun run db:generate -- {{name}}
 
 # Run pending migrations
 db-migrate:
+    #!/usr/bin/env bash
+    export PATH="$HOME/.bun/bin:$PATH"
     bun run db:migrate
 
 # Rollback last migration
 db-migrate-rollback:
+    #!/usr/bin/env bash
+    export PATH="$HOME/.bun/bin:$PATH"
     bun run db:rollback
 
 # Reset database (⚠️ DESTRUCTIVE)
