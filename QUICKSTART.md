@@ -61,21 +61,61 @@ nano .env
 
 **Note:** The dev environment uses Docker for PostgreSQL, so the default `.env` values work for initial testing.
 
-## Step 5: Generate HTTPS Certificates
+## Step 5: Generate HTTPS Certificates and Install Root CA
 
 ```bash
 just setup-certs
 ```
 
-This creates HTTPS certificates for your local IP address (e.g., `192.168.1.x`).
+This creates HTTPS certificates for your local IP address.
 
-**Important for mobile testing:** You must install the mkcert CA on your phone:
+### Install mkcert Root CA on Your Computer
 
-1. Run `mkcert -CAROOT` to find the CA file location
-2. Transfer `rootCA.pem` to your phone
-3. **iPhone**: Settings > General > VPN & Device Management > Install Profile  
-   Then: Settings > General > About > Certificate Trust Settings > Enable Full Trust
-4. **Android**: Settings > Security > Encryption & credentials > Install certificate > CA certificate
+You must trust the certificate authority on your laptop/desktop to avoid "This connection is not private" warnings:
+
+**macOS:**
+
+```bash
+# Find and open the certificate
+open "$(mkcert -CAROOT)/rootCA.pem"
+
+# Or manually:
+# 1. Open Keychain Access
+# 2. Find "mkcert" certificate under System Roots
+# 3. Double-click → Trust → "Always Trust"
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo cp "$(mkcert -CAROOT)/rootCA.pem" /usr/local/share/ca-certificates/mkcert.crt
+sudo update-ca-certificates
+```
+
+**RedHat/Fedora:**
+
+```bash
+sudo cp "$(mkcert -CAROOT)/rootCA.pem" /etc/pki/ca-trust/source/anchors/mkcert.crt
+sudo update-ca-trust extract
+```
+
+### Install mkcert Root CA on Your Phone
+
+**iPhone:**
+
+1. Run `mkcert -CAROOT` on your computer to find the certificate
+2. Transfer `rootCA.pem` to your iPhone (AirDrop, email, cloud)
+3. Open the file → Install Profile when prompted
+4. Go to: Settings > General > About > Certificate Trust Settings
+5. Enable "Full Trust" for the mkcert certificate
+
+**Android:**
+
+1. Transfer `rootCA.pem` to your phone
+2. Go to: Settings > Security > Encryption & credentials
+3. Tap "Install a certificate" > "CA certificate"
+4. Select the `rootCA.pem` file
+5. Confirm installation
 
 ## Step 6: Start Development Server
 
@@ -122,9 +162,17 @@ just logs             # View logs
 
 ## Troubleshooting
 
+**"This connection is not private" / Certificate warning:**
+
+This is expected! The HTTPS certificate is self-signed. To fix it:
+
+1. **If on your laptop/computer**: Install the mkcert root CA (see Step 5 above)
+2. **If on your phone**: Install the mkcert root CA (see Step 5 above)
+3. **Quick workaround**: Click "Advanced" → "Proceed" (accept the risk)
+
 **Certificate warnings on phone:**
 
-- Make sure you installed the mkcert root CA on your phone (Step 4)
+- Make sure you installed the mkcert root CA on your phone (Step 5)
 - Ensure phone and computer are on same WiFi
 
 **Cannot connect / Connection refused:**
