@@ -44,45 +44,45 @@ None. This is the first phase.
 
 ### Files Created / Modified
 
-| File | Description |
-|---|---|
-| `package.json` | Project metadata and all dependencies |
-| `svelte.config.js` | SvelteKit adapter-node config with alias paths |
-| `vite.config.ts` | Vite config with `@vite-pwa/sveltekit` plugin |
-| `tailwind.config.ts` | Tailwind CSS 4 config with custom theme tokens |
-| `tsconfig.json` | TypeScript strict mode configuration |
-| `src/app.html` | Root HTML template with viewport meta for mobile |
-| `src/app.css` | Global styles importing Tailwind directives |
-| `src/lib/domain/models.ts` | All TypeScript interfaces for domain entities |
-| `src/lib/domain/ports/repository.ts` | Repository port interface (CRUD for all entities) |
-| `src/lib/domain/ports/analyzer.ts` | Analyzer port interface (correlation, suggestions) |
-| `src/lib/domain/ports/photo-storage.ts` | Photo storage port interface |
-| `src/lib/domain/ports/notifications.ts` | Notification scheduling port interface |
-| `src/lib/crypto/encryption.ts` | Encryption module stub (AES-256-GCM, no implementation yet) |
-| `src/lib/adapters/dexie-db.ts` | Dexie.js database schema and instance |
-| `src/lib/i18n/cs.ts` | Czech translation strings (stub with basic keys) |
-| `src/lib/stores/auth.svelte.ts` | Auth store stub (Svelte 5 runes, no logic) |
-| `src/lib/stores/food-log.ts` | Food log store stub |
-| `src/lib/stores/photos.ts` | Photos store stub |
-| `src/lib/stores/children.ts` | Children store stub |
-| `src/routes/+layout.svelte` | App shell with bottom tab navigation |
-| `src/routes/+page.svelte` | Root page -- redirects to `/calendar` |
-| `src/routes/login/+page.svelte` | Login page UI (email, password, submit button) |
-| `src/routes/(app)/+layout.svelte` | Protected area layout (placeholder) |
-| `src/routes/(app)/calendar/+page.svelte` | Calendar page placeholder |
-| `src/routes/(app)/food/+page.svelte` | Food page placeholder |
-| `src/routes/(app)/photos/+page.svelte` | Photos page placeholder |
-| `src/routes/(app)/trends/+page.svelte` | Trends page placeholder |
-| `src/routes/(app)/settings/+page.svelte` | Settings page placeholder |
-| `static/manifest.webmanifest` | PWA manifest (name, icons, theme colour) |
-| `static/icons/icon-192x192.png` | PWA icon 192px |
-| `static/icons/icon-512x512.png` | PWA icon 512px |
-| `docker-compose.dev.yml` | Local dev: PostgreSQL 16 + app container, LAN-accessible |
-| `Dockerfile` | Multi-stage Node.js Dockerfile |
-| `Caddyfile` | Local HTTPS reverse proxy config (mkcert certs) |
-| `certs/` | Directory for mkcert-generated local TLS certificates (gitignored) |
-| `.env.example` | Environment variable template |
-| `.gitignore` | Updated to ignore `certs/`, `data/`, `.env` |
+| File                                     | Description                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| `package.json`                           | Project metadata and all dependencies                              |
+| `svelte.config.js`                       | SvelteKit adapter-node config with alias paths                     |
+| `vite.config.ts`                         | Vite config with `@vite-pwa/sveltekit` plugin                      |
+| `tailwind.config.ts`                     | Tailwind CSS 4 config with custom theme tokens                     |
+| `tsconfig.json`                          | TypeScript strict mode configuration                               |
+| `src/app.html`                           | Root HTML template with viewport meta for mobile                   |
+| `src/app.css`                            | Global styles importing Tailwind directives                        |
+| `src/lib/domain/models.ts`               | All TypeScript interfaces for domain entities                      |
+| `src/lib/domain/ports/repository.ts`     | Repository port interface (CRUD for all entities)                  |
+| `src/lib/domain/ports/analyzer.ts`       | Analyzer port interface (correlation, suggestions)                 |
+| `src/lib/domain/ports/photo-storage.ts`  | Photo storage port interface                                       |
+| `src/lib/domain/ports/notifications.ts`  | Notification scheduling port interface                             |
+| `src/lib/crypto/encryption.ts`           | Encryption module stub (AES-256-GCM, no implementation yet)        |
+| `src/lib/adapters/dexie-db.ts`           | Dexie.js database schema and instance                              |
+| `src/lib/i18n/cs.ts`                     | Czech translation strings (stub with basic keys)                   |
+| `src/lib/stores/auth.svelte.ts`          | Auth store stub (Svelte 5 runes, no logic)                         |
+| `src/lib/stores/food-log.ts`             | Food log store stub                                                |
+| `src/lib/stores/photos.ts`               | Photos store stub                                                  |
+| `src/lib/stores/children.ts`             | Children store stub                                                |
+| `src/routes/+layout.svelte`              | App shell with bottom tab navigation                               |
+| `src/routes/+page.svelte`                | Root page -- redirects to `/calendar`                              |
+| `src/routes/login/+page.svelte`          | Login page UI (email, password, submit button)                     |
+| `src/routes/(app)/+layout.svelte`        | Protected area layout (placeholder)                                |
+| `src/routes/(app)/calendar/+page.svelte` | Calendar page placeholder                                          |
+| `src/routes/(app)/food/+page.svelte`     | Food page placeholder                                              |
+| `src/routes/(app)/photos/+page.svelte`   | Photos page placeholder                                            |
+| `src/routes/(app)/trends/+page.svelte`   | Trends page placeholder                                            |
+| `src/routes/(app)/settings/+page.svelte` | Settings page placeholder                                          |
+| `static/manifest.webmanifest`            | PWA manifest (name, icons, theme colour)                           |
+| `static/icons/icon-192x192.png`          | PWA icon 192px                                                     |
+| `static/icons/icon-512x512.png`          | PWA icon 512px                                                     |
+| `docker-compose.dev.yml`                 | Local dev: PostgreSQL 16 + app container, LAN-accessible           |
+| `Dockerfile`                             | Multi-stage Node.js Dockerfile                                     |
+| `Caddyfile`                              | Local HTTPS reverse proxy config (mkcert certs)                    |
+| `certs/`                                 | Directory for mkcert-generated local TLS certificates (gitignored) |
+| `.env.example`                           | Environment variable template                                      |
+| `.gitignore`                             | Updated to ignore `certs/`, `data/`, `.env`                        |
 
 ### Step-by-Step Instructions
 
@@ -133,10 +133,10 @@ bun add -d fake-indexeddb
 Create `src/app.css`:
 
 ```css
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @theme {
-  --color-primary: #3d6994;  /* Darkened from #4f7cac to #3d6994 to meet WCAG AA contrast ratio of 4.5:1 on the #f8f9fa surface background. */
+  --color-primary: #3d6994; /* Darkened from #4f7cac to #3d6994 to meet WCAG AA contrast ratio of 4.5:1 on the #f8f9fa surface background. */
   --color-primary-light: #a0c4e8;
   --color-surface: #f8f9fa;
   --color-surface-dark: #e9ecef;
@@ -151,23 +151,23 @@ Create `src/app.css`:
 Update `vite.config.ts` to include the Tailwind Vite plugin:
 
 ```typescript
-import { sveltekit } from '@sveltejs/kit/vite';
-import { SvelteKitPWA } from '@vite-pwa/sveltekit';
-import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { sveltekit } from "@sveltejs/kit/vite";
+import { SvelteKitPWA } from "@vite-pwa/sveltekit";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [
     tailwindcss(),
     sveltekit(),
     SvelteKitPWA({
-      registerType: 'autoUpdate',
+      registerType: "autoUpdate",
       manifest: false, // use static/manifest.webmanifest
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}']
-      }
-    })
-  ]
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp}"],
+      },
+    }),
+  ],
 });
 ```
 
@@ -196,9 +196,9 @@ export default {
   kit: {
     adapter: adapter(),
     csrf: {
-      checkOrigin: true  // Active in ALL environments, not just production
-    }
-  }
+      checkOrigin: true, // Active in ALL environments, not just production
+    },
+  },
 };
 ```
 
@@ -238,11 +238,17 @@ Create each port file under `src/lib/domain/ports/` exactly as specified in `doc
 #### Step 8: Create Dexie.js local database (`src/lib/adapters/dexie-db.ts`)
 
 ```typescript
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type Table } from "dexie";
 import type {
-  Child, FoodCategory, FoodSubItem, FoodLog, Meal, MealItem,
-  TrackingPhoto, AnalysisResult
-} from '$lib/domain/models';
+  Child,
+  FoodCategory,
+  FoodSubItem,
+  FoodLog,
+  Meal,
+  MealItem,
+  TrackingPhoto,
+  AnalysisResult,
+} from "$lib/domain/models";
 
 export class AtopicHelperDB extends Dexie {
   children!: Table<Child>;
@@ -253,20 +259,25 @@ export class AtopicHelperDB extends Dexie {
   mealItems!: Table<MealItem>;
   trackingPhotos!: Table<TrackingPhoto>;
   analysisResults!: Table<AnalysisResult>;
-  photoBlobs!: Table<{ id: string; photoId: string; type: 'full' | 'thumbnail'; blob: ArrayBuffer }>;
+  photoBlobs!: Table<{
+    id: string;
+    photoId: string;
+    type: "full" | "thumbnail";
+    blob: ArrayBuffer;
+  }>;
 
   constructor() {
-    super('atopic-helper');
+    super("atopic-helper");
     this.version(1).stores({
-      children: 'id',
-      foodCategories: 'id, slug',
-      foodSubItems: 'id, categoryId',
-      foodLogs: 'id, childId, date, categoryId, [childId+date], syncedAt',
-      meals: 'id, userId, date, [userId+date]',
-      mealItems: 'id, mealId',
-      trackingPhotos: 'id, childId, date, photoType, [childId+date], syncedAt',
-      analysisResults: 'id, childId, [photo1Id+photo2Id]',
-      photoBlobs: 'id, photoId, type'  // type: 'full' | 'thumbnail'
+      children: "id",
+      foodCategories: "id, slug",
+      foodSubItems: "id, categoryId",
+      foodLogs: "id, childId, date, categoryId, [childId+date], syncedAt",
+      meals: "id, userId, date, [userId+date]",
+      mealItems: "id, mealId",
+      trackingPhotos: "id, childId, date, photoType, [childId+date], syncedAt",
+      analysisResults: "id, childId, [photo1Id+photo2Id]",
+      photoBlobs: "id, photoId, type", // type: 'full' | 'thumbnail'
     });
   }
 }
@@ -281,6 +292,7 @@ Each store file uses Svelte 5 runes in `.svelte.ts` modules (`auth.svelte.ts`, `
 #### Step 10: Create the app shell layout (`src/routes/+layout.svelte`)
 
 Build a mobile-first layout with:
+
 - A `<main>` content area with `pb-16` (padding for bottom nav).
 - A fixed bottom navigation bar with five tabs, each containing an icon (use simple SVG or Unicode symbols) and a label.
 - Tabs: Calendar (`/calendar`), Food (`/food`), Photos (`/photos`), Trends (`/trends`), Settings (`/settings`).
@@ -290,6 +302,7 @@ Build a mobile-first layout with:
 #### Step 11: Create the login page (`src/routes/login/+page.svelte`)
 
 Build a centred card layout with:
+
 - App logo / title at the top.
 - Email input (`type="email"`, required).
 - Password input (`type="password"`, required).
@@ -317,8 +330,16 @@ Use `goto('/calendar')` in `onMount` or a `+page.server.ts` `load` function that
   "background_color": "#f8f9fa",
   "theme_color": "#3d6994",
   "icons": [
-    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
 ```
@@ -347,12 +368,14 @@ mkcert -cert-file certs/local.pem -key-file certs/local-key.pem \
 Install the mkcert root CA on test phones:
 
 **iPhone:**
+
 1. Find CA: `mkcert -CAROOT` (e.g., `~/Library/Application Support/mkcert/rootCA.pem`)
 2. AirDrop `rootCA.pem` to the iPhone
 3. iPhone: Settings > General > VPN & Device Management > install the profile
 4. iPhone: Settings > General > About > Certificate Trust Settings > enable full trust
 
 **Android:**
+
 1. Transfer `rootCA.pem` to the device
 2. Settings > Security > Encryption & credentials > Install a certificate > CA certificate
 
@@ -493,6 +516,7 @@ bun run dev -- --host 0.0.0.0
 #### Step 22: Update `app.html`
 
 Ensure the `<head>` includes:
+
 - `<meta name="viewport" content="width=device-width, initial-scale=1">` for mobile. Prevent unwanted zoom on input focus using CSS `font-size: 16px` on inputs rather than disabling zoom entirely.
 - `<meta name="theme-color" content="#3d6994">`.
 - `<link rel="manifest" href="/manifest.webmanifest">`.
@@ -508,7 +532,7 @@ Ensure the `<head>` includes:
 export interface Child {
   id: string;
   name: string;
-  birthDate: string;     // ISO date: "2025-03-15"
+  birthDate: string; // ISO date: "2025-03-15"
   createdAt: string;
   updatedAt: string;
 }
@@ -516,15 +540,15 @@ export interface Child {
 export interface FoodLog {
   id: string;
   childId: string;
-  date: string;          // ISO date: "2025-04-01"
+  date: string; // ISO date: "2025-04-01"
   categoryId: string;
   subItemId?: string;
-  action: 'eliminated' | 'reintroduced';
+  action: "eliminated" | "reintroduced";
   notes?: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
-  syncedAt?: string;     // null = pending offline upload
+  syncedAt?: string; // null = pending offline upload
 }
 ```
 
@@ -535,9 +559,16 @@ export interface DataRepository {
   // Entity-specific methods — never expose table names or generic queries
   getUserByEmail(email: string): Promise<User | null>;
   getChildrenForUser(userId: string): Promise<Child[]>;
-  createChild(child: Omit<Child, 'id' | 'createdAt' | 'updatedAt'>): Promise<Child>;
-  getFoodLogs(childId: string, dateRange: { from: string; to: string }): Promise<FoodLog[]>;
-  createFoodLog(log: Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>): Promise<FoodLog>;
+  createChild(
+    child: Omit<Child, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Child>;
+  getFoodLogs(
+    childId: string,
+    dateRange: { from: string; to: string },
+  ): Promise<FoodLog[]>;
+  createFoodLog(
+    log: Omit<FoodLog, "id" | "createdAt" | "updatedAt">,
+  ): Promise<FoodLog>;
   // ... see ports-and-adapters.md for the full interface
 }
 ```
@@ -545,17 +576,19 @@ export interface DataRepository {
 **Bottom navigation active tab detection:**
 
 ```typescript
-import { page } from '$app/state';
+import { page } from "$app/state";
 
 const tabs = [
-  { href: '/calendar', label: 'Calendar', icon: 'calendar-icon' },
-  { href: '/food', label: 'Food', icon: 'food-icon' },
-  { href: '/photos', label: 'Photos', icon: 'photos-icon' },
-  { href: '/trends', label: 'Trends', icon: 'trends-icon' },
-  { href: '/settings', label: 'Settings', icon: 'settings-icon' }
+  { href: "/calendar", label: "Calendar", icon: "calendar-icon" },
+  { href: "/food", label: "Food", icon: "food-icon" },
+  { href: "/photos", label: "Photos", icon: "photos-icon" },
+  { href: "/trends", label: "Trends", icon: "trends-icon" },
+  { href: "/settings", label: "Settings", icon: "settings-icon" },
 ];
 
-const activeTab = $derived(tabs.find(t => page.url.pathname.startsWith(t.href)));
+const activeTab = $derived(
+  tabs.find((t) => page.url.pathname.startsWith(t.href)),
+);
 ```
 
 ## Post-Implementation State
@@ -568,45 +601,45 @@ The app shell runs on the developer's laptop in Docker and is accessible via HTT
 
 **Test file: `src/lib/domain/models.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 1 | `FoodLog.action` only accepts valid values | Create a FoodLog object with `action: 'eliminated'` and `action: 'reintroduced'` -- both should satisfy the type. Attempting to assign any other string should be a compile-time TypeScript error (verified via `tsc --noEmit`). |
-| 2 | `TrackingPhoto.photoType` discriminates skin vs stool | Create a TrackingPhoto with `photoType: 'skin'` -- `bodyArea` and `severityManual` are available. With `photoType: 'stool'` -- `stoolColor`, `stoolConsistency`, `hasMucus`, `hasBlood` are available. |
-| 3 | All model interfaces have required `id` field | For each model interface, instantiate a valid object and assert `id` is a string. |
-| 4 | `FoodLog.date` is an ISO date string | Create a FoodLog and verify the `date` field matches `/^\d{4}-\d{2}-\d{2}$/`. |
-| 5 | `AnalysisResult` discriminated union works | Create a `SkinAnalysisResult` with `analysisType: 'skin'` and verify skin-specific fields. Create a `StoolAnalysisResult` with `analysisType: 'stool'` and verify stool-specific fields. |
+| #   | Test Case                                             | Details                                                                                                                                                                                                                          |
+| --- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `FoodLog.action` only accepts valid values            | Create a FoodLog object with `action: 'eliminated'` and `action: 'reintroduced'` -- both should satisfy the type. Attempting to assign any other string should be a compile-time TypeScript error (verified via `tsc --noEmit`). |
+| 2   | `TrackingPhoto.photoType` discriminates skin vs stool | Create a TrackingPhoto with `photoType: 'skin'` -- `bodyArea` and `severityManual` are available. With `photoType: 'stool'` -- `stoolColor`, `stoolConsistency`, `hasMucus`, `hasBlood` are available.                           |
+| 3   | All model interfaces have required `id` field         | For each model interface, instantiate a valid object and assert `id` is a string.                                                                                                                                                |
+| 4   | `FoodLog.date` is an ISO date string                  | Create a FoodLog and verify the `date` field matches `/^\d{4}-\d{2}-\d{2}$/`.                                                                                                                                                    |
+| 5   | `AnalysisResult` discriminated union works            | Create a `SkinAnalysisResult` with `analysisType: 'skin'` and verify skin-specific fields. Create a `StoolAnalysisResult` with `analysisType: 'stool'` and verify stool-specific fields.                                         |
 
 **Test file: `src/lib/adapters/dexie-db.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 6 | Database opens without error | Call `db.open()` and assert it resolves. Call `db.close()` in teardown. |
-| 7 | All expected tables exist | After opening, assert `db.tables.map(t => t.name)` contains `children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`. |
-| 8 | FoodLogs compound index works | Insert a food log with `childId` and `date`, query using `.where('[childId+date]')`, assert the record is returned. |
+| #   | Test Case                     | Details                                                                                                                                                                                        |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | Database opens without error  | Call `db.open()` and assert it resolves. Call `db.close()` in teardown.                                                                                                                        |
+| 7   | All expected tables exist     | After opening, assert `db.tables.map(t => t.name)` contains `children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`. |
+| 8   | FoodLogs compound index works | Insert a food log with `childId` and `date`, query using `.where('[childId+date]')`, assert the record is returned.                                                                            |
 
 **Test file: `src/lib/i18n/cs.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 9 | Czech translations object has all required keys | Import `cs` and assert it contains keys: `login`, `logout`, `register`, `calendar`, `food`, `photos`, `trends`, `settings`, `save`, `cancel`, `delete`, `loading`, `error`. |
-| 10 | No translation value is empty string | Iterate all values in `cs` and assert each is a non-empty string. |
+| #   | Test Case                                       | Details                                                                                                                                                                     |
+| --- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 9   | Czech translations object has all required keys | Import `cs` and assert it contains keys: `login`, `logout`, `register`, `calendar`, `food`, `photos`, `trends`, `settings`, `save`, `cancel`, `delete`, `loading`, `error`. |
+| 10  | No translation value is empty string            | Iterate all values in `cs` and assert each is a non-empty string.                                                                                                           |
 
 **Test file: `src/lib/crypto/encryption.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 11 | `encrypt` stub throws "Not implemented" | Call `encrypt(new Uint8Array([1,2,3]), 'key')` and assert it rejects with "Not implemented". |
-| 12 | `decrypt` stub throws "Not implemented" | Call `decrypt(new Uint8Array([1,2,3]), 'key')` and assert it rejects with "Not implemented". |
+| #   | Test Case                               | Details                                                                                      |
+| --- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 11  | `encrypt` stub throws "Not implemented" | Call `encrypt(new Uint8Array([1,2,3]), 'key')` and assert it rejects with "Not implemented". |
+| 12  | `decrypt` stub throws "Not implemented" | Call `decrypt(new Uint8Array([1,2,3]), 'key')` and assert it rejects with "Not implemented". |
 
 ### Integration Tests
 
 **Test file: `tests/integration/docker-postgres.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 13 | PostgreSQL container is reachable | Connect to `postgres://atopic:atopic_dev@localhost:5432/atopic_helper` using the `postgres` driver and run `SELECT 1`. Assert the result is `1`. |
-| 14 | Database accepts table creation | Run `CREATE TABLE IF NOT EXISTS _test_healthcheck (id SERIAL PRIMARY KEY)` then `DROP TABLE _test_healthcheck`. Assert no errors. |
-| 15 | Connection pool handles concurrent queries | Open 5 concurrent connections, each running `SELECT pg_sleep(0.1)`, assert all resolve within 2 seconds. |
+| #   | Test Case                                  | Details                                                                                                                                          |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 13  | PostgreSQL container is reachable          | Connect to `postgres://atopic:atopic_dev@localhost:5432/atopic_helper` using the `postgres` driver and run `SELECT 1`. Assert the result is `1`. |
+| 14  | Database accepts table creation            | Run `CREATE TABLE IF NOT EXISTS _test_healthcheck (id SERIAL PRIMARY KEY)` then `DROP TABLE _test_healthcheck`. Assert no errors.                |
+| 15  | Connection pool handles concurrent queries | Open 5 concurrent connections, each running `SELECT pg_sleep(0.1)`, assert all resolve within 2 seconds.                                         |
 
 ### E2E / Manual Tests
 
@@ -647,27 +680,15 @@ The app shell runs on the developer's laptop in Docker and is accessible via HTT
 1. Navigate to `http://localhost:5173/`.
 2. **Expected:** The browser redirects to `/calendar`. The URL bar shows `/calendar`.
 
-### CI Pipeline Script
+### CI Pipeline
 
-Create `scripts/test-all.sh` as the minimum CI gate:
+Use Just for the CI gate:
 
 ```bash
-#!/bin/bash
-set -euo pipefail
-
-echo "=== Type Check ==="
-bunx tsc --noEmit
-
-echo "=== Unit + Integration Tests ==="
-bun run test
-
-echo "=== Build ==="
-bun run build
-
-echo "=== All checks passed ==="
+just check    # Runs: type-check + tests + build + lint
 ```
 
-This script should be run before every push to main. A GitHub Actions workflow can be added later (Phase 8) for automated CI.
+This command should be run before every push to main. A GitHub Actions workflow can be added later (Phase 8) for automated CI.
 
 ### Regression Checks
 

@@ -147,16 +147,6 @@ kill <PID>            # Kill it
 - Check `docs/phases/phase-0-scaffold.md` for detailed Phase 0 implementation
 - Run `just help` to see all available commands
 
-## Legacy Scripts
-
-The `scripts/test-all.sh` script is still available but redundant — use `just check` instead:
-
-```bash
-just check            # Recommended
-# OR
-scripts/test-all.sh   # Legacy
-```
-
 ## Quick Reference
 
 ```bash
