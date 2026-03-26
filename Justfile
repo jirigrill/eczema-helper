@@ -9,6 +9,376 @@ default:
     @just --list
 
 # ============================================================================
+# SETUP & INSTALLATION (Cross-platform: Linux & macOS)
+# ============================================================================
+
+# Install all required development tools (Bun, Docker, mkcert, Caddy, Just)
+setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    OS=$(uname -s)
+    echo "🔧 Setting up development environment for $OS..."
+    
+    if [[ "$OS" == "Darwin" ]]; then
+        echo "🍎 Detected macOS"
+        just setup-macos
+    elif [[ "$OS" == "Linux" ]]; then
+        echo "🐧 Detected Linux"
+        just setup-linux
+    else
+        echo "❌ Unsupported operating system: $OS"
+        exit 1
+    fi
+    
+    echo "✅ Setup complete! Run 'just dev' to start development."
+
+# Setup for macOS (requires Homebrew)
+setup-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "🍎 Setting up macOS development environment..."
+    
+    # Check for Homebrew
+    if ! command -v brew &> /dev/null; then
+        echo "📦 Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+    
+    # Install required tools
+    echo "📦 Installing required tools via Homebrew..."
+    brew install --quiet just || echo "✓ just already installed"
+    brew install --quiet mkcert || echo "✓ mkcert already installed"
+    brew install --quiet caddy || echo "✓ caddy already installed"
+    
+    # Install Docker Desktop
+    if ! command -v docker &> /dev/null; then
+        echo "📦 Installing Docker Desktop..."
+        echo "⚠️  Please download and install Docker Desktop from https://www.docker.com/products/docker-desktop"
+        echo "   Then run 'just setup' again."
+        exit 1
+    fi
+    
+    # Install Bun
+    if ! command -v bun &> /dev/null; then
+        echo "📦 Installing Bun..."
+        curl -fsSL https://bun.sh/install | bash
+        echo "⚠️  Please restart your terminal or run: source ~/.bashrc or source ~/.zshrc"
+    fi
+    
+    # Setup mkcert CA
+    echo "🔐 Setting up mkcert CA..."
+    mkcert -install
+    
+    echo "✅ macOS setup complete!"
+
+# Setup for Linux (Ubuntu/Debian)
+setup-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "🐧 Setting up Linux development environment..."
+    
+    # Detect Linux distribution
+    if [[ -f /etc/debian_version ]]; then
+        echo "📦 Detected Debian/Ubuntu system"
+        just setup-linux-debian
+    elif [[ -f /etc/redhat-release ]] || [[ -f /etc/fedora-release ]]; then
+        echo "📦 Detected RedHat/Fedora system"
+        just setup-linux-redhat
+    elif [[ -f /etc/arch-release ]]; then
+        echo "📦 Detected Arch Linux system"
+        just setup-linux-arch
+    else
+        echo "⚠️  Unknown Linux distribution. Please install dependencies manually:"
+        echo "   - Bun (https://bun.sh)"
+        echo "   - Docker & Docker Compose"
+        echo "   - mkcert (https://github.com/FiloSottile/mkcert)"
+        echo "   - Caddy (https://caddyserver.com)"
+        exit 1
+    fi
+
+# Setup for Debian/Ubuntu Linux
+setup-linux-debian:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "📦 Installing dependencies for Debian/Ubuntu..."
+    
+    # Update package list
+    sudo apt-get update
+    
+    # Install base dependencies
+    echo "📦 Installing base dependencies..."
+    sudo apt-get install -y curl wget gnupg2 ca-certificates lsb-release software-properties-common
+    
+    # Install Docker
+    if ! command -v docker &> /dev/null; then
+        echo "📦 Installing Docker..."
+        sudo apt-get install -y docker.io docker-compose-plugin
+        sudo usermod -aG docker $USER
+        echo "✅ Docker installed. Please log out and back in for group changes."
+    else
+        echo "✓ Docker already installed"
+    fi
+    
+    # Install mkcert
+    if ! command -v mkcert &> /dev/null; then
+        echo "📦 Installing mkcert..."
+        MKCERT_VERSION=$(curl -s https://api.github.com/repos/FiloSottile/mkcert/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        wget -q "https://github.com/FiloSottile/mkcert/releases/download/${MKCERT_VERSION}/mkcert-${MKCERT_VERSION}-linux-amd64" -O /tmp/mkcert
+        chmod +x /tmp/mkcert
+        sudo mv /tmp/mkcert /usr/local/bin/mkcert
+        echo "✅ mkcert installed"
+    else
+        echo "✓ mkcert already installed"
+    fi
+    
+    # Install Caddy
+    if ! command -v caddy &> /dev/null; then
+        echo "📦 Installing Caddy..."
+        sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+        sudo apt-get update
+        sudo apt-get install -y caddy
+        echo "✅ Caddy installed"
+    else
+        echo "✓ Caddy already installed"
+    fi
+    
+    # Install Just
+    if ! command -v just &> /dev/null; then
+        echo "📦 Installing Just..."
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /tmp
+        sudo mv /tmp/just /usr/local/bin/just
+        echo "✅ Just installed"
+    else
+        echo "✓ Just already installed"
+    fi
+    
+    # Install Bun
+    if ! command -v bun &> /dev/null; then
+        echo "📦 Installing Bun..."
+        curl -fsSL https://bun.sh/install | bash
+        echo "⚠️  Please restart your terminal or run: source ~/.bashrc"
+        echo "   Or add to your PATH: export PATH=\"$HOME/.bun/bin:$PATH\""
+    else
+        echo "✓ Bun already installed"
+    fi
+    
+    # Setup mkcert CA
+    echo "🔐 Setting up mkcert CA..."
+    mkcert -install
+    
+    echo "✅ Debian/Ubuntu setup complete!"
+
+# Setup for RedHat/Fedora Linux
+setup-linux-redhat:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "📦 Installing dependencies for RedHat/Fedora..."
+    
+    # Install base dependencies
+    sudo dnf install -y curl wget
+    
+    # Install Docker
+    if ! command -v docker &> /dev/null; then
+        echo "📦 Installing Docker..."
+        sudo dnf install -y docker docker-compose
+        sudo systemctl enable docker
+        sudo systemctl start docker
+        sudo usermod -aG docker $USER
+        echo "✅ Docker installed. Please log out and back in for group changes."
+    else
+        echo "✓ Docker already installed"
+    fi
+    
+    # Install mkcert
+    if ! command -v mkcert &> /dev/null; then
+        echo "📦 Installing mkcert..."
+        MKCERT_VERSION=$(curl -s https://api.github.com/repos/FiloSottile/mkcert/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        wget -q "https://github.com/FiloSottile/mkcert/releases/download/${MKCERT_VERSION}/mkcert-${MKCERT_VERSION}-linux-amd64" -O /tmp/mkcert
+        chmod +x /tmp/mkcert
+        sudo mv /tmp/mkcert /usr/local/bin/mkcert
+        echo "✅ mkcert installed"
+    else
+        echo "✓ mkcert already installed"
+    fi
+    
+    # Install Caddy
+    if ! command -v caddy &> /dev/null; then
+        echo "📦 Installing Caddy..."
+        sudo dnf install -y 'dnf-command(copr)'
+        sudo dnf copr enable -y @caddy/caddy
+        sudo dnf install -y caddy
+        echo "✅ Caddy installed"
+    else
+        echo "✓ Caddy already installed"
+    fi
+    
+    # Install Just via Cargo
+    if ! command -v just &> /dev/null; then
+        echo "📦 Installing Just..."
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /tmp
+        sudo mv /tmp/just /usr/local/bin/just
+        echo "✅ Just installed"
+    else
+        echo "✓ Just already installed"
+    fi
+    
+    # Install Bun
+    if ! command -v bun &> /dev/null; then
+        echo "📦 Installing Bun..."
+        curl -fsSL https://bun.sh/install | bash
+        echo "⚠️  Please restart your terminal or run: source ~/.bashrc"
+        echo "   Or add to your PATH: export PATH=\"$HOME/.bun/bin:$PATH\""
+    else
+        echo "✓ Bun already installed"
+    fi
+    
+    # Setup mkcert CA
+    echo "🔐 Setting up mkcert CA..."
+    mkcert -install
+    
+    echo "✅ RedHat/Fedora setup complete!"
+
+# Setup for Arch Linux
+setup-linux-arch:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "📦 Installing dependencies for Arch Linux..."
+    
+    # Install packages from AUR and official repos
+    echo "📦 Installing from official repositories..."
+    sudo pacman -S --needed --noconfirm docker docker-compose caddy curl wget base-devel
+    
+    # Enable Docker
+    if ! systemctl is-active --quiet docker; then
+        echo "🔧 Enabling Docker..."
+        sudo systemctl enable docker
+        sudo systemctl start docker
+        sudo usermod -aG docker $USER
+        echo "✅ Docker enabled. Please log out and back in for group changes."
+    fi
+    
+    # Install mkcert from AUR
+    if ! command -v mkcert &> /dev/null; then
+        echo "📦 Installing mkcert from AUR..."
+        cd /tmp
+        git clone https://aur.archlinux.org/mkcert.git
+        cd mkcert
+        makepkg -si --noconfirm
+        cd -
+        echo "✅ mkcert installed"
+    else
+        echo "✓ mkcert already installed"
+    fi
+    
+    # Install Just from AUR
+    if ! command -v just &> /dev/null; then
+        echo "📦 Installing Just from AUR..."
+        cd /tmp
+        git clone https://aur.archlinux.org/just.git
+        cd just
+        makepkg -si --noconfirm
+        cd -
+        echo "✅ Just installed"
+    else
+        echo "✓ Just already installed"
+    fi
+    
+    # Install Bun
+    if ! command -v bun &> /dev/null; then
+        echo "📦 Installing Bun..."
+        curl -fsSL https://bun.sh/install | bash
+        echo "⚠️  Please restart your terminal or run: source ~/.bashrc"
+        echo "   Or add to your PATH: export PATH=\"$HOME/.bun/bin:$PATH\""
+    else
+        echo "✓ Bun already installed"
+    fi
+    
+    # Setup mkcert CA
+    echo "🔐 Setting up mkcert CA..."
+    mkcert -install
+    
+    echo "✅ Arch Linux setup complete!"
+
+# Generate HTTPS certificates for local development
+setup-certs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "🔐 Generating HTTPS certificates..."
+    
+    # Get local IP
+    OS=$(uname -s)
+    if [[ "$OS" == "Darwin" ]]; then
+        LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1)
+    else
+        LOCAL_IP=$(hostname -I | awk '{print $1}')
+    fi
+    
+    if [[ -z "$LOCAL_IP" ]]; then
+        echo "❌ Could not determine local IP address"
+        exit 1
+    fi
+    
+    echo "📍 Local IP detected: $LOCAL_IP"
+    
+    # Create certs directory
+    mkdir -p certs
+    
+    # Generate certificates
+    mkcert -cert-file certs/local.pem -key-file certs/local-key.pem \
+        localhost 127.0.0.1 "$LOCAL_IP"
+    
+    echo "✅ Certificates generated in certs/"
+    echo ""
+    echo "📱 Next steps for mobile testing:"
+    echo "   1. Find CA root: mkcert -CAROOT"
+    echo "   2. Transfer rootCA.pem to your phone"
+    echo "   3. Install and trust the certificate on your phone"
+    echo ""
+    echo "   iPhone: Settings > General > VPN & Device Management > Install Profile"
+    echo "          Settings > General > About > Certificate Trust Settings > Enable Full Trust"
+    echo "   Android: Settings > Security > Encryption & credentials > Install certificate > CA certificate"
+
+# Verify all tools are installed correctly
+check-tools:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "🔍 Checking installed tools..."
+    echo ""
+    
+    TOOLS=("bun" "docker" "mkcert" "caddy" "just")
+    ALL_GOOD=true
+    
+    for tool in "${TOOLS[@]}"; do
+        if command -v "$tool" &> /dev/null; then
+            VERSION=$($tool --version 2>&1 | head -n1 || echo "installed")
+            echo "✅ $tool: $VERSION"
+        else
+            echo "❌ $tool: NOT FOUND"
+            ALL_GOOD=false
+        fi
+    done
+    
+    echo ""
+    if [[ "$ALL_GOOD" == true ]]; then
+        echo "✅ All tools installed correctly!"
+        echo "   Run 'just setup-certs' to generate HTTPS certificates"
+        echo "   Then run 'just dev' to start development"
+    else
+        echo "❌ Some tools are missing. Run 'just setup' to install them."
+        exit 1
+    fi
+
+# ============================================================================
 # DEVELOPMENT
 # ============================================================================
 
@@ -385,6 +755,11 @@ EOF
 # Help
 help:
     @echo "Eczema Tracker PWA - Justfile Commands"
+    @echo ""
+    @echo "Setup (First Time):"
+    @echo "  just setup            - Install all tools (auto-detects macOS/Linux)"
+    @echo "  just check-tools      - Verify all tools are installed"
+    @echo "  just setup-certs      - Generate HTTPS certificates for local IP"
     @echo ""
     @echo "Development:"
     @echo "  just dev              - Start full dev environment (Docker + Caddy + dev server)"
