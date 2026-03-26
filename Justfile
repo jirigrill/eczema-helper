@@ -382,12 +382,12 @@ check-tools:
 # DEVELOPMENT
 # ============================================================================
 
-# Start full development environment (Docker, Caddy, dev server)
+# Start full development environment (PostgreSQL, Caddy, dev server)
 dev:
     #!/usr/bin/env bash
     echo "🚀 Starting development environment..."
-    docker compose -f docker-compose.dev.yml up -d
-    echo "✅ Docker services started"
+    docker compose -f docker-compose.postgres.yml up -d
+    echo "✅ PostgreSQL started"
     echo "🔧 Starting Caddy (HTTPS proxy)..."
     caddy run --config Caddyfile &
     CADDY_PID=$!
@@ -397,28 +397,20 @@ dev:
     echo "🛑 Shutting down Caddy..."
     kill $CADDY_PID 2>/dev/null || true
 
-# Start only Docker services (PostgreSQL)
+# Start only PostgreSQL database
 dev-db:
-    docker compose -f docker-compose.dev.yml up -d
-    @echo "✅ Database running on localhost:5432"
+    docker compose -f docker-compose.postgres.yml up -d
+    @echo "✅ PostgreSQL running on localhost:5432"
 
 # Stop all development services
 stop:
-    docker compose -f docker-compose.dev.yml down
+    docker compose -f docker-compose.postgres.yml down
     pkill -f "caddy run" 2>/dev/null || true
     @echo "🛑 All services stopped"
 
-# View logs from all services
+# View database logs
 logs:
-    docker compose -f docker-compose.dev.yml logs -f
-
-# View app logs only
-logs-app:
-    docker compose -f docker-compose.dev.yml logs -f app
-
-# View database logs only
-logs-db:
-    docker compose -f docker-compose.dev.yml logs -f postgres
+    docker compose -f docker-compose.postgres.yml logs -f postgres
 
 # ============================================================================
 # BUILD & TEST
@@ -460,32 +452,33 @@ clean:
 
 # Generate new migration
 db-migrate-generate name:
-    docker compose -f docker-compose.dev.yml exec app bun run db:generate -- {{name}}
+    bun run db:generate -- {{name}}
 
 # Run pending migrations
 db-migrate:
-    docker compose -f docker-compose.dev.yml exec app bun run db:migrate
+    bun run db:migrate
 
 # Rollback last migration
 db-migrate-rollback:
-    docker compose -f docker-compose.dev.yml exec app bun run db:rollback
+    bun run db:rollback
 
 # Reset database (⚠️ DESTRUCTIVE)
 db-reset:
-    @echo "⚠️  This will DELETE all data in the local database!"
-    @read -p "Are you sure? [y/N] " -n 1 -r
-    @echo
-    @if [[ $REPLY =~ ^[Yy]$ ]]; then \
-        docker compose -f docker-compose.dev.yml down -v; \
-        docker compose -f docker-compose.dev.yml up -d; \
-        echo "✅ Database reset"; \
-    else \
-        echo "❌ Cancelled"; \
+    #!/usr/bin/env bash
+    echo "⚠️  This will DELETE all data in the local database!"
+    read -p "Are you sure? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        docker compose -f docker-compose.postgres.yml down -v
+        docker compose -f docker-compose.postgres.yml up -d
+        echo "✅ Database reset"
+    else
+        echo "❌ Cancelled"
     fi
 
 # Open database shell
 db-shell:
-    docker compose -f docker-compose.dev.yml exec postgres psql -U eczema -d eczema
+    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema
 
 # ============================================================================
 # DEPLOYMENT
@@ -588,7 +581,7 @@ db-backup-local:
     #!/usr/bin/env bash
     mkdir -p backups
     DATE=$(date +%Y-%m-%d-%H%M%S)
-    docker compose -f docker-compose.dev.yml exec -T postgres pg_dump -U eczema -d eczema | gzip > backups/eczema-${DATE}.sql.gz
+    docker compose -f docker-compose.postgres.yml exec -T postgres pg_dump -U eczema -d eczema | gzip > backups/eczema-${DATE}.sql.gz
     echo "✅ Backup created: backups/eczema-${DATE}.sql.gz"
 
 # Create encrypted backup on VPS

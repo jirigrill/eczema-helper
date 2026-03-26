@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eczema-postgres-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=eczema_helper
+      - POSTGRES_USER=eczema
+      - POSTGRES_PASSWORD=eczema_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eczema -d eczema_helper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata-dev:
