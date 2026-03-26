@@ -97,3 +97,51 @@ See `docs/architecture/auth-overview.md` for complete details. Key points:
 - PostgreSQL uses snake_case; TypeScript uses camelCase. Mapping done in PostgresRepository adapter.
 - Food categories are seeded data (12 Czech allergen categories with sub-items)
 - Dates formatted Czech style: `5.3.` (day.month.)
+
+## Code Standards
+
+### TypeScript
+- Strict mode (`strict: true` in tsconfig). No `any` — use `unknown` and narrow.
+- Prefer `type` over `interface` unless declaration merging is needed.
+- Use discriminated unions for variants (e.g., `AnalysisResult`), not optional fields.
+- Exhaustive switch with `never` checks: every discriminated union must be fully handled.
+- No enums — use `as const` objects or string literal unions.
+- Explicit return types on exported functions. Inferred types are fine for local/private functions.
+
+### Naming
+- Files: `kebab-case.ts`, `kebab-case.svelte`
+- Types/interfaces: `PascalCase`
+- Functions/variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE` for true constants (env vars, config), `camelCase` for derived/computed values
+- Database columns: `snake_case` (mapped in adapter layer)
+- Test files: `*.test.ts` colocated next to source (e.g., `food-tracking.service.test.ts` next to `food-tracking.service.ts`)
+
+### Imports
+- Group in order: (1) svelte/sveltekit, (2) third-party, (3) `$lib` aliases, (4) relative imports. Blank line between groups.
+- Use `$lib/` alias for all imports from `src/lib/`. No `../../../` paths.
+- Prefer named exports. Default exports only for Svelte page/layout components.
+
+### Error Handling
+- Domain services return `Result<T, E>` types (discriminated union `{ ok: true, data: T } | { ok: false, error: E }`), not thrown exceptions.
+- Thrown exceptions are reserved for truly unexpected failures (programmer errors, infrastructure failures).
+- API endpoints catch adapter errors and return structured JSON responses with appropriate HTTP status codes.
+- Never swallow errors silently — always log or propagate.
+
+### Svelte Components
+- One component per file. Keep components under ~150 lines; extract sub-components when larger.
+- Props: use `$props()` rune (Svelte 5). Destructure with defaults at the top.
+- State: use `$state()` and `$derived()` runes. No legacy `$:` reactive statements.
+- Events: use callback props (`onclick`, `onsubmit`), not `createEventDispatcher`.
+- Styles: use Tailwind utility classes. Scoped `<style>` blocks only for complex selectors Tailwind can't express.
+
+### Testing
+- Unit tests for domain services (pure logic, mock ports via interfaces).
+- Component tests with `@testing-library/svelte` — test behavior, not implementation.
+- E2E tests with Playwright for critical user flows.
+- Test names describe behavior: `it('returns correlation when food log overlaps flare window')`.
+
+### Security
+- Never log sensitive data (passwords, tokens, decrypted photos, API keys).
+- Validate and sanitize all external input at the adapter boundary.
+- SQL queries use parameterized statements only — no string interpolation.
+- Encryption keys and passphrases never leave the client except as derived key material.
