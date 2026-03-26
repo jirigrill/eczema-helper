@@ -133,10 +133,11 @@ dev:
     # Clean up any leftover processes
     pkill -9 -f caddy 2>/dev/null || true
     docker stop eczema-postgres-dev 2>/dev/null || true
+    docker rm -f eczema-postgres-dev 2>/dev/null || true
     sleep 2
     
     # Start PostgreSQL
-    docker compose -f docker-compose.postgres.yml up -d --remove-orphans
+    docker compose -f docker-compose.postgres.yml up -d --remove-orphans 2>/dev/null || docker compose -f docker-compose.postgres.yml up -d
     echo "✅ PostgreSQL ready"
     
     # Start Caddy (use dev Caddyfile on port 8443)
