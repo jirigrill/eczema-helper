@@ -108,27 +108,18 @@ just dev
 This starts:
 
 - PostgreSQL in Docker
-- Caddy with HTTPS on port 443
+- Caddy with HTTPS on port **8443**
 - SvelteKit dev server on port 5173
+
+`just dev` prints the exact URLs when ready, including the HTTPS address for your phone.
 
 ## Step 7: Access from Your Phone
 
 On your phone (connected to same WiFi):
 
 1. Open Safari (iOS) or Chrome (Android)
-2. Navigate to `https://YOUR_COMPUTER_IP`
-3. Accept/install the certificate if prompted
-4. You should see the app!
-
-Find your computer's IP:
-
-```bash
-# Linux
-hostname -I
-
-# macOS
-ipconfig getifaddr en0
-```
+2. Navigate to `https://YOUR_COMPUTER_IP:8443` (shown in `just dev` output)
+3. You should see the app without certificate warnings
 
 ## Common Commands
 
@@ -136,9 +127,9 @@ ipconfig getifaddr en0
 just dev              # Start full dev environment
 just stop             # Stop all services
 just build            # Type-check and build
-just test             # Run tests
-just check            # Run all checks (test + build + lint)
-just db-migrate       # Run database migrations
+just test             # Run unit tests
+just test-integration # Run integration tests (needs dev-db)
+just check            # Run all checks (test + build)
 just logs             # View logs
 ```
 
@@ -158,22 +149,6 @@ Note: clicking "Advanced → Proceed" does not work on iPhone Safari and breaks 
 - Make sure you installed the mkcert root CA on your phone (Step 5)
 - Ensure phone and computer are on same WiFi
 
-**Cannot connect / Connection refused:**
-The firewall is blocking the ports. Allow them:
-
-```bash
-# Ubuntu/Debian with UFW
-sudo ufw allow 8443/tcp   # HTTPS via Caddy
-sudo ufw allow 5173/tcp   # HTTP direct
-sudo ufw reload
-
-# Or open all ports for local network (less secure)
-sudo ufw allow from 192.168.0.0/16 to any port 8443
-
-# Check status
-sudo ufw status
-```
-
 **Docker permission denied:**
 
 ```bash
@@ -191,9 +166,9 @@ kill <PID>            # Kill it
 
 **Can't connect from phone:**
 
-- Check firewall rules above
-- Verify Caddy is running: `just logs`
-- Check IP address matches: `hostname -I`
+- Ensure phone and laptop are on the same WiFi
+- Check the URL includes the port: `https://YOUR_IP:8443`
+- Verify Caddy is running — `just dev` output should show "✅ Caddy ready"
 
 ## Next Steps
 
@@ -210,7 +185,7 @@ kill <PID>            # Kill it
 
 ```bash
 # First time setup
-just setup && just setup-certs
+just setup && bun install && just setup-certs
 
 # Daily development workflow
 just dev              # Start
