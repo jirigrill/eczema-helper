@@ -185,9 +185,23 @@ test:
 test-watch:
     bunx vitest
 
-# Run all checks
-check: test build
-    @echo "✅ All checks passed"
+# Run all checks (includes Node.js version check)
+check:
+    #!/usr/bin/env bash
+    # Check Node.js version
+    NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//')
+    REQUIRED_NODE="20.15.0"
+    if ! node -e "process.exit(process.version.slice(1).localeCompare('$REQUIRED_NODE', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null; then
+        echo "❌ Node.js $NODE_VERSION is too old. Required: $REQUIRED_NODE+"
+        echo "   Run: just setup"
+        exit 1
+    fi
+    echo "✅ Node.js $NODE_VERSION"
+    
+    # Run tests and build
+    bunx vitest run
+    bunx tsc --noEmit && bun run build
+    echo "✅ All checks passed"
 
 # Clean build artifacts
 clean:
