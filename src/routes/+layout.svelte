@@ -2,6 +2,9 @@
   import '../app.css';
   import { page } from '$app/state';
 
+  // Props for Svelte 5 render pattern
+  let { children } = $props();
+
   const tabs = [
     { href: '/calendar', label: 'Kalendář', icon: '📅' },
     { href: '/food', label: 'Jídlo', icon: '🥗' },
@@ -16,7 +19,7 @@
 </script>
 
 <main class="min-h-screen bg-surface" class:pb-16={showNav}>
-  <slot />
+  {@render children()}
 </main>
 
 {#if showNav}
