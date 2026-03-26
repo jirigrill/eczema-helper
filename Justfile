@@ -186,26 +186,6 @@ stop:
     pkill -9 -f caddy 2>/dev/null || true
     @echo "🛑 Stopped"
 
-# Configure firewall for development
-setup-firewall:
-    #!/usr/bin/env bash
-    echo "🔥 Configuring firewall for development ports..."
-    if command -v ufw &> /dev/null; then
-        # Ubuntu/Debian with UFW
-        sudo ufw allow 8443/tcp comment 'Eczema Tracker HTTPS'
-        sudo ufw allow 5173/tcp comment 'Eczema Tracker HTTP'
-        sudo ufw reload
-        echo "✅ Firewall configured (ports 8443, 5173)"
-    elif command -v firewall-cmd &> /dev/null; then
-        # RedHat/Fedora with firewalld
-        sudo firewall-cmd --permanent --add-port=8443/tcp
-        sudo firewall-cmd --permanent --add-port=5173/tcp
-        sudo firewall-cmd --reload
-        echo "✅ Firewall configured (ports 8443, 5173)"
-    else
-        echo "⚠️  Unknown firewall system. Please manually open ports 8443 and 5173"
-    fi
-
 # View logs
 logs:
     docker compose -f docker-compose.postgres.yml logs -f
@@ -237,9 +217,13 @@ build:
     bunx tsc --noEmit && bun run build
     @echo "✅ Built"
 
-# Run tests
+# Run unit tests
 test:
     bunx vitest run
+
+# Run integration tests (requires: just dev-db)
+test-integration:
+    bunx vitest run tests/integration
 
 # Run tests in watch mode
 test-watch:
@@ -268,18 +252,6 @@ clean:
     rm -rf build .svelte-kit node_modules/.cache
 
 # ========== DATABASE ==========
-
-# Run migrations
-db-migrate:
-    bun run db:migrate
-
-# Generate migration
-db-generate name:
-    bun run db:generate -- {{name}}
-
-# Rollback migration
-db-rollback:
-    bun run db:rollback
 
 # Reset database (⚠️ destructive)
 db-reset:
@@ -334,13 +306,6 @@ redeploy:
     : "${DEPLOY_HOST:?Need DEPLOY_HOST}"
     ssh "${DEPLOY_USER:-deploy}@$DEPLOY_HOST" "cd ${DEPLOY_DIR:-/opt/eczema-tracker} && docker compose up -d app"
     echo "✅ Redeployed"
-
-# Rollback deployment
-rollback:
-    #!/usr/bin/env bash
-    : "${DEPLOY_HOST:?Need DEPLOY_HOST}"
-    ssh "${DEPLOY_USER:-deploy}@$DEPLOY_HOST" "cd ${DEPLOY_DIR:-/opt/eczema-tracker} && docker compose rollback app"
-    echo "✅ Rolled back"
 
 # Check remote health
 health:
@@ -420,13 +385,13 @@ help:
     @echo ""
     @echo "Build & Test:"
     @echo "  just build            - Type-check and build"
-    @echo "  just test             - Run tests"
+    @echo "  just test             - Run unit tests"
+    @echo "  just test-integration - Run integration tests (needs dev-db)"
     @echo "  just check            - Run all checks"
     @echo ""
     @echo "Database:"
-    @echo "  just db-migrate       - Run migrations"
-    @echo "  just db-generate NAME - Create migration"
     @echo "  just db-reset         - Reset database"
+    @echo "  just db-shell         - Open psql shell"
     @echo "  just backup           - Backup database"
     @echo ""
     @echo "Deploy:"
