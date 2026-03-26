@@ -235,21 +235,44 @@ Both give you console access, network inspection, and DOM debugging on the real 
 
 ## Stage 1b: Home LAN Server (Linux)
 
-This stage covers running the app on a dedicated Linux machine on the home network — the primary way to use the app with a real phone without relying on the dev laptop staying on. The architecture is identical to the laptop setup (Docker + Caddy + mkcert), but the steps use Linux tooling instead of Homebrew.
+This stage covers running the app on a dedicated Linux machine on the home network — the primary way to use the app with a real phone without relying on the dev laptop staying on.
 
-### Prerequisites
+**Everything in this section runs on the Linux server over SSH**, unless noted otherwise.
+
+### Architecture
+
+```
+Linux Home Server
+│
+├── Docker
+│   ├── Container: app (SvelteKit, port 3000 — internal only)
+│   └── Container: postgres (internal Docker network only)
+│
+├── Caddy (reverse proxy, runs on host)
+│   ├── Listens on 0.0.0.0:443
+│   ├── TLS certificate from mkcert
+│   └── Proxies to localhost:3000
+│
+└── mkcert root CA
+    └── Must be trusted on each client device (iPhone, laptop)
+
+Client devices (iPhone, laptop) connect to https://<server-lan-ip>
+```
+
+### 1. Install Prerequisites
 
 ```bash
 # Docker Engine
 sudo apt update
 sudo apt install -y ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
   https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
   | sudo tee /etc/apt/sources.list.d/docker.list
 sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-sudo usermod -aG docker $USER   # allow running docker without sudo (re-login to take effect)
+sudo usermod -aG docker $USER   # re-login after this for it to take effect
 
 # Caddy
 sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
@@ -258,44 +281,58 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
   | sudo tee /etc/apt/sources.list.d/caddy-stable.list
 sudo apt update && sudo apt install caddy
-sudo systemctl stop caddy   # disable default Caddy service — we'll run it manually with our Caddyfile
+sudo systemctl disable --now caddy   # stop the default service; we'll configure it below
 
-# mkcert
-sudo apt install mkcert   # Ubuntu 22.04+; if unavailable:
+# mkcert (Ubuntu 22.04+; for older releases see the commented alternative)
+sudo apt install -y mkcert libnss3-tools
+# Alternative if mkcert is not in apt:
 # curl -L https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64 \
 #   -o mkcert && chmod +x mkcert && sudo mv mkcert /usr/local/bin/
 ```
 
-### Deploy the App
+### 2. Open Firewall Ports
+
+```bash
+sudo ufw allow 443    # HTTPS — required for the app
+sudo ufw allow 80     # HTTP — optional, useful for redirects
+sudo ufw status       # verify 443 is listed as ALLOW
+```
+
+If UFW is inactive (`Status: inactive`), skip this step — all ports are open by default.
+
+### 3. Deploy the App
 
 ```bash
 # Clone the repository
 git clone git@github.com:you/eczema-tracker.git /opt/eczema-tracker
 cd /opt/eczema-tracker
 
-# Create .env from example and fill in secrets
+# Create .env and set secrets
 cp .env.example .env
-# Edit DATABASE_URL and SESSION_SECRET (at minimum, generate a strong SESSION_SECRET)
+# Edit .env: set a strong random SESSION_SECRET (e.g. openssl rand -hex 32)
 
-# Generate mkcert certs for the server's LAN IP
+# Find the server's LAN IP
 SERVER_IP=$(hostname -I | awk '{print $1}')
+echo "Server IP: $SERVER_IP"
+
+# Generate mkcert TLS certificates for the server's LAN IP
 mkcert -install
 mkdir -p certs
-mkcert -cert-file certs/local.pem -key-file certs/local-key.pem localhost 127.0.0.1 $SERVER_IP
+mkcert -cert-file certs/local.pem -key-file certs/local-key.pem \
+  localhost 127.0.0.1 $SERVER_IP
 
-# Update Caddyfile to use the server's actual LAN IP
+# Patch the Caddyfile with the actual LAN IP
 sed -i "s/192.168.1.42/$SERVER_IP/g" Caddyfile
 
 # Start PostgreSQL and the app
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-### Run Caddy as a Systemd Service
+### 4. Run Caddy as a Systemd Service
 
-The default Caddy systemd unit uses its own config. Override it to use the project Caddyfile:
+The Caddy apt package installs a default service that uses `/etc/caddy/Caddyfile`. Override it to use the project's Caddyfile instead:
 
 ```bash
-# Create a systemd override
 sudo mkdir -p /etc/systemd/system/caddy.service.d
 sudo tee /etc/systemd/system/caddy.service.d/override.conf > /dev/null <<EOF
 [Service]
@@ -307,37 +344,56 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now caddy
+sudo systemctl status caddy   # confirm it's active (running)
 ```
 
-Caddy now starts automatically on boot and serves HTTPS on the server's LAN IP.
+Caddy now serves `https://<server-ip>` and starts automatically on boot.
 
-### Trust the CA on Devices
+### 5. Trust the CA on Client Devices
 
-The mkcert root CA on the Linux server is at `$(mkcert -CAROOT)/rootCA.pem`. Copy it to each device:
+The mkcert root CA was generated on the server. Each client device that connects to the app needs to trust it.
+
+**Get the CA file path on the server:**
 
 ```bash
-# Serve the CA file temporarily for easy download on phones
-python3 -m http.server 8080 --directory $(mkcert -CAROOT)
-# Then open http://<server-ip>:8080/rootCA.pem on the phone
+mkcert -CAROOT   # e.g. /root/.local/share/mkcert
 ```
 
-Install on **iPhone**: Settings > General > VPN & Device Management > install the profile, then Settings > General > About > Certificate Trust Settings > enable full trust.
+**Serve it temporarily over HTTP so phones can download it:**
 
-Install on **Android**: Settings > Security > Encryption & credentials > Install a certificate > CA certificate.
+```bash
+# On the server — temporarily open port 8080 for CA distribution
+sudo ufw allow 8080
+python3 -m http.server 8080 --directory $(mkcert -CAROOT)
+```
 
-### Access the App
+On each client device, open `http://<server-ip>:8080/rootCA.pem` in a browser and follow the install steps:
 
-On any device on the same WiFi, navigate to `https://<server-ip>`. The certificate is trusted (no warnings). Use Safari on iPhone to add to Home Screen for PWA installation.
+- **iPhone**: tap the downloaded file → Settings > General > VPN & Device Management → install the profile → Settings > General > About > Certificate Trust Settings → enable full trust for the mkcert CA
+- **Android**: Settings > Security > Encryption & credentials > Install a certificate > CA certificate
+- **macOS laptop**: double-click the downloaded `rootCA.pem` → Keychain Access → set to "Always Trust"
+
+Once all devices are set up, close the temporary server and remove the firewall rule:
+
+```bash
+# Ctrl+C to stop the python server, then:
+sudo ufw delete allow 8080
+```
+
+### 6. Verify
+
+On any device on the same WiFi, open `https://<server-ip>`. The app should load without certificate warnings. On iPhone, use Safari → Share → Add to Home Screen to install as a PWA.
 
 ### Updating
 
 ```bash
+# On the server
 cd /opt/eczema-tracker
 git pull
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-This rebuilds the app image and restarts only the app container. PostgreSQL and its data are unaffected.
+This rebuilds the app image and restarts the app container. PostgreSQL and its data are unaffected.
 
 ---
 
