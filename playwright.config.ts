@@ -11,10 +11,20 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
+  // Global timeout for each test (prevents hanging tests)
+  timeout: 30000,
+  // Expect timeout for assertions
+  expect: {
+    timeout: 10000,
+  },
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Action timeout prevents individual actions from hanging
+    actionTimeout: 10000,
+    // Navigation timeout for page.goto and similar
+    navigationTimeout: 15000,
   },
   projects: [
     {

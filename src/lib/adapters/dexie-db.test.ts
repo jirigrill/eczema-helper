@@ -17,8 +17,11 @@ describe('EczemaTrackerDB', () => {
   let db: EczemaTrackerDB | undefined;
 
   afterEach(async () => {
-    if (db?.isOpen()) {
-      db.close();
+    if (db) {
+      // Delete the database completely to ensure test isolation
+      // This prevents data from leaking between tests
+      await db.delete();
+      db = undefined;
     }
   });
 

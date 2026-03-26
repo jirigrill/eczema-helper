@@ -35,3 +35,89 @@ export async function validateAndExtendSession(
 export async function deleteSession(sessionId: string): Promise<void> {
   await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
 }
+
+type SessionUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'parent';
+};
+
+type SessionChild = {
+  id: string;
+  name: string;
+  birthDate: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Validates session and fetches user + children in a single optimized query.
+ * This reduces 3 sequential queries to 1, improving performance for authenticated requests.
+ */
+export async function validateSessionWithUserAndChildren(
+  sessionId: string
+): Promise<{ user: SessionUser; children: SessionChild[]; shouldExtend: boolean } | null> {
+  // Single query that joins sessions, users, and children
+  const rows = await sql`
+    SELECT
+      s.expires_at,
+      u.id AS user_id,
+      u.email AS user_email,
+      u.name AS user_name,
+      u.role AS user_role,
+      c.id AS child_id,
+      c.name AS child_name,
+      c.birth_date AS child_birth_date,
+      c.created_at AS child_created_at,
+      c.updated_at AS child_updated_at
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    LEFT JOIN user_children uc ON uc.user_id = u.id
+    LEFT JOIN children c ON c.id = uc.child_id
+    WHERE s.id = ${sessionId} AND s.expires_at > NOW()
+    ORDER BY c.created_at ASC
+  `;
+
+  if (rows.length === 0) return null;
+
+  // All rows have the same user info, extract from first row
+  const firstRow = rows[0];
+  const user: SessionUser = {
+    id: firstRow.user_id as string,
+    email: firstRow.user_email as string,
+    name: firstRow.user_name as string,
+    role: firstRow.user_role as 'parent',
+  };
+
+  // Extract unique children (there may be multiple rows due to LEFT JOIN)
+  const children: SessionChild[] = [];
+  const seenChildIds = new Set<string>();
+  for (const row of rows) {
+    if (row.child_id && !seenChildIds.has(row.child_id as string)) {
+      seenChildIds.add(row.child_id as string);
+      children.push({
+        id: row.child_id as string,
+        name: row.child_name as string,
+        birthDate: row.child_birth_date as string,
+        createdAt: row.child_created_at as string,
+        updatedAt: row.child_updated_at as string,
+      });
+    }
+  }
+
+  // Check if session needs extension (less than 15 days remaining)
+  const fifteenDays = 15 * 24 * 60 * 60 * 1000;
+  const expiresAt = firstRow.expires_at as Date;
+  const shouldExtend = expiresAt.getTime() - Date.now() < fifteenDays;
+
+  return { user, children, shouldExtend };
+}
+
+/**
+ * Extends session expiry. Called asynchronously after response is sent.
+ */
+export async function extendSession(sessionId: string): Promise<void> {
+  const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+  await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
+}

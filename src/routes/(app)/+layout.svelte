@@ -1,13 +1,25 @@
 <script lang="ts">
   import { childrenStore } from '$lib/stores/children.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
+  import { cs } from '$lib/i18n/cs';
   import type { LayoutData } from './$types';
+  import type { Snippet } from 'svelte';
 
-  let { children, data } = $props<{ children: unknown; data: LayoutData }>();
+  let { children, data }: { children: Snippet; data: LayoutData } = $props();
 
   // Initialise stores from server-loaded data
+  // Note: data.user comes from server load and has fewer fields than domain User model
   $effect(() => {
-    authStore.setUser(data.user as Parameters<typeof authStore.setUser>[0]);
+    if (data.user) {
+      authStore.setUser({
+        ...data.user,
+        passwordHash: '', // Not sent from server for security
+        createdAt: '',
+        updatedAt: '',
+      });
+    } else {
+      authStore.setUser(null);
+    }
     authStore.setLoading(false);
     childrenStore.setChildren(data.children);
     if (!childrenStore.activeChildId && data.children.length > 0) {
@@ -29,19 +41,19 @@
     {#if childrenStore.activeChild}
       {childrenStore.activeChild.name}
     {:else}
-      Ekzém tracker
+      {cs.eczemaTracker}
     {/if}
   </span>
 
   <button
     onclick={() => (showChildPicker = !showChildPicker)}
     class="flex items-center gap-1 text-sm text-primary font-medium py-1 px-2 rounded-lg hover:bg-surface transition-colors"
-    aria-label="Vybrat dítě"
+    aria-label={cs.selectChild}
   >
     {#if childrenStore.children.length > 0}
       <span>▾</span>
     {:else}
-      <a href="/settings" class="text-primary">+ Přidat dítě</a>
+      <a href="/settings" class="text-primary">+ {cs.addChild}</a>
     {/if}
   </button>
 </header>
@@ -64,7 +76,7 @@
         onclick={() => (showChildPicker = false)}
         class="block px-4 py-3 text-sm text-text-muted hover:bg-surface transition-colors"
       >
-        Správa dětí…
+        {cs.manageChildren}
       </a>
     </div>
   </div>

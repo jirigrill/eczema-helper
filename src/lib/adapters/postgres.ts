@@ -9,6 +9,11 @@ import type {
   Meal,
   MealItem,
   TrackingPhoto,
+  SkinPhoto,
+  StoolPhoto,
+  BodyArea,
+  StoolColor,
+  StoolConsistency,
   AnalysisResult,
   SkinAnalysisResult,
   StoolAnalysisResult,
@@ -185,15 +190,16 @@ export class PostgresRepository implements DataRepository {
     `;
     const created = this.mapMeal(meals[0]);
 
-    for (const item of items) {
+    // Batch insert all meal items in a single query to avoid N+1
+    if (items.length > 0) {
+      const itemValues = items.map((item) => ({
+        meal_id: created.id,
+        sub_item_id: item.subItemId ?? null,
+        custom_name: item.customName ?? null,
+        category_id: item.categoryId ?? null,
+      }));
       await sql`
-        INSERT INTO meal_items (meal_id, sub_item_id, custom_name, category_id)
-        VALUES (
-          ${created.id},
-          ${item.subItemId ?? null},
-          ${item.customName ?? null},
-          ${item.categoryId ?? null}
-        )
+        INSERT INTO meal_items ${sql(itemValues)}
       `;
     }
 
@@ -243,6 +249,11 @@ export class PostgresRepository implements DataRepository {
   }
 
   async createPhoto(photo: Omit<TrackingPhoto, 'id' | 'createdAt'>): Promise<TrackingPhoto> {
+    // Extract type-specific fields based on photoType
+    const isSkin = photo.photoType === 'skin';
+    const skinPhoto = isSkin ? (photo as Omit<SkinPhoto, 'id' | 'createdAt'>) : null;
+    const stoolPhoto = !isSkin ? (photo as Omit<StoolPhoto, 'id' | 'createdAt'>) : null;
+
     const rows = await sql`
       INSERT INTO tracking_photos (
         child_id, date, photo_type, body_area, severity_manual,
@@ -250,9 +261,9 @@ export class PostgresRepository implements DataRepository {
         notes, encrypted_blob_path, encrypted_thumb_path, created_by
       ) VALUES (
         ${photo.childId}, ${photo.date}, ${photo.photoType},
-        ${photo.bodyArea ?? null}, ${photo.severityManual ?? null},
-        ${photo.stoolColor ?? null}, ${photo.stoolConsistency ?? null},
-        ${photo.hasMucus ?? null}, ${photo.hasBlood ?? null},
+        ${skinPhoto?.bodyArea ?? null}, ${skinPhoto?.severityManual ?? null},
+        ${stoolPhoto?.stoolColor ?? null}, ${stoolPhoto?.stoolConsistency ?? null},
+        ${stoolPhoto?.hasMucus ?? null}, ${stoolPhoto?.hasBlood ?? null},
         ${photo.notes ?? null}, ${photo.encryptedBlobRef}, ${photo.thumbnailRef ?? null},
         ${photo.createdBy}
       )
@@ -450,17 +461,10 @@ export class PostgresRepository implements DataRepository {
   }
 
   private mapPhoto(r: Record<string, unknown>): TrackingPhoto {
-    return {
+    const base = {
       id: r.id as string,
       childId: r.child_id as string,
       date: r.date as string,
-      photoType: r.photo_type as 'skin' | 'stool',
-      bodyArea: r.body_area as TrackingPhoto['bodyArea'],
-      severityManual: r.severity_manual as number | undefined,
-      stoolColor: r.stool_color as TrackingPhoto['stoolColor'],
-      stoolConsistency: r.stool_consistency as TrackingPhoto['stoolConsistency'],
-      hasMucus: r.has_mucus as boolean | undefined,
-      hasBlood: r.has_blood as boolean | undefined,
       notes: r.notes as string | undefined,
       encryptedBlobRef: r.encrypted_blob_path as string,
       thumbnailRef: r.encrypted_thumb_path as string | undefined,
@@ -469,6 +473,24 @@ export class PostgresRepository implements DataRepository {
       updatedAt: String(r.updated_at),
       syncedAt: r.synced_at ? String(r.synced_at) : undefined,
     };
+
+    if (r.photo_type === 'skin') {
+      return {
+        ...base,
+        photoType: 'skin',
+        bodyArea: r.body_area as BodyArea,
+        severityManual: r.severity_manual as number | undefined,
+      } satisfies SkinPhoto;
+    } else {
+      return {
+        ...base,
+        photoType: 'stool',
+        stoolColor: r.stool_color as StoolColor | undefined,
+        stoolConsistency: r.stool_consistency as StoolConsistency | undefined,
+        hasMucus: r.has_mucus as boolean | undefined,
+        hasBlood: r.has_blood as boolean | undefined,
+      } satisfies StoolPhoto;
+    }
   }
 
   private mapAnalysisResult(r: Record<string, unknown>): AnalysisResult {

@@ -21,6 +21,7 @@ export function createTestUser(prefix: string): User {
 
 /**
  * Login via API call - more reliable than UI automation
+ * @throws Error if registration or login fails
  */
 export async function loginViaAPI(
   request: APIRequestContext,
@@ -35,12 +36,13 @@ export async function loginViaAPI(
       name: user.name
     }
   });
-  
+
   // User might already exist (409), that's ok
   if (!registerRes.ok() && registerRes.status() !== 409) {
-    throw new Error(`Registration failed: ${registerRes.status()}`);
+    const body = await registerRes.text().catch(() => 'unable to read body');
+    throw new Error(`Registration failed: ${registerRes.status()} - ${body}`);
   }
-  
+
   // Now login to get session cookie
   const loginRes = await request.post(`${baseURL}/api/auth/login`, {
     data: {
@@ -48,9 +50,10 @@ export async function loginViaAPI(
       password: user.password
     }
   });
-  
+
   if (!loginRes.ok()) {
-    throw new Error(`Login failed: ${loginRes.status()}`);
+    const body = await loginRes.text().catch(() => 'unable to read body');
+    throw new Error(`Login failed: ${loginRes.status()} - ${body}`);
   }
 
   // Get session cookie from response using headersArray for reliability

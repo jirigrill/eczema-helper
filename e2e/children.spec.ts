@@ -26,9 +26,6 @@ test.describe('Child Management', () => {
     await page.fill('input#add-name', 'Emma');
     await page.fill('input#add-birth', '2025-12-01');
 
-    // Small delay to ensure form state is updated
-    await page.waitForTimeout(100);
-
     // Submit form and wait for API response
     const responsePromise = page.waitForResponse(
       res => res.url().includes('/api/children') && res.request().method() === 'POST',
@@ -49,8 +46,9 @@ test.describe('Child Management', () => {
       throw new Error(`API call failed with status ${response.status()}: ${responseBody}`);
     }
 
-    // Wait for the store to update and re-render
-    await page.waitForTimeout(500);
+    // Wait for page to process the API response by checking for network idle
+    // rather than using arbitrary timeout
+    await page.waitForLoadState('networkidle');
 
     // Reload page to verify child was persisted (bypasses client-side reactivity issues)
     await page.reload();

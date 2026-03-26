@@ -1,23 +1,18 @@
 <script lang="ts">
   import '../app.css';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
+  import { cs } from '$lib/i18n/cs';
 
   let { children } = $props();
 
-  let pathname = $state('/');
-
-  $effect(() => {
-    return page.subscribe((p) => {
-      pathname = p.url.pathname;
-    });
-  });
+  const pathname = $derived(page.url.pathname);
 
   const tabs = [
-    { href: '/calendar', label: 'Kalendář', icon: '📅' },
-    { href: '/food', label: 'Jídlo', icon: '🥗' },
-    { href: '/photos', label: 'Fotky', icon: '📷' },
-    { href: '/trends', label: 'Trendy', icon: '📈' },
-    { href: '/settings', label: 'Nastavení', icon: '⚙️' }
+    { href: '/calendar', label: cs.calendar, icon: '📅' },
+    { href: '/food', label: cs.food, icon: '🥗' },
+    { href: '/photos', label: cs.photos, icon: '📷' },
+    { href: '/trends', label: cs.trends, icon: '📈' },
+    { href: '/settings', label: cs.settings, icon: '⚙️' }
   ];
 
   const showNav = $derived(pathname !== '/login' && pathname !== '/register');

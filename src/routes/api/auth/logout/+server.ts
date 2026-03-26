@@ -3,16 +3,18 @@ import type { RequestHandler } from './$types';
 
 import { deleteSession } from '$lib/server/session';
 import { logAudit } from '$lib/server/audit';
+import type { LogoutResponse } from '$lib/types/api';
 
 export const POST: RequestHandler = async ({ cookies, locals }) => {
   const sessionId = cookies.get('session_id');
 
   if (sessionId) {
     await deleteSession(sessionId);
+    // Security: Use consistent cookie flags with login (secure based on environment)
     cookies.set('session_id', '', {
       path: '/',
       httpOnly: true,
-      secure: true,
+      secure: !import.meta.env.DEV,
       sameSite: 'lax',
       maxAge: 0,
     });
@@ -22,5 +24,5 @@ export const POST: RequestHandler = async ({ cookies, locals }) => {
     await logAudit('logout', { userId: locals.user.id });
   }
 
-  return json({ ok: true });
+  return json({ ok: true } satisfies LogoutResponse);
 };

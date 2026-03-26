@@ -1,14 +1,9 @@
-import type { Child } from '$lib/domain/models';
+import type { Child, ClientUser } from '$lib/domain/models';
 
 declare global {
   namespace App {
     interface Locals {
-      user: {
-        id: string;
-        email: string;
-        name: string;
-        role: string;
-      } | null;
+      user: ClientUser | null;
       children: Child[];
     }
   }

@@ -18,5 +18,10 @@ RUN bun install --frozen-lockfile --production
 RUN mkdir -p /data/photos && chown -R appuser:appgroup /data/photos
 USER appuser
 
+# Health check for container orchestration
+# Using wget since it's more commonly available in slim images
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
 EXPOSE 3000
 CMD ["bun", "run", "build/index.js"]

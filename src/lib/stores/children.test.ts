@@ -1,6 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { childrenStore } from './children.svelte';
 import type { Child } from '../domain/models';
+
+// Mock localStorage to ensure test isolation
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+    removeItem: vi.fn((key: string) => { delete store[key]; }),
+    clear: vi.fn(() => { store = {}; }),
+  };
+})();
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 const mockChildA: Child = {
   id: 'child-a-uuid',
@@ -19,8 +35,10 @@ const mockChildB: Child = {
 };
 
 describe('children store', () => {
-  // Reset state before each test
+  // Reset state and localStorage before each test
   beforeEach(() => {
+    localStorageMock.clear();
+    vi.clearAllMocks();
     childrenStore.setChildren([]);
     childrenStore.setActiveChildId(null);
   });
@@ -61,6 +79,17 @@ describe('children store', () => {
     it('updates the active child ID', () => {
       childrenStore.setActiveChildId(mockChildB.id);
       expect(childrenStore.activeChildId).toBe(mockChildB.id);
+    });
+
+    it('persists active child ID to localStorage', () => {
+      childrenStore.setActiveChildId(mockChildA.id);
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('activeChildId', mockChildA.id);
+    });
+
+    it('removes from localStorage when set to null', () => {
+      childrenStore.setActiveChildId(mockChildA.id);
+      childrenStore.setActiveChildId(null);
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('activeChildId');
     });
   });
 });

@@ -1,14 +1,20 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import postgres from 'postgres';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgres://eczema:eczema_dev@localhost:5432/eczema_helper';
 
 describe('PostgreSQL connection', () => {
-  let sql: ReturnType<typeof postgres>;
+  // Track connection per test to ensure proper cleanup
+  // Each test creates its own connection to avoid state leakage
+  let sql: ReturnType<typeof postgres> | undefined;
 
-  afterAll(async () => {
-    if (sql) await sql.end();
+  afterEach(async () => {
+    // Always close connection after each test to prevent connection leaks
+    if (sql) {
+      await sql.end();
+      sql = undefined;
+    }
   });
 
   it('PostgreSQL container is reachable', async () => {
@@ -27,7 +33,7 @@ describe('PostgreSQL connection', () => {
     sql = postgres(DATABASE_URL, { max: 5 });
     const start = Date.now();
     await Promise.all(
-      Array.from({ length: 5 }, () => sql`SELECT pg_sleep(0.1)`)
+      Array.from({ length: 5 }, () => sql!`SELECT pg_sleep(0.1)`)
     );
     expect(Date.now() - start).toBeLessThan(2000);
   });

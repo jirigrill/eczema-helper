@@ -1,6 +1,8 @@
 <script lang="ts">
   import { cs } from '$lib/i18n/cs';
   import { goto } from '$app/navigation';
+  import FormInput from '$lib/components/form-input.svelte';
+  import ErrorAlert from '$lib/components/error-alert.svelte';
 
   let email = $state('');
   let password = $state('');
@@ -36,36 +38,26 @@
       <p class="text-text-muted text-sm mt-1">Eliminační dieta kojence</p>
     </div>
 
-    {#if error}
-      <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-        {error}
-      </div>
-    {/if}
+    <ErrorAlert message={error} />
 
     <form onsubmit={handleSubmit} class="flex flex-col gap-4">
-      <div>
-        <label for="email" class="block text-sm font-medium text-text mb-1">E-mail</label>
-        <input
-          id="email"
-          type="email"
-          bind:value={email}
-          required
-          autocomplete="email"
-          class="w-full border border-surface-dark rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      <FormInput
+        id="email"
+        label="E-mail"
+        type="email"
+        bind:value={email}
+        required
+        autocomplete="email"
+      />
 
-      <div>
-        <label for="password" class="block text-sm font-medium text-text mb-1">Heslo</label>
-        <input
-          id="password"
-          type="password"
-          bind:value={password}
-          required
-          autocomplete="current-password"
-          class="w-full border border-surface-dark rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      <FormInput
+        id="password"
+        label="Heslo"
+        type="password"
+        bind:value={password}
+        required
+        autocomplete="current-password"
+      />
 
       <button
         type="submit"

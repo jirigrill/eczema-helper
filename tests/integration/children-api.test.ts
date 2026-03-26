@@ -41,10 +41,19 @@ describe('Children API', () => {
   });
 
   afterAll(async () => {
-    // Cleanup test data
+    // Cleanup test data in correct order to respect foreign key constraints
+    // 1. Delete sessions first (references users)
     await sql`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-child-%@example.com')`;
+    // 2. Delete user_children junction table (references both users and children)
     await sql`DELETE FROM user_children WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-child-%@example.com')`;
-    await sql`DELETE FROM children WHERE id NOT IN (SELECT child_id FROM user_children)`;
+    // 3. Delete orphaned children (those with no user_children entries)
+    // Use a subquery to find children that have no references
+    await sql`
+      DELETE FROM children
+      WHERE id NOT IN (SELECT DISTINCT child_id FROM user_children)
+      AND created_at > NOW() - INTERVAL '1 hour'
+    `;
+    // 4. Finally delete users
     await sql`DELETE FROM users WHERE email LIKE 'test-child-%@example.com'`;
     await sql.end();
   });

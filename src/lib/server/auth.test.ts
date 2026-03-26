@@ -5,8 +5,9 @@ describe('auth utilities', () => {
   describe('hashPassword', () => {
     it('returns a bcrypt hash', async () => {
       const hash = await hashPassword('testpass123');
-      expect(hash).toMatch(/^\$2[ab]\$/);
-      expect(hash.length).toBeGreaterThan(50);
+      // bcrypt hashes start with $2a$, $2b$, or $2y$ followed by cost factor
+      expect(hash).toMatch(/^\$2[aby]\$\d{2}\$/);
+      expect(hash.length).toBeGreaterThanOrEqual(59); // Standard bcrypt length
     });
 
     it('produces unique hashes for same input', async () => {
@@ -17,7 +18,8 @@ describe('auth utilities', () => {
 
     it('handles empty string (bcrypt can hash it)', async () => {
       const hash = await hashPassword('');
-      expect(hash).toMatch(/^\$2[ab]\$/);
+      // bcrypt hashes start with $2a$, $2b$, or $2y$ followed by cost factor
+      expect(hash).toMatch(/^\$2[aby]\$\d{2}\$/);
     });
   });
 

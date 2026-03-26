@@ -30,11 +30,17 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
+    // Include integration tests explicitly
+    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     pool: 'forks',
     poolOptions: {
       forks: {
         singleFork: true,
       },
+    },
+    // Ensure tests run in sequence to avoid database race conditions
+    sequence: {
+      shuffle: false,
     },
   }
 });

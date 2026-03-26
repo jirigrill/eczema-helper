@@ -2,6 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 import { sql } from '$lib/server/db';
+import { logAudit } from '$lib/server/audit';
+import { logger } from '$lib/server/logger';
+import type { UpdateChildRequest, ChildResponse, ApiError } from '$lib/types/api';
+
+// Security: Reasonable max name length to prevent abuse
+const MAX_NAME_LENGTH = 100;
 
 async function assertOwnership(userId: string, childId: string): Promise<boolean> {
   const rows = await sql`
@@ -10,80 +16,133 @@ async function assertOwnership(userId: string, childId: string): Promise<boolean
   return rows.length > 0;
 }
 
-export const PUT: RequestHandler = async ({ params, request, locals }) => {
-  if (!locals.user) {
-    return json({ error: 'Nepřihlášen' }, { status: 401 });
-  }
+/**
+ * Map a database row to a ChildResponse.
+ */
+function mapChildRow(r: Record<string, unknown>): ChildResponse {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    birthDate: r.birth_date as string,
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
+}
 
-  const owns = await assertOwnership(locals.user.id, params.id);
-  if (!owns) {
-    return json({ error: 'Přístup odepřen' }, { status: 403 });
-  }
-
-  const body = await request.json().catch(() => null);
+/**
+ * Validate and extract update child request body.
+ */
+function parseUpdateChildRequest(body: unknown): { ok: true; data: UpdateChildRequest } | { ok: false; error: string } {
   if (!body || typeof body !== 'object') {
-    return json({ error: 'Neplatný požadavek' }, { status: 400 });
+    return { ok: false, error: 'Neplatný požadavek' };
   }
 
   const { name, birthDate } = body as Record<string, unknown>;
+  const data: UpdateChildRequest = {};
 
-  if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
-    return json({ error: 'Jméno dítěte nesmí být prázdné' }, { status: 400 });
-  }
-  if (birthDate !== undefined && (typeof birthDate !== 'string' || isNaN(Date.parse(birthDate)))) {
-    return json({ error: 'Neplatné datum narození' }, { status: 400 });
-  }
-
-  const updates: Record<string, unknown> = {};
-  if (name !== undefined) updates.name = (name as string).trim();
-  if (birthDate !== undefined) updates.birthDate = birthDate;
-
-  if (Object.keys(updates).length === 0) {
-    return json({ error: 'Žádné změny' }, { status: 400 });
+  if (name !== undefined) {
+    if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > MAX_NAME_LENGTH) {
+      return { ok: false, error: 'Jméno dítěte nesmí být prázdné (max. 100 znaků)' };
+    }
+    data.name = name.trim();
   }
 
-  let children;
-  if (updates.name !== undefined && updates.birthDate !== undefined) {
-    children = await sql`
-      UPDATE children SET name = ${updates.name as string}, birth_date = ${updates.birthDate as string}
-      WHERE id = ${params.id}
-      RETURNING id, name, birth_date, created_at, updated_at
-    `;
-  } else if (updates.name !== undefined) {
-    children = await sql`
-      UPDATE children SET name = ${updates.name as string}
-      WHERE id = ${params.id}
-      RETURNING id, name, birth_date, created_at, updated_at
-    `;
-  } else {
-    children = await sql`
-      UPDATE children SET birth_date = ${updates.birthDate as string}
-      WHERE id = ${params.id}
-      RETURNING id, name, birth_date, created_at, updated_at
-    `;
+  if (birthDate !== undefined) {
+    if (typeof birthDate !== 'string' || isNaN(Date.parse(birthDate))) {
+      return { ok: false, error: 'Neplatné datum narození' };
+    }
+    data.birthDate = birthDate;
   }
 
-  const child = children[0];
-  return json({
-    id: child.id,
-    name: child.name,
-    birthDate: child.birth_date,
-    createdAt: child.created_at,
-    updatedAt: child.updated_at,
-  });
+  if (Object.keys(data).length === 0) {
+    return { ok: false, error: 'Žádné změny' };
+  }
+
+  return { ok: true, data };
+}
+
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
+  if (!locals.user) {
+    return json({ error: 'Nepřihlášen' } satisfies ApiError, { status: 401 });
+  }
+
+  try {
+    const owns = await assertOwnership(locals.user.id, params.id);
+    if (!owns) {
+      return json({ error: 'Přístup odepřen' } satisfies ApiError, { status: 403 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const parseResult = parseUpdateChildRequest(body);
+
+    if (!parseResult.ok) {
+      return json({ error: parseResult.error } satisfies ApiError, { status: 400 });
+    }
+
+    const { name, birthDate } = parseResult.data;
+
+    let children;
+    if (name !== undefined && birthDate !== undefined) {
+      children = await sql`
+        UPDATE children SET name = ${name}, birth_date = ${birthDate}
+        WHERE id = ${params.id}
+        RETURNING id, name, birth_date, created_at, updated_at
+      `;
+    } else if (name !== undefined) {
+      children = await sql`
+        UPDATE children SET name = ${name}
+        WHERE id = ${params.id}
+        RETURNING id, name, birth_date, created_at, updated_at
+      `;
+    } else {
+      children = await sql`
+        UPDATE children SET birth_date = ${birthDate as string}
+        WHERE id = ${params.id}
+        RETURNING id, name, birth_date, created_at, updated_at
+      `;
+    }
+
+    // Security: Audit child update
+    await logAudit('child_updated', {
+      userId: locals.user.id,
+      details: { childId: params.id, updatedFields: Object.keys(parseResult.data) },
+    });
+
+    return json(mapChildRow(children[0]) satisfies ChildResponse);
+  } catch (error) {
+    logger.error(
+      { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id, childId: params.id },
+      'PUT /api/children/[id] error'
+    );
+    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+  }
 };
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
-    return json({ error: 'Nepřihlášen' }, { status: 401 });
+    return json({ error: 'Nepřihlášen' } satisfies ApiError, { status: 401 });
   }
 
-  const owns = await assertOwnership(locals.user.id, params.id);
-  if (!owns) {
-    return json({ error: 'Přístup odepřen' }, { status: 403 });
+  try {
+    const owns = await assertOwnership(locals.user.id, params.id);
+    if (!owns) {
+      return json({ error: 'Přístup odepřen' } satisfies ApiError, { status: 403 });
+    }
+
+    await sql`DELETE FROM children WHERE id = ${params.id}`;
+
+    // Security: Audit child deletion
+    await logAudit('child_deleted', {
+      userId: locals.user.id,
+      details: { childId: params.id },
+    });
+
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    logger.error(
+      { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id, childId: params.id },
+      'DELETE /api/children/[id] error'
+    );
+    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
   }
-
-  await sql`DELETE FROM children WHERE id = ${params.id}`;
-
-  return new Response(null, { status: 204 });
 };

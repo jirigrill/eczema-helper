@@ -9,6 +9,11 @@ export type User = {
   updatedAt: string;
 };
 
+/**
+ * User data safe to send to the client (excludes sensitive fields like passwordHash).
+ */
+export type ClientUser = Pick<User, 'id' | 'email' | 'name' | 'role'>;
+
 // Session
 export type Session = {
   id: string;
@@ -86,18 +91,11 @@ export type MealItem = {
   categoryId?: string;
 };
 
-// TrackingPhoto
-export type TrackingPhoto = {
+// TrackingPhoto — discriminated union by photoType
+type TrackingPhotoBase = {
   id: string;
   childId: string;
   date: string;
-  photoType: 'skin' | 'stool';
-  bodyArea?: 'face' | 'arms' | 'legs' | 'torso' | 'hands' | 'feet' | 'neck' | 'scalp';
-  severityManual?: number;
-  stoolColor?: 'yellow' | 'green' | 'brown' | 'red' | 'black' | 'white';
-  stoolConsistency?: 'liquid' | 'soft' | 'formed' | 'hard';
-  hasMucus?: boolean;
-  hasBlood?: boolean;
   notes?: string;
   encryptedBlobRef: string;
   thumbnailRef?: string;
@@ -106,6 +104,26 @@ export type TrackingPhoto = {
   updatedAt: string;
   syncedAt?: string;
 };
+
+export type BodyArea = 'face' | 'arms' | 'legs' | 'torso' | 'hands' | 'feet' | 'neck' | 'scalp';
+export type StoolColor = 'yellow' | 'green' | 'brown' | 'red' | 'black' | 'white';
+export type StoolConsistency = 'liquid' | 'soft' | 'formed' | 'hard';
+
+export type SkinPhoto = TrackingPhotoBase & {
+  photoType: 'skin';
+  bodyArea: BodyArea;
+  severityManual?: number;
+};
+
+export type StoolPhoto = TrackingPhotoBase & {
+  photoType: 'stool';
+  stoolColor?: StoolColor;
+  stoolConsistency?: StoolConsistency;
+  hasMucus?: boolean;
+  hasBlood?: boolean;
+};
+
+export type TrackingPhoto = SkinPhoto | StoolPhoto;
 
 // AnalysisResult — discriminated union
 export type Trend = 'improving' | 'worsening' | 'stable';

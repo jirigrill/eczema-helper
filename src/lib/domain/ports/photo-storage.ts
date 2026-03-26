@@ -1,7 +1,27 @@
+/**
+ * Metadata associated with a photo upload.
+ */
+export type PhotoUploadMetadata = {
+  childId: string;
+  date: string;
+  bodyArea?: string;
+  photoType: 'skin' | 'stool';
+};
+
+/**
+ * Pending upload entry for offline sync.
+ */
+export type PendingUpload = {
+  photoId: string;
+  encryptedBlob: ArrayBuffer;
+  encryptedThumb: ArrayBuffer;
+  metadata: PhotoUploadMetadata;
+};
+
 export interface PhotoStorage {
   upload(
     encryptedBlob: ArrayBuffer,
-    metadata: { childId: string; date: string; bodyArea: string }
+    metadata: PhotoUploadMetadata
   ): Promise<{ blobRef: string }>;
 
   uploadThumbnail(
@@ -15,9 +35,7 @@ export interface PhotoStorage {
 
   delete(blobRef: string): Promise<void>;
 
-  getPendingUploads(): Promise<
-    { photoId: string; encryptedBlob: ArrayBuffer; encryptedThumb: ArrayBuffer; metadata: unknown }[]
-  >;
+  getPendingUploads(): Promise<PendingUpload[]>;
 
   markUploaded(photoId: string): Promise<void>;
 }
