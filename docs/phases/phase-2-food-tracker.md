@@ -1,6 +1,7 @@
 # Phase 2: Food Elimination Tracker
 
 > **Note: This phase is split into two sub-phases for manageable scope.**
+>
 > - **Phase 2a**: Calendar + food elimination tracking + server API (core functionality)
 > - **Phase 2b**: Meal logging + copy-from-yesterday + offline sync (enhancements)
 >
@@ -21,6 +22,7 @@ Features 7, 9-10, 12-15: "Copy from yesterday" shortcut, offline-first Dexie.js 
 ## Prerequisites
 
 Phase 0 and Phase 1 must be complete. Specifically:
+
 - The app shell with bottom tab navigation is functional.
 - User authentication and cookie-based sessions are working.
 - Child management is operational (users have at least one child).
@@ -90,37 +92,37 @@ These decisions are deferred to user testing during Phase 1 (when the app shell 
 
 ### Files Created / Modified
 
-| File | Description |
-|---|---|
-| `src/lib/components/calendar/CalendarGrid.svelte` | Month view grid component with day cells |
-| `src/lib/components/calendar/CalendarHeader.svelte` | Month/year display with previous/next navigation arrows |
-| `src/lib/components/calendar/DayCell.svelte` | Individual day cell with number, status dot, and tap handler |
-| `src/lib/components/calendar/SwipeContainer.svelte` | Touch gesture wrapper for month swiping |
-| `src/lib/components/food/FoodCategoryGrid.svelte` | Grid of food category tiles with emoji icons |
-| `src/lib/components/food/FoodCategoryTile.svelte` | Single category tile (emoji, name, expanded state) |
-| `src/lib/components/food/FoodSubItemList.svelte` | Expandable list of sub-items within a category |
-| `src/lib/components/food/FoodSubItemToggle.svelte` | Individual food sub-item with toggle status (neutral/eliminated/reintroduced) |
-| `src/lib/components/food/CopyFromYesterdayButton.svelte` | "Copy from yesterday" action button |
-| `src/routes/(app)/calendar/+page.svelte` | Calendar page assembling all calendar components |
-| `src/routes/(app)/calendar/+page.server.ts` | Server load function fetching food logs for the current month |
-| `src/routes/(app)/calendar/[date]/+page.svelte` | Day detail view for a specific date |
-| `src/routes/(app)/calendar/[date]/+page.server.ts` | Server load function for a specific day's data |
-| `src/routes/(app)/food/+page.svelte` | Food management page (alternative entry to the food grid) |
-| `src/routes/api/food-logs/+server.ts` | GET (list) and POST (create) food log endpoints |
-| `src/routes/api/food-logs/[id]/+server.ts` | PUT (update) and DELETE (remove) food log endpoints |
-| `src/lib/domain/services/food-tracking.ts` | Pure domain logic for food tracking (toggle, copy, active eliminations) |
-| `src/lib/stores/food-log.ts` | Rewritten food log store with Dexie.js integration and sync logic |
-| `src/lib/stores/calendar.ts` | Calendar navigation state (current month, selected date) |
-| `src/lib/adapters/dexie-db.ts` | Updated with food log and meal sync methods |
-| `src/lib/adapters/sync.ts` | Background sync engine for pushing unsynced records to server |
-| `src/lib/components/food/MealComposer.svelte` | Meal creation form: meal type selector, food item picker, free text input |
-| `src/lib/components/food/MealItemPicker.svelte` | Searchable food sub-item picker with autocomplete + free text fallback |
-| `src/lib/components/food/MealCard.svelte` | Display component for a logged meal (type, label, items list) |
-| `src/lib/components/food/MealList.svelte` | List of logged meals for a given day |
-| `src/lib/stores/meals.ts` | Meal state management with Dexie.js integration |
-| `src/routes/api/meals/+server.ts` | GET (list by child+date) and POST (create meal with items) endpoints |
-| `src/routes/api/meals/[id]/+server.ts` | PUT (update) and DELETE (remove) meal endpoints |
-| `src/lib/domain/services/meal-logging.ts` | Pure domain logic for meal operations |
+| File                                                     | Description                                                                   |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `src/lib/components/calendar/CalendarGrid.svelte`        | Month view grid component with day cells                                      |
+| `src/lib/components/calendar/CalendarHeader.svelte`      | Month/year display with previous/next navigation arrows                       |
+| `src/lib/components/calendar/DayCell.svelte`             | Individual day cell with number, status dot, and tap handler                  |
+| `src/lib/components/calendar/SwipeContainer.svelte`      | Touch gesture wrapper for month swiping                                       |
+| `src/lib/components/food/FoodCategoryGrid.svelte`        | Grid of food category tiles with emoji icons                                  |
+| `src/lib/components/food/FoodCategoryTile.svelte`        | Single category tile (emoji, name, expanded state)                            |
+| `src/lib/components/food/FoodSubItemList.svelte`         | Expandable list of sub-items within a category                                |
+| `src/lib/components/food/FoodSubItemToggle.svelte`       | Individual food sub-item with toggle status (neutral/eliminated/reintroduced) |
+| `src/lib/components/food/CopyFromYesterdayButton.svelte` | "Copy from yesterday" action button                                           |
+| `src/routes/(app)/calendar/+page.svelte`                 | Calendar page assembling all calendar components                              |
+| `src/routes/(app)/calendar/+page.server.ts`              | Server load function fetching food logs for the current month                 |
+| `src/routes/(app)/calendar/[date]/+page.svelte`          | Day detail view for a specific date                                           |
+| `src/routes/(app)/calendar/[date]/+page.server.ts`       | Server load function for a specific day's data                                |
+| `src/routes/(app)/food/+page.svelte`                     | Food management page (alternative entry to the food grid)                     |
+| `src/routes/api/food-logs/+server.ts`                    | GET (list) and POST (create) food log endpoints                               |
+| `src/routes/api/food-logs/[id]/+server.ts`               | PUT (update) and DELETE (remove) food log endpoints                           |
+| `src/lib/domain/services/food-tracking.ts`               | Pure domain logic for food tracking (toggle, copy, active eliminations)       |
+| `src/lib/stores/food-log.ts`                             | Rewritten food log store with Dexie.js integration and sync logic             |
+| `src/lib/stores/calendar.ts`                             | Calendar navigation state (current month, selected date)                      |
+| `src/lib/adapters/dexie-db.ts`                           | Updated with food log and meal sync methods                                   |
+| `src/lib/adapters/sync.ts`                               | Background sync engine for pushing unsynced records to server                 |
+| `src/lib/components/food/MealComposer.svelte`            | Meal creation form: meal type selector, food item picker, free text input     |
+| `src/lib/components/food/MealItemPicker.svelte`          | Searchable food sub-item picker with autocomplete + free text fallback        |
+| `src/lib/components/food/MealCard.svelte`                | Display component for a logged meal (type, label, items list)                 |
+| `src/lib/components/food/MealList.svelte`                | List of logged meals for a given day                                          |
+| `src/lib/stores/meals.ts`                                | Meal state management with Dexie.js integration                               |
+| `src/routes/api/meals/+server.ts`                        | GET (list by child+date) and POST (create meal with items) endpoints          |
+| `src/routes/api/meals/[id]/+server.ts`                   | PUT (update) and DELETE (remove) meal endpoints                               |
+| `src/lib/domain/services/meal-logging.ts`                | Pure domain logic for meal operations                                         |
 
 ### Step-by-Step Instructions
 
@@ -129,9 +131,9 @@ These decisions are deferred to user testing during Phase 1 (when the app shell 
 This is a pure module with no side effects, containing all the business logic for food tracking:
 
 ```typescript
-import type { FoodLog, FoodSubItem } from '$lib/domain/models';
+import type { FoodLog, FoodSubItem } from "$lib/domain/models";
 
-export type FoodStatus = 'neutral' | 'eliminated' | 'reintroduced';
+export type FoodStatus = "neutral" | "eliminated" | "reintroduced";
 
 /**
  * Cumulative elimination state: returns the most recent FoodLog action
@@ -142,10 +144,10 @@ export type FoodStatus = 'neutral' | 'eliminated' | 'reintroduced';
 export function getFoodStatus(
   logs: FoodLog[],
   categoryId: string,
-  date: string
+  date: string,
 ): FoodStatus {
   const itemLogs = logs
-    .filter(l => l.categoryId === categoryId && l.date <= date)
+    .filter((l) => l.categoryId === categoryId && l.date <= date)
     .sort((a, b) => {
       // Sort by date descending, then by createdAt descending
       const dateCmp = b.date.localeCompare(a.date);
@@ -153,7 +155,7 @@ export function getFoodStatus(
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  if (itemLogs.length === 0) return 'neutral';
+  if (itemLogs.length === 0) return "neutral";
   return itemLogs[0].action;
 }
 
@@ -162,7 +164,7 @@ export function getFoodStatus(
  * neutral -> eliminated -> reintroduced -> neutral
  */
 export function getNextStatus(current: FoodStatus): FoodStatus {
-  const cycle: FoodStatus[] = ['neutral', 'eliminated', 'reintroduced'];
+  const cycle: FoodStatus[] = ["neutral", "eliminated", "reintroduced"];
   const idx = cycle.indexOf(current);
   return cycle[(idx + 1) % cycle.length];
 }
@@ -175,21 +177,23 @@ export function getNextStatus(current: FoodStatus): FoodStatus {
 export function countActiveEliminations(
   logs: FoodLog[],
   date: string,
-  allCategoryIds: string[]
+  allCategoryIds: string[],
 ): number {
   return allCategoryIds.filter(
-    itemId => getFoodStatus(logs, itemId, date) === 'eliminated'
+    (itemId) => getFoodStatus(logs, itemId, date) === "eliminated",
   ).length;
 }
 
 /**
  * Determine the dot colour tier for a day based on elimination count.
  */
-export function getDotTier(eliminationCount: number): 'none' | 'low' | 'medium' | 'high' {
-  if (eliminationCount === 0) return 'none';
-  if (eliminationCount <= 3) return 'low';
-  if (eliminationCount <= 6) return 'medium';
-  return 'high';
+export function getDotTier(
+  eliminationCount: number,
+): "none" | "low" | "medium" | "high" {
+  if (eliminationCount === 0) return "none";
+  if (eliminationCount <= 3) return "low";
+  if (eliminationCount <= 6) return "medium";
+  return "high";
 }
 
 /**
@@ -200,19 +204,19 @@ export function copyFromYesterday(
   yesterdayLogs: FoodLog[],
   childId: string,
   todayDate: string,
-  allCategoryIds: string[]
-): Array<Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>> {
-  const newEntries: Array<Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>> = [];
+  allCategoryIds: string[],
+): Array<Omit<FoodLog, "id" | "createdAt" | "updatedAt">> {
+  const newEntries: Array<Omit<FoodLog, "id" | "createdAt" | "updatedAt">> = [];
   const yesterdayDate = getPreviousDate(todayDate);
 
   for (const itemId of allCategoryIds) {
     const status = getFoodStatus(yesterdayLogs, itemId, yesterdayDate);
-    if (status !== 'neutral') {
+    if (status !== "neutral") {
       newEntries.push({
         childId,
         categoryId: itemId,
         date: todayDate,
-        action: status
+        action: status,
       });
     }
   }
@@ -226,7 +230,7 @@ export function copyFromYesterday(
 export function getPreviousDate(isoDate: string): string {
   const d = new Date(isoDate);
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 }
 ```
 
@@ -243,11 +247,13 @@ async getFoodStatus(childId: string, categoryId: string, date: string): Promise<
 ```
 
 Add to the DataRepository port:
+
 ```typescript
 getMostRecentFoodLog(childId: string, categoryId: string, onOrBeforeDate: string): Promise<FoodLog | null>;
 ```
 
 SQL implementation:
+
 ```sql
 SELECT * FROM food_logs
 WHERE child_id = $1 AND category_id = $2 AND date <= $3
@@ -299,6 +305,7 @@ The grid renders 7 columns (Po, Ut, St, Ct, Pa, So, Ne for Czech locale) with ro
 #### Step 5: Build the DayCell component
 
 Each cell displays:
+
 - The day number, with muted styling if outside the current month.
 - A bold or highlighted background if it is today.
 - A coloured dot below the number based on the dot tier (none/low/medium/high).
@@ -321,7 +328,8 @@ function onTouchEnd(e: TouchEvent) {
   touchEndX = e.changedTouches[0].screenX;
   const diff = touchStartX - touchEndX;
   if (Math.abs(diff) > SWIPE_THRESHOLD) {
-    if (diff > 0) onSwipeLeft(); // next month
+    if (diff > 0)
+      onSwipeLeft(); // next month
     else onSwipeRight(); // previous month
   }
 }
@@ -352,6 +360,7 @@ Displays the emoji and Czech name. When tapped, dispatches a `toggle` event. Whe
 `FoodSubItemList` renders a list of `FoodSubItemToggle` components for each sub-item in the category.
 
 `FoodSubItemToggle` displays:
+
 - The food item's Czech name.
 - A visual status indicator: neutral (grey circle), eliminated (red circle with X), reintroduced (green circle with checkmark).
 - On tap, calls the food tracking service to compute the next status and dispatches a mutation.
@@ -369,6 +378,7 @@ Displays the emoji and Czech name. When tapped, dispatches a `toggle` event. Whe
 #### Step 10: Build the "Copy from yesterday" button
 
 Renders a button that, when tapped:
+
 1. Calls `copyFromYesterday()` from the food tracking service.
 2. If the current day already has entries, shows a confirmation: "Overwrite current entries?" or "Merge with current entries?".
 3. On confirm, creates all the new food log entries via the store.
@@ -404,10 +414,12 @@ Renders a button that, when tapped:
 #### Step 12: Build the day detail view (`src/routes/(app)/calendar/[date]/+page.svelte`)
 
 This page receives the date from the URL parameter. It loads:
+
 - All food categories and items (from store or server data).
 - All food logs for the selected day and child (from Dexie.js first, then server).
 
 It renders:
+
 - A header with the formatted date and a back button.
 - The `FoodCategoryGrid` with the current day's status.
 - The `CopyFromYesterdayButton`.
@@ -416,32 +428,38 @@ It renders:
 
 ```typescript
 // src/lib/stores/food-log.svelte.ts (Svelte 5 runes)
-import { db } from '$lib/adapters/dexie-db';
-import { getSelectedChild } from '$lib/stores/children.svelte';
-import type { FoodLog } from '$lib/domain/models';
-import { syncToServer } from '$lib/adapters/sync';
+import { db } from "$lib/adapters/dexie-db";
+import { getSelectedChild } from "$lib/stores/children.svelte";
+import type { FoodLog } from "$lib/domain/models";
+import { syncToServer } from "$lib/adapters/sync";
 
 let logs = $state<FoodLog[]>([]);
 
-export function getLogs() { return logs; }
+export function getLogs() {
+  return logs;
+}
 
-export async function loadForDateRange(childId: string, startDate: string, endDate: string) {
+export async function loadForDateRange(
+  childId: string,
+  startDate: string,
+  endDate: string,
+) {
   // Load from Dexie first (offline-first)
   logs = await db.foodLogs
-    .where('[childId+date]')
+    .where("[childId+date]")
     .between([childId, startDate], [childId, endDate], true, true)
     .toArray();
 
   // Then fetch from server and merge
   try {
     const res = await fetch(
-      `/api/food-logs?childId=${childId}&startDate=${startDate}&endDate=${endDate}`
+      `/api/food-logs?childId=${childId}&startDate=${startDate}&endDate=${endDate}`,
     );
     if (res.ok) {
       const serverLogs: FoodLog[] = await res.json();
       await db.foodLogs.bulkPut(serverLogs);
       logs = await db.foodLogs
-        .where('[childId+date]')
+        .where("[childId+date]")
         .between([childId, startDate], [childId, endDate], true, true)
         .toArray();
     }
@@ -451,14 +469,23 @@ export async function loadForDateRange(childId: string, startDate: string, endDa
 }
 
 export async function toggleFood(
-  childId: string, categoryId: string, date: string,
-  action: 'eliminated' | 'reintroduced', createdBy: string
+  childId: string,
+  categoryId: string,
+  date: string,
+  action: "eliminated" | "reintroduced",
+  createdBy: string,
 ) {
   const now = new Date().toISOString();
   const newLog: FoodLog = {
     id: crypto.randomUUID(),
-    childId, categoryId, date, action, createdBy,
-    createdAt: now, updatedAt: now, syncedAt: undefined
+    childId,
+    categoryId,
+    date,
+    action,
+    createdBy,
+    createdAt: now,
+    updatedAt: now,
+    syncedAt: undefined,
   };
 
   // Optimistic update
@@ -468,12 +495,15 @@ export async function toggleFood(
 }
 
 export async function copyFromYesterday(
-  entries: Array<Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>>
+  entries: Array<Omit<FoodLog, "id" | "createdAt" | "updatedAt">>,
 ) {
   const now = new Date().toISOString();
-  const newLogs: FoodLog[] = entries.map(e => ({
-    ...e, id: crypto.randomUUID(),
-    createdAt: now, updatedAt: now, syncedAt: undefined
+  const newLogs: FoodLog[] = entries.map((e) => ({
+    ...e,
+    id: crypto.randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+    syncedAt: undefined,
   }));
 
   logs = [...logs, ...newLogs];
@@ -485,7 +515,7 @@ export async function copyFromYesterday(
 #### Step 14: Implement the background sync engine (`src/lib/adapters/sync.ts`)
 
 ```typescript
-import { db } from './dexie-db';
+import { db } from "./dexie-db";
 
 let isSyncing = false;
 
@@ -495,24 +525,24 @@ export async function syncToServer(): Promise<void> {
 
   try {
     const unsyncedLogs = await db.foodLogs
-      .filter(log => log.syncedAt === undefined || log.syncedAt === null)
+      .filter((log) => log.syncedAt === undefined || log.syncedAt === null)
       .toArray();
 
     if (unsyncedLogs.length === 0) return;
 
-    const res = await fetch('/api/food-logs/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ logs: unsyncedLogs })
+    const res = await fetch("/api/food-logs/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logs: unsyncedLogs }),
     });
 
     if (res.ok) {
       const now = new Date();
       await db.foodLogs.bulkUpdate(
-        unsyncedLogs.map(log => ({
+        unsyncedLogs.map((log) => ({
           key: log.id,
-          changes: { syncedAt: now }
-        }))
+          changes: { syncedAt: now },
+        })),
       );
     }
   } catch {
@@ -523,8 +553,8 @@ export async function syncToServer(): Promise<void> {
 }
 
 // Listen for online events
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => syncToServer());
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => syncToServer());
 }
 ```
 
@@ -560,14 +590,28 @@ let year = $state(now.getFullYear());
 let month = $state(now.getMonth()); // 0-indexed
 let selectedDate = $state<string | null>(null);
 
-export function getYear() { return year; }
-export function getMonth() { return month; }
-export function getSelectedDate() { return selectedDate; }
-export function setSelectedDate(date: string | null) { selectedDate = date; }
+export function getYear() {
+  return year;
+}
+export function getMonth() {
+  return month;
+}
+export function getSelectedDate() {
+  return selectedDate;
+}
+export function setSelectedDate(date: string | null) {
+  selectedDate = date;
+}
 export function navigateMonth(delta: number) {
   month += delta;
-  if (month > 11) { month = 0; year++; }
-  if (month < 0) { month = 11; year--; }
+  if (month > 11) {
+    month = 0;
+    year++;
+  }
+  if (month < 0) {
+    month = 11;
+    year--;
+  }
 }
 ```
 
@@ -583,7 +627,7 @@ On app load (in the `(app)` layout), fetch food categories and items from the se
 // In (app)/+layout.svelte onMount or load function
 const categories = await db.foodCategories.toArray();
 if (categories.length === 0) {
-  const res = await fetch('/api/food-categories');
+  const res = await fetch("/api/food-categories");
   const data = await res.json();
   await db.foodCategories.bulkPut(data.categories);
   await db.foodItems.bulkPut(data.items);
@@ -597,15 +641,15 @@ Create a `GET /api/food-categories` endpoint that returns all categories with th
 Pure module for meal operations:
 
 ```typescript
-import type { Meal, MealItem, FoodSubItem } from '$lib/domain/models';
+import type { Meal, MealItem, FoodSubItem } from "$lib/domain/models";
 
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
 export const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  breakfast: 'Snídaně',
-  lunch: 'Oběd',
-  dinner: 'Večeře',
-  snack: 'Svačina'
+  breakfast: "Snídaně",
+  lunch: "Oběd",
+  dinner: "Večeře",
+  snack: "Svačina",
 };
 
 /**
@@ -615,13 +659,13 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
  */
 export function getMealItemDisplayName(
   item: MealItem,
-  subItems: FoodSubItem[]
+  subItems: FoodSubItem[],
 ): string {
   if (item.subItemId) {
-    const subItem = subItems.find(si => si.id === item.subItemId);
-    return subItem?.nameCs ?? item.customName ?? 'Neznámá položka';
+    const subItem = subItems.find((si) => si.id === item.subItemId);
+    return subItem?.nameCs ?? item.customName ?? "Neznámá položka";
   }
-  return item.customName ?? 'Neznámá položka';
+  return item.customName ?? "Neznámá položka";
 }
 
 /**
@@ -630,12 +674,12 @@ export function getMealItemDisplayName(
 export function formatMealSummary(
   meal: Meal,
   items: MealItem[],
-  subItems: FoodSubItem[]
+  subItems: FoodSubItem[],
 ): string {
   const label = MEAL_TYPE_LABELS[meal.mealType as MealType];
-  const itemNames = items.map(i => getMealItemDisplayName(i, subItems));
-  const suffix = meal.label ? ` (${meal.label})` : '';
-  return `${label}${suffix}: ${itemNames.join(', ')}`;
+  const itemNames = items.map((i) => getMealItemDisplayName(i, subItems));
+  const suffix = meal.label ? ` (${meal.label})` : "";
+  return `${label}${suffix}: ${itemNames.join(", ")}`;
 }
 
 /**
@@ -643,15 +687,16 @@ export function formatMealSummary(
  */
 export function resolveCategoryId(
   subItemId: string,
-  subItems: FoodSubItem[]
+  subItems: FoodSubItem[],
 ): string | undefined {
-  return subItems.find(si => si.id === subItemId)?.categoryId;
+  return subItems.find((si) => si.id === subItemId)?.categoryId;
 }
 ```
 
 #### Step 20: Build the MealItemPicker component (`src/lib/components/food/MealItemPicker.svelte`)
 
 A searchable input that:
+
 1. As the user types, filters predefined `FoodSubItem` entries matching the Czech name.
 2. Shows a dropdown of matching sub-items grouped by category.
 3. Tapping a sub-item adds it to the meal (creates a `MealItem` with `subItemId`).
@@ -712,6 +757,7 @@ A searchable input that:
 #### Step 21: Build the MealComposer component (`src/lib/components/food/MealComposer.svelte`)
 
 A form for creating a meal:
+
 1. Meal type selector: four buttons for Snídaně/Oběd/Večeře/Svačina.
 2. Optional label text input.
 3. `MealItemPicker` for adding food items.
@@ -726,6 +772,7 @@ A form for creating a meal:
 #### Step 23: Integrate meals into the day detail view
 
 Update `src/routes/(app)/calendar/[date]/+page.svelte` to show two sections:
+
 1. **Eliminované potraviny** (Eliminated foods) -- existing food category grid with toggle functionality.
 2. **Jídla** (Meals) -- `MealList` component showing logged meals + `MealComposer` for adding new ones.
 
@@ -751,7 +798,7 @@ The food status follows a strict cycle: `neutral -> eliminated -> reintroduced -
 
 ```typescript
 // Toggle cycle
-const CYCLE: FoodStatus[] = ['neutral', 'eliminated', 'reintroduced'];
+const CYCLE: FoodStatus[] = ["neutral", "eliminated", "reintroduced"];
 export function getNextStatus(current: FoodStatus): FoodStatus {
   return CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];
 }
@@ -774,10 +821,10 @@ This pattern ensures the UI is always responsive regardless of network state. Da
 
 ```typescript
 const DOT_COLOURS = {
-  none: '',
-  low: 'bg-warning',      // yellow -- 1-3 eliminations
-  medium: 'bg-orange-500', // orange -- 4-6 eliminations
-  high: 'bg-danger'        // red -- 7+ eliminations
+  none: "",
+  low: "bg-warning", // yellow -- 1-3 eliminations
+  medium: "bg-orange-500", // orange -- 4-6 eliminations
+  high: "bg-danger", // red -- 7+ eliminations
 } as const;
 ```
 
@@ -786,12 +833,12 @@ const DOT_COLOURS = {
 ```typescript
 // Efficient query using the compound index [childId+date]
 const logs = await db.foodLogs
-  .where('[childId+date]')
+  .where("[childId+date]")
   .between(
     [childId, startDate],
     [childId, endDate],
-    true,  // include lower bound
-    true   // include upper bound
+    true, // include lower bound
+    true, // include upper bound
   )
   .toArray();
 ```
@@ -836,98 +883,98 @@ The `/food` tab provides a direct shortcut to today's food tracking without goin
 
 **Test file: `src/lib/domain/services/food-tracking.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 1 | `getFoodStatus` returns `'neutral'` when no logs exist | Call with empty logs array. Assert result is `'neutral'`. |
-| 2 | `getFoodStatus` returns `'eliminated'` after elimination log | Create a log with `action: 'eliminated'`. Assert result is `'eliminated'`. |
-| 3 | `getFoodStatus` returns `'reintroduced'` after reintroduction log | Create a log with `action: 'reintroduced'`. Assert result is `'reintroduced'`. |
-| 4 | `getFoodStatus` returns the most recent action when multiple logs exist | Create two logs: eliminated at T1, reintroduced at T2. Assert result is `'reintroduced'`. |
-| 5 | `getFoodStatus` filters by date and categoryId | Create logs for different dates and items. Assert only matching logs affect the result. |
-| 6 | `getNextStatus` cycles neutral -> eliminated | Assert `getNextStatus('neutral')` returns `'eliminated'`. |
-| 7 | `getNextStatus` cycles eliminated -> reintroduced | Assert `getNextStatus('eliminated')` returns `'reintroduced'`. |
-| 8 | `getNextStatus` cycles reintroduced -> neutral | Assert `getNextStatus('reintroduced')` returns `'neutral'`. |
-| 9 | `countActiveEliminations` returns 0 for no logs | Call with empty logs. Assert result is `0`. |
-| 10 | `countActiveEliminations` counts only eliminated items | Create logs: item A eliminated, item B reintroduced, item C neutral. Assert count is `1`. |
-| 11 | `countActiveEliminations` handles multiple items correctly | Create logs: 5 items eliminated, 2 reintroduced. Assert count is `5`. |
-| 12 | `getDotTier` returns `'none'` for 0 | Assert `getDotTier(0)` returns `'none'`. |
-| 13 | `getDotTier` returns `'low'` for 1-3 | Assert `getDotTier(1)`, `getDotTier(3)` both return `'low'`. |
-| 14 | `getDotTier` returns `'medium'` for 4-6 | Assert `getDotTier(4)`, `getDotTier(6)` both return `'medium'`. |
-| 15 | `getDotTier` returns `'high'` for 7+ | Assert `getDotTier(7)`, `getDotTier(20)` both return `'high'`. |
-| 16 | `copyFromYesterday` returns empty array when yesterday has no entries | Call with empty yesterday logs. Assert result is `[]`. |
-| 17 | `copyFromYesterday` copies eliminated items from yesterday | Create yesterday logs: item A eliminated, item B eliminated. Call for today. Assert 2 entries returned, both with today's date and correct actions. |
-| 18 | `copyFromYesterday` skips neutral items | Create yesterday logs: item A eliminated, item B reintroduced, item C neutral. Assert only 2 entries returned (A and B). |
-| 19 | `copyFromYesterday` sets correct childId and date | Assert all returned entries have the provided `childId` and `todayDate`. |
-| 20 | `getPreviousDate` computes correctly across month boundary | Assert `getPreviousDate('2026-03-01')` returns `'2026-02-28'`. |
-| 21 | `getPreviousDate` computes correctly for leap year | Assert `getPreviousDate('2024-03-01')` returns `'2024-02-29'`. |
-| 22 | `getPreviousDate` computes correctly across year boundary | Assert `getPreviousDate('2026-01-01')` returns `'2025-12-31'`. |
+| #   | Test Case                                                               | Details                                                                                                                                             |
+| --- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `getFoodStatus` returns `'neutral'` when no logs exist                  | Call with empty logs array. Assert result is `'neutral'`.                                                                                           |
+| 2   | `getFoodStatus` returns `'eliminated'` after elimination log            | Create a log with `action: 'eliminated'`. Assert result is `'eliminated'`.                                                                          |
+| 3   | `getFoodStatus` returns `'reintroduced'` after reintroduction log       | Create a log with `action: 'reintroduced'`. Assert result is `'reintroduced'`.                                                                      |
+| 4   | `getFoodStatus` returns the most recent action when multiple logs exist | Create two logs: eliminated at T1, reintroduced at T2. Assert result is `'reintroduced'`.                                                           |
+| 5   | `getFoodStatus` filters by date and categoryId                          | Create logs for different dates and items. Assert only matching logs affect the result.                                                             |
+| 6   | `getNextStatus` cycles neutral -> eliminated                            | Assert `getNextStatus('neutral')` returns `'eliminated'`.                                                                                           |
+| 7   | `getNextStatus` cycles eliminated -> reintroduced                       | Assert `getNextStatus('eliminated')` returns `'reintroduced'`.                                                                                      |
+| 8   | `getNextStatus` cycles reintroduced -> neutral                          | Assert `getNextStatus('reintroduced')` returns `'neutral'`.                                                                                         |
+| 9   | `countActiveEliminations` returns 0 for no logs                         | Call with empty logs. Assert result is `0`.                                                                                                         |
+| 10  | `countActiveEliminations` counts only eliminated items                  | Create logs: item A eliminated, item B reintroduced, item C neutral. Assert count is `1`.                                                           |
+| 11  | `countActiveEliminations` handles multiple items correctly              | Create logs: 5 items eliminated, 2 reintroduced. Assert count is `5`.                                                                               |
+| 12  | `getDotTier` returns `'none'` for 0                                     | Assert `getDotTier(0)` returns `'none'`.                                                                                                            |
+| 13  | `getDotTier` returns `'low'` for 1-3                                    | Assert `getDotTier(1)`, `getDotTier(3)` both return `'low'`.                                                                                        |
+| 14  | `getDotTier` returns `'medium'` for 4-6                                 | Assert `getDotTier(4)`, `getDotTier(6)` both return `'medium'`.                                                                                     |
+| 15  | `getDotTier` returns `'high'` for 7+                                    | Assert `getDotTier(7)`, `getDotTier(20)` both return `'high'`.                                                                                      |
+| 16  | `copyFromYesterday` returns empty array when yesterday has no entries   | Call with empty yesterday logs. Assert result is `[]`.                                                                                              |
+| 17  | `copyFromYesterday` copies eliminated items from yesterday              | Create yesterday logs: item A eliminated, item B eliminated. Call for today. Assert 2 entries returned, both with today's date and correct actions. |
+| 18  | `copyFromYesterday` skips neutral items                                 | Create yesterday logs: item A eliminated, item B reintroduced, item C neutral. Assert only 2 entries returned (A and B).                            |
+| 19  | `copyFromYesterday` sets correct childId and date                       | Assert all returned entries have the provided `childId` and `todayDate`.                                                                            |
+| 20  | `getPreviousDate` computes correctly across month boundary              | Assert `getPreviousDate('2026-03-01')` returns `'2026-02-28'`.                                                                                      |
+| 21  | `getPreviousDate` computes correctly for leap year                      | Assert `getPreviousDate('2024-03-01')` returns `'2024-02-29'`.                                                                                      |
+| 22  | `getPreviousDate` computes correctly across year boundary               | Assert `getPreviousDate('2026-01-01')` returns `'2025-12-31'`.                                                                                      |
 
 **Test file: `src/lib/components/calendar/calendar-utils.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 23 | `getMonthDays` returns 28-31 days for the target month | Call for February 2026 (28 days) and March 2026 (31 days). Assert correct day counts. |
-| 24 | `getMonthDays` includes padding days for complete weeks | Call for March 2026 (starts on Sunday). Assert the grid array length is a multiple of 7. |
-| 25 | `getMonthDays` marks padding days as outside the current month | Assert first/last entries (if from adjacent months) have a flag `isCurrentMonth: false`. |
-| 26 | `isToday` returns true for today's date | Generate today's ISO date string. Assert `isToday` returns `true`. |
-| 27 | `isToday` returns false for yesterday | Assert `isToday('2020-01-01')` returns `false`. |
-| 28 | `isSameMonth` correctly identifies matching month | Assert `isSameMonth('2026-03-15', 2026, 2)` returns `true` (0-indexed month 2 = March). |
+| #   | Test Case                                                      | Details                                                                                  |
+| --- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 23  | `getMonthDays` returns 28-31 days for the target month         | Call for February 2026 (28 days) and March 2026 (31 days). Assert correct day counts.    |
+| 24  | `getMonthDays` includes padding days for complete weeks        | Call for March 2026 (starts on Sunday). Assert the grid array length is a multiple of 7. |
+| 25  | `getMonthDays` marks padding days as outside the current month | Assert first/last entries (if from adjacent months) have a flag `isCurrentMonth: false`. |
+| 26  | `isToday` returns true for today's date                        | Generate today's ISO date string. Assert `isToday` returns `true`.                       |
+| 27  | `isToday` returns false for yesterday                          | Assert `isToday('2020-01-01')` returns `false`.                                          |
+| 28  | `isSameMonth` correctly identifies matching month              | Assert `isSameMonth('2026-03-15', 2026, 2)` returns `true` (0-indexed month 2 = March).  |
 
 **Test file: `src/lib/domain/services/meal-logging.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 29 | `getMealItemDisplayName` returns Czech name for predefined sub-item | Create MealItem with `subItemId` pointing to "cows-milk". Assert returns "Kravské mléko". |
-| 30 | `getMealItemDisplayName` returns custom name when no subItemId | Create MealItem with `customName: 'vepřové'`. Assert returns "vepřové". |
-| 31 | `getMealItemDisplayName` returns custom name when subItemId not found | Create MealItem with invalid `subItemId` and `customName: 'neznámé'`. Assert returns "neznámé". |
-| 32 | `formatMealSummary` formats meal with type and items | Create lunch meal with 3 items. Assert returns "Oběd: vepřové, brambory, zapečené mléko". |
-| 33 | `formatMealSummary` includes label when present | Create meal with `label: 'u babičky'`. Assert returns "Oběd (u babičky): ..." |
-| 34 | `formatMealSummary` handles empty items list | Create meal with no items. Assert returns "Snídaně: " (empty items). |
-| 35 | `resolveCategoryId` returns correct category for known sub-item | Assert `resolveCategoryId('cows-milk-id', subItems)` returns dairy category ID. |
-| 36 | `resolveCategoryId` returns undefined for unknown sub-item | Assert `resolveCategoryId('nonexistent', subItems)` returns `undefined`. |
-| 37 | `MEAL_TYPE_LABELS` contains all four Czech labels | Assert all keys present: breakfast → "Snídaně", lunch → "Oběd", dinner → "Večeře", snack → "Svačina". |
+| #   | Test Case                                                             | Details                                                                                               |
+| --- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 29  | `getMealItemDisplayName` returns Czech name for predefined sub-item   | Create MealItem with `subItemId` pointing to "cows-milk". Assert returns "Kravské mléko".             |
+| 30  | `getMealItemDisplayName` returns custom name when no subItemId        | Create MealItem with `customName: 'vepřové'`. Assert returns "vepřové".                               |
+| 31  | `getMealItemDisplayName` returns custom name when subItemId not found | Create MealItem with invalid `subItemId` and `customName: 'neznámé'`. Assert returns "neznámé".       |
+| 32  | `formatMealSummary` formats meal with type and items                  | Create lunch meal with 3 items. Assert returns "Oběd: vepřové, brambory, zapečené mléko".             |
+| 33  | `formatMealSummary` includes label when present                       | Create meal with `label: 'u babičky'`. Assert returns "Oběd (u babičky): ..."                         |
+| 34  | `formatMealSummary` handles empty items list                          | Create meal with no items. Assert returns "Snídaně: " (empty items).                                  |
+| 35  | `resolveCategoryId` returns correct category for known sub-item       | Assert `resolveCategoryId('cows-milk-id', subItems)` returns dairy category ID.                       |
+| 36  | `resolveCategoryId` returns undefined for unknown sub-item            | Assert `resolveCategoryId('nonexistent', subItems)` returns `undefined`.                              |
+| 37  | `MEAL_TYPE_LABELS` contains all four Czech labels                     | Assert all keys present: breakfast → "Snídaně", lunch → "Oběd", dinner → "Večeře", snack → "Svačina". |
 
 ### Integration Tests
 
 **Test file: `tests/integration/food-logs-api.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 29 | `GET /api/food-logs` returns empty array for new child | Register, login, create child, query food logs for a date range. Assert 200 and empty array. |
-| 30 | `POST /api/food-logs` creates a food log entry | Send `{ childId, categoryId, date: '2026-03-20', action: 'eliminated' }`. Assert 201. Assert response has `id` and all fields. |
-| 31 | `GET /api/food-logs` returns created entries within date range | Create 3 entries on different dates. Query with a range covering 2 of them. Assert array length is 2. |
-| 32 | `GET /api/food-logs` excludes entries outside date range | Create entry on 2026-03-20. Query range 2026-03-21 to 2026-03-31. Assert empty array. |
-| 33 | `PUT /api/food-logs/[id]` updates the action | Create an `'eliminated'` entry. Update to `'reintroduced'`. Assert 200 and updated action. |
-| 34 | `DELETE /api/food-logs/[id]` removes the entry | Create an entry, then delete. Assert 204. Query and assert it is gone. |
-| 35 | `POST /api/food-logs` rejects invalid action | Send `action: 'invalid'`. Assert 400. |
-| 36 | `POST /api/food-logs` rejects non-owned child | User A creates child. User B tries to create a food log for that child. Assert 403. |
-| 37 | `GET /api/food-logs` requires `childId` parameter | Send without `childId`. Assert 400. |
-| 38 | `POST /api/food-logs/batch` syncs multiple entries | Send 5 food log entries in one batch. Assert 200. Query individually and assert all 5 exist. |
-| 39 | `POST /api/food-logs/batch` handles upsert correctly | Send an entry, then send it again with a different action in a batch. Assert the action is updated, not duplicated. |
-| 40 | All food log endpoints require authentication | Call each endpoint without a session cookie. Assert 401 or redirect. |
+| #   | Test Case                                                      | Details                                                                                                                        |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 29  | `GET /api/food-logs` returns empty array for new child         | Register, login, create child, query food logs for a date range. Assert 200 and empty array.                                   |
+| 30  | `POST /api/food-logs` creates a food log entry                 | Send `{ childId, categoryId, date: '2026-03-20', action: 'eliminated' }`. Assert 201. Assert response has `id` and all fields. |
+| 31  | `GET /api/food-logs` returns created entries within date range | Create 3 entries on different dates. Query with a range covering 2 of them. Assert array length is 2.                          |
+| 32  | `GET /api/food-logs` excludes entries outside date range       | Create entry on 2026-03-20. Query range 2026-03-21 to 2026-03-31. Assert empty array.                                          |
+| 33  | `PUT /api/food-logs/[id]` updates the action                   | Create an `'eliminated'` entry. Update to `'reintroduced'`. Assert 200 and updated action.                                     |
+| 34  | `DELETE /api/food-logs/[id]` removes the entry                 | Create an entry, then delete. Assert 204. Query and assert it is gone.                                                         |
+| 35  | `POST /api/food-logs` rejects invalid action                   | Send `action: 'invalid'`. Assert 400.                                                                                          |
+| 36  | `POST /api/food-logs` rejects non-owned child                  | User A creates child. User B tries to create a food log for that child. Assert 403.                                            |
+| 37  | `GET /api/food-logs` requires `childId` parameter              | Send without `childId`. Assert 400.                                                                                            |
+| 38  | `POST /api/food-logs/batch` syncs multiple entries             | Send 5 food log entries in one batch. Assert 200. Query individually and assert all 5 exist.                                   |
+| 39  | `POST /api/food-logs/batch` handles upsert correctly           | Send an entry, then send it again with a different action in a batch. Assert the action is updated, not duplicated.            |
+| 40  | All food log endpoints require authentication                  | Call each endpoint without a session cookie. Assert 401 or redirect.                                                           |
 
 **Test file: `tests/integration/food-categories-api.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 41 | `GET /api/food-categories` returns all categories with items | Assert response contains at least 12 categories. Assert each category has a non-empty `items` array. |
-| 42 | `GET /api/food-categories` requires authentication | Call without session. Assert 401 or redirect. |
+| #   | Test Case                                                    | Details                                                                                              |
+| --- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 41  | `GET /api/food-categories` returns all categories with items | Assert response contains at least 12 categories. Assert each category has a non-empty `items` array. |
+| 42  | `GET /api/food-categories` requires authentication           | Call without session. Assert 401 or redirect.                                                        |
 
 **Test file: `tests/integration/meals-api.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 43 | `POST /api/meals` creates a meal with predefined items | Send `{ date, mealType: 'lunch', items: [{ subItemId: 'cows-milk-id' }, { subItemId: 'potato-id' }] }`. Assert 201 with meal ID and 2 items. Meal is associated with authenticated user. |
-| 44 | `POST /api/meals` creates a meal with custom items | Send `{ date, mealType: 'dinner', items: [{ customName: 'vepřové' }] }`. Assert 201. |
-| 45 | `POST /api/meals` creates a meal with mixed items | Send items: one with `subItemId`, one with `customName`. Assert 201 and both items stored. |
-| 46 | `GET /api/meals?date=YYYY-MM-DD` returns meals with items | Create 2 meals. Assert GET returns both with correct item arrays for the authenticated user. |
-| 47 | `GET /api/meals` returns empty for date with no meals | Query a date with no meals. Assert 200 and empty array. |
-| 48 | `PUT /api/meals/[id]` updates meal metadata and replaces items | Create meal with 2 items. Update with 3 different items. Assert old items removed and new items present. |
-| 49 | `DELETE /api/meals/[id]` removes meal and cascades to items | Create meal with items. Delete. Assert 204. Query items separately and assert they are gone. |
-| 50 | `POST /api/meals` rejects invalid mealType | Send `mealType: 'brunch'`. Assert 400. |
-| 51 | `POST /api/meals` rejects meal with no items | Send empty items array. Assert 400. |
-| 52 | `POST /api/meals` rejects item with neither subItemId nor customName | Send item `{}`. Assert 400. |
-| 53 | All meal endpoints require authentication | Call each endpoint without session cookie. Assert 401 or redirect. |
-| 54 | `GET /api/meals` scopes to authenticated user | User A creates meals. User B queries the same date. Assert User B sees only their own meals (empty if they logged none). |
+| #   | Test Case                                                            | Details                                                                                                                                                                                  |
+| --- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 43  | `POST /api/meals` creates a meal with predefined items               | Send `{ date, mealType: 'lunch', items: [{ subItemId: 'cows-milk-id' }, { subItemId: 'potato-id' }] }`. Assert 201 with meal ID and 2 items. Meal is associated with authenticated user. |
+| 44  | `POST /api/meals` creates a meal with custom items                   | Send `{ date, mealType: 'dinner', items: [{ customName: 'vepřové' }] }`. Assert 201.                                                                                                     |
+| 45  | `POST /api/meals` creates a meal with mixed items                    | Send items: one with `subItemId`, one with `customName`. Assert 201 and both items stored.                                                                                               |
+| 46  | `GET /api/meals?date=YYYY-MM-DD` returns meals with items            | Create 2 meals. Assert GET returns both with correct item arrays for the authenticated user.                                                                                             |
+| 47  | `GET /api/meals` returns empty for date with no meals                | Query a date with no meals. Assert 200 and empty array.                                                                                                                                  |
+| 48  | `PUT /api/meals/[id]` updates meal metadata and replaces items       | Create meal with 2 items. Update with 3 different items. Assert old items removed and new items present.                                                                                 |
+| 49  | `DELETE /api/meals/[id]` removes meal and cascades to items          | Create meal with items. Delete. Assert 204. Query items separately and assert they are gone.                                                                                             |
+| 50  | `POST /api/meals` rejects invalid mealType                           | Send `mealType: 'brunch'`. Assert 400.                                                                                                                                                   |
+| 51  | `POST /api/meals` rejects meal with no items                         | Send empty items array. Assert 400.                                                                                                                                                      |
+| 52  | `POST /api/meals` rejects item with neither subItemId nor customName | Send item `{}`. Assert 400.                                                                                                                                                              |
+| 53  | All meal endpoints require authentication                            | Call each endpoint without session cookie. Assert 401 or redirect.                                                                                                                       |
+| 54  | `GET /api/meals` scopes to authenticated user                        | User A creates meals. User B queries the same date. Assert User B sees only their own meals (empty if they logged none).                                                                 |
 
 ### E2E / Manual Tests
 
@@ -1035,9 +1082,9 @@ The `/food` tab provides a direct shortcut to today's food tracking without goin
 
 All Phase 0 and Phase 1 checks must still pass:
 
-- [ ] `npm run dev` starts without errors.
-- [ ] `npm run build` completes without errors.
-- [ ] TypeScript compilation (`npx tsc --noEmit`) passes with zero errors.
+- [ ] `bun run dev` starts without errors.
+- [ ] `bun run build` completes without errors.
+- [ ] TypeScript compilation (`bunx tsc --noEmit`) passes with zero errors.
 - [ ] The PWA manifest is valid and the service worker registers.
 - [ ] The bottom navigation bar renders correctly on a 375px viewport.
 - [ ] `docker compose up -d` starts PostgreSQL and it accepts connections.

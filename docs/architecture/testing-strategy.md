@@ -6,12 +6,12 @@ This document defines the overall testing approach for the Eczema Tracker PWA: t
 
 ## Test Pyramid
 
-| Layer | Target % | Tool | Runs In |
-|-------|----------|------|---------|
-| Unit tests | ~55% | Vitest | Node.js |
-| Integration tests | ~25% | Vitest + PostgreSQL | Node.js + Docker |
-| E2E tests | ~15% | Playwright | Chromium/WebKit |
-| Manual tests | ~5% | Real devices | iPhone Safari, Android Chrome |
+| Layer             | Target % | Tool                | Runs In                       |
+| ----------------- | -------- | ------------------- | ----------------------------- |
+| Unit tests        | ~55%     | Vitest              | Node.js                       |
+| Integration tests | ~25%     | Vitest + PostgreSQL | Node.js + Docker              |
+| E2E tests         | ~15%     | Playwright          | Chromium/WebKit               |
+| Manual tests      | ~5%      | Real devices        | iPhone Safari, Android Chrome |
 
 Approximate total: ~300 tests across all phases.
 
@@ -30,6 +30,7 @@ Approximate total: ~300 tests across all phases.
 ### Test Naming
 
 Use descriptive "should" format:
+
 ```typescript
 describe('FoodTrackingService', () => {
   it('should return cumulative elimination state for a given date', async () => { ... });
@@ -42,27 +43,30 @@ describe('FoodTrackingService', () => {
 ## Database Strategy
 
 ### Unit Tests
+
 - No database access. Domain services tested with mock adapters (`InMemoryRepository`).
 - Dexie tests use `fake-indexeddb` package.
 
 ### Integration Tests
+
 - Use a dedicated test PostgreSQL database via Docker.
 - Each test file wraps operations in a transaction and rolls back after each test.
 - Connection string: `DATABASE_URL_TEST` env var.
 
 ### Seed Data
+
 - Food categories seeded once per test suite via a shared `seedFoodCategories()` helper.
 
 ---
 
 ## Mock Boundaries
 
-| Port | Unit Tests | Integration Tests |
-|------|-----------|-------------------|
-| `DataRepository` | `InMemoryRepository` mock | Real `PostgresRepository` |
-| `EczemaAnalyzer` | `MockAnalyzer` (returns fixtures) | `MockAnalyzer` (real API tested manually) |
-| `PhotoStorage` | In-memory ArrayBuffer store | Real filesystem via temp directory |
-| `NotificationService` | `NoopNotificationService` | `NoopNotificationService` |
+| Port                  | Unit Tests                        | Integration Tests                         |
+| --------------------- | --------------------------------- | ----------------------------------------- |
+| `DataRepository`      | `InMemoryRepository` mock         | Real `PostgresRepository`                 |
+| `EczemaAnalyzer`      | `MockAnalyzer` (returns fixtures) | `MockAnalyzer` (real API tested manually) |
+| `PhotoStorage`        | In-memory ArrayBuffer store       | Real filesystem via temp directory        |
+| `NotificationService` | `NoopNotificationService`         | `NoopNotificationService`                 |
 
 ---
 
@@ -91,9 +95,9 @@ Minimum viable pipeline (run before every push to main):
 #!/bin/bash
 set -euo pipefail
 
-npx tsc --noEmit          # Type check
-npx vitest run             # Unit + integration tests
-npm run build              # Build verification
+bunx tsc --noEmit          # Type check
+bunx vitest run             # Unit + integration tests
+bun run build              # Build verification
 ```
 
 Extended pipeline (Phase 8, GitHub Actions):
@@ -111,28 +115,29 @@ jobs:
           POSTGRES_DB: eczema_test
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npx vitest run
-      - run: npm run build
+      - uses: oven-sh/setup-bun@v1
+        with: { bun-version: latest }
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
+      - run: bunx vitest run
+      - run: bun run build
 ```
 
 ---
 
 ## Coverage Thresholds
 
-| Metric | Target |
-|--------|--------|
-| Line coverage | 70% |
-| Branch coverage | 60% |
-| Function coverage | 75% |
+| Metric            | Target |
+| ----------------- | ------ |
+| Line coverage     | 70%    |
+| Branch coverage   | 60%    |
+| Function coverage | 75%    |
 
 Configure in `vitest.config.ts`:
+
 ```typescript
 coverage: {
   provider: 'v8',
@@ -144,23 +149,24 @@ coverage: {
 
 ## Cross-Device Test Matrix
 
-| Feature | iPhone Safari (real) | Android Chrome (real) | Playwright Chromium | Playwright WebKit |
-|---------|---------------------|----------------------|--------------------|--------------------|
-| PWA install | Manual | Manual | N/A | N/A |
-| Camera capture | Manual | Manual | N/A | N/A |
-| Web Push | Manual | Manual | N/A | N/A |
-| Food tracking | Manual + E2E | Manual | E2E | E2E |
-| Encryption round-trip | Manual | Manual | Unit | Unit |
-| Offline sync | Manual | Manual | N/A | N/A |
-| PDF export | Manual | Manual | E2E | N/A |
-| Photo gallery | Manual | Manual | E2E | E2E |
-| AI analysis | Manual | Manual | Integration (mocked) | N/A |
+| Feature               | iPhone Safari (real) | Android Chrome (real) | Playwright Chromium  | Playwright WebKit |
+| --------------------- | -------------------- | --------------------- | -------------------- | ----------------- |
+| PWA install           | Manual               | Manual                | N/A                  | N/A               |
+| Camera capture        | Manual               | Manual                | N/A                  | N/A               |
+| Web Push              | Manual               | Manual                | N/A                  | N/A               |
+| Food tracking         | Manual + E2E         | Manual                | E2E                  | E2E               |
+| Encryption round-trip | Manual               | Manual                | Unit                 | Unit              |
+| Offline sync          | Manual               | Manual                | N/A                  | N/A               |
+| PDF export            | Manual               | Manual                | E2E                  | N/A               |
+| Photo gallery         | Manual               | Manual                | E2E                  | E2E               |
+| AI analysis           | Manual               | Manual                | Integration (mocked) | N/A               |
 
 ---
 
 ## Performance Testing
 
 Define throttling profiles:
+
 - **"4G"**: Chrome DevTools "Fast 3G" profile (1.6 Mbps down, 750 Kbps up, 562ms RTT)
 - **"WiFi"**: No throttling
 
@@ -178,6 +184,7 @@ Key performance budgets:
 ## Security Testing Checklist
 
 Include in Phase 8 polish:
+
 - [ ] SQL injection: send `'; DROP TABLE users; --` via API inputs, verify no data leakage
 - [ ] XSS: render user-supplied `notes` field, verify HTML is escaped
 - [ ] CSRF: send POST without Origin header, verify rejection
@@ -191,6 +198,7 @@ Include in Phase 8 polish:
 ## Accessibility Testing
 
 Lightweight checklist per phase:
+
 - [ ] All interactive elements have `aria-label` or visible text
 - [ ] Color is not the sole status indicator (use icons/patterns alongside color)
 - [ ] Touch targets are at least 44x44px

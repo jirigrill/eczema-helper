@@ -11,6 +11,7 @@ The app first runs on the developer's laptop in Docker, accessible via HTTPS on 
 ### Why HTTPS Locally
 
 Several PWA features require a secure context (HTTPS or localhost):
+
 - **Web Crypto API** (AES-256-GCM encryption) -- requires secure context
 - **Service workers** -- only register on HTTPS (or localhost)
 - **Web Push API** -- requires secure context
@@ -79,12 +80,14 @@ mkcert -cert-file certs/local.pem -key-file certs/local-key.pem \
 The mkcert root CA needs to be installed on each phone so it trusts the local HTTPS certificate.
 
 **iPhone:**
+
 1. Find the CA file: `mkcert -CAROOT` (shows the directory, e.g., `~/Library/Application Support/mkcert`)
 2. AirDrop `rootCA.pem` to the iPhone, or email it, or serve it from a quick HTTP server
 3. On the iPhone: Settings > General > VPN & Device Management > install the profile
 4. Settings > General > About > Certificate Trust Settings > enable full trust for the mkcert root CA
 
 **Android:**
+
 1. Transfer `rootCA.pem` to the device
 2. Settings > Security > Encryption & credentials > Install a certificate > CA certificate
 
@@ -132,7 +135,7 @@ services:
     container_name: eczema-app-dev
     restart: unless-stopped
     ports:
-      - "0.0.0.0:3000:3000"     # Accessible from LAN
+      - "0.0.0.0:3000:3000" # Accessible from LAN
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://eczema:eczema_dev@postgres:5432/eczema_helper
@@ -154,7 +157,7 @@ services:
       - POSTGRES_USER=eczema
       - POSTGRES_PASSWORD=eczema_dev
     ports:
-      - "127.0.0.1:5432:5432"   # Only accessible from laptop (for DB tools)
+      - "127.0.0.1:5432:5432" # Only accessible from laptop (for DB tools)
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
     networks:
@@ -183,13 +186,14 @@ docker compose -f docker-compose.dev.yml up -d
 caddy run --config Caddyfile &
 
 # Or during active development, use SvelteKit dev server instead of Docker app:
-npm run dev -- --host 0.0.0.0
+bun run dev -- --host 0.0.0.0
 # Then Caddy proxies to localhost:5173 instead of :3000
 ```
 
 #### 7. Access from phones
 
 On any phone connected to the same WiFi:
+
 - Open `https://192.168.1.42` in Safari (iPhone) or Chrome (Android)
 - The mkcert certificate is trusted, so no security warnings
 - PWA install works: Safari > Share > Add to Home Screen
@@ -198,14 +202,14 @@ On any phone connected to the same WiFi:
 
 **Why real devices over emulators:**
 
-| Feature | iPhone Simulator | Android Emulator | Real Phone on WiFi |
-|---|---|---|---|
-| PWA install to home screen | Not supported | Partial | Full support |
-| Camera capture | No | Fake camera | Real photos |
-| Web Push notifications | Not supported | Partial | Full (iOS 16.4+) |
-| Touch gestures (swipe) | Mouse only | Mouse only | Native |
-| Offline/online toggle | Works | Works | Real-world |
-| Performance feel | Misleading | Misleading | Accurate |
+| Feature                    | iPhone Simulator | Android Emulator | Real Phone on WiFi |
+| -------------------------- | ---------------- | ---------------- | ------------------ |
+| PWA install to home screen | Not supported    | Partial          | Full support       |
+| Camera capture             | No               | Fake camera      | Real photos        |
+| Web Push notifications     | Not supported    | Partial          | Full (iOS 16.4+)   |
+| Touch gestures (swipe)     | Mouse only       | Mouse only       | Native             |
+| Offline/online toggle      | Works            | Works            | Real-world         |
+| Performance feel           | Misleading       | Misleading       | Accurate           |
 
 **Remote debugging:**
 
@@ -216,14 +220,14 @@ Both give you console access, network inspection, and DOM debugging on the real 
 
 ### Dev vs Production Differences
 
-| Aspect | Local Dev | Production (VPS) |
-|---|---|---|
-| HTTPS | mkcert + Caddy | Let's Encrypt + Nginx |
-| App access | LAN only (192.168.x.x) | Public domain |
-| PostgreSQL | Exposed on localhost:5432 | Internal Docker network only |
-| Photo storage | ./data/photos/ (local dir) | /data/photos/ (server dir) |
-| Backups | Not needed | Automated daily |
-| Push notifications | Can test (VAPID keys optional) | Full VAPID setup |
+| Aspect             | Local Dev                      | Production (VPS)             |
+| ------------------ | ------------------------------ | ---------------------------- |
+| HTTPS              | mkcert + Caddy                 | Let's Encrypt + Nginx        |
+| App access         | LAN only (192.168.x.x)         | Public domain                |
+| PostgreSQL         | Exposed on localhost:5432      | Internal Docker network only |
+| Photo storage      | ./data/photos/ (local dir)     | /data/photos/ (server dir)   |
+| Backups            | Not needed                     | Automated daily              |
+| Push notifications | Can test (VAPID keys optional) | Full VAPID setup             |
 
 ---
 
@@ -400,7 +404,7 @@ services:
         reservations:
           memory: 256M
     ports:
-      - "127.0.0.1:3000:3000"    # Only listen on localhost (Nginx proxies)
+      - "127.0.0.1:3000:3000" # Only listen on localhost (Nginx proxies)
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://eczema:${DB_PASSWORD}@postgres:5432/eczema
@@ -416,7 +420,8 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -477,14 +482,14 @@ networks:
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Production
-FROM node:20-alpine AS runner
+FROM oven/bun:1-slim AS runner
 
 WORKDIR /app
 
@@ -508,8 +513,8 @@ Set `stop_grace_period: 30s` on the app service in Docker Compose. SvelteKit's a
 
 ```typescript
 // In the server startup or hooks
-process.on('SIGTERM', async () => {
-  await sql.end({ timeout: 10 });  // drain postgres.js pool
+process.on("SIGTERM", async () => {
+  await sql.end({ timeout: 10 }); // drain postgres.js pool
   process.exit(0);
 });
 ```
@@ -678,11 +683,11 @@ sudo certbot renew --dry-run
 
 ### Overview
 
-| What | How | Frequency | Retention |
-|---|---|---|---|
-| PostgreSQL database | `pg_dump` compressed and encrypted | Daily at 03:00 | 30 days |
-| Encrypted photo blobs | `rsync` to backup directory | Daily at 03:30 | Mirror (always current) |
-| Backup to off-site | `rsync` or `rclone` to remote storage | Weekly | 12 weeks |
+| What                  | How                                   | Frequency      | Retention               |
+| --------------------- | ------------------------------------- | -------------- | ----------------------- |
+| PostgreSQL database   | `pg_dump` compressed and encrypted    | Daily at 03:00 | 30 days                 |
+| Encrypted photo blobs | `rsync` to backup directory           | Daily at 03:30 | Mirror (always current) |
+| Backup to off-site    | `rsync` or `rclone` to remote storage | Weekly         | 12 weeks                |
 
 ### PostgreSQL Backup Script
 
@@ -752,6 +757,7 @@ openssl enc -aes-256-cbc -d -pbkdf2 -pass file:/opt/eczema-backup/backup.key \
 ```
 
 Schedule weekly:
+
 ```cron
 0 4 * * 0 root /opt/eczema-backup/offsite-sync.sh >> /var/log/eczema-backup.log 2>&1
 ```
@@ -865,12 +871,12 @@ Schedule daily:
 
 ### Estimated Disk Usage
 
-| Data type | Size per item | Items per month (estimate) | Monthly growth |
-|---|---|---|---|
-| Encrypted full photo | ~500 KB - 2 MB | ~30 photos | ~30 - 60 MB |
-| Encrypted thumbnail | ~20 - 50 KB | ~30 thumbnails | ~1 - 2 MB |
-| PostgreSQL data | negligible | - | < 1 MB |
-| Total | | | ~35 - 65 MB/month |
+| Data type            | Size per item  | Items per month (estimate) | Monthly growth    |
+| -------------------- | -------------- | -------------------------- | ----------------- |
+| Encrypted full photo | ~500 KB - 2 MB | ~30 photos                 | ~30 - 60 MB       |
+| Encrypted thumbnail  | ~20 - 50 KB    | ~30 thumbnails             | ~1 - 2 MB         |
+| PostgreSQL data      | negligible     | -                          | < 1 MB            |
+| Total                |                |                            | ~35 - 65 MB/month |
 
 At this rate, a 20 GB disk allocation for photos would last over 25 years. Disk space is not a practical concern for this app.
 

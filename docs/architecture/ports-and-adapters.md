@@ -72,6 +72,7 @@ This matters for the Eczema Tracker because:
 **Location:** `src/routes/` and `src/lib/components/`
 
 **Does:**
+
 - Render Svelte components (pages, layouts, UI elements).
 - Handle user interactions (button clicks, form submissions, camera capture).
 - Read reactive state from Svelte stores (`$state`, `$derived`).
@@ -80,6 +81,7 @@ This matters for the Eczema Tracker because:
 - Manage client-side routing and navigation.
 
 **Does NOT:**
+
 - Contain business logic (e.g., deciding if a food can be reintroduced, calculating severity trends).
 - Directly call APIs, databases, or external services.
 - Know about specific adapter implementations.
@@ -89,6 +91,7 @@ This matters for the Eczema Tracker because:
 **Location:** `src/lib/domain/services/`
 
 **Does:**
+
 - Implement all business rules and application logic.
 - Orchestrate multi-step operations (e.g., encrypt photo, upload, save metadata).
 - Validate data before passing it to ports.
@@ -96,6 +99,7 @@ This matters for the Eczema Tracker because:
 - Define the canonical data models (`src/lib/domain/models.ts`).
 
 **Does NOT:**
+
 - Know about Svelte, SvelteKit, or any UI framework.
 - Import any adapter directly (only port interfaces).
 - Make HTTP requests, database queries, or filesystem calls.
@@ -106,11 +110,13 @@ This matters for the Eczema Tracker because:
 **Location:** `src/lib/domain/ports/`
 
 **Does:**
+
 - Define TypeScript interfaces that describe what operations the domain needs.
 - Specify method signatures, parameter types, and return types.
 - Act as a contract between the domain layer and the adapter layer.
 
 **Does NOT:**
+
 - Contain any implementation code.
 - Reference specific technologies (no "PostgreSQL," "Claude," or "AES" in port definitions).
 
@@ -119,12 +125,14 @@ This matters for the Eczema Tracker because:
 **Location:** `src/lib/adapters/`
 
 **Does:**
+
 - Implement port interfaces with concrete technology.
 - Handle all technology-specific details (SQL queries, API calls, encryption, push payloads).
 - Manage connections, retries, error mapping, and resource cleanup.
 - Can be swapped without changing any other layer.
 
 **Does NOT:**
+
 - Contain business logic.
 - Be imported directly by the UI layer or domain services (only injected via dependency injection or a factory).
 
@@ -140,12 +148,12 @@ Responsible for analyzing tracking photos (skin eczema and stool) and comparing 
 
 ```typescript
 interface AnalysisContext {
-  photoType: 'skin' | 'stool';
-  childAge: string;              // e.g., "6 tydnu" (6 weeks)
-  bodyArea?: string;             // e.g., "face" (skin only)
+  photoType: "skin" | "stool";
+  childAge: string; // e.g., "6 tydnu" (6 weeks)
+  bodyArea?: string; // e.g., "face" (skin only)
   daysBetween: number;
   recentFoodChanges: FoodLog[];
-  meals?: Meal[];                // meals between the two photo dates
+  meals?: Meal[]; // meals between the two photo dates
 }
 
 interface EczemaAnalyzer {
@@ -156,7 +164,7 @@ interface EczemaAnalyzer {
   comparePhotos(
     photo1: Blob,
     photo2: Blob,
-    context: AnalysisContext
+    context: AnalysisContext,
   ): Promise<AnalysisResult>;
 
   /**
@@ -166,12 +174,12 @@ interface EczemaAnalyzer {
     photo: Blob,
     context: {
       bodyArea: string;
-    }
+    },
   ): Promise<{
-    severityScore: number;       // 1-5
-    rednessScore: number;        // 1-10
-    drynessScore: number;        // 1-10
-    affectedAreaPct: number;     // 0-100
+    severityScore: number; // 1-5
+    rednessScore: number; // 1-10
+    drynessScore: number; // 1-10
+    affectedAreaPct: number; // 0-100
     description: string;
   }>;
 }
@@ -190,7 +198,7 @@ interface PhotoStorage {
    */
   upload(
     encryptedBlob: ArrayBuffer,
-    metadata: { childId: string; date: string; bodyArea: string }
+    metadata: { childId: string; date: string; bodyArea: string },
   ): Promise<{ blobRef: string }>;
 
   /**
@@ -198,7 +206,7 @@ interface PhotoStorage {
    */
   uploadThumbnail(
     encryptedBlob: ArrayBuffer,
-    blobRef: string
+    blobRef: string,
   ): Promise<{ thumbRef: string }>;
 
   /**
@@ -219,7 +227,14 @@ interface PhotoStorage {
   /**
    * Get photos that have been captured locally but not yet uploaded to server.
    */
-  getPendingUploads(): Promise<{ photoId: string; encryptedBlob: ArrayBuffer; encryptedThumb: ArrayBuffer; metadata: any }[]>;
+  getPendingUploads(): Promise<
+    {
+      photoId: string;
+      encryptedBlob: ArrayBuffer;
+      encryptedThumb: ArrayBuffer;
+      metadata: any;
+    }[]
+  >;
 
   /**
    * Mark a photo as successfully uploaded to the server.
@@ -239,11 +254,11 @@ interface DataRepository {
   // --- Users ---
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: string): Promise<User | null>;
-  createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User>;
+  createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
 
   // --- Children ---
   getChildrenForUser(userId: string): Promise<Child[]>;
-  createChild(child: Omit<Child, 'id' | 'createdAt'>): Promise<Child>;
+  createChild(child: Omit<Child, "id" | "createdAt">): Promise<Child>;
   linkUserToChild(userId: string, childId: string): Promise<void>;
 
   // --- Food Categories (read-only, seeded) ---
@@ -251,9 +266,12 @@ interface DataRepository {
   getFoodSubItems(categoryId: string): Promise<FoodSubItem[]>;
 
   // --- Food Logs ---
-  getFoodLogs(childId: string, dateRange: { from: string; to: string }): Promise<FoodLog[]>;
+  getFoodLogs(
+    childId: string,
+    dateRange: { from: string; to: string },
+  ): Promise<FoodLog[]>;
   getFoodLogsForDate(childId: string, date: string): Promise<FoodLog[]>;
-  createFoodLog(log: Omit<FoodLog, 'id' | 'createdAt'>): Promise<FoodLog>;
+  createFoodLog(log: Omit<FoodLog, "id" | "createdAt">): Promise<FoodLog>;
   deleteFoodLog(id: string): Promise<void>;
 
   /**
@@ -261,34 +279,56 @@ interface DataRepository {
    * which foods are currently eliminated vs. reintroduced,
    * based on the latest action for each category.
    */
-  getCurrentEliminationState(childId: string): Promise<Map<string, 'eliminated' | 'reintroduced'>>;
+  getCurrentEliminationState(
+    childId: string,
+  ): Promise<Map<string, "eliminated" | "reintroduced">>;
 
   // --- Meals ---
   getMealsForDate(userId: string, date: string): Promise<Meal[]>;
-  getMealWithItems(mealId: string): Promise<Meal & { items: MealItem[] } | null>;
-  createMeal(meal: Omit<Meal, 'id' | 'createdAt' | 'updatedAt'>, items: Omit<MealItem, 'id'>[]): Promise<Meal>;
+  getMealWithItems(
+    mealId: string,
+  ): Promise<(Meal & { items: MealItem[] }) | null>;
+  createMeal(
+    meal: Omit<Meal, "id" | "createdAt" | "updatedAt">,
+    items: Omit<MealItem, "id">[],
+  ): Promise<Meal>;
   updateMeal(id: string, updates: Partial<Meal>): Promise<Meal>;
   deleteMeal(id: string): Promise<void>;
 
   // --- Photos ---
-  getPhotos(childId: string, dateRange: { from: string; to: string }): Promise<TrackingPhoto[]>;
+  getPhotos(
+    childId: string,
+    dateRange: { from: string; to: string },
+  ): Promise<TrackingPhoto[]>;
   getPhotosForDate(childId: string, date: string): Promise<TrackingPhoto[]>;
   getPhotoById(id: string): Promise<TrackingPhoto | null>;
-  createPhoto(photo: Omit<TrackingPhoto, 'id' | 'createdAt'>): Promise<TrackingPhoto>;
+  createPhoto(
+    photo: Omit<TrackingPhoto, "id" | "createdAt">,
+  ): Promise<TrackingPhoto>;
   deletePhoto(id: string): Promise<void>;
 
   // --- Analysis Results ---
   getAnalysisResults(childId: string): Promise<AnalysisResult[]>;
-  getAnalysisForPhotoPair(photo1Id: string, photo2Id: string): Promise<AnalysisResult | null>;
-  createAnalysisResult(result: Omit<AnalysisResult, 'id' | 'createdAt'>): Promise<AnalysisResult>;
+  getAnalysisForPhotoPair(
+    photo1Id: string,
+    photo2Id: string,
+  ): Promise<AnalysisResult | null>;
+  createAnalysisResult(
+    result: Omit<AnalysisResult, "id" | "createdAt">,
+  ): Promise<AnalysisResult>;
 
   // --- Push Subscriptions ---
   getPushSubscriptions(userId: string): Promise<PushSubscription[]>;
-  savePushSubscription(sub: Omit<PushSubscription, 'id' | 'createdAt'>): Promise<PushSubscription>;
+  savePushSubscription(
+    sub: Omit<PushSubscription, "id" | "createdAt">,
+  ): Promise<PushSubscription>;
   deletePushSubscription(id: string): Promise<void>;
 
   // --- Reminder Config ---
-  getReminderConfig(userId: string, childId: string): Promise<ReminderConfig | null>;
+  getReminderConfig(
+    userId: string,
+    childId: string,
+  ): Promise<ReminderConfig | null>;
   saveReminderConfig(config: ReminderConfig): Promise<void>;
 }
 ```
@@ -309,9 +349,9 @@ interface NotificationService {
     payload: {
       title: string;
       body: string;
-      url?: string;    // URL to open when notification is tapped
-      tag?: string;    // Notification grouping tag
-    }
+      url?: string; // URL to open when notification is tapped
+      tag?: string; // Notification grouping tag
+    },
   ): Promise<void>;
 
   /**
@@ -321,7 +361,7 @@ interface NotificationService {
   sendReminder(
     userId: string,
     childId: string,
-    type: 'food_log' | 'photo'
+    type: "food_log" | "photo",
   ): Promise<void>;
 
   /**
@@ -348,6 +388,7 @@ interface NotificationService {
 - API key is stored as a server-side environment variable (`CLAUDE_API_KEY`). The client sends decrypted photos to `POST /api/analyze`, and the server forwards them to the Claude API. The key never reaches the client.
 
 **Future alternatives:**
+
 - `GptVisionAnalyzer` -- Same interface, calls OpenAI GPT-4 Vision.
 - `LocalEczemaNetAnalyzer` -- Runs a custom ONNX model in the browser via WebNN/WASM.
 - `MockAnalyzer` -- Returns random results for development and testing.
@@ -363,6 +404,7 @@ interface NotificationService {
 - The adapter itself does not handle encryption -- that is done before calling `upload()`.
 
 **Future alternatives:**
+
 - `S3Storage` -- Stores encrypted blobs in AWS S3 or Cloudflare R2.
 - `LocalOnlyStorage` -- Stores blobs only in IndexedDB (no server upload, for offline-only mode).
 
@@ -371,12 +413,13 @@ interface NotificationService {
 **File:** `src/lib/adapters/postgres.ts`
 **Implements:** `DataRepository`
 
-- Uses a PostgreSQL client (e.g., `postgres` or `pg` npm package) to execute SQL queries.
+- Uses a PostgreSQL client (e.g., `postgres` or `pg` package) to execute SQL queries.
 - Maps between snake_case database columns and camelCase TypeScript interfaces.
 - Manages connection pooling.
 - Runs on the server side only (called from `+server.ts` API routes).
 
 **Future alternatives:**
+
 - `SQLiteRepository` -- Uses better-sqlite3 or sql.js for a simpler single-file database.
 - `InMemoryRepository` -- Stores everything in memory for testing.
 
@@ -395,13 +438,14 @@ interface NotificationService {
 **File:** `src/lib/adapters/web-push.ts`
 **Implements:** `NotificationService`
 
-- Uses the `web-push` npm library on the server side to send VAPID-signed push messages.
+- Uses the `web-push` library on the server side to send VAPID-signed push messages.
 - Reads push subscriptions from the `DataRepository`.
 - Formats notification payloads with Czech text from the i18n module.
 - Handles expired subscriptions (removes them from the database).
 - The cron scheduler calls `processScheduledReminders()` at regular intervals.
 
 **Future alternatives:**
+
 - `EmailNotificationService` -- Sends reminders via email (e.g., Nodemailer + SMTP).
 - `NoopNotificationService` -- Does nothing (for development or when notifications are disabled).
 
@@ -417,8 +461,8 @@ Create a new file in `src/lib/adapters/` that implements the target port interfa
 
 ```typescript
 // src/lib/adapters/gpt-vision.ts
-import type { EczemaAnalyzer } from '$lib/domain/ports/analyzer';
-import type { AnalysisResult } from '$lib/domain/models';
+import type { EczemaAnalyzer } from "$lib/domain/ports/analyzer";
+import type { AnalysisResult } from "$lib/domain/models";
 
 export class GptVisionAnalyzer implements EczemaAnalyzer {
   async comparePhotos(photo1, photo2, context): Promise<AnalysisResult> {
@@ -437,10 +481,10 @@ The adapter factory (e.g., `src/lib/adapters/index.ts`) is the single place wher
 
 ```typescript
 // src/lib/adapters/index.ts
-import { ClaudeVisionAnalyzer } from './claude-vision';
+import { ClaudeVisionAnalyzer } from "./claude-vision";
 // import { GptVisionAnalyzer } from './gpt-vision';  // Uncomment to swap
 
-import type { EczemaAnalyzer } from '$lib/domain/ports/analyzer';
+import type { EczemaAnalyzer } from "$lib/domain/ports/analyzer";
 
 export function createAnalyzer(): EczemaAnalyzer {
   return new ClaudeVisionAnalyzer();
@@ -459,10 +503,14 @@ For more flexibility, adapters can be selected based on environment variables:
 ```typescript
 export function createAnalyzer(): EczemaAnalyzer {
   switch (env.ANALYZER_PROVIDER) {
-    case 'claude': return new ClaudeVisionAnalyzer();
-    case 'openai': return new GptVisionAnalyzer();
-    case 'mock': return new MockAnalyzer();
-    default: return new ClaudeVisionAnalyzer();
+    case "claude":
+      return new ClaudeVisionAnalyzer();
+    case "openai":
+      return new GptVisionAnalyzer();
+    case "mock":
+      return new MockAnalyzer();
+    default:
+      return new ClaudeVisionAnalyzer();
   }
 }
 ```
@@ -501,8 +549,8 @@ Server-only adapters (`PostgresRepository`, `WebPushNotifications`) are instanti
 
 ```typescript
 // src/hooks.server.ts
-import { PostgresRepository } from '$lib/adapters/postgres';
-import { WebPushAdapter } from '$lib/adapters/web-push';
+import { PostgresRepository } from "$lib/adapters/postgres";
+import { WebPushAdapter } from "$lib/adapters/web-push";
 
 const repository = new PostgresRepository();
 const notifications = new WebPushAdapter(repository);
@@ -516,6 +564,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 ```
 
 Server routes then use:
+
 ```typescript
 // src/routes/api/food-logs/+server.ts
 export const GET: RequestHandler = async ({ locals }) => {
@@ -530,17 +579,18 @@ Client-only adapters (`ClaudeVisionAnalyzer`, `DexieLocalDB`) are instantiated i
 
 ```typescript
 // src/lib/adapters/index.ts (client-side factory)
-import { ClaudeVisionAnalyzer } from './claude-vision';
-import { DexieLocalDB } from './dexie-db';
+import { ClaudeVisionAnalyzer } from "./claude-vision";
+import { DexieLocalDB } from "./dexie-db";
 
 // Client-side adapters — these call server API routes, never the database directly
-export const analyzer = new ClaudeVisionAnalyzer();  // calls POST /api/analyze
-export const localDB = new DexieLocalDB();           // Dexie.js (IndexedDB)
+export const analyzer = new ClaudeVisionAnalyzer(); // calls POST /api/analyze
+export const localDB = new DexieLocalDB(); // Dexie.js (IndexedDB)
 ```
 
 ### Why Two Wiring Patterns
 
 SvelteKit runs code in two contexts:
+
 - **Server** (`+server.ts`, `+page.server.ts`, `hooks.server.ts`): has access to env vars, database, filesystem. Adapters that touch PostgreSQL or external APIs with secret keys live here.
 - **Client** (`.svelte` files, `+page.ts`): runs in the browser. Adapters that use IndexedDB, Web Crypto, or call server API routes live here.
 
@@ -560,7 +610,7 @@ export class DomainError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly userMessage: string  // Czech text for the UI
+    public readonly userMessage: string, // Czech text for the UI
   ) {
     super(message);
   }
@@ -568,27 +618,33 @@ export class DomainError extends Error {
 
 export class DecryptionError extends DomainError {
   constructor() {
-    super('Decryption failed', 'DECRYPTION_FAILED', 'Nesprávné heslo');
+    super("Decryption failed", "DECRYPTION_FAILED", "Nesprávné heslo");
   }
 }
 
 export class NetworkError extends DomainError {
   constructor(detail?: string) {
-    super(`Network error: ${detail}`, 'NETWORK_ERROR',
-      'Nelze se připojit. Zkuste to prosím později.');
+    super(
+      `Network error: ${detail}`,
+      "NETWORK_ERROR",
+      "Nelze se připojit. Zkuste to prosím později.",
+    );
   }
 }
 
 export class RateLimitError extends DomainError {
   constructor() {
-    super('Rate limited', 'RATE_LIMITED',
-      'Příliš mnoho požadavků. Počkejte chvíli.');
+    super(
+      "Rate limited",
+      "RATE_LIMITED",
+      "Příliš mnoho požadavků. Počkejte chvíli.",
+    );
   }
 }
 
 export class ValidationError extends DomainError {
   constructor(field: string, messageCs: string) {
-    super(`Validation failed: ${field}`, 'VALIDATION_ERROR', messageCs);
+    super(`Validation failed: ${field}`, "VALIDATION_ERROR", messageCs);
   }
 }
 ```
@@ -599,14 +655,17 @@ Server API routes return structured JSON errors:
 
 ```typescript
 // Pattern used in all +server.ts handlers
-import { json, error } from '@sveltejs/kit';
+import { json, error } from "@sveltejs/kit";
 
 // Throw SvelteKit error for standard HTTP errors
-if (!locals.user) throw error(401, { message: 'Nepřihlášený' });
-if (!isOwner) throw error(403, { message: 'Přístup odepřen' });
+if (!locals.user) throw error(401, { message: "Nepřihlášený" });
+if (!isOwner) throw error(403, { message: "Přístup odepřen" });
 
 // Return validation errors as JSON
-return json({ error: 'Datum je povinné', code: 'VALIDATION_ERROR' }, { status: 400 });
+return json(
+  { error: "Datum je povinné", code: "VALIDATION_ERROR" },
+  { status: 400 },
+);
 ```
 
 ### UI Error Display
@@ -644,12 +703,12 @@ Use `pino` for structured JSON logging in production. In development, use `pino-
 
 ### Log Levels
 
-| Level | Usage | Examples |
-|-------|-------|---------|
-| `error` | Unrecoverable failures | Database connection lost, encryption failure, unhandled exception |
-| `warn` | Degraded operation | Claude API rate limit hit, push notification delivery failed, slow query |
-| `info` | Significant events | User login/logout, photo uploaded, sync completed, AI analysis requested |
-| `debug` | Development details | SQL queries, API request/response shapes, cache hits/misses |
+| Level   | Usage                  | Examples                                                                 |
+| ------- | ---------------------- | ------------------------------------------------------------------------ |
+| `error` | Unrecoverable failures | Database connection lost, encryption failure, unhandled exception        |
+| `warn`  | Degraded operation     | Claude API rate limit hit, push notification delivery failed, slow query |
+| `info`  | Significant events     | User login/logout, photo uploaded, sync completed, AI analysis requested |
+| `debug` | Development details    | SQL queries, API request/response shapes, cache hits/misses              |
 
 ### What Must NEVER Be Logged
 
@@ -671,7 +730,8 @@ event.locals.requestId = crypto.randomUUID();
 ### Setup
 
 Install in Phase 0:
+
 ```bash
-npm install pino
-npm install -D pino-pretty
+bun add pino
+bun add -d pino-pretty
 ```

@@ -10,8 +10,8 @@ This phase adds Web Push notifications to the Eczema Tracker PWA, enabling paren
 - **Phase 1**: Authentication system in place (cookie-based sessions, user/child models).
 - PostgreSQL 16 running with existing schema migrations.
 - VAPID key pair generated and stored in environment variables.
-- The `web-push` npm package installed on the server.
-- The `node-cron` npm package installed on the server.
+- The `web-push` package installed on the server.
+- The `node-cron` package installed on the server.
 
 ## Features
 
@@ -43,22 +43,22 @@ This phase adds Web Push notifications to the Eczema Tracker PWA, enabling paren
 
 ### Files Created / Modified
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `scripts/generate-vapid-keys.ts` | Create | CLI script to generate VAPID key pair and output for `.env` |
-| `src/lib/domain/ports/notifications.ts` | Create | Port interface for notification operations |
-| `src/lib/adapters/web-push.ts` | Create | Server-side adapter: wraps `web-push` library, sends notifications |
-| `src/lib/domain/services/notification-scheduler.ts` | Create | Cron scheduling logic: determines which reminders are due |
-| `src/lib/server/cron.ts` | Create | Server-side cron job entry point using `node-cron` |
-| `src/routes/api/push/+server.ts` | Create | API endpoints for push subscription management |
-| `src/routes/(app)/settings/+page.svelte` | Modify | Add reminder configuration UI section |
-| `src/routes/(app)/settings/+page.server.ts` | Modify | Add server-side load/save for reminder configs |
-| `static/sw.js` (or vite-pwa config) | Modify | Add `push` and `notificationclick` event handlers |
-| `src/lib/stores/notification.ts` | Create | Svelte store for notification permission state |
-| `src/lib/utils/ios-detection.ts` | Create | Utility to detect iOS and standalone PWA mode |
-| `.env.example` | Modify | Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
-| `migrations/XXXX_push_subscriptions.sql` | Create | Database migration for `push_subscriptions` table |
-| `migrations/XXXX_reminder_configs.sql` | Create | Database migration for `reminder_configs` table |
+| File                                                | Action | Purpose                                                            |
+| --------------------------------------------------- | ------ | ------------------------------------------------------------------ |
+| `scripts/generate-vapid-keys.ts`                    | Create | CLI script to generate VAPID key pair and output for `.env`        |
+| `src/lib/domain/ports/notifications.ts`             | Create | Port interface for notification operations                         |
+| `src/lib/adapters/web-push.ts`                      | Create | Server-side adapter: wraps `web-push` library, sends notifications |
+| `src/lib/domain/services/notification-scheduler.ts` | Create | Cron scheduling logic: determines which reminders are due          |
+| `src/lib/server/cron.ts`                            | Create | Server-side cron job entry point using `node-cron`                 |
+| `src/routes/api/push/+server.ts`                    | Create | API endpoints for push subscription management                     |
+| `src/routes/(app)/settings/+page.svelte`            | Modify | Add reminder configuration UI section                              |
+| `src/routes/(app)/settings/+page.server.ts`         | Modify | Add server-side load/save for reminder configs                     |
+| `static/sw.js` (or vite-pwa config)                 | Modify | Add `push` and `notificationclick` event handlers                  |
+| `src/lib/stores/notification.ts`                    | Create | Svelte store for notification permission state                     |
+| `src/lib/utils/ios-detection.ts`                    | Create | Utility to detect iOS and standalone PWA mode                      |
+| `.env.example`                                      | Modify | Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`       |
+| `migrations/XXXX_push_subscriptions.sql`            | Create | Database migration for `push_subscriptions` table                  |
+| `migrations/XXXX_reminder_configs.sql`              | Create | Database migration for `reminder_configs` table                    |
 
 ### Step-by-Step Instructions
 
@@ -67,11 +67,11 @@ This phase adds Web Push notifications to the Eczema Tracker PWA, enabling paren
 Create the script `scripts/generate-vapid-keys.ts`:
 
 ```typescript
-import webpush from 'web-push';
+import webpush from "web-push";
 
 const vapidKeys = webpush.generateVAPIDKeys();
 
-console.log('Add these to your .env file:\n');
+console.log("Add these to your .env file:\n");
 console.log(`VAPID_PUBLIC_KEY=${vapidKeys.publicKey}`);
 console.log(`VAPID_PRIVATE_KEY=${vapidKeys.privateKey}`);
 console.log(`VAPID_SUBJECT=mailto:your-email@example.com`);
@@ -419,32 +419,32 @@ export class NotificationScheduler {
 Create `src/lib/server/cron.ts`:
 
 ```typescript
-import cron from 'node-cron';
-import { NotificationScheduler } from '$lib/domain/services/notification-scheduler';
+import cron from "node-cron";
+import { NotificationScheduler } from "$lib/domain/services/notification-scheduler";
 
 let cronJob: cron.ScheduledTask | null = null;
 
 export function startNotificationCron(scheduler: NotificationScheduler): void {
-    if (cronJob) return;
+  if (cronJob) return;
 
-    // Run every minute to check for due reminders
-    cronJob = cron.schedule('* * * * *', async () => {
-        try {
-            await scheduler.runScheduledCheck();
-        } catch (error) {
-            console.error('[NotificationCron] Error during scheduled check:', error);
-        }
-    });
+  // Run every minute to check for due reminders
+  cronJob = cron.schedule("* * * * *", async () => {
+    try {
+      await scheduler.runScheduledCheck();
+    } catch (error) {
+      console.error("[NotificationCron] Error during scheduled check:", error);
+    }
+  });
 
-    console.log('[NotificationCron] Started notification scheduler');
+  console.log("[NotificationCron] Started notification scheduler");
 }
 
 export function stopNotificationCron(): void {
-    if (cronJob) {
-        cronJob.stop();
-        cronJob = null;
-        console.log('[NotificationCron] Stopped notification scheduler');
-    }
+  if (cronJob) {
+    cronJob.stop();
+    cronJob = null;
+    console.log("[NotificationCron] Stopped notification scheduler");
+  }
 }
 ```
 
@@ -466,41 +466,45 @@ if (lastCheck && Date.now() - lastCheck.getTime() > 2 * 60 * 1000) {
 Create `src/routes/api/push/+server.ts`:
 
 ```typescript
-import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { json, error } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-    const session = locals.session;
-    if (!session?.userId) throw error(401, 'Neprihlaseny');
+  const session = locals.session;
+  if (!session?.userId) throw error(401, "Neprihlaseny");
 
-    const body = await request.json();
-    const { endpoint, keys } = body;
+  const body = await request.json();
+  const { endpoint, keys } = body;
 
-    if (!endpoint || !keys?.p256dh || !keys?.auth) {
-        throw error(400, 'Neplatna subscription data');
-    }
+  if (!endpoint || !keys?.p256dh || !keys?.auth) {
+    throw error(400, "Neplatna subscription data");
+  }
 
-    const userAgent = request.headers.get('user-agent') ?? undefined;
+  const userAgent = request.headers.get("user-agent") ?? undefined;
 
-    await locals.notifications.subscribe(session.userId, { endpoint, keys }, userAgent);
+  await locals.notifications.subscribe(
+    session.userId,
+    { endpoint, keys },
+    userAgent,
+  );
 
-    return json({ success: true });
+  return json({ success: true });
 };
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
-    const session = locals.session;
-    if (!session?.userId) throw error(401, 'Neprihlaseny');
+  const session = locals.session;
+  if (!session?.userId) throw error(401, "Neprihlaseny");
 
-    const body = await request.json();
-    const { endpoint } = body;
+  const body = await request.json();
+  const { endpoint } = body;
 
-    if (!endpoint) {
-        throw error(400, 'Chybi endpoint');
-    }
+  if (!endpoint) {
+    throw error(400, "Chybi endpoint");
+  }
 
-    await locals.notifications.unsubscribe(session.userId, endpoint);
+  await locals.notifications.unsubscribe(session.userId, endpoint);
 
-    return json({ success: true });
+  return json({ success: true });
 };
 ```
 
@@ -509,42 +513,42 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 Add the following to `static/sw.js` (or your Vite PWA service worker config):
 
 ```javascript
-self.addEventListener('push', (event) => {
-    if (!event.data) return;
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
 
-    const payload = event.data.json();
-    const options = {
-        body: payload.body,
-        icon: payload.icon || '/icons/icon-192x192.png',
-        badge: payload.badge || '/icons/badge-72x72.png',
-        tag: payload.tag,
-        data: payload.data,
-        vibrate: [200, 100, 200],
-        requireInteraction: true
-    };
+  const payload = event.data.json();
+  const options = {
+    body: payload.body,
+    icon: payload.icon || "/icons/icon-192x192.png",
+    badge: payload.badge || "/icons/badge-72x72.png",
+    tag: payload.tag,
+    data: payload.data,
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
+  };
 
-    event.waitUntil(
-        self.registration.showNotification(payload.title, options)
-    );
+  event.waitUntil(self.registration.showNotification(payload.title, options));
 });
 
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-    const url = event.notification.data?.url || '/';
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
 
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Focus existing window if open
-            for (const client of windowClients) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                    client.navigate(url);
-                    return client.focus();
-                }
-            }
-            // Open new window
-            return clients.openWindow(url);
-        })
-    );
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        // Focus existing window if open
+        for (const client of windowClients) {
+          if (client.url.includes(self.location.origin) && "focus" in client) {
+            client.navigate(url);
+            return client.focus();
+          }
+        }
+        // Open new window
+        return clients.openWindow(url);
+      }),
+  );
 });
 ```
 
@@ -554,87 +558,100 @@ Create `src/lib/stores/notification.svelte.ts`:
 
 ```typescript
 // src/lib/stores/notification.svelte.ts (Svelte 5 runes)
-export type NotificationPermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
+export type NotificationPermissionState =
+  | "default"
+  | "granted"
+  | "denied"
+  | "unsupported";
 
 let permission = $state<NotificationPermissionState>(getInitialPermission());
 let subscribed = $state(false);
 
 function getInitialPermission(): NotificationPermissionState {
-    if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
-    return Notification.permission as NotificationPermissionState;
+  if (typeof window === "undefined" || !("Notification" in window))
+    return "unsupported";
+  return Notification.permission as NotificationPermissionState;
 }
 
-export function getPermission() { return permission; }
-export function getIsSubscribed() { return subscribed; }
+export function getPermission() {
+  return permission;
+}
+export function getIsSubscribed() {
+  return subscribed;
+}
 
 export async function requestPermission(): Promise<NotificationPermissionState> {
-    if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
-    const result = await Notification.requestPermission();
-    permission = result as NotificationPermissionState;
-    return permission;
+  if (typeof window === "undefined" || !("Notification" in window))
+    return "unsupported";
+  const result = await Notification.requestPermission();
+  permission = result as NotificationPermissionState;
+  return permission;
 }
 
 export async function subscribePush(vapidPublicKey: string): Promise<boolean> {
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-        });
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    });
 
-        const response = await fetch('/api/push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(subscription.toJSON())
-        });
+    const response = await fetch("/api/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription.toJSON()),
+    });
 
-        if (response.ok) { subscribed = true; return true; }
-        return false;
-    } catch (err) {
-        console.error('Failed to subscribe to push:', err);
-        return false;
+    if (response.ok) {
+      subscribed = true;
+      return true;
     }
+    return false;
+  } catch (err) {
+    console.error("Failed to subscribe to push:", err);
+    return false;
+  }
 }
 
 export async function unsubscribePush(): Promise<boolean> {
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        if (subscription) {
-            await fetch('/api/push', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ endpoint: subscription.endpoint })
-            });
-            await subscription.unsubscribe();
-        }
-        subscribed = false;
-        return true;
-    } catch (err) {
-        console.error('Failed to unsubscribe from push:', err);
-        return false;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      await fetch("/api/push", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      });
+      await subscription.unsubscribe();
     }
+    subscribed = false;
+    return true;
+  } catch (err) {
+    console.error("Failed to unsubscribe from push:", err);
+    return false;
+  }
 }
 
 export async function checkSubscription(): Promise<void> {
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        subscribed = sub !== null;
-    } catch {
-        subscribed = false;
-    }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.getSubscription();
+    subscribed = sub !== null;
+  } catch {
+    subscribed = false;
+  }
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; i++) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 ```
 
@@ -644,23 +661,26 @@ Create `src/lib/utils/ios-detection.ts`:
 
 ```typescript
 export function isIOS(): boolean {
-    if (typeof navigator === 'undefined') return false;
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+  );
 }
 
 export function isStandalonePWA(): boolean {
-    if (typeof window === 'undefined') return false;
-    return (
-        ('standalone' in navigator && (navigator as any).standalone === true) ||
-        window.matchMedia('(display-mode: standalone)').matches
-    );
+  if (typeof window === "undefined") return false;
+  return (
+    ("standalone" in navigator && (navigator as any).standalone === true) ||
+    window.matchMedia("(display-mode: standalone)").matches
+  );
 }
 
 export function canReceivePushNotifications(): boolean {
-    if (typeof window === 'undefined') return false;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-    if (isIOS() && !isStandalonePWA()) return false;
-    return true;
+  if (typeof window === "undefined") return false;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window))
+    return false;
+  if (isIOS() && !isStandalonePWA()) return false;
+  return true;
 }
 ```
 

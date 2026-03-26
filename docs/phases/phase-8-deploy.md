@@ -46,20 +46,20 @@ This phase covers the final steps before the Eczema Tracker PWA goes live: a ful
 
 ### Files Created / Modified
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `Dockerfile` | Create | Multi-stage build for SvelteKit Node adapter |
-| `docker-compose.yml` | Create | Production services: app + PostgreSQL |
-| `docker-compose.override.yml` | Create | Development overrides (optional, for local Docker usage) |
-| `nginx/nginx.conf` | Create | Nginx reverse proxy configuration with HTTPS |
-| `scripts/backup.sh` | Create | Automated encrypted PostgreSQL backup script |
-| `scripts/restore.sh` | Create | Backup restoration script |
-| `scripts/deploy.sh` | Create | Deployment automation script |
-| `scripts/setup-server.sh` | Create | Initial server setup (Docker, Nginx, certbot) |
-| `.env.example` | Modify | Complete list of all required environment variables |
-| `src/lib/i18n/cs.ts` | Create | Centralized Czech translation strings |
-| `src/lib/components/InstallPrompt.svelte` | Create | Custom PWA install prompt component |
-| `src/lib/stores/install.ts` | Create | PWA install prompt state management |
+| File                                      | Action | Purpose                                                  |
+| ----------------------------------------- | ------ | -------------------------------------------------------- |
+| `Dockerfile`                              | Create | Multi-stage build for SvelteKit Node adapter             |
+| `docker-compose.yml`                      | Create | Production services: app + PostgreSQL                    |
+| `docker-compose.override.yml`             | Create | Development overrides (optional, for local Docker usage) |
+| `nginx/nginx.conf`                        | Create | Nginx reverse proxy configuration with HTTPS             |
+| `scripts/backup.sh`                       | Create | Automated encrypted PostgreSQL backup script             |
+| `scripts/restore.sh`                      | Create | Backup restoration script                                |
+| `scripts/deploy.sh`                       | Create | Deployment automation script                             |
+| `scripts/setup-server.sh`                 | Create | Initial server setup (Docker, Nginx, certbot)            |
+| `.env.example`                            | Modify | Complete list of all required environment variables      |
+| `src/lib/i18n/cs.ts`                      | Create | Centralized Czech translation strings                    |
+| `src/lib/components/InstallPrompt.svelte` | Create | Custom PWA install prompt component                      |
+| `src/lib/stores/install.ts`               | Create | PWA install prompt state management                      |
 
 ### Step-by-Step Instructions
 
@@ -69,158 +69,162 @@ Create `src/lib/i18n/cs.ts`:
 
 ```typescript
 export const cs = {
-    // Navigation
-    nav: {
-        home: 'Prehled',
-        foodLog: 'Zaznam jidla',
-        photos: 'Fotky',
-        analysis: 'Analyza',
-        trends: 'Trendy',
-        export: 'Export',
-        settings: 'Nastaveni',
-        logout: 'Odhlasit se'
-    },
+  // Navigation
+  nav: {
+    home: "Prehled",
+    foodLog: "Zaznam jidla",
+    photos: "Fotky",
+    analysis: "Analyza",
+    trends: "Trendy",
+    export: "Export",
+    settings: "Nastaveni",
+    logout: "Odhlasit se",
+  },
 
-    // Auth
-    auth: {
-        login: 'Prihlaseni',
-        register: 'Registrace',
-        email: 'E-mail',
-        password: 'Heslo',
-        confirmPassword: 'Potvrzeni hesla',
-        loginButton: 'Prihlasit se',
-        registerButton: 'Registrovat se',
-        forgotPassword: 'Zapomenute heslo?',
-        noAccount: 'Nemate ucet?',
-        hasAccount: 'Uz mate ucet?',
-        errors: {
-            invalidCredentials: 'Neplatne prihlasovaci udaje',
-            emailRequired: 'E-mail je povinny',
-            passwordRequired: 'Heslo je povinne',
-            passwordMismatch: 'Hesla se neshoduji',
-            passwordTooShort: 'Heslo musi mit alespon 8 znaku',
-            emailTaken: 'Tento e-mail je jiz registrovany'
-        }
+  // Auth
+  auth: {
+    login: "Prihlaseni",
+    register: "Registrace",
+    email: "E-mail",
+    password: "Heslo",
+    confirmPassword: "Potvrzeni hesla",
+    loginButton: "Prihlasit se",
+    registerButton: "Registrovat se",
+    forgotPassword: "Zapomenute heslo?",
+    noAccount: "Nemate ucet?",
+    hasAccount: "Uz mate ucet?",
+    errors: {
+      invalidCredentials: "Neplatne prihlasovaci udaje",
+      emailRequired: "E-mail je povinny",
+      passwordRequired: "Heslo je povinne",
+      passwordMismatch: "Hesla se neshoduji",
+      passwordTooShort: "Heslo musi mit alespon 8 znaku",
+      emailTaken: "Tento e-mail je jiz registrovany",
     },
+  },
 
-    // Food log
-    foodLog: {
-        title: 'Zaznam jidla',
-        addEntry: 'Pridat zaznam',
-        date: 'Datum',
-        time: 'Cas',
-        foods: 'Potraviny',
-        notes: 'Poznamky',
-        eliminated: 'Eliminovane',
-        reintroduced: 'Znovuzavedene',
-        save: 'Ulozit',
-        cancel: 'Zrusit',
-        delete: 'Smazat',
-        confirmDelete: 'Opravdu chcete smazat tento zaznam?',
-        noEntries: 'Zatim zadne zaznamy. Pridejte prvni zaznam jidla.',
-        todayReminder: 'Zaznamenala jsi dnes jidlo?'
+  // Food log
+  foodLog: {
+    title: "Zaznam jidla",
+    addEntry: "Pridat zaznam",
+    date: "Datum",
+    time: "Cas",
+    foods: "Potraviny",
+    notes: "Poznamky",
+    eliminated: "Eliminovane",
+    reintroduced: "Znovuzavedene",
+    save: "Ulozit",
+    cancel: "Zrusit",
+    delete: "Smazat",
+    confirmDelete: "Opravdu chcete smazat tento zaznam?",
+    noEntries: "Zatim zadne zaznamy. Pridejte prvni zaznam jidla.",
+    todayReminder: "Zaznamenala jsi dnes jidlo?",
+  },
+
+  // Photos
+  photos: {
+    title: "Fotky",
+    capture: "Vyfotit",
+    bodyArea: "Oblast tela",
+    severity: "Zavaznost",
+    date: "Datum",
+    noPhotos: "Zatim zadne fotky.",
+    bodyAreas: {
+      face: "Oblicej",
+      arms: "Paze",
+      legs: "Nohy",
+      torso: "Trup",
+      hands: "Ruce",
+      feet: "Chodidla",
+      neck: "Krk",
+      scalp: "Pokozka hlavy",
     },
+  },
 
-    // Photos
-    photos: {
-        title: 'Fotky',
-        capture: 'Vyfotit',
-        bodyArea: 'Oblast tela',
-        severity: 'Zavaznost',
-        date: 'Datum',
-        noPhotos: 'Zatim zadne fotky.',
-        bodyAreas: {
-            face: 'Oblicej',
-            arms: 'Paze',
-            legs: 'Nohy',
-            torso: 'Trup',
-            hands: 'Ruce',
-            feet: 'Chodidla',
-            neck: 'Krk',
-            scalp: 'Pokozka hlavy'
-        }
-    },
-
-    // Analysis
-    analysis: {
-        title: 'AI analyza',
-        runAnalysis: 'Spustit analyzu',
-        analyzing: 'Analyzuji...',
-        noAnalyses: 'Zatim zadne analyzy.',
-        trends: {
-            improving: 'Zlepseni',
-            stable: 'Stabilni',
-            worsening: 'Zhorseni'
-        }
-    },
-
-    // Trends
+  // Analysis
+  analysis: {
+    title: "AI analyza",
+    runAnalysis: "Spustit analyzu",
+    analyzing: "Analyzuji...",
+    noAnalyses: "Zatim zadne analyzy.",
     trends: {
-        title: 'Trendy',
-        severityOverTime: 'Zavaznost v case',
-        byBodyArea: 'Podle oblasti tela',
-        noData: 'Nedostatek dat pro zobrazeni trendu.'
+      improving: "Zlepseni",
+      stable: "Stabilni",
+      worsening: "Zhorseni",
     },
+  },
 
-    // Export
-    export: {
-        title: 'Export pro lekare',
-        dateFrom: 'Od',
-        dateTo: 'Do',
-        generate: 'Generovat PDF',
-        generating: 'Generuji...',
-        download: 'Stahnout PDF',
-        share: 'Sdilet',
-        print: 'Tisknout',
-        includeAi: 'Zahrnout AI analyzy',
-        notes: 'Poznamky pro lekare',
-        noData: 'Pro zvolene obdobi nejsou k dispozici zadna data.',
-        reportTitle: 'Zprava o prubehu ekzemu',
-        footer: 'Generovano aplikaci Eczema Tracker'
-    },
+  // Trends
+  trends: {
+    title: "Trendy",
+    severityOverTime: "Zavaznost v case",
+    byBodyArea: "Podle oblasti tela",
+    noData: "Nedostatek dat pro zobrazeni trendu.",
+  },
 
-    // Settings
-    settings: {
-        title: 'Nastaveni',
-        children: 'Deti',
-        addChild: 'Pridat dite',
-        childName: 'Jmeno',
-        birthDate: 'Datum narozeni',
-        notifications: 'Notifikace',
-        enableNotifications: 'Povolit notifikace',
-        disableNotifications: 'Vypnout notifikace',
-        foodLogReminder: 'Pripominky zaznamu jidla',
-        foodLogReminderTime: 'Cas pripominky',
-        photoReminder: 'Pripominky fotek',
-        photoReminderInterval: 'Interval (dny)',
-        photoReminderTime: 'Cas pripominky',
-        iosNotificationNote: 'Pro prijem notifikaci na iOS je nutne nainstalovat aplikaci na domovskou obrazovku. Klepnete na ikonu Sdileni a vyberte "Pridat na plochu".',
-        notificationsUnsupported: 'Notifikace nejsou na tomto zarizeni podporovany.',
-        save: 'Ulozit'
-    },
+  // Export
+  export: {
+    title: "Export pro lekare",
+    dateFrom: "Od",
+    dateTo: "Do",
+    generate: "Generovat PDF",
+    generating: "Generuji...",
+    download: "Stahnout PDF",
+    share: "Sdilet",
+    print: "Tisknout",
+    includeAi: "Zahrnout AI analyzy",
+    notes: "Poznamky pro lekare",
+    noData: "Pro zvolene obdobi nejsou k dispozici zadna data.",
+    reportTitle: "Zprava o prubehu ekzemu",
+    footer: "Generovano aplikaci Eczema Tracker",
+  },
 
-    // Install prompt
-    install: {
-        title: 'Nainstalovat Eczema Tracker',
-        description: 'Nainstalujte si aplikaci pro rychlejsi pristup a offline pouziti.',
-        installButton: 'Nainstalovat',
-        dismissButton: 'Pozdeji',
-        iosInstructions: 'Pro instalaci klepnete na {shareIcon} a vyberte "Pridat na plochu".'
-    },
+  // Settings
+  settings: {
+    title: "Nastaveni",
+    children: "Deti",
+    addChild: "Pridat dite",
+    childName: "Jmeno",
+    birthDate: "Datum narozeni",
+    notifications: "Notifikace",
+    enableNotifications: "Povolit notifikace",
+    disableNotifications: "Vypnout notifikace",
+    foodLogReminder: "Pripominky zaznamu jidla",
+    foodLogReminderTime: "Cas pripominky",
+    photoReminder: "Pripominky fotek",
+    photoReminderInterval: "Interval (dny)",
+    photoReminderTime: "Cas pripominky",
+    iosNotificationNote:
+      'Pro prijem notifikaci na iOS je nutne nainstalovat aplikaci na domovskou obrazovku. Klepnete na ikonu Sdileni a vyberte "Pridat na plochu".',
+    notificationsUnsupported:
+      "Notifikace nejsou na tomto zarizeni podporovany.",
+    save: "Ulozit",
+  },
 
-    // Common
-    common: {
-        save: 'Ulozit',
-        cancel: 'Zrusit',
-        delete: 'Smazat',
-        edit: 'Upravit',
-        back: 'Zpet',
-        loading: 'Nacitani...',
-        error: 'Doslo k chybe. Zkuste to prosim znovu.',
-        offline: 'Jste offline. Data budou synchronizovana po pripojeni.',
-        syncing: 'Synchronizuji...',
-        synced: 'Synchronizovano'
-    }
+  // Install prompt
+  install: {
+    title: "Nainstalovat Eczema Tracker",
+    description:
+      "Nainstalujte si aplikaci pro rychlejsi pristup a offline pouziti.",
+    installButton: "Nainstalovat",
+    dismissButton: "Pozdeji",
+    iosInstructions:
+      'Pro instalaci klepnete na {shareIcon} a vyberte "Pridat na plochu".',
+  },
+
+  // Common
+  common: {
+    save: "Ulozit",
+    cancel: "Zrusit",
+    delete: "Smazat",
+    edit: "Upravit",
+    back: "Zpet",
+    loading: "Nacitani...",
+    error: "Doslo k chybe. Zkuste to prosim znovu.",
+    offline: "Jste offline. Data budou synchronizovana po pripojeni.",
+    syncing: "Synchronizuji...",
+    synced: "Synchronizovano",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof cs;
@@ -239,52 +243,59 @@ let isInstalled = $state(false);
 let showPrompt = $state(false);
 let deferredPrompt = $state<any>(null);
 
-export function getCanInstall() { return canInstall; }
-export function getIsInstalled() { return isInstalled; }
-export function getShowPrompt() { return showPrompt; }
+export function getCanInstall() {
+  return canInstall;
+}
+export function getIsInstalled() {
+  return isInstalled;
+}
+export function getShowPrompt() {
+  return showPrompt;
+}
 
 export function init() {
-    if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-        || (navigator as any).standalone === true;
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as any).standalone === true;
 
-    if (isStandalone) {
-        isInstalled = true;
-        return;
-    }
+  if (isStandalone) {
+    isInstalled = true;
+    return;
+  }
 
-    window.addEventListener('beforeinstallprompt', (e: Event) => {
-        e.preventDefault();
-        canInstall = true;
-        deferredPrompt = e;
-        showPrompt = !sessionStorage.getItem('installDismissed');
-    });
+  window.addEventListener("beforeinstallprompt", (e: Event) => {
+    e.preventDefault();
+    canInstall = true;
+    deferredPrompt = e;
+    showPrompt = !sessionStorage.getItem("installDismissed");
+  });
 
-    window.addEventListener('appinstalled', () => {
-        canInstall = false;
-        isInstalled = true;
-        showPrompt = false;
-        deferredPrompt = null;
-    });
+  window.addEventListener("appinstalled", () => {
+    canInstall = false;
+    isInstalled = true;
+    showPrompt = false;
+    deferredPrompt = null;
+  });
 }
 
 export async function promptInstall() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const result = await deferredPrompt.userChoice;
-        if (result.outcome === 'accepted') {
-            canInstall = false;
-            isInstalled = true;
-            showPrompt = false;
-            deferredPrompt = null;
-        }
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === "accepted") {
+      canInstall = false;
+      isInstalled = true;
+      showPrompt = false;
+      deferredPrompt = null;
     }
+  }
 }
 
 export function dismiss() {
-    sessionStorage.setItem('installDismissed', 'true');
-    showPrompt = false;
+  sessionStorage.setItem("installDismissed", "true");
+  showPrompt = false;
 }
 ```
 
@@ -358,24 +369,24 @@ Create `Dockerfile` in the project root:
 
 ```dockerfile
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Production
-FROM node:20-alpine AS production
+FROM oven/bun:1-slim
 
 WORKDIR /app
 
 # Install only production dependencies
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile --production
 
 # Copy built application
 COPY --from=builder /app/build ./build
@@ -617,6 +628,7 @@ chmod +x scripts/backup.sh
 ### External Monitoring
 
 Set up an external uptime monitor (free tier of UptimeRobot, Hetrix, or similar):
+
 - Ping `GET /api/health` every 5 minutes
 - Send email/push alerts on 2 consecutive failures
 - This catches scenarios where the entire VPS is down (which Docker's internal healthcheck cannot detect)
@@ -879,7 +891,7 @@ Test the following scenarios manually:
 
 ### Key Code Patterns
 
-**Multi-stage Docker build**: The Dockerfile uses a two-stage build. The first stage installs all dependencies (including devDependencies) and runs `npm run build` to produce the SvelteKit Node adapter output. The second stage copies only the built output and production dependencies, resulting in a smaller image.
+**Multi-stage Docker build**: The Dockerfile uses a two-stage build. The first stage installs all dependencies (including devDependencies) and runs `bun run build` to produce the SvelteKit output. The second stage copies only the built output and production dependencies, resulting in a smaller image.
 
 **Host-level Nginx**: Nginx runs on the host (not in Docker) to simplify SSL certificate management with certbot. It reverse-proxies to the app container on `127.0.0.1:3000`. The app container only binds to localhost, preventing direct access bypassing Nginx.
 
@@ -896,6 +908,7 @@ Add a "Smazat účet" (Delete account) button in Settings with a confirmation di
 > "Toto smaže veškerá data včetně fotek. Tuto akci nelze vrátit zpět." (This will delete all data including photos. This action cannot be undone.)
 
 Implementation:
+
 1. Delete all children (cascades to food_logs, tracking_photos, analysis_results)
 2. Delete photo blob files from filesystem
 3. Delete Google Doc connection (revoke token)

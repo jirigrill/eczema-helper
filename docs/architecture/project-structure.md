@@ -115,61 +115,61 @@ All TypeScript interfaces and types used across the application: `User`, `Sessio
 
 Port interfaces define what the domain layer needs from the outside world, without specifying how:
 
-| File | Interface | Purpose |
-|---|---|---|
-| `analyzer.ts` | `EczemaAnalyzer` | Compare photos, assess severity via AI |
-| `photo-storage.ts` | `PhotoStorage` | Upload/download encrypted photo blobs |
-| `repository.ts` | `DataRepository` | CRUD operations for all entities |
+| File               | Interface             | Purpose                                       |
+| ------------------ | --------------------- | --------------------------------------------- |
+| `analyzer.ts`      | `EczemaAnalyzer`      | Compare photos, assess severity via AI        |
+| `photo-storage.ts` | `PhotoStorage`        | Upload/download encrypted photo blobs         |
+| `repository.ts`    | `DataRepository`      | CRUD operations for all entities              |
 | `notifications.ts` | `NotificationService` | Send push notifications and process reminders |
 
 #### `src/lib/domain/services/`
 
 Business logic services that orchestrate operations using ports:
 
-| File | Service | Responsibility |
-|---|---|---|
-| `food-tracking.ts` | `FoodTrackingService` | Log food eliminations and reintroductions, calculate current diet state, validate reintroduction timing |
-| `photo-diary.ts` | `PhotoDiaryService` | Orchestrate photo capture workflow (resize, encrypt, upload, save metadata), retrieve and decrypt for viewing |
-| `analysis.ts` | `AnalysisService` | Select photos for comparison, call AI analyzer, store results, aggregate trend data |
-| `export.ts` | `ExportService` | Gather data for a date range, decrypt photos, generate PDF report with timeline and analysis |
+| File               | Service               | Responsibility                                                                                                |
+| ------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `food-tracking.ts` | `FoodTrackingService` | Log food eliminations and reintroductions, calculate current diet state, validate reintroduction timing       |
+| `photo-diary.ts`   | `PhotoDiaryService`   | Orchestrate photo capture workflow (resize, encrypt, upload, save metadata), retrieve and decrypt for viewing |
+| `analysis.ts`      | `AnalysisService`     | Select photos for comparison, call AI analyzer, store results, aggregate trend data                           |
+| `export.ts`        | `ExportService`       | Gather data for a date range, decrypt photos, generate PDF report with timeline and analysis                  |
 
 ### `src/lib/adapters/` -- Adapter Layer
 
 Concrete implementations of port interfaces:
 
-| File | Implements | Technology |
-|---|---|---|
-| `index.ts` | (factory) | Wires adapters together, provides `createAnalyzer()`, `createStorage()`, etc. |
-| `claude-vision.ts` | `EczemaAnalyzer` | Anthropic Claude Vision API |
-| `encrypted-storage.ts` | `PhotoStorage` | VPS filesystem via API routes |
-| `postgres.ts` | `DataRepository` | PostgreSQL via `postgres` npm package |
-| `web-push.ts` | `NotificationService` | Web Push API via `web-push` npm package |
-| `dexie-db.ts` | subset of `DataRepository` | IndexedDB via Dexie.js for offline caching |
+| File                   | Implements                 | Technology                                                                    |
+| ---------------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `index.ts`             | (factory)                  | Wires adapters together, provides `createAnalyzer()`, `createStorage()`, etc. |
+| `claude-vision.ts`     | `EczemaAnalyzer`           | Anthropic Claude Vision API                                                   |
+| `encrypted-storage.ts` | `PhotoStorage`             | VPS filesystem via API routes                                                 |
+| `postgres.ts`          | `DataRepository`           | PostgreSQL via `postgres` package                                             |
+| `web-push.ts`          | `NotificationService`      | Web Push API via `web-push` package                                           |
+| `dexie-db.ts`          | subset of `DataRepository` | IndexedDB via Dexie.js for offline caching                                    |
 
 ### `src/lib/components/` -- UI Components
 
 Reusable Svelte components organized by feature area:
 
-| Directory | Contents |
-|---|---|
-| `ui/` | Generic UI primitives: `Button.svelte`, `Modal.svelte`, `Card.svelte`, `LoadingSpinner.svelte`, `Toast.svelte`, `BottomSheet.svelte`. These know nothing about the domain. |
-| `calendar/` | `CalendarGrid.svelte` (month view), `DayCell.svelte` (single day with status indicators), `MonthNav.svelte` (prev/next month). |
-| `food/` | `FoodCategoryPicker.svelte` (grid of food category icons), `FoodSubItemList.svelte` (sub-items within a category), `FoodIcon.svelte` (individual food icon), `EliminationBadge.svelte` (eliminated/reintroduced status). |
-| `photo/` | `CameraCapture.svelte` (camera access with guidance overlay), `PhotoGallery.svelte` (grid of thumbnails), `CompareView.svelte` (side-by-side comparison slider), `BodyAreaPicker.svelte` (select body region). |
-| `charts/` | `SeverityTrend.svelte` (line chart of severity over time), `CorrelationTimeline.svelte` (food changes overlaid on severity), `FoodImpactSummary.svelte` (per-category impact assessment). |
+| Directory   | Contents                                                                                                                                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ui/`       | Generic UI primitives: `Button.svelte`, `Modal.svelte`, `Card.svelte`, `LoadingSpinner.svelte`, `Toast.svelte`, `BottomSheet.svelte`. These know nothing about the domain.                                               |
+| `calendar/` | `CalendarGrid.svelte` (month view), `DayCell.svelte` (single day with status indicators), `MonthNav.svelte` (prev/next month).                                                                                           |
+| `food/`     | `FoodCategoryPicker.svelte` (grid of food category icons), `FoodSubItemList.svelte` (sub-items within a category), `FoodIcon.svelte` (individual food icon), `EliminationBadge.svelte` (eliminated/reintroduced status). |
+| `photo/`    | `CameraCapture.svelte` (camera access with guidance overlay), `PhotoGallery.svelte` (grid of thumbnails), `CompareView.svelte` (side-by-side comparison slider), `BodyAreaPicker.svelte` (select body region).           |
+| `charts/`   | `SeverityTrend.svelte` (line chart of severity over time), `CorrelationTimeline.svelte` (food changes overlaid on severity), `FoodImpactSummary.svelte` (per-category impact assessment).                                |
 
 ### `src/lib/stores/` -- Svelte 5 Reactive State
 
 Reactive state management using Svelte 5 runes (`$state`, `$derived`) in `.svelte.ts` modules:
 
-| File | Purpose |
-|---|---|
-| `auth.svelte.ts` | Current authenticated user, login/logout state |
-| `food-log.svelte.ts` | Food elimination logs for the selected child and date range, current elimination state |
-| `photos.svelte.ts` | Photo metadata for the selected child, decrypted thumbnail cache |
-| `children.svelte.ts` | List of children for the current user, currently active/selected child |
-| `notification.svelte.ts` | Push notification permission and subscription state |
-| `toast.svelte.ts` | Toast notification queue for error/success messages |
+| File                     | Purpose                                                                                |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `auth.svelte.ts`         | Current authenticated user, login/logout state                                         |
+| `food-log.svelte.ts`     | Food elimination logs for the selected child and date range, current elimination state |
+| `photos.svelte.ts`       | Photo metadata for the selected child, decrypted thumbnail cache                       |
+| `children.svelte.ts`     | List of children for the current user, currently active/selected child                 |
+| `notification.svelte.ts` | Push notification permission and subscription state                                    |
+| `toast.svelte.ts`        | Toast notification queue for error/success messages                                    |
 
 ### `src/lib/crypto/`
 
@@ -202,9 +202,9 @@ Since the app is Czech-only, there is no runtime language switching. A single tr
 
 ### `src/lib/utils/`
 
-| File | Purpose |
-|---|---|
-| `date.ts` | Date formatting for Czech locale (`formatDate`, `formatRelative`, `getWeekDays`, `isSameDay`, etc.) |
+| File       | Purpose                                                                                                                          |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `date.ts`  | Date formatting for Czech locale (`formatDate`, `formatRelative`, `getWeekDays`, `isSameDay`, etc.)                              |
 | `image.ts` | Image processing before encryption: resize to max 1920px, compress to JPEG 80%, generate thumbnail (320px). Uses `<canvas>` API. |
 
 ---
@@ -217,63 +217,63 @@ SvelteKit uses file-based routing. Each directory under `routes/` maps to a URL 
 
 #### Root Layout and Page
 
-| File | URL | Purpose |
-|---|---|---|
-| `+layout.svelte` | all pages | Root layout: loads fonts, global styles, initializes stores |
+| File                | URL       | Purpose                                                            |
+| ------------------- | --------- | ------------------------------------------------------------------ |
+| `+layout.svelte`    | all pages | Root layout: loads fonts, global styles, initializes stores        |
 | `+layout.server.ts` | all pages | Server-side: loads session from cookie, passes user data to client |
-| `+page.svelte` | `/` | Redirects to `/calendar` if authenticated, `/login` if not |
+| `+page.svelte`      | `/`       | Redirects to `/calendar` if authenticated, `/login` if not         |
 
 #### Login
 
-| File | URL | Purpose |
-|---|---|---|
+| File                 | URL      | Purpose                                             |
+| -------------------- | -------- | --------------------------------------------------- |
 | `login/+page.svelte` | `/login` | Login form (email + password) and registration link |
 
 #### `(app)/` -- Auth-Protected Route Group
 
 The parentheses in `(app)` make this a SvelteKit **route group**. It does not add a URL segment (so `/calendar` not `/(app)/calendar`) but allows a shared layout and server-side auth guard.
 
-| File | Purpose |
-|---|---|
-| `(app)/+layout.svelte` | Bottom tab navigation bar (calendar, food, photos, trends, settings) |
+| File                      | Purpose                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `(app)/+layout.svelte`    | Bottom tab navigation bar (calendar, food, photos, trends, settings)          |
 | `(app)/+layout.server.ts` | Auth guard: checks session cookie, redirects to `/login` if not authenticated |
 
 #### Pages Inside `(app)/`
 
-| Route | File | Purpose |
-|---|---|---|
-| `/calendar` | `calendar/+page.svelte` | Main screen. Month calendar view showing daily status (food changes, photos taken, severity). Tap a day to see details. |
-| `/food` | `food/+page.svelte` | Food tracker for the selected day. Shows all food categories with elimination/reintroduction status. Tap to toggle or add notes. |
-| `/photos` | `photos/+page.svelte` | Photo gallery filtered by child and date range. Shows decrypted thumbnails in a grid. |
+| Route             | File                          | Purpose                                                                                                                                   |
+| ----------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `/calendar`       | `calendar/+page.svelte`       | Main screen. Month calendar view showing daily status (food changes, photos taken, severity). Tap a day to see details.                   |
+| `/food`           | `food/+page.svelte`           | Food tracker for the selected day. Shows all food categories with elimination/reintroduction status. Tap to toggle or add notes.          |
+| `/photos`         | `photos/+page.svelte`         | Photo gallery filtered by child and date range. Shows decrypted thumbnails in a grid.                                                     |
 | `/photos/capture` | `photos/capture/+page.svelte` | Camera interface with guidance overlay (body area positioning guides). Captures photo, allows severity rating, then encrypts and uploads. |
-| `/photos/compare` | `photos/compare/+page.svelte` | Select two photos for side-by-side comparison. Triggers AI analysis and displays results. |
-| `/trends` | `trends/+page.svelte` | Dashboard with severity trend chart, food-eczema correlation timeline, and per-food impact summary. |
-| `/export` | `export/+page.svelte` | PDF report generator. Select date range and content to include, preview, and export. |
-| `/settings` | `settings/+page.svelte` | User profile, child management (add/edit children), notification preferences, encryption passphrase management. |
+| `/photos/compare` | `photos/compare/+page.svelte` | Select two photos for side-by-side comparison. Triggers AI analysis and displays results.                                                 |
+| `/trends`         | `trends/+page.svelte`         | Dashboard with severity trend chart, food-eczema correlation timeline, and per-food impact summary.                                       |
+| `/export`         | `export/+page.svelte`         | PDF report generator. Select date range and content to include, preview, and export.                                                      |
+| `/settings`       | `settings/+page.svelte`       | User profile, child management (add/edit children), notification preferences, encryption passphrase management.                           |
 
 #### `api/` -- Server API Routes
 
 SvelteKit `+server.ts` files define HTTP endpoints. These run server-side only.
 
-| Route | Methods | Purpose |
-|---|---|---|
-| `api/auth/login/+server.ts` | POST | Validate credentials, create session cookie |
-| `api/auth/logout/+server.ts` | POST | Clear session cookie |
-| `api/auth/register/+server.ts` | POST | Create new user account |
-| `api/food-logs/+server.ts` | GET, POST, DELETE | CRUD for food elimination logs |
-| `api/photos/+server.ts` | GET, POST, DELETE | Upload/download encrypted photo blobs, photo metadata CRUD |
-| `api/children/+server.ts` | GET, POST, PUT | Child management |
-| `api/meals/+server.ts` | GET, POST, PUT, DELETE | Meal CRUD with meal items |
-| `api/meals/[id]/+server.ts` | PUT, DELETE | Individual meal operations |
-| `api/analyze/+server.ts` | POST | Server proxy to Claude Vision API for photo analysis |
-| `api/analysis/+server.ts` | GET, POST | Analysis results CRUD |
-| `api/analysis/[id]/+server.ts` | GET | Individual analysis result |
-| `api/sync/push/+server.ts` | POST | Batch push of offline changes |
-| `api/sync/pull/+server.ts` | GET | Delta sync pull (records since timestamp) |
-| `api/auth/password/+server.ts` | PUT | Password change |
-| `api/health/+server.ts` | GET | Health check endpoint |
-| `api/google/+server.ts` | GET, POST, DELETE | Google OAuth and export |
-| `api/push/+server.ts` | POST, DELETE | Push subscription registration and removal |
+| Route                          | Methods                | Purpose                                                    |
+| ------------------------------ | ---------------------- | ---------------------------------------------------------- |
+| `api/auth/login/+server.ts`    | POST                   | Validate credentials, create session cookie                |
+| `api/auth/logout/+server.ts`   | POST                   | Clear session cookie                                       |
+| `api/auth/register/+server.ts` | POST                   | Create new user account                                    |
+| `api/food-logs/+server.ts`     | GET, POST, DELETE      | CRUD for food elimination logs                             |
+| `api/photos/+server.ts`        | GET, POST, DELETE      | Upload/download encrypted photo blobs, photo metadata CRUD |
+| `api/children/+server.ts`      | GET, POST, PUT         | Child management                                           |
+| `api/meals/+server.ts`         | GET, POST, PUT, DELETE | Meal CRUD with meal items                                  |
+| `api/meals/[id]/+server.ts`    | PUT, DELETE            | Individual meal operations                                 |
+| `api/analyze/+server.ts`       | POST                   | Server proxy to Claude Vision API for photo analysis       |
+| `api/analysis/+server.ts`      | GET, POST              | Analysis results CRUD                                      |
+| `api/analysis/[id]/+server.ts` | GET                    | Individual analysis result                                 |
+| `api/sync/push/+server.ts`     | POST                   | Batch push of offline changes                              |
+| `api/sync/pull/+server.ts`     | GET                    | Delta sync pull (records since timestamp)                  |
+| `api/auth/password/+server.ts` | PUT                    | Password change                                            |
+| `api/health/+server.ts`        | GET                    | Health check endpoint                                      |
+| `api/google/+server.ts`        | GET, POST, DELETE      | Google OAuth and export                                    |
+| `api/push/+server.ts`          | POST, DELETE           | Push subscription registration and removal                 |
 
 #### `app.html`
 
@@ -293,27 +293,27 @@ Server hooks that run on every request:
 
 ### `static/`
 
-| File/Directory | Purpose |
-|---|---|
+| File/Directory         | Purpose                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `manifest.webmanifest` | PWA manifest: app name ("Ekzem Tracker"), icons, theme color, display mode (`standalone`), start URL, scope |
-| `icons/` | App icons in 192x192 and 512x512 sizes (PNG), plus Apple Touch Icon for iOS home screen |
-| `sw.js` | Service worker, auto-generated by `@vite-pwa/sveltekit`. Handles offline caching via Workbox strategies. |
+| `icons/`               | App icons in 192x192 and 512x512 sizes (PNG), plus Apple Touch Icon for iOS home screen                     |
+| `sw.js`                | Service worker, auto-generated by `@vite-pwa/sveltekit`. Handles offline caching via Workbox strategies.    |
 
 ---
 
 ## Configuration Files
 
-| File | Purpose |
-|---|---|
-| `docker-compose.yml` | Defines two services: `app` (Node.js/SvelteKit) and `postgres` (PostgreSQL 16). See [deployment.md](deployment.md). |
-| `Dockerfile` | Multi-stage build: stage 1 installs dependencies and builds the SvelteKit app, stage 2 runs the production Node.js server. |
-| `nginx.conf` | Nginx reverse proxy configuration: HTTPS termination, proxy to Node.js, static file caching headers, security headers. |
-| `svelte.config.js` | SvelteKit configuration: adapter-node for self-hosted deployment, path aliases (`$lib`). |
-| `vite.config.ts` | Vite configuration: SvelteKit plugin, PWA plugin (`@vite-pwa/sveltekit`) with workbox caching strategies. |
-| `tailwind.config.ts` | Tailwind CSS configuration: content paths, custom theme extensions (colors, fonts for Czech typography). |
-| `tsconfig.json` | TypeScript configuration: strict mode, path aliases matching SvelteKit conventions. |
-| `package.json` | Dependencies, dev dependencies, scripts (`dev`, `build`, `preview`, `db:migrate`, `db:seed`). |
-| `.env.example` | Template for environment variables: `DATABASE_URL`, `SESSION_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CLAUDE_API_KEY`. |
+| File                 | Purpose                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `docker-compose.yml` | Defines two services: `app` (Node.js/SvelteKit) and `postgres` (PostgreSQL 16). See [deployment.md](deployment.md).              |
+| `Dockerfile`         | Multi-stage build: stage 1 installs dependencies and builds the SvelteKit app, stage 2 runs the production Node.js server.       |
+| `nginx.conf`         | Nginx reverse proxy configuration: HTTPS termination, proxy to Node.js, static file caching headers, security headers.           |
+| `svelte.config.js`   | SvelteKit configuration: adapter-node for self-hosted deployment, path aliases (`$lib`).                                         |
+| `vite.config.ts`     | Vite configuration: SvelteKit plugin, PWA plugin (`@vite-pwa/sveltekit`) with workbox caching strategies.                        |
+| `tailwind.config.ts` | Tailwind CSS configuration: content paths, custom theme extensions (colors, fonts for Czech typography).                         |
+| `tsconfig.json`      | TypeScript configuration: strict mode, path aliases matching SvelteKit conventions.                                              |
+| `package.json`       | Dependencies, dev dependencies, scripts (`dev`, `build`, `preview`, `db:migrate`, `db:seed`).                                    |
+| `.env.example`       | Template for environment variables: `DATABASE_URL`, `SESSION_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CLAUDE_API_KEY`. |
 
 ---
 
@@ -344,7 +344,7 @@ Files named `+server.ts` export HTTP method handlers (`GET`, `POST`, `PUT`, `DEL
 SvelteKit provides the `$lib` alias that maps to `src/lib/`. All imports use this alias:
 
 ```typescript
-import type { FoodLog } from '$lib/domain/models';
-import { FoodTrackingService } from '$lib/domain/services/food-tracking';
-import { Button } from '$lib/components/ui/Button.svelte';
+import type { FoodLog } from "$lib/domain/models";
+import { FoodTrackingService } from "$lib/domain/services/food-tracking";
+import { Button } from "$lib/components/ui/Button.svelte";
 ```

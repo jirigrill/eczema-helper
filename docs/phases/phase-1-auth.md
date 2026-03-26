@@ -7,6 +7,7 @@ This phase implements the complete authentication system and child management fe
 ## Prerequisites
 
 Phase 0 must be complete. Specifically:
+
 - SvelteKit project is running with TypeScript, Tailwind CSS 4, and PWA configured.
 - Domain model interfaces (`models.ts`) and port interfaces are defined.
 - Docker Compose PostgreSQL instance is available on `localhost:5432`.
@@ -47,30 +48,30 @@ Phase 0 must be complete. Specifically:
 
 ### Files Created / Modified
 
-| File | Description |
-|---|---|
-| `src/lib/adapters/postgres.ts` | PostgreSQL adapter implementing `DataRepository` using the `postgres` driver |
-| `src/lib/server/db.ts` | PostgreSQL connection pool singleton (server-only module) |
-| `src/lib/server/session.ts` | Session creation, validation, and deletion utilities |
-| `src/lib/server/auth.ts` | Password hashing (bcrypt) and verification utilities |
-| `src/hooks.server.ts` | SvelteKit server hooks -- auth middleware, session resolution |
-| `src/routes/api/auth/register/+server.ts` | Registration endpoint |
-| `src/routes/api/auth/login/+server.ts` | Login endpoint |
-| `src/routes/api/auth/logout/+server.ts` | Logout endpoint |
-| `src/routes/api/children/+server.ts` | List and create children endpoints |
-| `src/routes/api/children/[id]/+server.ts` | Update and delete child endpoints |
-| `src/routes/(app)/+layout.server.ts` | Auth guard -- loads user and children, redirects if unauthenticated |
-| `src/routes/(app)/+layout.svelte` | Updated to include child selector in header |
-| `src/routes/(app)/settings/+page.svelte` | Child management UI |
-| `src/routes/(app)/settings/+page.server.ts` | Server load function for settings page data |
-| `src/routes/login/+page.svelte` | Updated to wire form to `/api/auth/login` |
-| `src/routes/login/+page.server.ts` | Redirect to `/calendar` if already authenticated |
-| `src/routes/register/+page.svelte` | Registration page |
-| `src/lib/stores/children.ts` | Updated with selected child store and setter |
-| `src/lib/stores/auth.ts` | Updated with user store populated from server data |
-| `migrations/001_initial_schema.sql` | Full database schema DDL |
-| `migrations/002_seed_food_data.sql` | Seed data for food categories and sub-items |
-| `scripts/migrate.ts` | Migration runner script |
+| File                                        | Description                                                                  |
+| ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/lib/adapters/postgres.ts`              | PostgreSQL adapter implementing `DataRepository` using the `postgres` driver |
+| `src/lib/server/db.ts`                      | PostgreSQL connection pool singleton (server-only module)                    |
+| `src/lib/server/session.ts`                 | Session creation, validation, and deletion utilities                         |
+| `src/lib/server/auth.ts`                    | Password hashing (bcrypt) and verification utilities                         |
+| `src/hooks.server.ts`                       | SvelteKit server hooks -- auth middleware, session resolution                |
+| `src/routes/api/auth/register/+server.ts`   | Registration endpoint                                                        |
+| `src/routes/api/auth/login/+server.ts`      | Login endpoint                                                               |
+| `src/routes/api/auth/logout/+server.ts`     | Logout endpoint                                                              |
+| `src/routes/api/children/+server.ts`        | List and create children endpoints                                           |
+| `src/routes/api/children/[id]/+server.ts`   | Update and delete child endpoints                                            |
+| `src/routes/(app)/+layout.server.ts`        | Auth guard -- loads user and children, redirects if unauthenticated          |
+| `src/routes/(app)/+layout.svelte`           | Updated to include child selector in header                                  |
+| `src/routes/(app)/settings/+page.svelte`    | Child management UI                                                          |
+| `src/routes/(app)/settings/+page.server.ts` | Server load function for settings page data                                  |
+| `src/routes/login/+page.svelte`             | Updated to wire form to `/api/auth/login`                                    |
+| `src/routes/login/+page.server.ts`          | Redirect to `/calendar` if already authenticated                             |
+| `src/routes/register/+page.svelte`          | Registration page                                                            |
+| `src/lib/stores/children.ts`                | Updated with selected child store and setter                                 |
+| `src/lib/stores/auth.ts`                    | Updated with user store populated from server data                           |
+| `migrations/001_initial_schema.sql`         | Full database schema DDL                                                     |
+| `migrations/002_seed_food_data.sql`         | Seed data for food categories and sub-items                                  |
+| `scripts/migrate.ts`                        | Migration runner script                                                      |
 
 ### Step-by-Step Instructions
 
@@ -307,6 +308,7 @@ Insert food categories and their sub-items into `food_categories` and `food_sub_
 #### Step 3: Create the migration runner (`scripts/migrate.ts`)
 
 A Node.js script that:
+
 1. Connects to the database using `DATABASE_URL` from `.env`.
 2. Creates a `_migrations` table if it does not exist.
 3. Reads all `.sql` files from `migrations/` in order.
@@ -316,20 +318,20 @@ A Node.js script that:
 #### Step 4: Create the PostgreSQL connection pool (`src/lib/server/db.ts`)
 
 ```typescript
-import postgres from 'postgres';
-import { DATABASE_URL } from '$env/static/private';
+import postgres from "postgres";
+import { DATABASE_URL } from "$env/static/private";
 
 export const sql = postgres(DATABASE_URL, {
   max: 10,
   idle_timeout: 30,
-  connect_timeout: 10
+  connect_timeout: 10,
 });
 ```
 
 #### Step 5: Create auth utilities (`src/lib/server/auth.ts`)
 
 ```typescript
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcryptjs";
 
 const SALT_ROUNDS = 12;
 
@@ -337,7 +339,10 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 ```
@@ -345,19 +350,23 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 #### Step 6: Create session utilities (`src/lib/server/session.ts`)
 
 ```typescript
-import { sql } from './db';
-import { randomUUID } from 'crypto';
+import { sql } from "./db";
+import { randomUUID } from "crypto";
 
 const SESSION_DURATION_DAYS = 30; // 30-day sliding session
 
 export async function createSession(userId: string): Promise<string> {
   const sessionId = randomUUID();
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
+  );
   await sql`INSERT INTO sessions (id, user_id, expires_at) VALUES (${sessionId}, ${userId}, ${expiresAt})`;
   return sessionId;
 }
 
-export async function validateAndExtendSession(sessionId: string): Promise<{ userId: string } | null> {
+export async function validateAndExtendSession(
+  sessionId: string,
+): Promise<{ userId: string } | null> {
   const rows = await sql`
     SELECT user_id, expires_at FROM sessions
     WHERE id = ${sessionId} AND expires_at > NOW()
@@ -368,7 +377,9 @@ export async function validateAndExtendSession(sessionId: string): Promise<{ use
   // This reduces database writes from every request to approximately once per 15 days
   const fifteenDays = 15 * 24 * 60 * 60 * 1000;
   if (rows[0].expires_at.getTime() - Date.now() < fifteenDays) {
-    const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+    const newExpiry = new Date(
+      Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
+    );
     await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
   }
 
@@ -383,18 +394,19 @@ export async function deleteSession(sessionId: string): Promise<void> {
 #### Step 7: Implement SvelteKit hooks (`src/hooks.server.ts`)
 
 ```typescript
-import type { Handle } from '@sveltejs/kit';
-import { redirect } from '@sveltejs/kit';
-import { validateAndExtendSession } from '$lib/server/session';
-import { sql } from '$lib/server/db';
+import type { Handle } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
+import { validateAndExtendSession } from "$lib/server/session";
+import { sql } from "$lib/server/db";
 
 export const handle: Handle = async ({ event, resolve }) => {
-  const sessionId = event.cookies.get('session_id');
+  const sessionId = event.cookies.get("session_id");
 
   if (sessionId) {
     const session = await validateAndExtendSession(sessionId);
     if (session) {
-      const users = await sql`SELECT id, email, name FROM users WHERE id = ${session.userId}`;
+      const users =
+        await sql`SELECT id, email, name FROM users WHERE id = ${session.userId}`;
       if (users.length > 0) {
         event.locals.user = users[0];
       }
@@ -402,19 +414,21 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   // Protect (app) routes
-  if (event.url.pathname.startsWith('/calendar') ||
-      event.url.pathname.startsWith('/food') ||
-      event.url.pathname.startsWith('/photos') ||
-      event.url.pathname.startsWith('/trends') ||
-      event.url.pathname.startsWith('/settings')) {
+  if (
+    event.url.pathname.startsWith("/calendar") ||
+    event.url.pathname.startsWith("/food") ||
+    event.url.pathname.startsWith("/photos") ||
+    event.url.pathname.startsWith("/trends") ||
+    event.url.pathname.startsWith("/settings")
+  ) {
     if (!event.locals.user) {
-      throw redirect(303, '/login');
+      throw redirect(303, "/login");
     }
   }
 
   // Redirect authenticated users away from login
-  if (event.url.pathname === '/login' && event.locals.user) {
-    throw redirect(303, '/calendar');
+  if (event.url.pathname === "/login" && event.locals.user) {
+    throw redirect(303, "/calendar");
   }
 
   return resolve(event);
@@ -458,6 +472,7 @@ Similar to the login page but with name, email, and password fields. On success,
 #### Step 13: Add the child selector to the app layout
 
 In `src/routes/(app)/+layout.svelte`, add a header bar above the main content area with:
+
 - The selected child's name displayed.
 - A dropdown / modal picker listing all children.
 - A "No children yet -- go to Settings" message if the user has no children.
@@ -487,6 +502,7 @@ CREATE INDEX idx_audit_log_action ON audit_log(action);
 ```
 
 Log as a cross-cutting concern in `hooks.server.ts`:
+
 - `login_success`, `login_failure` (with email, not password)
 - `logout`
 - `registration`
@@ -512,12 +528,12 @@ After onboarding, land on the calendar with a coach-mark highlighting "Klepněte
 **Cookie session setting (in login route):**
 
 ```typescript
-cookies.set('session_id', sessionId, {
-  path: '/',
+cookies.set("session_id", sessionId, {
+  path: "/",
   httpOnly: true,
   secure: true,
-  sameSite: 'lax',
-  maxAge: 60 * 60 * 24 * 30 // 30 days (sliding — refreshed on each authenticated request)
+  sameSite: "lax",
+  maxAge: 60 * 60 * 24 * 30, // 30 days (sliding — refreshed on each authenticated request)
 });
 ```
 
@@ -539,28 +555,38 @@ const isValid = await bcrypt.compare(password, user.password_hash);
 
 ```typescript
 // src/lib/stores/children.svelte.ts
-import type { Child } from '$lib/domain/models';
+import type { Child } from "$lib/domain/models";
 
 let children = $state<Child[]>([]);
 let selectedChildId = $state<string | null>(null);
 
 const selectedChild = $derived(
-  children.find(c => c.id === selectedChildId) ?? children[0] ?? null
+  children.find((c) => c.id === selectedChildId) ?? children[0] ?? null,
 );
 
-export function getChildren() { return children; }
-export function setChildren(value: Child[]) { children = value; }
-export function getSelectedChildId() { return selectedChildId; }
-export function setSelectedChildId(id: string | null) { selectedChildId = id; }
-export function getSelectedChild() { return selectedChild; }
+export function getChildren() {
+  return children;
+}
+export function setChildren(value: Child[]) {
+  children = value;
+}
+export function getSelectedChildId() {
+  return selectedChildId;
+}
+export function setSelectedChildId(id: string | null) {
+  selectedChildId = id;
+}
+export function getSelectedChild() {
+  return selectedChild;
+}
 ```
 
 **PostgreSQL adapter pattern (Ports & Adapters — entity-specific methods):**
 
 ```typescript
-import { sql } from '$lib/server/db';
-import type { DataRepository } from '$lib/domain/ports/repository';
-import type { User, Child } from '$lib/domain/models';
+import { sql } from "$lib/server/db";
+import type { DataRepository } from "$lib/domain/ports/repository";
+import type { User, Child } from "$lib/domain/models";
 
 export class PostgresRepository implements DataRepository {
   async getUserByEmail(email: string): Promise<User | null> {
@@ -577,7 +603,9 @@ export class PostgresRepository implements DataRepository {
     return rows.map(this.mapChild);
   }
 
-  async createChild(child: Omit<Child, 'id' | 'createdAt' | 'updatedAt'>): Promise<Child> {
+  async createChild(
+    child: Omit<Child, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Child> {
     const rows = await sql`
       INSERT INTO children (name, birth_date)
       VALUES (${child.name}, ${child.birthDate})
@@ -607,67 +635,67 @@ The PostgreSQL database has all tables created (matching `docs/architecture/data
 
 **Test file: `src/lib/server/auth.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 1 | `hashPassword` returns a bcrypt hash | Call `hashPassword('testpass123')`. Assert result starts with `$2b$` and has length > 50. |
-| 2 | `verifyPassword` succeeds with correct password | Hash `'mypassword'`, then call `verifyPassword('mypassword', hash)`. Assert it returns `true`. |
-| 3 | `verifyPassword` fails with incorrect password | Hash `'mypassword'`, then call `verifyPassword('wrongpassword', hash)`. Assert it returns `false`. |
-| 4 | `hashPassword` produces unique hashes for same input | Hash `'samepassword'` twice. Assert the two hashes are different (bcrypt uses random salts). |
-| 5 | `hashPassword` rejects empty string | Call `hashPassword('')`. Define expected behaviour: either reject or hash it (bcrypt does hash empty strings, so assert it still returns a valid hash). |
+| #   | Test Case                                            | Details                                                                                                                                                 |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `hashPassword` returns a bcrypt hash                 | Call `hashPassword('testpass123')`. Assert result starts with `$2b$` and has length > 50.                                                               |
+| 2   | `verifyPassword` succeeds with correct password      | Hash `'mypassword'`, then call `verifyPassword('mypassword', hash)`. Assert it returns `true`.                                                          |
+| 3   | `verifyPassword` fails with incorrect password       | Hash `'mypassword'`, then call `verifyPassword('wrongpassword', hash)`. Assert it returns `false`.                                                      |
+| 4   | `hashPassword` produces unique hashes for same input | Hash `'samepassword'` twice. Assert the two hashes are different (bcrypt uses random salts).                                                            |
+| 5   | `hashPassword` rejects empty string                  | Call `hashPassword('')`. Define expected behaviour: either reject or hash it (bcrypt does hash empty strings, so assert it still returns a valid hash). |
 
 **Test file: `src/lib/stores/children.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 6 | `selectedChild` derived store returns first child when no selection | Set `children` to `[childA, childB]`, leave `selectedChildId` as `null`. Subscribe to `selectedChild` and assert it returns `childA`. |
-| 7 | `selectedChild` returns the matching child | Set `selectedChildId` to `childB.id`. Assert `selectedChild` returns `childB`. |
-| 8 | `selectedChild` returns null when children array is empty | Set `children` to `[]`. Assert `selectedChild` returns `null`. |
-| 9 | `selectedChild` falls back to first child when ID is invalid | Set `selectedChildId` to `'nonexistent-id'`. Assert `selectedChild` returns the first child in the array. |
+| #   | Test Case                                                           | Details                                                                                                                               |
+| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | `selectedChild` derived store returns first child when no selection | Set `children` to `[childA, childB]`, leave `selectedChildId` as `null`. Subscribe to `selectedChild` and assert it returns `childA`. |
+| 7   | `selectedChild` returns the matching child                          | Set `selectedChildId` to `childB.id`. Assert `selectedChild` returns `childB`.                                                        |
+| 8   | `selectedChild` returns null when children array is empty           | Set `children` to `[]`. Assert `selectedChild` returns `null`.                                                                        |
+| 9   | `selectedChild` falls back to first child when ID is invalid        | Set `selectedChildId` to `'nonexistent-id'`. Assert `selectedChild` returns the first child in the array.                             |
 
 ### Integration Tests
 
 **Test file: `tests/integration/auth-api.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 10 | `POST /api/auth/register` creates a user | Send `{ email: 'test@example.com', password: 'password123', name: 'Test User' }`. Assert status 201. Assert response body has `id`, `email`, `name` but not `password` or `password_hash`. |
-| 11 | `POST /api/auth/register` rejects duplicate email | Register the same email twice. Assert second request returns status 409 with an error message. |
-| 12 | `POST /api/auth/register` rejects short password | Send `{ email: 'a@b.com', password: '123', name: 'X' }`. Assert status 400. |
-| 13 | `POST /api/auth/register` rejects invalid email format | Send `{ email: 'not-an-email', password: 'password123', name: 'X' }`. Assert status 400. |
-| 14 | `POST /api/auth/login` returns session cookie | Register a user, then login. Assert status 200. Assert `Set-Cookie` header contains `session_id`. Assert cookie flags include `HttpOnly`, `Path=/`. |
-| 15 | `POST /api/auth/login` rejects invalid credentials | Send `{ email: 'test@example.com', password: 'wrongpassword' }`. Assert status 401. Assert no `Set-Cookie` header. |
-| 16 | `POST /api/auth/login` rejects non-existent user | Send `{ email: 'nobody@example.com', password: 'whatever' }`. Assert status 401. |
-| 17 | `POST /api/auth/logout` clears session | Login to get a session cookie. Send `POST /api/auth/logout` with the cookie. Assert status 200. Assert the response sets `session_id` cookie with `Max-Age=0`. Attempt to access a protected resource with the old cookie -- assert redirect to `/login`. |
-| 18 | Session expires after 30 days | Create a session with `expires_at` set to 1 second in the past (directly in DB). Attempt to validate it. Assert `validateAndExtendSession` returns `null`. |
+| #   | Test Case                                              | Details                                                                                                                                                                                                                                                   |
+| --- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10  | `POST /api/auth/register` creates a user               | Send `{ email: 'test@example.com', password: 'password123', name: 'Test User' }`. Assert status 201. Assert response body has `id`, `email`, `name` but not `password` or `password_hash`.                                                                |
+| 11  | `POST /api/auth/register` rejects duplicate email      | Register the same email twice. Assert second request returns status 409 with an error message.                                                                                                                                                            |
+| 12  | `POST /api/auth/register` rejects short password       | Send `{ email: 'a@b.com', password: '123', name: 'X' }`. Assert status 400.                                                                                                                                                                               |
+| 13  | `POST /api/auth/register` rejects invalid email format | Send `{ email: 'not-an-email', password: 'password123', name: 'X' }`. Assert status 400.                                                                                                                                                                  |
+| 14  | `POST /api/auth/login` returns session cookie          | Register a user, then login. Assert status 200. Assert `Set-Cookie` header contains `session_id`. Assert cookie flags include `HttpOnly`, `Path=/`.                                                                                                       |
+| 15  | `POST /api/auth/login` rejects invalid credentials     | Send `{ email: 'test@example.com', password: 'wrongpassword' }`. Assert status 401. Assert no `Set-Cookie` header.                                                                                                                                        |
+| 16  | `POST /api/auth/login` rejects non-existent user       | Send `{ email: 'nobody@example.com', password: 'whatever' }`. Assert status 401.                                                                                                                                                                          |
+| 17  | `POST /api/auth/logout` clears session                 | Login to get a session cookie. Send `POST /api/auth/logout` with the cookie. Assert status 200. Assert the response sets `session_id` cookie with `Max-Age=0`. Attempt to access a protected resource with the old cookie -- assert redirect to `/login`. |
+| 18  | Session expires after 30 days                          | Create a session with `expires_at` set to 1 second in the past (directly in DB). Attempt to validate it. Assert `validateAndExtendSession` returns `null`.                                                                                                |
 
 **Test file: `tests/integration/children-api.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 19 | `GET /api/children` returns empty array for new user | Register, login, fetch children. Assert status 200 and empty array. |
-| 20 | `POST /api/children` creates a child | Send `{ name: 'Emma', birthDate: '2025-12-01' }` with session cookie. Assert status 201. Assert response has `id`, `name`, `birthDate`, `userId`. |
-| 21 | `GET /api/children` returns created children | Create two children, then fetch. Assert array length is 2. |
-| 22 | `PUT /api/children/[id]` updates the child name | Create a child, then update name to `'Emmy'`. Assert status 200 and updated name in response. |
-| 23 | `DELETE /api/children/[id]` removes the child | Create a child, then delete. Assert status 204. Fetch children and assert empty array. |
-| 24 | `PUT /api/children/[id]` rejects access to another user's child | Register two users. User A creates a child. User B attempts to update that child. Assert status 403. |
-| 25 | `DELETE /api/children/[id]` rejects access to another user's child | Same cross-user scenario as above but for deletion. Assert status 403. |
-| 26 | `POST /api/children` requires authentication | Send without session cookie. Assert status 401 or redirect. |
+| #   | Test Case                                                          | Details                                                                                                                                           |
+| --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 19  | `GET /api/children` returns empty array for new user               | Register, login, fetch children. Assert status 200 and empty array.                                                                               |
+| 20  | `POST /api/children` creates a child                               | Send `{ name: 'Emma', birthDate: '2025-12-01' }` with session cookie. Assert status 201. Assert response has `id`, `name`, `birthDate`, `userId`. |
+| 21  | `GET /api/children` returns created children                       | Create two children, then fetch. Assert array length is 2.                                                                                        |
+| 22  | `PUT /api/children/[id]` updates the child name                    | Create a child, then update name to `'Emmy'`. Assert status 200 and updated name in response.                                                     |
+| 23  | `DELETE /api/children/[id]` removes the child                      | Create a child, then delete. Assert status 204. Fetch children and assert empty array.                                                            |
+| 24  | `PUT /api/children/[id]` rejects access to another user's child    | Register two users. User A creates a child. User B attempts to update that child. Assert status 403.                                              |
+| 25  | `DELETE /api/children/[id]` rejects access to another user's child | Same cross-user scenario as above but for deletion. Assert status 403.                                                                            |
+| 26  | `POST /api/children` requires authentication                       | Send without session cookie. Assert status 401 or redirect.                                                                                       |
 
 **Test file: `tests/integration/seed-data.test.ts`**
 
-| # | Test Case | Details |
-|---|---|---|
-| 27 | Food categories are seeded | Query `SELECT COUNT(*) FROM food_categories`. Assert count >= 13. |
-| 28 | Food sub-items are seeded | Query `SELECT COUNT(*) FROM food_sub_items`. Assert count >= 50. |
-| 29 | Every food sub-item references a valid category | Query `SELECT fsi.id FROM food_sub_items fsi LEFT JOIN food_categories fc ON fsi.category_id = fc.id WHERE fc.id IS NULL`. Assert zero rows. |
-| 30 | Dairy category has 8 sub-items | Query sub-items where category slug = `'dairy'`. Assert count = 8. |
-| 31 | Categories have Czech names and icons | Query all categories. Assert every row has non-null, non-empty `name_cs` and `icon`. |
+| #   | Test Case                                       | Details                                                                                                                                      |
+| --- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 27  | Food categories are seeded                      | Query `SELECT COUNT(*) FROM food_categories`. Assert count >= 13.                                                                            |
+| 28  | Food sub-items are seeded                       | Query `SELECT COUNT(*) FROM food_sub_items`. Assert count >= 50.                                                                             |
+| 29  | Every food sub-item references a valid category | Query `SELECT fsi.id FROM food_sub_items fsi LEFT JOIN food_categories fc ON fsi.category_id = fc.id WHERE fc.id IS NULL`. Assert zero rows. |
+| 30  | Dairy category has 8 sub-items                  | Query sub-items where category slug = `'dairy'`. Assert count = 8.                                                                           |
+| 31  | Categories have Czech names and icons           | Query all categories. Assert every row has non-null, non-empty `name_cs` and `icon`.                                                         |
 
 ### E2E / Manual Tests
 
 **Test script: Full Registration and Login Flow**
 
-1. Start the app: `npm run dev`.
+1. Start the app: `bun run dev`.
 2. Navigate to `/register`.
 3. Fill in name: "Test User", email: "test@eczema.app", password: "password123".
 4. Submit the form.
@@ -722,9 +750,9 @@ The PostgreSQL database has all tables created (matching `docs/architecture/data
 
 All Phase 0 baseline checks must still pass:
 
-- [ ] `npm run dev` starts without errors.
-- [ ] `npm run build` completes without errors.
-- [ ] TypeScript compilation (`npx tsc --noEmit`) passes with zero errors.
+- [ ] `bun run dev` starts without errors.
+- [ ] `bun run build` completes without errors.
+- [ ] TypeScript compilation (`bunx tsc --noEmit`) passes with zero errors.
 - [ ] The PWA manifest is valid (Chrome DevTools > Application > Manifest).
 - [ ] The service worker registers successfully.
 - [ ] The bottom navigation bar renders correctly on a 375px viewport.

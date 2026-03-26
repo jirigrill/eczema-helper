@@ -54,6 +54,7 @@ This phase adds two export methods for sharing tracking data with the pediatrici
 ### Navigation
 
 Access the export feature via:
+
 1. **Trends page:** Add an "Exportovat" (Export) button on the trends dashboard, since users reviewing trends are the most likely to want to share with their pediatrician.
 2. **Settings page:** Alternative access point in the settings menu.
 3. **Bottom nav:** The Export page is accessible at `/export` but does NOT have its own tab (5 tabs is the iOS maximum).
@@ -70,21 +71,21 @@ Offer a "Pouze náhledy" (Thumbnails only) option for smaller PDFs.
 
 ### Files Created / Modified
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/lib/domain/services/export.ts` | Create | ExportService: data aggregation and PDF document definition assembly |
-| `src/lib/domain/services/pdf-builder.ts` | Create | PDFBuilder: pdfmake document definition construction with layout helpers |
-| `src/lib/utils/chart-to-image.ts` | Create | Utility to render a chart to a canvas and export as PNG data URL |
-| `src/lib/utils/date-format.ts` | Modify | Add Czech date formatting helpers for PDF (if not already present) |
-| `src/routes/(app)/export/+page.svelte` | Create | Export configuration page with date range picker, photo selector, preview, and generate button |
-| `src/routes/(app)/export/+page.ts` | Create | Client-side load function (no server load needed; all data comes from Dexie) |
-| `src/lib/domain/ports/google-export.ts` | Create | GoogleDocExport port interface |
-| `src/lib/adapters/google-docs.ts` | Create | Google Docs adapter: OAuth token management, Drive folder/file creation, Docs document assembly with inline images |
-| `src/routes/api/google/connect/+server.ts` | Create | Initiates OAuth2 flow — generates Google auth URL with Drive + Docs scopes |
-| `src/routes/api/google/callback/+server.ts` | Create | OAuth2 callback — exchanges auth code for tokens, stores refresh token encrypted in DB |
-| `src/routes/api/google/export/+server.ts` | Create | Triggers Google Doc export — receives aggregated data + decrypted photo blobs from client, uploads photos to Drive, creates/updates Doc |
-| `src/routes/api/google/disconnect/+server.ts` | Create | Revokes Google token and removes connection from DB |
-| Database migration | Create | `google_doc_connections` table for storing OAuth tokens and document references |
+| File                                          | Action | Purpose                                                                                                                                 |
+| --------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/domain/services/export.ts`           | Create | ExportService: data aggregation and PDF document definition assembly                                                                    |
+| `src/lib/domain/services/pdf-builder.ts`      | Create | PDFBuilder: pdfmake document definition construction with layout helpers                                                                |
+| `src/lib/utils/chart-to-image.ts`             | Create | Utility to render a chart to a canvas and export as PNG data URL                                                                        |
+| `src/lib/utils/date-format.ts`                | Modify | Add Czech date formatting helpers for PDF (if not already present)                                                                      |
+| `src/routes/(app)/export/+page.svelte`        | Create | Export configuration page with date range picker, photo selector, preview, and generate button                                          |
+| `src/routes/(app)/export/+page.ts`            | Create | Client-side load function (no server load needed; all data comes from Dexie)                                                            |
+| `src/lib/domain/ports/google-export.ts`       | Create | GoogleDocExport port interface                                                                                                          |
+| `src/lib/adapters/google-docs.ts`             | Create | Google Docs adapter: OAuth token management, Drive folder/file creation, Docs document assembly with inline images                      |
+| `src/routes/api/google/connect/+server.ts`    | Create | Initiates OAuth2 flow — generates Google auth URL with Drive + Docs scopes                                                              |
+| `src/routes/api/google/callback/+server.ts`   | Create | OAuth2 callback — exchanges auth code for tokens, stores refresh token encrypted in DB                                                  |
+| `src/routes/api/google/export/+server.ts`     | Create | Triggers Google Doc export — receives aggregated data + decrypted photo blobs from client, uploads photos to Drive, creates/updates Doc |
+| `src/routes/api/google/disconnect/+server.ts` | Create | Revokes Google token and removes connection from DB                                                                                     |
+| Database migration                            | Create | `google_doc_connections` table for storing OAuth tokens and document references                                                         |
 
 ### Step-by-Step Instructions
 
@@ -93,7 +94,7 @@ Offer a "Pouze náhledy" (Thumbnails only) option for smaller PDFs.
 Add pdfmake as a dependency:
 
 ```bash
-npm install pdfmake
+bun add pdfmake
 ```
 
 pdfmake runs entirely in the browser and supports embedded images, tables, and custom fonts. It produces a PDF blob that can be downloaded or shared directly.
@@ -104,20 +105,30 @@ Ensure `src/lib/utils/date-format.ts` has the following:
 
 ```typescript
 const CZECH_MONTHS = [
-    'ledna', 'unora', 'brezna', 'dubna', 'kvetna', 'cervna',
-    'cervence', 'srpna', 'zari', 'rijna', 'listopadu', 'prosince'
+  "ledna",
+  "unora",
+  "brezna",
+  "dubna",
+  "kvetna",
+  "cervna",
+  "cervence",
+  "srpna",
+  "zari",
+  "rijna",
+  "listopadu",
+  "prosince",
 ];
 
 export function formatDateCzech(date: Date): string {
-    return `${date.getDate()}. ${date.getMonth() + 1}. ${date.getFullYear()}`;
+  return `${date.getDate()}. ${date.getMonth() + 1}. ${date.getFullYear()}`;
 }
 
 export function formatDateCzechLong(date: Date): string {
-    return `${date.getDate()}. ${CZECH_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  return `${date.getDate()}. ${CZECH_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 export function formatDateRange(from: Date, to: Date): string {
-    return `${formatDateCzech(from)} - ${formatDateCzech(to)}`;
+  return `${formatDateCzech(from)} - ${formatDateCzech(to)}`;
 }
 ```
 
@@ -131,35 +142,31 @@ Create `src/lib/utils/chart-to-image.ts`:
  * Creates an offscreen container, renders the chart, and exports the canvas.
  */
 export async function chartToDataUrl(
-    opts: uPlot.Options,
-    data: uPlot.AlignedData,
-    width: number = 600,
-    height: number = 300
+  opts: uPlot.Options,
+  data: uPlot.AlignedData,
+  width: number = 600,
+  height: number = 300,
 ): Promise<string> {
-    // Dynamic import to avoid SSR issues
-    const uPlot = (await import('uplot')).default;
+  // Dynamic import to avoid SSR issues
+  const uPlot = (await import("uplot")).default;
 
-    // Create an offscreen container
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
+  // Create an offscreen container
+  const container = document.createElement("div");
+  container.style.position = "absolute";
+  container.style.left = "-9999px";
+  document.body.appendChild(container);
 
-    const chart = new uPlot(
-        { ...opts, width, height },
-        data,
-        container
-    );
+  const chart = new uPlot({ ...opts, width, height }, data, container);
 
-    // uPlot renders to a canvas element inside the container
-    const canvas = container.querySelector('canvas');
-    if (!canvas) throw new Error('uPlot canvas not found');
-    const dataUrl = canvas.toDataURL('image/png');
+  // uPlot renders to a canvas element inside the container
+  const canvas = container.querySelector("canvas");
+  if (!canvas) throw new Error("uPlot canvas not found");
+  const dataUrl = canvas.toDataURL("image/png");
 
-    chart.destroy();
-    document.body.removeChild(container);
+  chart.destroy();
+  document.body.removeChild(container);
 
-    return dataUrl;
+  return dataUrl;
 }
 ```
 
@@ -344,307 +351,373 @@ export class ExportService {
 Create `src/lib/domain/services/pdf-builder.ts`:
 
 ```typescript
-import type { TDocumentDefinitions, Content } from 'pdfmake/interfaces';
-import type { ExportData } from './export';
-import { formatDateCzech, formatDateRange, formatDateCzechLong } from '$lib/utils/date-format';
+import type { TDocumentDefinitions, Content } from "pdfmake/interfaces";
+import type { ExportData } from "./export";
+import {
+  formatDateCzech,
+  formatDateRange,
+  formatDateCzechLong,
+} from "$lib/utils/date-format";
 
 const TREND_LABELS: Record<string, string> = {
-    improving: 'Zlepseni',
-    stable: 'Stabilni',
-    worsening: 'Zhorseni'
+  improving: "Zlepseni",
+  stable: "Stabilni",
+  worsening: "Zhorseni",
 };
 
 const BODY_AREA_LABELS: Record<string, string> = {
-    face: 'Oblicej',
-    arms: 'Paze',
-    legs: 'Nohy',
-    torso: 'Trup',
-    hands: 'Ruce',
-    feet: 'Chodidla',
-    neck: 'Krk',
-    scalp: 'Pokozka hlavy'
+  face: "Oblicej",
+  arms: "Paze",
+  legs: "Nohy",
+  torso: "Trup",
+  hands: "Ruce",
+  feet: "Chodidla",
+  neck: "Krk",
+  scalp: "Pokozka hlavy",
 };
 
 export class PDFBuilder {
-    buildDocument(data: ExportData, chartImageDataUrl: string | null): TDocumentDefinitions {
-        return {
-            pageSize: 'A4',
-            pageMargins: [40, 60, 40, 60],
-            defaultStyle: {
-                font: 'Roboto',
-                fontSize: 10,
-                lineHeight: 1.4
-            },
-            content: [
-                this.buildHeader(data),
-                this.buildSummary(data),
-                this.buildFoodTimeline(data),
-                this.buildMealLog(data),
-                this.buildPhotoProgression(data),
-                this.buildSeverityChart(chartImageDataUrl),
-                this.buildAiAnalyses(data),
-                this.buildNotesSection(data),
-                this.buildFooter()
-            ].filter(Boolean) as Content[],
-            styles: {
-                header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] },
-                subheader: { fontSize: 14, bold: true, margin: [0, 15, 0, 5] },
-                sectionTitle: { fontSize: 12, bold: true, margin: [0, 10, 0, 5] },
-                small: { fontSize: 8, color: '#666666' },
-                tableHeader: { bold: true, fontSize: 10, fillColor: '#f0f0f0' }
-            }
-        };
-    }
+  buildDocument(
+    data: ExportData,
+    chartImageDataUrl: string | null,
+  ): TDocumentDefinitions {
+    return {
+      pageSize: "A4",
+      pageMargins: [40, 60, 40, 60],
+      defaultStyle: {
+        font: "Roboto",
+        fontSize: 10,
+        lineHeight: 1.4,
+      },
+      content: [
+        this.buildHeader(data),
+        this.buildSummary(data),
+        this.buildFoodTimeline(data),
+        this.buildMealLog(data),
+        this.buildPhotoProgression(data),
+        this.buildSeverityChart(chartImageDataUrl),
+        this.buildAiAnalyses(data),
+        this.buildNotesSection(data),
+        this.buildFooter(),
+      ].filter(Boolean) as Content[],
+      styles: {
+        header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] },
+        subheader: { fontSize: 14, bold: true, margin: [0, 15, 0, 5] },
+        sectionTitle: { fontSize: 12, bold: true, margin: [0, 10, 0, 5] },
+        small: { fontSize: 8, color: "#666666" },
+        tableHeader: { bold: true, fontSize: 10, fillColor: "#f0f0f0" },
+      },
+    };
+  }
 
-    private buildHeader(data: ExportData): Content {
-        return [
-            { text: 'Zprava o prubehu ekzemu', style: 'header' },
-            {
-                columns: [
-                    {
-                        width: '*',
-                        text: [
-                            { text: 'Dite: ', bold: true },
-                            `${data.childName}\n`,
-                            { text: 'Datum narozeni: ', bold: true },
-                            `${formatDateCzech(data.childBirthDate)}\n`,
-                        ]
-                    },
-                    {
-                        width: 'auto',
-                        text: [
-                            { text: 'Obdobi: ', bold: true },
-                            formatDateRange(data.dateRange.from, data.dateRange.to)
-                        ],
-                        alignment: 'right'
-                    }
-                ],
-                margin: [0, 0, 0, 15]
-            },
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#cccccc' }] }
-        ];
-    }
-
-    private buildSummary(data: ExportData): Content {
-        const summary = data.eliminationSummary;
-        return [
-            { text: 'Souhrn', style: 'subheader' },
-            {
-                ul: [
-                    `Pocet eliminaci: ${summary.totalEliminations}`,
-                    `Aktualne eliminovane potraviny: ${summary.currentlyEliminated.length > 0 ? summary.currentlyEliminated.join(', ') : 'zadne'}`,
-                    `Uspesne znovuzavedene potraviny: ${summary.successfulReintroductions.length > 0 ? summary.successfulReintroductions.join(', ') : 'zadne'}`,
-                    `Neuspesne znovuzavedeni: ${summary.failedReintroductions.length > 0 ? summary.failedReintroductions.join(', ') : 'zadne'}`,
-                    `Pocet zaznamu jidla: ${data.foodLogs.length}`,
-                    `Pocet fotek: ${data.photos.length}`,
-                    `Pocet AI analyz: ${data.aiAnalyses.length}`
-                ]
-            }
-        ];
-    }
-
-    private buildFoodTimeline(data: ExportData): Content {
-        if (data.foodLogs.length === 0) {
-            return [
-                { text: 'Casova osa eliminacni diety', style: 'subheader' },
-                { text: 'V tomto obdobi nebyly zaznamenany zadne zmeny v jidelnicku.', italics: true }
-            ];
-        }
-
-        const timelineRows: any[][] = [
-            [
-                { text: 'Datum', style: 'tableHeader' },
-                { text: 'Potraviny', style: 'tableHeader' },
-                { text: 'Eliminovane', style: 'tableHeader' },
-                { text: 'Znovuzavedene', style: 'tableHeader' },
-                { text: 'Poznamky', style: 'tableHeader' }
-            ]
-        ];
-
-        for (const log of data.foodLogs) {
-            timelineRows.push([
-                formatDateCzech(log.date),
-                log.foods.join(', ') || '-',
-                log.eliminatedFoods.join(', ') || '-',
-                log.reintroducedFoods.join(', ') || '-',
-                log.notes || '-'
-            ]);
-        }
-
-        return [
-            { text: 'Casova osa eliminacni diety', style: 'subheader' },
-            {
-                table: {
-                    headerRows: 1,
-                    widths: [60, '*', '*', '*', '*'],
-                    body: timelineRows
-                },
-                layout: 'lightHorizontalLines'
-            }
-        ];
-    }
-
-    private buildMealLog(data: ExportData): Content {
-        if (data.meals.length === 0) {
-            return [
-                { text: 'Zaznam jidel', style: 'subheader' },
-                { text: 'V tomto obdobi nebyla zaznamenana zadna jidla.', italics: true }
-            ];
-        }
-
-        // Group meals by date
-        const mealsByDate = new Map<string, typeof data.meals>();
-        for (const meal of data.meals) {
-            const key = formatDateCzech(meal.date);
-            if (!mealsByDate.has(key)) mealsByDate.set(key, []);
-            mealsByDate.get(key)!.push(meal);
-        }
-
-        const rows: any[][] = [
-            [
-                { text: 'Datum', style: 'tableHeader' },
-                { text: 'Jidlo', style: 'tableHeader' },
-                { text: 'Polozky', style: 'tableHeader' }
-            ]
-        ];
-
-        for (const [date, meals] of mealsByDate) {
-            for (const meal of meals) {
-                const label = meal.label ? `${meal.mealType} (${meal.label})` : meal.mealType;
-                rows.push([date, label, meal.items.join(', ')]);
-            }
-        }
-
-        return [
-            { text: 'Zaznam jidel', style: 'subheader' },
-            {
-                table: {
-                    headerRows: 1,
-                    widths: [60, 100, '*'],
-                    body: rows
-                },
-                layout: 'lightHorizontalLines'
-            }
-        ];
-    }
-
-    private buildPhotoProgression(data: ExportData): Content {
-        if (data.photos.length === 0) {
-            return [
-                { text: 'Fotodokumentace', style: 'subheader' },
-                { text: 'V tomto obdobi nebyly porizeny zadne fotky.', italics: true }
-            ];
-        }
-
-        const photoItems: Content[] = data.photos.map(photo => ({
-            stack: [
-                {
-                    image: photo.imageDataUrl,
-                    width: 150,
-                    margin: [0, 5, 0, 5] as [number, number, number, number]
-                },
-                {
-                    text: [
-                        { text: `${formatDateCzech(photo.date)}`, bold: true },
-                        ` | ${BODY_AREA_LABELS[photo.bodyArea] || photo.bodyArea}`,
-                        ` | Zavaznost: ${photo.severityRating}/10`
-                    ],
-                    fontSize: 9
-                }
+  private buildHeader(data: ExportData): Content {
+    return [
+      { text: "Zprava o prubehu ekzemu", style: "header" },
+      {
+        columns: [
+          {
+            width: "*",
+            text: [
+              { text: "Dite: ", bold: true },
+              `${data.childName}\n`,
+              { text: "Datum narozeni: ", bold: true },
+              `${formatDateCzech(data.childBirthDate)}\n`,
             ],
-            margin: [0, 5, 10, 10] as [number, number, number, number]
-        }));
+          },
+          {
+            width: "auto",
+            text: [
+              { text: "Obdobi: ", bold: true },
+              formatDateRange(data.dateRange.from, data.dateRange.to),
+            ],
+            alignment: "right",
+          },
+        ],
+        margin: [0, 0, 0, 15],
+      },
+      {
+        canvas: [
+          {
+            type: "line",
+            x1: 0,
+            y1: 0,
+            x2: 515,
+            y2: 0,
+            lineWidth: 1,
+            lineColor: "#cccccc",
+          },
+        ],
+      },
+    ];
+  }
 
-        // Arrange photos in rows of 3
-        const rows: Content[] = [];
-        for (let i = 0; i < photoItems.length; i += 3) {
-            const rowPhotos = photoItems.slice(i, i + 3);
-            rows.push({
-                columns: rowPhotos.map(item => ({ width: '33%', ...item }))
-            });
-        }
+  private buildSummary(data: ExportData): Content {
+    const summary = data.eliminationSummary;
+    return [
+      { text: "Souhrn", style: "subheader" },
+      {
+        ul: [
+          `Pocet eliminaci: ${summary.totalEliminations}`,
+          `Aktualne eliminovane potraviny: ${summary.currentlyEliminated.length > 0 ? summary.currentlyEliminated.join(", ") : "zadne"}`,
+          `Uspesne znovuzavedene potraviny: ${summary.successfulReintroductions.length > 0 ? summary.successfulReintroductions.join(", ") : "zadne"}`,
+          `Neuspesne znovuzavedeni: ${summary.failedReintroductions.length > 0 ? summary.failedReintroductions.join(", ") : "zadne"}`,
+          `Pocet zaznamu jidla: ${data.foodLogs.length}`,
+          `Pocet fotek: ${data.photos.length}`,
+          `Pocet AI analyz: ${data.aiAnalyses.length}`,
+        ],
+      },
+    ];
+  }
 
-        return [
-            { text: 'Fotodokumentace', style: 'subheader' },
-            ...rows
-        ];
+  private buildFoodTimeline(data: ExportData): Content {
+    if (data.foodLogs.length === 0) {
+      return [
+        { text: "Casova osa eliminacni diety", style: "subheader" },
+        {
+          text: "V tomto obdobi nebyly zaznamenany zadne zmeny v jidelnicku.",
+          italics: true,
+        },
+      ];
     }
 
-    private buildSeverityChart(chartImageDataUrl: string | null): Content | null {
-        if (!chartImageDataUrl) return null;
+    const timelineRows: any[][] = [
+      [
+        { text: "Datum", style: "tableHeader" },
+        { text: "Potraviny", style: "tableHeader" },
+        { text: "Eliminovane", style: "tableHeader" },
+        { text: "Znovuzavedene", style: "tableHeader" },
+        { text: "Poznamky", style: "tableHeader" },
+      ],
+    ];
 
-        return [
-            { text: 'Trend zavaznosti ekzemu', style: 'subheader' },
+    for (const log of data.foodLogs) {
+      timelineRows.push([
+        formatDateCzech(log.date),
+        log.foods.join(", ") || "-",
+        log.eliminatedFoods.join(", ") || "-",
+        log.reintroducedFoods.join(", ") || "-",
+        log.notes || "-",
+      ]);
+    }
+
+    return [
+      { text: "Casova osa eliminacni diety", style: "subheader" },
+      {
+        table: {
+          headerRows: 1,
+          widths: [60, "*", "*", "*", "*"],
+          body: timelineRows,
+        },
+        layout: "lightHorizontalLines",
+      },
+    ];
+  }
+
+  private buildMealLog(data: ExportData): Content {
+    if (data.meals.length === 0) {
+      return [
+        { text: "Zaznam jidel", style: "subheader" },
+        {
+          text: "V tomto obdobi nebyla zaznamenana zadna jidla.",
+          italics: true,
+        },
+      ];
+    }
+
+    // Group meals by date
+    const mealsByDate = new Map<string, typeof data.meals>();
+    for (const meal of data.meals) {
+      const key = formatDateCzech(meal.date);
+      if (!mealsByDate.has(key)) mealsByDate.set(key, []);
+      mealsByDate.get(key)!.push(meal);
+    }
+
+    const rows: any[][] = [
+      [
+        { text: "Datum", style: "tableHeader" },
+        { text: "Jidlo", style: "tableHeader" },
+        { text: "Polozky", style: "tableHeader" },
+      ],
+    ];
+
+    for (const [date, meals] of mealsByDate) {
+      for (const meal of meals) {
+        const label = meal.label
+          ? `${meal.mealType} (${meal.label})`
+          : meal.mealType;
+        rows.push([date, label, meal.items.join(", ")]);
+      }
+    }
+
+    return [
+      { text: "Zaznam jidel", style: "subheader" },
+      {
+        table: {
+          headerRows: 1,
+          widths: [60, 100, "*"],
+          body: rows,
+        },
+        layout: "lightHorizontalLines",
+      },
+    ];
+  }
+
+  private buildPhotoProgression(data: ExportData): Content {
+    if (data.photos.length === 0) {
+      return [
+        { text: "Fotodokumentace", style: "subheader" },
+        { text: "V tomto obdobi nebyly porizeny zadne fotky.", italics: true },
+      ];
+    }
+
+    const photoItems: Content[] = data.photos.map((photo) => ({
+      stack: [
+        {
+          image: photo.imageDataUrl,
+          width: 150,
+          margin: [0, 5, 0, 5] as [number, number, number, number],
+        },
+        {
+          text: [
+            { text: `${formatDateCzech(photo.date)}`, bold: true },
+            ` | ${BODY_AREA_LABELS[photo.bodyArea] || photo.bodyArea}`,
+            ` | Zavaznost: ${photo.severityRating}/10`,
+          ],
+          fontSize: 9,
+        },
+      ],
+      margin: [0, 5, 10, 10] as [number, number, number, number],
+    }));
+
+    // Arrange photos in rows of 3
+    const rows: Content[] = [];
+    for (let i = 0; i < photoItems.length; i += 3) {
+      const rowPhotos = photoItems.slice(i, i + 3);
+      rows.push({
+        columns: rowPhotos.map((item) => ({ width: "33%", ...item })),
+      });
+    }
+
+    return [{ text: "Fotodokumentace", style: "subheader" }, ...rows];
+  }
+
+  private buildSeverityChart(chartImageDataUrl: string | null): Content | null {
+    if (!chartImageDataUrl) return null;
+
+    return [
+      { text: "Trend zavaznosti ekzemu", style: "subheader" },
+      {
+        image: chartImageDataUrl,
+        width: 500,
+        margin: [0, 5, 0, 10] as [number, number, number, number],
+      },
+    ];
+  }
+
+  private buildAiAnalyses(data: ExportData): Content {
+    if (data.aiAnalyses.length === 0) {
+      return [
+        { text: "AI analyzy", style: "subheader" },
+        {
+          text: "V tomto obdobi nebyly provedeny zadne AI analyzy.",
+          italics: true,
+        },
+      ];
+    }
+
+    const analysisItems: Content[] = data.aiAnalyses.map((analysis) => ({
+      stack: [
+        {
+          text: [
+            { text: `${formatDateCzech(analysis.date)} `, bold: true },
             {
-                image: chartImageDataUrl,
-                width: 500,
-                margin: [0, 5, 0, 10] as [number, number, number, number]
-            }
-        ];
-    }
-
-    private buildAiAnalyses(data: ExportData): Content {
-        if (data.aiAnalyses.length === 0) {
-            return [
-                { text: 'AI analyzy', style: 'subheader' },
-                { text: 'V tomto obdobi nebyly provedeny zadne AI analyzy.', italics: true }
-            ];
-        }
-
-        const analysisItems: Content[] = data.aiAnalyses.map(analysis => ({
-            stack: [
-                {
-                    text: [
-                        { text: `${formatDateCzech(analysis.date)} `, bold: true },
-                        { text: `[${TREND_LABELS[analysis.trendIndicator]}]`, color: this.getTrendColor(analysis.trendIndicator) }
-                    ]
-                },
-                { text: analysis.summary, margin: [0, 2, 0, 8] as [number, number, number, number] }
-            ]
-        }));
-
-        return [
-            { text: 'AI analyzy', style: 'subheader' },
-            ...analysisItems
-        ];
-    }
-
-    private buildNotesSection(data: ExportData): Content {
-        return [
-            { text: 'Poznamky', style: 'subheader' },
-            {
-                text: 'Prostor pro doplnujici poznamky rodice nebo lekare:',
-                margin: [0, 0, 0, 5] as [number, number, number, number]
+              text: `[${TREND_LABELS[analysis.trendIndicator]}]`,
+              color: this.getTrendColor(analysis.trendIndicator),
             },
-            {
-                canvas: [
-                    { type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#cccccc' },
-                    { type: 'line', x1: 0, y1: 20, x2: 515, y2: 20, lineWidth: 0.5, lineColor: '#cccccc' },
-                    { type: 'line', x1: 0, y1: 40, x2: 515, y2: 40, lineWidth: 0.5, lineColor: '#cccccc' },
-                    { type: 'line', x1: 0, y1: 60, x2: 515, y2: 60, lineWidth: 0.5, lineColor: '#cccccc' }
-                ],
-                margin: [0, 0, 0, 10] as [number, number, number, number]
-            }
-        ];
-    }
+          ],
+        },
+        {
+          text: analysis.summary,
+          margin: [0, 2, 0, 8] as [number, number, number, number],
+        },
+      ],
+    }));
 
-    private buildFooter(): Content {
-        return {
-            text: 'Generovano aplikaci Eczema Tracker',
-            style: 'small',
-            alignment: 'center',
-            margin: [0, 20, 0, 0] as [number, number, number, number]
-        };
-    }
+    return [{ text: "AI analyzy", style: "subheader" }, ...analysisItems];
+  }
 
-    private getTrendColor(trend: string): string {
-        switch (trend) {
-            case 'improving': return '#22c55e';
-            case 'stable': return '#f59e0b';
-            case 'worsening': return '#ef4444';
-            default: return '#666666';
-        }
+  private buildNotesSection(data: ExportData): Content {
+    return [
+      { text: "Poznamky", style: "subheader" },
+      {
+        text: "Prostor pro doplnujici poznamky rodice nebo lekare:",
+        margin: [0, 0, 0, 5] as [number, number, number, number],
+      },
+      {
+        canvas: [
+          {
+            type: "line",
+            x1: 0,
+            y1: 0,
+            x2: 515,
+            y2: 0,
+            lineWidth: 0.5,
+            lineColor: "#cccccc",
+          },
+          {
+            type: "line",
+            x1: 0,
+            y1: 20,
+            x2: 515,
+            y2: 20,
+            lineWidth: 0.5,
+            lineColor: "#cccccc",
+          },
+          {
+            type: "line",
+            x1: 0,
+            y1: 40,
+            x2: 515,
+            y2: 40,
+            lineWidth: 0.5,
+            lineColor: "#cccccc",
+          },
+          {
+            type: "line",
+            x1: 0,
+            y1: 60,
+            x2: 515,
+            y2: 60,
+            lineWidth: 0.5,
+            lineColor: "#cccccc",
+          },
+        ],
+        margin: [0, 0, 0, 10] as [number, number, number, number],
+      },
+    ];
+  }
+
+  private buildFooter(): Content {
+    return {
+      text: "Generovano aplikaci Eczema Tracker",
+      style: "small",
+      alignment: "center",
+      margin: [0, 20, 0, 0] as [number, number, number, number],
+    };
+  }
+
+  private getTrendColor(trend: string): string {
+    switch (trend) {
+      case "improving":
+        return "#22c55e";
+      case "stable":
+        return "#f59e0b";
+      case "worsening":
+        return "#ef4444";
+      default:
+        return "#666666";
     }
+  }
 }
 ```
 
@@ -680,45 +753,49 @@ The page should include:
 The generation flow:
 
 ```typescript
-import { ExportService } from '$lib/domain/services/export';
-import { PDFBuilder } from '$lib/domain/services/pdf-builder';
-import { chartToDataUrl } from '$lib/utils/chart-to-image';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { ExportService } from "$lib/domain/services/export";
+import { PDFBuilder } from "$lib/domain/services/pdf-builder";
+import { chartToDataUrl } from "$lib/utils/chart-to-image";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 async function generatePDF() {
-    generating = true;
-    try {
-        const exportService = new ExportService(db, cryptoAdapter);
-        const data = await exportService.aggregateData({
-            childId: activeChild.id,
-            dateFrom: selectedDateFrom,
-            dateTo: selectedDateTo,
-            selectedPhotoIds: selectedPhotoIds,
-            includeAiSummaries: includeAiSummaries,
-            parentNotes: parentNotes
-        });
+  generating = true;
+  try {
+    const exportService = new ExportService(db, cryptoAdapter);
+    const data = await exportService.aggregateData({
+      childId: activeChild.id,
+      dateFrom: selectedDateFrom,
+      dateTo: selectedDateTo,
+      selectedPhotoIds: selectedPhotoIds,
+      includeAiSummaries: includeAiSummaries,
+      parentNotes: parentNotes,
+    });
 
-        // Render severity chart to image
-        let chartImage: string | null = null;
-        if (data.severityData.length > 0) {
-            chartImage = await chartToDataUrl(buildSeverityChartConfig(data.severityData));
-        }
-
-        const pdfBuilder = new PDFBuilder();
-        const docDefinition = pdfBuilder.buildDocument(data, chartImage);
-
-        pdfMake.createPdf(docDefinition).download(
-            `ekzem-report-${data.childName}-${formatFileDate(selectedDateFrom)}-${formatFileDate(selectedDateTo)}.pdf`
-        );
-    } catch (err) {
-        errorMessage = 'Chyba pri generovani PDF. Zkuste to prosim znovu.';
-        console.error('PDF generation error:', err);
-    } finally {
-        generating = false;
+    // Render severity chart to image
+    let chartImage: string | null = null;
+    if (data.severityData.length > 0) {
+      chartImage = await chartToDataUrl(
+        buildSeverityChartConfig(data.severityData),
+      );
     }
+
+    const pdfBuilder = new PDFBuilder();
+    const docDefinition = pdfBuilder.buildDocument(data, chartImage);
+
+    pdfMake
+      .createPdf(docDefinition)
+      .download(
+        `ekzem-report-${data.childName}-${formatFileDate(selectedDateFrom)}-${formatFileDate(selectedDateTo)}.pdf`,
+      );
+  } catch (err) {
+    errorMessage = "Chyba pri generovani PDF. Zkuste to prosim znovu.";
+    console.error("PDF generation error:", err);
+  } finally {
+    generating = false;
+  }
 }
 ```
 
@@ -728,28 +805,30 @@ Add share and print functions to the export page:
 
 ```typescript
 async function sharePDF() {
-    const exportService = new ExportService(db, cryptoAdapter);
-    const data = await exportService.aggregateData(/* ...options... */);
-    const pdfBuilder = new PDFBuilder();
-    const docDefinition = pdfBuilder.buildDocument(data, chartImage);
+  const exportService = new ExportService(db, cryptoAdapter);
+  const data = await exportService.aggregateData(/* ...options... */);
+  const pdfBuilder = new PDFBuilder();
+  const docDefinition = pdfBuilder.buildDocument(data, chartImage);
 
-    pdfMake.createPdf(docDefinition).getBlob(async (blob: Blob) => {
-        const file = new File([blob], `ekzem-report.pdf`, { type: 'application/pdf' });
-        if (navigator.share && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: 'Zprava o ekzemu' });
-        }
+  pdfMake.createPdf(docDefinition).getBlob(async (blob: Blob) => {
+    const file = new File([blob], `ekzem-report.pdf`, {
+      type: "application/pdf",
     });
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Zprava o ekzemu" });
+    }
+  });
 }
 
 function printPDF() {
-    pdfMake.createPdf(docDefinition).print();
+  pdfMake.createPdf(docDefinition).print();
 }
 ```
 
 #### Step 8: Install googleapis
 
 ```bash
-npm install googleapis
+bun add googleapis
 ```
 
 The `googleapis` package provides the Google Drive API, Google Docs API, and OAuth2 utilities. It runs server-side only (SvelteKit API routes).
@@ -763,21 +842,47 @@ export interface GoogleDocExportData {
   childName: string;
   childBirthDate: Date;
   dateRange: { from: Date; to: Date };
-  foodLogs: Array<{ date: string; category: string; subItem: string; action: string; notes?: string }>;
-  meals: Array<{ date: string; mealType: string; label?: string; items: string[] }>;
-  photos: Array<{
-    date: string; photoType: string; bodyArea?: string; severity?: number;
-    stoolColor?: string; stoolConsistency?: string; hasMucus?: boolean; hasBlood?: boolean;
-    notes?: string; imageBlob?: Blob;  // decrypted photo, optional (user selects which to include)
+  foodLogs: Array<{
+    date: string;
+    category: string;
+    subItem: string;
+    action: string;
+    notes?: string;
   }>;
-  analyses: Array<{ date: string; photoType: string; trend: string; explanation: string }>;
-  chartImage?: Blob;  // severity chart rendered as PNG
+  meals: Array<{
+    date: string;
+    mealType: string;
+    label?: string;
+    items: string[];
+  }>;
+  photos: Array<{
+    date: string;
+    photoType: string;
+    bodyArea?: string;
+    severity?: number;
+    stoolColor?: string;
+    stoolConsistency?: string;
+    hasMucus?: boolean;
+    hasBlood?: boolean;
+    notes?: string;
+    imageBlob?: Blob; // decrypted photo, optional (user selects which to include)
+  }>;
+  analyses: Array<{
+    date: string;
+    photoType: string;
+    trend: string;
+    explanation: string;
+  }>;
+  chartImage?: Blob; // severity chart rendered as PNG
 }
 
 export interface GoogleDocExportPort {
   connect(userId: string): Promise<{ authUrl: string }>;
   handleCallback(userId: string, code: string): Promise<void>;
-  export(userId: string, data: GoogleDocExportData): Promise<{ documentUrl: string }>;
+  export(
+    userId: string,
+    data: GoogleDocExportData,
+  ): Promise<{ documentUrl: string }>;
   disconnect(userId: string): Promise<void>;
   isConnected(userId: string): Promise<boolean>;
 }
@@ -930,16 +1035,16 @@ The export page offers two export methods:
    - `formatDateCzechLong(new Date(2026, 0, 1))` returns "1. ledna 2026".
    - `formatDateRange` produces correct "from - to" string.
 
-5. **chartToDataUrl**
+6. **chartToDataUrl**
    - Given a valid uPlot configuration, returns a string starting with "data:image/png;base64,".
    - The chart is destroyed after rendering (no memory leak).
    - Throws an error if canvas 2D context is unavailable.
 
-6. **Filename generation**
+7. **Filename generation**
    - Filename follows pattern `ekzem-report-{childName}-{YYYY-MM-DD}-{YYYY-MM-DD}.pdf`.
    - Special characters in child name are sanitized (spaces replaced with hyphens, diacritics handled).
 
-7. **Google Docs adapter — document assembly (with mocked Google API)**
+8. **Google Docs adapter — document assembly (with mocked Google API)**
    - `connect()` returns a valid auth URL with Drive + Docs scopes.
    - `handleCallback()` with valid code stores encrypted refresh token in DB.
    - `handleCallback()` with invalid code throws error.
@@ -952,7 +1057,7 @@ The export page offers two export methods:
    - `disconnect()` calls Google revoke endpoint and deletes DB record.
    - `isConnected()` returns true when connection exists, false otherwise.
 
-8. **Google Docs data formatting**
+9. **Google Docs data formatting**
    - Food log table is formatted with columns: Datum, Kategorie, Polozka, Akce, Poznamky. Dates Czech style.
    - Meal table is formatted with columns: Datum, Typ jidla, Polozky.
    - Photo section includes inline images with captions (date, body area/stool metadata).

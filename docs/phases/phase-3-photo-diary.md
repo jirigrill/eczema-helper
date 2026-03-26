@@ -48,28 +48,31 @@ These decisions are deferred to user testing (on a real phone with the app shell
 5. **Ghost overlay** -- when a previous photo of the same type (and same body area for skin) exists, it is decrypted and displayed as a semi-transparent overlay on top of the live camera feed, helping the user align the camera consistently for better comparison. Toggleable on/off. When no previous photo exists, a static SVG silhouette (body area outline for skin, diaper framing guide for stool) is shown as fallback. Lighting-check hint ("Zajistete dostatecne osvetleni").
 
 **Ghost overlay improvements:**
+
 - Allow opacity adjustment via a slider (10%–50%) rather than fixed 30%.
 - Rename toggle label from "Překryv: zap/vyp" to "Předchozí fotka" (Previous photo) with a ghost icon.
 - Add a brief tooltip on first use: "Porovnejte polohu s předchozí fotkou pro lepší srovnání." (Compare position with the previous photo for better comparison.)
+
 6. **Body area selector (skin)** -- enumerated areas: `face`, `arms`, `legs`, `torso`, `hands`, `other`.
 7. **Stool metadata form (stool)** -- color picker (yellow/green/brown/red/black/white), consistency selector (liquid/soft/formed/hard), mucus toggle (yes/no), blood toggle (yes/no).
-6. **Image compression** -- captured image resized to max 1920 px on the longest edge, re-encoded as JPEG at 80 % quality.
-7. **Client-side encryption** -- compressed JPEG encrypted with AES-256-GCM; a separate smaller thumbnail (320 px) is encrypted independently.
-8. **Server upload** -- encrypted blobs (full + thumbnail, each with IV prepended) uploaded via `POST /api/photos` with metadata (body area, severity, timestamp, child ID). IVs are embedded in the blob data, not sent separately.
-9. **Photo gallery page** -- grid of thumbnails sorted newest-first, grouped by date. Thumbnails decrypted in the browser on scroll. Filter tabs for "Vse" (All), "Kuze" (Skin), "Stolice" (Stool).
-10. **Photo detail view** -- full-size image decrypted and displayed with type-specific metadata (body area + severity for skin; color + consistency + mucus + blood for stool).
-11. **Side-by-side comparison view** -- user picks two photos of the same type; the app shows them side by side with metadata.
-12. **Manual severity rating (skin)** -- integer scale 1-5 assigned per skin photo at capture time (editable later).
+8. **Image compression** -- captured image resized to max 1920 px on the longest edge, re-encoded as JPEG at 80 % quality.
+9. **Client-side encryption** -- compressed JPEG encrypted with AES-256-GCM; a separate smaller thumbnail (320 px) is encrypted independently.
+10. **Server upload** -- encrypted blobs (full + thumbnail, each with IV prepended) uploaded via `POST /api/photos` with metadata (body area, severity, timestamp, child ID). IVs are embedded in the blob data, not sent separately.
+11. **Photo gallery page** -- grid of thumbnails sorted newest-first, grouped by date. Thumbnails decrypted in the browser on scroll. Filter tabs for "Vse" (All), "Kuze" (Skin), "Stolice" (Stool).
+12. **Photo detail view** -- full-size image decrypted and displayed with type-specific metadata (body area + severity for skin; color + consistency + mucus + blood for stool).
+13. **Side-by-side comparison view** -- user picks two photos of the same type; the app shows them side by side with metadata.
+14. **Manual severity rating (skin)** -- integer scale 1-5 assigned per skin photo at capture time (editable later).
 
 **Severity scale with verbal anchors:** Display the label dynamically as the slider moves:
 
-| Score | Czech Label | Description |
-|-------|-------------|-------------|
-| 1 | Mírný | Lehké zarudnutí (Light redness) |
-| 2 | Lehký | Viditelné zarudnutí, suchá kůže (Visible redness, dry skin) |
-| 3 | Střední | Výrazné zarudnutí, loupání (Pronounced redness, peeling) |
-| 4 | Těžký | Intenzivní zarudnutí, praskliny (Intense redness, cracking) |
-| 5 | Velmi těžký | Mokvání, krvácení (Weeping, bleeding) |
+| Score | Czech Label | Description                                                 |
+| ----- | ----------- | ----------------------------------------------------------- |
+| 1     | Mírný       | Lehké zarudnutí (Light redness)                             |
+| 2     | Lehký       | Viditelné zarudnutí, suchá kůže (Visible redness, dry skin) |
+| 3     | Střední     | Výrazné zarudnutí, loupání (Pronounced redness, peeling)    |
+| 4     | Těžký       | Intenzivní zarudnutí, praskliny (Intense redness, cracking) |
+| 5     | Velmi těžký | Mokvání, krvácení (Weeping, bleeding)                       |
+
 13. **Offline support** -- encrypted blobs stored in IndexedDB via Dexie.js; a background sync adapter uploads pending blobs when connectivity is restored.
 
 ## Acceptance Criteria
@@ -77,7 +80,7 @@ These decisions are deferred to user testing (on a real phone with the app shell
 - [ ] First-time user is prompted to set a passphrase before any photo functionality is available.
 - [ ] **Passphrase requirements:**
   - Minimum 12 characters (enforced)
-  - Strength indicator using `zxcvbn` library (install: `npm install zxcvbn`)
+  - Strength indicator using `zxcvbn` library (install: `bun add zxcvbn`)
   - Require minimum zxcvbn score of 3 (out of 4)
   - Show estimated crack time in the strength indicator
   - Guide users toward diceware-style passphrases (4+ random Czech words)
@@ -109,27 +112,27 @@ These decisions are deferred to user testing (on a real phone with the app shell
 
 ### Files Created / Modified
 
-| Path | Purpose |
-|------|---------|
-| `src/lib/crypto/encryption.ts` | Full Web Crypto API implementation: `generateSalt()`, `deriveKey()`, `encrypt()`, `decrypt()` |
-| `src/lib/utils/image.ts` | `resizeImage(blob, maxPx)` and `compressJpeg(blob, quality)` helpers |
-| `src/lib/domain/services/photo-diary.ts` | Domain service orchestrating capture, compression, encryption, upload, and gallery retrieval |
-| `src/lib/stores/photos.svelte.ts` | Svelte 5 runes store for photo list state, selected photos for comparison |
-| `src/lib/adapters/encrypted-storage.ts` | Adapter implementing the storage port -- writes/reads encrypted blobs to IndexedDB (Dexie) and server |
-| `src/lib/components/photo/CameraCapture.svelte` | Camera access, frame capture, ghost/fallback overlay |
-| `src/lib/components/photo/GhostOverlay.svelte` | Decrypts and displays previous photo over camera feed with adjustable opacity (10%–50%), toggle button ("Předchozí fotka"), and first-use tooltip. Falls back to static SVG silhouette. |
-| `src/lib/components/photo/PhotoTypeSelector.svelte` | Toggle between "Kuze" (Skin) and "Stolice" (Stool) photo types |
-| `src/lib/components/photo/BodyAreaSelector.svelte` | Radio/button group for the six body areas (skin photos) |
-| `src/lib/components/photo/StoolMetadataForm.svelte` | Color picker, consistency selector, mucus/blood toggles (stool photos) |
-| `src/lib/components/photo/GalleryGrid.svelte` | Thumbnail grid with lazy decryption on scroll |
-| `src/lib/components/photo/CompareView.svelte` | Side-by-side two-photo layout |
-| `src/lib/components/photo/SeveritySlider.svelte` | 1-5 discrete slider component |
-| `src/lib/components/photo/PassphraseModal.svelte` | Modal for initial passphrase setup and session unlock |
-| `src/routes/(app)/photos/+page.svelte` | Photo gallery page |
-| `src/routes/(app)/photos/capture/+page.svelte` | Camera capture page |
-| `src/routes/(app)/photos/compare/+page.svelte` | Side-by-side comparison page |
-| `src/routes/api/photos/+server.ts` | `POST` (upload), `GET` (list/download) encrypted blobs |
-| Database migration | `tracking_photos` table: `id`, `user_id`, `child_id`, `photo_type`, `body_area`, `severity_manual`, `stool_color`, `stool_consistency`, `has_mucus`, `has_blood`, `created_at`; blob stored on filesystem (IV prepended to encrypted blob, not stored separately) |
+| Path                                                | Purpose                                                                                                                                                                                                                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/crypto/encryption.ts`                      | Full Web Crypto API implementation: `generateSalt()`, `deriveKey()`, `encrypt()`, `decrypt()`                                                                                                                                                                     |
+| `src/lib/utils/image.ts`                            | `resizeImage(blob, maxPx)` and `compressJpeg(blob, quality)` helpers                                                                                                                                                                                              |
+| `src/lib/domain/services/photo-diary.ts`            | Domain service orchestrating capture, compression, encryption, upload, and gallery retrieval                                                                                                                                                                      |
+| `src/lib/stores/photos.svelte.ts`                   | Svelte 5 runes store for photo list state, selected photos for comparison                                                                                                                                                                                         |
+| `src/lib/adapters/encrypted-storage.ts`             | Adapter implementing the storage port -- writes/reads encrypted blobs to IndexedDB (Dexie) and server                                                                                                                                                             |
+| `src/lib/components/photo/CameraCapture.svelte`     | Camera access, frame capture, ghost/fallback overlay                                                                                                                                                                                                              |
+| `src/lib/components/photo/GhostOverlay.svelte`      | Decrypts and displays previous photo over camera feed with adjustable opacity (10%–50%), toggle button ("Předchozí fotka"), and first-use tooltip. Falls back to static SVG silhouette.                                                                           |
+| `src/lib/components/photo/PhotoTypeSelector.svelte` | Toggle between "Kuze" (Skin) and "Stolice" (Stool) photo types                                                                                                                                                                                                    |
+| `src/lib/components/photo/BodyAreaSelector.svelte`  | Radio/button group for the six body areas (skin photos)                                                                                                                                                                                                           |
+| `src/lib/components/photo/StoolMetadataForm.svelte` | Color picker, consistency selector, mucus/blood toggles (stool photos)                                                                                                                                                                                            |
+| `src/lib/components/photo/GalleryGrid.svelte`       | Thumbnail grid with lazy decryption on scroll                                                                                                                                                                                                                     |
+| `src/lib/components/photo/CompareView.svelte`       | Side-by-side two-photo layout                                                                                                                                                                                                                                     |
+| `src/lib/components/photo/SeveritySlider.svelte`    | 1-5 discrete slider component                                                                                                                                                                                                                                     |
+| `src/lib/components/photo/PassphraseModal.svelte`   | Modal for initial passphrase setup and session unlock                                                                                                                                                                                                             |
+| `src/routes/(app)/photos/+page.svelte`              | Photo gallery page                                                                                                                                                                                                                                                |
+| `src/routes/(app)/photos/capture/+page.svelte`      | Camera capture page                                                                                                                                                                                                                                               |
+| `src/routes/(app)/photos/compare/+page.svelte`      | Side-by-side comparison page                                                                                                                                                                                                                                      |
+| `src/routes/api/photos/+server.ts`                  | `POST` (upload), `GET` (list/download) encrypted blobs                                                                                                                                                                                                            |
+| Database migration                                  | `tracking_photos` table: `id`, `user_id`, `child_id`, `photo_type`, `body_area`, `severity_manual`, `stool_color`, `stool_consistency`, `has_mucus`, `has_blood`, `created_at`; blob stored on filesystem (IV prepended to encrypted blob, not stored separately) |
 
 ### Step-by-Step Instructions
 
@@ -187,16 +190,21 @@ These decisions are deferred to user testing (on a real phone with the app shell
 
 ```typescript
 // Validate path components before constructing storage path
-function validatePhotoPath(childId: string, date: string, photoId: string): string {
-  if (!/^[0-9a-f-]{36}$/.test(childId)) throw new Error('Invalid childId');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date');
-  if (!/^[0-9a-f-]{36}$/.test(photoId)) throw new Error('Invalid photoId');
+function validatePhotoPath(
+  childId: string,
+  date: string,
+  photoId: string,
+): string {
+  if (!/^[0-9a-f-]{36}$/.test(childId)) throw new Error("Invalid childId");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid date");
+  if (!/^[0-9a-f-]{36}$/.test(photoId)) throw new Error("Invalid photoId");
 
-  const basePath = '/data/photos';
+  const basePath = "/data/photos";
   const fullPath = path.resolve(basePath, childId, date, `${photoId}.enc`);
 
   // Verify resolved path is still under base directory
-  if (!fullPath.startsWith(basePath)) throw new Error('Path traversal detected');
+  if (!fullPath.startsWith(basePath))
+    throw new Error("Path traversal detected");
 
   return fullPath;
 }
@@ -208,7 +216,10 @@ function validatePhotoPath(childId: string, date: string, photoId: string): stri
 // POST /api/photos handler
 const MAX_BLOB_SIZE = 5 * 1024 * 1024; // 5 MB
 if (blob.size > MAX_BLOB_SIZE) {
-  return json({ error: 'Soubor je příliš velký (max 5 MB)', code: 'FILE_TOO_LARGE' }, { status: 413 });
+  return json(
+    { error: "Soubor je příliš velký (max 5 MB)", code: "FILE_TOO_LARGE" },
+    { status: 413 },
+  );
 }
 ```
 
@@ -223,31 +234,34 @@ if (blob.size > MAX_BLOB_SIZE) {
 
 ```typescript
 // src/lib/crypto/encryption.ts
-export async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
+export async function deriveKey(
+  passphrase: string,
+  salt: Uint8Array,
+): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(passphrase),
-    'PBKDF2',
+    "PBKDF2",
     false,
-    ['deriveKey']
+    ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 600_000, hash: 'SHA-256' },
+    { name: "PBKDF2", salt, iterations: 600_000, hash: "SHA-256" },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"],
   );
 }
 
 export async function encrypt(
   plaintext: ArrayBuffer,
   key: CryptoKey,
-  aad?: string
+  aad?: string,
 ): Promise<ArrayBuffer> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const params: AesGcmParams = { name: 'AES-GCM', iv };
+  const params: AesGcmParams = { name: "AES-GCM", iv };
   if (aad) params.additionalData = new TextEncoder().encode(aad);
   const ciphertext = await crypto.subtle.encrypt(params, key, plaintext);
   // Return IV prepended to ciphertext (12 bytes IV + N bytes ciphertext+tag)
@@ -260,11 +274,11 @@ export async function encrypt(
 export async function decrypt(
   data: ArrayBuffer,
   key: CryptoKey,
-  aad?: string
+  aad?: string,
 ): Promise<ArrayBuffer> {
   const iv = new Uint8Array(data.slice(0, 12));
   const ciphertext = data.slice(12);
-  const params: AesGcmParams = { name: 'AES-GCM', iv };
+  const params: AesGcmParams = { name: "AES-GCM", iv };
   if (aad) params.additionalData = new TextEncoder().encode(aad);
   return crypto.subtle.decrypt(params, key, ciphertext);
 }
@@ -281,11 +295,11 @@ export async function resizeImage(blob: Blob, maxPx: number): Promise<Blob> {
   const height = Math.round(bitmap.height * scale);
 
   const canvas = new OffscreenCanvas(width, height);
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext("2d")!;
   ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
-  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.8 });
 }
 ```
 
@@ -294,7 +308,7 @@ export async function resizeImage(blob: Blob, maxPx: number): Promise<Blob> {
 ```typescript
 // src/lib/domain/ports/photo-storage.ts
 export interface PhotoStorage {
-  save(photo: EncryptedPhoto): Promise<string>;       // returns photo ID
+  save(photo: EncryptedPhoto): Promise<string>; // returns photo ID
   getMetadata(childId: string): Promise<PhotoMeta[]>;
   getBlob(photoId: string): Promise<ArrayBuffer>;
   getThumbnail(photoId: string): Promise<ArrayBuffer>;
@@ -332,109 +346,109 @@ After completing Phase 3 the application supports the full photo diary workflow:
 
 **Encryption module (`src/lib/crypto/encryption.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | `encrypt` then `decrypt` with the same key returns the original plaintext | Byte-for-byte equality with the input `ArrayBuffer` |
-| 2 | `decrypt` with a key derived from a wrong passphrase throws `DecryptionError` | Error thrown; message indicates authentication failure |
-| 3 | `deriveKey` with the same passphrase and salt returns a key that produces identical ciphertext when IV is fixed (determinism check) | Ciphertext matches across two calls |
-| 4 | `deriveKey` with the same passphrase but different salts produces different keys | Encrypting the same plaintext with both keys yields different ciphertext |
-| 5 | `generateSalt` returns a `Uint8Array` of length 16 | `salt.length === 16` |
-| 6 | `encrypt` output starts with a 12-byte IV (first 12 bytes differ from ciphertext) | `new Uint8Array(result.slice(0, 12)).length === 12` |
-| 7 | Two consecutive `encrypt` calls produce different IV prefixes | First 12 bytes of output1 !== first 12 bytes of output2 |
-| 8 | `encrypt` with an empty `ArrayBuffer` succeeds and `decrypt` returns empty buffer | Round-trip succeeds; output `byteLength === 0` |
-| 9 | `encrypt` with a large payload (5 MB) completes within 2 seconds | No timeout; round-trip succeeds |
+| #   | Test case                                                                                                                           | Expected result                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1   | `encrypt` then `decrypt` with the same key returns the original plaintext                                                           | Byte-for-byte equality with the input `ArrayBuffer`                      |
+| 2   | `decrypt` with a key derived from a wrong passphrase throws `DecryptionError`                                                       | Error thrown; message indicates authentication failure                   |
+| 3   | `deriveKey` with the same passphrase and salt returns a key that produces identical ciphertext when IV is fixed (determinism check) | Ciphertext matches across two calls                                      |
+| 4   | `deriveKey` with the same passphrase but different salts produces different keys                                                    | Encrypting the same plaintext with both keys yields different ciphertext |
+| 5   | `generateSalt` returns a `Uint8Array` of length 16                                                                                  | `salt.length === 16`                                                     |
+| 6   | `encrypt` output starts with a 12-byte IV (first 12 bytes differ from ciphertext)                                                   | `new Uint8Array(result.slice(0, 12)).length === 12`                      |
+| 7   | Two consecutive `encrypt` calls produce different IV prefixes                                                                       | First 12 bytes of output1 !== first 12 bytes of output2                  |
+| 8   | `encrypt` with an empty `ArrayBuffer` succeeds and `decrypt` returns empty buffer                                                   | Round-trip succeeds; output `byteLength === 0`                           |
+| 9   | `encrypt` with a large payload (5 MB) completes within 2 seconds                                                                    | No timeout; round-trip succeeds                                          |
 
 **Image utilities (`src/lib/utils/image.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | `resizeImage` with a 3000x2000 image and `maxPx=1920` returns 1920x1280 | Dimensions match proportional downscale |
-| 2 | `resizeImage` with a 1000x800 image and `maxPx=1920` returns the image unchanged (no upscale) | Dimensions remain 1000x800 |
-| 3 | `resizeImage` with a portrait 2000x3000 image and `maxPx=1920` returns 1280x1920 | Longest edge (height) scaled to 1920 |
-| 4 | `compressJpeg` output is smaller than the input PNG blob | `output.size < input.size` |
-| 5 | `createThumbnail` output longest edge is 320 px | Verify dimensions after decoding |
-| 6 | `resizeImage` with a 1x1 pixel image does not throw | Returns a valid blob |
+| #   | Test case                                                                                     | Expected result                         |
+| --- | --------------------------------------------------------------------------------------------- | --------------------------------------- |
+| 1   | `resizeImage` with a 3000x2000 image and `maxPx=1920` returns 1920x1280                       | Dimensions match proportional downscale |
+| 2   | `resizeImage` with a 1000x800 image and `maxPx=1920` returns the image unchanged (no upscale) | Dimensions remain 1000x800              |
+| 3   | `resizeImage` with a portrait 2000x3000 image and `maxPx=1920` returns 1280x1920              | Longest edge (height) scaled to 1920    |
+| 4   | `compressJpeg` output is smaller than the input PNG blob                                      | `output.size < input.size`              |
+| 5   | `createThumbnail` output longest edge is 320 px                                               | Verify dimensions after decoding        |
+| 6   | `resizeImage` with a 1x1 pixel image does not throw                                           | Returns a valid blob                    |
 
 **Severity slider (`SeveritySlider.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | Default value is 1 | Component renders with value 1 selected |
-| 2 | Clicking value 4 dispatches change event with `detail: 4` | Event payload is `4` |
-| 3 | Values outside 1-5 are clamped | Setting value to 0 clamps to 1; setting to 6 clamps to 5 |
+| #   | Test case                                                 | Expected result                                          |
+| --- | --------------------------------------------------------- | -------------------------------------------------------- |
+| 1   | Default value is 1                                        | Component renders with value 1 selected                  |
+| 2   | Clicking value 4 dispatches change event with `detail: 4` | Event payload is `4`                                     |
+| 3   | Values outside 1-5 are clamped                            | Setting value to 0 clamps to 1; setting to 6 clamps to 5 |
 
 **Body area selector (`BodyAreaSelector.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | Renders all six body areas | Six buttons/options visible |
-| 2 | Selecting "face" dispatches change event with `detail: 'face'` | Event payload is `'face'` |
-| 3 | Only one area can be selected at a time | Selecting "arms" deselects "face" |
+| #   | Test case                                                      | Expected result                   |
+| --- | -------------------------------------------------------------- | --------------------------------- |
+| 1   | Renders all six body areas                                     | Six buttons/options visible       |
+| 2   | Selecting "face" dispatches change event with `detail: 'face'` | Event payload is `'face'`         |
+| 3   | Only one area can be selected at a time                        | Selecting "arms" deselects "face" |
 
 **Photo type selector (`PhotoTypeSelector.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | Renders two options: "Kuze" and "Stolice" | Two buttons visible with Czech labels |
-| 2 | Selecting "Stolice" dispatches change event with `detail: 'stool'` | Event payload is `'stool'` |
-| 3 | Default selection is none (user must choose) | No option pre-selected |
+| #   | Test case                                                          | Expected result                       |
+| --- | ------------------------------------------------------------------ | ------------------------------------- |
+| 1   | Renders two options: "Kuze" and "Stolice"                          | Two buttons visible with Czech labels |
+| 2   | Selecting "Stolice" dispatches change event with `detail: 'stool'` | Event payload is `'stool'`            |
+| 3   | Default selection is none (user must choose)                       | No option pre-selected                |
 
 **Stool metadata form (`StoolMetadataForm.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | Renders 6 color options with correct Czech labels | Buttons for zluta/zelena/hneda/cervena/cerna/bila visible |
-| 2 | Renders 4 consistency options | Buttons for tekuta/mekka/formovana/tvrda visible |
-| 3 | Mucus toggle defaults to false | Toggle is off |
-| 4 | Blood toggle defaults to false | Toggle is off |
-| 5 | Selecting color "green" dispatches correct metadata | `stoolColor === 'green'` |
-| 6 | Toggling mucus on dispatches `hasMucus: true` | Metadata updated |
-| 7 | Form requires at least color and consistency before save | Save button disabled until both selected |
+| #   | Test case                                                | Expected result                                           |
+| --- | -------------------------------------------------------- | --------------------------------------------------------- |
+| 1   | Renders 6 color options with correct Czech labels        | Buttons for zluta/zelena/hneda/cervena/cerna/bila visible |
+| 2   | Renders 4 consistency options                            | Buttons for tekuta/mekka/formovana/tvrda visible          |
+| 3   | Mucus toggle defaults to false                           | Toggle is off                                             |
+| 4   | Blood toggle defaults to false                           | Toggle is off                                             |
+| 5   | Selecting color "green" dispatches correct metadata      | `stoolColor === 'green'`                                  |
+| 6   | Toggling mucus on dispatches `hasMucus: true`            | Metadata updated                                          |
+| 7   | Form requires at least color and consistency before save | Save button disabled until both selected                  |
 
 ### Integration Tests
 
 **Photo upload/download API (`src/routes/api/photos/server.integration.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | `POST /api/photos` with valid multipart data returns 201 and a photo ID | Response status 201; body contains `id` |
-| 2 | `POST /api/photos` without authentication returns 401 | Response status 401 |
-| 3 | `POST /api/photos` with missing blob field returns 400 | Response status 400; error message indicates missing blob |
-| 4 | `GET /api/photos` returns metadata for the authenticated user's children only | Response contains only photos belonging to the test user's children |
-| 5 | `GET /api/photos/:id/blob` returns the exact encrypted blob that was uploaded | Byte-for-byte match |
-| 6 | `GET /api/photos/:id/thumbnail` returns the exact encrypted thumbnail that was uploaded | Byte-for-byte match |
-| 7 | `GET /api/photos/:id/blob` for another user's photo returns 403 | Response status 403 |
+| #   | Test case                                                                               | Expected result                                                     |
+| --- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | `POST /api/photos` with valid multipart data returns 201 and a photo ID                 | Response status 201; body contains `id`                             |
+| 2   | `POST /api/photos` without authentication returns 401                                   | Response status 401                                                 |
+| 3   | `POST /api/photos` with missing blob field returns 400                                  | Response status 400; error message indicates missing blob           |
+| 4   | `GET /api/photos` returns metadata for the authenticated user's children only           | Response contains only photos belonging to the test user's children |
+| 5   | `GET /api/photos/:id/blob` returns the exact encrypted blob that was uploaded           | Byte-for-byte match                                                 |
+| 6   | `GET /api/photos/:id/thumbnail` returns the exact encrypted thumbnail that was uploaded | Byte-for-byte match                                                 |
+| 7   | `GET /api/photos/:id/blob` for another user's photo returns 403                         | Response status 403                                                 |
 
 **Encrypted storage adapter (`encrypted-storage.integration.test.ts`):**
 
-| # | Test case | Expected result |
-|---|-----------|-----------------|
-| 1 | `save` writes to IndexedDB and the record is retrievable | `getBlob` returns the stored data |
-| 2 | `getPendingUploads` returns only photos not yet uploaded to server | List length matches expected count |
-| 3 | `markUploaded` removes the photo from pending uploads | Subsequent `getPendingUploads` excludes it |
-| 4 | Concurrent saves do not corrupt the Dexie store | All saved records retrievable |
+| #   | Test case                                                          | Expected result                            |
+| --- | ------------------------------------------------------------------ | ------------------------------------------ |
+| 1   | `save` writes to IndexedDB and the record is retrievable           | `getBlob` returns the stored data          |
+| 2   | `getPendingUploads` returns only photos not yet uploaded to server | List length matches expected count         |
+| 3   | `markUploaded` removes the photo from pending uploads              | Subsequent `getPendingUploads` excludes it |
+| 4   | Concurrent saves do not corrupt the Dexie store                    | All saved records retrievable              |
 
 ### E2E / Manual Tests
 
-| # | Scenario | Steps | Expected result |
-|---|----------|-------|-----------------|
-| 1 | Passphrase setup (first use) | Open app for the first time after Phase 1 login. Observe passphrase modal. Enter "testpassphrase" and confirm. | Modal closes. Salt stored in IndexedDB. No errors. |
-| 2 | Passphrase unlock (returning session) | Close and reopen the app. Enter passphrase modal appears. Enter "testpassphrase". | Unlock succeeds; gallery page is accessible. |
-| 3 | Wrong passphrase | Close and reopen the app. Enter "wrongpassphrase". | Error message "Nespravne heslo" displayed. Gallery not accessible. |
-| 4 | Capture photo | Navigate to `/photos/capture`. Grant camera permission. Select body area "face". Adjust severity to 3. Tap capture. | Photo captured, compressed, encrypted, and uploaded. Redirect to gallery. New thumbnail visible. |
-| 5 | Ghost overlay (previous exists) | After capturing at least one "face" skin photo, open capture again and select "face". | Previous photo appears as semi-transparent overlay on camera feed. Toggle button visible. |
-| 5b | Ghost overlay toggle | With ghost overlay visible, tap "Prekryv: vyp". | Overlay disappears. Tap "Prekryv: zap" -- overlay reappears. |
-| 5c | Static fallback (no previous) | Select body area "legs" for the first time (no previous photo). | Static SVG silhouette for legs displayed instead of ghost overlay. |
-| 6 | Gallery view | Navigate to `/photos`. | Thumbnails grouped by date, newest first. Each thumbnail decrypts and renders. |
-| 7 | Photo detail | Tap a thumbnail in the gallery. | Full-size photo decrypted and displayed with body area, severity, and date. |
-| 8 | Side-by-side comparison | Navigate to `/photos/compare`. Select two photos from different dates. | Both photos rendered side by side with metadata labels. |
-| 9 | Offline capture | Disable network. Capture a photo. | Photo saved locally. No upload error shown. |
-| 10 | Offline sync | Re-enable network after offline capture. | Pending photo uploads automatically. Gallery reflects the synced photo. |
-| 11 | Large photo | Capture a photo from a 48 MP camera sensor. | Image resized to max 1920 px. Encryption and upload succeed without timeout. |
-| 12 | Stool photo capture | Navigate to `/photos/capture`. Select "Stolice". Grant camera permission. Capture photo. Select color "green", consistency "soft", toggle mucus on, blood off. Save. | Photo captured with stool metadata. Redirect to gallery. Thumbnail visible with stool indicator. |
-| 13 | Stool photo detail | Tap a stool photo thumbnail in gallery. | Full-size image displayed with color (zelena), consistency (mekka), mucus (ano), blood (ne) labels in Czech. |
-| 14 | Gallery filter | Gallery has both skin and stool photos. Tap "Kuze" filter. | Only skin photos visible. Tap "Stolice" -- only stool photos. Tap "Vse" -- all photos. |
-| 15 | Comparison type restriction | Navigate to compare view. Try to select a skin photo and a stool photo. | UI prevents mixing types -- only photos of the same type are selectable. |
+| #   | Scenario                              | Steps                                                                                                                                                                | Expected result                                                                                              |
+| --- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | Passphrase setup (first use)          | Open app for the first time after Phase 1 login. Observe passphrase modal. Enter "testpassphrase" and confirm.                                                       | Modal closes. Salt stored in IndexedDB. No errors.                                                           |
+| 2   | Passphrase unlock (returning session) | Close and reopen the app. Enter passphrase modal appears. Enter "testpassphrase".                                                                                    | Unlock succeeds; gallery page is accessible.                                                                 |
+| 3   | Wrong passphrase                      | Close and reopen the app. Enter "wrongpassphrase".                                                                                                                   | Error message "Nespravne heslo" displayed. Gallery not accessible.                                           |
+| 4   | Capture photo                         | Navigate to `/photos/capture`. Grant camera permission. Select body area "face". Adjust severity to 3. Tap capture.                                                  | Photo captured, compressed, encrypted, and uploaded. Redirect to gallery. New thumbnail visible.             |
+| 5   | Ghost overlay (previous exists)       | After capturing at least one "face" skin photo, open capture again and select "face".                                                                                | Previous photo appears as semi-transparent overlay on camera feed. Toggle button visible.                    |
+| 5b  | Ghost overlay toggle                  | With ghost overlay visible, tap "Prekryv: vyp".                                                                                                                      | Overlay disappears. Tap "Prekryv: zap" -- overlay reappears.                                                 |
+| 5c  | Static fallback (no previous)         | Select body area "legs" for the first time (no previous photo).                                                                                                      | Static SVG silhouette for legs displayed instead of ghost overlay.                                           |
+| 6   | Gallery view                          | Navigate to `/photos`.                                                                                                                                               | Thumbnails grouped by date, newest first. Each thumbnail decrypts and renders.                               |
+| 7   | Photo detail                          | Tap a thumbnail in the gallery.                                                                                                                                      | Full-size photo decrypted and displayed with body area, severity, and date.                                  |
+| 8   | Side-by-side comparison               | Navigate to `/photos/compare`. Select two photos from different dates.                                                                                               | Both photos rendered side by side with metadata labels.                                                      |
+| 9   | Offline capture                       | Disable network. Capture a photo.                                                                                                                                    | Photo saved locally. No upload error shown.                                                                  |
+| 10  | Offline sync                          | Re-enable network after offline capture.                                                                                                                             | Pending photo uploads automatically. Gallery reflects the synced photo.                                      |
+| 11  | Large photo                           | Capture a photo from a 48 MP camera sensor.                                                                                                                          | Image resized to max 1920 px. Encryption and upload succeed without timeout.                                 |
+| 12  | Stool photo capture                   | Navigate to `/photos/capture`. Select "Stolice". Grant camera permission. Capture photo. Select color "green", consistency "soft", toggle mucus on, blood off. Save. | Photo captured with stool metadata. Redirect to gallery. Thumbnail visible with stool indicator.             |
+| 13  | Stool photo detail                    | Tap a stool photo thumbnail in gallery.                                                                                                                              | Full-size image displayed with color (zelena), consistency (mekka), mucus (ano), blood (ne) labels in Czech. |
+| 14  | Gallery filter                        | Gallery has both skin and stool photos. Tap "Kuze" filter.                                                                                                           | Only skin photos visible. Tap "Stolice" -- only stool photos. Tap "Vse" -- all photos.                       |
+| 15  | Comparison type restriction           | Navigate to compare view. Try to select a skin photo and a stool photo.                                                                                              | UI prevents mixing types -- only photos of the same type are selectable.                                     |
 
 ### Regression Checks
 
