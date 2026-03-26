@@ -226,19 +226,63 @@ build:
     bunx tsc --noEmit && bun run build
     @echo "✅ Built"
 
-# Run unit tests
-test:
-    bunx vitest run
+# Private: Ensure PostgreSQL is running with migrations applied
+_ensure-db:
+    #!/usr/bin/env bash
+    set -e  # Exit on error
+    
+    # Load .env if exists
+    if [[ -f .env ]]; then
+        set -a && source .env && set +a
+    fi
+    
+    # Check DATABASE_URL
+    if [[ -z "${DATABASE_URL:-}" ]]; then
+        echo "❌ DATABASE_URL not set. Create .env file:"
+        echo "   DATABASE_URL=postgresql://eczema:eczema_dev@localhost:5432/eczema_helper"
+        exit 1
+    fi
+    
+    # Start PostgreSQL if not running
+    if ! docker compose -f docker-compose.postgres.yml ps 2>/dev/null | grep -q "postgres.*Up"; then
+        echo "🐘 Starting PostgreSQL..."
+        docker compose -f docker-compose.postgres.yml up -d
+        echo "⏳ Waiting for PostgreSQL..."
+        sleep 3
+    fi
+    
+    # Always run migrations (idempotent)
+    echo "🔄 Running migrations..."
+    bun scripts/migrate.ts
+    echo "✅ Database ready"
 
-# Run integration tests (requires: just dev-db)
-test-integration:
+# Run all tests (unit + integration + e2e)
+test: test-unit test-integration test-e2e
+    @echo "✅ All tests passed!"
+
+# Run unit tests only (no DB needed)
+test-unit:
+    bunx vitest run --exclude "tests/integration/**"
+
+# Run integration tests only
+test-integration: _ensure-db
     bunx vitest run tests/integration
+
+# Run E2E tests only with Playwright (requires: just dev running)
+test-e2e: _ensure-db
+    @echo "⚠️  Make sure 'just dev' is running in another terminal!"
+    bunx playwright test
+
+# Run E2E tests with UI mode (requires: just dev running)
+test-e2e-ui: _ensure-db
+    @echo "⚠️  Make sure 'just dev' is running in another terminal!"
+    bunx playwright test --ui
 
 # Run tests in watch mode
 test-watch:
     bunx vitest
 
-# Run all checks (includes Node.js version check)
+# Run all checks (tests + build + type check)
 check:
     #!/usr/bin/env bash
     # Check Node.js version
@@ -250,11 +294,20 @@ check:
         exit 1
     fi
     echo "✅ Node.js $NODE_VERSION"
+    echo ""
     
-    # Run tests and build
-    bunx vitest run
-    bunx tsc --noEmit && bun run build
-    echo "✅ All checks passed"
+    # Run all tests
+    just test
+    
+    # Type check and build
+    echo ""
+    echo "🔍 Type checking..."
+    bunx tsc --noEmit
+    echo ""
+    echo "🏗️  Building..."
+    bun run build
+    echo ""
+    echo "✅ All checks passed!"
 
 # Clean build artifacts
 clean:
@@ -400,9 +453,12 @@ help:
     @echo ""
     @echo "Build & Test:"
     @echo "  just build            - Type-check and build"
-    @echo "  just test             - Run unit tests"
-    @echo "  just test-integration - Run integration tests (needs dev-db)"
-    @echo "  just check            - Run all checks"
+    @echo "  just check            - Run ALL tests + build + type check"
+    @echo "  just test             - Run ALL tests (unit + integration + e2e)"
+    @echo "  just test-unit        - Run unit tests only"
+    @echo "  just test-integration - Run integration tests (auto-starts DB)"
+    @echo "  just test-e2e         - Run E2E tests with Playwright (needs dev-db)"
+    @echo "  just test-e2e-ui      - Run E2E tests with UI mode"
     @echo ""
     @echo "Database:"
     @echo "  just db-reset         - Reset database"

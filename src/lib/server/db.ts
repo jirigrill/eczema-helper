@@ -1,5 +1,7 @@
 import postgres from 'postgres';
-import { DATABASE_URL } from '$env/static/private';
+
+const DATABASE_URL = process.env.DATABASE_URL ??
+  'postgres://eczema:eczema_dev@localhost:5432/eczema_helper';
 
 export const sql = postgres(DATABASE_URL, {
   max: 10,

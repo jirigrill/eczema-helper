@@ -31,18 +31,18 @@ Phase 0 must be complete. Specifically:
 
 ## Acceptance Criteria
 
-- [ ] **AC-1 (Feature 1):** Running the migration script creates all tables in PostgreSQL. Running `\dt` in `psql` lists: `users`, `sessions`, `children`, `user_children`, `food_categories`, `food_sub_items`, `food_logs`, `meals`, `meal_items`, `tracking_photos`, `analysis_results`, `push_subscriptions`, `google_doc_connections`, `reminder_configs`.
-- [ ] **AC-2 (Feature 2):** The PostgreSQL adapter implements `DataRepository` and can perform entity-specific operations (`getUserByEmail`, `createUser`, `getChildrenForUser`, `createChild`, `linkUserToChild`) against the database without error.
-- [ ] **AC-3 (Feature 3):** `POST /api/auth/register` with `{ email, password, name }` returns `201` and creates a user row. The stored password is a bcrypt hash (starts with `$2b$`). Registering with a duplicate email returns `409`.
-- [ ] **AC-4 (Feature 4):** `POST /api/auth/login` with valid credentials returns `200` and sets a `Set-Cookie` header with an HTTP-only, Secure, SameSite=Lax cookie named `session_id`. The response body contains the user object (without password). Invalid credentials return `401`.
-- [ ] **AC-5 (Feature 5):** `POST /api/auth/logout` with a valid session cookie returns `200`, the session row is deleted from the database, and the `session_id` cookie is cleared (Max-Age=0).
-- [ ] **AC-6 (Feature 6):** Navigating to any `(app)` route without a session cookie results in a redirect to `/login`. After logging in, navigating to `/login` redirects to `/calendar`.
-- [ ] **AC-7 (Feature 7):** `GET /api/children` with a valid session returns `200` and an array of children belonging to the authenticated user. `POST /api/children` with `{ name, birthDate }` returns `201` and the created child.
-- [ ] **AC-8 (Feature 8):** `PUT /api/children/[id]` with `{ name }` updates the child name and returns `200`. `DELETE /api/children/[id]` removes the child and returns `204`. Attempting to modify another user's child returns `403`.
+- [x] **AC-1 (Feature 1):** Running the migration script creates all tables in PostgreSQL. Running `\dt` in `psql` lists: `users`, `sessions`, `children`, `user_children`, `food_categories`, `food_sub_items`, `food_logs`, `meals`, `meal_items`, `tracking_photos`, `analysis_results`, `push_subscriptions`, `google_doc_connections`, `reminder_configs`.
+- [x] **AC-2 (Feature 2):** The PostgreSQL adapter implements `DataRepository` and can perform entity-specific operations (`getUserByEmail`, `createUser`, `getChildrenForUser`, `createChild`, `linkUserToChild`) against the database without error.
+- [x] **AC-3 (Feature 3):** `POST /api/auth/register` with `{ email, password, name }` returns `201` and creates a user row. The stored password is a bcrypt hash (starts with `$2b$`). Registering with a duplicate email returns `409`.
+- [x] **AC-4 (Feature 4):** `POST /api/auth/login` with valid credentials returns `200` and sets a `Set-Cookie` header with an HTTP-only, Secure, SameSite=Lax cookie named `session_id`. The response body contains the user object (without password). Invalid credentials return `401`.
+- [x] **AC-5 (Feature 5):** `POST /api/auth/logout` with a valid session cookie returns `200`, the session row is deleted from the database, and the `session_id` cookie is cleared (Max-Age=0).
+- [x] **AC-6 (Feature 6):** Navigating to any `(app)` route without a session cookie results in a redirect to `/login`. After logging in, navigating to `/login` redirects to `/calendar`.
+- [x] **AC-7 (Feature 7):** `GET /api/children` with a valid session returns `200` and an array of children belonging to the authenticated user. `POST /api/children` with `{ name, birthDate }` returns `201` and the created child.
+- [x] **AC-8 (Feature 8):** `PUT /api/children/[id]` with `{ name }` updates the child name and returns `200`. `DELETE /api/children/[id]` removes the child and returns `204`. Attempting to modify another user's child returns `403`.
+- [x] **AC-9 (Feature 9):** The Settings page displays a list of the user's children. Each child shows name and birth date. A form allows adding a new child. Each existing child has "Edit" and "Delete" buttons that work correctly.
+- [x] **AC-10 (Feature 10):** The app header shows a dropdown with the user's children. Selecting a child updates a global Svelte store. The selected child persists across page navigations within the session. If no children exist, the dropdown shows "Add a child" and links to Settings.
+- [x] **AC-11 (Feature 11):** After running the seed script, `food_categories` contains at least 12 rows and `food_sub_items` contains at least 30 rows. Each category has a `slug`, `name_cs` (Czech), and `icon` field. Each sub-item references a valid `category_id`.
 - [ ] **AC-12 (Feature 12):** `docs/architecture/ui-design.md` exists and covers: navigation flow, wireframes for key screens (calendar, day detail, food grid, photo gallery, capture, settings), design system (button styles, card patterns, typography, spacing), and mobile UX decisions (bottom sheet vs page navigation, swipe gestures, tap target sizes). Decisions are tested on a real phone.
-- [ ] **AC-9 (Feature 9):** The Settings page displays a list of the user's children. Each child shows name and birth date. A form allows adding a new child. Each existing child has "Edit" and "Delete" buttons that work correctly.
-- [ ] **AC-10 (Feature 10):** The app header shows a dropdown with the user's children. Selecting a child updates a global Svelte store. The selected child persists across page navigations within the session. If no children exist, the dropdown shows "Add a child" and links to Settings.
-- [ ] **AC-11 (Feature 11):** After running the seed script, `food_categories` contains at least 12 rows and `food_sub_items` contains at least 30 rows. Each category has a `slug`, `name_cs` (Czech), and `icon` field. Each sub-item references a valid `category_id`.
 
 ## Implementation Details
 
@@ -67,11 +67,17 @@ Phase 0 must be complete. Specifically:
 | `src/routes/login/+page.svelte`             | Updated to wire form to `/api/auth/login`                                    |
 | `src/routes/login/+page.server.ts`          | Redirect to `/calendar` if already authenticated                             |
 | `src/routes/register/+page.svelte`          | Registration page                                                            |
-| `src/lib/stores/children.ts`                | Updated with selected child store and setter                                 |
-| `src/lib/stores/auth.ts`                    | Updated with user store populated from server data                           |
+| `src/routes/register/+page.server.ts`       | Redirect to `/calendar` if already authenticated                             |
+| `src/lib/stores/children.svelte.ts`         | Updated with selected child store and setter                                 |
+| `src/lib/stores/auth.svelte.ts`             | Updated with user store populated from server data                           |
 | `migrations/001_initial_schema.sql`         | Full database schema DDL                                                     |
 | `migrations/002_seed_food_data.sql`         | Seed data for food categories and sub-items                                  |
 | `scripts/migrate.ts`                        | Migration runner script                                                      |
+| `playwright.config.ts`                      | Playwright E2E test configuration                                            |
+| `e2e/auth.spec.ts`                          | E2E tests for registration and login                                         |
+| `e2e/auth-guard.spec.ts`                    | E2E tests for route protection                                               |
+| `e2e/logout.spec.ts`                        | E2E tests for logout flow                                                    |
+| `e2e/children.spec.ts`                      | E2E tests for child management                                               |
 
 ### Step-by-Step Instructions
 
@@ -691,60 +697,42 @@ The PostgreSQL database has all tables created (matching `docs/architecture/data
 | 30  | Dairy category has 8 sub-items                  | Query sub-items where category slug = `'dairy'`. Assert count = 8.                                                                           |
 | 31  | Categories have Czech names and icons           | Query all categories. Assert every row has non-null, non-empty `name_cs` and `icon`.                                                         |
 
-### E2E / Manual Tests
+### E2E Tests (Automated with Playwright)
 
-**Test script: Full Registration and Login Flow**
+All manual test scenarios are now automated in `e2e/` directory:
 
-1. Start the app: `bun run dev`.
-2. Navigate to `/register`.
-3. Fill in name: "Test User", email: "test@eczema.app", password: "password123".
-4. Submit the form.
-5. **Expected:** Redirect to `/calendar`. The app header shows the user is logged in.
-6. Navigate to `/settings`.
-7. **Expected:** No children listed. An "Add child" form is visible.
-8. Add a child: name "Emma", birth date "2025-12-01".
-9. **Expected:** Emma appears in the children list. The child selector in the header shows "Emma".
-10. Edit Emma's name to "Emmy".
-11. **Expected:** The name updates in both the list and the header selector.
-12. Add a second child: "Oliver", birth date "2026-01-15".
-13. **Expected:** The child selector dropdown now lists both "Emmy" and "Oliver".
-14. Select "Oliver" in the selector.
-15. **Expected:** The header shows "Oliver" as the active child.
-16. Navigate to `/calendar` and back to `/settings`.
-17. **Expected:** "Oliver" is still the selected child in the header (persists across navigation).
+**Test file: `e2e/auth.spec.ts`**
+- User registration and redirect to calendar
+- User login with valid credentials
+- Login failure with invalid credentials
 
-**Test script: Auth Guard Verification**
+**Test file: `e2e/auth-guard.spec.ts`**
+- Protected routes redirect to login when unauthenticated
+- Authenticated users redirected away from login page
 
-1. Open a private/incognito browser window.
-2. Navigate directly to `/calendar`.
-3. **Expected:** Redirect to `/login`.
-4. Navigate to `/settings`.
-5. **Expected:** Redirect to `/login`.
-6. Navigate to `/food`.
-7. **Expected:** Redirect to `/login`.
-8. Log in with valid credentials.
-9. Navigate to `/login`.
-10. **Expected:** Redirect to `/calendar` (already authenticated).
+**Test file: `e2e/logout.spec.ts`**
+- Logout clears session and redirects to login
+- Back button after logout stays on login page
 
-**Test script: Logout Flow**
+**Test file: `e2e/children.spec.ts`**
+- Add child and verify in settings/header
+- Edit child name and verify update
+- Add multiple children and select between them
+- Child selection persists across navigation
+- Child deletion with confirmation dialog
+- Empty state shows "Add child" link in header
 
-1. Log in as an existing user.
-2. Navigate to `/settings`.
-3. Click "Logout" (or trigger `POST /api/auth/logout`).
-4. **Expected:** Redirect to `/login`. Session cookie is cleared.
-5. Press the browser back button.
-6. **Expected:** Still on `/login` (cannot access protected routes).
+**Run E2E tests:**
+```bash
+bun run test:e2e        # Headless mode
+bun run test:e2e:ui     # Interactive UI mode
+```
 
-**Test script: Child Deletion with Confirmation**
-
-1. Log in and navigate to `/settings`.
-2. Create a child "Temp".
-3. Click "Delete" on "Temp".
-4. **Expected:** A confirmation dialog appears ("Are you sure?").
-5. Cancel the dialog.
-6. **Expected:** "Temp" still exists.
-7. Click "Delete" again and confirm.
-8. **Expected:** "Temp" is removed from the list and the child selector.
+**Manual Testing (Optional):**
+If you prefer to test manually on a real device:
+1. Start: `bun run dev`
+2. Access `https://<your-lan-ip>:5173` on your phone
+3. Run through the scenarios above in the e2e test files
 
 ### Regression Checks
 

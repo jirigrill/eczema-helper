@@ -29,6 +29,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    exclude: ['tests/integration/**', 'node_modules/**']
+    exclude: ['e2e/**', 'node_modules/**'],
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   }
 });

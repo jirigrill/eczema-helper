@@ -6,3 +6,8 @@ certs/
 data/
 *.local
 .DS_Store
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
