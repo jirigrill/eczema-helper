@@ -1,8 +1,7 @@
 <script lang="ts">
   import '../app.css';
-  import { page } from '$app/state';
+  import { page } from '$app/stores';
 
-  // Props for Svelte 5 render pattern
   let { children } = $props();
 
   const tabs = [
@@ -12,22 +11,18 @@
     { href: '/trends', label: 'Trendy', icon: '📈' },
     { href: '/settings', label: 'Nastavení', icon: '⚙️' }
   ];
-
-  const pathname = $derived(page.url.pathname);
-  const showNav = $derived(pathname !== '/login' && pathname !== '/');
 </script>
 
-<main class="min-h-screen bg-surface" class:pb-16={showNav}>
+<main class="min-h-screen bg-surface" class:pb-16={$page.url.pathname !== '/login'}>
   {@render children()}
 </main>
 
-{#if showNav}
+{#if $page.url.pathname !== '/login'}
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-surface-dark flex z-50">
     {#each tabs as tab}
-      {@const isActive = pathname.startsWith(tab.href)}
       <a
         href={tab.href}
-        class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors {isActive ? 'text-primary' : 'text-text-muted'}"
+        class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors {$page.url.pathname.startsWith(tab.href) ? 'text-primary' : 'text-text-muted'}"
       >
         <span class="text-xl leading-none">{tab.icon}</span>
         <span>{tab.label}</span>
