@@ -3,6 +3,7 @@
 	admin off
 }
 
+# Bind to all interfaces so it's accessible from phone
 :8443 {
 	tls certs/local.pem certs/local-key.pem
 	reverse_proxy localhost:5173

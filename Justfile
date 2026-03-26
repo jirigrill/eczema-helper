@@ -150,7 +150,25 @@ dev:
     echo "✅ Caddy started"
     
     # Start dev server
-    bun run dev -- --host 0.0.0.0
+    bun run dev -- --host 0.0.0.0 &
+    VITE_PID=$!
+    sleep 2
+    
+    # Show access URLs
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    echo ""
+    echo "🌐 Access URLs:"
+    echo "   Local:    http://localhost:5173"
+    echo "   HTTPS:    https://$LOCAL_IP:8443 (recommended for phone)"
+    echo "   HTTP:     http://$LOCAL_IP:5173"
+    echo ""
+    echo "📱 For phone access:"
+    echo "   1. Install mkcert root CA on your phone first"
+    echo "   2. Open: https://$LOCAL_IP:8443"
+    echo ""
+    
+    # Wait for vite to finish
+    wait $VITE_PID
     
     # Cleanup on exit
     pkill -9 -f caddy 2>/dev/null || true
