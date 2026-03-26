@@ -20,7 +20,7 @@
     { href: '/settings', label: 'Nastavení', icon: '⚙️' }
   ];
 
-  const showNav = $derived(pathname !== '/login');
+  const showNav = $derived(pathname !== '/login' && pathname !== '/register');
 </script>
 
 <main class="min-h-screen bg-surface" class:pb-16={showNav}>
