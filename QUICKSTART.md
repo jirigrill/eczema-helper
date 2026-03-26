@@ -226,6 +226,11 @@ kill <PID>            # Kill it
 
 - Read `docs/README.md` for project overview
 - Check `docs/phases/phase-0-scaffold.md` for detailed Phase 0 implementation
+- See `docs/architecture/deployment.md` for:
+  - Full architecture diagrams and explanations
+  - Production VPS deployment guide
+  - Nginx reverse proxy configuration
+  - Backup strategy and monitoring setup
 - Run `just help` to see all available commands
 
 ## Quick Reference

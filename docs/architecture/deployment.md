@@ -1,5 +1,7 @@
 # Deployment Architecture
 
+**Quick Start:** For the 5-minute local development setup, see [QUICKSTART.md](../../QUICKSTART.md) first.
+
 This document describes deployment for the Eczema Tracker PWA across two stages: local development (Docker on a laptop, accessible to real phones on the local network) and production (self-hosted VPS). It covers the local dev setup with mkcert, production server architecture, Docker Compose configuration, Nginx reverse proxy, TLS certificates, backup strategy, and monitoring.
 
 ---
