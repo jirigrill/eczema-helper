@@ -132,14 +132,19 @@ dev:
     
     # Clean up any leftover processes
     pkill -9 -f caddy 2>/dev/null || true
+    docker stop eczema-postgres-dev 2>/dev/null || true
     sleep 2
     
-    # Start PostgreSQL (remove orphans from old docker-compose.dev.yml)
+    # Start PostgreSQL
     docker compose -f docker-compose.postgres.yml up -d --remove-orphans
     echo "✅ PostgreSQL ready"
     
-    # Start Caddy (admin API disabled in Caddyfile to avoid port 2019 conflicts)
-    caddy run --config Caddyfile &
+    # Start Caddy (use dev Caddyfile on port 8443)
+    if [[ -f Caddyfile.dev ]]; then
+        caddy run --config Caddyfile.dev &
+    else
+        echo "⚠️  Caddyfile.dev not found, using port 5173 directly"
+    fi
     sleep 1
     echo "✅ Caddy started"
     
@@ -156,9 +161,10 @@ dev-db:
 
 # Stop all services
 stop:
+    docker stop eczema-postgres-dev 2>/dev/null || true
     docker compose -f docker-compose.postgres.yml down --remove-orphans 2>/dev/null || true
     docker compose -f docker-compose.dev.yml down 2>/dev/null || true
-    pkill -f caddy 2>/dev/null || true
+    pkill -9 -f caddy 2>/dev/null || true
     @echo "🛑 Stopped"
 
 # View logs
