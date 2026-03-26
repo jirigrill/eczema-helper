@@ -290,14 +290,14 @@ db-reset:
 
 # Open database shell
 db-shell:
-    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema
+    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema_helper
 
 # Backup database
 backup:
     #!/usr/bin/env bash
     mkdir -p backups
     DATE=$(date +%Y-%m-%d-%H%M%S)
-    docker compose -f docker-compose.postgres.yml exec -T postgres pg_dump -U eczema -d eczema | gzip > "backups/eczema-${DATE}.sql.gz"
+    docker compose -f docker-compose.postgres.yml exec -T postgres pg_dump -U eczema -d eczema_helper | gzip > "backups/eczema-${DATE}.sql.gz"
     echo "✅ backups/eczema-${DATE}.sql.gz"
 
 # ========== DEPLOYMENT ==========
@@ -379,7 +379,7 @@ env-template:
     #!/usr/bin/env bash
     printf '%s\n' \
         "# Database" \
-        "DATABASE_URL=postgresql://eczema:CHANGEME_AT_localhost:5432/eczema" \
+        "DATABASE_URL=postgresql://eczema:eczema_dev@localhost:5432/eczema_helper" \
         "" \
         "# Session" \
         "SESSION_SECRET=change-me-32-char-min" \

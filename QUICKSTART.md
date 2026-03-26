@@ -69,44 +69,16 @@ just setup-certs
 
 This creates HTTPS certificates for your local IP address.
 
-### Install mkcert Root CA on Your Computer
+### Install mkcert Root CA on Your MacBook
 
-**First, ensure mkcert is installed on your MacBook:**
+`just setup-certs` generates the certs but you also need your laptop to trust the mkcert CA:
 
 ```bash
-# Install mkcert via Homebrew
+# Install mkcert via Homebrew (if not done by just setup)
 brew install mkcert
 
-# Install the local CA (run this once)
+# Install the local CA into macOS keychain
 mkcert -install
-```
-
-**Then trust the certificate authority to avoid "This connection is not private" warnings:**
-
-**macOS:**
-
-```bash
-# Find and open the certificate
-open "$(mkcert -CAROOT)/rootCA.pem"
-
-# Or manually:
-# 1. Open Keychain Access
-# 2. Find "mkcert" certificate under System Roots
-# 3. Double-click → Trust → "Always Trust"
-```
-
-**Ubuntu/Debian:**
-
-```bash
-sudo cp "$(mkcert -CAROOT)/rootCA.pem" /usr/local/share/ca-certificates/mkcert.crt
-sudo update-ca-certificates
-```
-
-**RedHat/Fedora:**
-
-```bash
-sudo cp "$(mkcert -CAROOT)/rootCA.pem" /etc/pki/ca-trust/source/anchors/mkcert.crt
-sudo update-ca-trust extract
 ```
 
 ### Install mkcert Root CA on Your Phone
@@ -174,11 +146,12 @@ just logs             # View logs
 
 **"This connection is not private" / Certificate warning:**
 
-This is expected! The HTTPS certificate is self-signed. To fix it:
+The mkcert root CA is not trusted yet. Install it:
 
-1. **If on your laptop/computer**: Install the mkcert root CA (see Step 5 above)
-2. **If on your phone**: Install the mkcert root CA (see Step 5 above)
-3. **Quick workaround**: Click "Advanced" → "Proceed" (accept the risk)
+1. **On your laptop**: run `mkcert -install` (see Step 5 above)
+2. **On your phone**: install `rootCA.pem` (see Step 5 above)
+
+Note: clicking "Advanced → Proceed" does not work on iPhone Safari and breaks service workers — the CA must be properly installed.
 
 **Certificate warnings on phone:**
 
