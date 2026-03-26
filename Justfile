@@ -130,13 +130,23 @@ dev:
     command -v bun &> /dev/null || { echo "❌ Bun not found. Run: just setup"; exit 1; }
     node -e "process.exit(process.version.slice(1).localeCompare('20.15.0', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null || { echo "❌ Node.js 20.15.0+ required. Run: just setup"; exit 1; }
     
-    pkill -f "caddy run" 2>/dev/null || true
-    docker compose -f docker-compose.postgres.yml up -d
+    # Clean up any leftover processes
+    pkill -f caddy 2>/dev/null || true
+    sleep 1
+    
+    # Start PostgreSQL (remove orphans from old docker-compose.dev.yml)
+    docker compose -f docker-compose.postgres.yml up -d --remove-orphans
     echo "✅ PostgreSQL ready"
+    
+    # Start Caddy
     caddy run --config Caddyfile &
     echo "✅ Caddy started"
+    
+    # Start dev server
     bun run dev -- --host 0.0.0.0
-    pkill -f "caddy run" 2>/dev/null || true
+    
+    # Cleanup on exit
+    pkill -f caddy 2>/dev/null || true
 
 # Start PostgreSQL only
 dev-db:
@@ -145,7 +155,7 @@ dev-db:
 
 # Stop all services
 stop:
-    docker compose -f docker-compose.postgres.yml down 2>/dev/null || true
+    docker compose -f docker-compose.postgres.yml down --remove-orphans 2>/dev/null || true
     docker compose -f docker-compose.dev.yml down 2>/dev/null || true
     pkill -f caddy 2>/dev/null || true
     @echo "🛑 Stopped"
