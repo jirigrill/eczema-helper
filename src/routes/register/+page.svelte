@@ -2,6 +2,7 @@
   import { cs } from '$lib/i18n/cs';
   import { goto } from '$app/navigation';
 
+  let name = $state('');
   let email = $state('');
   let password = $state('');
   let loading = $state(false);
@@ -12,10 +13,10 @@
     loading = true;
     error = '';
 
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name, email, password }),
     });
 
     if (res.ok) {
@@ -32,8 +33,8 @@
   <div class="w-full max-w-sm bg-white rounded-2xl shadow-sm p-6">
     <div class="text-center mb-8">
       <div class="text-5xl mb-3">🌿</div>
-      <h1 class="text-2xl font-bold text-text">Sledování ekzému</h1>
-      <p class="text-text-muted text-sm mt-1">Eliminační dieta kojence</p>
+      <h1 class="text-2xl font-bold text-text">Nový účet</h1>
+      <p class="text-text-muted text-sm mt-1">Sledování ekzému kojence</p>
     </div>
 
     {#if error}
@@ -43,6 +44,18 @@
     {/if}
 
     <form onsubmit={handleSubmit} class="flex flex-col gap-4">
+      <div>
+        <label for="name" class="block text-sm font-medium text-text mb-1">Jméno</label>
+        <input
+          id="name"
+          type="text"
+          bind:value={name}
+          required
+          autocomplete="name"
+          class="w-full border border-surface-dark rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
       <div>
         <label for="email" class="block text-sm font-medium text-text mb-1">E-mail</label>
         <input
@@ -56,13 +69,16 @@
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-text mb-1">Heslo</label>
+        <label for="password" class="block text-sm font-medium text-text mb-1">
+          Heslo <span class="text-text-muted font-normal">(min. 8 znaků)</span>
+        </label>
         <input
           id="password"
           type="password"
           bind:value={password}
           required
-          autocomplete="current-password"
+          minlength="8"
+          autocomplete="new-password"
           class="w-full border border-surface-dark rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
@@ -72,13 +88,13 @@
         disabled={loading}
         class="w-full bg-primary text-white rounded-lg py-2.5 font-medium mt-2 disabled:opacity-50 transition-opacity"
       >
-        {loading ? cs.loading : cs.login}
+        {loading ? cs.loading : cs.register}
       </button>
     </form>
 
     <p class="text-center text-sm text-text-muted mt-4">
-      Nemáte účet?
-      <a href="/register" class="text-primary font-medium">Registrovat se</a>
+      Máte účet?
+      <a href="/login" class="text-primary font-medium">{cs.login}</a>
     </p>
   </div>
 </div>
