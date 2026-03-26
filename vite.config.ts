@@ -29,7 +29,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['e2e/**', 'node_modules/**', '.claude/**'],
     // Include integration tests explicitly
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     pool: 'forks',
@@ -42,5 +42,7 @@ export default defineConfig({
     sequence: {
       shuffle: false,
     },
+    // Integration tests use the same database as the dev server (with cleanup)
+    // This is required because tests make HTTP requests to the running dev server
   }
 });

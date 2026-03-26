@@ -36,18 +36,15 @@ async function loginAndGetCookie(_sql: ReturnType<typeof postgres>, email: strin
 describe('Children API', () => {
   let sql: ReturnType<typeof postgres>;
 
-  beforeAll(async () => {
-    sql = postgres(DATABASE_URL, { max: 5 });
-  });
-
-  afterAll(async () => {
+  // Helper to clean up test data - called in both beforeAll and afterAll
+  // This handles the crash scenario where afterAll never runs
+  async function cleanupTestData() {
     // Cleanup test data in correct order to respect foreign key constraints
     // 1. Delete sessions first (references users)
     await sql`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-child-%@example.com')`;
     // 2. Delete user_children junction table (references both users and children)
     await sql`DELETE FROM user_children WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-child-%@example.com')`;
-    // 3. Delete orphaned children (those with no user_children entries)
-    // Use a subquery to find children that have no references
+    // 3. Delete orphaned children (those with no user_children entries, created recently)
     await sql`
       DELETE FROM children
       WHERE id NOT IN (SELECT DISTINCT child_id FROM user_children)
@@ -55,6 +52,16 @@ describe('Children API', () => {
     `;
     // 4. Finally delete users
     await sql`DELETE FROM users WHERE email LIKE 'test-child-%@example.com'`;
+  }
+
+  beforeAll(async () => {
+    sql = postgres(DATABASE_URL, { max: 5 });
+    // Clean up any leftover test data from previous crashed runs
+    await cleanupTestData();
+  });
+
+  afterAll(async () => {
+    await cleanupTestData();
     await sql.end();
   });
 

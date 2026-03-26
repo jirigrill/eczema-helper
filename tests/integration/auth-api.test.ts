@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
 
+// Use same database as dev server - tests make HTTP requests to running server
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgres://eczema:eczema_dev@localhost:5432/eczema_helper';
 
@@ -20,28 +21,35 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
 
+// Cleanup function to remove test data - called before and after tests
+async function cleanupTestData(sql: ReturnType<typeof postgres>) {
+  // Cleanup test data in correct order to respect foreign key constraints
+  // 1. Delete sessions first (references users)
+  await sql`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com')`;
+  // 2. Delete user_children junction table (references both users and children)
+  await sql`DELETE FROM user_children WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com')`;
+  // 3. Delete orphaned children (those with no user_children entries)
+  // Limit to recent entries to avoid deleting unrelated data
+  await sql`
+    DELETE FROM children
+    WHERE id NOT IN (SELECT DISTINCT child_id FROM user_children)
+    AND created_at > NOW() - INTERVAL '1 hour'
+  `;
+  // 4. Finally delete users
+  await sql`DELETE FROM users WHERE email LIKE 'test-%@example.com'`;
+}
+
 describe('Auth API', () => {
   let sql: ReturnType<typeof postgres>;
 
   beforeAll(async () => {
     sql = postgres(DATABASE_URL, { max: 5 });
+    // Clean up any leftover test data from crashed previous runs
+    await cleanupTestData(sql);
   });
 
   afterAll(async () => {
-    // Cleanup test data in correct order to respect foreign key constraints
-    // 1. Delete sessions first (references users)
-    await sql`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com')`;
-    // 2. Delete user_children junction table (references both users and children)
-    await sql`DELETE FROM user_children WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com')`;
-    // 3. Delete orphaned children (those with no user_children entries)
-    // Limit to recent entries to avoid deleting unrelated data
-    await sql`
-      DELETE FROM children
-      WHERE id NOT IN (SELECT DISTINCT child_id FROM user_children)
-      AND created_at > NOW() - INTERVAL '1 hour'
-    `;
-    // 4. Finally delete users
-    await sql`DELETE FROM users WHERE email LIKE 'test-%@example.com'`;
+    await cleanupTestData(sql);
     await sql.end();
   });
 

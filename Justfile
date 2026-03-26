@@ -332,6 +332,25 @@ db-reset:
 db-shell:
     docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema_helper
 
+# Create test database (run once)
+db-create-test:
+    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d postgres -c "CREATE DATABASE eczema_helper_test;" || echo "Test database already exists"
+    @echo "✅ Test database created"
+
+# Reset test database (⚠️ destructive - test data only)
+db-reset-test:
+    #!/usr/bin/env bash
+    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d postgres -c "DROP DATABASE IF EXISTS eczema_helper_test;"
+    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d postgres -c "CREATE DATABASE eczema_helper_test;"
+    DATABASE_URL="postgres://eczema:eczema_dev@localhost:5432/eczema_helper_test" bun scripts/migrate.ts
+    echo "✅ Test database reset"
+
+# Clean up orphaned test data in dev database
+test-cleanup:
+    #!/usr/bin/env bash
+    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema_helper -c "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com'); DELETE FROM user_children WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com'); DELETE FROM children WHERE id NOT IN (SELECT child_id FROM user_children); DELETE FROM users WHERE email LIKE 'test-%@example.com';"
+    @echo "✅ Test data cleaned"
+
 # Backup database
 backup:
     #!/usr/bin/env bash

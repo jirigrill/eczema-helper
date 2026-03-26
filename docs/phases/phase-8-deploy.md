@@ -25,6 +25,7 @@ This phase covers the final steps before the Eczema Tracker PWA goes live: a ful
 7. **Offline-to-online sync verification**: End-to-end testing of the Dexie sync mechanism under various network conditions.
 8. **Encryption verification**: Confirm that photo blobs stored on the server are genuinely encrypted and unreadable without client-side keys.
 9. **WebAuthn / Passkeys (optional)**: Add Face ID / Touch ID login as an alternative to password. Uses the Web Authentication API. Passkey enrollment available in Settings after initial password-based account creation. This feature is optional for Phase 8 and can be deferred if time-constrained.
+10. **Database migration rollback support**: Extend the migration runner to support rollback operations via `.down.sql` files. Each migration can have a corresponding rollback script (e.g., `003_add_rate_limiting.down.sql`). Running `just migrate:rollback` reverts the most recent migration and removes its entry from `_migrations`. This enables safe recovery from failed deployments without requiring full database restores.
 
 ## Acceptance Criteria
 
