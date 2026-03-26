@@ -19,7 +19,8 @@ setup:
         Linux) just setup-linux ;;
         *) echo "Unsupported: $OS"; exit 1 ;;
     esac
-    echo "✅ Setup complete! Run 'just dev' to start."
+    bun install
+    echo "✅ Setup complete! Run 'just setup-certs' then 'just dev'."
 
 # macOS setup via Homebrew
 setup-macos:

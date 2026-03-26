@@ -42,14 +42,7 @@ just check-tools
 - mkcert (HTTPS certificates)
 - Caddy (reverse proxy)
 
-## Step 3: Install Dependencies
-
-```bash
-# Install Node.js dependencies
-bun install
-```
-
-## Step 4: Configure Environment
+## Step 3: Configure Environment
 
 ```bash
 # Generate .env template
@@ -185,7 +178,7 @@ kill <PID>            # Kill it
 
 ```bash
 # First time setup
-just setup && bun install && just setup-certs
+just setup && just setup-certs
 
 # Daily development workflow
 just dev              # Start
