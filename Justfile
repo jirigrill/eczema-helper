@@ -396,6 +396,20 @@ dev:
         exit 1
     fi
     
+    # Check Node.js version (required for rolldown/vite)
+    NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' || echo "0.0.0")
+    REQUIRED_VERSION="20.15.0"
+    if ! node -e "process.exit(process.version.slice(1).localeCompare('$REQUIRED_VERSION', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null; then
+        echo "❌ Node.js version $NODE_VERSION is too old. Required: $REQUIRED_VERSION+"
+        echo "   Update Node.js or use Bun as runtime:"
+        echo "   bun run dev (instead of npm/yarn)"
+        exit 1
+    fi
+    
+    # Kill any existing Caddy process
+    pkill -f "caddy run" 2>/dev/null || true
+    sleep 1
+    
     echo "🚀 Starting development environment..."
     docker compose -f docker-compose.postgres.yml up -d
     echo "✅ PostgreSQL started"
@@ -415,9 +429,17 @@ dev-db:
 
 # Stop all development services
 stop:
-    docker compose -f docker-compose.postgres.yml down
+    #!/usr/bin/env bash
+    docker compose -f docker-compose.postgres.yml down 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml down 2>/dev/null || true
     pkill -f "caddy run" 2>/dev/null || true
-    @echo "🛑 All services stopped"
+    pkill -f "caddy" 2>/dev/null || true
+    echo "🛑 All services stopped"
+
+# Format Caddyfile
+caddy-fmt:
+    caddy fmt --overwrite Caddyfile
+    @echo "✅ Caddyfile formatted"
 
 # View database logs
 logs:
