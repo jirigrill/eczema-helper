@@ -501,7 +501,7 @@ build-prod tag="latest":
     docker build -t eczema-tracker:{{tag}} .
     @echo "✅ Built eczema-tracker:{{tag}}"
 
-# Deploy to VPS (full deployment)
+# Deploy to VPS (full deployment) - requires SSH access to server
 deploy tag="latest": (build-prod tag)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -509,9 +509,11 @@ deploy tag="latest": (build-prod tag)
     DEPLOY_HOST="${DEPLOY_HOST:-}"
     DEPLOY_USER="${DEPLOY_USER:-deploy}"
     DEPLOY_DIR="${DEPLOY_DIR:-/opt/eczema-tracker}"
+    TAG="{{tag}}"
     
     if [[ -z "$DEPLOY_HOST" ]]; then
         echo "❌ Error: Set DEPLOY_HOST environment variable"
+        echo "   Example: DEPLOY_HOST=192.168.1.100 just deploy"
         exit 1
     fi
     
@@ -519,45 +521,30 @@ deploy tag="latest": (build-prod tag)
     
     # Save image to file and transfer
     echo "📦 Exporting Docker image..."
-    docker save eczema-tracker:{{tag}} | gzip > /tmp/eczema-tracker-{{tag}}.tar.gz
+    docker save eczema-tracker:$TAG | gzip > /tmp/eczema-tracker-$TAG.tar.gz
     
     echo "📤 Transferring to server..."
-    scp /tmp/eczema-tracker-{{tag}}.tar.gz $DEPLOY_USER@$DEPLOY_HOST:/tmp/
+    scp /tmp/eczema-tracker-$TAG.tar.gz $DEPLOY_USER@$DEPLOY_HOST:/tmp/
     
     echo "🔧 Loading and deploying on server..."
-    ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
-        set -euo pipefail
-        cd {{DEPLOY_DIR}}
-        
-        # Load new image
-        gunzip -c /tmp/eczema-tracker-{{tag}}.tar.gz | docker load
-        rm /tmp/eczema-tracker-{{tag}}.tar.gz
-        
-        # Run migrations before deploying
-        echo "🔄 Running database migrations..."
-        docker compose run --rm app bun run db:migrate
-        
-        # Rolling update - start new container
-        echo "🚀 Starting new version..."
-        docker compose up -d app
-        
-        # Wait for health check
-        echo "⏳ Waiting for health check..."
-        for i in {1..30}; do
-            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-                echo "✅ Health check passed"
-                break
-            fi
-            sleep 2
-        done
-        
-        # Cleanup old images
-        docker image prune -f
-        
-        echo "✅ Deployment complete"
-EOF
     
-    rm /tmp/eczema-tracker-{{tag}}.tar.gz
+    # Load and deploy via SSH (one-liner to avoid heredoc issues in Just)
+    ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_DIR && TAG=$TAG bash -c 'set -e; gunzip -c /tmp/eczema-tracker-\$TAG.tar.gz | docker load && rm /tmp/eczema-tracker-\$TAG.tar.gz && docker compose run --rm app bun run db:migrate && docker compose up -d app'"
+    
+    echo "⏳ Waiting for health check..."
+    for i in {1..30}; do
+        if ssh $DEPLOY_USER@$DEPLOY_HOST "curl -sf http://localhost:3000/api/health > /dev/null 2>&1" ; then
+            echo "✅ Health check passed"
+            break
+        fi
+        sleep 2
+    done
+    
+    # Cleanup old images
+    ssh $DEPLOY_USER@$DEPLOY_HOST "docker image prune -f"
+    
+    # Cleanup local image file
+    rm /tmp/eczema-tracker-$TAG.tar.gz
     echo "🎉 Successfully deployed to $DEPLOY_HOST"
 
 # Quick deploy - just restart with latest image (no build)
@@ -709,48 +696,49 @@ outdated:
 
 # Generate env file template
 env-template:
-    @cat << 'EOF'
-# Copy to .env and fill in your values
-
-# Database
-DATABASE_URL=postgresql://eczema:password@localhost:5432/eczema
-
-# Session
-SESSION_SECRET=generate-a-32-char-secret-here
-
-# Encryption
-ENCRYPTION_KEY=base64-encoded-32-byte-key
-
-# Deployment (for just deploy commands)
-DEPLOY_HOST=your-vps-ip-or-domain
-DEPLOY_USER=deploy
-DEPLOY_DIR=/opt/eczema-tracker
-
-# AI (Claude Vision)
-CLAUDE_API_KEY=your-api-key
-
-# Google OAuth (optional)
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-
-# Backup (optional)
-BACKUP_ENCRYPTION_KEY_FILE=/opt/eczema-backup/backup.key
-EOF
+    #!/usr/bin/env bash
+    printf '%s\n' \
+        "# Copy to .env and fill in your values" \
+        "" \
+        "# Database" \
+        "DATABASE_URL=postgresql://eczema:CHANGEME_AT_localhost:5432/eczema" \
+        "" \
+        "# Session" \
+        "SESSION_SECRET=generate-a-32-char-secret-here" \
+        "" \
+        "# Encryption" \
+        "ENCRYPTION_KEY=base64-encoded-32-byte-key" \
+        "" \
+        "# Deployment (for just deploy commands)" \
+        "DEPLOY_HOST=your-vps-ip-or-domain" \
+        "DEPLOY_USER=deploy" \
+        "DEPLOY_DIR=/opt/eczema-tracker" \
+        "" \
+        "# AI (Claude Vision)" \
+        "CLAUDE_API_KEY=your-api-key" \
+        "" \
+        "# Google OAuth (optional)" \
+        "GOOGLE_CLIENT_ID=your-client-id" \
+        "GOOGLE_CLIENT_SECRET=your-client-secret" \
+        "" \
+        "# Backup (optional)" \
+        "BACKUP_ENCRYPTION_KEY_FILE=/opt/eczema-backup/backup.key"
 
 # Setup pre-commit hooks
 setup-hooks:
     #!/usr/bin/env bash
-    cat > .git/hooks/pre-commit << 'EOF'
-    #!/bin/bash
-    set -e
-    echo "Running pre-commit checks..."
-    bunx tsc --noEmit
-    bunx vitest run --changed
-    bunx prettier --check "src/**/*.{ts,svelte}"
-    echo "✅ Pre-commit checks passed"
-EOF
+    mkdir -p .git/hooks
+    printf '%s\n' \
+        '#!/bin/bash' \
+        'set -e' \
+        'echo "Running pre-commit checks..."' \
+        'bunx tsc --noEmit' \
+        'bunx vitest run --changed' \
+        'bunx prettier --check "src/**/*.{ts,svelte}"' \
+        'echo "Pre-commit checks passed"' \
+        > .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
-    @echo "✅ Pre-commit hook installed"
+    echo "Pre-commit hook installed"
 
 # Help
 help:
