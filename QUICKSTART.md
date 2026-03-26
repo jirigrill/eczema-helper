@@ -71,7 +71,17 @@ This creates HTTPS certificates for your local IP address.
 
 ### Install mkcert Root CA on Your Computer
 
-You must trust the certificate authority on your laptop/desktop to avoid "This connection is not private" warnings:
+**First, ensure mkcert is installed on your MacBook:**
+
+```bash
+# Install mkcert via Homebrew
+brew install mkcert
+
+# Install the local CA (run this once)
+mkcert -install
+```
+
+**Then trust the certificate authority to avoid "This connection is not private" warnings:**
 
 **macOS:**
 
