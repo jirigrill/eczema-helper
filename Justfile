@@ -48,6 +48,20 @@ setup-macos:
     
     # Install required tools
     echo "📦 Installing required tools via Homebrew..."
+    
+    # Check and install Node.js 20+ (required by Vite 6)
+    NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' || echo "0.0.0")
+    REQUIRED_NODE="20.15.0"
+    if ! node -e "process.exit(process.version.slice(1).localeCompare('$REQUIRED_NODE', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null; then
+        echo "📦 Installing Node.js 20 (required for Vite 6)..."
+        brew install node@20
+        echo "export PATH=\"/usr/local/opt/node@20/bin:\$PATH\"" >> ~/.zshrc
+        echo "✅ Node.js 20 installed"
+        echo "⚠️  Please restart your terminal or run: source ~/.zshrc"
+    else
+        echo "✓ Node.js $NODE_VERSION already installed (>= $REQUIRED_NODE)"
+    fi
+    
     brew install --quiet just || echo "✓ just already installed"
     brew install --quiet mkcert || echo "✓ mkcert already installed"
     brew install --quiet caddy || echo "✓ caddy already installed"
@@ -112,6 +126,18 @@ setup-linux-debian:
     # Install base dependencies
     echo "📦 Installing base dependencies..."
     sudo apt-get install -y curl wget unzip gnupg2 ca-certificates lsb-release software-properties-common
+    
+    # Check and install Node.js 20+ (required by Vite 6)
+    NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' || echo "0.0.0")
+    REQUIRED_NODE="20.15.0"
+    if ! node -e "process.exit(process.version.slice(1).localeCompare('$REQUIRED_NODE', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null; then
+        echo "📦 Installing Node.js 20 (required for Vite 6)..."
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        echo "✅ Node.js $(node --version) installed"
+    else
+        echo "✓ Node.js $NODE_VERSION already installed (>= $REQUIRED_NODE)"
+    fi
     
     # Install Docker
     if ! command -v docker &> /dev/null; then
@@ -183,6 +209,18 @@ setup-linux-redhat:
     
     # Install base dependencies
     sudo dnf install -y curl wget unzip
+    
+    # Check and install Node.js 20+ (required by Vite 6)
+    NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' || echo "0.0.0")
+    REQUIRED_NODE="20.15.0"
+    if ! node -e "process.exit(process.version.slice(1).localeCompare('$REQUIRED_NODE', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null; then
+        echo "📦 Installing Node.js 20 (required for Vite 6)..."
+        curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+        sudo dnf install -y nodejs
+        echo "✅ Node.js $(node --version) installed"
+    else
+        echo "✓ Node.js $NODE_VERSION already installed (>= $REQUIRED_NODE)"
+    fi
     
     # Install Docker
     if ! command -v docker &> /dev/null; then
