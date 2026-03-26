@@ -52,16 +52,22 @@ export async function loginViaAPI(
   if (!loginRes.ok()) {
     throw new Error(`Login failed: ${loginRes.status()}`);
   }
-  
-  // Get session cookie from response
-  const cookies = await loginRes.headers()['set-cookie'];
-  if (!cookies) {
+
+  // Get session cookie from response using headersArray for reliability
+  const headersArray = loginRes.headersArray();
+  const setCookieHeader = headersArray.find(h => h.name.toLowerCase() === 'set-cookie');
+
+  if (!setCookieHeader) {
     throw new Error('No session cookie returned');
   }
-  
+
   // Extract session_id from cookie string
-  const match = cookies.match(/session_id=([^;]+)/);
-  return match ? match[1] : '';
+  const match = setCookieHeader.value.match(/session_id=([^;]+)/);
+  if (!match) {
+    throw new Error(`Could not extract session_id from cookie: ${setCookieHeader.value}`);
+  }
+
+  return match[1];
 }
 
 /**
@@ -97,8 +103,17 @@ export async function setupAuthenticatedPage(
  */
 export async function clearAuthState(page: Page): Promise<void> {
   await page.context().clearCookies();
-  await page.evaluate(() => {
-    localStorage.clear();
-    sessionStorage.clear();
-  });
+  // Only clear storage if we're on a real page (not about:blank)
+  // This app uses HTTP-only cookies for auth, so clearing cookies is sufficient
+  const url = page.url();
+  if (url && !url.startsWith('about:')) {
+    try {
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+    } catch {
+      // Ignore errors - storage clearing is best-effort
+    }
+  }
 }

@@ -4,14 +4,18 @@
   import { goto } from '$app/navigation';
   import type { Child } from '$lib/domain/models';
 
-  type EditState = { id: string; name: string; birthDate: string } | null;
+  // Create derived values to properly track store reactivity in Svelte 5
+  let children = $derived(childrenStore.children);
 
   let addName = $state('');
   let addBirthDate = $state('');
   let addLoading = $state(false);
   let addError = $state('');
 
-  let editState = $state<EditState>(null);
+  // Edit state as separate primitives (works better with Svelte 5 reactivity)
+  let editingChildId = $state<string | null>(null);
+  let editingName = $state('');
+  let editingBirthDate = $state('');
   let editLoading = $state(false);
   let editError = $state('');
 
@@ -44,20 +48,22 @@
   }
 
   function startEdit(child: Child) {
-    editState = { id: child.id, name: child.name, birthDate: child.birthDate.split('T')[0] };
+    editingChildId = child.id;
+    editingName = child.name;
+    editingBirthDate = child.birthDate.split('T')[0];
     editError = '';
   }
 
   async function saveEdit(e: SubmitEvent) {
     e.preventDefault();
-    if (!editState) return;
+    if (!editingChildId) return;
     editLoading = true;
     editError = '';
 
-    const res = await fetch(`/api/children/${editState.id}`, {
+    const res = await fetch(`/api/children/${editingChildId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editState.name, birthDate: editState.birthDate }),
+      body: JSON.stringify({ name: editingName, birthDate: editingBirthDate }),
     });
 
     if (res.ok) {
@@ -65,7 +71,7 @@
       childrenStore.setChildren(
         childrenStore.children.map((c) => (c.id === updated.id ? updated : c))
       );
-      editState = null;
+      editingChildId = null;
     } else {
       const data = await res.json().catch(() => ({}));
       editError = data.error ?? cs.error;
@@ -103,100 +109,102 @@
   <section class="mb-8">
     <h2 class="text-base font-semibold text-text mb-3">Děti</h2>
 
-    {#if childrenStore.children.length === 0}
+    {#if children.length === 0}
       <p class="text-text-muted text-sm mb-4">Zatím nemáte přidané žádné dítě.</p>
     {:else}
+      {#key `${editingChildId}-${deleteConfirmId}`}
       <ul class="flex flex-col gap-2 mb-4">
-        {#each childrenStore.children as child}
+        {#each children as child (child.id)}
           <li class="bg-white rounded-xl border border-surface-dark p-4">
-            {#if editState?.id === child.id}
-              <!-- Edit form -->
-              <form onsubmit={saveEdit} class="flex flex-col gap-3">
-                {#if editError}
-                  <p class="text-sm text-red-600">{editError}</p>
-                {/if}
-                <div>
-                  <label class="block text-xs font-medium text-text-muted mb-1">Jméno</label>
-                  <input
-                    type="text"
-                    bind:value={editState.name}
-                    required
-                    class="w-full border border-surface-dark rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+              {#if editingChildId === child.id}
+                <!-- Edit form -->
+                <form onsubmit={saveEdit} class="flex flex-col gap-3">
+                  {#if editError}
+                    <p class="text-sm text-red-600">{editError}</p>
+                  {/if}
+                  <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1">Jméno</label>
+                    <input
+                      type="text"
+                      bind:value={editingName}
+                      required
+                      class="w-full border border-surface-dark rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1">Datum narození</label>
+                    <input
+                      type="date"
+                      bind:value={editingBirthDate}
+                      required
+                      class="w-full border border-surface-dark rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div class="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onclick={() => (editingChildId = null)}
+                      class="px-3 py-1.5 text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
+                    >
+                      {cs.cancel}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editLoading}
+                      class="px-3 py-1.5 text-sm bg-primary text-white rounded-lg disabled:opacity-50"
+                    >
+                      {editLoading ? cs.loading : cs.save}
+                    </button>
+                  </div>
+                </form>
+              {:else if deleteConfirmId === child.id}
+                <!-- Delete confirmation -->
+                <div class="flex flex-col gap-3">
+                  <p class="text-sm text-text">
+                    Opravdu smazat <strong>{child.name}</strong>? Tato akce je nevratná.
+                  </p>
+                  <div class="flex gap-2 justify-end">
+                    <button
+                      onclick={() => (deleteConfirmId = null)}
+                      class="px-3 py-1.5 text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
+                    >
+                      {cs.cancel}
+                    </button>
+                    <button
+                      onclick={() => deleteChild(child.id)}
+                      class="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg"
+                    >
+                      {cs.delete}
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-xs font-medium text-text-muted mb-1">Datum narození</label>
-                  <input
-                    type="date"
-                    bind:value={editState.birthDate}
-                    required
-                    class="w-full border border-surface-dark rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+              {:else}
+                <!-- Display row -->
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-medium text-text">{child.name}</p>
+                    <p class="text-xs text-text-muted mt-0.5">nar. {formatDate(child.birthDate)}</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      onclick={() => startEdit(child)}
+                      class="text-sm text-primary px-2 py-1 rounded-lg hover:bg-surface transition-colors"
+                    >
+                      Upravit
+                    </button>
+                    <button
+                      onclick={() => (deleteConfirmId = child.id)}
+                      class="text-sm text-red-500 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      {cs.delete}
+                    </button>
+                  </div>
                 </div>
-                <div class="flex gap-2 justify-end">
-                  <button
-                    type="button"
-                    onclick={() => (editState = null)}
-                    class="px-3 py-1.5 text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
-                  >
-                    {cs.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={editLoading}
-                    class="px-3 py-1.5 text-sm bg-primary text-white rounded-lg disabled:opacity-50"
-                  >
-                    {editLoading ? cs.loading : cs.save}
-                  </button>
-                </div>
-              </form>
-            {:else if deleteConfirmId === child.id}
-              <!-- Delete confirmation -->
-              <div class="flex flex-col gap-3">
-                <p class="text-sm text-text">
-                  Opravdu smazat <strong>{child.name}</strong>? Tato akce je nevratná.
-                </p>
-                <div class="flex gap-2 justify-end">
-                  <button
-                    onclick={() => (deleteConfirmId = null)}
-                    class="px-3 py-1.5 text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
-                  >
-                    {cs.cancel}
-                  </button>
-                  <button
-                    onclick={() => deleteChild(child.id)}
-                    class="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg"
-                  >
-                    {cs.delete}
-                  </button>
-                </div>
-              </div>
-            {:else}
-              <!-- Display row -->
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="font-medium text-text">{child.name}</p>
-                  <p class="text-xs text-text-muted mt-0.5">nar. {formatDate(child.birthDate)}</p>
-                </div>
-                <div class="flex gap-2">
-                  <button
-                    onclick={() => startEdit(child)}
-                    class="text-sm text-primary px-2 py-1 rounded-lg hover:bg-surface transition-colors"
-                  >
-                    Upravit
-                  </button>
-                  <button
-                    onclick={() => (deleteConfirmId = child.id)}
-                    class="text-sm text-red-500 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    {cs.delete}
-                  </button>
-                </div>
-              </div>
-            {/if}
+              {/if}
           </li>
         {/each}
       </ul>
+      {/key}
     {/if}
 
     <!-- Add child form -->
