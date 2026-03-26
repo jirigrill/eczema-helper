@@ -186,6 +186,26 @@ stop:
     pkill -9 -f caddy 2>/dev/null || true
     @echo "🛑 Stopped"
 
+# Configure firewall for development
+setup-firewall:
+    #!/usr/bin/env bash
+    echo "🔥 Configuring firewall for development ports..."
+    if command -v ufw &> /dev/null; then
+        # Ubuntu/Debian with UFW
+        sudo ufw allow 8443/tcp comment 'Eczema Tracker HTTPS'
+        sudo ufw allow 5173/tcp comment 'Eczema Tracker HTTP'
+        sudo ufw reload
+        echo "✅ Firewall configured (ports 8443, 5173)"
+    elif command -v firewall-cmd &> /dev/null; then
+        # RedHat/Fedora with firewalld
+        sudo firewall-cmd --permanent --add-port=8443/tcp
+        sudo firewall-cmd --permanent --add-port=5173/tcp
+        sudo firewall-cmd --reload
+        echo "✅ Firewall configured (ports 8443, 5173)"
+    else
+        echo "⚠️  Unknown firewall system. Please manually open ports 8443 and 5173"
+    fi
+
 # View logs
 logs:
     docker compose -f docker-compose.postgres.yml logs -f

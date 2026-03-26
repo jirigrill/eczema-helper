@@ -127,6 +127,22 @@ just logs             # View logs
 - Make sure you installed the mkcert root CA on your phone (Step 4)
 - Ensure phone and computer are on same WiFi
 
+**Cannot connect / Connection refused:**
+The firewall is blocking the ports. Allow them:
+
+```bash
+# Ubuntu/Debian with UFW
+sudo ufw allow 8443/tcp   # HTTPS via Caddy
+sudo ufw allow 5173/tcp   # HTTP direct
+sudo ufw reload
+
+# Or open all ports for local network (less secure)
+sudo ufw allow from 192.168.0.0/16 to any port 8443
+
+# Check status
+sudo ufw status
+```
+
 **Docker permission denied:**
 
 ```bash
@@ -144,7 +160,7 @@ kill <PID>            # Kill it
 
 **Can't connect from phone:**
 
-- Check firewall: `sudo ufw allow 443/tcp` (Ubuntu)
+- Check firewall rules above
 - Verify Caddy is running: `just logs`
 - Check IP address matches: `hostname -I`
 
