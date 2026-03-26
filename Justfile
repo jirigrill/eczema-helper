@@ -20,6 +20,7 @@ setup:
         *) echo "Unsupported: $OS"; exit 1 ;;
     esac
     bun install
+    bunx svelte-kit sync
     echo "✅ Setup complete! Run 'just setup-certs' then 'just dev'."
 
 # macOS setup via Homebrew
@@ -134,8 +135,9 @@ dev:
     #!/usr/bin/env bash
     set -e
     command -v bun &> /dev/null || { echo "❌ Bun not found. Run: just setup"; exit 1; }
-    [[ -d node_modules ]] || { echo "❌ node_modules missing. Run: bun install"; exit 1; }
+    [[ -d node_modules ]] || { echo "❌ node_modules missing. Run: just setup"; exit 1; }
     [[ -f certs/local.pem ]] || { echo "❌ Certs missing. Run: just setup-certs"; exit 1; }
+    bunx svelte-kit sync
 
     # Get local IP (macOS and Linux)
     if [[ "$(uname)" == "Darwin" ]]; then
