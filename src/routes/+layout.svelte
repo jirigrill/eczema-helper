@@ -13,9 +13,8 @@
     { href: '/settings', label: 'Nastavení', icon: '⚙️' }
   ];
 
-  const showNav = $derived(
-    page.url.pathname !== '/login' && page.url.pathname !== '/'
-  );
+  const pathname = $derived(page.url.pathname);
+  const showNav = $derived(pathname !== '/login' && pathname !== '/');
 </script>
 
 <main class="min-h-screen bg-surface" class:pb-16={showNav}>
@@ -25,7 +24,7 @@
 {#if showNav}
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-surface-dark flex z-50">
     {#each tabs as tab}
-      {@const isActive = page.url.pathname.startsWith(tab.href)}
+      {@const isActive = pathname.startsWith(tab.href)}
       <a
         href={tab.href}
         class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors"
