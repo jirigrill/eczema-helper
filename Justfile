@@ -262,6 +262,12 @@ clean:
 
 # ========== DATABASE ==========
 
+# Run database migrations
+migrate:
+    #!/usr/bin/env bash
+    set -a; [[ -f .env ]] && source .env; set +a
+    bun scripts/migrate.ts
+
 # Reset database (⚠️ destructive)
 db-reset:
     #!/usr/bin/env bash
