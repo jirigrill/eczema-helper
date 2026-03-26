@@ -27,9 +27,7 @@
       {@const isActive = pathname.startsWith(tab.href)}
       <a
         href={tab.href}
-        class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors"
-        class:text-primary={isActive}
-        class:text-text-muted={!isActive}
+        class="flex-1 flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors {isActive ? 'text-primary' : 'text-text-muted'}"
       >
         <span class="text-xl leading-none">{tab.icon}</span>
         <span>{tab.label}</span>
