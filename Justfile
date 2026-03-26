@@ -105,11 +105,15 @@ setup-linux-redhat:
 # Generate HTTPS certificates for local IP
 setup-certs:
     #!/usr/bin/env bash
-    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    if [[ "$(uname)" == "Darwin" ]]; then
+        LOCAL_IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo "127.0.0.1")
+    else
+        LOCAL_IP=$(hostname -I | awk '{print $1}')
+    fi
     mkdir -p certs
     mkcert -cert-file certs/local.pem -key-file certs/local-key.pem localhost 127.0.0.1 "$LOCAL_IP"
     echo "✅ Certificates generated for IP: $LOCAL_IP"
-    echo "📱 Install rootCA on phone: mkcert -CAROOT"
+    echo "📱 CA root for phone: $(mkcert -CAROOT)/rootCA.pem"
 
 # Verify tools installed
 check-tools:
@@ -127,51 +131,53 @@ check-tools:
 # Start dev environment (PostgreSQL + Caddy + Vite)
 dev:
     #!/usr/bin/env bash
+    set -e
     command -v bun &> /dev/null || { echo "❌ Bun not found. Run: just setup"; exit 1; }
-    node -e "process.exit(process.version.slice(1).localeCompare('20.15.0', undefined, {numeric: true}) >= 0 ? 0 : 1)" 2>/dev/null || { echo "❌ Node.js 20.15.0+ required. Run: just setup"; exit 1; }
-    
-    # Clean up any leftover processes
-    pkill -9 -f caddy 2>/dev/null || true
-    docker stop eczema-postgres-dev 2>/dev/null || true
-    docker rm -f eczema-postgres-dev 2>/dev/null || true
-    sleep 2
-    
-    # Start PostgreSQL
-    docker compose -f docker-compose.postgres.yml up -d --remove-orphans 2>/dev/null || docker compose -f docker-compose.postgres.yml up -d
-    echo "✅ PostgreSQL ready"
-    
-    # Start Caddy (use dev Caddyfile on port 8443)
-    if [[ -f Caddyfile.dev ]]; then
-        caddy run --config Caddyfile.dev &
+    [[ -d node_modules ]] || { echo "❌ node_modules missing. Run: bun install"; exit 1; }
+    [[ -f certs/local.pem ]] || { echo "❌ Certs missing. Run: just setup-certs"; exit 1; }
+
+    # Get local IP (macOS and Linux)
+    if [[ "$(uname)" == "Darwin" ]]; then
+        LOCAL_IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo "127.0.0.1")
     else
-        echo "⚠️  Caddyfile.dev not found, using port 5173 directly"
+        LOCAL_IP=$(hostname -I | awk '{print $1}')
     fi
+
+    # Clean up any leftover processes
+    pkill -f "caddy run" 2>/dev/null || true
+    docker compose -f docker-compose.postgres.yml down --remove-orphans 2>/dev/null || true
     sleep 1
-    echo "✅ Caddy started"
-    
-    # Start dev server
+
+    # Start PostgreSQL
+    docker compose -f docker-compose.postgres.yml up -d
+    echo "✅ PostgreSQL ready"
+
+    # Start Caddy
+    caddy run --config Caddyfile.dev &
+    CADDY_PID=$!
+    sleep 1
+    kill -0 $CADDY_PID 2>/dev/null || { echo "❌ Caddy failed to start. Check Caddyfile.dev and certs/"; exit 1; }
+    echo "✅ Caddy ready"
+
+    # Start Vite dev server
+    set +e
     bun run dev -- --host 0.0.0.0 &
     VITE_PID=$!
     sleep 2
-    
-    # Show access URLs
-    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    kill -0 $VITE_PID 2>/dev/null || { echo "❌ Vite failed to start"; pkill -f "caddy run" 2>/dev/null; exit 1; }
+    echo "✅ Vite ready"
+
     echo ""
     echo "🌐 Access URLs:"
-    echo "   Local:    http://localhost:5173"
-    echo "   HTTPS:    https://$LOCAL_IP:8443 (recommended for phone)"
-    echo "   HTTP:     http://$LOCAL_IP:5173"
+    echo "   Local:  http://localhost:5173"
+    echo "   HTTPS:  https://$LOCAL_IP:8443  ← use this on phone"
     echo ""
-    echo "📱 For phone access:"
-    echo "   1. Install mkcert root CA on your phone first"
-    echo "   2. Open: https://$LOCAL_IP:8443"
+    echo "Press Ctrl+C to stop all services"
     echo ""
-    
-    # Wait for vite to finish
+
+    # Wait and clean up on exit
+    trap 'pkill -f "caddy run" 2>/dev/null; docker compose -f docker-compose.postgres.yml down 2>/dev/null; exit' INT TERM
     wait $VITE_PID
-    
-    # Cleanup on exit
-    pkill -9 -f caddy 2>/dev/null || true
 
 # Start PostgreSQL only
 dev-db:
