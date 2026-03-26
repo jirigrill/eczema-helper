@@ -59,6 +59,21 @@ Defined in `docs/architecture/data-models.md`. Core entities:
 
 ## Development Commands
 
+Use **Just** for all common tasks (install via `brew install just` or `curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash`):
+
+```bash
+just dev              # Start full dev environment (Docker + Caddy + dev server)
+just build            # Type-check and build
+just test             # Run all tests
+just check            # Run full check suite (test + build + lint)
+just deploy           # Deploy to VPS (set DEPLOY_HOST env var)
+just backup-remote    # Create encrypted backup on VPS
+```
+
+Run `just` or `just help` to see all available commands.
+
+### Manual Commands (if not using Just)
+
 ```bash
 # Local dev environment
 docker compose -f docker-compose.dev.yml up -d   # PostgreSQL + app
