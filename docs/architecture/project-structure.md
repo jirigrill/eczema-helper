@@ -44,6 +44,19 @@ eczema-tracker/
 │   │   │   └── encryption.ts         # AES-256-GCM encrypt/decrypt helpers
 │   │   ├── i18n/
 │   │   │   └── cs.ts                 # Czech translations
+│   │   ├── server/                    # Server-only utilities (Phase 1)
+│   │   │   ├── auth.ts               # Password hashing, verification
+│   │   │   ├── db.ts                 # PostgreSQL connection pool
+│   │   │   ├── env.ts                # Environment variable validation
+│   │   │   ├── logger.ts             # Structured logging (pino)
+│   │   │   ├── audit.ts              # Security audit logging
+│   │   │   ├── rate-limit.ts         # API rate limiting
+│   │   │   ├── session.ts            # Session management helpers
+│   │   │   └── shutdown.ts           # Graceful shutdown handling
+│   │   ├── types/                     # Shared TypeScript types (Phase 1)
+│   │   │   ├── result.ts             # Result<T, E> type for error handling
+│   │   │   ├── api.ts                # API request/response types
+│   │   │   └── index.ts              # Re-exports
 │   │   └── utils/
 │   │       ├── date.ts               # Date formatting helpers
 │   │       └── image.ts              # Image resize/compress before upload
@@ -83,7 +96,9 @@ eczema-tracker/
 │   │       └── push/+server.ts        # Push subscription management
 │   ├── app.html                       # HTML shell
 │   ├── app.css                        # Global CSS (Tailwind directives)
-│   └── hooks.server.ts               # Server hooks (session middleware)
+│   ├── app.d.ts                       # SvelteKit type declarations
+│   ├── hooks.server.ts               # Server hooks (session middleware)
+│   └── test-setup.ts                  # Vitest setup (mocks, globals)
 ├── static/
 │   ├── manifest.webmanifest           # PWA manifest
 │   ├── icons/                         # App icons (192, 512px)
@@ -132,6 +147,31 @@ Business logic services that orchestrate operations using ports:
 | `photo-diary.ts`   | `PhotoDiaryService`   | Orchestrate photo capture workflow (resize, encrypt, upload, save metadata), retrieve and decrypt for viewing |
 | `analysis.ts`      | `AnalysisService`     | Select photos for comparison, call AI analyzer, store results, aggregate trend data                           |
 | `export.ts`        | `ExportService`       | Gather data for a date range, decrypt photos, generate PDF report with timeline and analysis                  |
+
+### `src/lib/server/` -- Server-Side Utilities
+
+Server-only modules that run exclusively on the backend (never bundled to client):
+
+| File          | Purpose                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `auth.ts`     | Password hashing (bcrypt), credential validation                                        |
+| `session.ts`  | Session creation, validation, sliding expiry, cookie management                         |
+| `db.ts`       | PostgreSQL connection pool setup and query helpers                                      |
+| `env.ts`      | Environment variable validation and typed access                                        |
+| `logger.ts`   | Structured logging with levels and context                                              |
+| `audit.ts`    | Security audit logging for sensitive operations (login attempts, password changes)      |
+| `rate-limit.ts` | Rate limiting middleware for auth endpoints                                           |
+| `shutdown.ts` | Graceful shutdown handling for database connections                                     |
+
+### `src/lib/types/` -- Shared Type Definitions
+
+TypeScript types used across client and server:
+
+| File       | Purpose                                                                           |
+| ---------- | --------------------------------------------------------------------------------- |
+| `result.ts` | `Result<T, E>` discriminated union for error handling without exceptions         |
+| `api.ts`   | API request/response types for type-safe client-server communication              |
+| `index.ts` | Re-exports for convenient imports                                                 |
 
 ### `src/lib/adapters/` -- Adapter Layer
 

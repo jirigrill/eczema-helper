@@ -25,6 +25,8 @@ A personal progressive web application for tracking a breastfed newborn's atopic
 - **Architecture:** Ports & Adapters (Hexagonal) -- swappable AI providers, storage backends, and notification channels
 - **Scope:** Single child (no multi-child support currently)
 
+**Current implementation status:** Phase 0 (scaffold) and Phase 1 (auth) complete. See phase docs for details.
+
 ---
 
 ## Architecture Documentation
