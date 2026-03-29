@@ -4,15 +4,15 @@ import type { RequestHandler } from './$types';
 import { sql } from '$lib/server/db';
 import { logAudit } from '$lib/server/audit';
 import { logger } from '$lib/server/logger';
-import type { CreateChildRequest, ChildResponse, GetChildrenResponse, ApiError } from '$lib/types/api';
+import type { CreateChildRequest, ChildData, GetChildrenData, ApiError, ApiSuccess } from '$lib/types/api';
 
 // Security: Reasonable max name length to prevent abuse
 const MAX_NAME_LENGTH = 100;
 
 /**
- * Map a database row to a ChildResponse.
+ * Map a database row to a ChildData.
  */
-function mapChildRow(r: Record<string, unknown>): ChildResponse {
+function mapChildRow(r: Record<string, unknown>): ChildData {
   return {
     id: r.id as string,
     name: r.name as string,
@@ -45,7 +45,7 @@ function parseCreateChildRequest(body: unknown): { ok: true; data: CreateChildRe
 
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
-    return json({ error: 'Nepřihlášen' } satisfies ApiError, { status: 401 });
+    return json({ ok: false, error: 'Nepřihlášen', code: 'UNAUTHORIZED' } satisfies ApiError, { status: 401 });
   }
 
   try {
@@ -57,19 +57,19 @@ export const GET: RequestHandler = async ({ locals }) => {
       ORDER BY c.created_at ASC
     `;
 
-    return json(children.map(mapChildRow) satisfies GetChildrenResponse);
+    return json({ ok: true, data: children.map(mapChildRow) } satisfies ApiSuccess<GetChildrenData>);
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id },
       'GET /api/children error'
     );
-    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+    return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.user) {
-    return json({ error: 'Nepřihlášen' } satisfies ApiError, { status: 401 });
+    return json({ ok: false, error: 'Nepřihlášen', code: 'UNAUTHORIZED' } satisfies ApiError, { status: 401 });
   }
 
   try {
@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const parseResult = parseCreateChildRequest(body);
 
     if (!parseResult.ok) {
-      return json({ error: parseResult.error } satisfies ApiError, { status: 400 });
+      return json({ ok: false, error: parseResult.error, code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
     }
 
     const { name, birthDate } = parseResult.data;
@@ -100,12 +100,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       details: { childId: child.id },
     });
 
-    return json(mapChildRow(child) satisfies ChildResponse, { status: 201 });
+    return json({ ok: true, data: mapChildRow(child) } satisfies ApiSuccess<ChildData>, { status: 201 });
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id },
       'POST /api/children error'
     );
-    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+    return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };

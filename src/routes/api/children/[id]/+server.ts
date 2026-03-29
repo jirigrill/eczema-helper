@@ -4,7 +4,7 @@ import type { RequestHandler } from './$types';
 import { sql } from '$lib/server/db';
 import { logAudit } from '$lib/server/audit';
 import { logger } from '$lib/server/logger';
-import type { UpdateChildRequest, ChildResponse, ApiError } from '$lib/types/api';
+import type { UpdateChildRequest, ChildData, DeleteChildData, ApiError, ApiSuccess } from '$lib/types/api';
 
 // Security: Reasonable max name length to prevent abuse
 const MAX_NAME_LENGTH = 100;
@@ -17,9 +17,9 @@ async function assertOwnership(userId: string, childId: string): Promise<boolean
 }
 
 /**
- * Map a database row to a ChildResponse.
+ * Map a database row to a ChildData.
  */
-function mapChildRow(r: Record<string, unknown>): ChildResponse {
+function mapChildRow(r: Record<string, unknown>): ChildData {
   return {
     id: r.id as string,
     name: r.name as string,
@@ -63,20 +63,20 @@ function parseUpdateChildRequest(body: unknown): { ok: true; data: UpdateChildRe
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) {
-    return json({ error: 'Nepřihlášen' } satisfies ApiError, { status: 401 });
+    return json({ ok: false, error: 'Nepřihlášen', code: 'UNAUTHORIZED' } satisfies ApiError, { status: 401 });
   }
 
   try {
     const owns = await assertOwnership(locals.user.id, params.id);
     if (!owns) {
-      return json({ error: 'Přístup odepřen' } satisfies ApiError, { status: 403 });
+      return json({ ok: false, error: 'Přístup odepřen', code: 'FORBIDDEN' } satisfies ApiError, { status: 403 });
     }
 
     const body = await request.json().catch(() => null);
     const parseResult = parseUpdateChildRequest(body);
 
     if (!parseResult.ok) {
-      return json({ error: parseResult.error } satisfies ApiError, { status: 400 });
+      return json({ ok: false, error: parseResult.error, code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
     }
 
     const { name, birthDate } = parseResult.data;
@@ -108,25 +108,25 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
       details: { childId: params.id, updatedFields: Object.keys(parseResult.data) },
     });
 
-    return json(mapChildRow(children[0]) satisfies ChildResponse);
+    return json({ ok: true, data: mapChildRow(children[0]) } satisfies ApiSuccess<ChildData>);
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id, childId: params.id },
       'PUT /api/children/[id] error'
     );
-    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+    return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
-    return json({ error: 'Nepřihlášen' } satisfies ApiError, { status: 401 });
+    return json({ ok: false, error: 'Nepřihlášen', code: 'UNAUTHORIZED' } satisfies ApiError, { status: 401 });
   }
 
   try {
     const owns = await assertOwnership(locals.user.id, params.id);
     if (!owns) {
-      return json({ error: 'Přístup odepřen' } satisfies ApiError, { status: 403 });
+      return json({ ok: false, error: 'Přístup odepřen', code: 'FORBIDDEN' } satisfies ApiError, { status: 403 });
     }
 
     await sql`DELETE FROM children WHERE id = ${params.id}`;
@@ -137,12 +137,12 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
       details: { childId: params.id },
     });
 
-    return new Response(null, { status: 204 });
+    return json({ ok: true, data: {} } satisfies ApiSuccess<DeleteChildData>);
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id, childId: params.id },
       'DELETE /api/children/[id] error'
     );
-    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+    return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };

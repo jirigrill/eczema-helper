@@ -1,7 +1,7 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 
-import { validateSessionWithUserAndChildren, extendSession } from '$lib/server/session';
+import { validateSessionWithUserAndChildren, extendSession, cleanupExpiredSessions, shouldRunSessionCleanup } from '$lib/server/session';
 import { httpLogger, logger } from '$lib/server/logger';
 import { validateEnv } from '$lib/server/env';
 import { registerShutdownHandlers } from '$lib/server/shutdown';
@@ -68,6 +68,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     extendSession(sessionId).catch((err) => {
       httpLogger.warn({ requestId, err: err instanceof Error ? err.message : 'Unknown' }, 'Failed to extend session');
     });
+  }
+
+  // Probabilistic session cleanup (1% of requests)
+  if (shouldRunSessionCleanup()) {
+    cleanupExpiredSessions()
+      .then((count) => {
+        if (count > 0) {
+          httpLogger.info({ requestId, deletedSessions: count }, `Session cleanup: deleted ${count} expired sessions`);
+        }
+      })
+      .catch((err) => {
+        httpLogger.warn({ requestId, err: err instanceof Error ? err.message : 'Unknown' }, 'Session cleanup failed');
+      });
   }
 
   // Log request completion (skip health checks to avoid log spam)

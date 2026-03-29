@@ -76,9 +76,10 @@ describe('Children API', () => {
       });
 
       expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(Array.isArray(data)).toBe(true);
-      expect(data).toHaveLength(0);
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(Array.isArray(json.data)).toBe(true);
+      expect(json.data).toHaveLength(0);
     });
 
     it('returns created children', async () => {
@@ -101,8 +102,9 @@ describe('Children API', () => {
       });
 
       expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data).toHaveLength(2);
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.data).toHaveLength(2);
     });
   });
 
@@ -119,12 +121,13 @@ describe('Children API', () => {
       });
 
       expect(res.status).toBe(201);
-      const data = await res.json();
-      expect(data).toHaveProperty('id');
-      expect(data.name).toBe('Emma');
-      expect(data.birthDate).toMatch(/^2025-12-01/); // Allow ISO format or simple date
-      expect(data).toHaveProperty('createdAt');
-      expect(data).toHaveProperty('updatedAt');
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.data).toHaveProperty('id');
+      expect(json.data.name).toBe('Emma');
+      expect(json.data.birthDate).toMatch(/^2025-12-01/); // Allow ISO format or simple date
+      expect(json.data).toHaveProperty('createdAt');
+      expect(json.data).toHaveProperty('updatedAt');
     });
 
     it('rejects missing name', async () => {
@@ -139,6 +142,9 @@ describe('Children API', () => {
       });
 
       expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('VALIDATION_ERROR');
     });
 
     it('rejects invalid birth date', async () => {
@@ -153,6 +159,9 @@ describe('Children API', () => {
       });
 
       expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('VALIDATION_ERROR');
     });
 
     it('requires authentication', async () => {
@@ -163,6 +172,9 @@ describe('Children API', () => {
       });
 
       expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('UNAUTHORIZED');
     });
   });
 
@@ -178,18 +190,19 @@ describe('Children API', () => {
         headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
         body: JSON.stringify({ name: 'Emma', birthDate: '2025-12-01' }),
       });
-      const child = await createRes.json();
+      const createJson = await createRes.json();
 
       // Update
-      const res = await fetch(`http://localhost:5173/api/children/${child.id}`, {
+      const res = await fetch(`http://localhost:5173/api/children/${createJson.data.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
         body: JSON.stringify({ name: 'Emmy' }),
       });
 
       expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.name).toBe('Emmy');
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.data.name).toBe('Emmy');
     });
 
     it('rejects access to another users child with 403', async () => {
@@ -209,21 +222,24 @@ describe('Children API', () => {
         headers: { 'Content-Type': 'application/json', 'Cookie': cookieA },
         body: JSON.stringify({ name: 'ChildA', birthDate: '2025-12-01' }),
       });
-      const child = await createRes.json();
+      const createJson = await createRes.json();
 
       // User B tries to update
-      const res = await fetch(`http://localhost:5173/api/children/${child.id}`, {
+      const res = await fetch(`http://localhost:5173/api/children/${createJson.data.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Cookie': cookieB },
         body: JSON.stringify({ name: 'Stolen Child' }),
       });
 
       expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('FORBIDDEN');
     });
   });
 
   describe('DELETE /api/children/[id]', () => {
-    it('removes the child and returns 204', async () => {
+    it('removes the child and returns 200', async () => {
       const email = `test-child-delete-${Date.now()}@example.com`;
       await createTestUser(sql, email);
       const cookie = await loginAndGetCookie(sql, email);
@@ -234,22 +250,24 @@ describe('Children API', () => {
         headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
         body: JSON.stringify({ name: 'Temp', birthDate: '2025-12-01' }),
       });
-      const child = await createRes.json();
+      const createJson = await createRes.json();
 
       // Delete
-      const deleteRes = await fetch(`http://localhost:5173/api/children/${child.id}`, {
+      const deleteRes = await fetch(`http://localhost:5173/api/children/${createJson.data.id}`, {
         method: 'DELETE',
         headers: { 'Cookie': cookie },
       });
 
-      expect(deleteRes.status).toBe(204);
+      expect(deleteRes.status).toBe(200);
+      const deleteJson = await deleteRes.json();
+      expect(deleteJson.ok).toBe(true);
 
       // Verify deleted
       const listRes = await fetch('http://localhost:5173/api/children', {
         headers: { 'Cookie': cookie },
       });
-      const children = await listRes.json();
-      expect(children).toHaveLength(0);
+      const listJson = await listRes.json();
+      expect(listJson.data).toHaveLength(0);
     });
 
     it('rejects access to another users child with 403', async () => {
@@ -269,15 +287,18 @@ describe('Children API', () => {
         headers: { 'Content-Type': 'application/json', 'Cookie': cookieA },
         body: JSON.stringify({ name: 'ChildA', birthDate: '2025-12-01' }),
       });
-      const child = await createRes.json();
+      const createJson = await createRes.json();
 
       // User B tries to delete
-      const res = await fetch(`http://localhost:5173/api/children/${child.id}`, {
+      const res = await fetch(`http://localhost:5173/api/children/${createJson.data.id}`, {
         method: 'DELETE',
         headers: { 'Cookie': cookieB },
       });
 
       expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('FORBIDDEN');
     });
   });
 });

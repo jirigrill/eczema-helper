@@ -11,7 +11,7 @@ import {
   recordFailedLogin,
   resetFailedLogin,
 } from '$lib/server/rate-limit';
-import type { LoginRequest, LoginResponse, ApiError, RateLimitedError } from '$lib/types/api';
+import type { LoginRequest, LoginData, ApiError, RateLimitedError, ApiSuccess } from '$lib/types/api';
 
 // Security: Max password length to prevent bcrypt DoS
 const MAX_PASSWORD_LENGTH = 72;
@@ -40,14 +40,14 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
     const loginRequest = parseLoginRequest(body);
 
     if (!loginRequest) {
-      return json({ error: 'E-mail a heslo jsou povinné' } satisfies ApiError, { status: 400 });
+      return json({ ok: false, error: 'E-mail a heslo jsou povinné', code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
     }
 
     const { email, password } = loginRequest;
 
     // Security: Prevent bcrypt DoS via extremely long passwords
     if (password.length > MAX_PASSWORD_LENGTH) {
-      return json({ error: 'Nesprávné přihlašovací údaje' } satisfies ApiError, { status: 401 });
+      return json({ ok: false, error: 'Nesprávné přihlašovací údaje', code: 'INVALID_CREDENTIALS' } satisfies ApiError, { status: 401 });
     }
 
     // Security: Check rate limit before attempting authentication
@@ -59,7 +59,9 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
       });
       return json(
         {
+          ok: false,
           error: 'Příliš mnoho pokusů. Zkuste to znovu za několik minut.',
+          code: 'RATE_LIMITED',
           retryAfterSeconds: rateLimitResult.retryAfterSeconds,
         } satisfies RateLimitedError,
         { status: 429 }
@@ -79,7 +81,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         ipAddress: getClientAddress(),
       });
       // Security: Generic error to prevent user enumeration
-      return json({ error: 'Nesprávné přihlašovací údaje' } satisfies ApiError, { status: 401 });
+      return json({ ok: false, error: 'Nesprávné přihlašovací údaje', code: 'INVALID_CREDENTIALS' } satisfies ApiError, { status: 401 });
     }
 
     const user = users[0];
@@ -93,7 +95,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         details: { email, reason: 'invalid_password' },
         ipAddress: getClientAddress(),
       });
-      return json({ error: 'Nesprávné přihlašovací údaje' } satisfies ApiError, { status: 401 });
+      return json({ ok: false, error: 'Nesprávné přihlašovací údaje', code: 'INVALID_CREDENTIALS' } satisfies ApiError, { status: 401 });
     }
 
     // Security: Reset failed login counter on successful login
@@ -115,16 +117,19 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
     });
 
     return json({
-      id: user.id as string,
-      email: user.email as string,
-      name: user.name as string,
-      role: 'parent',
-    } satisfies LoginResponse);
+      ok: true,
+      data: {
+        id: user.id as string,
+        email: user.email as string,
+        name: user.name as string,
+        role: 'parent',
+      },
+    } satisfies ApiSuccess<LoginData>);
   } catch (error) {
     authLogger.error(
       { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' } },
       'Login endpoint error'
     );
-    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+    return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };

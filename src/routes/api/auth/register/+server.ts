@@ -7,7 +7,7 @@ import { hashPassword } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { logAudit } from '$lib/server/audit';
 import { authLogger } from '$lib/server/logger';
-import type { RegisterRequest, RegisterResponse, ApiError } from '$lib/types/api';
+import type { RegisterRequest, RegisterData, ApiError, ApiSuccess } from '$lib/types/api';
 
 // Security: Max password length to prevent bcrypt DoS and truncation issues
 const MAX_PASSWORD_LENGTH = 72;
@@ -43,21 +43,21 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
   try {
     // Security: Check REGISTRATION_ENABLED flag to lock down registration after initial setup
     if (env.REGISTRATION_ENABLED === 'false') {
-      return json({ error: 'Registrace je deaktivována' } satisfies ApiError, { status: 403 });
+      return json({ ok: false, error: 'Registrace je deaktivována', code: 'FORBIDDEN' } satisfies ApiError, { status: 403 });
     }
 
     const body = await request.json().catch(() => null);
     const parseResult = parseRegisterRequest(body);
 
     if (!parseResult.ok) {
-      return json({ error: parseResult.error } satisfies ApiError, { status: 400 });
+      return json({ ok: false, error: parseResult.error, code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
     }
 
     const { email, password, name } = parseResult.data;
 
     const existing = await sql`SELECT id FROM users WHERE email = ${email.toLowerCase()}`;
     if (existing.length > 0) {
-      return json({ error: 'Účet s tímto e-mailem již existuje' } satisfies ApiError, { status: 409 });
+      return json({ ok: false, error: 'Účet s tímto e-mailem již existuje', code: 'CONFLICT' } satisfies ApiError, { status: 409 });
     }
 
     const passwordHash = await hashPassword(password);
@@ -85,11 +85,14 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
     return json(
       {
-        id: user.id as string,
-        email: user.email as string,
-        name: user.name as string,
-        role: 'parent',
-      } satisfies RegisterResponse,
+        ok: true,
+        data: {
+          id: user.id as string,
+          email: user.email as string,
+          name: user.name as string,
+          role: 'parent',
+        },
+      } satisfies ApiSuccess<RegisterData>,
       { status: 201 }
     );
   } catch (error) {
@@ -97,6 +100,6 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
       { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' } },
       'Registration endpoint error'
     );
-    return json({ error: 'Interní chyba serveru' } satisfies ApiError, { status: 500 });
+    return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };

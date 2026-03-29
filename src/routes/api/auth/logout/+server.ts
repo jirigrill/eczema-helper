@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 
 import { deleteSession } from '$lib/server/session';
 import { logAudit } from '$lib/server/audit';
-import type { LogoutResponse } from '$lib/types/api';
+import type { LogoutData, ApiSuccess } from '$lib/types/api';
 
 export const POST: RequestHandler = async ({ cookies, locals }) => {
   const sessionId = cookies.get('session_id');
@@ -24,5 +24,5 @@ export const POST: RequestHandler = async ({ cookies, locals }) => {
     await logAudit('logout', { userId: locals.user.id });
   }
 
-  return json({ ok: true } satisfies LogoutResponse);
+  return json({ ok: true, data: {} } satisfies ApiSuccess<LogoutData>);
 };

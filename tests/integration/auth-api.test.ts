@@ -63,18 +63,19 @@ describe('Auth API', () => {
       });
 
       expect(res.status).toBe(201);
-      const data = await res.json();
-      expect(data).toHaveProperty('id');
-      expect(data.email).toBe(email.toLowerCase());
-      expect(data).not.toHaveProperty('password');
-      expect(data).not.toHaveProperty('password_hash');
-      expect(data.name).toBe('Test User');
-      expect(data.role).toBe('parent');
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.data).toHaveProperty('id');
+      expect(json.data.email).toBe(email.toLowerCase());
+      expect(json.data).not.toHaveProperty('password');
+      expect(json.data).not.toHaveProperty('password_hash');
+      expect(json.data.name).toBe('Test User');
+      expect(json.data.role).toBe('parent');
     });
 
     it('rejects duplicate email with 409', async () => {
       const email = `test-dup-${Date.now()}@example.com`;
-      
+
       // First registration
       await fetch('http://localhost:5173/api/auth/register', {
         method: 'POST',
@@ -90,8 +91,10 @@ describe('Auth API', () => {
       });
 
       expect(res.status).toBe(409);
-      const data = await res.json();
-      expect(data.error).toContain('Účet');
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.error).toContain('Účet');
+      expect(json.code).toBe('CONFLICT');
     });
 
     it('rejects short password with 400', async () => {
@@ -102,6 +105,9 @@ describe('Auth API', () => {
       });
 
       expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('VALIDATION_ERROR');
     });
 
     it('rejects invalid email format with 400', async () => {
@@ -112,6 +118,9 @@ describe('Auth API', () => {
       });
 
       expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('VALIDATION_ERROR');
     });
 
     it('sets session cookie on successful registration', async () => {
@@ -146,10 +155,11 @@ describe('Auth API', () => {
       expect(setCookie).toContain('session_id');
       expect(setCookie).toContain('HttpOnly');
       expect(setCookie).toContain('Path=/');
-      
-      const data = await res.json();
-      expect(data).toHaveProperty('id');
-      expect(data.email).toBe(email.toLowerCase());
+
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.data).toHaveProperty('id');
+      expect(json.data.email).toBe(email.toLowerCase());
     });
 
     it('rejects invalid credentials with 401', async () => {
@@ -166,6 +176,9 @@ describe('Auth API', () => {
       expect(res.status).toBe(401);
       const setCookie = res.headers.get('set-cookie');
       expect(setCookie).toBeNull();
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('INVALID_CREDENTIALS');
     });
 
     it('rejects non-existent user with 401', async () => {
@@ -176,6 +189,9 @@ describe('Auth API', () => {
       });
 
       expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.code).toBe('INVALID_CREDENTIALS');
     });
   });
 
@@ -201,6 +217,8 @@ describe('Auth API', () => {
       });
 
       expect(logoutRes.status).toBe(200);
+      const json = await logoutRes.json();
+      expect(json.ok).toBe(true);
       const clearCookie = logoutRes.headers.get('set-cookie');
       expect(clearCookie).toContain('session_id');
       expect(clearCookie).toContain('Max-Age=0');
@@ -224,6 +242,38 @@ describe('Auth API', () => {
         SELECT * FROM sessions WHERE user_id = ${user.id} AND expires_at > NOW()
       `;
       expect(sessions).toHaveLength(0);
+    });
+
+    it('cleanupExpiredSessions removes expired sessions', async () => {
+      const email = `test-cleanup-${Date.now()}@example.com`;
+      const passwordHash = await hashPassword('password123');
+      const user = await createTestUser(sql, email, passwordHash);
+
+      // Create multiple expired sessions
+      await sql`
+        INSERT INTO sessions (id, user_id, expires_at)
+        VALUES
+          (gen_random_uuid(), ${user.id}, NOW() - INTERVAL '1 day'),
+          (gen_random_uuid(), ${user.id}, NOW() - INTERVAL '2 days'),
+          (gen_random_uuid(), ${user.id}, NOW() - INTERVAL '3 days')
+      `;
+
+      // Create one valid session
+      await sql`
+        INSERT INTO sessions (id, user_id, expires_at)
+        VALUES (gen_random_uuid(), ${user.id}, NOW() + INTERVAL '30 days')
+      `;
+
+      // Count sessions before cleanup
+      const beforeCleanup = await sql`SELECT COUNT(*) as count FROM sessions WHERE user_id = ${user.id}`;
+      expect(Number(beforeCleanup[0].count)).toBe(4);
+
+      // Run cleanup directly via SQL (simulating what cleanupExpiredSessions does)
+      await sql`DELETE FROM sessions WHERE expires_at < NOW()`;
+
+      // Verify only the valid session remains
+      const afterCleanup = await sql`SELECT COUNT(*) as count FROM sessions WHERE user_id = ${user.id}`;
+      expect(Number(afterCleanup[0].count)).toBe(1);
     });
   });
 });

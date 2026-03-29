@@ -121,3 +121,23 @@ export async function extendSession(sessionId: string): Promise<void> {
   const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
   await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
 }
+
+/**
+ * Delete all expired sessions from the database.
+ * Called probabilistically from hooks.server.ts (1% of requests).
+ */
+export async function cleanupExpiredSessions(): Promise<number> {
+  const result = await sql`
+    DELETE FROM sessions WHERE expires_at < NOW()
+    RETURNING id
+  `;
+  return result.length;
+}
+
+/**
+ * Probabilistic session cleanup trigger.
+ * Returns true if cleanup should run (1% chance).
+ */
+export function shouldRunSessionCleanup(): boolean {
+  return Math.random() < 0.01;
+}

@@ -49,6 +49,12 @@ Phase 0 must be complete. Specifically:
 - [x] **AC-10 (Feature 10):** The app header shows a dropdown with the user's children. Selecting a child updates a global Svelte store. The selected child persists across page navigations within the session. If no children exist, the dropdown shows "Add a child" and links to Settings.
 - [x] **AC-11 (Feature 11):** After running the seed script, `food_categories` contains at least 12 rows and `food_sub_items` contains at least 30 rows. Each category has a `slug`, `name_cs` (Czech), and `icon` field. Each sub-item references a valid `category_id`.
 - [ ] **AC-12 (Feature 12):** `docs/architecture/ui-design.md` exists and covers: navigation flow, wireframes for key screens (calendar, day detail, food grid, photo gallery, capture, settings), design system (button styles, card patterns, typography, spacing), and mobile UX decisions (bottom sheet vs page navigation, swipe gestures, tap target sizes). Decisions are tested on a real phone.
+- [x] **AC-13 (Feature 13):** The `users` table has an `encryption_salt BYTEA` column for storing the per-user PBKDF2 salt used in photo encryption key derivation. The column is nullable (set when user first enables encryption).
+- [x] **AC-14 (Feature 14):** The `users` table has `failed_login_attempts INT` and `locked_until TIMESTAMPTZ` columns. After 5 failed login attempts for an email within 15 minutes, subsequent login attempts return HTTP 429 with `{ error, retryAfterSeconds }`. Error messages do not reveal whether the email exists (generic "Nesprávné přihlašovací údaje" for both invalid email and invalid password).
+- [x] **AC-15 (Feature 15):** Expired sessions (where `expires_at < NOW()`) are automatically deleted. Implementation options: (a) daily cron job at 03:00 via external scheduler, or (b) probabilistic cleanup (1% chance on each request). The chosen mechanism is documented and testable.
+- [x] **AC-16 (Feature 16):** All API error responses use the standardized format `{ "error": "Czech user message", "code": "MACHINE_READABLE_CODE" }` with appropriate HTTP status codes (400 for validation, 401 for auth, 403 for authorization, 404 for not found, 409 for conflict, 429 for rate limit, 500 for server error).
+- [x] **AC-17 (Feature 17):** Every incoming request generates a UUID `requestId` in `hooks.server.ts`. The `requestId` is attached to all log entries for the request lifecycle. Error responses include the `requestId` (via `errorId` in `handleError`) so users can reference it when reporting issues.
+- [x] **AC-18 (Feature 18):** The `audit_log` table exists with columns: `id`, `user_id`, `action`, `details` (JSONB), `ip_address`, `created_at`. Security-sensitive events are logged: `login_success`, `login_failure`, `logout`, `registration`, `child_created`, `child_updated`, `child_deleted`. Passwords and sensitive data are never logged.
 
 ## Implementation Details
 
@@ -58,11 +64,15 @@ Phase 0 must be complete. Specifically:
 | ------------------------------------------- | ---------------------------------------------------------------------------- |
 | `src/lib/adapters/postgres.ts`              | PostgreSQL adapter implementing `DataRepository` using the `postgres` driver |
 | `src/lib/server/db.ts`                      | PostgreSQL connection pool singleton (server-only module)                    |
-| `src/lib/server/session.ts`                 | Session creation, validation, and deletion utilities                         |
+| `src/lib/server/session.ts`                 | Session creation, validation, deletion, and cleanup utilities                |
 | `src/lib/server/auth.ts`                    | Password hashing (bcrypt) and verification utilities                         |
-| `src/hooks.server.ts`                       | SvelteKit server hooks -- auth middleware, session resolution                |
+| `src/lib/server/rate-limit.ts`              | Login rate limiting and account lockout                                      |
+| `src/lib/server/audit.ts`                   | Audit logging for security-sensitive events                                  |
+| `src/lib/server/logger.ts`                  | Structured logging with pino (http, auth, audit loggers)                     |
+| `src/lib/types/api.ts`                      | API request/response types including standardized error format               |
+| `src/hooks.server.ts`                       | SvelteKit server hooks -- auth middleware, session resolution, cleanup       |
 | `src/routes/api/auth/register/+server.ts`   | Registration endpoint                                                        |
-| `src/routes/api/auth/login/+server.ts`      | Login endpoint                                                               |
+| `src/routes/api/auth/login/+server.ts`      | Login endpoint with rate limiting                                            |
 | `src/routes/api/auth/logout/+server.ts`     | Logout endpoint                                                              |
 | `src/routes/api/children/+server.ts`        | List and create children endpoints                                           |
 | `src/routes/api/children/[id]/+server.ts`   | Update and delete child endpoints                                            |
@@ -76,8 +86,10 @@ Phase 0 must be complete. Specifically:
 | `src/routes/register/+page.server.ts`       | Redirect to `/calendar` if already authenticated                             |
 | `src/lib/stores/children.svelte.ts`         | Updated with selected child store and setter                                 |
 | `src/lib/stores/auth.svelte.ts`             | Updated with user store populated from server data                           |
-| `migrations/001_initial_schema.sql`         | Full database schema DDL                                                     |
+| `migrations/001_initial_schema.sql`         | Full database schema DDL including audit_log table                           |
 | `migrations/002_seed_food_data.sql`         | Seed data for food categories and sub-items                                  |
+| `migrations/003_add_rate_limiting.sql`      | Rate limiting columns for users table                                        |
+| `migrations/005_encryption_salt.sql`        | PBKDF2 encryption salt column for users table                                |
 | `scripts/migrate.ts`                        | Migration runner script                                                      |
 | `playwright.config.ts`                      | Playwright E2E test configuration                                            |
 | `e2e/auth.spec.ts`                          | E2E tests for registration and login                                         |
