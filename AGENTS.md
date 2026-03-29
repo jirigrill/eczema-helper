@@ -199,3 +199,10 @@ See `docs/architecture/auth-overview.md` for complete details. Key points:
 - Run lint/typecheck after code changes if available
 - Never commit secrets or credentials
 - Follow existing code conventions and patterns
+
+### Git Commit Messages
+
+- **Always prefix commits with the current phase**: `Phase X: <description>`
+- Example: `Phase 1: add auth API routes and session management`
+- Check `docs/phases/` to identify which phase the work belongs to
+- Keep descriptions concise and action-oriented (add, fix, update, remove)
