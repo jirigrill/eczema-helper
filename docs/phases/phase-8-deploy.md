@@ -471,6 +471,38 @@ networks:
     driver: bridge
 ```
 
+**Graceful shutdown configuration:** The app container should handle SIGTERM gracefully to avoid dropping in-flight requests during deployments. Add `stop_grace_period` to the app service:
+
+```yaml
+services:
+  app:
+    # ... other config ...
+    stop_grace_period: 30s
+```
+
+On the application side, ensure the PostgreSQL connection pool is drained on shutdown:
+
+```typescript
+// src/lib/server/db.ts
+import postgres from 'postgres';
+
+export const sql = postgres(DATABASE_URL, {
+  max: 10,
+  idle_timeout: 30,
+  connect_timeout: 10,
+});
+
+// Graceful shutdown handler
+process.on('SIGTERM', async () => {
+  console.log('[DB] Received SIGTERM, draining connection pool...');
+  await sql.end({ timeout: 10 });
+  console.log('[DB] Connection pool drained.');
+  process.exit(0);
+});
+```
+
+SvelteKit's adapter-node handles SIGTERM by default, but the database connection cleanup must be added manually.
+
 #### Step 5: Create Nginx Configuration
 
 Create `nginx/nginx.conf`:

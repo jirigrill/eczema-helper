@@ -977,7 +977,44 @@ CREATE UNIQUE INDEX idx_google_doc_user ON google_doc_connections(user_id);
 
 **Google Doc export: split client/server responsibility**: Photos are decrypted client-side (encryption key never leaves the browser), then sent to the server as decrypted blobs. The server handles all Google API calls (Drive upload, Docs creation) using the stored OAuth refresh token. Decrypted blobs exist in server memory only during the request — never written to disk.
 
-**OAuth2 token security**: The refresh token is encrypted at rest in PostgreSQL (using the app's `SESSION_SECRET` as encryption key). The access token is short-lived and never stored — derived from the refresh token on each export. The client never sees any Google token.
+**OAuth2 token security**: The refresh token is encrypted at rest in PostgreSQL using AES-256-GCM. The encryption key is derived from `SESSION_SECRET` via HKDF with a unique salt per token (stored alongside the ciphertext). Implementation pattern:
+
+```typescript
+// Encrypt refresh token before storage
+async function encryptRefreshToken(token: string, sessionSecret: string): Promise<{ ciphertext: string; salt: string }> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(sessionSecret),
+    'HKDF',
+    false,
+    ['deriveKey']
+  );
+  const key = await crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt, info: new TextEncoder().encode('google-refresh-token') },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(token)
+  );
+  // Combine IV + ciphertext
+  const combined = new Uint8Array(12 + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), 12);
+  return {
+    ciphertext: Buffer.from(combined).toString('base64'),
+    salt: Buffer.from(salt).toString('base64')
+  };
+}
+```
+
+The `google_doc_connections` table stores both `refresh_token_encrypted` (ciphertext with IV) and `refresh_token_salt`. The access token is short-lived and never stored — derived from the refresh token on each export. The client never sees any Google token.
 
 **Google Doc assembly via batchUpdate**: The Docs API uses a `batchUpdate` endpoint with an array of requests (InsertText, InsertInlineImage, InsertTable, UpdateTextStyle). The adapter builds this array programmatically to mirror the PDF report structure. Photos are referenced by Drive file ID after upload.
 

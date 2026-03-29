@@ -28,6 +28,12 @@ Phase 0 must be complete. Specifically:
 10. Add a child selector dropdown in the app header that persists the selection in a Svelte store.
 11. Create and run a seed script that populates `food_categories` and `food_sub_items` with Czech allergen data.
 12. **UI design review** -- with the app shell, auth, and settings running on a real phone, create `docs/architecture/ui-design.md` covering: navigation flow diagram, screen-by-screen wireframes (ASCII or screenshots), design system basics (component patterns, spacing, typography), and mobile UX conventions (bottom sheets vs pages, swipe behaviors, tap target sizes). This informs all subsequent phases.
+13. **PBKDF2 encryption salt column** -- add `encryption_salt` column to `users` table for storing the PBKDF2 salt used in photo encryption key derivation.
+14. **Login rate limiting & account lockout** -- add `failed_login_attempts` and `locked_until` columns to `users` table. Implement per-email throttling: 5 failed attempts per 15 minutes locks the account. Return generic error messages that don't distinguish between wrong email vs. wrong password.
+15. **Session cleanup** -- implement a mechanism to delete expired sessions from PostgreSQL. Options: daily cron job (03:00) or probabilistic cleanup on each request.
+16. **Standardized API error format** -- implement consistent JSON error responses across all endpoints: `{ "error": "Czech message", "code": "MACHINE_READABLE_CODE" }` with appropriate HTTP status codes.
+17. **Request correlation IDs** -- generate a unique `requestId` (UUID) for every incoming request in `hooks.server.ts` and attach it to all log calls for distributed tracing.
+18. **Security audit logging** -- create `audit_log` table and log security-sensitive events: `login_success`, `login_failure`, `logout`, `registration`, `password_change`. Never log passwords or sensitive data.
 
 ## Acceptance Criteria
 

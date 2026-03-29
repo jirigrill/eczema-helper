@@ -704,3 +704,19 @@ Since this is Phase 0 (the first phase), there are no prior phases to regress ag
 - [ ] `docker compose -f docker-compose.dev.yml up -d` starts PostgreSQL and the app, both accepting connections.
 - [ ] `https://192.168.x.x` loads the app on a phone without certificate warnings.
 - [ ] All Dexie.js tables (`children`, `foodCategories`, `foodSubItems`, `foodLogs`, `meals`, `mealItems`, `trackingPhotos`, `analysisResults`, `photoBlobs`) are accessible after `db.open()`.
+
+---
+
+## Note: Infrastructure Deferred to Later Phases
+
+Phase 0 establishes the scaffold foundation. The following infrastructure items are documented in architecture but scheduled for implementation in later phases:
+
+| Item | Scheduled Phase | Rationale |
+|------|----------------|-----------|
+| Workbox `runtimeCaching` rules | Phase 2 | Becomes relevant when offline food tracking is implemented |
+| Request correlation IDs | Phase 1 | Added alongside audit logging when auth is implemented |
+| Dexie schema versioning & upgrade hooks | Phase 2 | Needed when schema evolves for sync features |
+| Graceful shutdown & pool draining | Phase 8 | Production deployment concern |
+| Standardized API error format | Phase 1 | First API routes are created in Phase 1 |
+
+These items are cross-referenced in the respective phase documents to ensure nothing is missed.

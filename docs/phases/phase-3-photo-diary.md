@@ -450,6 +450,120 @@ After completing Phase 3 the application supports the full photo diary workflow:
 | 14  | Gallery filter                        | Gallery has both skin and stool photos. Tap "Kuze" filter.                                                                                                           | Only skin photos visible. Tap "Stolice" -- only stool photos. Tap "Vse" -- all photos.                       |
 | 15  | Comparison type restriction           | Navigate to compare view. Try to select a skin photo and a stool photo.                                                                                              | UI prevents mixing types -- only photos of the same type are selectable.                                     |
 
+### Encryption Key Caching ("Remember Device" Feature)
+
+To reduce passphrase re-entry friction, implement session-scoped key caching:
+
+1. **Session-scoped caching**: After successful key derivation, store the `CryptoKey` in memory for the duration of the session. User doesn't need to re-enter passphrase until they log out or close the app.
+
+2. **"Remember on this device" toggle**: Optional feature to persist the derived `CryptoKey` in IndexedDB (marked as non-extractable). This reduces daily friction from 2 passwords (login + passphrase) to 1 (just login).
+
+3. **Auto-lock timeout**: After N minutes of inactivity (default 15 minutes), clear the cached key and require passphrase re-entry. Configurable in settings.
+
+4. **Logout cleanup**: On logout, always clear all cached key material from both memory and IndexedDB.
+
+```typescript
+// src/lib/stores/encryption.svelte.ts
+let cachedKey = $state<CryptoKey | null>(null);
+let lastActivity = $state<number>(Date.now());
+const AUTO_LOCK_MINUTES = 15;
+
+export function setCachedKey(key: CryptoKey) {
+  cachedKey = key;
+  lastActivity = Date.now();
+}
+
+export function getCachedKey(): CryptoKey | null {
+  if (!cachedKey) return null;
+
+  // Check auto-lock timeout
+  const elapsed = (Date.now() - lastActivity) / 1000 / 60;
+  if (elapsed > AUTO_LOCK_MINUTES) {
+    cachedKey = null;
+    return null;
+  }
+
+  lastActivity = Date.now();
+  return cachedKey;
+}
+
+export function clearCachedKey() {
+  cachedKey = null;
+}
+```
+
+**Acceptance Criteria:**
+- [ ] After entering passphrase once, user can navigate photo features without re-entering until session ends.
+- [ ] "Remember on this device" toggle persists the key to IndexedDB when enabled.
+- [ ] After 15 minutes of inactivity, passphrase is required again.
+- [ ] Logout clears all cached key material.
+
+### IndexedDB Storage Quota Management
+
+Mobile devices have limited storage. Implement quota monitoring and eviction:
+
+1. **Monitor storage quota**: Use `navigator.storage.estimate()` to track usage.
+
+2. **Request persistent storage**: Call `navigator.storage.persist()` on first use to reduce browser eviction risk.
+
+3. **Eviction strategy**: When usage exceeds 80% of quota:
+   - Evict full-size photo blobs in LRU order (least recently viewed first)
+   - Keep thumbnails (small, needed for gallery)
+   - Full-size photos can be re-downloaded from server when needed
+
+4. **User warning**: Show a Czech message when storage is low:
+   "Úložiště zařízení je téměř plné. Plné fotky budou staženy ze serveru při zobrazení."
+
+```typescript
+// src/lib/utils/storage-quota.ts
+export async function checkStorageQuota(): Promise<{
+  used: number;
+  quota: number;
+  percentUsed: number;
+}> {
+  if (!navigator.storage?.estimate) {
+    return { used: 0, quota: Infinity, percentUsed: 0 };
+  }
+
+  const { usage = 0, quota = Infinity } = await navigator.storage.estimate();
+  return {
+    used: usage,
+    quota,
+    percentUsed: quota > 0 ? (usage / quota) * 100 : 0,
+  };
+}
+
+export async function requestPersistentStorage(): Promise<boolean> {
+  if (!navigator.storage?.persist) return false;
+  return navigator.storage.persist();
+}
+
+export async function evictOldPhotosIfNeeded(db: Dexie): Promise<number> {
+  const { percentUsed } = await checkStorageQuota();
+  if (percentUsed < 80) return 0;
+
+  // Get full-size blobs sorted by last accessed (LRU)
+  const blobs = await db.photoBlobs
+    .orderBy('lastAccessed')
+    .filter(b => b.type === 'full')
+    .limit(10)
+    .toArray();
+
+  // Delete oldest full-size blobs (keep thumbnails)
+  for (const blob of blobs) {
+    await db.photoBlobs.delete(blob.id);
+  }
+
+  return blobs.length;
+}
+```
+
+**Acceptance Criteria:**
+- [ ] App requests persistent storage on first photo capture.
+- [ ] Storage usage is monitored; warning shown when > 80% full.
+- [ ] Full-size blobs are evicted LRU when storage is critical; thumbnails retained.
+- [ ] Evicted photos can be re-downloaded from server on demand.
+
 ### Regression Checks
 
 - [ ] Phase 1 authentication still works: login, logout, session persistence.

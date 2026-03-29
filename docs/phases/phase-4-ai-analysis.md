@@ -38,6 +38,12 @@ This phase adds AI-driven comparison analysis to the photo diary. Users select t
 - [ ] Invalid or unparseable API responses display a generic error and log the raw response for debugging.
 - [ ] The API key is configured server-side in `.env` (never exposed to the client browser).
 - [ ] All UI text is in Czech.
+- [ ] **Stool analysis acceptance criteria:**
+  - Stool photos return `StoolAnalysisResult` with `colorAssessment`, `consistencyAssessment`, `hasAbnormalities`, and Czech `explanation`.
+  - Trend badge displays correctly for stool analyses (improving/worsening/stable).
+  - Analysis history distinguishes skin vs stool with a photo type badge.
+  - Stool analysis prompt references mother's dietary changes and their potential impact on infant stool.
+- [ ] **Analysis results stored as text only:** Photos are decrypted client-side, sent to the server proxy in memory only, forwarded to Claude, and immediately discarded after the response. No decrypted photos are written to disk or stored in the database. Only the text-based `AnalysisResult` is persisted.
 
 ## Implementation Details
 

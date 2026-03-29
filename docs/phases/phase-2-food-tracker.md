@@ -69,6 +69,11 @@ These decisions are deferred to user testing during Phase 1 (when the app shell 
 13. Build a meal composer UI with meal type selector (breakfast/lunch/dinner/snack), food item picker (from predefined sub-items + free text input), and optional meal label.
 14. Build server API routes for meal CRUD: `GET`, `POST`, `PUT`, `DELETE` on `/api/meals`.
 15. Display logged meals in the day detail view alongside the elimination tracker.
+16. **Configure Workbox runtime caching strategies** in `vite.config.ts` per `docs/architecture/offline-strategy.md`: NetworkFirst for `/api/*`, CacheFirst with 30-day expiry for static assets.
+17. **Build a sync status indicator UI** — cloud icon in app header showing sync state: green (synced), orange (syncing), grey with slash (offline). Toast on sync completion.
+18. **Implement push-first sync ordering** — local changes pushed before pulling server changes to prevent overwriting local edits with stale server state.
+19. **Implement conflict resolution (last-write-wins)** — use server-side `updated_at` for conflict resolution. Add unique constraint `(child_id, date, category_id, action)` on `food_logs` to prevent duplicates.
+20. **Set up Dexie.js schema versioning** — implement `.upgrade(tx => ...)` hooks for data transformation. After schema upgrade, trigger full re-sync.
 
 ## Acceptance Criteria
 

@@ -38,6 +38,9 @@ This phase adds Web Push notifications to the Eczema Tracker PWA, enabling paren
 10. On iOS, the app detects whether it is running as an installed PWA and shows an informational message if not, explaining that notifications require home screen installation.
 11. If a push subscription becomes invalid (endpoint returns 410 Gone), the server removes it from the database automatically.
 12. All notification-related UI text is in Czech.
+13. **Quiet hours**: If configured, notifications are not sent during quiet hours (e.g., 22:00–07:00). The scheduler checks `quietHoursStart` and `quietHoursEnd` fields before sending.
+14. **Snooze action**: Notifications include a "Za hodinu" (In an hour) action button. Tapping it reschedules the reminder for 1 hour later via the service worker's `notificationclick` handler with `action === 'snooze'`.
+15. **Session cleanup cron**: The same cron infrastructure is used to run a daily session cleanup job (03:00) that deletes expired sessions from the `sessions` table.
 
 ## Implementation Details
 
