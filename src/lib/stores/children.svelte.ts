@@ -16,16 +16,23 @@ function saveActiveChildId(id: string | null): void {
   }
 }
 
-let _children = $state<Child[]>([]);
-let _activeChildId = $state<string | null>(loadActiveChildId());
+// Use a class with $state fields for proper Svelte 5 reactivity
+class ChildrenStore {
+  children = $state<Child[]>([]);
+  activeChildId = $state<string | null>(loadActiveChildId());
 
-export const childrenStore = {
-  get children() { return _children; },
-  get activeChildId() { return _activeChildId; },
-  get activeChild() { return _children.find(c => c.id === _activeChildId) ?? _children[0] ?? null; },
-  setChildren(children: Child[]) { _children = children; },
+  get activeChild() {
+    return this.children.find(c => c.id === this.activeChildId) ?? this.children[0] ?? null;
+  }
+
+  setChildren(newChildren: Child[]) {
+    this.children = newChildren;
+  }
+
   setActiveChildId(id: string | null) {
-    _activeChildId = id;
+    this.activeChildId = id;
     saveActiveChildId(id);
   }
-};
+}
+
+export const childrenStore = new ChildrenStore();

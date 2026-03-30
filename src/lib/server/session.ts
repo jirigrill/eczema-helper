@@ -2,6 +2,19 @@ import { sql } from './db';
 
 const SESSION_DURATION_DAYS = 30;
 
+/**
+ * Format a date value to ISO date string (YYYY-MM-DD).
+ * Handles both Date objects and strings from PostgreSQL.
+ */
+function formatDateToIso(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
+  // If already a string, extract date portion if it contains 'T'
+  const str = String(value);
+  return str.includes('T') ? str.split('T')[0] : str;
+}
+
 export async function createSession(userId: string): Promise<string> {
   const expiresAt = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
   const rows = await sql`
@@ -99,9 +112,9 @@ export async function validateSessionWithUserAndChildren(
       children.push({
         id: row.child_id as string,
         name: row.child_name as string,
-        birthDate: row.child_birth_date as string,
-        createdAt: row.child_created_at as string,
-        updatedAt: row.child_updated_at as string,
+        birthDate: formatDateToIso(row.child_birth_date),
+        createdAt: String(row.child_created_at),
+        updatedAt: String(row.child_updated_at),
       });
     }
   }

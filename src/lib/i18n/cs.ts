@@ -47,6 +47,9 @@ export const cs = {
   loading: 'Načítám…',
   error: 'Nastala chyba',
   comingSoon: 'Připravujeme',
+
+  // Success messages
+  childAdded: 'Dítě bylo přidáno',
 } as const;
 
 export type TranslationKey = keyof typeof cs;

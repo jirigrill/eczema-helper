@@ -380,6 +380,19 @@ export class PostgresRepository implements DataRepository {
 
   // ── Mappers ────────────────────────────────────────────────────────────────
 
+  /**
+   * Format a date value to ISO date string (YYYY-MM-DD).
+   * Handles both Date objects and strings from PostgreSQL.
+   */
+  private formatDateToIso(value: unknown): string {
+    if (value instanceof Date) {
+      return value.toISOString().split('T')[0];
+    }
+    // If already a string, extract date portion if it contains 'T'
+    const str = String(value);
+    return str.includes('T') ? str.split('T')[0] : str;
+  }
+
   private mapUser(r: Record<string, unknown>): User {
     return {
       id: r.id as string,
@@ -396,7 +409,7 @@ export class PostgresRepository implements DataRepository {
     return {
       id: r.id as string,
       name: r.name as string,
-      birthDate: r.birth_date as string,
+      birthDate: this.formatDateToIso(r.birth_date),
       createdAt: String(r.created_at),
       updatedAt: String(r.updated_at),
     };
@@ -426,7 +439,7 @@ export class PostgresRepository implements DataRepository {
     return {
       id: r.id as string,
       childId: r.child_id as string,
-      date: r.date as string,
+      date: this.formatDateToIso(r.date),
       categoryId: r.category_id as string,
       subItemId: r.sub_item_id as string | undefined,
       action: r.action as 'eliminated' | 'reintroduced',
@@ -442,7 +455,7 @@ export class PostgresRepository implements DataRepository {
     return {
       id: r.id as string,
       userId: r.user_id as string,
-      date: r.date as string,
+      date: this.formatDateToIso(r.date),
       mealType: r.meal_type as Meal['mealType'],
       label: r.label as string | undefined,
       createdAt: String(r.created_at),
@@ -464,7 +477,7 @@ export class PostgresRepository implements DataRepository {
     const base = {
       id: r.id as string,
       childId: r.child_id as string,
-      date: r.date as string,
+      date: this.formatDateToIso(r.date),
       notes: r.notes as string | undefined,
       encryptedBlobRef: r.encrypted_blob_path as string,
       thumbnailRef: r.encrypted_thumb_path as string | undefined,

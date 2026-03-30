@@ -17,13 +17,26 @@ async function assertOwnership(userId: string, childId: string): Promise<boolean
 }
 
 /**
+ * Format a date value to ISO date string (YYYY-MM-DD).
+ * Handles both Date objects and strings from PostgreSQL.
+ */
+function formatDateToIso(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
+  // If already a string, extract date portion if it contains 'T'
+  const str = String(value);
+  return str.includes('T') ? str.split('T')[0] : str;
+}
+
+/**
  * Map a database row to a ChildData.
  */
 function mapChildRow(r: Record<string, unknown>): ChildData {
   return {
     id: r.id as string,
     name: r.name as string,
-    birthDate: r.birth_date as string,
+    birthDate: formatDateToIso(r.birth_date),
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
   };

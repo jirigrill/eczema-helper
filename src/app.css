@@ -1,17 +1,26 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-primary: #3d6994;
-  --color-primary-light: #a0c4e8;
-  --color-surface: #f8f9fa;
-  --color-surface-dark: #e9ecef;
-  --color-danger: #dc3545;
-  --color-success: #28a745;
-  --color-warning: #ffc107;
-  --color-text: #212529;
-  --color-text-muted: #6c757d;
+  /* Burgundy/Wine color scheme */
+  --color-primary: #8B4557;
+  --color-primary-light: #C4A4AB;
+  --color-surface: #FAF8F8;
+  --color-surface-dark: #EDE8E9;
+  --color-danger: #B84444;
+  --color-success: #5A8B5A;
+  --color-warning: #C9A227;
+  --color-text: #3D2B2F;
+  --color-text-muted: #7A6468;
 }
 
 input, select, textarea {
   font-size: 16px; /* prevent iOS zoom on focus */
+}
+
+/* PWA safe area insets for notched iPhones */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
 }

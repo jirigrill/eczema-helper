@@ -8,7 +8,7 @@ test.describe('Child Management', () => {
     await setupAuthenticatedPage(page, request, baseURL, 'child-test');
   });
 
-  test('can add a child and see it in settings and header', async ({ page }) => {
+  test('can add a child and see it in settings', async ({ page }) => {
     // Capture console messages for debugging
     const consoleMessages: string[] = [];
     page.on('console', msg => consoleMessages.push(`[${msg.type()}] ${msg.text()}`));
@@ -60,8 +60,95 @@ test.describe('Child Management', () => {
     // Verify birth date is shown (in list item, not label)
     await expect(page.locator('li p:has-text("nar.")')).toBeVisible();
 
-    // Verify header shows the child
-    await expect(page.locator('header')).toContainText('Emma');
+    // Verify header shows page title (not child name)
+    await expect(page.locator('header')).toContainText('Nastavení');
+  });
+
+  test('shows success message after adding child', async ({ page }) => {
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+
+    const submitBtn = page.locator('button[type="submit"]:has-text("Přidat dítě")');
+    await expect(submitBtn).toBeEnabled();
+
+    // Fill and submit form
+    await page.fill('input#add-name', 'TestChild');
+    await page.fill('input#add-birth', '2025-06-15');
+
+    const responsePromise = page.waitForResponse(
+      res => res.url().includes('/api/children') && res.request().method() === 'POST'
+    );
+    await submitBtn.click();
+    await responsePromise;
+
+    // Success message should appear (without page reload)
+    await expect(page.locator('text=Dítě bylo přidáno')).toBeVisible({ timeout: 3000 });
+
+    // The child should also appear in the list without reload
+    await expect(page.getByRole('listitem').getByText('TestChild')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('edit form shows pre-populated birth date', async ({ page }) => {
+    // Add a child first
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+    await page.fill('input#add-name', 'DateTest');
+    await page.fill('input#add-birth', '2025-08-20');
+
+    const submitBtn = page.locator('button[type="submit"]:has-text("Přidat dítě")');
+    let responsePromise = page.waitForResponse(
+      res => res.url().includes('/api/children') && res.request().method() === 'POST'
+    );
+    await submitBtn.click();
+    await responsePromise;
+
+    // Reload to see the child
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('listitem').getByText('DateTest')).toBeVisible({ timeout: 10000 });
+
+    // Click edit button
+    const childRow = page.locator('li').filter({ hasText: 'DateTest' });
+    const editBtn = childRow.getByRole('button', { name: 'Upravit' });
+    await editBtn.click();
+
+    // The date input should be pre-populated with the correct value
+    const editDateInput = page.locator('section').first().locator('li input[type="date"]');
+    await expect(editDateInput).toBeVisible({ timeout: 5000 });
+
+    // THIS IS THE KEY ASSERTION: date should already be filled
+    await expect(editDateInput).toHaveValue('2025-08-20');
+
+    // Name should also be pre-populated
+    const editNameInput = page.locator('section').first().locator('li input[type="text"]');
+    await expect(editNameInput).toHaveValue('DateTest');
+  });
+
+  test('API returns birthDate in YYYY-MM-DD format', async ({ page, request }, testInfo) => {
+    const baseURL = testInfo.project.use?.baseURL || 'http://localhost:5173';
+
+    // Get session cookie by navigating first
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+
+    // Add a child via the UI to get proper auth
+    await page.fill('input#add-name', 'APITest');
+    await page.fill('input#add-birth', '2025-03-15');
+
+    const submitBtn = page.locator('button[type="submit"]:has-text("Přidat dítě")');
+    const responsePromise = page.waitForResponse(
+      res => res.url().includes('/api/children') && res.request().method() === 'POST'
+    );
+    await submitBtn.click();
+    const response = await responsePromise;
+
+    // Check the response format
+    const body = await response.json();
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.birthDate).toBe('2025-03-15'); // Must be YYYY-MM-DD, not a Date object string
+    expect(body.data.birthDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   test('can edit child name', async ({ page }) => {
@@ -91,16 +178,16 @@ test.describe('Child Management', () => {
     await expect(editBtn).toBeVisible();
     await editBtn.click();
 
-    // Wait for the edit form to render - look for inputs in the children list
-    // Note: We can't use childRow.filter({ hasText: 'Emma' }) anymore because
-    // in edit mode "Emma" is an input value, not text content
+    // Wait for the edit form to render
     const editNameInput = page.locator('section').first().locator('li input[type="text"]');
     const editDateInput = page.locator('section').first().locator('li input[type="date"]');
     await expect(editNameInput).toBeVisible({ timeout: 5000 });
 
-    // Change name and ensure date is set (date might be empty after reload due to store timing)
+    // Verify the date is pre-populated (don't manually fill it!)
+    await expect(editDateInput).toHaveValue('2025-12-01');
+
+    // Change only the name
     await editNameInput.fill('Emmy');
-    await editDateInput.fill('2025-12-01');
 
     // Wait for PUT response before clicking save
     responsePromise = page.waitForResponse(
@@ -116,12 +203,9 @@ test.describe('Child Management', () => {
     // Verify name updated in list
     await expect(page.getByRole('listitem').getByText('Emmy')).toBeVisible();
     await expect(page.getByRole('listitem').getByText('Emma')).not.toBeVisible();
-
-    // Verify header updated
-    await expect(page.locator('header')).toContainText('Emmy');
   });
 
-  test('can add multiple children and select between them', async ({ page }) => {
+  test('can add multiple children', async ({ page }) => {
     // Add first child
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
@@ -152,23 +236,10 @@ test.describe('Child Management', () => {
     // Reload to see second child
     await page.reload();
     await page.waitForLoadState('networkidle');
+
+    // Both children should be visible in the list
+    await expect(page.getByRole('listitem').getByText('Emma')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('listitem').getByText('Oliver')).toBeVisible({ timeout: 10000 });
-
-    // Open child selector dropdown
-    await page.click('header button');
-
-    // Select Oliver
-    await page.click('button:has-text("Oliver")');
-
-    // Verify header shows Oliver
-    await expect(page.locator('header')).toContainText('Oliver');
-
-    // Navigate to calendar and back
-    await page.goto('/calendar');
-    await page.goto('/settings');
-
-    // Oliver should still be selected
-    await expect(page.locator('header')).toContainText('Oliver');
   });
 
   test('child deletion shows confirmation dialog', async ({ page }) => {
@@ -221,17 +292,13 @@ test.describe('Child Management', () => {
     await expect(page.getByRole('listitem').getByText('Temp')).not.toBeVisible();
   });
 
-  test('shows add child link in header when no children', async ({ page }) => {
+  test('shows no children message when empty', async ({ page }) => {
     // Go to settings - should show no children message
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('text=Zatím nemáte přidané žádné dítě')).toBeVisible();
-    
-    // Header should show add child link
-    await expect(page.locator('header a:has-text("Přidat dítě")')).toBeVisible();
-    
-    // Clicking should go to settings
-    await page.click('header a:has-text("Přidat dítě")');
-    await expect(page).toHaveURL('/settings');
+
+    // Header should show page title
+    await expect(page.locator('header')).toContainText('Nastavení');
   });
 });

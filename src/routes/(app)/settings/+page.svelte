@@ -1,16 +1,17 @@
 <script lang="ts">
   import { cs } from '$lib/i18n/cs';
   import { childrenStore } from '$lib/stores/children.svelte';
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import type { Child } from '$lib/domain/models';
 
-  // Create derived values to properly track store reactivity in Svelte 5
+  // Use $derived to react to store changes
   let children = $derived(childrenStore.children);
 
   let addName = $state('');
   let addBirthDate = $state('');
   let addLoading = $state(false);
   let addError = $state('');
+  let addSuccess = $state(false);
 
   // Edit state as separate primitives (works better with Svelte 5 reactivity)
   let editingChildId = $state<string | null>(null);
@@ -33,13 +34,17 @@
     });
 
     if (res.ok) {
-      const child: Child = await res.json();
+      const { data: child } = (await res.json()) as { data: Child };
       childrenStore.setChildren([...childrenStore.children, child]);
       if (!childrenStore.activeChildId) {
         childrenStore.setActiveChildId(child.id);
       }
       addName = '';
       addBirthDate = '';
+      addSuccess = true;
+      setTimeout(() => (addSuccess = false), 3000);
+      // Invalidate to force data refresh from server
+      await invalidateAll();
     } else {
       const data = await res.json().catch(() => ({}));
       addError = data.error ?? cs.error;
@@ -50,7 +55,8 @@
   function startEdit(child: Child) {
     editingChildId = child.id;
     editingName = child.name;
-    editingBirthDate = child.birthDate.split('T')[0];
+    // birthDate is already in YYYY-MM-DD format from the API
+    editingBirthDate = child.birthDate;
     editError = '';
   }
 
@@ -67,11 +73,13 @@
     });
 
     if (res.ok) {
-      const updated: Child = await res.json();
+      const { data: updated } = (await res.json()) as { data: Child };
       childrenStore.setChildren(
         childrenStore.children.map((c) => (c.id === updated.id ? updated : c))
       );
       editingChildId = null;
+      // Invalidate to force data refresh from server
+      await invalidateAll();
     } else {
       const data = await res.json().catch(() => ({}));
       editError = data.error ?? cs.error;
@@ -87,6 +95,8 @@
         const remaining = childrenStore.children.filter((c) => c.id !== id);
         childrenStore.setActiveChildId(remaining[0]?.id ?? null);
       }
+      // Invalidate to force data refresh from server
+      await invalidateAll();
     }
     deleteConfirmId = null;
   }
@@ -103,8 +113,6 @@
 </script>
 
 <div class="p-4 max-w-lg mx-auto pb-8">
-  <h1 class="text-xl font-bold text-text mb-6">{cs.settings}</h1>
-
   <!-- Children section -->
   <section class="mb-8">
     <h2 class="text-base font-semibold text-text mb-3">{cs.children}</h2>
@@ -212,6 +220,14 @@
     <!-- Add child form -->
     <div class="bg-white rounded-xl border border-surface-dark p-4">
       <h3 class="text-sm font-semibold text-text mb-3">{cs.addChild}</h3>
+      {#if addSuccess}
+        <p class="text-sm text-green-600 mb-2 flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          {cs.childAdded}
+        </p>
+      {/if}
       {#if addError}
         <p class="text-sm text-red-600 mb-2">{addError}</p>
       {/if}
@@ -252,7 +268,7 @@
   <section>
     <button
       onclick={logout}
-      class="w-full border border-surface-dark text-text-muted rounded-xl py-3 text-sm hover:bg-surface transition-colors"
+      class="w-full border border-red-200 text-red-600 rounded-xl py-3 text-sm hover:bg-red-50 transition-colors"
     >
       {cs.logout}
     </button>
