@@ -46,10 +46,10 @@ eczema-postgres-dev:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD
 EOF
 chmod 600 "$PGADMIN_CONFIG_DIR/pgpass"
 
-# Determine network name (docker compose prefixes with directory name)
-NETWORK_NAME=$(docker network ls --format '{{.Name}}' | grep -E 'atopic_helper.*default|atopic_helper.*internal' | head -1)
+# Determine network from actual postgres container
+NETWORK_NAME=$(docker inspect eczema-postgres-dev --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null)
 if [[ -z "$NETWORK_NAME" ]]; then
-    echo "❌ No Docker network found. Start PostgreSQL first: just dev-db"
+    echo "❌ PostgreSQL container not running. Start it first: just dev-db"
     exit 1
 fi
 

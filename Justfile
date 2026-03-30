@@ -344,11 +344,14 @@ db-reset:
 db-shell:
     docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema_helper
 
-# Clean up orphaned test data (run if tests crash mid-way)
+# Clean up test data from database (E2E + integration tests)
 test-cleanup:
-    #!/usr/bin/env bash
-    docker compose -f docker-compose.postgres.yml exec postgres psql -U eczema -d eczema_helper -c "DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com'); DELETE FROM user_children WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test-%@example.com'); DELETE FROM children WHERE id NOT IN (SELECT child_id FROM user_children); DELETE FROM users WHERE email LIKE 'test-%@example.com';"
+    bun scripts/cleanup-test-data.ts
     @echo "✅ Test data cleaned"
+
+# Preview test cleanup (dry run)
+test-cleanup-dry:
+    bun scripts/cleanup-test-data.ts --dry-run
 
 # Backup database
 backup:
