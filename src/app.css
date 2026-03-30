@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  /* Burgundy/Wine color scheme */
+  /* Burgundy/Wine color scheme - core palette */
   --color-primary: #8B4557;
   --color-primary-light: #C4A4AB;
   --color-surface: #FAF8F8;
@@ -11,6 +11,23 @@
   --color-warning: #C9A227;
   --color-text: #3D2B2F;
   --color-text-muted: #7A6468;
+
+  /* Semantic colors - food tracking */
+  --color-eliminated: #B84444;
+  --color-reintroduced: #5A8B5A;
+  --color-neutral: #7A6468;
+
+  /* Semantic colors - severity scale (1-5) */
+  --color-severity-1: #5A8B5A;
+  --color-severity-2: #8B9B5A;
+  --color-severity-3: #C9A227;
+  --color-severity-4: #C97027;
+  --color-severity-5: #B84444;
+
+  /* Semantic colors - sync status */
+  --color-sync-synced: #5A8B5A;
+  --color-sync-syncing: #C9A227;
+  --color-sync-offline: #7A6468;
 }
 
 input, select, textarea {

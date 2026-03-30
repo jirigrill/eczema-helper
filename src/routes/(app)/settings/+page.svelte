@@ -134,7 +134,10 @@
     <h2 class="text-base font-semibold text-text mb-3">{cs.child}</h2>
 
     {#if children.length === 0}
-      <p class="text-text-muted text-sm mb-4">{cs.noChildYet}</p>
+      <div class="text-center py-4 mb-4">
+        <div class="text-4xl mb-2">👶</div>
+        <p class="text-text-muted text-sm">{cs.noChildYet}</p>
+      </div>
     {:else}
       {#key `${editingChildId}-${deleteConfirmId}`}
       <ul class="flex flex-col gap-2 mb-4">
@@ -144,7 +147,7 @@
                 <!-- Edit form -->
                 <form onsubmit={saveEdit} class="flex flex-col gap-3">
                   {#if editError}
-                    <p class="text-sm text-red-600">{editError}</p>
+                    <p class="text-sm text-danger">{editError}</p>
                   {/if}
                   <div>
                     <label for="edit-name-{child.id}" class="block text-xs font-medium text-text-muted mb-1">{cs.name}</label>
@@ -170,14 +173,14 @@
                     <button
                       type="button"
                       onclick={() => (editingChildId = null)}
-                      class="px-3 py-1.5 text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
+                      class="px-4 py-2 min-h-[44px] text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
                     >
                       {cs.cancel}
                     </button>
                     <button
                       type="submit"
                       disabled={editLoading}
-                      class="px-3 py-1.5 text-sm bg-primary text-white rounded-lg disabled:opacity-50"
+                      class="px-4 py-2 min-h-[44px] text-sm bg-primary text-white rounded-lg disabled:opacity-50"
                     >
                       {editLoading ? cs.loading : cs.save}
                     </button>
@@ -192,13 +195,13 @@
                   <div class="flex gap-2 justify-end">
                     <button
                       onclick={() => (deleteConfirmId = null)}
-                      class="px-3 py-1.5 text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
+                      class="px-4 py-2 min-h-[44px] text-sm text-text-muted rounded-lg hover:bg-surface transition-colors"
                     >
                       {cs.cancel}
                     </button>
                     <button
                       onclick={() => deleteChild(child.id)}
-                      class="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg"
+                      class="px-4 py-2 min-h-[44px] text-sm bg-danger text-white rounded-lg"
                     >
                       {cs.delete}
                     </button>
@@ -207,7 +210,7 @@
               {:else}
                 <!-- Display row -->
                 {#if editSuccess}
-                  <p class="text-sm text-green-600 mb-2 flex items-center gap-1.5">
+                  <p class="text-sm text-success mb-2 flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
@@ -222,13 +225,13 @@
                   <div class="flex gap-2">
                     <button
                       onclick={() => startEdit(child)}
-                      class="text-sm text-primary px-2 py-1 rounded-lg hover:bg-surface transition-colors"
+                      class="text-sm text-primary px-3 py-2 min-h-[44px] rounded-lg hover:bg-surface transition-colors"
                     >
                       {cs.edit}
                     </button>
                     <button
                       onclick={() => (deleteConfirmId = child.id)}
-                      class="text-sm text-red-500 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                      class="text-sm text-danger px-3 py-2 min-h-[44px] rounded-lg hover:bg-danger/10 transition-colors"
                     >
                       {cs.delete}
                     </button>
@@ -246,7 +249,7 @@
     <div class="bg-white rounded-xl border border-surface-dark p-4">
       <h3 class="text-sm font-semibold text-text mb-3">{cs.addChild}</h3>
       {#if addError}
-        <p class="text-sm text-red-600 mb-2">{addError}</p>
+        <p class="text-sm text-danger mb-2">{addError}</p>
       {/if}
       <form onsubmit={addChild} class="flex flex-col gap-3">
         <div>
@@ -273,7 +276,7 @@
         <button
           type="submit"
           disabled={addLoading}
-          class="w-full bg-primary text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 transition-opacity"
+          class="w-full bg-primary text-white rounded-lg py-2.5 min-h-[44px] text-sm font-medium disabled:opacity-50 transition-opacity"
         >
           {addLoading ? cs.loading : cs.addChild}
         </button>
@@ -286,7 +289,7 @@
   <section>
     <button
       onclick={logout}
-      class="w-full border border-red-200 text-red-600 rounded-xl py-3 text-sm hover:bg-red-50 transition-colors"
+      class="w-full border border-danger/30 text-danger rounded-xl py-3 min-h-[44px] text-sm hover:bg-danger/10 transition-colors"
     >
       {cs.logout}
     </button>
