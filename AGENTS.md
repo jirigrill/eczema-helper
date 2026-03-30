@@ -218,3 +218,14 @@ After implementing features or making significant changes, verify documentation 
 5. **README** (`docs/README.md`) — if implementation status changed
 
 Run a quick check: do the docs still accurately describe what the code does?
+
+### Test Coverage Maintenance
+
+After adding or modifying tests, update `docs/architecture/test-coverage-map.md`:
+
+1. Add the test to the appropriate feature table with its test type (Unit/Integration/E2E)
+2. Update the coverage status column (✅ tested / ⚠️ partial / ❌ missing)
+3. Remove addressed items from the "Gaps & Recommendations" section
+4. Update the "Last updated" date at the top
+
+This document serves as the single source of truth for what is tested and where gaps exist.
