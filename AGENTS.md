@@ -10,7 +10,7 @@ Eczema Tracker PWA — a personal app for tracking a breastfed newborn's atopic 
 
 All design docs live in `docs/`. Read the relevant phase doc before implementing any feature.
 
-**Current state: documentation only — no code exists yet.** Implementation starts with Phase 0.
+**Current state: Phase 0 and Phase 1 complete.** See phase docs and `docs/README.md` for details.
 
 When adding/changing a feature, update all affected docs:
 
@@ -206,3 +206,15 @@ See `docs/architecture/auth-overview.md` for complete details. Key points:
 - Example: `Phase 1: add auth API routes and session management`
 - Check `docs/phases/` to identify which phase the work belongs to
 - Keep descriptions concise and action-oriented (add, fix, update, remove)
+
+### Documentation Maintenance
+
+After implementing features or making significant changes, verify documentation is up to date:
+
+1. **Phase docs** (`docs/phases/phase-N-*.md`) — mark acceptance criteria as complete `[x]`, update file lists if new files were created
+2. **Data models** (`docs/architecture/data-models.md`) — if schema or TypeScript interfaces changed
+3. **API routes** (`docs/architecture/api-routes.md`) — if endpoints were added or modified
+4. **This file** (`CLAUDE.md`) — if key design decisions, commands, or conventions changed
+5. **README** (`docs/README.md`) — if implementation status changed
+
+Run a quick check: do the docs still accurately describe what the code does?

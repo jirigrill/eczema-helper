@@ -2,7 +2,7 @@
 
 ## Summary
 
-This phase implements the complete authentication system and child management feature. It creates the PostgreSQL schema (all tables via migrations), builds server-side API routes for registration, login, and logout using cookie-based sessions with bcrypt password hashing, adds auth middleware to protect the `(app)` route group, implements the Settings page for adding and editing children, adds a child selector dropdown to the app header, and seeds the database with Czech food categories and sub-items. After this phase, users can create accounts, log in, manage children, and all protected routes require authentication.
+This phase implements the complete authentication system and child management feature. It creates the PostgreSQL schema (all tables via migrations), builds server-side API routes for registration, login, and logout using cookie-based sessions with bcrypt password hashing, adds auth middleware to protect the `(app)` route group, implements the Settings page for adding and editing a child (single-child constraint), stores the active child in a Svelte store, and seeds the database with Czech food categories and sub-items. After this phase, users can create accounts, log in, manage their child, and all protected routes require authentication.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ Phase 0 must be complete. Specifically:
 7. Build server API routes `GET /api/children` and `POST /api/children` -- list and create children for the authenticated user.
 8. Build server API routes `PUT /api/children/[id]` and `DELETE /api/children/[id]` -- update and delete a child.
 9. Implement the Settings page with a child management UI (add, edit, delete children).
-10. Add a child selector dropdown in the app header that persists the selection in a Svelte store.
+10. Add a child store that persists the active child across page navigations within the session.
 11. Create and run a seed script that populates `food_categories` and `food_sub_items` with Czech allergen data.
 12. **UI design review** -- with the app shell, auth, and settings running on a real phone, create `docs/architecture/ui-design.md` covering: navigation flow diagram, screen-by-screen wireframes (ASCII or screenshots), design system basics (component patterns, spacing, typography), and mobile UX conventions (bottom sheets vs pages, swipe behaviors, tap target sizes). This informs all subsequent phases.
 13. **PBKDF2 encryption salt column** -- add `encryption_salt` column to `users` table for storing the PBKDF2 salt used in photo encryption key derivation.
@@ -46,9 +46,9 @@ Phase 0 must be complete. Specifically:
 - [x] **AC-7 (Feature 7):** `GET /api/children` with a valid session returns `200` and an array of children belonging to the authenticated user. `POST /api/children` with `{ name, birthDate }` returns `201` and the created child.
 - [x] **AC-8 (Feature 8):** `PUT /api/children/[id]` with `{ name }` updates the child name and returns `200`. `DELETE /api/children/[id]` removes the child and returns `204`. Attempting to modify another user's child returns `403`.
 - [x] **AC-9 (Feature 9):** The Settings page displays a list of the user's children. Each child shows name and birth date. A form allows adding a new child. Each existing child has "Edit" and "Delete" buttons that work correctly.
-- [x] **AC-10 (Feature 10):** The app header shows a dropdown with the user's children. Selecting a child updates a global Svelte store. The selected child persists across page navigations within the session. If no children exist, the dropdown shows "Add a child" and links to Settings.
+- [x] **AC-10 (Feature 10):** A Svelte store tracks the active child. The store is initialized from server-loaded data on app mount. For a single-child app, the child is auto-selected. The selection persists across page navigations within the session.
 - [x] **AC-11 (Feature 11):** After running the seed script, `food_categories` contains at least 12 rows and `food_sub_items` contains at least 30 rows. Each category has a `slug`, `name_cs` (Czech), and `icon` field. Each sub-item references a valid `category_id`.
-- [ ] **AC-12 (Feature 12):** `docs/architecture/ui-design.md` exists and covers: navigation flow, wireframes for key screens (calendar, day detail, food grid, photo gallery, capture, settings), design system (button styles, card patterns, typography, spacing), and mobile UX decisions (bottom sheet vs page navigation, swipe gestures, tap target sizes). Decisions are tested on a real phone.
+- [x] **AC-12 (Feature 12):** `docs/architecture/ui-design.md` exists and covers: navigation flow, wireframes for key screens (calendar, day detail, food grid, photo gallery, capture, settings), design system (button styles, card patterns, typography, spacing), and mobile UX decisions (bottom sheet vs page navigation, swipe gestures, tap target sizes). Decisions are tested on a real phone.
 - [x] **AC-13 (Feature 13):** The `users` table has an `encryption_salt BYTEA` column for storing the per-user PBKDF2 salt used in photo encryption key derivation. The column is nullable (set when user first enables encryption).
 - [x] **AC-14 (Feature 14):** The `users` table has `failed_login_attempts INT` and `locked_until TIMESTAMPTZ` columns. After 5 failed login attempts for an email within 15 minutes, subsequent login attempts return HTTP 429 with `{ error, retryAfterSeconds }`. Error messages do not reveal whether the email exists (generic "Nesprávné přihlašovací údaje" for both invalid email and invalid password).
 - [x] **AC-15 (Feature 15):** Expired sessions (where `expires_at < NOW()`) are automatically deleted. Implementation options: (a) daily cron job at 03:00 via external scheduler, or (b) probabilistic cleanup (1% chance on each request). The chosen mechanism is documented and testable.
@@ -77,7 +77,7 @@ Phase 0 must be complete. Specifically:
 | `src/routes/api/children/+server.ts`        | List and create children endpoints                                           |
 | `src/routes/api/children/[id]/+server.ts`   | Update and delete child endpoints                                            |
 | `src/routes/(app)/+layout.server.ts`        | Auth guard -- loads user and children, redirects if unauthenticated          |
-| `src/routes/(app)/+layout.svelte`           | Updated to include child selector in header                                  |
+| `src/routes/(app)/+layout.svelte`           | App layout with page title header and bottom nav                             |
 | `src/routes/(app)/settings/+page.svelte`    | Child management UI                                                          |
 | `src/routes/(app)/settings/+page.server.ts` | Server load function for settings page data                                  |
 | `src/routes/login/+page.svelte`             | Updated to wire form to `/api/auth/login`                                    |
@@ -649,7 +649,7 @@ export class PostgresRepository implements DataRepository {
 
 Users can register an account on the `/register` page and log in on the `/login` page. Successful login sets an HTTP-only session cookie and redirects to `/calendar`. All `(app)` routes are protected -- unauthenticated users are redirected to `/login`. Authenticated users who visit `/login` are redirected to `/calendar`.
 
-In Settings, users can add, edit, and delete children. Each child has a name and birth date. The app header displays a child selector dropdown. Selecting a child updates a global store that will be used by food tracking and skin tracking in later phases.
+In Settings, users can add and edit a child (single-child constraint enforced). Each child has a name and birth date. The active child is stored in a Svelte store that will be used by food tracking and skin tracking in later phases. The app uses a headerless design with page titles for maximum vertical space on mobile.
 
 The PostgreSQL database has all tables created (matching `docs/architecture/data-models.md`). The `food_categories` table contains 13 Czech allergen categories with icons, and `food_sub_items` contains their sub-items (50+ items total). The full schema supports food logs, meals, tracking photos (skin + stool), analysis results, push subscriptions, reminder configs, and sessions.
 
@@ -735,7 +735,7 @@ All manual test scenarios are now automated in `e2e/` directory:
 **Test file: `e2e/children.spec.ts`**
 - Add child and verify in settings/header
 - Edit child name and verify update
-- Add multiple children and select between them
+- Single-child constraint: adding second child is rejected
 - Child selection persists across navigation
 - Child deletion with confirmation dialog
 - Empty state shows "Add child" link in header

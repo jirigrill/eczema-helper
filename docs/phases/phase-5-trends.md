@@ -30,7 +30,7 @@ When multiple food eliminations overlap in their response windows (both eliminat
 
 This callout appears on the correlation card whenever `overlappingEliminations.length > 1` for a detected correlation.
 6. **Date range filter** -- interactive date picker to narrow the dashboard view to a specific period.
-7. **Per-child data** -- dashboard scoped to the selected child (child selector if multiple children tracked).
+7. **Per-child data** -- dashboard scoped to the user's child (single-child app).
 8. **Meal log context** -- alongside the food elimination timeline, display logged meals as contextual data points (what the mother actually ate on each day), giving a fuller picture without driving the correlation algorithm.
 
 ## Acceptance Criteria
@@ -229,7 +229,6 @@ Display stool correlation results alongside skin results in the dashboard, with 
 
 8. **Build the dashboard page** (`src/routes/(app)/trends/+page.svelte`):
    - Page title: "Trendy a korelace".
-   - Child selector (if multiple children).
    - `DateRangeFilter` at the top.
    - Tab or toggle to switch between "Zavaznost" (severity only), "Strava" (food only), and "Kombinovany pohled" (combined).
    - Default view is "Kombinovany pohled".
@@ -441,8 +440,7 @@ After completing Phase 5 the application provides a comprehensive trends and cor
 | 8 | Disclaimer visible | Scroll to bottom of dashboard. | Disclaimer text visible: "Toto neni lekarska diagnoza, pouze pozorovane vzory." |
 | 9 | Empty state | Set date range to a period with no data. | Empty state message: "Zadna data pro zvolene obdobi." with guidance to add data. |
 | 10 | Mobile responsiveness | Open dashboard on a 320 px wide viewport. | Charts readable. Legend does not overflow. Scroll works. |
-| 11 | Multiple children | Switch between two children using the child selector. | Dashboard data updates to reflect the selected child's data. |
-| 12 | Combined view alignment | Open combined view. Scroll horizontally. | Severity chart and food timeline scroll together; time axes stay aligned. |
+| 11 | Combined view alignment | Open combined view. Scroll horizontally. | Severity chart and food timeline scroll together; time axes stay aligned. |
 
 ### Regression Checks
 

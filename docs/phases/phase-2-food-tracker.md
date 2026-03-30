@@ -880,7 +880,7 @@ All food log changes are saved to Dexie.js immediately for offline support. When
 
 Below the elimination grid, a "Jídla" (Meals) section shows logged meals for the day. Each meal displays its type (Snídaně/Oběd/Večeře/Svačina), optional label, and a list of food items. Users can add a new meal by selecting a meal type, searching/selecting food items from the predefined list or typing custom items, and saving. For example, the mother can log "Oběd: vepřové, brambory, zapečené mléko" by selecting lunch, picking items from the autocomplete, and saving.
 
-The `/food` tab provides a direct shortcut to today's food tracking without going through the calendar. The child selector in the header determines which child's data is displayed and modified.
+The `/food` tab provides a direct shortcut to today's food tracking without going through the calendar. Data is scoped to the user's child (single-child app).
 
 ## Test Suite
 
@@ -1096,7 +1096,7 @@ All Phase 0 and Phase 1 checks must still pass:
 - [ ] All Dexie.js tables are accessible after `db.open()`.
 - [ ] User registration, login, and logout work correctly.
 - [ ] Auth guard redirects unauthenticated users to `/login`.
-- [ ] Child management (CRUD) in Settings works correctly.
-- [ ] Child selector in the header works and persists selection.
+- [ ] Child management (CRUD) in Settings works correctly (single-child constraint enforced).
+- [ ] Child store persists selection across navigation.
 - [ ] Food categories and items are seeded in the database (12 categories, 30+ items).
 - [ ] Navigating to `/` redirects appropriately (to `/calendar` if authenticated, to `/login` if not).

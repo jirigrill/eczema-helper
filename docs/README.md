@@ -43,7 +43,7 @@ A personal progressive web application for tracking a breastfed newborn's atopic
 | [architecture/api-routes.md](architecture/api-routes.md) | Complete API endpoint reference (all methods, auth, request/response) |
 | [architecture/deployment.md](architecture/deployment.md) | Local dev (Docker + mkcert) and production VPS deployment |
 | [architecture/testing-strategy.md](architecture/testing-strategy.md) | Test pyramid, conventions, database strategy, mock boundaries, CI pipeline |
-| architecture/ui-design.md | UI wireframes, navigation flow, design system, mobile UX conventions |
+| [architecture/ui-design.md](architecture/ui-design.md) | UI wireframes, navigation flow, design system, mobile UX conventions |
 
 ## Implementation Phases
 

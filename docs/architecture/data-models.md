@@ -57,7 +57,7 @@ interface Child {
 }
 ```
 
-Represents a tracked child. The app supports multiple children per family, though the primary use case is a single newborn.
+Represents a tracked child. The app enforces a single-child constraint — each family can have exactly one child. This simplifies the UX and data model (meals belong to the mother, not the child; child context is implicit throughout the app).
 
 ### UserChild
 
