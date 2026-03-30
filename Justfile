@@ -187,8 +187,98 @@ dev-db:
     docker compose -f docker-compose.postgres.yml up -d
     @echo "✅ PostgreSQL on localhost:5432"
 
+# Start pgAdmin with pre-configured connection to dev database
+pgadmin:
+    #!/usr/bin/env bash
+    set -e
+
+    # Load .env if exists
+    if [[ -f .env ]]; then
+        set -a && source .env && set +a
+    fi
+
+    # Use defaults if not set
+    POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+    POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+    POSTGRES_DB="${POSTGRES_DB:-eczema_helper}"
+    POSTGRES_USER="${POSTGRES_USER:-eczema}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-eczema_dev}"
+    PGADMIN_EMAIL="${PGADMIN_EMAIL:-admin@local.dev}"
+    PGADMIN_PASSWORD="${PGADMIN_PASSWORD:-admin}"
+
+    # Stop existing pgadmin container if running
+    docker stop pgadmin 2>/dev/null || true
+    docker rm pgadmin 2>/dev/null || true
+
+    # Create temp directory for pgAdmin config
+    PGADMIN_CONFIG_DIR=$(mktemp -d)
+    trap "rm -rf $PGADMIN_CONFIG_DIR" EXIT
+
+    # Create servers.json for auto-configuration
+    cat > "$PGADMIN_CONFIG_DIR/servers.json" << EOF
+    {
+      "Servers": {
+        "1": {
+          "Name": "Eczema Dev",
+          "Group": "Servers",
+          "Host": "eczema-postgres-dev",
+          "Port": 5432,
+          "MaintenanceDB": "postgres",
+          "Username": "$POSTGRES_USER",
+          "SSLMode": "prefer",
+          "PassFile": "/pgadmin4/pgpass"
+        }
+      }
+    }
+    EOF
+
+    # Create pgpass file for auto-login
+    cat > "$PGADMIN_CONFIG_DIR/pgpass" << EOF
+    eczema-postgres-dev:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD
+    EOF
+    chmod 600 "$PGADMIN_CONFIG_DIR/pgpass"
+
+    # Determine network name (docker compose prefixes with directory name)
+    # Note: curly braces escaped for just syntax
+    NETWORK_NAME=$(docker network ls --format '{{"{{"}}.Name{{"}}"}}' | grep -E 'atopic_helper.*default|atopic_helper.*internal' | head -1)
+    if [[ -z "$NETWORK_NAME" ]]; then
+        echo "❌ No Docker network found. Start PostgreSQL first: just dev-db"
+        exit 1
+    fi
+
+    # Start pgAdmin container
+    docker run -d --name pgadmin \
+        --network "$NETWORK_NAME" \
+        -e PGADMIN_DEFAULT_EMAIL="$PGADMIN_EMAIL" \
+        -e PGADMIN_DEFAULT_PASSWORD="$PGADMIN_PASSWORD" \
+        -e PGADMIN_CONFIG_SERVER_MODE=False \
+        -e PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False \
+        -v "$PGADMIN_CONFIG_DIR/servers.json:/pgadmin4/servers.json:ro" \
+        -v "$PGADMIN_CONFIG_DIR/pgpass:/pgadmin4/pgpass:ro" \
+        -p 5050:80 \
+        dpage/pgadmin4
+
+    # Wait for pgAdmin to start (it copies config on startup)
+    sleep 3
+
+    echo ""
+    echo "🔗 pgAdmin: http://localhost:5050"
+    echo "   Email:    $PGADMIN_EMAIL"
+    echo "   Password: $PGADMIN_PASSWORD"
+    echo ""
+    echo "   Database connection pre-configured as 'Eczema Dev'"
+    echo "   Stop with: just pgadmin-stop"
+
+# Stop pgAdmin
+pgadmin-stop:
+    docker stop pgadmin 2>/dev/null || true
+    docker rm pgadmin 2>/dev/null || true
+    @echo "🛑 pgAdmin stopped"
+
 # Stop all services
 stop:
+    docker stop pgadmin 2>/dev/null || true
+    docker rm pgadmin 2>/dev/null || true
     docker stop eczema-postgres-dev 2>/dev/null || true
     docker compose -f docker-compose.postgres.yml down --remove-orphans 2>/dev/null || true
     docker compose -f docker-compose.dev.yml down 2>/dev/null || true
@@ -230,19 +320,19 @@ build:
 _ensure-db:
     #!/usr/bin/env bash
     set -e  # Exit on error
-    
+
     # Load .env if exists
     if [[ -f .env ]]; then
         set -a && source .env && set +a
     fi
-    
-    # Check DATABASE_URL
-    if [[ -z "${DATABASE_URL:-}" ]]; then
-        echo "❌ DATABASE_URL not set. Create .env file:"
-        echo "   DATABASE_URL=postgresql://eczema:eczema_dev@localhost:5432/eczema_helper"
-        exit 1
-    fi
-    
+
+    # Use defaults if not set (matches env.ts defaults)
+    POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+    POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+    POSTGRES_DB="${POSTGRES_DB:-eczema_helper}"
+    POSTGRES_USER="${POSTGRES_USER:-eczema}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-eczema_dev}"
+
     # Start PostgreSQL if not running
     if ! docker compose -f docker-compose.postgres.yml ps 2>/dev/null | grep -q "postgres.*Up"; then
         echo "🐘 Starting PostgreSQL..."
@@ -250,7 +340,7 @@ _ensure-db:
         echo "⏳ Waiting for PostgreSQL..."
         sleep 3
     fi
-    
+
     # Always run migrations (idempotent)
     echo "🔄 Running migrations..."
     bun scripts/migrate.ts
@@ -417,11 +507,19 @@ check-disk:
 env-template:
     #!/usr/bin/env bash
     printf '%s\n' \
-        "# Database" \
-        "DATABASE_URL=postgresql://eczema:eczema_dev@localhost:5432/eczema_helper" \
+        "# Database connection" \
+        "POSTGRES_HOST=localhost" \
+        "POSTGRES_PORT=5432" \
+        "POSTGRES_DB=eczema_helper" \
+        "POSTGRES_USER=eczema" \
+        "POSTGRES_PASSWORD=eczema_dev" \
         "" \
         "# Session" \
         "SESSION_SECRET=change-me-32-char-min" \
+        "" \
+        "# pgAdmin (optional, for local dev)" \
+        "PGADMIN_EMAIL=admin@local.dev" \
+        "PGADMIN_PASSWORD=admin" \
         "" \
         "# Deployment" \
         "DEPLOY_HOST=your-vps-ip" \
@@ -454,6 +552,8 @@ help:
     @echo ""
     @echo "Development:"
     @echo "  just dev              - Start dev server"
+    @echo "  just dev-db           - Start PostgreSQL only"
+    @echo "  just pgadmin          - Start pgAdmin (auto-configured)"
     @echo "  just stop             - Stop all services"
     @echo "  just logs             - View logs"
     @echo ""

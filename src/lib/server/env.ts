@@ -7,8 +7,14 @@ import { logger } from './logger';
  * Optional variables have sensible defaults.
  */
 const envSchema = z.object({
-  // Required in production
-  DATABASE_URL: z.string().url().optional().default('postgres://eczema:eczema_dev@localhost:5432/eczema_helper'),
+  // Database connection (individual components for reusability)
+  POSTGRES_HOST: z.string().optional().default('localhost'),
+  POSTGRES_PORT: z.coerce.number().optional().default(5432),
+  POSTGRES_DB: z.string().optional().default('eczema_helper'),
+  POSTGRES_USER: z.string().optional().default('eczema'),
+  POSTGRES_PASSWORD: z.string().optional().default('eczema_dev'),
+
+  // Session
   SESSION_SECRET: z.string().min(32).optional().default('dev-secret-change-in-production-32chars'),
 
   // Optional with defaults
@@ -60,8 +66,8 @@ export function validateEnv(): Env {
       logger.warn('SESSION_SECRET is using default value in production - this is insecure!');
     }
 
-    if (validatedEnv.DATABASE_URL.includes('eczema_dev')) {
-      logger.warn('DATABASE_URL appears to use development credentials in production');
+    if (validatedEnv.POSTGRES_PASSWORD === 'eczema_dev') {
+      logger.warn('POSTGRES_PASSWORD appears to use development credentials in production');
     }
   }
 
@@ -88,4 +94,13 @@ export function getEnv(): Env {
     throw new Error('Environment not validated. Call validateEnv() during startup.');
   }
   return validatedEnv;
+}
+
+/**
+ * Builds the DATABASE_URL from individual environment variables.
+ * Can be called before or after validateEnv() - uses defaults if not validated.
+ */
+export function getDatabaseUrl(): string {
+  const env = validatedEnv ?? envSchema.parse(process.env);
+  return `postgres://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@${env.POSTGRES_HOST}:${env.POSTGRES_PORT}/${env.POSTGRES_DB}`;
 }

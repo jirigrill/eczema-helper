@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
+import { getDatabaseUrl } from '../test-utils';
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgres://eczema:eczema_dev@localhost:5432/eczema_helper';
+const DATABASE_URL = getDatabaseUrl();
 
 describe('Seed Data', () => {
   let sql: ReturnType<typeof postgres>;

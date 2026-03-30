@@ -11,13 +11,19 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, '..', 'migrations');
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  console.error('ERROR: DATABASE_URL environment variable is not set');
-  process.exit(1);
-}
+// Build DATABASE_URL from individual env vars (same logic as src/lib/server/env.ts)
+const POSTGRES_HOST = process.env.POSTGRES_HOST ?? 'localhost';
+const POSTGRES_PORT = process.env.POSTGRES_PORT ?? '5432';
+const POSTGRES_DB = process.env.POSTGRES_DB ?? 'eczema_helper';
+const POSTGRES_USER = process.env.POSTGRES_USER ?? 'eczema';
+const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD ?? 'eczema_dev';
 
-const sql = postgres(DATABASE_URL, { max: 1 });
+const DATABASE_URL = `postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}`;
+
+const sql = postgres(DATABASE_URL, {
+  max: 1,
+  onnotice: () => {}, // Suppress NOTICE messages (e.g., "relation already exists")
+});
 
 async function run() {
   // Create migrations tracking table

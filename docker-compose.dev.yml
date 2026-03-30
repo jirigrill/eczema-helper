@@ -9,8 +9,12 @@ services:
       - "0.0.0.0:3000:3000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://eczema:eczema_dev@postgres:5432/eczema_helper
-      - SESSION_SECRET=dev-secret-change-in-production-32chars
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-eczema_helper}
+      - POSTGRES_USER=${POSTGRES_USER:-eczema}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-eczema_dev}
+      - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-production-32chars}
       - LOG_LEVEL=debug
     volumes:
       - ./data/photos:/data/photos
@@ -31,17 +35,17 @@ services:
     container_name: eczema-postgres-dev
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=eczema_helper
-      - POSTGRES_USER=eczema
-      - POSTGRES_PASSWORD=eczema_dev
+      - POSTGRES_DB=${POSTGRES_DB:-eczema_helper}
+      - POSTGRES_USER=${POSTGRES_USER:-eczema}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-eczema_dev}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eczema -d eczema_helper"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eczema} -d ${POSTGRES_DB:-eczema_helper}"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
+import { getDatabaseUrl } from '../test-utils';
 
 // Use same database as dev server - tests make HTTP requests to running server
-const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgres://eczema:eczema_dev@localhost:5432/eczema_helper';
+const DATABASE_URL = getDatabaseUrl();
 
 // Helper to create a test user directly in DB
 async function createTestUser(sql: ReturnType<typeof postgres>, email: string, passwordHash: string) {
