@@ -31,15 +31,13 @@ export const cs = {
   edit: 'Upravit',
   add: 'Přidat',
 
-  // Children management
-  children: 'Děti',
+  // Child management (single-child app)
+  child: 'Dítě',
   addChild: 'Přidat dítě',
   childName: 'Jméno dítěte',
   birthDate: 'Datum narození',
   born: 'nar.',
-  noChildrenYet: 'Zatím nemáte přidané žádné dítě.',
-  selectChild: 'Vybrat dítě',
-  manageChildren: 'Správa dětí…',
+  noChildYet: 'Zatím nemáte přidané dítě.',
   deleteConfirm: 'Opravdu smazat',
   deleteWarning: 'Tato akce je nevratná.',
 
@@ -50,6 +48,10 @@ export const cs = {
 
   // Success messages
   childAdded: 'Dítě bylo přidáno',
+  childUpdated: 'Údaje byly uloženy',
+
+  // Limits
+  singleChildOnly: 'Tato aplikace podporuje pouze jedno dítě.',
 } as const;
 
 export type TranslationKey = keyof typeof cs;

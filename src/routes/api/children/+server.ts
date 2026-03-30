@@ -86,6 +86,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   try {
+    // Single-child app: check if user already has a child
+    const existingChildren = await sql`
+      SELECT 1 FROM user_children WHERE user_id = ${locals.user.id} LIMIT 1
+    `;
+    if (existingChildren.length > 0) {
+      return json({ ok: false, error: 'Tato aplikace podporuje pouze jedno dítě', code: 'CHILD_LIMIT_REACHED' } satisfies ApiError, { status: 400 });
+    }
+
     const body = await request.json().catch(() => null);
     const parseResult = parseCreateChildRequest(body);
 

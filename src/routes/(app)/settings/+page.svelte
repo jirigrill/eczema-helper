@@ -1,17 +1,20 @@
 <script lang="ts">
   import { cs } from '$lib/i18n/cs';
   import { childrenStore } from '$lib/stores/children.svelte';
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import type { Child } from '$lib/domain/models';
+  import type { PageData } from './$types';
 
-  // Use $derived to react to store changes
-  let children = $derived(childrenStore.children);
+  let { data }: { data: PageData } = $props();
+
+  // Local state for children, initialized from server data
+  // This avoids conflicts with the layout's store syncing
+  let children = $state<Child[]>(data.children);
 
   let addName = $state('');
   let addBirthDate = $state('');
   let addLoading = $state(false);
   let addError = $state('');
-  let addSuccess = $state(false);
 
   // Edit state as separate primitives (works better with Svelte 5 reactivity)
   let editingChildId = $state<string | null>(null);
@@ -19,11 +22,16 @@
   let editingBirthDate = $state('');
   let editLoading = $state(false);
   let editError = $state('');
+  let editSuccess = $state(false);
 
   let deleteConfirmId = $state<string | null>(null);
 
   async function addChild(e: SubmitEvent) {
     e.preventDefault();
+    // Blur active element to dismiss keyboard before DOM changes
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     addLoading = true;
     addError = '';
 
@@ -35,16 +43,22 @@
 
     if (res.ok) {
       const { data: child } = (await res.json()) as { data: Child };
-      childrenStore.setChildren([...childrenStore.children, child]);
+      // Update local state (for this page's UI)
+      children = [...children, child];
+      // Update global store (for other parts of the app)
+      childrenStore.setChildren(children);
       if (!childrenStore.activeChildId) {
         childrenStore.setActiveChildId(child.id);
       }
       addName = '';
       addBirthDate = '';
-      addSuccess = true;
-      setTimeout(() => (addSuccess = false), 3000);
-      // Invalidate to force data refresh from server
-      await invalidateAll();
+      // Show success on the newly created child card
+      editSuccess = true;
+      setTimeout(() => (editSuccess = false), 3000);
+      // Scroll to top so the new child card is visible
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+      });
     } else {
       const data = await res.json().catch(() => ({}));
       addError = data.error ?? cs.error;
@@ -74,12 +88,14 @@
 
     if (res.ok) {
       const { data: updated } = (await res.json()) as { data: Child };
-      childrenStore.setChildren(
-        childrenStore.children.map((c) => (c.id === updated.id ? updated : c))
-      );
+      // Update local state (for this page's UI)
+      children = children.map((c) => (c.id === updated.id ? updated : c));
+      // Update global store (for other parts of the app)
+      childrenStore.setChildren(children);
       editingChildId = null;
-      // Invalidate to force data refresh from server
-      await invalidateAll();
+      // Show success confirmation
+      editSuccess = true;
+      setTimeout(() => (editSuccess = false), 3000);
     } else {
       const data = await res.json().catch(() => ({}));
       editError = data.error ?? cs.error;
@@ -90,13 +106,13 @@
   async function deleteChild(id: string) {
     const res = await fetch(`/api/children/${id}`, { method: 'DELETE' });
     if (res.ok) {
-      childrenStore.setChildren(childrenStore.children.filter((c) => c.id !== id));
+      // Update local state (for this page's UI)
+      children = children.filter((c) => c.id !== id);
+      // Update global store (for other parts of the app)
+      childrenStore.setChildren(children);
       if (childrenStore.activeChildId === id) {
-        const remaining = childrenStore.children.filter((c) => c.id !== id);
-        childrenStore.setActiveChildId(remaining[0]?.id ?? null);
+        childrenStore.setActiveChildId(children[0]?.id ?? null);
       }
-      // Invalidate to force data refresh from server
-      await invalidateAll();
     }
     deleteConfirmId = null;
   }
@@ -113,12 +129,12 @@
 </script>
 
 <div class="p-4 max-w-lg mx-auto pb-8">
-  <!-- Children section -->
+  <!-- Child section -->
   <section class="mb-8">
-    <h2 class="text-base font-semibold text-text mb-3">{cs.children}</h2>
+    <h2 class="text-base font-semibold text-text mb-3">{cs.child}</h2>
 
     {#if children.length === 0}
-      <p class="text-text-muted text-sm mb-4">{cs.noChildrenYet}</p>
+      <p class="text-text-muted text-sm mb-4">{cs.noChildYet}</p>
     {:else}
       {#key `${editingChildId}-${deleteConfirmId}`}
       <ul class="flex flex-col gap-2 mb-4">
@@ -190,6 +206,14 @@
                 </div>
               {:else}
                 <!-- Display row -->
+                {#if editSuccess}
+                  <p class="text-sm text-green-600 mb-2 flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {cs.childUpdated}
+                  </p>
+                {/if}
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="font-medium text-text">{child.name}</p>
@@ -217,17 +241,10 @@
       {/key}
     {/if}
 
-    <!-- Add child form -->
+    <!-- Add child form - only show when no child exists (single-child app) -->
+    {#if children.length === 0}
     <div class="bg-white rounded-xl border border-surface-dark p-4">
       <h3 class="text-sm font-semibold text-text mb-3">{cs.addChild}</h3>
-      {#if addSuccess}
-        <p class="text-sm text-green-600 mb-2 flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          {cs.childAdded}
-        </p>
-      {/if}
       {#if addError}
         <p class="text-sm text-red-600 mb-2">{addError}</p>
       {/if}
@@ -262,6 +279,7 @@
         </button>
       </form>
     </div>
+    {/if}
   </section>
 
   <!-- Logout -->

@@ -25,6 +25,7 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'RATE_LIMITED'
+  | 'CHILD_LIMIT_REACHED'
   | 'INTERNAL_ERROR';
 
 /**

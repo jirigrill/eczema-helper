@@ -82,7 +82,7 @@ test.describe('Child Management', () => {
     await responsePromise;
 
     // Success message should appear (without page reload)
-    await expect(page.locator('text=Dítě bylo přidáno')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('text=Údaje byly uloženy')).toBeVisible({ timeout: 3000 });
 
     // The child should also appear in the list without reload
     await expect(page.getByRole('listitem').getByText('TestChild')).toBeVisible({ timeout: 3000 });
@@ -205,41 +205,37 @@ test.describe('Child Management', () => {
     await expect(page.getByRole('listitem').getByText('Emma')).not.toBeVisible();
   });
 
-  test('can add multiple children', async ({ page }) => {
+  test('single-child app: add form hidden after adding child', async ({ page }) => {
     // Add first child
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
+
+    // Add form should be visible initially
+    await expect(page.locator('input#add-name')).toBeVisible();
+
     await page.fill('input#add-name', 'Emma');
     await page.fill('input#add-birth', '2025-12-01');
 
     const submitBtn = page.locator('button[type="submit"]:has-text("Přidat dítě")');
-    let responsePromise = page.waitForResponse(
+    const responsePromise = page.waitForResponse(
       res => res.url().includes('/api/children') && res.request().method() === 'POST'
     );
     await submitBtn.click();
     await responsePromise;
 
-    // Reload to see first child
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('listitem').getByText('Emma')).toBeVisible({ timeout: 10000 });
+    // Child should appear
+    await expect(page.getByRole('listitem').getByText('Emma')).toBeVisible({ timeout: 5000 });
 
-    // Add second child
-    await page.fill('input#add-name', 'Oliver');
-    await page.fill('input#add-birth', '2026-01-15');
-    responsePromise = page.waitForResponse(
-      res => res.url().includes('/api/children') && res.request().method() === 'POST'
-    );
-    await submitBtn.click();
-    await responsePromise;
+    // Add form should be hidden (single-child app)
+    await expect(page.locator('input#add-name')).not.toBeVisible();
+    await expect(submitBtn).not.toBeVisible();
 
-    // Reload to see second child
+    // Reload to verify form stays hidden
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    // Both children should be visible in the list
     await expect(page.getByRole('listitem').getByText('Emma')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('listitem').getByText('Oliver')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input#add-name')).not.toBeVisible();
   });
 
   test('child deletion shows confirmation dialog', async ({ page }) => {
@@ -292,11 +288,11 @@ test.describe('Child Management', () => {
     await expect(page.getByRole('listitem').getByText('Temp')).not.toBeVisible();
   });
 
-  test('shows no children message when empty', async ({ page }) => {
-    // Go to settings - should show no children message
+  test('shows no child message when empty', async ({ page }) => {
+    // Go to settings - should show no child message
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('text=Zatím nemáte přidané žádné dítě')).toBeVisible();
+    await expect(page.locator('text=Zatím nemáte přidané dítě')).toBeVisible();
 
     // Header should show page title
     await expect(page.locator('header')).toContainText('Nastavení');
