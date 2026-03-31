@@ -35,7 +35,7 @@ const mockSkinPhoto2: SkinPhoto = {
   childId: 'child-uuid',
   date: '2025-04-02',
   photoType: 'skin',
-  bodyArea: 'arm',
+  bodyArea: 'arms',
   encryptedBlobRef: 'blob-ref-3',
   createdBy: 'user-uuid',
   createdAt: '2025-04-02T10:00:00Z',

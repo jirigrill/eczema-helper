@@ -1,8 +1,5 @@
 import { sql } from './db';
-
-// Security: Rate limiting configuration
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MINUTES = 15;
+import { AUTH } from '$lib/config/constants';
 
 type RateLimitResult =
   | { ok: true }
@@ -62,8 +59,8 @@ export async function recordFailedLogin(userId: string): Promise<void> {
 
     if (rows.length > 0) {
       const attempts = rows[0].failed_login_attempts as number;
-      if (attempts >= MAX_LOGIN_ATTEMPTS) {
-        const lockUntil = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000);
+      if (attempts >= AUTH.MAX_LOGIN_ATTEMPTS) {
+        const lockUntil = new Date(Date.now() + AUTH.LOCKOUT_DURATION_MINUTES * 60 * 1000);
         await sql`
           UPDATE users SET locked_until = ${lockUntil} WHERE id = ${userId}
         `;

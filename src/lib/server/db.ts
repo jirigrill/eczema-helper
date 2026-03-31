@@ -1,16 +1,23 @@
 import postgres from 'postgres';
 import { dbLogger } from './logger';
 import { getDatabaseUrl } from './env';
+import { DATABASE } from '$lib/config/constants';
 
-// Default query timeout (5 seconds) - can be overridden per-query
-const DEFAULT_QUERY_TIMEOUT_MS = 5000;
+// Build connection URL with statement_timeout parameter
+// PostgreSQL's options parameter sets session variables on connect
+function getConnectionUrl(): string {
+  const baseUrl = getDatabaseUrl();
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  // URL-encode: options=-c statement_timeout=5000
+  return `${baseUrl}${separator}options=-c%20statement_timeout%3D${DATABASE.QUERY_TIMEOUT_MS}`;
+}
 
-export const sql = postgres(getDatabaseUrl(), {
-  max: 10,
-  idle_timeout: 30,
-  connect_timeout: 10,
+export const sql = postgres(getConnectionUrl(), {
+  max: DATABASE.MAX_CONNECTIONS,
+  idle_timeout: DATABASE.IDLE_TIMEOUT_SECONDS,
+  connect_timeout: DATABASE.CONNECT_TIMEOUT_SECONDS,
   // Prevent connection leaks by timing out stuck queries
-  max_lifetime: 60 * 30, // 30 minutes max connection lifetime
+  max_lifetime: DATABASE.MAX_LIFETIME_SECONDS,
   // Handle connection errors gracefully
   onnotice: () => {}, // Suppress NOTICE messages in production
   transform: {
@@ -32,7 +39,7 @@ export async function checkDbHealth(): Promise<{ latencyMs: number; poolSize: nu
   try {
     await sql`SELECT 1`;
     const latencyMs = Date.now() - start;
-    return { latencyMs, poolSize: 10 }; // postgres.js doesn't expose current pool size
+    return { latencyMs, poolSize: DATABASE.MAX_CONNECTIONS };
   } catch (error) {
     dbLogger.error({ err: error }, 'Database health check failed');
     throw error;
@@ -47,6 +54,3 @@ export async function closeDb(): Promise<void> {
   await sql.end({ timeout: 5 });
   dbLogger.info('Database connections closed');
 }
-
-// Export timeout for use in critical queries
-export const DB_QUERY_TIMEOUT_MS = DEFAULT_QUERY_TIMEOUT_MS;

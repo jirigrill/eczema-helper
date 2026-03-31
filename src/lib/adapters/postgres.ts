@@ -1,4 +1,5 @@
 import { sql } from '$lib/server/db';
+import { formatDateToIso } from '$lib/utils/date';
 import type { DataRepository } from '$lib/domain/ports/repository';
 import type {
   User,
@@ -55,6 +56,25 @@ export class PostgresRepository implements DataRepository {
     return rows.map((r) => this.mapChild(r));
   }
 
+  async getChildCount(userId: string): Promise<number> {
+    const rows = await sql`
+      SELECT COUNT(*)::int AS count FROM user_children WHERE user_id = ${userId}
+    `;
+    return rows[0].count as number;
+  }
+
+  async getChildById(childId: string): Promise<Child | null> {
+    const rows = await sql`SELECT * FROM children WHERE id = ${childId}`;
+    return rows.length > 0 ? this.mapChild(rows[0]) : null;
+  }
+
+  async isChildOwner(userId: string, childId: string): Promise<boolean> {
+    const rows = await sql`
+      SELECT 1 FROM user_children WHERE user_id = ${userId} AND child_id = ${childId}
+    `;
+    return rows.length > 0;
+  }
+
   async createChild(child: Omit<Child, 'id' | 'createdAt'>): Promise<Child> {
     const rows = await sql`
       INSERT INTO children (name, birth_date)
@@ -64,11 +84,73 @@ export class PostgresRepository implements DataRepository {
     return this.mapChild(rows[0]);
   }
 
+  async updateChild(childId: string, updates: Partial<Pick<Child, 'name' | 'birthDate'>>): Promise<Child> {
+    // Build dynamic update - only update provided fields
+    const rows = await sql`
+      UPDATE children SET
+        name = COALESCE(${updates.name ?? null}, name),
+        birth_date = COALESCE(${updates.birthDate ?? null}, birth_date),
+        updated_at = NOW()
+      WHERE id = ${childId}
+      RETURNING *
+    `;
+    return this.mapChild(rows[0]);
+  }
+
+  async deleteChild(childId: string): Promise<void> {
+    await sql`DELETE FROM children WHERE id = ${childId}`;
+  }
+
   async linkUserToChild(userId: string, childId: string): Promise<void> {
     await sql`
       INSERT INTO user_children (user_id, child_id) VALUES (${userId}, ${childId})
       ON CONFLICT DO NOTHING
     `;
+  }
+
+  async createChildAtomic(userId: string, child: Omit<Child, 'id' | 'createdAt'>): Promise<Child | null> {
+    // Use a transaction with row-level locking to prevent race conditions.
+    // The FOR UPDATE on user_children prevents concurrent inserts.
+    //
+    // Type assertion rationale: postgres.js v3.x TransactionSql type doesn't
+    // expose the same tagged template interface as the main Sql type, even though
+    // the runtime behavior is identical. This is a known limitation:
+    // https://github.com/porsager/postgres/issues/625
+    // The cast is safe because tx supports the same template literal syntax.
+    type TxSql = typeof sql;
+    return await sql.begin(async (tx) => {
+      const txSql = tx as unknown as TxSql;
+
+      // Lock the user's existing child rows (if any) to serialize concurrent requests
+      // This prevents TOCTOU: two requests can't both see count=0 simultaneously
+      const existing = await txSql`
+        SELECT 1 FROM user_children
+        WHERE user_id = ${userId}
+        FOR UPDATE
+      `;
+
+      if (existing.length > 0) {
+        // User already has a child - abort transaction
+        return null;
+      }
+
+      // Create the child
+      const rows = await txSql`
+        INSERT INTO children (name, birth_date)
+        VALUES (${child.name}, ${child.birthDate})
+        RETURNING *
+      `;
+
+      const createdChild = this.mapChild(rows[0]);
+
+      // Link to user
+      await txSql`
+        INSERT INTO user_children (user_id, child_id)
+        VALUES (${userId}, ${createdChild.id})
+      `;
+
+      return createdChild;
+    }) as Child | null;
   }
 
   // ── Food Categories ────────────────────────────────────────────────────────
@@ -380,19 +462,6 @@ export class PostgresRepository implements DataRepository {
 
   // ── Mappers ────────────────────────────────────────────────────────────────
 
-  /**
-   * Format a date value to ISO date string (YYYY-MM-DD).
-   * Handles both Date objects and strings from PostgreSQL.
-   */
-  private formatDateToIso(value: unknown): string {
-    if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
-    }
-    // If already a string, extract date portion if it contains 'T'
-    const str = String(value);
-    return str.includes('T') ? str.split('T')[0] : str;
-  }
-
   private mapUser(r: Record<string, unknown>): User {
     return {
       id: r.id as string,
@@ -409,7 +478,7 @@ export class PostgresRepository implements DataRepository {
     return {
       id: r.id as string,
       name: r.name as string,
-      birthDate: this.formatDateToIso(r.birth_date),
+      birthDate: formatDateToIso(r.birth_date),
       createdAt: String(r.created_at),
       updatedAt: String(r.updated_at),
     };
@@ -439,7 +508,7 @@ export class PostgresRepository implements DataRepository {
     return {
       id: r.id as string,
       childId: r.child_id as string,
-      date: this.formatDateToIso(r.date),
+      date: formatDateToIso(r.date),
       categoryId: r.category_id as string,
       subItemId: r.sub_item_id as string | undefined,
       action: r.action as 'eliminated' | 'reintroduced',
@@ -455,7 +524,7 @@ export class PostgresRepository implements DataRepository {
     return {
       id: r.id as string,
       userId: r.user_id as string,
-      date: this.formatDateToIso(r.date),
+      date: formatDateToIso(r.date),
       mealType: r.meal_type as Meal['mealType'],
       label: r.label as string | undefined,
       createdAt: String(r.created_at),
@@ -477,7 +546,7 @@ export class PostgresRepository implements DataRepository {
     const base = {
       id: r.id as string,
       childId: r.child_id as string,
-      date: this.formatDateToIso(r.date),
+      date: formatDateToIso(r.date),
       notes: r.notes as string | undefined,
       encryptedBlobRef: r.encrypted_blob_path as string,
       thumbnailRef: r.encrypted_thumb_path as string | undefined,

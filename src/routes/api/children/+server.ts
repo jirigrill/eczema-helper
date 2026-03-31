@@ -1,59 +1,27 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-import { sql } from '$lib/server/db';
+import { childService } from '$lib/server/repository';
 import { logAudit } from '$lib/server/audit';
 import { logger } from '$lib/server/logger';
+import { formatErrorMinimal } from '$lib/utils/error';
 import type { CreateChildRequest, ChildData, GetChildrenData, ApiError, ApiSuccess } from '$lib/types/api';
 
-// Security: Reasonable max name length to prevent abuse
-const MAX_NAME_LENGTH = 100;
-
 /**
- * Format a date value to ISO date string (YYYY-MM-DD).
- * Handles both Date objects and strings from PostgreSQL.
+ * Parse create child request body (HTTP layer validation only).
  */
-function formatDateToIso(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString().split('T')[0];
-  }
-  // If already a string, extract date portion if it contains 'T'
-  const str = String(value);
-  return str.includes('T') ? str.split('T')[0] : str;
-}
-
-/**
- * Map a database row to a ChildData.
- */
-function mapChildRow(r: Record<string, unknown>): ChildData {
-  return {
-    id: r.id as string,
-    name: r.name as string,
-    birthDate: formatDateToIso(r.birth_date),
-    createdAt: String(r.created_at),
-    updatedAt: String(r.updated_at),
-  };
-}
-
-/**
- * Validate and extract create child request body.
- */
-function parseCreateChildRequest(body: unknown): { ok: true; data: CreateChildRequest } | { ok: false; error: string } {
+function parseCreateChildRequest(body: unknown): CreateChildRequest | null {
   if (!body || typeof body !== 'object') {
-    return { ok: false, error: 'Neplatný požadavek' };
+    return null;
   }
 
   const { name, birthDate } = body as Record<string, unknown>;
 
-  if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > MAX_NAME_LENGTH) {
-    return { ok: false, error: 'Jméno dítěte je povinné (max. 100 znaků)' };
+  if (typeof name !== 'string' || typeof birthDate !== 'string') {
+    return null;
   }
 
-  if (typeof birthDate !== 'string' || isNaN(Date.parse(birthDate))) {
-    return { ok: false, error: 'Neplatné datum narození' };
-  }
-
-  return { ok: true, data: { name: name.trim(), birthDate } };
+  return { name, birthDate };
 }
 
 export const GET: RequestHandler = async ({ locals }) => {
@@ -62,20 +30,23 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   try {
-    const children = await sql`
-      SELECT c.id, c.name, c.birth_date, c.created_at, c.updated_at
-      FROM children c
-      JOIN user_children uc ON uc.child_id = c.id
-      WHERE uc.user_id = ${locals.user.id}
-      ORDER BY c.created_at ASC
-    `;
+    const result = await childService.getChildrenForUser(locals.user.id);
 
-    return json({ ok: true, data: children.map(mapChildRow) } satisfies ApiSuccess<GetChildrenData>);
+    if (!result.ok) {
+      return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
+    }
+
+    const data: GetChildrenData = result.data.map((child) => ({
+      id: child.id,
+      name: child.name,
+      birthDate: child.birthDate,
+      createdAt: child.createdAt,
+      updatedAt: child.updatedAt,
+    }));
+
+    return json({ ok: true, data } satisfies ApiSuccess<GetChildrenData>);
   } catch (error) {
-    logger.error(
-      { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id },
-      'GET /api/children error'
-    );
+    logger.error({ err: formatErrorMinimal(error), userId: locals.user.id }, 'GET /api/children error');
     return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };
@@ -86,34 +57,30 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   try {
-    // Single-child app: check if user already has a child
-    const existingChildren = await sql`
-      SELECT 1 FROM user_children WHERE user_id = ${locals.user.id} LIMIT 1
-    `;
-    if (existingChildren.length > 0) {
-      return json({ ok: false, error: 'Tato aplikace podporuje pouze jedno dítě', code: 'CHILD_LIMIT_REACHED' } satisfies ApiError, { status: 400 });
-    }
-
     const body = await request.json().catch(() => null);
-    const parseResult = parseCreateChildRequest(body);
+    const createRequest = parseCreateChildRequest(body);
 
-    if (!parseResult.ok) {
-      return json({ ok: false, error: parseResult.error, code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
+    if (!createRequest) {
+      return json({ ok: false, error: 'Neplatný požadavek', code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
     }
 
-    const { name, birthDate } = parseResult.data;
+    const { name, birthDate } = createRequest;
 
-    const children = await sql`
-      INSERT INTO children (name, birth_date)
-      VALUES (${name}, ${birthDate})
-      RETURNING id, name, birth_date, created_at, updated_at
-    `;
-    const child = children[0];
+    // Delegate to child service for business logic
+    const result = await childService.createChild(locals.user.id, name, birthDate);
 
-    await sql`
-      INSERT INTO user_children (user_id, child_id)
-      VALUES (${locals.user.id}, ${child.id})
-    `;
+    if (!result.ok) {
+      switch (result.error.code) {
+        case 'CHILD_LIMIT_REACHED':
+          return json({ ok: false, error: 'Tato aplikace podporuje pouze jedno dítě', code: 'CHILD_LIMIT_REACHED' } satisfies ApiError, { status: 400 });
+        case 'VALIDATION_ERROR':
+          return json({ ok: false, error: result.error.message, code: 'VALIDATION_ERROR' } satisfies ApiError, { status: 400 });
+        default:
+          return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
+      }
+    }
+
+    const child = result.data;
 
     // Security: Audit child creation
     await logAudit('child_created', {
@@ -121,12 +88,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       details: { childId: child.id },
     });
 
-    return json({ ok: true, data: mapChildRow(child) } satisfies ApiSuccess<ChildData>, { status: 201 });
+    const data: ChildData = {
+      id: child.id,
+      name: child.name,
+      birthDate: child.birthDate,
+      createdAt: child.createdAt,
+      updatedAt: child.updatedAt,
+    };
+
+    return json({ ok: true, data } satisfies ApiSuccess<ChildData>, { status: 201 });
   } catch (error) {
-    logger.error(
-      { err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' }, userId: locals.user.id },
-      'POST /api/children error'
-    );
+    logger.error({ err: formatErrorMinimal(error), userId: locals.user.id }, 'POST /api/children error');
     return json({ ok: false, error: 'Interní chyba serveru', code: 'INTERNAL_ERROR' } satisfies ApiError, { status: 500 });
   }
 };

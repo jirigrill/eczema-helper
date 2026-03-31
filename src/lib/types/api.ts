@@ -8,25 +8,10 @@
  */
 
 import type { Child } from '$lib/domain/models';
+import type { ApiErrorCode } from '$lib/config/constants';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Envelope Pattern
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Machine-readable error codes for API responses.
- * These allow clients to handle errors programmatically without parsing Czech messages.
- */
-export type ApiErrorCode =
-  | 'VALIDATION_ERROR'
-  | 'INVALID_CREDENTIALS'
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
-  | 'NOT_FOUND'
-  | 'CONFLICT'
-  | 'RATE_LIMITED'
-  | 'CHILD_LIMIT_REACHED'
-  | 'INTERNAL_ERROR';
+// Re-export for convenience
+export type { ApiErrorCode } from '$lib/config/constants';
 
 /**
  * Success response envelope.

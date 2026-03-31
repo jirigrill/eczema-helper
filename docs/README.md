@@ -33,6 +33,7 @@ A personal progressive web application for tracking a breastfed newborn's atopic
 
 | Document | Description |
 |---|---|
+| [architecture/code-overview.md](architecture/code-overview.md) | **High-level code explanation for non-TypeScript developers** |
 | [architecture/user-personas.md](architecture/user-personas.md) | Target users, goals, context of use, UX implications |
 | [architecture/tech-stack.md](architecture/tech-stack.md) | Technology choices and rationale |
 | [architecture/ports-and-adapters.md](architecture/ports-and-adapters.md) | Architecture pattern and layer diagram |

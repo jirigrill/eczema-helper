@@ -20,7 +20,18 @@ export interface DataRepository {
 
   // Children
   getChildrenForUser(userId: string): Promise<Child[]>;
+  getChildById(childId: string): Promise<Child | null>;
+  getChildCount(userId: string): Promise<number>;
+  isChildOwner(userId: string, childId: string): Promise<boolean>;
   createChild(child: Omit<Child, 'id' | 'createdAt'>): Promise<Child>;
+  /**
+   * Atomically create a child and link to user, enforcing single-child constraint.
+   * Uses row-level locking to prevent race conditions.
+   * Returns null if user already has a child.
+   */
+  createChildAtomic(userId: string, child: Omit<Child, 'id' | 'createdAt'>): Promise<Child | null>;
+  updateChild(childId: string, updates: Partial<Pick<Child, 'name' | 'birthDate'>>): Promise<Child>;
+  deleteChild(childId: string): Promise<void>;
   linkUserToChild(userId: string, childId: string): Promise<void>;
 
   // Food Categories (read-only, seeded)

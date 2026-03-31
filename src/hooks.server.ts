@@ -5,6 +5,7 @@ import { validateSessionWithUserAndChildren, extendSession, cleanupExpiredSessio
 import { httpLogger, logger } from '$lib/server/logger';
 import { validateEnv } from '$lib/server/env';
 import { registerShutdownHandlers } from '$lib/server/shutdown';
+import { formatError, formatErrorMinimal } from '$lib/utils/error';
 
 // Validate environment on startup
 validateEnv();
@@ -40,7 +41,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       httpLogger.error(
         {
           requestId,
-          err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' },
+          err: formatErrorMinimal(error),
         },
         'Session validation failed due to database error'
       );
@@ -112,7 +113,7 @@ export const handleError: HandleServerError = async ({ error, event, status, mes
   logger.error(
     {
       errorId,
-      err: error instanceof Error ? { message: error.message, name: error.name, stack: error.stack } : { message: String(error) },
+      err: formatError(error),
       path: event.url.pathname,
       method: event.request.method,
       userId: event.locals.user?.id,

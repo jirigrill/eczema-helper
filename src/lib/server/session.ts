@@ -1,22 +1,10 @@
 import { sql } from './db';
-
-const SESSION_DURATION_DAYS = 30;
-
-/**
- * Format a date value to ISO date string (YYYY-MM-DD).
- * Handles both Date objects and strings from PostgreSQL.
- */
-function formatDateToIso(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString().split('T')[0];
-  }
-  // If already a string, extract date portion if it contains 'T'
-  const str = String(value);
-  return str.includes('T') ? str.split('T')[0] : str;
-}
+import { SESSION } from '$lib/config/constants';
+import { formatDateToIso } from '$lib/utils/date';
+import type { ClientUser, Child } from '$lib/domain/models';
 
 export async function createSession(userId: string): Promise<string> {
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + SESSION.DURATION_DAYS * 24 * 60 * 60 * 1000);
   const rows = await sql`
     INSERT INTO sessions (user_id, expires_at)
     VALUES (${userId}, ${expiresAt})
@@ -34,11 +22,11 @@ export async function validateAndExtendSession(
   `;
   if (rows.length === 0) return null;
 
-  // Extend session only if less than 15 days remain (reduces DB writes)
-  const fifteenDays = 15 * 24 * 60 * 60 * 1000;
+  // Extend session only if less than threshold days remain (reduces DB writes)
+  const extensionThresholdMs = SESSION.EXTENSION_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
   const expiresAt = rows[0].expires_at as Date;
-  if (expiresAt.getTime() - Date.now() < fifteenDays) {
-    const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+  if (expiresAt.getTime() - Date.now() < extensionThresholdMs) {
+    const newExpiry = new Date(Date.now() + SESSION.DURATION_DAYS * 24 * 60 * 60 * 1000);
     await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
   }
 
@@ -49,28 +37,13 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
 }
 
-type SessionUser = {
-  id: string;
-  email: string;
-  name: string;
-  role: 'parent';
-};
-
-type SessionChild = {
-  id: string;
-  name: string;
-  birthDate: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
 /**
  * Validates session and fetches user + children in a single optimized query.
  * This reduces 3 sequential queries to 1, improving performance for authenticated requests.
  */
 export async function validateSessionWithUserAndChildren(
   sessionId: string
-): Promise<{ user: SessionUser; children: SessionChild[]; shouldExtend: boolean } | null> {
+): Promise<{ user: ClientUser; children: Child[]; shouldExtend: boolean } | null> {
   // Single query that joins sessions, users, and children
   const rows = await sql`
     SELECT
@@ -96,7 +69,7 @@ export async function validateSessionWithUserAndChildren(
 
   // All rows have the same user info, extract from first row
   const firstRow = rows[0];
-  const user: SessionUser = {
+  const user: ClientUser = {
     id: firstRow.user_id as string,
     email: firstRow.user_email as string,
     name: firstRow.user_name as string,
@@ -104,7 +77,7 @@ export async function validateSessionWithUserAndChildren(
   };
 
   // Extract unique children (there may be multiple rows due to LEFT JOIN)
-  const children: SessionChild[] = [];
+  const children: Child[] = [];
   const seenChildIds = new Set<string>();
   for (const row of rows) {
     if (row.child_id && !seenChildIds.has(row.child_id as string)) {
@@ -119,10 +92,10 @@ export async function validateSessionWithUserAndChildren(
     }
   }
 
-  // Check if session needs extension (less than 15 days remaining)
-  const fifteenDays = 15 * 24 * 60 * 60 * 1000;
+  // Check if session needs extension (less than threshold days remaining)
+  const extensionThresholdMs = SESSION.EXTENSION_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
   const expiresAt = firstRow.expires_at as Date;
-  const shouldExtend = expiresAt.getTime() - Date.now() < fifteenDays;
+  const shouldExtend = expiresAt.getTime() - Date.now() < extensionThresholdMs;
 
   return { user, children, shouldExtend };
 }
@@ -131,7 +104,7 @@ export async function validateSessionWithUserAndChildren(
  * Extends session expiry. Called asynchronously after response is sent.
  */
 export async function extendSession(sessionId: string): Promise<void> {
-  const newExpiry = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+  const newExpiry = new Date(Date.now() + SESSION.DURATION_DAYS * 24 * 60 * 60 * 1000);
   await sql`UPDATE sessions SET expires_at = ${newExpiry} WHERE id = ${sessionId}`;
 }
 
@@ -152,5 +125,5 @@ export async function cleanupExpiredSessions(): Promise<number> {
  * Returns true if cleanup should run (1% chance).
  */
 export function shouldRunSessionCleanup(): boolean {
-  return Math.random() < 0.01;
+  return Math.random() < SESSION.CLEANUP_PROBABILITY;
 }

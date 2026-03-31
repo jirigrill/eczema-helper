@@ -1,5 +1,6 @@
 import { sql } from './db';
 import { auditLogger } from './logger';
+import { formatErrorMinimal } from '$lib/utils/error';
 
 type AuditAction =
   | 'login_success'
@@ -51,7 +52,7 @@ export async function logAudit(
       {
         action,
         userId: options.userId,
-        err: error instanceof Error ? { message: error.message, name: error.name } : { message: 'Unknown error' },
+        err: formatErrorMinimal(error),
       },
       `Audit log DB insert failed for action "${action}"`
     );
