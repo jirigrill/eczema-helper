@@ -44,7 +44,7 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Run migrations
-        run: bun run db:migrate
+        run: bun scripts/migrate.ts
 
       - name: Tests
         run: bunx vitest run
@@ -92,7 +92,7 @@ jobs:
         run: bunx playwright install chromium --with-deps
 
       - name: Run migrations
-        run: bun run db:migrate
+        run: bun scripts/migrate.ts
 
       - name: Start dev server
         run: bun run dev &
@@ -163,7 +163,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            docker compose -f /opt/eczema-tracker/docker-compose.prod.yml exec -T app bun run db:migrate
+            docker compose -f /opt/eczema-tracker/docker-compose.prod.yml exec -T app bun /app/scripts/migrate.ts
 
       - name: Health check
         uses: appleboy/ssh-action@v1
