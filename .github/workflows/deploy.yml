@@ -27,6 +27,9 @@ jobs:
       POSTGRES_DB: eczema_test
       POSTGRES_USER: eczema
       POSTGRES_PASSWORD: test
+      SESSION_SECRET: ci-test-secret-do-not-use-in-production-32ch
+      NODE_ENV: test
+      REGISTRATION_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +48,12 @@ jobs:
 
       - name: Run migrations
         run: bun scripts/migrate.ts
+
+      - name: Start dev server
+        run: bun run dev &
+
+      - name: Wait for server
+        run: bunx wait-on http://localhost:5173 --timeout 60000
 
       - name: Tests
         run: bunx vitest run
