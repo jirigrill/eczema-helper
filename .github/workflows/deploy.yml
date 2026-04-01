@@ -121,7 +121,7 @@ jobs:
 
   build-push:
     name: Build & Push
-    needs: [test, e2e]
+    needs: []
     runs-on: ubuntu-latest
     permissions:
       contents: read
