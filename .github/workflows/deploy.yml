@@ -8,6 +8,25 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: eczema_test
+          POSTGRES_USER: eczema
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://eczema:test@localhost:5432/eczema_test
+      POSTGRES_DB: eczema_test
+      POSTGRES_USER: eczema
+      POSTGRES_PASSWORD: test
     steps:
       - uses: actions/checkout@v4
 
@@ -24,12 +43,76 @@ jobs:
       - name: Type check
         run: bunx tsc --noEmit
 
-      - name: Unit tests
-        run: bunx vitest run --exclude 'tests/integration/**'
+      - name: Run migrations
+        run: bun run db:migrate
+
+      - name: Tests
+        run: bunx vitest run
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    needs: test
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: eczema_e2e
+          POSTGRES_USER: eczema
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://eczema:test@localhost:5432/eczema_e2e
+      POSTGRES_DB: eczema_e2e
+      POSTGRES_USER: eczema
+      POSTGRES_PASSWORD: test
+      SESSION_SECRET: ci-test-secret-do-not-use-in-production-32ch
+      NODE_ENV: test
+      REGISTRATION_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate SvelteKit types
+        run: bunx svelte-kit sync
+
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+
+      - name: Run migrations
+        run: bun run db:migrate
+
+      - name: Start dev server
+        run: bun run dev &
+
+      - name: Wait for server
+        run: bunx wait-on http://localhost:5173 --timeout 60000
+
+      - name: Run E2E tests
+        run: bun run test:e2e
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: test-results/
 
   build-push:
     name: Build & Push
-    needs: test
+    needs: [test, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read
