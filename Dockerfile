@@ -12,6 +12,7 @@ WORKDIR /app
 RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
 
 COPY --from=build /app/build ./build
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package.json ./
 RUN bun install --frozen-lockfile --production
 
