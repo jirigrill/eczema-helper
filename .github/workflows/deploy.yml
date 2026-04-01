@@ -51,6 +51,7 @@ jobs:
             docker pull ghcr.io/jirigrill/eczema-helper:latest
             docker compose -f /opt/eczema-tracker/docker-compose.prod.yml run --rm app bun /app/scripts/migrate.ts
             docker compose -f /opt/eczema-tracker/docker-compose.prod.yml up -d
+            docker image prune -f
 
       - name: Health check
         uses: appleboy/ssh-action@v1
