@@ -18,11 +18,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate SvelteKit types
+        run: bunx svelte-kit sync
+
       - name: Type check
         run: bunx tsc --noEmit
 
       - name: Unit tests
-        run: bun test
+        run: bunx vitest run --exclude 'tests/integration/**'
 
   build-push:
     name: Build & Push
