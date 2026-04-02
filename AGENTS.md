@@ -202,15 +202,20 @@ See `docs/architecture/auth-overview.md` for complete details. Key points:
 
 ### Pull Request Workflow
 
-**All code changes must go through a pull request.** Direct pushes to `main` are blocked by branch protection. PRs require all CI checks to pass before merging.
+**All code changes must go through a pull request.** Direct pushes to `main` are blocked by branch protection. PRs require all CI checks to pass before merging. All PRs are merged via **squash merge** — the PR title becomes the commit subject and the PR body becomes the commit description on `main`.
 
-**Every PR must include a description that covers:**
+**PR title format (becomes the squash commit message):**
+```
+Phase X: <imperative summary under 72 chars>
+```
+Examples:
+- `Phase 2: add meal logging with offline sync`
+- `Phase 1: fix session expiry on concurrent requests`
+- `ci: enforce squash merges and branch protection`
 
-1. **What changed** — a concise summary of the modifications
-2. **Why** — motivation, the problem being solved, or the feature being added
-3. **Examples** (when applicable) — sample API calls, UI screenshots, or usage snippets that make the change concrete for reviewers
+Use `ci:`, `docs:`, `fix:` prefixes for non-feature work that doesn't belong to a phase.
 
-**PR description template:**
+**PR description template (becomes the commit body):**
 ```
 ## What
 Brief description of the change.
@@ -228,6 +233,7 @@ CI checks that must pass before merge:
 - **Type Check** — `bunx tsc --noEmit`
 - **Unit Tests** — Vitest unit tests (no DB)
 - **Integration Tests** — Vitest integration tests against PostgreSQL
+- **E2E Tests** — Playwright tests (dev server auto-started)
 
 ### Git Commit Messages
 
