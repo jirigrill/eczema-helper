@@ -200,6 +200,35 @@ See `docs/architecture/auth-overview.md` for complete details. Key points:
 - Never commit secrets or credentials
 - Follow existing code conventions and patterns
 
+### Pull Request Workflow
+
+**All code changes must go through a pull request.** Direct pushes to `main` are blocked by branch protection. PRs require all CI checks to pass before merging.
+
+**Every PR must include a description that covers:**
+
+1. **What changed** — a concise summary of the modifications
+2. **Why** — motivation, the problem being solved, or the feature being added
+3. **Examples** (when applicable) — sample API calls, UI screenshots, or usage snippets that make the change concrete for reviewers
+
+**PR description template:**
+```
+## What
+Brief description of the change.
+
+## Why
+Motivation or context — what problem does this solve?
+
+## Examples (if applicable)
+- Before/after code snippet
+- API request/response example
+- Screenshot or flow description
+```
+
+CI checks that must pass before merge:
+- **Type Check** — `bunx tsc --noEmit`
+- **Unit Tests** — Vitest unit tests (no DB)
+- **Integration Tests** — Vitest integration tests against PostgreSQL
+
 ### Git Commit Messages
 
 - **Always prefix commits with the current phase**: `Phase X: <description>`

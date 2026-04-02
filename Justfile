@@ -278,7 +278,7 @@ test-unit:
 
 # Run integration tests only
 test-integration: _ensure-db
-    bunx vitest run tests/integration
+    bunx vitest run --config vitest.integration.config.ts
 
 # Run E2E tests only with Playwright (requires: just dev running)
 test-e2e: _ensure-db

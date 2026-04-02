@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Sync SvelteKit types
+        run: bunx svelte-kit sync
+
+      - name: TypeScript check
+        run: bunx tsc --noEmit
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Sync SvelteKit types
+        run: bunx svelte-kit sync
+
+      - name: Run unit tests
+        run: bunx vitest run --exclude "tests/integration/**"
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: eczema_helper
+          POSTGRES_USER: eczema
+          POSTGRES_PASSWORD: eczema_dev
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: eczema_helper
+      POSTGRES_USER: eczema
+      POSTGRES_PASSWORD: eczema_dev
+      SESSION_SECRET: ci-test-session-secret-32-chars-min
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Sync SvelteKit types
+        run: bunx svelte-kit sync
+
+      - name: Run migrations
+        run: bun scripts/migrate.ts
+
+      - name: Run integration tests
+        run: bunx vitest run --config vitest.integration.config.ts
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: eczema_helper
+          POSTGRES_USER: eczema
+          POSTGRES_PASSWORD: eczema_dev
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: eczema_helper
+      POSTGRES_USER: eczema
+      POSTGRES_PASSWORD: eczema_dev
+      SESSION_SECRET: ci-test-session-secret-32-chars-min
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run migrations
+        run: bun scripts/migrate.ts
+
+      - name: Run E2E tests
+        run: bunx playwright test
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

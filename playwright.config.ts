@@ -37,6 +37,13 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
   ],
-  // Note: Run 'just dev' or 'bun run dev' before running E2E tests
-  // webServer is disabled - tests expect server already running on localhost:5173
+  // In CI: Playwright starts the dev server automatically.
+  // Locally: reuses an existing server if already running (e.g. via `just dev`),
+  // otherwise starts one. Run `just dev-db` first to ensure PostgreSQL is up.
+  webServer: {
+    command: 'bunx svelte-kit sync && bun run dev',
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+  },
 });
