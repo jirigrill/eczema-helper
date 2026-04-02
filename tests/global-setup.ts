@@ -1,45 +1,49 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { createConnection } from 'node:net';
 
-const PORT = 5173;
+const BASE_URL = `http://localhost:5173`;
 let serverProcess: ChildProcess | null = null;
 
-function isPortListening(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const conn = createConnection(port, '127.0.0.1');
-    conn.on('connect', () => { conn.destroy(); resolve(true); });
-    conn.on('error', () => resolve(false));
-  });
+async function isServerUp(): Promise<boolean> {
+  try {
+    const res = await fetch(BASE_URL, { signal: AbortSignal.timeout(2000) });
+    return res.status < 500;
+  } catch {
+    return false;
+  }
 }
 
-async function waitForPort(port: number, timeoutMs = 60_000): Promise<void> {
+async function waitForServer(timeoutMs = 60_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await isPortListening(port)) return;
-    await new Promise((r) => setTimeout(r, 500));
+    if (serverProcess?.exitCode !== null && serverProcess?.exitCode !== undefined) {
+      throw new Error(`Dev server exited with code ${serverProcess.exitCode} before becoming ready`);
+    }
+    if (await isServerUp()) return;
+    await new Promise((r) => setTimeout(r, 1000));
   }
-  throw new Error(`Timed out waiting for port ${port} after ${timeoutMs}ms`);
+  throw new Error(`Timed out waiting for dev server at ${BASE_URL} after ${timeoutMs}ms`);
 }
 
 export async function setup() {
-  if (await isPortListening(PORT)) {
-    console.log(`[global-setup] Dev server already running on :${PORT}, reusing it.`);
+  if (await isServerUp()) {
+    console.log(`[global-setup] Dev server already running at ${BASE_URL}, reusing it.`);
     return;
   }
 
-  console.log(`[global-setup] Starting dev server on :${PORT}...`);
+  console.log(`[global-setup] Starting dev server at ${BASE_URL}...`);
   serverProcess = spawn('bun', ['run', 'dev'], {
-    stdio: process.env.DEBUG_SERVER ? 'inherit' : 'pipe',
+    stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env },
-    detached: false,
   });
 
-  serverProcess.on('error', (err) => {
-    throw new Error(`Failed to start dev server: ${err.message}`);
-  });
+  // Surface server errors so CI logs show why startup failed
+  serverProcess.stderr?.on('data', (chunk: Buffer) => process.stderr.write(chunk));
+  if (process.env.DEBUG_SERVER) {
+    serverProcess.stdout?.on('data', (chunk: Buffer) => process.stdout.write(chunk));
+  }
 
-  await waitForPort(PORT);
-  console.log(`[global-setup] Dev server ready on :${PORT}`);
+  await waitForServer();
+  console.log(`[global-setup] Dev server ready at ${BASE_URL}`);
 }
 
 export async function teardown() {
