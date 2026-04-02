@@ -70,3 +70,25 @@ jobs:
             done
             echo "❌ Health check failed"
             exit 1
+
+  cleanup-registry:
+    name: Cleanup Old Images
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Delete untagged images from GHCR
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: eczema-helper
+          package-type: container
+          delete-only-untagged-versions: true
+
+      - name: Keep only the 5 most recent tagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: eczema-helper
+          package-type: container
+          min-versions-to-keep: 5
+          ignore-versions: "^latest$"
