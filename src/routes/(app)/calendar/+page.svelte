@@ -9,7 +9,7 @@
   import { formatDateLong, formatDateShort, getTodayIso, getMonthDays } from '$lib/utils/calendar';
   import {
     buildStatusSets,
-    applyDraftToRange,
+    applyDraftDiffToRange,
     getDatesInRange,
     getEliminatedCategories,
     getReintroducedCategories,
@@ -137,9 +137,11 @@
     if (!sortedRange || !activeChildId || !authStore.user) return;
 
     const dates = getDatesInRange(sortedRange.start, sortedRange.end);
-    const entries = applyDraftToRange(
+    const entries = applyDraftDiffToRange(
       draftEliminationStore.draftEliminated,
       draftEliminationStore.draftReintroduced,
+      draftEliminationStore.committedElimSnapshot,
+      draftEliminationStore.committedReintroSnapshot,
       dates,
       activeChildId,
       authStore.user.id
@@ -203,7 +205,9 @@
   }
 </script>
 
-{#if !activeChildId}
+{#if authStore.loading}
+  <!-- Loading: wait for auth/child data to avoid flash -->
+{:else if !activeChildId}
   <!-- Empty state: no child -->
   <div class="flex-1 flex items-center justify-center p-8 text-center">
     <div>
@@ -214,21 +218,9 @@
 {:else}
   <div class="min-h-screen" style:padding-bottom={mode === 'edit' ? 'calc(4.5rem + 3.5rem + var(--safe-area-inset-bottom))' : '0'}>
 
-    <!-- Header -->
-    <div class="sticky top-0 z-40 bg-white border-b border-surface-dark px-4 py-2 flex items-center gap-2">
-      {#if mode === 'view'}
-        <h1 class="text-base font-semibold text-text flex-1">{cs.calendar}</h1>
-        <button
-          type="button"
-          class="flex items-center gap-1.5 text-sm text-primary font-medium px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
-          onclick={enterEditMode}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          {cs.edit}
-        </button>
-      {:else}
+    <!-- Edit mode header — overlays layout header -->
+    {#if mode === 'edit'}
+      <div class="sticky top-0 z-50 bg-white border-b border-surface-dark px-4 py-2 flex items-center gap-2">
         <button
           type="button"
           class="text-sm text-text-muted font-medium px-3 py-1.5 rounded-lg hover:bg-surface transition-colors"
@@ -238,11 +230,25 @@
           {actionMode === 'eliminate' ? 'Vyřazení' : 'Znovuzavedení'}
         </h1>
         <div class="w-16"></div>
-      {/if}
-    </div>
+      </div>
+    {/if}
 
     <!-- Calendar -->
     <div class="px-2 pt-1">
+      {#if mode === 'view'}
+        <div class="flex justify-end px-2 pt-1">
+          <button
+            type="button"
+            class="flex items-center gap-1.5 text-sm text-primary font-medium px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+            onclick={enterEditMode}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            {cs.edit}
+          </button>
+        </div>
+      {/if}
       <SwipeContainer onSwipeLeft={handleNextMonth} onSwipeRight={handlePrevMonth}>
         <CalendarHeader
           {year}

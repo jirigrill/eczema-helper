@@ -13,6 +13,7 @@ import {
   getSubItemFoodStatus,
   getDatesInRange,
   applyDraftToRange,
+  applyDraftDiffToRange,
   getEliminatedCategories,
   getReintroducedCategories,
 } from './food-tracking.service';
@@ -384,6 +385,86 @@ describe('food-tracking.service', () => {
       const entries = applyDraftToRange(eliminated, new Set(), ['2026-03-15'], 'child-1', 'user-1');
       expect(entries[0].categoryId).toBe('eggs');
       expect(entries[0].subItemId).toBeUndefined();
+    });
+  });
+
+  describe('applyDraftDiffToRange', () => {
+    it('only saves items that changed from snapshot', () => {
+      // Snapshot: eggs eliminated, dairy:milk eliminated
+      const snapElim = new Set(['eggs', 'dairy:milk']);
+      const snapReintro = new Set<string>();
+      // Draft: eggs still eliminated (unchanged), dairy:milk still eliminated (unchanged), nuts newly eliminated
+      const draftElim = new Set(['eggs', 'dairy:milk', 'nuts']);
+      const draftReintro = new Set<string>();
+
+      const entries = applyDraftDiffToRange(
+        draftElim, draftReintro, snapElim, snapReintro,
+        ['2026-03-15'], 'child-1', 'user-1'
+      );
+
+      // Only nuts is new
+      expect(entries).toHaveLength(1);
+      expect(entries[0].categoryId).toBe('nuts');
+      expect(entries[0].action).toBe('eliminated');
+    });
+
+    it('returns empty when nothing changed', () => {
+      const snapElim = new Set(['eggs']);
+      const snapReintro = new Set(['dairy:milk']);
+      const entries = applyDraftDiffToRange(
+        new Set(['eggs']), new Set(['dairy:milk']), snapElim, snapReintro,
+        ['2026-03-15'], 'child-1', 'user-1'
+      );
+      expect(entries).toHaveLength(0);
+    });
+
+    it('generates reintroduced log when item removed from eliminated', () => {
+      const snapElim = new Set(['eggs', 'nuts']);
+      const snapReintro = new Set<string>();
+      // User un-toggled eggs (removed from both sets = back to neutral)
+      const draftElim = new Set(['nuts']);
+      const draftReintro = new Set<string>();
+
+      const entries = applyDraftDiffToRange(
+        draftElim, draftReintro, snapElim, snapReintro,
+        ['2026-03-15'], 'child-1', 'user-1'
+      );
+
+      // eggs removed from eliminated → reintroduced log to cancel
+      expect(entries).toHaveLength(1);
+      expect(entries[0].categoryId).toBe('eggs');
+      expect(entries[0].action).toBe('reintroduced');
+    });
+
+    it('handles new reintroductions correctly', () => {
+      const snapElim = new Set(['eggs']);
+      const snapReintro = new Set<string>();
+      // User moved eggs from eliminated to reintroduced
+      const draftElim = new Set<string>();
+      const draftReintro = new Set(['eggs']);
+
+      const entries = applyDraftDiffToRange(
+        draftElim, draftReintro, snapElim, snapReintro,
+        ['2026-03-15'], 'child-1', 'user-1'
+      );
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0].categoryId).toBe('eggs');
+      expect(entries[0].action).toBe('reintroduced');
+    });
+
+    it('multiplies diff across date range', () => {
+      const snapElim = new Set<string>();
+      const snapReintro = new Set<string>();
+      const draftElim = new Set(['eggs', 'nuts']);
+
+      const entries = applyDraftDiffToRange(
+        draftElim, new Set(), snapElim, snapReintro,
+        ['2026-03-14', '2026-03-15', '2026-03-16'], 'child-1', 'user-1'
+      );
+
+      // 2 new items × 3 dates = 6 entries
+      expect(entries).toHaveLength(6);
     });
   });
 

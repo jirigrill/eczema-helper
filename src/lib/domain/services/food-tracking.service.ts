@@ -250,6 +250,80 @@ export function applyDraftToRange(
 }
 
 /**
+ * Compute the diff between a snapshot and the current draft, then generate
+ * FoodLog entries only for items that actually changed. This prevents
+ * re-saving unchanged inherited state when editing a date range.
+ */
+export function applyDraftDiffToRange(
+  draftEliminated: Set<string>,
+  draftReintroduced: Set<string>,
+  snapshotEliminated: Set<string>,
+  snapshotReintroduced: Set<string>,
+  dateRange: string[],
+  childId: string,
+  createdBy: string
+): Array<Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>> {
+  const entries: Array<Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>> = [];
+
+  // Items newly eliminated (not in snapshot)
+  const newEliminated = new Set(
+    [...draftEliminated].filter((k) => !snapshotEliminated.has(k))
+  );
+  // Items newly reintroduced (not in snapshot)
+  const newReintroduced = new Set(
+    [...draftReintroduced].filter((k) => !snapshotReintroduced.has(k))
+  );
+  // Items removed from eliminated (were in snapshot, no longer in draft eliminated or reintroduced)
+  // These need a 'reintroduced' log to cancel the elimination
+  const removedFromEliminated = new Set(
+    [...snapshotEliminated].filter(
+      (k) => !draftEliminated.has(k) && !draftReintroduced.has(k)
+    )
+  );
+  // Items removed from reintroduced (were in snapshot, no longer in either set)
+  // These are going back to neutral — no log needed (absence = neutral in cumulative model)
+  // But if they were reintroduced and now eliminated, that's captured by newEliminated
+
+  for (const date of dateRange) {
+    for (const k of newEliminated) {
+      const [categoryId, subItemId] = k.split(':');
+      entries.push({
+        childId,
+        categoryId,
+        subItemId: subItemId || undefined,
+        date,
+        action: 'eliminated',
+        createdBy,
+      });
+    }
+    for (const k of newReintroduced) {
+      const [categoryId, subItemId] = k.split(':');
+      entries.push({
+        childId,
+        categoryId,
+        subItemId: subItemId || undefined,
+        date,
+        action: 'reintroduced',
+        createdBy,
+      });
+    }
+    for (const k of removedFromEliminated) {
+      const [categoryId, subItemId] = k.split(':');
+      entries.push({
+        childId,
+        categoryId,
+        subItemId: subItemId || undefined,
+        date,
+        action: 'reintroduced',
+        createdBy,
+      });
+    }
+  }
+
+  return entries;
+}
+
+/**
  * Get categories that have any eliminated sub-items/items on a given date.
  */
 export function getEliminatedCategories(

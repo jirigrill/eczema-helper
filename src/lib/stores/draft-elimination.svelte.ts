@@ -24,6 +24,12 @@ export const draftEliminationStore = {
   get draftReintroduced() {
     return _draftReintroduced;
   },
+  get committedElimSnapshot() {
+    return _committedElimSnapshot;
+  },
+  get committedReintroSnapshot() {
+    return _committedReintroSnapshot;
+  },
   get expandedCategoryId() {
     return _expandedCategoryId;
   },
