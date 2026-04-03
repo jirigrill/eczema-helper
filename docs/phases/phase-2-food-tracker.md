@@ -77,21 +77,26 @@ These decisions are deferred to user testing during Phase 1 (when the app shell 
 
 ## Acceptance Criteria
 
-- [ ] **AC-1 (Feature 1):** The calendar page renders a grid with the current month's days. The grid has 7 columns (Mon-Sun or Sun-Sat based on locale). Days from the previous and next months that fill incomplete weeks are shown in a muted style. The current day is visually highlighted.
-- [ ] **AC-2 (Feature 2):** Tapping a left arrow navigates to the previous month. Tapping a right arrow navigates to the next month. On a touch device, swiping left shows the next month and swiping right shows the previous month. The month and year header updates accordingly.
-- [ ] **AC-3 (Feature 3):** Tapping a day on the calendar opens a day detail view (either a new route or a slide-up panel) showing the selected date and a summary of food elimination status for that day.
-- [ ] **AC-4 (Feature 4):** The food category grid displays all 12 seeded categories as tiles with their emoji icon and Czech name. The grid adapts to the viewport width (3 columns on 375px, 4 columns on wider screens).
-- [ ] **AC-5 (Feature 5):** Tapping a food category tile expands it to reveal its sub-items as a list or secondary grid. Tapping it again collapses the sub-items. Only one category is expanded at a time (accordion behaviour).
-- [ ] **AC-6 (Feature 6):** Tapping a food sub-item toggles its status for the selected day. The toggle cycles: neutral (no log) -> eliminated (red/crossed out) -> reintroduced (green/checkmark) -> neutral. The visual state updates immediately without waiting for a server response.
-- [ ] **AC-7 (Feature 7):** A "Copy from yesterday" button is visible on the day detail view. Tapping it copies all elimination entries from the previous calendar day to the currently selected day. If the current day already has entries, a confirmation dialog asks whether to overwrite or merge. If yesterday has no entries, the button is disabled or shows a tooltip.
-- [ ] **AC-8 (Feature 8):** Calendar day cells display coloured dots below the day number. The dot colour varies by number of active eliminations: 0 = no dot, 1-3 = yellow dot, 4-6 = orange dot, 7+ = red dot. The dots are visible at a glance without tapping the day.
-- [ ] **AC-9 (Feature 9):** All food log mutations (create, update, delete) are immediately written to Dexie.js. The UI reflects the change instantly. The `syncedAt` field is `null` for records that have not been pushed to the server.
-- [ ] **AC-10 (Feature 10):** When the device comes online (detected via `navigator.onLine` or the `online` event), a background sync process finds all Dexie.js food log records where `syncedAt` is `null` and pushes them to the server API. On success, `syncedAt` is set to the current timestamp. On failure, records remain unsynced and retry on the next online event.
-- [ ] **AC-11 (Feature 11):** `GET /api/food-logs?childId=X&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` returns all food log entries for the given child and date range with status 200. `POST /api/food-logs` creates a new entry and returns 201. `PUT /api/food-logs/[id]` updates an entry and returns 200. `DELETE /api/food-logs/[id]` removes an entry and returns 204. All routes require authentication and verify child ownership.
-- [ ] **AC-12 (Feature 12):** The day detail view has a "Meals" section below the elimination tracker. The mother can add a meal by selecting a meal type (breakfast/lunch/dinner/snack) and adding food items from predefined sub-items or typing free-text entries.
-- [ ] **AC-13 (Feature 13):** The meal composer shows a meal type selector (buttons or dropdown for snidane/obed/vecere/svacina), a searchable food item picker that filters predefined `FoodSubItem` entries as the user types, a free-text input for items not in the list, and an optional meal label field. Adding an item shows it as a chip/tag that can be removed.
-- [ ] **AC-14 (Feature 14):** `GET /api/meals?date=YYYY-MM-DD` returns all meals with their items for the authenticated user and date with status 200. `POST /api/meals` creates a new meal with items and returns 201. `PUT /api/meals/[id]` updates a meal and returns 200. `DELETE /api/meals/[id]` removes a meal and its items (cascade) and returns 204. All routes require authentication; meals belong to the logged-in user.
-- [ ] **AC-15 (Feature 15):** The day detail view shows a list of logged meals for the selected day, each displaying the meal type label, optional custom label, and a comma-separated list of food items (using Czech names for predefined items, custom names for free-text items).
+- [x] **AC-1 (Feature 1):** The calendar page renders a grid with the current month's days. The grid has 7 columns (Mon-Sun or Sun-Sat based on locale). Days from the previous and next months that fill incomplete weeks are shown in a muted style. The current day is visually highlighted.
+- [x] **AC-2 (Feature 2):** Tapping a left arrow navigates to the previous month. Tapping a right arrow navigates to the next month. On a touch device, swiping left shows the next month and swiping right shows the previous month. The month and year header updates accordingly.
+- [x] **AC-3 (Feature 3):** Tapping a day in view mode shows an inline detail card below the calendar with eliminated/reintroduced categories for that date. Tapping "Upravit" enters edit mode with range-based date selection and a draft/save workflow.
+- [x] **AC-4 (Feature 4):** In edit mode, food categories are displayed as a vertical list with iOS-style toggle switches. Categories with sub-items have an expand/collapse chevron. The list shows all 12 seeded categories with emoji icons and Czech names.
+- [x] **AC-5 (Feature 5):** Tapping a food category row with sub-items expands it to reveal individual sub-item toggles. Tapping again collapses. Only one category is expanded at a time (accordion behaviour).
+- [x] **AC-6 (Feature 6):** Edit mode has two action modes: "Vyřadit" (eliminate) and "Zavést zpět" (reintroduce), toggled via a segmented control. In reintroduce mode, only categories that are currently eliminated or reintroduced are shown. Changes are staged in a draft and applied on save.
+- [x] **AC-7 (Feature 7):** Draft editing supports date range selection (tap start day, tap end day). Saving applies the draft state to all days in the range. The floating save bar shows the selected range and day count. Copy-from-yesterday logic exists in the service layer for future use.
+- [x] **AC-8 (Feature 8):** Calendar day cells display two-color split bar indicators: primary color for eliminations, green (#4A7C6F) for reintroductions. When both exist, the bar shows both colors split. The indicators are visible at a glance without tapping the day.
+- [x] **AC-9 (Feature 9):** All food log mutations (create, update, delete) are immediately written to Dexie.js. The UI reflects the change instantly. The `syncedAt` field is `null` for records that have not been pushed to the server.
+- [x] **AC-10 (Feature 10):** When the device comes online (detected via `navigator.onLine` or the `online` event), a background sync process finds all Dexie.js food log records where `syncedAt` is `null` and pushes them to the server API. On success, `syncedAt` is set to the current timestamp. On failure, records remain unsynced and retry on the next online event.
+- [x] **AC-11 (Feature 11):** `GET /api/food-logs?childId=X&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` returns all food log entries for the given child and date range with status 200. `POST /api/food-logs` creates a new entry and returns 201. `PUT /api/food-logs/[id]` updates an entry and returns 200. `DELETE /api/food-logs/[id]` removes an entry and returns 204. All routes require authentication and verify child ownership.
+- [x] **AC-12 (Feature 12):** The day detail view has a "Meals" section below the elimination tracker. The mother can add a meal by selecting a meal type (breakfast/lunch/dinner/snack) and adding food items from predefined sub-items or typing free-text entries.
+- [x] **AC-13 (Feature 13):** The meal composer shows a meal type selector (buttons or dropdown for snidane/obed/vecere/svacina), a searchable food item picker that filters predefined `FoodSubItem` entries as the user types, a free-text input for items not in the list, and an optional meal label field. Adding an item shows it as a chip/tag that can be removed.
+- [x] **AC-14 (Feature 14):** `GET /api/meals?date=YYYY-MM-DD` returns all meals with their items for the authenticated user and date with status 200. `POST /api/meals` creates a new meal with items and returns 201. `PUT /api/meals/[id]` updates a meal and returns 200. `DELETE /api/meals/[id]` removes a meal and its items (cascade) and returns 204. All routes require authentication; meals belong to the logged-in user.
+- [x] **AC-15 (Feature 15):** The day detail view shows a list of logged meals for the selected day, each displaying the meal type label, optional custom label, and a comma-separated list of food items (using Czech names for predefined items, custom names for free-text items).
+- [ ] **AC-16 (Feature 16):** Workbox runtime caching is configured in `vite.config.ts`: NetworkFirst strategy for `/api/*` routes (ensuring data freshness), CacheFirst with 30-day expiry for static assets (icons, fonts), and StaleWhileRevalidate for app shell (HTML, JS, CSS).
+- [ ] **AC-17 (Feature 17):** A sync status indicator is displayed in the app header showing: green cloud when synced, orange cloud when syncing, grey cloud with slash when offline. A toast notification appears on sync completion ("Všechna data synchronizována") and on sync failure ("Synchronizace selhala, zkusíme znovu"). Pull-to-refresh on scrollable lists triggers a manual sync.
+- [ ] **AC-18 (Feature 18):** Sync follows push-first ordering: local changes are pushed to the server before pulling server changes. This prevents local edits from being overwritten by stale server state. The sync engine debounces push operations by 5 seconds after local mutations.
+- [ ] **AC-19 (Feature 19):** Conflict resolution uses last-write-wins with server-side `updated_at` timestamps. The server sets `updated_at = NOW()` on each upsert (ignoring client timestamps to eliminate clock skew). A unique constraint `(child_id, date, category_id, action)` on `food_logs` with `ON CONFLICT DO NOTHING` prevents duplicate logical records from both parents.
+- [ ] **AC-20 (Feature 20):** Dexie.js schema uses versioning with `.upgrade()` hooks for data transformation. Schema changes increment the version number. After a schema upgrade, the sync engine performs a full re-sync to ensure consistency. Schema migrations are tested by creating a database at version N-1 and verifying data preservation after upgrade to version N.
 
 ## Implementation Details
 
@@ -99,35 +104,30 @@ These decisions are deferred to user testing during Phase 1 (when the app shell 
 
 | File                                                     | Description                                                                   |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `src/lib/components/calendar/CalendarGrid.svelte`        | Month view grid component with day cells                                      |
+| `src/lib/components/calendar/CalendarGrid.svelte`        | Month view grid with day cells, range selection, two-color dots               |
 | `src/lib/components/calendar/CalendarHeader.svelte`      | Month/year display with previous/next navigation arrows                       |
-| `src/lib/components/calendar/DayCell.svelte`             | Individual day cell with number, status dot, and tap handler                  |
+| `src/lib/components/calendar/DayCell.svelte`             | Day cell with number, two-color split dot, range/inspected styling            |
 | `src/lib/components/calendar/SwipeContainer.svelte`      | Touch gesture wrapper for month swiping                                       |
-| `src/lib/components/food/FoodCategoryGrid.svelte`        | Grid of food category tiles with emoji icons                                  |
-| `src/lib/components/food/FoodCategoryTile.svelte`        | Single category tile (emoji, name, expanded state)                            |
-| `src/lib/components/food/FoodSubItemList.svelte`         | Expandable list of sub-items within a category                                |
-| `src/lib/components/food/FoodSubItemToggle.svelte`       | Individual food sub-item with toggle status (neutral/eliminated/reintroduced) |
-| `src/lib/components/food/CopyFromYesterdayButton.svelte` | "Copy from yesterday" action button                                           |
-| `src/routes/(app)/calendar/+page.svelte`                 | Calendar page assembling all calendar components                              |
-| `src/routes/(app)/calendar/+page.server.ts`              | Server load function fetching food logs for the current month                 |
-| `src/routes/(app)/calendar/[date]/+page.svelte`          | Day detail view for a specific date                                           |
-| `src/routes/(app)/calendar/[date]/+page.server.ts`       | Server load function for a specific day's data                                |
-| `src/routes/(app)/food/+page.svelte`                     | Food management page (alternative entry to the food grid)                     |
+| `src/routes/(app)/calendar/+page.svelte`                 | Calendar page with view/edit modes, range editing, toggle switches            |
+| `src/routes/(app)/food/+page.svelte`                     | Today-only read view of elimination status with link to calendar              |
+| `src/lib/stores/draft-elimination.svelte.ts`             | Draft editing store for staged elimination/reintroduction changes             |
 | `src/routes/api/food-logs/+server.ts`                    | GET (list) and POST (create) food log endpoints                               |
 | `src/routes/api/food-logs/[id]/+server.ts`               | PUT (update) and DELETE (remove) food log endpoints                           |
-| `src/lib/domain/services/food-tracking.ts`               | Pure domain logic for food tracking (toggle, copy, active eliminations)       |
-| `src/lib/stores/food-log.ts`                             | Rewritten food log store with Dexie.js integration and sync logic             |
-| `src/lib/stores/calendar.ts`                             | Calendar navigation state (current month, selected date)                      |
+| `src/lib/domain/services/food-tracking.service.ts`       | Pure domain logic for food tracking (toggle, copy, active eliminations)       |
+| `src/lib/stores/food-log.svelte.ts`                      | Rewritten food log store with Dexie.js integration and sync logic             |
+| `src/lib/stores/calendar.svelte.ts`                      | Calendar navigation state (current month, selected date)                      |
 | `src/lib/adapters/dexie-db.ts`                           | Updated with food log and meal sync methods                                   |
-| `src/lib/adapters/sync.ts`                               | Background sync engine for pushing unsynced records to server                 |
+| `src/lib/utils/calendar.ts`                              | Calendar utility functions (getMonthDays, formatMonthYear, etc.)              |
+| `src/lib/components/SyncStatusIndicator.svelte`          | Cloud icon showing sync status (synced/syncing/offline)                       |
+| `src/lib/components/Toast.svelte`                        | Toast notification component for feedback                                     |
 | `src/lib/components/food/MealComposer.svelte`            | Meal creation form: meal type selector, food item picker, free text input     |
 | `src/lib/components/food/MealItemPicker.svelte`          | Searchable food sub-item picker with autocomplete + free text fallback        |
 | `src/lib/components/food/MealCard.svelte`                | Display component for a logged meal (type, label, items list)                 |
 | `src/lib/components/food/MealList.svelte`                | List of logged meals for a given day                                          |
-| `src/lib/stores/meals.ts`                                | Meal state management with Dexie.js integration                               |
+| `src/lib/stores/meals.svelte.ts`                         | Meal state management with Dexie.js integration                               |
 | `src/routes/api/meals/+server.ts`                        | GET (list by child+date) and POST (create meal with items) endpoints          |
 | `src/routes/api/meals/[id]/+server.ts`                   | PUT (update) and DELETE (remove) meal endpoints                               |
-| `src/lib/domain/services/meal-logging.ts`                | Pure domain logic for meal operations                                         |
+| `src/lib/domain/services/meal-logging.service.ts`        | Pure domain logic for meal operations                                         |
 
 ### Step-by-Step Instructions
 
@@ -795,6 +795,174 @@ Similar pattern to `food-log.ts`: offline-first with Dexie.js, optimistic UI upd
 
 **`DELETE /api/meals/[id]`** -- deletes meal and cascades to items. Returns 204.
 
+#### Step 26: Configure Workbox runtime caching (Feature 16)
+
+Update `vite.config.ts` to configure Workbox caching strategies:
+
+```typescript
+SvelteKitPWA({
+  registerType: 'autoUpdate',
+  manifest: false,
+  workbox: {
+    globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+    runtimeCaching: [
+      {
+        // API calls: NetworkFirst to ensure data freshness
+        urlPattern: /^\/api\/.*/i,
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'api-cache',
+          networkTimeoutSeconds: 10,
+          expiration: { maxEntries: 50 },
+        },
+      },
+      {
+        // Static assets: CacheFirst with 30-day expiry
+        urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2)$/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'static-assets',
+          expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
+        },
+      },
+    ],
+  },
+})
+```
+
+#### Step 27: Build the sync status indicator (Feature 17)
+
+Create `src/lib/components/SyncStatusIndicator.svelte`:
+
+```svelte
+<script lang="ts">
+  import { foodLogStore } from '$lib/stores/food-log.svelte';
+
+  const syncStatus = $derived(foodLogStore.syncStatus);
+
+  const statusConfig = {
+    synced: { icon: '☁️', color: 'text-success', label: 'Synchronizováno' },
+    syncing: { icon: '☁️', color: 'text-warning animate-pulse', label: 'Synchronizuji...' },
+    offline: { icon: '☁️', color: 'text-muted line-through', label: 'Offline' },
+    pending: { icon: '☁️', color: 'text-warning', label: 'Čeká na sync' },
+  };
+</script>
+
+<button
+  class="p-2 {statusConfig[syncStatus].color}"
+  title={statusConfig[syncStatus].label}
+  aria-label={statusConfig[syncStatus].label}
+>
+  <span class="text-lg">{statusConfig[syncStatus].icon}</span>
+</button>
+```
+
+Add Toast component (`src/lib/components/Toast.svelte`) for sync feedback:
+- "Všechna data synchronizována" on successful sync
+- "Synchronizace selhala, zkusíme znovu" on failure
+- Position above bottom tab bar, auto-dismiss after 3 seconds
+
+#### Step 28: Implement push-first sync ordering (Feature 18)
+
+The sync engine must push local changes before pulling server changes. This is implemented in `food-log.svelte.ts`:
+
+```typescript
+async fullSync(): Promise<void> {
+  // Step 1: Push all local changes first
+  await this.pushPendingChanges();
+
+  // Step 2: Only after push succeeds, pull server changes
+  await this.pullServerChanges();
+}
+
+async pushPendingChanges(): Promise<void> {
+  // Debounce: wait 5 seconds after last mutation
+  const unsyncedLogs = await db.foodLogs
+    .filter((log) => log.syncedAt === undefined || log.syncedAt === null)
+    .toArray();
+
+  if (unsyncedLogs.length === 0) return;
+
+  const res = await fetch('/api/food-logs/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ logs: unsyncedLogs }),
+  });
+
+  if (res.ok) {
+    // Mark as synced only after successful push
+    const now = new Date().toISOString();
+    await db.foodLogs.bulkUpdate(
+      unsyncedLogs.map((log) => ({ key: log.id, changes: { syncedAt: now } }))
+    );
+  }
+}
+```
+
+#### Step 29: Implement conflict resolution (Feature 19)
+
+**Strategy: Last-write-wins with server-side timestamps**
+
+The server always sets `updated_at = NOW()` on upsert, ignoring client timestamps. This eliminates clock-skew issues between devices.
+
+**PostgreSQL unique constraint** to prevent duplicate logical records:
+
+```sql
+ALTER TABLE food_logs
+ADD CONSTRAINT food_logs_unique_entry
+UNIQUE (child_id, date, category_id, action);
+```
+
+**Batch sync endpoint** (`/api/food-logs/batch`) uses `ON CONFLICT DO NOTHING`:
+
+```sql
+INSERT INTO food_logs (id, child_id, category_id, date, action, created_by, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+ON CONFLICT (child_id, date, category_id, action) DO NOTHING;
+```
+
+**Conflict resolution flow:**
+
+1. Both parents edit the same food log offline
+2. Parent A syncs first → their version becomes the server baseline
+3. Parent B syncs → server compares `updated_at`, keeps the later timestamp
+4. Both clients pull → they receive the winning version
+
+See `docs/architecture/offline-strategy.md` section 5 for full conflict resolution documentation.
+
+#### Step 30: Set up Dexie.js schema versioning (Feature 20)
+
+Dexie version increments when tables or indexes change:
+
+```typescript
+// src/lib/adapters/dexie-db.ts
+const db = new Dexie('eczema-tracker') as EczemaTrackerDB;
+
+// Version 1: Initial schema (Phase 0-1)
+db.version(1).stores({
+  children: 'id, userId',
+  foodCategories: 'id, slug',
+  foodSubItems: 'id, categoryId',
+  foodLogs: 'id, childId, date, [childId+date], syncedAt',
+  // ...
+});
+
+// Version 2: Phase 2 additions (if needed)
+db.version(2).stores({
+  // Add new tables or indexes
+  meals: 'id, userId, date, [userId+date], syncedAt',
+  mealItems: 'id, mealId',
+}).upgrade(async (tx) => {
+  // Optional: migrate existing data
+  // This runs only when upgrading from v1 to v2
+});
+```
+
+**Rules:**
+- Never modify a published version's store definition
+- Use `.upgrade(tx => ...)` only when data transformation is needed
+- After schema upgrade, trigger a full re-sync to ensure consistency
+
 ### Key Code Patterns
 
 **Food toggle state machine:**
@@ -981,6 +1149,15 @@ The `/food` tab provides a direct shortcut to today's food tracking without goin
 | 53  | All meal endpoints require authentication                            | Call each endpoint without session cookie. Assert 401 or redirect.                                                                                                                       |
 | 54  | `GET /api/meals` scopes to authenticated user                        | User A creates meals. User B queries the same date. Assert User B sees only their own meals (empty if they logged none).                                                                 |
 
+**Test file: `tests/integration/conflict-resolution.test.ts`** (Feature 19)
+
+| #   | Test Case                                                                    | Details                                                                                                                                                                  |
+| --- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 55  | Server sets `updated_at` on batch upsert, ignoring client timestamp          | Send batch with client `updatedAt` in the past. Assert server response has `updatedAt` set to current server time (within 1 second).                                     |
+| 56  | Unique constraint prevents duplicate `(child_id, date, category_id, action)` | Create food log (eliminated). Send batch with same `(child_id, date, category_id, eliminated)` but different ID. Assert only one record exists (ON CONFLICT DO NOTHING). |
+| 57  | Last-write-wins: later sync overwrites earlier sync                          | User syncs log A at T1. User syncs log A' (same record, different action) at T2. Assert final state is A' (T2 timestamp).                                                |
+| 58  | Concurrent syncs from two users resolve without error                        | Simulate User A and User B both syncing changes to the same food log. Assert no 500 errors, final state is deterministic (last sync wins).                               |
+
 ### E2E / Manual Tests
 
 **Test script: Calendar Navigation**
@@ -1082,6 +1259,41 @@ The `/food` tab provides a direct shortcut to today's food tracking without goin
 3. Eliminate a food item.
 4. Navigate to the calendar and tap today.
 5. **Expected:** The elimination made via the Food tab is reflected.
+
+**Test script: Sync Status Indicator (Feature 17)**
+
+1. Log in and navigate to `/calendar`.
+2. **Expected:** Sync status indicator visible in header (green cloud = synced).
+3. Open browser DevTools → Network → toggle "Offline".
+4. **Expected:** Sync indicator changes to grey cloud with slash (offline).
+5. Make a food elimination change.
+6. **Expected:** Indicator shows orange/pending (local change waiting to sync).
+7. Re-enable network.
+8. **Expected:** Indicator shows syncing (orange), then synced (green). Toast appears: "Všechna data synchronizována".
+9. Pull-to-refresh on the calendar (swipe down from top).
+10. **Expected:** Manual sync triggers, indicator shows syncing briefly.
+
+**Test script: Conflict Resolution (Feature 19)**
+
+1. Open the app on Device A. Log in. Create a food elimination for "Mleko" today.
+2. Open browser DevTools on Device A → Network → toggle "Offline".
+3. On Device A, change "Mleko" from eliminated to reintroduced.
+4. On Device B (different browser/device), log in as the same user. Change "Mleko" to eliminated.
+5. **Expected on Device B:** The elimination is saved and synced immediately.
+6. On Device A, re-enable network.
+7. **Expected:** Device A syncs. The final state is determined by which device synced last (last-write-wins).
+8. Refresh both devices.
+9. **Expected:** Both devices show the same state for "Mleko" (no conflict, consistent data).
+
+**Test script: Workbox Caching (Feature 16)**
+
+1. Open browser DevTools → Application → Service Workers. Verify service worker is registered.
+2. Go to Application → Cache Storage. Verify caches exist: `api-cache`, `static-assets`.
+3. Navigate to `/calendar`. Verify API requests are cached in `api-cache`.
+4. Toggle "Offline" in Network tab.
+5. Navigate to different calendar months.
+6. **Expected:** Cached API responses are served. App remains functional.
+7. Static assets (icons, fonts) load from cache without network requests.
 
 ### Regression Checks
 

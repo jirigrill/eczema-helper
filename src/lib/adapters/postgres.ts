@@ -207,6 +207,11 @@ export class PostgresRepository implements DataRepository {
     return rows.map((r) => this.mapFoodLog(r));
   }
 
+  async getFoodLogById(id: string): Promise<FoodLog | null> {
+    const rows = await sql`SELECT * FROM food_logs WHERE id = ${id}`;
+    return rows.length > 0 ? this.mapFoodLog(rows[0]) : null;
+  }
+
   async createFoodLog(log: Omit<FoodLog, 'id' | 'createdAt'>): Promise<FoodLog> {
     const rows = await sql`
       INSERT INTO food_logs (child_id, date, category_id, sub_item_id, action, notes, created_by)
@@ -221,6 +226,46 @@ export class PostgresRepository implements DataRepository {
 
   async deleteFoodLog(id: string): Promise<void> {
     await sql`DELETE FROM food_logs WHERE id = ${id}`;
+  }
+
+  async updateFoodLog(id: string, updates: Partial<Pick<FoodLog, 'action' | 'notes'>>): Promise<FoodLog> {
+    const rows = await sql`
+      UPDATE food_logs SET
+        action = COALESCE(${updates.action ?? null}, action),
+        notes = COALESCE(${updates.notes ?? null}, notes),
+        updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return this.mapFoodLog(rows[0]);
+  }
+
+  async upsertFoodLog(log: FoodLog): Promise<FoodLog> {
+    const rows = await sql`
+      INSERT INTO food_logs (id, child_id, date, category_id, sub_item_id, action, notes, created_by, synced_at)
+      VALUES (
+        ${log.id}, ${log.childId}, ${log.date}, ${log.categoryId},
+        ${log.subItemId ?? null}, ${log.action}, ${log.notes ?? null}, ${log.createdBy},
+        ${log.syncedAt ?? null}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        action = EXCLUDED.action,
+        notes = EXCLUDED.notes,
+        synced_at = EXCLUDED.synced_at,
+        updated_at = NOW()
+      RETURNING *
+    `;
+    return this.mapFoodLog(rows[0]);
+  }
+
+  async getMostRecentFoodLog(childId: string, categoryId: string, onOrBeforeDate: string): Promise<FoodLog | null> {
+    const rows = await sql`
+      SELECT * FROM food_logs
+      WHERE child_id = ${childId} AND category_id = ${categoryId} AND date <= ${onOrBeforeDate}
+      ORDER BY date DESC, created_at DESC
+      LIMIT 1
+    `;
+    return rows.length > 0 ? this.mapFoodLog(rows[0]) : null;
   }
 
   async getCurrentEliminationState(
@@ -248,6 +293,11 @@ export class PostgresRepository implements DataRepository {
       ORDER BY meal_type ASC
     `;
     return rows.map((r) => this.mapMeal(r));
+  }
+
+  async getMealById(id: string): Promise<Meal | null> {
+    const rows = await sql`SELECT * FROM meals WHERE id = ${id}`;
+    return rows.length > 0 ? this.mapMeal(rows[0]) : null;
   }
 
   async getMealWithItems(mealId: string): Promise<(Meal & { items: MealItem[] }) | null> {
@@ -301,6 +351,24 @@ export class PostgresRepository implements DataRepository {
 
   async deleteMeal(id: string): Promise<void> {
     await sql`DELETE FROM meals WHERE id = ${id}`;
+  }
+
+  async replaceMealItems(mealId: string, items: Omit<MealItem, 'id'>[]): Promise<void> {
+    // Delete existing items
+    await sql`DELETE FROM meal_items WHERE meal_id = ${mealId}`;
+
+    // Insert new items
+    if (items.length > 0) {
+      const itemValues = items.map((item) => ({
+        meal_id: mealId,
+        sub_item_id: item.subItemId ?? null,
+        custom_name: item.customName ?? null,
+        category_id: item.categoryId ?? null,
+      }));
+      await sql`
+        INSERT INTO meal_items ${sql(itemValues)}
+      `;
+    }
   }
 
   // ── Photos ─────────────────────────────────────────────────────────────────
