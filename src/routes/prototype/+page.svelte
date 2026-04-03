@@ -291,9 +291,12 @@
     }
 
     const count = rangeDayCount;
+    // Focus on last day of saved range for review
+    const focusDate = sortedRange ? sortedRange.end : todayIso;
     toast = { message: count > 0 ? `Uloženo pro ${count} ${dayPlural(count)}` : 'Uloženo' };
     setTimeout(() => { toast = null; }, 2000);
     mode = 'view'; rangeStart = null; rangeEnd = null; expandedCategoryId = null;
+    inspectedDate = focusDate;
   }
 
   // Draft toggles — mutate draft sets, don't touch committed data
@@ -416,13 +419,17 @@
         >
           <span class="text-xs leading-none">{day.dayNumber}</span>
           {#if day.isCurrentMonth && (eCount > 0 || rCount > 0)}
-            <div class="flex gap-px mt-0.5">
-              {#each { length: Math.min(eCount, 3) } as _}
-                <span class="block h-1 w-1 rounded-full {endpoint ? 'bg-white/70' : 'bg-primary'}"></span>
-              {/each}
-              {#each { length: Math.min(rCount, 2) } as _}
-                <span class="block h-1 w-1 rounded-full {endpoint ? 'bg-white/50' : 'bg-[#4A7C6F]'}"></span>
-              {/each}
+            {@const hasElim = eCount > 0}
+            {@const hasReintro = rCount > 0}
+            <div class="absolute bottom-1 flex h-[2px] w-3 rounded-full overflow-hidden">
+              {#if hasElim && hasReintro}
+                <span class="flex-1 {endpoint ? 'bg-white/70' : 'bg-primary'}"></span>
+                <span class="flex-1 {endpoint ? 'bg-white/50' : 'bg-[#4A7C6F]'}"></span>
+              {:else if hasElim}
+                <span class="flex-1 {endpoint ? 'bg-white/70' : 'bg-primary'}"></span>
+              {:else}
+                <span class="flex-1 {endpoint ? 'bg-white/50' : 'bg-[#4A7C6F]'}"></span>
+              {/if}
             </div>
           {/if}
         </button>
@@ -452,16 +459,13 @@
         <div class="px-4 pb-4 text-sm text-text-muted">Žádné záznamy</div>
       {:else}
         {#if viewElim.length > 0}
-          <div class="px-4 pb-1">
+          <div class="px-4 pb-2">
             <p class="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5">Vyřazeno</p>
-            <div class="space-y-1">
+            <div class="space-y-0.5">
               {#each viewElim as cat (cat.id)}
                 <div class="flex items-center gap-2 py-1">
                   <span class="text-base">{cat.icon}</span>
-                  <span class="flex-1 text-sm text-text">{cat.name}</span>
-                  <span class="h-5 w-5 rounded-full bg-primary/15 flex items-center justify-center">
-                    <span class="text-[10px] text-primary font-bold">✕</span>
-                  </span>
+                  <span class="text-sm text-text">{cat.name}</span>
                 </div>
               {/each}
             </div>
@@ -470,14 +474,11 @@
         {#if viewReintro.length > 0}
           <div class="px-4 pb-3 {viewElim.length > 0 ? 'pt-2 border-t border-surface-dark mt-2' : ''}">
             <p class="text-[10px] uppercase tracking-wider text-[#4A7C6F] font-semibold mb-1.5">Znovuzavedeno</p>
-            <div class="space-y-1">
+            <div class="space-y-0.5">
               {#each viewReintro as cat (cat.id)}
                 <div class="flex items-center gap-2 py-1">
                   <span class="text-base">{cat.icon}</span>
-                  <span class="flex-1 text-sm text-text">{cat.name}</span>
-                  <span class="h-5 w-5 rounded-full bg-[#4A7C6F]/15 flex items-center justify-center">
-                    <span class="text-[10px] text-[#4A7C6F] font-bold">✓</span>
-                  </span>
+                  <span class="text-sm text-text">{cat.name}</span>
                 </div>
               {/each}
             </div>
