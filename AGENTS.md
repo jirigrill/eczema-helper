@@ -204,6 +204,8 @@ See `docs/architecture/auth-overview.md` for complete details. Key points:
 
 **All code changes must go through a pull request.** Direct pushes to `main` are blocked by branch protection. PRs require all CI checks to pass before merging. All PRs are merged via **squash merge** — the PR title becomes the commit subject and the PR body becomes the commit description on `main`.
 
+When the user says **"push to the repo"** or **"push to the repository"**: if no PR exists yet, create a branch, commit, and open a PR; if a PR is already open, push the latest commits to its branch.
+
 **PR title format (becomes the squash commit message):**
 ```
 Phase X: <imperative summary under 72 chars>
