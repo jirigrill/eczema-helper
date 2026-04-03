@@ -1,18 +1,16 @@
 <script lang="ts">
   import { getMonthDays, getWeekdayNames } from '$lib/utils/calendar';
   import DayCell from './DayCell.svelte';
-  import type { FoodLog, FoodCategory } from '$lib/domain/models';
+  import type { FoodLog } from '$lib/domain/models';
   import {
-    countActiveEliminations,
-    countActiveReintroductions,
+    dateHasEliminations,
+    dateHasReintroductions,
   } from '$lib/domain/services/food-tracking.service';
 
   let {
     year,
     month,
     foodLogs = [],
-    categoryIds = [],
-    categories = [],
     inspectedDate = null,
     mode = 'view',
     accentBg = 'bg-primary',
@@ -25,8 +23,6 @@
     year: number;
     month: number;
     foodLogs?: FoodLog[];
-    categoryIds?: string[];
-    categories?: FoodCategory[];
     inspectedDate?: string | null;
     mode?: 'view' | 'edit';
     accentBg?: string;
@@ -39,16 +35,6 @@
 
   const days = $derived(getMonthDays(year, month));
   const weekdayNames = getWeekdayNames();
-
-  function hasElim(date: string): boolean {
-    if (categoryIds.length === 0) return false;
-    return countActiveEliminations(foodLogs, date, categoryIds) > 0;
-  }
-
-  function hasReintro(date: string): boolean {
-    if (categoryIds.length === 0) return false;
-    return countActiveReintroductions(foodLogs, date, categoryIds) > 0;
-  }
 </script>
 
 <div class="px-2">
@@ -62,8 +48,8 @@
     {#each days as day (day.date)}
       <DayCell
         {day}
-        hasEliminations={hasElim(day.date)}
-        hasReintroductions={hasReintro(day.date)}
+        hasEliminations={dateHasEliminations(foodLogs, day.date)}
+        hasReintroductions={dateHasReintroductions(foodLogs, day.date)}
         inspected={mode === 'view' && inspectedDate === day.date}
         inRange={mode === 'edit' && isInRange(day.date)}
         isEndpoint={mode === 'edit' && isRangeEndpoint(day.date)}

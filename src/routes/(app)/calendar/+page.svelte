@@ -10,8 +10,10 @@
   import {
     applyDraftDiffToRange,
     getDatesInRange,
-    getEliminatedCategories,
-    getReintroducedCategories,
+    buildExactDateStatusSets,
+    getExactDateEliminatedDetails,
+    getExactDateReintroducedDetails,
+    type CategoryWithItems,
   } from '$lib/domain/services/food-tracking.service';
   import type { FoodCategory } from '$lib/domain/models';
   import { onMount } from 'svelte';
@@ -31,7 +33,6 @@
   const actionMode = $derived(calendarStore.actionMode);
   const foodLogs = $derived(foodLogStore.logs);
   const activeChildId = $derived(childrenStore.activeChildId);
-  const categoryIds = $derived(categories.map((c) => c.id));
   const expandedCategoryId = $derived(draftEliminationStore.expandedCategoryId);
 
   // Color scheme derived from action mode
@@ -55,10 +56,10 @@
     ) + 1;
   });
 
-  // View-mode detail card data
+  // View-mode detail card data (exact date, with sub-item details)
   const viewDate = $derived(inspectedDate ?? getTodayIso());
-  const viewEliminated = $derived(getEliminatedCategories(foodLogs, viewDate, categories));
-  const viewReintroduced = $derived(getReintroducedCategories(foodLogs, viewDate, categories));
+  const viewEliminated = $derived(getExactDateEliminatedDetails(foodLogs, viewDate, categories));
+  const viewReintroduced = $derived(getExactDateReintroducedDetails(foodLogs, viewDate, categories));
 
   // Edit-mode filtered categories
   const visibleCategories = $derived(
@@ -112,9 +113,11 @@
   }
 
   function enterEditMode() {
+    const startDate = inspectedDate ?? getTodayIso();
     calendarStore.enterEditMode();
-    // Start with empty toggles — user explicitly picks what to change
-    draftEliminationStore.initFromSets(new Set(), new Set());
+    // Seed draft from the exact date's existing logs
+    const { eliminated, reintroduced } = buildExactDateStatusSets(foodLogs, startDate, categories);
+    draftEliminationStore.initFromSets(eliminated, reintroduced);
   }
 
   function cancelEdit() {
@@ -250,8 +253,6 @@
           {year}
           {month}
           {foodLogs}
-          {categoryIds}
-          {categories}
           {inspectedDate}
           {mode}
           {accentBg}
@@ -291,10 +292,15 @@
             <div class="px-4 pb-2">
               <p class="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5">{cs.eliminated}</p>
               <div class="space-y-0.5">
-                {#each viewEliminated as cat (cat.id)}
+                {#each viewEliminated as entry (entry.category.id)}
                   <div class="flex items-center gap-2 py-1">
-                    <span class="text-base">{cat.icon}</span>
-                    <span class="text-sm text-text">{cat.nameCs}</span>
+                    <span class="text-base">{entry.category.icon}</span>
+                    <div>
+                      <span class="text-sm text-text">{entry.category.nameCs}</span>
+                      {#if entry.items.length > 0}
+                        <span class="text-xs text-text-muted ml-1">({entry.items.map(i => i.nameCs).join(', ')})</span>
+                      {/if}
+                    </div>
                   </div>
                 {/each}
               </div>
@@ -304,10 +310,15 @@
             <div class="px-4 pb-3 {viewEliminated.length > 0 ? 'pt-2 border-t border-surface-dark mt-2' : ''}">
               <p class="text-[10px] uppercase tracking-wider text-[#4A7C6F] font-semibold mb-1.5">{cs.reintroduced}</p>
               <div class="space-y-0.5">
-                {#each viewReintroduced as cat (cat.id)}
+                {#each viewReintroduced as entry (entry.category.id)}
                   <div class="flex items-center gap-2 py-1">
-                    <span class="text-base">{cat.icon}</span>
-                    <span class="text-sm text-text">{cat.nameCs}</span>
+                    <span class="text-base">{entry.category.icon}</span>
+                    <div>
+                      <span class="text-sm text-text">{entry.category.nameCs}</span>
+                      {#if entry.items.length > 0}
+                        <span class="text-xs text-text-muted ml-1">({entry.items.map(i => i.nameCs).join(', ')})</span>
+                      {/if}
+                    </div>
                   </div>
                 {/each}
               </div>

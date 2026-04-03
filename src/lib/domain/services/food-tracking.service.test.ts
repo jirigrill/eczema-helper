@@ -16,6 +16,13 @@ import {
   applyDraftDiffToRange,
   getEliminatedCategories,
   getReintroducedCategories,
+  getExactDateFoodStatus,
+  getExactDateSubItemStatus,
+  dateHasEliminations,
+  dateHasReintroductions,
+  buildExactDateStatusSets,
+  getExactDateEliminatedDetails,
+  getExactDateReintroducedDetails,
 } from './food-tracking.service';
 import type { FoodLog, FoodCategory } from '$lib/domain/models';
 
@@ -521,6 +528,178 @@ describe('food-tracking.service', () => {
     it('excludes categories that still have eliminations', () => {
       const logs = [createLog({ categoryId: 'eggs', action: 'eliminated' })];
       expect(getReintroducedCategories(logs, '2026-03-15', categories)).toHaveLength(0);
+    });
+  });
+
+  // ── Per-date (exact match) tests ──────────────────────────
+
+  describe('getExactDateFoodStatus', () => {
+    it('returns neutral when no logs for exact date', () => {
+      expect(getExactDateFoodStatus([], 'dairy', '2026-03-15')).toBe('neutral');
+    });
+
+    it('returns status for exact date only', () => {
+      const logs = [
+        createLog({ date: '2026-03-14', categoryId: 'dairy', action: 'eliminated' }),
+      ];
+      // Log is on March 14, querying March 15 — should NOT carry forward
+      expect(getExactDateFoodStatus(logs, 'dairy', '2026-03-15')).toBe('neutral');
+      // But March 14 should return it
+      expect(getExactDateFoodStatus(logs, 'dairy', '2026-03-14')).toBe('eliminated');
+    });
+
+    it('returns most recent action for same date', () => {
+      const logs = [
+        createLog({ date: '2026-03-15', action: 'eliminated', createdAt: '2026-03-15T10:00:00Z' }),
+        createLog({ date: '2026-03-15', action: 'reintroduced', createdAt: '2026-03-15T11:00:00Z' }),
+      ];
+      expect(getExactDateFoodStatus(logs, 'dairy', '2026-03-15')).toBe('reintroduced');
+    });
+  });
+
+  describe('getExactDateSubItemStatus', () => {
+    it('does not carry forward from previous dates', () => {
+      const logs = [
+        createLog({ date: '2026-03-14', categoryId: 'dairy', subItemId: 'milk', action: 'eliminated' }),
+      ];
+      expect(getExactDateSubItemStatus(logs, 'dairy', 'milk', '2026-03-15')).toBe('neutral');
+      expect(getExactDateSubItemStatus(logs, 'dairy', 'milk', '2026-03-14')).toBe('eliminated');
+    });
+  });
+
+  describe('dateHasEliminations', () => {
+    it('returns false for no logs', () => {
+      expect(dateHasEliminations([], '2026-03-15')).toBe(false);
+    });
+
+    it('returns true only for exact date with elimination', () => {
+      const logs = [
+        createLog({ date: '2026-03-14', action: 'eliminated' }),
+        createLog({ date: '2026-03-15', action: 'reintroduced' }),
+      ];
+      expect(dateHasEliminations(logs, '2026-03-14')).toBe(true);
+      expect(dateHasEliminations(logs, '2026-03-15')).toBe(false);
+      expect(dateHasEliminations(logs, '2026-03-16')).toBe(false);
+    });
+  });
+
+  describe('dateHasReintroductions', () => {
+    it('returns true only for exact date with reintroduction', () => {
+      const logs = [
+        createLog({ date: '2026-03-15', action: 'reintroduced' }),
+      ];
+      expect(dateHasReintroductions(logs, '2026-03-15')).toBe(true);
+      expect(dateHasReintroductions(logs, '2026-03-14')).toBe(false);
+    });
+  });
+
+  describe('buildExactDateStatusSets', () => {
+    const categories: FoodCategory[] = [
+      { id: 'eggs', slug: 'eggs', nameCs: 'Vejce', icon: '🥚', sortOrder: 1, subItems: [] },
+      {
+        id: 'dairy',
+        slug: 'dairy',
+        nameCs: 'Mléčné',
+        icon: '🥛',
+        sortOrder: 0,
+        subItems: [
+          { id: 'milk', categoryId: 'dairy', slug: 'milk', nameCs: 'Mléko', sortOrder: 0 },
+        ],
+      },
+    ];
+
+    it('does not include logs from other dates', () => {
+      const logs = [
+        createLog({ date: '2026-03-14', categoryId: 'eggs', action: 'eliminated' }),
+      ];
+      const { eliminated } = buildExactDateStatusSets(logs, '2026-03-15', categories);
+      expect(eliminated.size).toBe(0);
+    });
+
+    it('includes logs from exact date', () => {
+      const logs = [
+        createLog({ date: '2026-03-15', categoryId: 'dairy', subItemId: 'milk', action: 'eliminated' }),
+      ];
+      const { eliminated } = buildExactDateStatusSets(logs, '2026-03-15', categories);
+      expect(eliminated.has('dairy:milk')).toBe(true);
+    });
+  });
+
+  describe('getExactDateEliminatedDetails', () => {
+    const categories: FoodCategory[] = [
+      { id: 'eggs', slug: 'eggs', nameCs: 'Vejce', icon: '🥚', sortOrder: 1, subItems: [] },
+      {
+        id: 'dairy',
+        slug: 'dairy',
+        nameCs: 'Mléčné',
+        icon: '🥛',
+        sortOrder: 0,
+        subItems: [
+          { id: 'milk', categoryId: 'dairy', slug: 'milk', nameCs: 'Mléko', sortOrder: 0 },
+          { id: 'cheese', categoryId: 'dairy', slug: 'cheese', nameCs: 'Sýr', sortOrder: 1 },
+        ],
+      },
+    ];
+
+    it('returns empty for no logs on that date', () => {
+      const logs = [createLog({ date: '2026-03-14', categoryId: 'eggs', action: 'eliminated' })];
+      expect(getExactDateEliminatedDetails(logs, '2026-03-15', categories)).toHaveLength(0);
+    });
+
+    it('returns category with empty items for category without sub-items', () => {
+      const logs = [createLog({ date: '2026-03-15', categoryId: 'eggs', action: 'eliminated' })];
+      const result = getExactDateEliminatedDetails(logs, '2026-03-15', categories);
+      expect(result).toHaveLength(1);
+      expect(result[0].category.id).toBe('eggs');
+      expect(result[0].items).toHaveLength(0);
+    });
+
+    it('returns category with specific sub-items that are eliminated', () => {
+      const logs = [
+        createLog({ date: '2026-03-15', categoryId: 'dairy', subItemId: 'milk', action: 'eliminated' }),
+      ];
+      const result = getExactDateEliminatedDetails(logs, '2026-03-15', categories);
+      expect(result).toHaveLength(1);
+      expect(result[0].category.id).toBe('dairy');
+      expect(result[0].items).toHaveLength(1);
+      expect(result[0].items[0].nameCs).toBe('Mléko');
+    });
+
+    it('shows only eliminated sub-items, not all', () => {
+      const logs = [
+        createLog({ date: '2026-03-15', categoryId: 'dairy', subItemId: 'milk', action: 'eliminated' }),
+        createLog({ date: '2026-03-15', categoryId: 'dairy', subItemId: 'cheese', action: 'reintroduced' }),
+      ];
+      const result = getExactDateEliminatedDetails(logs, '2026-03-15', categories);
+      expect(result).toHaveLength(1);
+      expect(result[0].items).toHaveLength(1);
+      expect(result[0].items[0].nameCs).toBe('Mléko');
+    });
+  });
+
+  describe('getExactDateReintroducedDetails', () => {
+    const categories: FoodCategory[] = [
+      { id: 'eggs', slug: 'eggs', nameCs: 'Vejce', icon: '🥚', sortOrder: 1, subItems: [] },
+      {
+        id: 'dairy',
+        slug: 'dairy',
+        nameCs: 'Mléčné',
+        icon: '🥛',
+        sortOrder: 0,
+        subItems: [
+          { id: 'milk', categoryId: 'dairy', slug: 'milk', nameCs: 'Mléko', sortOrder: 0 },
+        ],
+      },
+    ];
+
+    it('returns sub-item details for reintroduced items', () => {
+      const logs = [
+        createLog({ date: '2026-03-15', categoryId: 'dairy', subItemId: 'milk', action: 'reintroduced' }),
+      ];
+      const result = getExactDateReintroducedDetails(logs, '2026-03-15', categories);
+      expect(result).toHaveLength(1);
+      expect(result[0].category.id).toBe('dairy');
+      expect(result[0].items[0].nameCs).toBe('Mléko');
     });
   });
 });

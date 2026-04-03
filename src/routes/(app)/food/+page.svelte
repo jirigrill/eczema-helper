@@ -3,8 +3,8 @@
   import { foodLogStore } from '$lib/stores/food-log.svelte';
   import { getTodayIso, formatDateLong } from '$lib/utils/calendar';
   import {
-    getEliminatedCategories,
-    getReintroducedCategories,
+    getExactDateEliminatedDetails,
+    getExactDateReintroducedDetails,
   } from '$lib/domain/services/food-tracking.service';
   import type { FoodCategory } from '$lib/domain/models';
   import { onMount } from 'svelte';
@@ -15,8 +15,8 @@
   const foodLogs = $derived(foodLogStore.logs);
   const todayIso = getTodayIso();
 
-  const eliminated = $derived(getEliminatedCategories(foodLogs, todayIso, categories));
-  const reintroduced = $derived(getReintroducedCategories(foodLogs, todayIso, categories));
+  const eliminated = $derived(getExactDateEliminatedDetails(foodLogs, todayIso, categories));
+  const reintroduced = $derived(getExactDateReintroducedDetails(foodLogs, todayIso, categories));
 
   onMount(async () => {
     try {
@@ -73,10 +73,15 @@
           <div class="px-4 pt-3 pb-2">
             <p class="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5">{cs.eliminated}</p>
             <div class="space-y-0.5">
-              {#each eliminated as cat (cat.id)}
+              {#each eliminated as entry (entry.category.id)}
                 <div class="flex items-center gap-2 py-1">
-                  <span class="text-base">{cat.icon}</span>
-                  <span class="text-sm text-text">{cat.nameCs}</span>
+                  <span class="text-base">{entry.category.icon}</span>
+                  <div>
+                    <span class="text-sm text-text">{entry.category.nameCs}</span>
+                    {#if entry.items.length > 0}
+                      <span class="text-xs text-text-muted ml-1">({entry.items.map(i => i.nameCs).join(', ')})</span>
+                    {/if}
+                  </div>
                 </div>
               {/each}
             </div>
@@ -86,10 +91,15 @@
           <div class="px-4 pb-3 {eliminated.length > 0 ? 'pt-2 border-t border-surface-dark mt-2' : 'pt-3'}">
             <p class="text-[10px] uppercase tracking-wider text-[#4A7C6F] font-semibold mb-1.5">{cs.reintroduced}</p>
             <div class="space-y-0.5">
-              {#each reintroduced as cat (cat.id)}
+              {#each reintroduced as entry (entry.category.id)}
                 <div class="flex items-center gap-2 py-1">
-                  <span class="text-base">{cat.icon}</span>
-                  <span class="text-sm text-text">{cat.nameCs}</span>
+                  <span class="text-base">{entry.category.icon}</span>
+                  <div>
+                    <span class="text-sm text-text">{entry.category.nameCs}</span>
+                    {#if entry.items.length > 0}
+                      <span class="text-xs text-text-muted ml-1">({entry.items.map(i => i.nameCs).join(', ')})</span>
+                    {/if}
+                  </div>
                 </div>
               {/each}
             </div>
