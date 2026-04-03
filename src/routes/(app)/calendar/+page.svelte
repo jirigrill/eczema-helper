@@ -8,12 +8,10 @@
   import { authStore } from '$lib/stores/auth.svelte';
   import { formatDateLong, formatDateShort, getTodayIso, getMonthDays } from '$lib/utils/calendar';
   import {
-    buildStatusSets,
     applyDraftDiffToRange,
     getDatesInRange,
     getEliminatedCategories,
     getReintroducedCategories,
-    getPreviousDate,
   } from '$lib/domain/services/food-tracking.service';
   import type { FoodCategory } from '$lib/domain/models';
   import { onMount } from 'svelte';
@@ -114,18 +112,9 @@
   }
 
   function enterEditMode() {
-    const startDate = inspectedDate ?? getTodayIso();
     calendarStore.enterEditMode();
-
-    // Build draft from existing food log data
-    const prevDate = getPreviousDate(startDate);
-    const sourceData = buildStatusSets(foodLogs, startDate, categories);
-    const prevData = buildStatusSets(foodLogs, prevDate, categories);
-
-    // Use selected day's data if it has any, otherwise inherit from previous day
-    const hasData = sourceData.eliminated.size > 0 || sourceData.reintroduced.size > 0;
-    const seed = hasData ? sourceData : prevData;
-    draftEliminationStore.initFromSets(seed.eliminated, seed.reintroduced);
+    // Start with empty toggles — user explicitly picks what to change
+    draftEliminationStore.initFromSets(new Set(), new Set());
   }
 
   function cancelEdit() {
