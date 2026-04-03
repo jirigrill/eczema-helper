@@ -59,9 +59,24 @@ export const foodLogStore = {
             const json = await res.json();
             if (json.ok) {
               const serverLogs: FoodLog[] = json.data;
-              // Upsert server logs into Dexie
-              await db.foodLogs.bulkPut(serverLogs);
-              // Reload from Dexie to get merged state
+              // Replace local data for this range with server truth:
+              // 1. Delete local records for this range (removes stale data)
+              const localIds = localLogs.map((l) => l.id);
+              if (localIds.length > 0) {
+                await db.foodLogs.bulkDelete(localIds);
+              }
+              // 2. Insert server records
+              if (serverLogs.length > 0) {
+                await db.foodLogs.bulkPut(serverLogs);
+              }
+              // 3. Re-add any unsynced local records (not yet on server)
+              const unsyncedLocal = localLogs.filter(
+                (l) => !l.syncedAt && !serverLogs.some((s) => s.id === l.id)
+              );
+              if (unsyncedLocal.length > 0) {
+                await db.foodLogs.bulkPut(unsyncedLocal);
+              }
+              // Reload from Dexie
               _logs = await db.foodLogs
                 .where('[childId+date]')
                 .between([childId, startDate], [childId, endDate], true, true)
