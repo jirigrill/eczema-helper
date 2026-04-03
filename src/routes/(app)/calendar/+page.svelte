@@ -8,7 +8,7 @@
   import { authStore } from '$lib/stores/auth.svelte';
   import { formatDateLong, formatDateShort, getTodayIso, getMonthDays } from '$lib/utils/calendar';
   import {
-    applyDraftDiffToRange,
+    applyDraftToRange,
     getDatesInRange,
     buildExactDateStatusSets,
     getExactDateEliminatedDetails,
@@ -129,19 +129,17 @@
     if (!sortedRange || !activeChildId || !authStore.user) return;
 
     const dates = getDatesInRange(sortedRange.start, sortedRange.end);
-    const entries = applyDraftDiffToRange(
+    const entries = applyDraftToRange(
       draftEliminationStore.draftEliminated,
       draftEliminationStore.draftReintroduced,
-      draftEliminationStore.committedElimSnapshot,
-      draftEliminationStore.committedReintroSnapshot,
       dates,
       activeChildId,
       authStore.user.id
     );
 
-    if (entries.length > 0) {
-      await foodLogStore.createBulkLogs(entries);
-    }
+    // Replace: delete existing logs for these dates, then create from draft.
+    // If draft is empty (everything toggled off), this clears the dates.
+    await foodLogStore.replaceLogsForDates(activeChildId, dates, entries);
 
     const count = rangeDayCount;
     const focusDate = sortedRange.end;

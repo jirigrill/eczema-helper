@@ -143,6 +143,61 @@ export const foodLogStore = {
   },
 
   /**
+   * Replace all food logs for a set of dates: delete existing, then create new.
+   * This ensures the saved state matches exactly what the user sees in the draft.
+   */
+  async replaceLogsForDates(
+    childId: string,
+    dates: string[],
+    entries: Array<Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt'>>
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    // Find existing logs for these dates
+    const existingIds = _logs
+      .filter((l) => l.childId === childId && dates.includes(l.date))
+      .map((l) => l.id);
+
+    // Delete existing from Dexie
+    if (existingIds.length > 0) {
+      await db.foodLogs.bulkDelete(existingIds);
+      // Delete from server
+      if (navigator.onLine) {
+        for (const id of existingIds) {
+          try {
+            await fetch(`/api/food-logs/${id}`, { method: 'DELETE' });
+          } catch {
+            // Will retry on next sync
+          }
+        }
+      }
+    }
+
+    // Create new logs
+    const newLogs: FoodLog[] = entries.map((e) => ({
+      ...e,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      syncedAt: undefined,
+    }));
+
+    if (newLogs.length > 0) {
+      await db.foodLogs.bulkPut(newLogs);
+    }
+
+    // Optimistic update: remove old, add new
+    _logs = [
+      ..._logs.filter((l) => !(l.childId === childId && dates.includes(l.date))),
+      ...newLogs,
+    ];
+
+    // Trigger sync
+    _syncStatus = 'pending';
+    this.syncToServer();
+  },
+
+  /**
    * Bulk create food logs (for "copy from yesterday").
    */
   async createBulkLogs(
