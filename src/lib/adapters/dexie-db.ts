@@ -41,6 +41,13 @@ export class EczemaTrackerDB extends Dexie {
       analysisResults: 'id, childId, [photo1Id+photo2Id]',
       photoBlobs: 'id, photoId, type'
     });
+
+    // v2: purge stale unsynced food logs from pre-release testing
+    this.version(2).stores({}).upgrade(async (tx) => {
+      const foodLogs = tx.table('foodLogs');
+      const stale = await foodLogs.filter((log) => !log.syncedAt).toArray();
+      await foodLogs.bulkDelete(stale.map((l) => l.id));
+    });
   }
 }
 
