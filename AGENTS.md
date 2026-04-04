@@ -10,7 +10,7 @@ Eczema Tracker PWA — a personal app for tracking a breastfed newborn's atopic 
 
 All design docs live in `docs/`. Read the relevant phase doc before implementing any feature.
 
-**Current state: Phase 0 and Phase 1 complete.** See phase docs and `docs/README.md` for details.
+**Current state: Phase 0 and Phase 1 complete. Phase 2a (calendar + food elimination tracking) in development.** See phase docs and `docs/README.md` for details.
 
 When adding/changing a feature, update all affected docs:
 

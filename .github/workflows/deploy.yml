@@ -41,6 +41,17 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync docker-compose.prod.yml
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: docker-compose.prod.yml
+          target: /opt/eczema-tracker/
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
         with:
