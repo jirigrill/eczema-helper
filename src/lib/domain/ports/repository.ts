@@ -41,15 +41,21 @@ export interface DataRepository {
   // Food Logs
   getFoodLogs(childId: string, dateRange: { from: string; to: string }): Promise<FoodLog[]>;
   getFoodLogsForDate(childId: string, date: string): Promise<FoodLog[]>;
+  getFoodLogById(id: string): Promise<FoodLog | null>;
   createFoodLog(log: Omit<FoodLog, 'id' | 'createdAt'>): Promise<FoodLog>;
+  updateFoodLog(id: string, updates: Partial<Pick<FoodLog, 'action' | 'notes'>>): Promise<FoodLog>;
+  upsertFoodLog(log: FoodLog): Promise<FoodLog>;
   deleteFoodLog(id: string): Promise<void>;
   getCurrentEliminationState(childId: string): Promise<Map<string, 'eliminated' | 'reintroduced'>>;
+  getMostRecentFoodLog(childId: string, categoryId: string, onOrBeforeDate: string): Promise<FoodLog | null>;
 
   // Meals
   getMealsForDate(userId: string, date: string): Promise<Meal[]>;
+  getMealById(id: string): Promise<Meal | null>;
   getMealWithItems(mealId: string): Promise<(Meal & { items: MealItem[] }) | null>;
   createMeal(meal: Omit<Meal, 'id' | 'createdAt' | 'updatedAt'>, items: Omit<MealItem, 'id'>[]): Promise<Meal>;
   updateMeal(id: string, updates: Partial<Meal>): Promise<Meal>;
+  replaceMealItems(mealId: string, items: Omit<MealItem, 'id'>[]): Promise<void>;
   deleteMeal(id: string): Promise<void>;
 
   // Photos

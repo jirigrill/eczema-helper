@@ -442,6 +442,9 @@ env-template:
         "# Session" \
         "SESSION_SECRET=change-me-32-char-min" \
         "" \
+        "# Registration (set to false after initial account creation to lock down)" \
+        "REGISTRATION_ENABLED=true" \
+        "" \
         "# pgAdmin (optional, for local dev)" \
         "PGADMIN_EMAIL=admin@local.dev" \
         "PGADMIN_PASSWORD=admin" \

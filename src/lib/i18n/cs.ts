@@ -30,6 +30,9 @@ export const cs = {
   delete: 'Smazat',
   edit: 'Upravit',
   add: 'Přidat',
+  close: 'Zavřít',
+  back: 'Zpět',
+  undo: 'Zpět',
 
   // Child management (single-child app)
   child: 'Dítě',
@@ -52,6 +55,72 @@ export const cs = {
 
   // Limits
   singleChildOnly: 'Tato aplikace podporuje pouze jedno dítě.',
+
+  // Calendar
+  previousMonth: 'Předchozí měsíc',
+  nextMonth: 'Další měsíc',
+  today: 'Dnes',
+  dayDetail: 'Detail dne',
+  elimination: 'Vyřazení',
+  reintroduction: 'Znovuzavedení',
+  eliminate: 'Vyřadit',
+  reintroduce: 'Zavést zpět',
+  selectStart: 'Klepněte na den pro začátek období',
+  selectEnd: 'Klepněte na druhý den pro konec',
+  noRecords: 'Žádné záznamy',
+  nothingToReintroduce: 'Žádné vyřazené potraviny k znovuzavedení',
+  selectPeriod: 'Vyberte období',
+  selectEndSuffix: '— vyberte konec',
+  editInCalendar: 'Upravit v kalendáři',
+
+  // Food tracking
+  eliminations: 'Eliminace',
+  meals: 'Jídla',
+  eliminated: 'Vyřazeno',
+  reintroduced: 'Znovuzavedeno',
+  neutral: 'Neutrální',
+  copyFromYesterday: 'Kopírovat ze včerejška',
+  noYesterdayLogs: 'Včera nejsou žádné záznamy k kopírování',
+  copiedFromYesterday: 'Zkopírováno ze včerejška',
+  noEliminationsToday: 'Žádné změny v dietě pro tento den',
+  tapCategoryToEliminate: 'Klepněte na kategorii pro eliminaci',
+
+  // Meals
+  breakfast: 'Snídaně',
+  lunch: 'Oběd',
+  dinner: 'Večeře',
+  snack: 'Svačina',
+  mealType: 'Typ jídla',
+  mealLabel: 'Poznámka',
+  mealItems: 'Položky jídla',
+  addMeal: 'Přidat jídlo',
+  editMeal: 'Upravit jídlo',
+  mealAdded: 'Jídlo bylo přidáno',
+  mealUpdated: 'Jídlo bylo upraveno',
+  mealDeleted: 'Jídlo bylo smazáno',
+  noMealsToday: 'Žádná jídla pro tento den',
+  addItem: 'Přidej položku…',
+  pressEnterToAdd: 'Stiskněte Enter pro přidání',
+  unknownItem: 'Neznámá položka',
+
+  // Sync status
+  synced: 'Synchronizováno',
+  syncing: 'Synchronizuji…',
+  pendingSync: 'Čeká na sync',
+  offline: 'Offline',
+
+  // Empty states
+  addChildFirst: 'Nejprve přidejte dítě',
+  goToSettings: 'Přejít do nastavení',
+  loadingCategories: 'Načítám kategorie…',
 } as const;
 
 export type TranslationKey = keyof typeof cs;
+
+/** Czech plural for "den" (day): 1 den, 2-4 dny, 5+ dní */
+export function dayPlural(n: number): string {
+  if (n === 1) return 'den';
+  if (n >= 2 && n <= 4) return 'dny';
+  return 'dní';
+}
+

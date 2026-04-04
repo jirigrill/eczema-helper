@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { childrenStore } from './children.svelte';
 import type { Child } from '../domain/models';
 
-// Mock localStorage to ensure test isolation
+// Mock localStorage for test isolation
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {

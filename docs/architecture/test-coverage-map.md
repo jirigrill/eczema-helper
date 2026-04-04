@@ -2,7 +2,7 @@
 
 This document tracks what is tested, with which test type, and identifies gaps. Update after adding/modifying tests.
 
-**Last updated:** 2026-03-30
+**Last updated:** 2026-04-03
 
 ---
 
@@ -10,9 +10,9 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 
 | Layer | Tests | Files | Coverage Status |
 |-------|-------|-------|-----------------|
-| Unit | 10 files | 50+ test cases | ✅ Good |
-| Integration | 6 files | 50+ test cases | ✅ Good |
-| E2E | 4 files | 17+ test cases | ✅ Good |
+| Unit | 14 files | 83 test cases | ✅ Good |
+| Integration | 9 files | 80+ test cases | ✅ Good |
+| E2E | 5 files | 22 test cases | ✅ Good |
 
 ---
 
@@ -152,6 +152,84 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 
 ---
 
+## Phase 2: Food Elimination Tracker & Meals
+
+### Features & Test Coverage
+
+| Feature | Unit | Integration | E2E | Status |
+|---------|------|-------------|-----|--------|
+| **Food Tracking Service** | ✅ `food-tracking.service.test.ts` (24 tests) | - | - | ✅ |
+| - getExactDateFoodStatus (per-date, no carry-forward) | ✅ | - | - | ✅ |
+| - getExactDateSubItemStatus | ✅ | - | - | ✅ |
+| - dateHasEliminations / dateHasReintroductions | ✅ | - | - | ✅ |
+| - buildExactDateStatusSets (Set↔FoodLog bridge) | ✅ | - | - | ✅ |
+| - getExactDateEliminatedDetails (with sub-items) | ✅ | - | - | ✅ |
+| - getExactDateReintroducedDetails (with sub-items) | ✅ | - | - | ✅ |
+| - getDatesInRange | ✅ | - | - | ✅ |
+| - applyDraftToRange (draft→FoodLog) | ✅ | - | - | ✅ |
+| **Draft Elimination Store** | ✅ `draft-elimination.test.ts` (19 tests) | - | - | ✅ |
+| - Toggle elimination on/off | ✅ | - | - | ✅ |
+| - Toggle reintroduction (mutual exclusion with elimination) | ✅ | - | - | ✅ |
+| - Group toggles (all sub-items on/off) | ✅ | - | - | ✅ |
+| - catFullElim / catPartialElim / catFullReintro | ✅ | - | - | ✅ |
+| - Snapshot relevance for reintroduce mode | ✅ | - | - | ✅ |
+| - initFromSets / clear | ✅ | - | - | ✅ |
+| **Meal Logging Service** | ✅ `meal-logging.service.test.ts` | - | - | ✅ |
+| - getMealItemDisplayName (predefined/custom) | ✅ | - | - | ✅ |
+| - formatMealSummary with label | ✅ | - | - | ✅ |
+| - resolveCategoryId | ✅ | - | - | ✅ |
+| - sortMealsByType | ✅ | - | - | ✅ |
+| - filterSubItemsBySearch (diacritics) | ✅ | - | - | ✅ |
+| **Calendar Utilities** | ✅ `calendar.test.ts` | - | - | ✅ |
+| - getMonthDays (42 days grid) | ✅ | - | - | ✅ |
+| - formatMonthYear Czech locale | ✅ | - | - | ✅ |
+| - isToday | ✅ | - | - | ✅ |
+| - isSameMonth | ✅ | - | - | ✅ |
+| - navigateMonth (year rollover) | ✅ | - | - | ✅ |
+| **Food Logs API** | - | ✅ `food-logs-api.test.ts` | - | ✅ |
+| - GET /api/food-logs (date range) | - | ✅ | - | ✅ |
+| - POST /api/food-logs (create) | - | ✅ | - | ✅ |
+| - PUT /api/food-logs/[id] (update) | - | ✅ | - | ✅ |
+| - DELETE /api/food-logs/[id] | - | ✅ | - | ✅ |
+| - POST /api/food-logs/batch (sync) | - | ✅ | - | ✅ |
+| - Rejects invalid action (400) | - | ✅ | - | ✅ |
+| - Rejects non-owned child (403) | - | ✅ | - | ✅ |
+| - Requires authentication (401) | - | ✅ | - | ✅ |
+| **Food Categories API** | - | ✅ `food-categories-api.test.ts` | - | ✅ |
+| - GET /api/food-categories | - | ✅ | - | ✅ |
+| - Returns categories with sub-items | - | ✅ | - | ✅ |
+| - Requires authentication | - | ✅ | - | ✅ |
+| **Meals API** | - | ✅ `meals-api.test.ts` | - | ✅ |
+| - GET /api/meals (by date) | - | ✅ | - | ✅ |
+| - POST /api/meals (with items) | - | ✅ | - | ✅ |
+| - PUT /api/meals/[id] (replace items) | - | ✅ | - | ✅ |
+| - DELETE /api/meals/[id] (cascade) | - | ✅ | - | ✅ |
+| - Rejects invalid mealType (400) | - | ✅ | - | ✅ |
+| - Rejects meal with no items (400) | - | ✅ | - | ✅ |
+| - Scopes to authenticated user | - | ✅ | - | ✅ |
+| **Calendar UI (view/edit modes)** | - | - | ✅ `calendar-food-tracking.spec.ts` | ✅ |
+| **Meal Composer** | - | - | Manual | ⚠️ Manual |
+| **Workbox Caching (Feature 16)** | - | - | Manual | ❌ Not implemented |
+| - NetworkFirst for /api/* | - | - | Manual | ❌ |
+| - CacheFirst for static assets | - | - | Manual | ❌ |
+| **Sync Status Indicator (Feature 17)** | - | - | Manual | ⚠️ Component exists |
+| - Cloud icon displays sync state | - | - | Manual | ⚠️ |
+| - Toast on sync completion | - | - | Manual | ⚠️ |
+| - Pull-to-refresh triggers sync | - | - | Manual | ❌ |
+| **Push-First Sync (Feature 18)** | - | ❌ | - | ⚠️ Partial |
+| - Local changes pushed before pulling | - | ❌ | - | ⚠️ |
+| - Debounce after mutations (5s) | - | ❌ | - | ❌ |
+| **Conflict Resolution (Feature 19)** | - | ❌ | - | ❌ Not implemented |
+| - Server sets updated_at on upsert | - | ❌ | - | ❌ |
+| - Unique constraint on food_logs | - | ❌ | - | ❌ |
+| - ON CONFLICT DO NOTHING in batch | - | ❌ | - | ❌ |
+| **Dexie Schema Versioning (Feature 20)** | ❌ | - | - | ❌ Not implemented |
+| - Version increment on schema change | ❌ | - | - | ❌ |
+| - .upgrade() hooks for migration | ❌ | - | - | ❌ |
+| - Full re-sync after upgrade | ❌ | - | - | ❌ |
+
+---
+
 ## Test Files Reference
 
 ### Unit Tests (`src/lib/**/*.test.ts`)
@@ -168,6 +246,10 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 | `stores/children.test.ts` | 7 | Children store: selection, persistence |
 | `stores/food-log.test.ts` | 5 | Food log store: logs array, selected date |
 | `stores/photos.test.ts` | 9 | Photos store: photos array, filter, derived filtered |
+| `domain/services/food-tracking.service.test.ts` | 24 | Per-date food status, sub-item status, exact-date status sets, eliminated/reintroduced details, date ranges, draft→FoodLog bridging |
+| `stores/draft-elimination.test.ts` | 19 | Toggle elimination/reintroduction, mutual exclusion, group toggles, category queries, snapshot relevance |
+| `domain/services/meal-logging.service.test.ts` | 10 | Meal item display, formatting, category resolution, sorting, search |
+| `utils/calendar.test.ts` | 14 | Month days grid, date formatting, month navigation, weekday names |
 
 ### Integration Tests (`tests/integration/**/*.test.ts`)
 
@@ -179,6 +261,9 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 | `seed-data.test.ts` | 6 | Food categories/sub-items seed integrity |
 | `rate-limit.test.ts` | 5 | Login throttling, account lockout, counter reset |
 | `audit-log.test.ts` | 9 | Security event logging, password exclusion, IP capture |
+| `food-logs-api.test.ts` | 15 | Food logs CRUD, batch sync, auth guards, child ownership |
+| `food-categories-api.test.ts` | 3 | Food categories with sub-items, auth |
+| `meals-api.test.ts` | 15 | Meals CRUD, items cascade, auth, user scoping |
 
 ### E2E Tests (`e2e/**/*.spec.ts`)
 
@@ -188,6 +273,7 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 | `auth-guard.spec.ts` | 4 | Route protection, authenticated redirects |
 | `logout.spec.ts` | 1 | Logout clears session, redirects |
 | `children.spec.ts` | 9 | Child CRUD UI, forms, confirmation dialogs |
+| `calendar-food-tracking.spec.ts` | 5 | Per-date elimination, edit mode state, reintroduce tab, sub-item display, cancel |
 
 ---
 

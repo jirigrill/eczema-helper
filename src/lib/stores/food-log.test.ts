@@ -27,7 +27,6 @@ const mockLog2: FoodLog = {
 describe('food log store', () => {
   beforeEach(() => {
     foodLogStore.setLogs([]);
-    foodLogStore.setSelectedDate(new Date().toISOString().slice(0, 10));
   });
 
   describe('logs', () => {
@@ -45,19 +44,6 @@ describe('food log store', () => {
       foodLogStore.setLogs([mockLog]);
       foodLogStore.setLogs([]);
       expect(foodLogStore.logs).toHaveLength(0);
-    });
-  });
-
-  describe('selectedDate', () => {
-    it('defaults to today in YYYY-MM-DD format', () => {
-      const today = new Date().toISOString().slice(0, 10);
-      expect(foodLogStore.selectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(foodLogStore.selectedDate).toBe(today);
-    });
-
-    it('can be set to a specific date', () => {
-      foodLogStore.setSelectedDate('2025-03-15');
-      expect(foodLogStore.selectedDate).toBe('2025-03-15');
     });
   });
 });

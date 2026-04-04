@@ -3,16 +3,22 @@ import type { Child } from '$lib/domain/models';
 const STORAGE_KEY = 'activeChildId';
 
 function loadActiveChildId(): string | null {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem(STORAGE_KEY);
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
 }
 
 function saveActiveChildId(id: string | null): void {
-  if (typeof localStorage === 'undefined') return;
-  if (id) {
-    localStorage.setItem(STORAGE_KEY, id);
-  } else {
-    localStorage.removeItem(STORAGE_KEY);
+  try {
+    if (id) {
+      localStorage.setItem(STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // localStorage unavailable (SSR, restricted sandbox)
   }
 }
 

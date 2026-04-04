@@ -17,6 +17,13 @@ type PhotoBlob = {
   blob: ArrayBuffer;
 };
 
+type PendingDelete = {
+  id: string;
+  table: string;
+  recordId: string;
+  createdAt: string;
+};
+
 export class EczemaTrackerDB extends Dexie {
   children!: Table<Child>;
   foodCategories!: Table<FoodCategory>;
@@ -27,6 +34,7 @@ export class EczemaTrackerDB extends Dexie {
   trackingPhotos!: Table<TrackingPhoto>;
   analysisResults!: Table<AnalysisResult>;
   photoBlobs!: Table<PhotoBlob>;
+  pendingDeletes!: Table<PendingDelete>;
 
   constructor() {
     super('eczema-tracker');
@@ -40,6 +48,11 @@ export class EczemaTrackerDB extends Dexie {
       trackingPhotos: 'id, childId, date, photoType, [childId+date], syncedAt',
       analysisResults: 'id, childId, [photo1Id+photo2Id]',
       photoBlobs: 'id, photoId, type'
+    });
+
+    // v2: add pending deletes queue for offline-safe server deletions
+    this.version(2).stores({
+      pendingDeletes: 'id, table, recordId',
     });
   }
 }
