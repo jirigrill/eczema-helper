@@ -56,6 +56,7 @@ export const mealsStore = {
     items: Partial<MealItem>[],
     label?: string
   ): Promise<MealWithItems | null> {
+    _error = null;
     try {
       const res = await fetch('/api/meals', {
         method: 'POST',
@@ -70,9 +71,13 @@ export const mealsStore = {
           _meals = [..._meals, newMeal];
           return newMeal;
         }
+        _error = json.error ?? 'Chyba při vytváření jídla';
+      } else {
+        _error = 'Chyba při vytváření jídla';
       }
       return null;
-    } catch {
+    } catch (err) {
+      _error = err instanceof Error ? err.message : 'Chyba při vytváření jídla';
       return null;
     }
   },
@@ -84,6 +89,7 @@ export const mealsStore = {
     id: string,
     updates: { mealType?: string; label?: string; items?: Partial<MealItem>[] }
   ): Promise<MealWithItems | null> {
+    _error = null;
     try {
       const res = await fetch(`/api/meals/${id}`, {
         method: 'PUT',
@@ -98,9 +104,13 @@ export const mealsStore = {
           _meals = _meals.map((m) => (m.id === id ? updatedMeal : m));
           return updatedMeal;
         }
+        _error = json.error ?? 'Chyba při úpravě jídla';
+      } else {
+        _error = 'Chyba při úpravě jídla';
       }
       return null;
-    } catch {
+    } catch (err) {
+      _error = err instanceof Error ? err.message : 'Chyba při úpravě jídla';
       return null;
     }
   },
@@ -109,14 +119,17 @@ export const mealsStore = {
    * Delete a meal.
    */
   async deleteMeal(id: string): Promise<boolean> {
+    _error = null;
     try {
       const res = await fetch(`/api/meals/${id}`, { method: 'DELETE' });
-      if (res.ok) {
+      if (res.ok || res.status === 204) {
         _meals = _meals.filter((m) => m.id !== id);
         return true;
       }
+      _error = 'Chyba při mazání jídla';
       return false;
-    } catch {
+    } catch (err) {
+      _error = err instanceof Error ? err.message : 'Chyba při mazání jídla';
       return false;
     }
   },

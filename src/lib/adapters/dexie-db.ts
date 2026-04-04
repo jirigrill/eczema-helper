@@ -17,6 +17,13 @@ type PhotoBlob = {
   blob: ArrayBuffer;
 };
 
+type PendingDelete = {
+  id: string;
+  table: string;
+  recordId: string;
+  createdAt: string;
+};
+
 export class EczemaTrackerDB extends Dexie {
   children!: Table<Child>;
   foodCategories!: Table<FoodCategory>;
@@ -27,6 +34,7 @@ export class EczemaTrackerDB extends Dexie {
   trackingPhotos!: Table<TrackingPhoto>;
   analysisResults!: Table<AnalysisResult>;
   photoBlobs!: Table<PhotoBlob>;
+  pendingDeletes!: Table<PendingDelete>;
 
   constructor() {
     super('eczema-tracker');
@@ -42,11 +50,9 @@ export class EczemaTrackerDB extends Dexie {
       photoBlobs: 'id, photoId, type'
     });
 
-    // v2: purge stale unsynced food logs from pre-release testing
-    this.version(2).stores({}).upgrade(async (tx) => {
-      const foodLogs = tx.table('foodLogs');
-      const stale = await foodLogs.filter((log) => !log.syncedAt).toArray();
-      await foodLogs.bulkDelete(stale.map((l) => l.id));
+    // v2: add pending deletes queue for offline-safe server deletions
+    this.version(2).stores({
+      pendingDeletes: 'id, table, recordId',
     });
   }
 }

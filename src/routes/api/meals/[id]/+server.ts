@@ -155,7 +155,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 
     await repository.deleteMeal(id);
 
-    return json({ ok: true, data: {} } satisfies ApiSuccess<DeleteMealData>, { status: 200 });
+    return new Response(null, { status: 204 });
   } catch (error) {
     logger.error(
       { err: formatErrorMinimal(error), userId: locals.user.id, mealId: id },

@@ -144,7 +144,8 @@ export const foodLogStore = {
 
   /**
    * Replace all food logs for a set of dates: delete existing, then create new.
-   * This ensures the saved state matches exactly what the user sees in the draft.
+   * Offline-first: all mutations go to Dexie first. Server deletions are queued
+   * in the pendingDeletes table and processed by syncToServer.
    */
   async replaceLogsForDates(
     childId: string,
@@ -153,24 +154,27 @@ export const foodLogStore = {
   ): Promise<void> {
     const now = new Date().toISOString();
 
-    // Find existing logs for these dates
-    const existingIds = _logs
-      .filter((l) => l.childId === childId && dates.includes(l.date))
-      .map((l) => l.id);
+    // Find existing synced logs that need server-side deletion
+    const existingLogs = _logs.filter(
+      (l) => l.childId === childId && dates.includes(l.date)
+    );
+    const syncedIds = existingLogs.filter((l) => l.syncedAt).map((l) => l.id);
 
-    // Delete existing from Dexie
-    if (existingIds.length > 0) {
-      await db.foodLogs.bulkDelete(existingIds);
-      // Delete from server
-      if (navigator.onLine) {
-        for (const id of existingIds) {
-          try {
-            await fetch(`/api/food-logs/${id}`, { method: 'DELETE' });
-          } catch {
-            // Will retry on next sync
-          }
-        }
-      }
+    // Queue server deletions for synced records
+    if (syncedIds.length > 0) {
+      const pendingDeletes = syncedIds.map((recordId) => ({
+        id: crypto.randomUUID(),
+        table: 'foodLogs',
+        recordId,
+        createdAt: now,
+      }));
+      await db.pendingDeletes.bulkPut(pendingDeletes);
+    }
+
+    // Delete all existing from Dexie (both synced and unsynced)
+    const allExistingIds = existingLogs.map((l) => l.id);
+    if (allExistingIds.length > 0) {
+      await db.foodLogs.bulkDelete(allExistingIds);
     }
 
     // Create new logs
@@ -224,7 +228,7 @@ export const foodLogStore = {
   },
 
   /**
-   * Sync unsynced logs to server.
+   * Sync unsynced logs to server: process pending deletes first, then push new records.
    */
   async syncToServer(): Promise<void> {
     if (!navigator.onLine) {
@@ -235,33 +239,64 @@ export const foodLogStore = {
     _syncStatus = 'syncing';
 
     try {
+      // Step 1: Process pending deletes
+      const pendingDeletes = await db.pendingDeletes
+        .where('table')
+        .equals('foodLogs')
+        .toArray();
+
+      const completedDeleteIds: string[] = [];
+      for (const pd of pendingDeletes) {
+        try {
+          const res = await fetch(`/api/food-logs/${pd.recordId}`, { method: 'DELETE' });
+          if (res.ok || res.status === 404) {
+            completedDeleteIds.push(pd.id);
+          }
+        } catch {
+          // Will retry on next sync cycle
+        }
+      }
+      if (completedDeleteIds.length > 0) {
+        await db.pendingDeletes.bulkDelete(completedDeleteIds);
+      }
+
+      // Step 2: Push unsynced records
       const unsyncedLogs = await db.foodLogs
         .filter((log) => log.syncedAt === undefined || log.syncedAt === null)
         .toArray();
 
-      if (unsyncedLogs.length === 0) {
+      if (unsyncedLogs.length === 0 && completedDeleteIds.length === pendingDeletes.length) {
         _syncStatus = 'synced';
         return;
       }
 
-      const res = await fetch('/api/food-logs/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logs: unsyncedLogs }),
-      });
+      if (unsyncedLogs.length > 0) {
+        const res = await fetch('/api/food-logs/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logs: unsyncedLogs }),
+        });
 
-      if (res.ok) {
-        const now = new Date().toISOString();
-        // Mark as synced in Dexie
-        const updates = unsyncedLogs.map((log) => ({
-          key: log.id,
-          changes: { syncedAt: now },
-        }));
-        await db.foodLogs.bulkUpdate(updates);
-        _syncStatus = 'synced';
-      } else {
-        _syncStatus = 'pending';
+        if (res.ok) {
+          const now = new Date().toISOString();
+          const updates = unsyncedLogs.map((log) => ({
+            key: log.id,
+            changes: { syncedAt: now },
+          }));
+          await db.foodLogs.bulkUpdate(updates);
+        }
       }
+
+      // Check if everything is synced
+      const remainingDeletes = await db.pendingDeletes
+        .where('table')
+        .equals('foodLogs')
+        .count();
+      const remainingUnsynced = await db.foodLogs
+        .filter((log) => !log.syncedAt)
+        .count();
+
+      _syncStatus = remainingDeletes === 0 && remainingUnsynced === 0 ? 'synced' : 'pending';
     } catch {
       _syncStatus = 'offline';
     }
