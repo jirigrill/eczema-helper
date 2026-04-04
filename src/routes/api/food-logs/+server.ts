@@ -12,18 +12,9 @@ import type {
   CreateFoodLogData,
 } from '$lib/types/api';
 
+import { isValidAction, isValidDateString } from '$lib/server/validation';
+
 const repository = new PostgresRepository();
-
-const VALID_ACTIONS = ['eliminated', 'reintroduced'] as const;
-
-function isValidAction(action: unknown): action is 'eliminated' | 'reintroduced' {
-  return typeof action === 'string' && VALID_ACTIONS.includes(action as typeof VALID_ACTIONS[number]);
-}
-
-function isValidDateString(date: unknown): date is string {
-  if (typeof date !== 'string') return false;
-  return /^\d{4}-\d{2}-\d{2}$/.test(date);
-}
 
 function parseCreateFoodLogRequest(body: unknown): CreateFoodLogRequest | null {
   if (!body || typeof body !== 'object') return null;

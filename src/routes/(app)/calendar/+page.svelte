@@ -3,7 +3,6 @@
     CalendarHeader, CalendarGrid, SwipeContainer,
     DayDetailCard, EditModeToggles, FloatingSaveBar,
   } from '$lib/components/calendar';
-  import Toast from '$lib/components/Toast.svelte';
   import { calendarStore } from '$lib/stores/calendar.svelte';
   import { draftEliminationStore } from '$lib/stores/draft-elimination.svelte';
   import { foodLogStore } from '$lib/stores/food-log.svelte';
@@ -19,7 +18,7 @@
   } from '$lib/domain/services/food-tracking.service';
   import type { FoodCategory } from '$lib/domain/models';
   import { onMount } from 'svelte';
-  import { cs } from '$lib/i18n/cs';
+  import { cs, dayPlural } from '$lib/i18n/cs';
 
   let categories = $state<FoodCategory[]>([]);
   let toast = $state<{ message: string } | null>(null);
@@ -107,12 +106,6 @@
     );
 
     await foodLogStore.replaceLogsForDates(activeChildId, dates, entries);
-
-    function dayPlural(n: number): string {
-      if (n === 1) return 'den';
-      if (n >= 2 && n <= 4) return 'dny';
-      return 'dní';
-    }
 
     const count = rangeDayCount;
     toast = { message: count > 0 ? `Uloženo pro ${count} ${dayPlural(count)}` : cs.save };

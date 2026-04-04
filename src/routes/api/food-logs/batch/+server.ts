@@ -7,13 +7,9 @@ import { formatErrorMinimal } from '$lib/utils/error';
 import type { ApiError, ApiSuccess, BatchSyncFoodLogsData } from '$lib/types/api';
 import type { FoodLog } from '$lib/domain/models';
 
+import { isValidAction } from '$lib/server/validation';
+
 const repository = new PostgresRepository();
-
-const VALID_ACTIONS = ['eliminated', 'reintroduced'] as const;
-
-function isValidAction(action: unknown): action is 'eliminated' | 'reintroduced' {
-  return typeof action === 'string' && VALID_ACTIONS.includes(action as typeof VALID_ACTIONS[number]);
-}
 
 function isValidFoodLog(log: unknown): log is FoodLog {
   if (!log || typeof log !== 'object') return false;

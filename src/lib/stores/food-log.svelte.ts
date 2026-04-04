@@ -5,7 +5,6 @@ let _logs = $state<FoodLog[]>([]);
 let _loading = $state(false);
 let _error = $state<string | null>(null);
 let _syncStatus = $state<'synced' | 'syncing' | 'offline' | 'pending'>('synced');
-let _selectedDate = $state(new Date().toISOString().slice(0, 10));
 
 export const foodLogStore = {
   get logs() {
@@ -20,16 +19,9 @@ export const foodLogStore = {
   get syncStatus() {
     return _syncStatus;
   },
-  get selectedDate() {
-    return _selectedDate;
-  },
 
   setLogs(logs: FoodLog[]) {
     _logs = logs;
-  },
-
-  setSelectedDate(date: string) {
-    _selectedDate = date;
   },
 
   /**

@@ -4,7 +4,6 @@ const now = new Date();
 
 let _year = $state(now.getFullYear());
 let _month = $state(now.getMonth()); // 0-indexed
-let _selectedDate = $state<string | null>(null);
 
 // Edit mode state
 let _mode = $state<'view' | 'edit'>('view');
@@ -20,9 +19,6 @@ export const calendarStore = {
   get month() {
     return _month;
   },
-  get selectedDate() {
-    return _selectedDate;
-  },
   get mode() {
     return _mode;
   },
@@ -37,10 +33,6 @@ export const calendarStore = {
   },
   get actionMode() {
     return _actionMode;
-  },
-
-  setSelectedDate(date: string | null) {
-    _selectedDate = date;
   },
 
   setInspectedDate(date: string | null) {
@@ -61,14 +53,12 @@ export const calendarStore = {
     const today = new Date();
     _year = today.getFullYear();
     _month = today.getMonth();
-    _selectedDate = getTodayIso();
   },
 
   goToDate(isoDate: string) {
     const [year, month] = isoDate.split('-').map(Number);
     _year = year;
     _month = month - 1;
-    _selectedDate = isoDate;
   },
 
   handleDayClick(date: string) {
@@ -111,7 +101,6 @@ export const calendarStore = {
     _inspectedDate = focusDate;
   },
 
-  /** Sorted range — ensures start <= end regardless of click order */
   getSortedRange(): { start: string; end: string } | null {
     if (!_rangeStart) return null;
     if (!_rangeEnd) return { start: _rangeStart, end: _rangeStart };

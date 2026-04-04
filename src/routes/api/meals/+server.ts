@@ -13,18 +13,9 @@ import type {
   MealData,
 } from '$lib/types/api';
 
+import { isValidMealType, isValidDateString } from '$lib/server/validation';
+
 const repository = new PostgresRepository();
-
-const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-
-function isValidMealType(type: unknown): type is 'breakfast' | 'lunch' | 'dinner' | 'snack' {
-  return typeof type === 'string' && VALID_MEAL_TYPES.includes(type as typeof VALID_MEAL_TYPES[number]);
-}
-
-function isValidDateString(date: unknown): date is string {
-  if (typeof date !== 'string') return false;
-  return /^\d{4}-\d{2}-\d{2}$/.test(date);
-}
 
 function parseCreateMealRequest(body: unknown): CreateMealRequest | null {
   if (!body || typeof body !== 'object') return null;

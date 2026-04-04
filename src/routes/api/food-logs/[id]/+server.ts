@@ -6,13 +6,9 @@ import { logger } from '$lib/server/logger';
 import { formatErrorMinimal } from '$lib/utils/error';
 import type { ApiError, ApiSuccess, UpdateFoodLogData, DeleteFoodLogData } from '$lib/types/api';
 
+import { isValidAction } from '$lib/server/validation';
+
 const repository = new PostgresRepository();
-
-const VALID_ACTIONS = ['eliminated', 'reintroduced'] as const;
-
-function isValidAction(action: unknown): action is 'eliminated' | 'reintroduced' {
-  return typeof action === 'string' && VALID_ACTIONS.includes(action as typeof VALID_ACTIONS[number]);
-}
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) {

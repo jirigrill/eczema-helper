@@ -286,9 +286,7 @@ describe('Food Logs API', () => {
         headers: { Cookie: sessionCookie },
       });
 
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(json.ok).toBe(true);
+      expect(res.status).toBe(204);
 
       // Verify it's gone
       const remaining = await sql`SELECT * FROM food_logs WHERE id = ${logId}`;

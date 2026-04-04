@@ -306,9 +306,7 @@ describe('Meals API', () => {
         headers: { Cookie: sessionCookie },
       });
 
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(json.ok).toBe(true);
+      expect(res.status).toBe(204);
 
       // Verify meal and items are gone
       const meals = await sql`SELECT * FROM meals WHERE id = ${mealId}`;

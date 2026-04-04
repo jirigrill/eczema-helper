@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatDateShort } from '$lib/utils/calendar';
-  import { cs } from '$lib/i18n/cs';
+  import { cs, dayPlural } from '$lib/i18n/cs';
 
   let {
     rangeStart,
@@ -18,11 +18,7 @@
     onSave: () => void;
   } = $props();
 
-  function dayPlural(n: number): string {
-    if (n === 1) return 'den';
-    if (n >= 2 && n <= 4) return 'dny';
-    return 'dní';
-  }
+
 </script>
 
 <div class="fixed left-0 right-0 z-40 px-3 pb-1" style="bottom: calc(3.5rem + var(--safe-area-inset-bottom));">

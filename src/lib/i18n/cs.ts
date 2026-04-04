@@ -116,3 +116,11 @@ export const cs = {
 } as const;
 
 export type TranslationKey = keyof typeof cs;
+
+/** Czech plural for "den" (day): 1 den, 2-4 dny, 5+ dní */
+export function dayPlural(n: number): string {
+  if (n === 1) return 'den';
+  if (n >= 2 && n <= 4) return 'dny';
+  return 'dní';
+}
+

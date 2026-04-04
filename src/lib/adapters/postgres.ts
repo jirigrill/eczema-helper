@@ -231,8 +231,8 @@ export class PostgresRepository implements DataRepository {
   async updateFoodLog(id: string, updates: Partial<Pick<FoodLog, 'action' | 'notes'>>): Promise<FoodLog> {
     const rows = await sql`
       UPDATE food_logs SET
-        action = COALESCE(${updates.action ?? null}, action),
-        notes = COALESCE(${updates.notes ?? null}, notes),
+        action = ${updates.action !== undefined ? updates.action : sql`action`},
+        notes = ${updates.notes !== undefined ? (updates.notes ?? null) : sql`notes`},
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING *
@@ -341,8 +341,8 @@ export class PostgresRepository implements DataRepository {
   async updateMeal(id: string, updates: Partial<Meal>): Promise<Meal> {
     const rows = await sql`
       UPDATE meals SET
-        meal_type = COALESCE(${updates.mealType ?? null}, meal_type),
-        label = COALESCE(${updates.label ?? null}, label)
+        meal_type = ${updates.mealType !== undefined ? updates.mealType : sql`meal_type`},
+        label = ${updates.label !== undefined ? (updates.label ?? null) : sql`label`}
       WHERE id = ${id}
       RETURNING *
     `;
@@ -354,21 +354,19 @@ export class PostgresRepository implements DataRepository {
   }
 
   async replaceMealItems(mealId: string, items: Omit<MealItem, 'id'>[]): Promise<void> {
-    // Delete existing items
-    await sql`DELETE FROM meal_items WHERE meal_id = ${mealId}`;
+    await sql.begin(async (tx) => {
+      await tx`DELETE FROM meal_items WHERE meal_id = ${mealId}`;
 
-    // Insert new items
-    if (items.length > 0) {
-      const itemValues = items.map((item) => ({
-        meal_id: mealId,
-        sub_item_id: item.subItemId ?? null,
-        custom_name: item.customName ?? null,
-        category_id: item.categoryId ?? null,
-      }));
-      await sql`
-        INSERT INTO meal_items ${sql(itemValues)}
-      `;
-    }
+      if (items.length > 0) {
+        const itemValues = items.map((item) => ({
+          meal_id: mealId,
+          sub_item_id: item.subItemId ?? null,
+          custom_name: item.customName ?? null,
+          category_id: item.categoryId ?? null,
+        }));
+        await tx`INSERT INTO meal_items ${tx(itemValues)}`;
+      }
+    });
   }
 
   // ── Photos ─────────────────────────────────────────────────────────────────
