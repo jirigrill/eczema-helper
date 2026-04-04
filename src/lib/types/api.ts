@@ -121,7 +121,7 @@ export type DeleteChildResponse = ApiResponse<DeleteChildData>;
 // Food Categories API
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { FoodCategory, FoodSubItem, FoodLog, Meal, MealItem } from '$lib/domain/models';
+import type { FoodCategory, FoodLog, Meal, MealItem } from '$lib/domain/models';
 
 export type FoodCategoryData = FoodCategory;
 export type GetFoodCategoriesData = FoodCategoryData[];

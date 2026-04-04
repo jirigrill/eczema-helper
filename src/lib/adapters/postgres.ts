@@ -355,7 +355,8 @@ export class PostgresRepository implements DataRepository {
 
   async replaceMealItems(mealId: string, items: Omit<MealItem, 'id'>[]): Promise<void> {
     await sql.begin(async (tx) => {
-      await tx`DELETE FROM meal_items WHERE meal_id = ${mealId}`;
+      const txSql = tx as unknown as typeof sql;
+      await txSql`DELETE FROM meal_items WHERE meal_id = ${mealId}`;
 
       if (items.length > 0) {
         const itemValues = items.map((item) => ({
@@ -364,7 +365,7 @@ export class PostgresRepository implements DataRepository {
           custom_name: item.customName ?? null,
           category_id: item.categoryId ?? null,
         }));
-        await tx`INSERT INTO meal_items ${tx(itemValues)}`;
+        await txSql`INSERT INTO meal_items ${txSql(itemValues)}`;
       }
     });
   }
