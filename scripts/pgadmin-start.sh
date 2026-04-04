@@ -63,6 +63,7 @@ docker run -d --name pgadmin \
     -v "$(pwd)/$PGADMIN_CONFIG_DIR/servers.json:/pgadmin4/servers.json:ro" \
     -v "$(pwd)/$PGADMIN_CONFIG_DIR/pgpass:/pgpass:ro" \
     -v "$(pwd)/$PGADMIN_CONFIG_DIR/data:/var/lib/pgadmin" \
+    -v "$HOME/.ssh/id_rsa:/pgadmin-ssh/id_rsa:ro" \
     -p 5050:80 \
     dpage/pgadmin4
 
