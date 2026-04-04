@@ -7,7 +7,7 @@ import { formatErrorMinimal } from '$lib/utils/error';
 import type { ApiError, ApiSuccess, BatchSyncFoodLogsData } from '$lib/types/api';
 import type { FoodLog } from '$lib/domain/models';
 
-import { isValidAction } from '$lib/server/validation';
+import { isValidAction, sanitizeOptionalString } from '$lib/server/validation';
 
 const repository = new PostgresRepository();
 
@@ -74,6 +74,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     for (const log of validLogs) {
       await repository.upsertFoodLog({
         ...log,
+        notes: sanitizeOptionalString(log.notes),
         syncedAt: new Date().toISOString(),
       });
       syncedCount++;

@@ -34,13 +34,13 @@
   const activeChildId = $derived(childrenStore.activeChildId);
 
   const isReintroMode = $derived(mode === 'edit' && actionMode === 'reintroduce');
-  const accentBg = $derived(isReintroMode ? 'bg-[#4A7C6F]' : 'bg-primary');
-  const accentBgLight = $derived(isReintroMode ? 'bg-[#4A7C6F]/15' : 'bg-primary/15');
-  const accentText = $derived(isReintroMode ? 'text-[#4A7C6F]' : 'text-primary');
-  const toggleOnBg = $derived(isReintroMode ? 'bg-[#4A7C6F] border-[#4A7C6F]' : 'bg-primary border-primary');
-  const toggleOnPartial = $derived(isReintroMode ? 'bg-[#4A7C6F]/30 border-[#4A7C6F]/50' : 'bg-primary/30 border-primary/50');
-  const toggleRowActive = $derived(isReintroMode ? 'border-[#4A7C6F]/40 bg-[#4A7C6F]/5' : 'border-primary/40 bg-primary/5');
-  const toggleRowPartial = $derived(isReintroMode ? 'border-[#4A7C6F]/20' : 'border-primary/20');
+  const accentBg = $derived(isReintroMode ? 'bg-reintro-accent' : 'bg-primary');
+  const accentBgLight = $derived(isReintroMode ? 'bg-reintro-accent/15' : 'bg-primary/15');
+  const accentText = $derived(isReintroMode ? 'text-reintro-accent' : 'text-primary');
+  const toggleOnBg = $derived(isReintroMode ? 'bg-reintro-accent border-reintro-accent' : 'bg-primary border-primary');
+  const toggleOnPartial = $derived(isReintroMode ? 'bg-reintro-accent/30 border-reintro-accent/50' : 'bg-primary/30 border-primary/50');
+  const toggleRowActive = $derived(isReintroMode ? 'border-reintro-accent/40 bg-reintro-accent/5' : 'border-primary/40 bg-primary/5');
+  const toggleRowPartial = $derived(isReintroMode ? 'border-reintro-accent/20' : 'border-primary/20');
 
   const sortedRange = $derived(calendarStore.getSortedRange());
   const rangeDayCount = $derived.by(() => {
@@ -169,7 +169,7 @@
 
 {#if toast}
   <div class="fixed left-4 right-4 z-50 animate-slideUp" style="bottom: calc(3.5rem + var(--safe-area-inset-bottom) + 5rem);">
-    <div class="bg-[#4A7C6F]/90 text-white rounded-lg px-4 py-3 flex items-center gap-2 shadow-lg">
+    <div class="bg-reintro-accent/90 text-white rounded-lg px-4 py-3 flex items-center gap-2 shadow-lg">
       <span>✓</span>
       <span class="text-sm">{toast.message}</span>
     </div>

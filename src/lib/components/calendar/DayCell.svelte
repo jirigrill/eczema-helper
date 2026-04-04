@@ -28,6 +28,9 @@
 
 <button
   type="button"
+  aria-label="{day.dayNumber}. {hasEliminations ? 'eliminace' : ''}{hasReintroductions ? ' reintrodukce' : ''}"
+  aria-current={day.isToday ? 'date' : undefined}
+  aria-pressed={inspected || isEndpoint}
   class="
     relative flex flex-col items-center justify-center
     h-10 w-full transition-colors
@@ -49,11 +52,11 @@
     <div class="absolute bottom-1 flex h-[2px] w-3 rounded-full overflow-hidden">
       {#if hasEliminations && hasReintroductions}
         <span class="flex-1 {isEndpoint ? 'bg-white/70' : 'bg-primary'}"></span>
-        <span class="flex-1 {isEndpoint ? 'bg-white/50' : 'bg-[#4A7C6F]'}"></span>
+        <span class="flex-1 {isEndpoint ? 'bg-white/50' : 'bg-reintro-accent'}"></span>
       {:else if hasEliminations}
         <span class="flex-1 {isEndpoint ? 'bg-white/70' : 'bg-primary'}"></span>
       {:else}
-        <span class="flex-1 {isEndpoint ? 'bg-white/50' : 'bg-[#4A7C6F]'}"></span>
+        <span class="flex-1 {isEndpoint ? 'bg-white/50' : 'bg-reintro-accent'}"></span>
       {/if}
     </div>
   {/if}

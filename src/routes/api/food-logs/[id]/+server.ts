@@ -4,9 +4,10 @@ import type { RequestHandler } from './$types';
 import { PostgresRepository } from '$lib/adapters/postgres';
 import { logger } from '$lib/server/logger';
 import { formatErrorMinimal } from '$lib/utils/error';
-import type { ApiError, ApiSuccess, UpdateFoodLogData, DeleteFoodLogData } from '$lib/types/api';
+import type { ApiError, ApiSuccess, UpdateFoodLogData } from '$lib/types/api';
 
-import { isValidAction } from '$lib/server/validation';
+import { isValidAction, sanitizeOptionalString } from '$lib/server/validation';
+import { isValidUuid } from '$lib/utils';
 
 const repository = new PostgresRepository();
 
@@ -19,6 +20,13 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
   }
 
   const { id } = params;
+
+  if (!isValidUuid(id)) {
+    return json(
+      { ok: false, error: 'Neplatné ID', code: 'VALIDATION_ERROR' } satisfies ApiError,
+      { status: 400 }
+    );
+  }
 
   try {
     const body = await request.json().catch(() => null);
@@ -60,7 +68,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
     const updatedLog = await repository.updateFoodLog(id, {
       action: isValidAction(action) ? action : undefined,
-      notes: typeof notes === 'string' ? notes : undefined,
+      notes: sanitizeOptionalString(notes),
     });
 
     return json({ ok: true, data: updatedLog } satisfies ApiSuccess<UpdateFoodLogData>);
@@ -85,6 +93,13 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   }
 
   const { id } = params;
+
+  if (!isValidUuid(id)) {
+    return json(
+      { ok: false, error: 'Neplatné ID', code: 'VALIDATION_ERROR' } satisfies ApiError,
+      { status: 400 }
+    );
+  }
 
   try {
     // Get the log to verify ownership

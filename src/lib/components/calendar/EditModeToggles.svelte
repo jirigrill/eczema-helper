@@ -75,12 +75,14 @@
 <div class="flex gap-1 mx-3 mt-3 p-0.5 bg-surface-dark rounded-lg">
   <button
     type="button"
+    aria-pressed={actionMode === 'eliminate'}
     class="flex-1 py-1.5 rounded-md text-xs font-medium transition-colors {actionMode === 'eliminate' ? 'bg-primary text-white shadow-sm' : 'text-text-muted'}"
     onclick={() => onSetActionMode('eliminate')}
   >{cs.eliminate}</button>
   <button
     type="button"
-    class="flex-1 py-1.5 rounded-md text-xs font-medium transition-colors {actionMode === 'reintroduce' ? 'bg-[#4A7C6F] text-white shadow-sm' : 'text-text-muted'}"
+    aria-pressed={actionMode === 'reintroduce'}
+    class="flex-1 py-1.5 rounded-md text-xs font-medium transition-colors {actionMode === 'reintroduce' ? 'bg-reintro-accent text-white shadow-sm' : 'text-text-muted'}"
     onclick={() => onSetActionMode('reintroduce')}
   >{cs.reintroduce}</button>
 </div>
@@ -118,6 +120,9 @@
         {/if}
         <button
           type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label="{cat.nameCs} — {actionMode === 'eliminate' ? cs.eliminate : cs.reintroduce}"
           class="flex-none h-7 w-12 rounded-full border-2 transition-colors flex items-center px-0.5
             {on ? `${toggleOnBg} justify-end` : partial ? `${toggleOnPartial} justify-end` : 'bg-surface-dark border-surface-dark justify-start'}"
           onclick={() => handleGroupToggle(cat)}
@@ -135,6 +140,9 @@
                 <span class="text-sm text-text flex-1 truncate">{si.nameCs}</span>
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={siOn}
+                  aria-label="{si.nameCs} — {actionMode === 'eliminate' ? cs.eliminate : cs.reintroduce}"
                   class="flex-none h-6 w-10 rounded-full border-2 transition-colors flex items-center px-0.5
                     {siOn ? `${toggleOnBg} justify-end` : 'bg-surface-dark border-surface-dark justify-start'}"
                   onclick={() => handleSubToggle(cat.id, si.id)}

@@ -89,7 +89,7 @@
         {/if}
         {#if reintroduced.length > 0}
           <div class="px-4 pb-3 {eliminated.length > 0 ? 'pt-2 border-t border-surface-dark mt-2' : 'pt-3'}">
-            <p class="text-[10px] uppercase tracking-wider text-[#4A7C6F] font-semibold mb-1.5">{cs.reintroduced}</p>
+            <p class="text-[10px] uppercase tracking-wider text-reintro-accent font-semibold mb-1.5">{cs.reintroduced}</p>
             <div class="space-y-0.5">
               {#each reintroduced as entry (entry.category.id)}
                 <div class="flex items-center gap-2 py-1">

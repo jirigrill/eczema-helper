@@ -13,7 +13,7 @@ import type {
   MealData,
 } from '$lib/types/api';
 
-import { isValidMealType, isValidDateString } from '$lib/server/validation';
+import { isValidMealType, isValidDateString, sanitizeOptionalString } from '$lib/server/validation';
 
 const repository = new PostgresRepository();
 
@@ -38,12 +38,12 @@ function parseCreateMealRequest(body: unknown): CreateMealRequest | null {
   return {
     date,
     mealType,
-    label: typeof label === 'string' ? label : undefined,
+    label: sanitizeOptionalString(label),
     items: items.map((item) => {
       const { subItemId, customName, categoryId } = item as Record<string, unknown>;
       return {
         subItemId: typeof subItemId === 'string' ? subItemId : undefined,
-        customName: typeof customName === 'string' ? customName : undefined,
+        customName: sanitizeOptionalString(customName),
         categoryId: typeof categoryId === 'string' ? categoryId : undefined,
       };
     }),

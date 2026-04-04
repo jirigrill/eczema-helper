@@ -64,6 +64,10 @@
       onblur={handleInputBlur}
       onkeydown={handleCustomItem}
       placeholder="Přidej položku…"
+      role="combobox"
+      aria-expanded={showDropdown && query.length >= 2}
+      aria-autocomplete="list"
+      aria-label="Vyhledat položku jídla"
       class="
         w-full rounded-lg border border-surface-dark
         px-3 py-2 text-sm
@@ -74,6 +78,7 @@
     <!-- Dropdown -->
     {#if showDropdown && query.length >= 2}
       <ul
+        role="listbox"
         class="
           absolute z-20 mt-1 w-full
           bg-white border border-surface-dark rounded-lg shadow-lg
@@ -82,7 +87,7 @@
       >
         {#if filtered.length > 0}
           {#each filtered as item (item.id)}
-            <li>
+            <li role="option">
               <button
                 type="button"
                 class="w-full text-left px-3 py-2 text-sm hover:bg-surface"

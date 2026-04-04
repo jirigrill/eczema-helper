@@ -12,7 +12,7 @@ import type {
   CreateFoodLogData,
 } from '$lib/types/api';
 
-import { isValidAction, isValidDateString } from '$lib/server/validation';
+import { isValidAction, isValidDateString, sanitizeOptionalString } from '$lib/server/validation';
 
 const repository = new PostgresRepository();
 
@@ -31,7 +31,7 @@ function parseCreateFoodLogRequest(body: unknown): CreateFoodLogRequest | null {
     subItemId: typeof subItemId === 'string' ? subItemId : undefined,
     date,
     action,
-    notes: typeof notes === 'string' ? notes : undefined,
+    notes: sanitizeOptionalString(notes),
   };
 }
 
@@ -64,6 +64,13 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   if (!isValidDateString(startDate) || !isValidDateString(endDate)) {
     return json(
       { ok: false, error: 'Neplatný formát data (očekáváno YYYY-MM-DD)', code: 'VALIDATION_ERROR' } satisfies ApiError,
+      { status: 400 }
+    );
+  }
+
+  if (startDate > endDate) {
+    return json(
+      { ok: false, error: 'startDate musí být před endDate', code: 'VALIDATION_ERROR' } satisfies ApiError,
       { status: 400 }
     );
   }

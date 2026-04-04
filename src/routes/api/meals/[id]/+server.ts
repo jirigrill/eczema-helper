@@ -8,11 +8,10 @@ import type {
   ApiError,
   ApiSuccess,
   UpdateMealData,
-  DeleteMealData,
-  MealData,
 } from '$lib/types/api';
 
-import { isValidMealType } from '$lib/server/validation';
+import { isValidMealType, sanitizeOptionalString } from '$lib/server/validation';
+import { isValidUuid } from '$lib/utils';
 
 const repository = new PostgresRepository();
 
@@ -25,6 +24,13 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
   }
 
   const { id } = params;
+
+  if (!isValidUuid(id)) {
+    return json(
+      { ok: false, error: 'Neplatné ID', code: 'VALIDATION_ERROR' } satisfies ApiError,
+      { status: 400 }
+    );
+  }
 
   try {
     const body = await request.json().catch(() => null);
@@ -65,7 +71,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
     // Update meal metadata
     const updatedMeal = await repository.updateMeal(id, {
       mealType: isValidMealType(mealType) ? mealType : undefined,
-      label: typeof label === 'string' ? label : undefined,
+      label: sanitizeOptionalString(label),
     });
 
     // Replace items if provided
@@ -94,7 +100,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
           return {
             mealId: id,
             subItemId: typeof subItemId === 'string' ? subItemId : undefined,
-            customName: typeof customName === 'string' ? customName : undefined,
+            customName: sanitizeOptionalString(customName),
             categoryId: typeof categoryId === 'string' ? categoryId : undefined,
           };
         })
@@ -131,6 +137,13 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   }
 
   const { id } = params;
+
+  if (!isValidUuid(id)) {
+    return json(
+      { ok: false, error: 'Neplatné ID', code: 'VALIDATION_ERROR' } satisfies ApiError,
+      { status: 400 }
+    );
+  }
 
   try {
     // Verify ownership
