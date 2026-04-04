@@ -38,11 +38,8 @@ test.describe('Child Management', () => {
     await submitBtn.click();
     const response = await responsePromise;
 
-    // Debug: check response status and body
-    const responseBody = await response.text();
-    console.log(`API response: ${response.status()} - ${responseBody}`);
-
     if (!response.ok()) {
+      const responseBody = await response.text();
       throw new Error(`API call failed with status ${response.status()}: ${responseBody}`);
     }
 
