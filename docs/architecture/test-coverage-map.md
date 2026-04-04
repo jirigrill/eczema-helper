@@ -10,9 +10,9 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 
 | Layer | Tests | Files | Coverage Status |
 |-------|-------|-------|-----------------|
-| Unit | 13 files | 80+ test cases | ✅ Good |
+| Unit | 14 files | 83 test cases | ✅ Good |
 | Integration | 9 files | 80+ test cases | ✅ Good |
-| E2E | 4 files | 17+ test cases | ✅ Good |
+| E2E | 5 files | 22 test cases | ✅ Good |
 
 ---
 
@@ -158,21 +158,22 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 
 | Feature | Unit | Integration | E2E | Status |
 |---------|------|-------------|-----|--------|
-| **Food Tracking Service** | ✅ `food-tracking.service.test.ts` | - | - | ✅ |
-| - getFoodStatus neutral/eliminated/reintroduced | ✅ | - | - | ✅ |
-| - getFoodStatus filters by date and category | ✅ | - | - | ✅ |
-| - getNextStatus toggle cycle | ✅ | - | - | ✅ |
-| - countActiveEliminations | ✅ | - | - | ✅ |
-| - countActiveReintroductions | ✅ | - | - | ✅ |
-| - getDotTier (none/low/medium/high) | ✅ | - | - | ✅ |
-| - getPreviousDate (month/year boundaries) | ✅ | - | - | ✅ |
-| - copyFromYesterday | ✅ | - | - | ✅ |
-| - getSubItemFoodStatus | ✅ | - | - | ✅ |
+| **Food Tracking Service** | ✅ `food-tracking.service.test.ts` (24 tests) | - | - | ✅ |
+| - getExactDateFoodStatus (per-date, no carry-forward) | ✅ | - | - | ✅ |
+| - getExactDateSubItemStatus | ✅ | - | - | ✅ |
+| - dateHasEliminations / dateHasReintroductions | ✅ | - | - | ✅ |
+| - buildExactDateStatusSets (Set↔FoodLog bridge) | ✅ | - | - | ✅ |
+| - getExactDateEliminatedDetails (with sub-items) | ✅ | - | - | ✅ |
+| - getExactDateReintroducedDetails (with sub-items) | ✅ | - | - | ✅ |
 | - getDatesInRange | ✅ | - | - | ✅ |
-| - buildStatusSets (Set↔FoodLog bridge) | ✅ | - | - | ✅ |
 | - applyDraftToRange (draft→FoodLog) | ✅ | - | - | ✅ |
-| - getEliminatedCategories | ✅ | - | - | ✅ |
-| - getReintroducedCategories | ✅ | - | - | ✅ |
+| **Draft Elimination Store** | ✅ `draft-elimination.test.ts` (19 tests) | - | - | ✅ |
+| - Toggle elimination on/off | ✅ | - | - | ✅ |
+| - Toggle reintroduction (mutual exclusion with elimination) | ✅ | - | - | ✅ |
+| - Group toggles (all sub-items on/off) | ✅ | - | - | ✅ |
+| - catFullElim / catPartialElim / catFullReintro | ✅ | - | - | ✅ |
+| - Snapshot relevance for reintroduce mode | ✅ | - | - | ✅ |
+| - initFromSets / clear | ✅ | - | - | ✅ |
 | **Meal Logging Service** | ✅ `meal-logging.service.test.ts` | - | - | ✅ |
 | - getMealItemDisplayName (predefined/custom) | ✅ | - | - | ✅ |
 | - formatMealSummary with label | ✅ | - | - | ✅ |
@@ -206,8 +207,7 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 | - Rejects invalid mealType (400) | - | ✅ | - | ✅ |
 | - Rejects meal with no items (400) | - | ✅ | - | ✅ |
 | - Scopes to authenticated user | - | ✅ | - | ✅ |
-| **Calendar UI (view/edit modes)** | - | - | Manual | ⚠️ Manual |
-| **Draft Elimination Store** | - | - | Manual | ⚠️ Manual (logic tested via service) |
+| **Calendar UI (view/edit modes)** | - | - | ✅ `calendar-food-tracking.spec.ts` | ✅ |
 | **Meal Composer** | - | - | Manual | ⚠️ Manual |
 | **Workbox Caching (Feature 16)** | - | - | Manual | ❌ Not implemented |
 | - NetworkFirst for /api/* | - | - | Manual | ❌ |
@@ -246,7 +246,8 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 | `stores/children.test.ts` | 7 | Children store: selection, persistence |
 | `stores/food-log.test.ts` | 5 | Food log store: logs array, selected date |
 | `stores/photos.test.ts` | 9 | Photos store: photos array, filter, derived filtered |
-| `domain/services/food-tracking.service.test.ts` | 35+ | Food status, toggle cycle, elimination count, dot tier, copy from yesterday, sub-item status, date ranges, status sets, draft→FoodLog bridging, category queries |
+| `domain/services/food-tracking.service.test.ts` | 24 | Per-date food status, sub-item status, exact-date status sets, eliminated/reintroduced details, date ranges, draft→FoodLog bridging |
+| `stores/draft-elimination.test.ts` | 19 | Toggle elimination/reintroduction, mutual exclusion, group toggles, category queries, snapshot relevance |
 | `domain/services/meal-logging.service.test.ts` | 10 | Meal item display, formatting, category resolution, sorting, search |
 | `utils/calendar.test.ts` | 14 | Month days grid, date formatting, month navigation, weekday names |
 
@@ -272,6 +273,7 @@ This document tracks what is tested, with which test type, and identifies gaps. 
 | `auth-guard.spec.ts` | 4 | Route protection, authenticated redirects |
 | `logout.spec.ts` | 1 | Logout clears session, redirects |
 | `children.spec.ts` | 9 | Child CRUD UI, forms, confirmation dialogs |
+| `calendar-food-tracking.spec.ts` | 5 | Per-date elimination, edit mode state, reintroduce tab, sub-item display, cancel |
 
 ---
 

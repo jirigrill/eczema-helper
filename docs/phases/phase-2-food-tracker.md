@@ -104,16 +104,20 @@ These decisions are deferred to user testing during Phase 1 (when the app shell 
 
 | File                                                     | Description                                                                   |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `src/lib/components/calendar/CalendarGrid.svelte`        | Month view grid with day cells, range selection, two-color dots               |
+| `src/lib/components/calendar/CalendarGrid.svelte`        | Month view grid with day cells, per-date two-color dots                       |
 | `src/lib/components/calendar/CalendarHeader.svelte`      | Month/year display with previous/next navigation arrows                       |
 | `src/lib/components/calendar/DayCell.svelte`             | Day cell with number, two-color split dot, range/inspected styling            |
 | `src/lib/components/calendar/SwipeContainer.svelte`      | Touch gesture wrapper for month swiping                                       |
-| `src/routes/(app)/calendar/+page.svelte`                 | Calendar page with view/edit modes, range editing, toggle switches            |
+| `src/lib/components/calendar/DayDetailCard.svelte`       | View-mode detail card showing eliminated/reintroduced items with sub-items    |
+| `src/lib/components/calendar/EditModeToggles.svelte`     | Edit-mode category list with iOS toggle switches and action mode toggle       |
+| `src/lib/components/calendar/FloatingSaveBar.svelte`     | Floating save bar with range display and save button                          |
+| `src/routes/(app)/calendar/+page.svelte`                 | Calendar page orchestrator with view/edit modes and range editing             |
 | `src/routes/(app)/food/+page.svelte`                     | Today-only read view of elimination status with link to calendar              |
 | `src/lib/stores/draft-elimination.svelte.ts`             | Draft editing store for staged elimination/reintroduction changes             |
 | `src/routes/api/food-logs/+server.ts`                    | GET (list) and POST (create) food log endpoints                               |
 | `src/routes/api/food-logs/[id]/+server.ts`               | PUT (update) and DELETE (remove) food log endpoints                           |
-| `src/lib/domain/services/food-tracking.service.ts`       | Pure domain logic for food tracking (toggle, copy, active eliminations)       |
+| `src/lib/server/validation.ts`                           | Shared validation helpers (isValidAction, isValidMealType, isValidDateString) |
+| `src/lib/domain/services/food-tracking.service.ts`       | Pure domain logic: per-date status, status sets, draft→FoodLog bridging       |
 | `src/lib/stores/food-log.svelte.ts`                      | Rewritten food log store with Dexie.js integration and sync logic             |
 | `src/lib/stores/calendar.svelte.ts`                      | Calendar navigation state (current month, selected date)                      |
 | `src/lib/adapters/dexie-db.ts`                           | Updated with food log and meal sync methods                                   |
