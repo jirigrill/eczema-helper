@@ -15,7 +15,7 @@
     { href: '/settings', icon: SettingsIcon }
   ];
 
-  const showNav = $derived(pathname !== '/login' && pathname !== '/register');
+  const showNav = $derived(pathname !== '/login' && pathname !== '/register' && !pathname.startsWith('/prototype'));
 </script>
 
 <main class="min-h-screen bg-surface" style:padding-bottom={showNav ? 'calc(3.5rem + var(--safe-area-inset-bottom))' : '0'}>
