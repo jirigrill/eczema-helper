@@ -35,7 +35,7 @@ setup-macos:
     fi
 
     brew install just mkcert
-    command -v docker &> /dev/null || echo "⚠️  Install Docker Desktop manually (needed for 'just deploy')"
+    command -v docker &> /dev/null || echo "⚠️  Install Docker Desktop manually (needed for 'just rollback')"
     command -v bun &> /dev/null || (curl -fsSL https://bun.sh/install | bash && echo "⚠️  Restart terminal")
     mkcert -install
     echo "✅ macOS ready"
@@ -162,38 +162,22 @@ clean:
 
 # ========== DEPLOYMENT ==========
 
-# Set env vars: DEPLOY_HOST, DEPLOY_USER, DEPLOY_DIR
+# Set env vars: DEPLOY_HOST, DEPLOY_USER
+# Normal deploys happen automatically via CI on merge to main.
 
-# Build Docker image
-build-image tag="latest":
-    docker build -t eczema-tracker:{{tag}} .
-    @echo "✅ Built eczema-tracker:{{tag}}"
-
-# Deploy to VPS
-deploy tag="latest": (build-image tag)
+# Roll back to a specific GHCR image tag (git SHA or "latest")
+rollback tag="latest":
     #!/usr/bin/env bash
     : "${DEPLOY_HOST:?Need DEPLOY_HOST env var}"
     DEPLOY_USER="${DEPLOY_USER:-deploy}"
-    DEPLOY_DIR="${DEPLOY_DIR:-/opt/eczema-tracker}"
-    TAG="{{tag}}"
+    IMAGE="ghcr.io/jirigrill/eczema-helper:{{tag}}"
 
-    echo "🚀 Deploying to $DEPLOY_HOST..."
-    docker save eczema-tracker:$TAG | gzip > /tmp/eczema-tracker-$TAG.tar.gz
-    scp /tmp/eczema-tracker-$TAG.tar.gz $DEPLOY_USER@$DEPLOY_HOST:/tmp/
-
-    ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_DIR && TAG=$TAG bash -c 'gunzip -c /tmp/eczema-tracker-\$TAG.tar.gz | docker load && rm /tmp/eczema-tracker-\$TAG.tar.gz && docker compose up -d app'"
-
-    for i in {1..30}; do
-        ssh $DEPLOY_USER@$DEPLOY_HOST "curl -sf http://localhost:3000/api/health" && { echo "✅ Deployed"; break; } || sleep 2
-    done
-    rm /tmp/eczema-tracker-$TAG.tar.gz
-
-# Quick redeploy (no build)
-redeploy:
-    #!/usr/bin/env bash
-    : "${DEPLOY_HOST:?Need DEPLOY_HOST}"
-    ssh "${DEPLOY_USER:-deploy}@$DEPLOY_HOST" "cd ${DEPLOY_DIR:-/opt/eczema-tracker} && docker compose up -d app"
-    echo "✅ Redeployed"
+    echo "⏪ Rolling back to $IMAGE on $DEPLOY_HOST..."
+    ssh "$DEPLOY_USER@$DEPLOY_HOST" "
+        docker pull $IMAGE &&
+        IMAGE=$IMAGE docker compose -f /opt/eczema-tracker/docker-compose.prod.yml up -d &&
+        echo '✅ Rollback complete'
+    "
 
 # Check remote health
 health:
@@ -250,9 +234,8 @@ help:
     @echo "  just clean        - Clean build artifacts"
     @echo ""
     @echo "Deploy:"
-    @echo "  just deploy [TAG] - Build image and deploy to VPS"
-    @echo "  just redeploy     - Redeploy existing image"
-    @echo "  just health       - Check remote /api/health"
-    @echo "  just logs-remote  - Tail remote logs"
+    @echo "  just rollback [TAG] - Pull GHCR image and restart (default: latest)"
+    @echo "  just health         - Check remote /api/health"
+    @echo "  just logs-remote    - Tail remote logs"
     @echo ""
     @echo "Full list: just --list"
