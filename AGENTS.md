@@ -163,6 +163,16 @@ CI checks required before merge:
 
 (Test CI re-added when test coverage is authored.)
 
+### After PR Is Merged
+
+Once a PR is merged into `main`, always run these three steps before starting any new work:
+
+```bash
+git checkout main
+git pull
+git branch -d <feature-branch>
+```
+
 ### Commit Messages
 
 - Prefix with scope: `prototype:`, `ci:`, `docs:`, `fix:`, `feat:`, `refactor:`, `chore:`
