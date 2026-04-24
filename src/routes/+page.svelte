@@ -182,7 +182,7 @@
             type="date"
             bind:value={babyBirthDate}
             max={new Date().toISOString().split('T')[0]}
-            class="block w-full min-w-0 rounded-xl border border-surface-dark px-4 py-3 text-base text-text
+            class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
               focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
           />
         </div>
@@ -317,7 +317,7 @@
             type="date"
             bind:value={programStartDate}
             min={new Date().toISOString().split('T')[0]}
-            class="block w-full min-w-0 rounded-xl border border-surface-dark px-4 py-3 text-base text-text
+            class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
               focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
           />
         </div>
@@ -409,3 +409,14 @@
 
   </div>
 </div>
+
+<style>
+  /* Safari renders input[type="date"] as inline-flex, causing width:100% to be
+     ignored on iOS 17 and earlier. appearance:none resets it to a standard
+     box-model element so width and padding behave as expected. The native date
+     picker still fires on tap — only the CSS rendering changes. */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+</style>
