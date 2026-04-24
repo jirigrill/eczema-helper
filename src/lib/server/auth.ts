@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
-import { AUTH } from '$lib/config/constants';
+
+const BCRYPT_SALT_ROUNDS = 12;
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, AUTH.BCRYPT_SALT_ROUNDS);
+  return bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
