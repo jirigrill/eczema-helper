@@ -65,6 +65,10 @@ just health       # Curl /api/health on remote
 
 Run `just` or `just help` for the full recipe list.
 
+## Design System
+
+**Always read `DESIGN.md` before modifying or creating any UI component or page.** It contains the authoritative color tokens, typography scale, spacing conventions, border radius rules, and component patterns for this app. Do not introduce colors, font sizes, spacing, or component shapes that deviate from it.
+
 ## Code Standards
 
 ### TypeScript
