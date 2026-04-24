@@ -7,7 +7,7 @@
 </script>
 
 {#if message}
-  <div class="mb-4 rounded-lg bg-danger/10 border border-danger/30 px-3 py-2 text-sm text-danger">
+  <div class="mb-4 rounded-xl bg-danger/10 border border-danger/30 px-3 py-2 text-sm text-danger">
     {message}
   </div>
 {/if}

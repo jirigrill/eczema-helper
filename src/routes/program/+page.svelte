@@ -256,7 +256,7 @@
                 <p class="text-xs text-text-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
-                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-lg px-3 py-1.5 text-xs font-medium">
+                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
                       {item.icon} {item.name}
                     </span>
                   {/each}
@@ -276,7 +276,7 @@
                 {#each protocolEliminated as slug}
                   {@const cat = getCategoryBySlug(slug)}
                   {#if cat}
-                    <span class="inline-flex items-center gap-1.5 bg-danger/10 text-danger rounded-lg px-3 py-1.5 text-xs font-medium">
+                    <span class="inline-flex items-center gap-1.5 bg-danger/10 text-danger rounded-full px-2.5 py-1 text-xs font-medium">
                       {cat.icon} {cat.nameCs}
                     </span>
                   {/if}
@@ -289,7 +289,7 @@
                 <p class="text-xs text-text-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
-                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-lg px-3 py-1.5 text-xs font-medium">
+                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
                       {item.icon} {item.name}
                     </span>
                   {/each}
@@ -316,7 +316,7 @@
               <div>
                 <p class="text-xs font-semibold text-success uppercase tracking-wide mb-1.5">Testujete</p>
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="inline-flex items-center gap-1.5 bg-success/10 text-success rounded-lg px-3 py-1.5 text-xs font-medium">
+                  <span class="inline-flex items-center gap-1.5 bg-success/10 text-success rounded-full px-2.5 py-1 text-xs font-medium">
                     {testCat.icon} {testCat.nameCs}
                   </span>
                   {#if reintroInfo}
@@ -335,7 +335,7 @@
                   {#each protocolEliminated as slug}
                     {@const cat = getCategoryBySlug(slug)}
                     {#if cat}
-                      <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-lg px-3 py-1.5 text-xs font-medium">
+                      <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
                         {cat.icon} {cat.nameCs}
                       </span>
                     {/if}
@@ -349,7 +349,7 @@
                 <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Trvalá omezení</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
-                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-lg px-3 py-1.5 text-xs font-medium">
+                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
                       {item.icon} {item.name}
                     </span>
                   {/each}
@@ -661,7 +661,7 @@
     <!-- Edit notice -->
     <div class="text-center pt-2">
       <button
-        class="text-xs text-text-muted border border-surface-dark rounded-lg px-4 py-2 opacity-50"
+        class="text-xs text-text-muted border border-surface-dark rounded-xl px-4 py-2 opacity-50"
         onclick={handleEditSchedule}
       >
         Upravit program

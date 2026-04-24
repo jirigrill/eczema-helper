@@ -50,7 +50,7 @@
     class="
       fixed bottom-20 left-4 right-4 z-50
       flex items-center justify-between gap-3
-      px-4 py-3 rounded-lg shadow-lg
+      px-4 py-3 rounded-xl shadow-lg
       animate-slideUp
       {typeStyles[type]}
     "

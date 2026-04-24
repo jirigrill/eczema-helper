@@ -125,7 +125,7 @@
   }
 
   // Shared dismiss button style (used for both Zavřít actions)
-  const dismissCls = 'text-xs text-text-muted border border-surface-dark rounded-lg px-2.5 py-1 font-medium hover:text-text hover:border-text-muted transition-colors';
+  const dismissCls = 'text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium hover:text-text hover:border-text-muted transition-colors';
 </script>
 
 <div class="space-y-2">
@@ -187,7 +187,7 @@
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
-            class="py-1.5 px-3 rounded-lg text-sm font-medium transition-all border
+            class="py-1.5 px-3 rounded-xl text-sm font-medium transition-all border
               {isSelected(cat.slug)
                 ? variant === 'danger' ? 'bg-danger text-white border-danger' : 'bg-primary text-white border-primary'
                 : 'bg-surface text-text border-surface-dark'}"
@@ -200,7 +200,7 @@
             {@const subSel = isSelected(subSlug) || isSelected(cat.slug)}
             <button
               type="button"
-              class="py-1.5 px-3 rounded-lg text-sm transition-all border
+              class="py-1.5 px-3 rounded-xl text-sm transition-all border
                 {subSel
                   ? variant === 'danger' ? 'bg-danger/15 text-danger border-danger/30' : 'bg-primary/15 text-primary border-primary/30'
                   : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
