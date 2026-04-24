@@ -1,268 +1,177 @@
 # AGENTS.md
 
-This file provides guidance to AI agents (Claude Code, opencode/kimi-k2.5, etc.) when working with code in this repository.
+Guidance for AI agents working in this repository.
 
 ## Project Overview
 
-Eczema Tracker PWA — a personal app for tracking a breastfed newborn's atopic eczema through elimination diet. Single-child, two-parent app. Czech UI. All medical photos are E2E encrypted (AES-256-GCM, PBKDF2 key derivation).
+Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic eczema through elimination diet. Single-child, two-parent, Czech UI. Medical photos will be E2E encrypted (AES-256-GCM, PBKDF2) when photo features are wired.
+
+**Status:** Prototype-first frontend. The app lives at `src/routes/` and is a UI-only prototype of the eczema-tracking flow. Backend, persistence, auth, and AI features were removed during a UX pivot and will be re-authored against the new domain when the prototype stabilizes.
 
 ## Documentation
 
-All design docs live in `docs/`. Read the relevant phase doc before implementing any feature.
-
-**Current state: Phase 0 and Phase 1 complete. Phase 2a (calendar + food elimination tracking) in development.** See phase docs and `docs/README.md` for details.
-
-When adding/changing a feature, update all affected docs:
-
-1. `docs/architecture/data-models.md` — if data model changes
-2. `docs/phases/phase-N-*.md` — features, acceptance criteria, implementation steps, tests
-3. `docs/README.md` — feature list and phase table
-4. This file (AGENTS.md) — if architecture or key decisions change
-
-- `docs/README.md` — project overview and doc index
-- `docs/architecture/` — tech stack, architecture, data models, encryption, secrets/auth, offline strategy, API routes, deployment
-- `docs/phases/phase-{0-8}-*.md` — implementation phases with features, acceptance criteria, step-by-step instructions, and test suites
+- `docs/README.md` — project status + structure overview
+- `docs/architecture/tech-stack.md` — framework and runtime choices
+- `docs/architecture/ports-and-adapters.md` — hexagonal architecture (intended shape for re-wired backend)
 
 ## Tech Stack
 
 - **Framework:** SvelteKit 2 + TypeScript (strict mode)
 - **Runtime:** Bun
 - **Styling:** Tailwind CSS 4 (mobile-first)
-- **Server DB:** PostgreSQL 16
-- **Local DB:** Dexie.js (IndexedDB, offline-first)
-- **Encryption:** Web Crypto API (AES-256-GCM)
-- **AI:** Claude Vision API (server-side proxy — API key stays on server, photos forwarded in memory)
-- **PWA:** @vite-pwa/sveltekit
-- **Adapter:** @sveltejs/adapter-bun
-- **Deployment (dev):** Docker Compose + Caddy + mkcert (HTTPS on LAN)
-- **Deployment (prod):** Docker + Nginx + Let's Encrypt on VPS
+- **Adapter:** svelte-adapter-bun
+- **PWA:** @vite-pwa/sveltekit (kept for offline-first work, not yet wired)
+- **Future backend:** PostgreSQL 16 + postgres.js, bcrypt, Web Crypto API, Claude Vision API
+- **Local offline DB (future):** Dexie.js
+- **Deployment:** Docker image + docker-compose.prod.yml on VPS
 
-## Architecture
+## Directory Layout
 
-Ports & Adapters (Hexagonal). Four layers:
-
-1. **UI Layer** (`routes/`, `lib/components/`) — Svelte components, reads stores, calls domain services
-2. **Domain Layer** (`lib/domain/services/`) — pure business logic (FoodTrackingService, PhotoDiaryService, AnalysisService, ExportService), no I/O
-3. **Ports** (`lib/domain/ports/`) — interfaces: EczemaAnalyzer, PhotoStorage, DataRepository, NotificationService
-4. **Adapters** (`lib/adapters/`) — implementations: ClaudeVisionAnalyzer, EncryptedFSStorage, PostgresRepository, WebPushNotifications, Dexie local DB
-
-Domain services depend only on port interfaces, never on adapters directly.
-
-## Key Data Models
-
-Defined in `docs/architecture/data-models.md`. Core entities:
-
-- **FoodLog** — manual elimination/reintroduction events (primary tracking method)
-- **Meal + MealItem** — what the mother actually ate (belongs to user, not child)
-- **TrackingPhoto** — unified photo entity with `photoType: 'skin' | 'stool'`. Skin photos have bodyArea + severity; stool photos have color, consistency, mucus, blood
-- **AnalysisResult** — discriminated union: `SkinAnalysisResult | StoolAnalysisResult`
-
-## Development Commands
-
-Use **Just** for all common tasks (install via `brew install just` or `curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash`):
-
-```bash
-just dev              # Start full dev environment (Docker + Caddy + dev server)
-just build            # Type-check and build
-just test             # Run all tests
-just check            # Run full check suite (test + build + lint)
-just deploy           # Deploy to VPS (set DEPLOY_HOST env var)
-just backup-remote    # Create encrypted backup on VPS
+```
+src/
+  routes/               # SvelteKit pages + /api/health endpoint
+    +layout.svelte      # App shell
+    +page.svelte        # Onboarding / questionnaire
+    program/            # Schedule overview
+    day/                # Daily detail
+    meal/               # Meal logging
+    settings/           # Settings
+    api/health/         # Liveness probe
+  lib/
+    domain/             # Pure business logic (models.ts, schedule.ts)
+    data/               # Seed data (food categories)
+    utils/              # Generic helpers (date, uuid, error)
+    components/         # UI components
+    server/             # Server infra (kept for future: logger, env, db, bcrypt, rate-limit, shutdown, validation)
+    crypto/             # Web Crypto AES-256-GCM helpers
+    types/              # Shared type helpers (Result<T, E>)
+  hooks.server.ts       # Minimal pass-through (no auth yet)
+  app.d.ts              # Empty App namespace
 ```
 
-Run `just` or `just help` to see all available commands.
+## Architecture Intent
 
-### Manual Commands (if not using Just)
+Ports & Adapters (Hexagonal). Currently only the **Domain** layer exists (pure logic in `lib/domain/`). When backend is re-wired, add `lib/domain/ports/` (interfaces) and `lib/adapters/` (implementations) back. See `docs/architecture/ports-and-adapters.md`.
+
+## Commands
 
 ```bash
-# Local dev environment
-docker compose -f docker-compose.dev.yml up -d   # PostgreSQL + app
-caddy run --config Caddyfile                       # HTTPS proxy (mkcert)
-bun run dev -- --host 0.0.0.0                      # SvelteKit dev server
-
-# Build and type check
-bun run build
-bunx tsc --noEmit
-
-# Access from phone on same WiFi
-# https://192.168.x.x (mkcert cert must be trusted on the device)
+just dev          # Start Vite dev server (no backend yet)
+just build        # Type-check + build
+just check        # Same as build
+just deploy       # Build Docker image and deploy to VPS
+just health       # Curl /api/health on remote
 ```
 
-## Key Design Decisions
-
-- **Offline-first**: All mutations go to Dexie.js first, then sync to server. UI is always responsive regardless of network.
-- **E2E encryption**: Photos encrypted in browser before upload. Server stores opaque blobs. Passphrase → PBKDF2 (600K iterations) → AES key. Lost passphrase = unrecoverable photos (by design).
-- **Single child**: Meals belong to `userId` (the mother), not `childId`. Child context is implicit.
-- **Photo types**: `TrackingPhoto` handles both skin and stool. Gallery has filter tabs. Comparison view only allows same-type photos.
-- **Correlation**: Driven by manual FoodLog events only (not derived from meal data). Meal data is contextual display.
-- **AI calls via server proxy**: Client decrypts photos locally, sends to `POST /api/analyze`. Server forwards to Claude Vision API in memory (never written to disk), streams response back. API key stays server-side. Server sees plaintext briefly in a memory buffer only.
-- **Export**: Two methods — PDF (client-side, offline, photos embedded) and Google Doc (server-side, photos uploaded to Drive, shareable with pediatrician).
-- **Ghost overlay**: Camera shows previous photo at 30% opacity for consistent framing. Falls back to static SVG silhouette for first photo.
-- **Future: Passkeys/WebAuthn**: Face ID/Touch ID login planned for Phase 8 polish. Current auth uses password + 30-day sliding sessions.
-
-## Secrets & Auth
-
-See `docs/architecture/auth-overview.md` for complete details. Key points:
-
-- All env vars documented with generation commands and rotation procedures
-- bcrypt (12 rounds) for passwords, cookie-based sessions (30-day sliding), REGISTRATION_ENABLED flag
-- Google OAuth refresh tokens encrypted at rest with SESSION_SECRET
-- Claude API key stored server-side only; client calls server proxy at `POST /api/analyze`
-- Vitest + @testing-library/svelte for unit/component tests, Playwright for E2E
-
-## Conventions
-
-- All UI text in Czech (translations in `lib/i18n/cs.ts`)
-- PostgreSQL uses snake_case; TypeScript uses camelCase. Mapping done in PostgresRepository adapter.
-- Food categories are seeded data (12 Czech allergen categories with sub-items)
-- Dates formatted Czech style: `5.3.` (day.month.)
+Run `just` or `just help` for the full recipe list.
 
 ## Code Standards
 
 ### TypeScript
 
-- Strict mode (`strict: true` in tsconfig). No `any` — use `unknown` and narrow.
+- Strict mode. No `any` — use `unknown` and narrow.
 - Prefer `type` over `interface` unless declaration merging is needed.
-- Use discriminated unions for variants (e.g., `AnalysisResult`), not optional fields.
-- Exhaustive switch with `never` checks: every discriminated union must be fully handled.
+- Use discriminated unions for variants, not optional fields.
+- Exhaustive switch with `never` checks.
 - No enums — use `as const` objects or string literal unions.
-- Explicit return types on exported functions. Inferred types are fine for local/private functions.
+- Explicit return types on exported functions.
 
 ### Naming
 
 - Files: `kebab-case.ts`, `kebab-case.svelte`
 - Types/interfaces: `PascalCase`
 - Functions/variables: `camelCase`
-- Constants: `UPPER_SNAKE_CASE` for true constants (env vars, config), `camelCase` for derived/computed values
-- Database columns: `snake_case` (mapped in adapter layer)
-- Test files: `*.test.ts` colocated next to source (e.g., `food-tracking.service.test.ts` next to `food-tracking.service.ts`)
+- Constants: `UPPER_SNAKE_CASE` for true constants, `camelCase` for derived values
+- Test files: `*.test.ts` colocated next to source
 
 ### Imports
 
-- Group in order: (1) svelte/sveltekit, (2) third-party, (3) `$lib` aliases, (4) relative imports. Blank line between groups.
-- Use `$lib/` alias for all imports from `src/lib/`. No `../../../` paths.
+- Group order: (1) svelte/sveltekit, (2) third-party, (3) `$lib` aliases, (4) relative. Blank line between groups.
+- Use `$lib/` alias for imports from `src/lib/`. No `../../../` paths.
 - Prefer named exports. Default exports only for Svelte page/layout components.
 
 ### Error Handling
 
-- Domain services return `Result<T, E>` types (discriminated union `{ ok: true, data: T } | { ok: false, error: E }`), not thrown exceptions.
-- Thrown exceptions are reserved for truly unexpected failures (programmer errors, infrastructure failures).
-- API endpoints catch adapter errors and return structured JSON responses with appropriate HTTP status codes.
-- Never swallow errors silently — always log or propagate.
+- Prefer `Result<T, E>` types (from `$lib/types/result`) for expected failures.
+- Thrown exceptions only for truly unexpected failures.
+- Never swallow errors silently.
 
-### Svelte Components
+### Svelte 5
 
-- One component per file. Keep components under ~150 lines; extract sub-components when larger.
-- Props: use `$props()` rune (Svelte 5). Destructure with defaults at the top.
-- State: use `$state()` and `$derived()` runes. No legacy `$:` reactive statements.
-- Events: use callback props (`onclick`, `onsubmit`), not `createEventDispatcher`.
-- Styles: use Tailwind utility classes. Scoped `<style>` blocks only for complex selectors Tailwind can't express.
-
-### Testing
-
-- Unit tests for domain services (pure logic, mock ports via interfaces).
-- Component tests with `@testing-library/svelte` — test behavior, not implementation.
-- E2E tests with Playwright for critical user flows.
-- Test names describe behavior: `it('returns correlation when food log overlaps flare window')`.
+- `$props()`, `$state()`, `$derived()` runes. No legacy `$:` reactive statements.
+- Callback props (`onclick`, `onsubmit`), not `createEventDispatcher`.
+- Tailwind utility classes. Scoped `<style>` only when Tailwind can't express it.
 
 ### Security
 
 - Never log sensitive data (passwords, tokens, decrypted photos, API keys).
-- Validate and sanitize all external input at the adapter boundary.
-- SQL queries use parameterized statements only — no string interpolation.
+- Validate/sanitize external input at adapter boundaries.
+- Parameterized SQL only.
 - Encryption keys and passphrases never leave the client except as derived key material.
 
-## Agent-Specific Guidelines
+## Conventions
 
-### For Claude Code (claude.ai/code)
+- UI text in Czech (inlined in components — i18n module was removed during slim-down, re-add when translations are needed)
+- Dates formatted Czech-style: `5. 3.` (non-breaking space between day and month)
+- Food categories seeded in `src/lib/data/categories.ts`
 
-- Use the `Read`, `Edit`, `Write`, `Grep`, `Glob` tools for file operations
-- Use `Bash` tool for terminal commands, git operations, npm/bun, etc.
-- Use `Task` tool for multi-step exploration and research tasks
+## Agent Guidelines
 
-### For opencode (kimi-k2.5)
+### Claude Code
 
-- Use `read`, `edit`, `write`, `grep`, `glob` tools for file operations
-- Use `bash` tool for terminal commands
-- Use `websearch`, `webfetch`, `codesearch` for external resources
-- Use `Task` tool with `subagent_type` parameter for exploration
-- Be concise — minimize output while maintaining helpfulness
-- Answer in 1-3 sentences when possible
-- Never auto-commit; only commit when explicitly asked
-- Report issues at https://github.com/anomalyco/opencode/issues
+- Use `Read`, `Edit`, `Write`, `Grep`, `Glob` for file operations.
+- Use `Bash` for shell commands.
+- Use `Task` for multi-step exploration.
 
-### Common Guidelines (All Agents)
+### Common
 
-- Always read files before editing them
-- Use specialized tools for file operations, not bash with `cat`, `sed`, `awk`, etc.
-- Use `workdir` parameter in bash instead of `cd && command`
-- Run lint/typecheck after code changes if available
-- Never commit secrets or credentials
-- Follow existing code conventions and patterns
+- Always read files before editing.
+- Prefer dedicated tools over `cat`/`sed`/`awk` via bash.
+- Never commit secrets.
+- Follow existing code conventions.
 
-### Pull Request Workflow
+## Pull Request Workflow
 
-**All code changes must go through a pull request.** Direct pushes to `main` are blocked by branch protection. PRs require all CI checks to pass before merging. All PRs are merged via **squash merge** — the PR title becomes the commit subject and the PR body becomes the commit description on `main`.
+All changes go through a PR. Direct pushes to `main` are blocked. PRs squash-merged — title becomes commit subject, body becomes commit description.
 
-When the user says **"push to the repo"** or **"push to the repository"**: if no PR exists yet, create a branch, commit, and open a PR; if a PR is already open, push the latest commits to its branch.
-
-**PR title format (becomes the squash commit message):**
+**PR title format:**
 ```
-Phase X: <imperative summary under 72 chars>
+<scope>: <imperative summary under 72 chars>
 ```
 Examples:
-- `Phase 2: add meal logging with offline sync`
-- `Phase 1: fix session expiry on concurrent requests`
-- `ci: enforce squash merges and branch protection`
+- `prototype: tighten schedule generation for severe eczema`
+- `ci: fix type check on Bun 1.2`
+- `docs: note minimum Node version`
 
-Use `ci:`, `docs:`, `fix:` prefixes for non-feature work that doesn't belong to a phase.
+Use `ci:`, `docs:`, `fix:`, `feat:`, `refactor:`, `chore:` prefixes.
 
-**PR description template (becomes the commit body):**
+**PR description template:**
 ```
 ## What
 Brief description of the change.
 
 ## Why
-Motivation or context — what problem does this solve?
+Motivation or context.
 
 ## Examples (if applicable)
-- Before/after code snippet
-- API request/response example
-- Screenshot or flow description
+Before/after snippet, API example, or screenshot.
 ```
 
-CI checks that must pass before merge:
+CI checks required before merge:
 - **Type Check** — `bunx tsc --noEmit`
-- **Unit Tests** — Vitest unit tests (no DB)
-- **Integration Tests** — Vitest integration tests against PostgreSQL
-- **E2E Tests** — Playwright tests (dev server auto-started)
+- **Build** — `bun run build`
 
-### Git Commit Messages
+(Test CI re-added when test coverage is authored.)
 
-- **Always prefix commits with the current phase**: `Phase X: <description>`
-- Example: `Phase 1: add auth API routes and session management`
-- Check `docs/phases/` to identify which phase the work belongs to
-- Keep descriptions concise and action-oriented (add, fix, update, remove)
+### Commit Messages
 
-### Documentation Maintenance
+- Prefix with scope: `prototype:`, `ci:`, `docs:`, `fix:`, `feat:`, `refactor:`, `chore:`
+- Keep descriptions concise, action-oriented (add, fix, update, remove).
+- Do not add Co-Authored-By lines.
 
-After implementing features or making significant changes, verify documentation is up to date:
+## When Modifying the Repo
 
-1. **Phase docs** (`docs/phases/phase-N-*.md`) — mark acceptance criteria as complete `[x]`, update file lists if new files were created
-2. **Data models** (`docs/architecture/data-models.md`) — if schema or TypeScript interfaces changed
-3. **API routes** (`docs/architecture/api-routes.md`) — if endpoints were added or modified
-4. **This file** (`CLAUDE.md`) — if key design decisions, commands, or conventions changed
-5. **README** (`docs/README.md`) — if implementation status changed
-
-Run a quick check: do the docs still accurately describe what the code does?
-
-### Test Coverage Maintenance
-
-After adding or modifying tests, update `docs/architecture/test-coverage-map.md`:
-
-1. Add the test to the appropriate feature table with its test type (Unit/Integration/E2E)
-2. Update the coverage status column (✅ tested / ⚠️ partial / ❌ missing)
-3. Remove addressed items from the "Gaps & Recommendations" section
-4. Update the "Last updated" date at the top
-
-This document serves as the single source of truth for what is tested and where gaps exist.
+After significant changes, verify:
+1. `docs/README.md` — still accurate?
+2. `AGENTS.md` — conventions/commands still match?
+3. Grep for dead imports (`grep -rn "\\\$lib/" src/`) after deletes.
