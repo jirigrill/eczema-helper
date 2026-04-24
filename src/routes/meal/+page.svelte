@@ -259,32 +259,6 @@
       </div>
     </div>
 
-    <!-- Expanded sub-items -->
-    {#if expandedCategory}
-      {@const cat = getCategoryBySlug(expandedCategory)}
-      {#if cat && cat.subItems.length > 0}
-        <div class="bg-white rounded-xl border border-primary/30 p-3">
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-sm font-medium text-text">{cat.icon} {cat.nameCs}</p>
-            <button class="text-xs text-text-muted" onclick={() => (expandedCategory = null)}>✕</button>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            {#each cat.subItems as sub}
-              <button
-                class="py-2 px-3 rounded-xl text-sm transition-all
-                  {currentItems.some(i => i.name === sub.nameCs)
-                    ? 'bg-success/10 text-success border border-success/30'
-                    : 'bg-surface text-text border border-surface-dark hover:border-primary/30'}"
-                onclick={() => selectSubItem(cat.slug, sub.id, sub.nameCs)}
-              >
-                {sub.nameCs}
-              </button>
-            {/each}
-          </div>
-        </div>
-      {/if}
-    {/if}
-
     <!-- Current meal basket -->
     {#if currentItems.length > 0}
       <div class="bg-white rounded-xl border border-surface-dark p-3">
@@ -360,6 +334,43 @@
     {/if}
   </div>
 </div>
+
+<!-- Sub-items floating panel -->
+{#if expandedCategory}
+  {@const cat = getCategoryBySlug(expandedCategory)}
+  {#if cat && cat.subItems.length > 0}
+    <button
+      class="fixed inset-0 z-40"
+      onclick={() => (expandedCategory = null)}
+      aria-label="Zavřít"
+    ></button>
+    <div
+      class="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-primary/30 shadow-lg px-4 pt-4 space-y-3"
+      style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+    >
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-text">{cat.icon} {cat.nameCs}</p>
+        <button
+          class="text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium"
+          onclick={() => (expandedCategory = null)}
+        >Hotovo</button>
+      </div>
+      <div class="flex flex-wrap gap-2 pb-1">
+        {#each cat.subItems as sub}
+          <button
+            class="py-2 px-3 rounded-xl text-sm transition-all
+              {currentItems.some(i => i.name === sub.nameCs)
+                ? 'bg-success/10 text-success border border-success/30'
+                : 'bg-surface text-text border border-surface-dark hover:border-primary/30'}"
+            onclick={() => selectSubItem(cat.slug, sub.id, sub.nameCs)}
+          >
+            {sub.nameCs}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+{/if}
 
 <!-- Fixed save bar -->
 {#if canSave}
