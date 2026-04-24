@@ -173,7 +173,7 @@
           <p class="text-sm text-text-muted">Datum narození a závažnost ekzému</p>
         </div>
 
-        <div class="overflow-hidden">
+        <div>
           <label class="block text-sm font-medium text-text mb-2" for="birthdate">
             Datum narození miminka
           </label>
@@ -308,7 +308,7 @@
           <p class="text-sm text-text-muted">Kdy chcete začít s eliminační dietou?</p>
         </div>
 
-        <div class="overflow-hidden">
+        <div>
           <label class="block text-sm font-medium text-text mb-2" for="startdate">
             Datum začátku
           </label>
