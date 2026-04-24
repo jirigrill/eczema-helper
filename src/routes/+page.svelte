@@ -183,7 +183,7 @@
             bind:value={babyBirthDate}
             max={new Date().toISOString().split('T')[0]}
             class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
-              focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white"
+              focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
           />
         </div>
 
@@ -318,7 +318,7 @@
             bind:value={programStartDate}
             min={new Date().toISOString().split('T')[0]}
             class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
-              focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white"
+              focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
           />
         </div>
 

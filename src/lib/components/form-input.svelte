@@ -20,7 +20,7 @@
   <input
     {id}
     bind:value
-    class="w-full border border-surface-dark rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary"
+    class="w-full border border-surface-dark rounded-xl px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
     {...rest}
   />
 </div>

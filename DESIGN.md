@@ -135,6 +135,17 @@ Focus states: `focus:outline-none focus:ring-2 focus:ring-primary/40` (inputs), 
 
 ---
 
+## Layout Philosophy
+
+**Prefer scroll-free pages.** Each page should ideally display its full content within a single viewport without requiring the user to scroll. Apply this as a design constraint when ordering and sizing content:
+
+- Show the most critical information and actions first (above the fold)
+- Collapse secondary content behind expandable sections, modals, or tabs rather than stacking it vertically
+- Use compact spacing and smaller text sizes for supplementary details
+- Prefer horizontal layouts (chips, grid) over vertical lists where content density allows
+
+This rule applies to action screens (day log, meal entry, settings). It does **not** apply to inherently long content like the program timeline or food category grids, where scrolling is unavoidable and expected.
+
 ## Component Patterns
 
 ### Card

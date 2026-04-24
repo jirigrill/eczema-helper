@@ -185,7 +185,7 @@
       <div class="flex gap-1.5 overflow-x-auto pb-1">
         {#each amounts as [value, info]}
           <button
-            class="shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-all
+            class="shrink-0 py-2 px-3 rounded-xl text-sm font-medium transition-all
               {selectedAmount === value ? 'bg-warning text-white' : 'bg-white border border-surface-dark text-text'}"
             onclick={() => (selectedAmount = value)}
           >
@@ -271,7 +271,7 @@
           <div class="flex flex-wrap gap-2">
             {#each cat.subItems as sub}
               <button
-                class="py-2 px-3 rounded-lg text-sm transition-all
+                class="py-2 px-3 rounded-xl text-sm transition-all
                   {currentItems.some(i => i.name === sub.nameCs)
                     ? 'bg-success/10 text-success border border-success/30'
                     : 'bg-surface text-text border border-surface-dark hover:border-primary/30'}"
