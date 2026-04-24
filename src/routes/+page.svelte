@@ -173,7 +173,7 @@
           <p class="text-sm text-text-muted">Datum narození a závažnost ekzému</p>
         </div>
 
-        <div>
+        <div class="overflow-hidden">
           <label class="block text-sm font-medium text-text mb-2" for="birthdate">
             Datum narození miminka
           </label>
@@ -182,7 +182,7 @@
             type="date"
             bind:value={babyBirthDate}
             max={new Date().toISOString().split('T')[0]}
-            class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
+            class="w-full min-w-0 rounded-xl border border-surface-dark px-4 py-3 text-base text-text
               focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
           />
         </div>
@@ -308,7 +308,7 @@
           <p class="text-sm text-text-muted">Kdy chcete začít s eliminační dietou?</p>
         </div>
 
-        <div>
+        <div class="overflow-hidden">
           <label class="block text-sm font-medium text-text mb-2" for="startdate">
             Datum začátku
           </label>
@@ -317,7 +317,7 @@
             type="date"
             bind:value={programStartDate}
             min={new Date().toISOString().split('T')[0]}
-            class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
+            class="w-full min-w-0 rounded-xl border border-surface-dark px-4 py-3 text-base text-text
               focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
           />
         </div>
