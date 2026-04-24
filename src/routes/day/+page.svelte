@@ -141,6 +141,7 @@
   let evalOutcome = $state<AllergenOutcome | SkinStatusOutcome | null>(null);
   let evalNotes = $state('');
   let evalSaved = $state(false);
+  let showEvalModal = $state(false);
 
   $effect(() => {
     if (existingEval) {
@@ -474,80 +475,32 @@
         </div>
       {/if}
 
-      <!-- End-of-phase evaluation (last day of reset, elimination, or reintroduction) -->
+      <!-- End-of-phase evaluation trigger -->
       {#if isEvalDay && evalPhase}
         {@const evalCat = evalPhase.type === 'reintroduction' ? getCategoryBySlug(evalPhase.categorySlugs[0]) : null}
-        <div class="bg-primary/5 border border-primary/30 rounded-2xl p-4 space-y-4">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between bg-primary/5 border border-primary/30 rounded-2xl p-4 text-left"
+          onclick={() => (showEvalModal = true)}
+        >
           <div>
-            {#if evalPhase.type === 'reset'}
-              <p class="text-sm font-semibold text-text">⚖️ Hodnocení: Výchozí stav kůže</p>
-              <p class="text-xs text-text-muted mt-1">
-                Jak vypadá kůže miminka na konci resetovací fáze? Toto bude referenční bod.
-              </p>
-            {:else if evalPhase.type === 'elimination'}
-              <p class="text-sm font-semibold text-text">⚖️ Hodnocení: Konec eliminační fáze</p>
-              <p class="text-xs text-text-muted mt-1">
-                Jak vypadá kůže miminka po eliminaci? Ustálil se stav oproti začátku?
-              </p>
-            {:else}
-              <p class="text-sm font-semibold text-text">⚖️ Celkové hodnocení: {evalCat?.icon} {evalCat?.nameCs}</p>
-              <p class="text-xs text-text-muted mt-1">
-                Jak miminko reagovalo na {evalCat?.nameCs?.toLowerCase()} během testování?
-              </p>
-            {/if}
+            <p class="text-sm font-semibold text-text">⚖️ Hodnocení fáze</p>
+            <p class="text-xs text-text-muted mt-0.5">
+              {#if evalPhase.type === 'reset'}
+                Výchozí stav kůže miminka
+              {:else if evalPhase.type === 'elimination'}
+                Konec eliminační fáze
+              {:else}
+                {evalCat?.icon} {evalCat?.nameCs}
+              {/if}
+            </p>
           </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            {#each activeOutcomeOptions as opt}
-              <button
-                type="button"
-                class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-medium transition-all
-                  {evalOutcome === opt.value
-                    ? opt.color + ' shadow-sm'
-                    : 'bg-white border-surface-dark text-text hover:border-primary/30'}"
-                onclick={() => { evalOutcome = opt.value; evalSaved = false; }}
-              >
-                <span class="text-lg leading-none">{opt.icon}</span>
-                <span class="leading-tight">{opt.label}</span>
-              </button>
-            {/each}
-          </div>
-
-          {#if evalOutcome}
-            <textarea
-              bind:value={evalNotes}
-              placeholder="Poznámka (volitelné) — např. drobné zarudnutí 2. den…"
-              rows="2"
-              class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm text-text resize-none
-                focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface"
-              oninput={() => (evalSaved = false)}
-            ></textarea>
-
-            <button
-              class="w-full py-3 rounded-xl font-semibold text-sm transition-all
-                {evalSaved ? 'bg-success/20 text-success' : 'bg-primary text-white'}"
-              onclick={saveEvaluation}
-              disabled={evalSaved}
-            >
-              {evalSaved ? '✓ Hodnocení uloženo' : 'Uložit hodnocení'}
-            </button>
-
-            {#if evalMutationFeedback}
-              <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2 mt-1">
-                <p class="text-sm font-semibold text-text">Program upraven</p>
-                <div class="space-y-1.5 text-xs text-text-muted">
-                  <p>⏸️ Přidán klidový režim ({evalMutationFeedback.restDays === 1 ? '1 den' : `${evalMutationFeedback.restDays} dny`}) — kůže se zotavuje</p>
-                  <p>🏋️ Zahájen trénink: {evalMutationFeedback.allergenIcon} {evalMutationFeedback.allergenName} — malé dávky pro budování tolerance</p>
-                  <p>📅 Zbývající fáze posunuty</p>
-                </div>
-                <a
-                  href="/program"
-                  class="inline-block text-xs text-primary font-medium mt-1"
-                >Zobrazit aktualizovaný program →</a>
-              </div>
-            {/if}
+          {#if evalSaved}
+            <span class="shrink-0 text-xs bg-success/10 text-success rounded-full px-2.5 py-1 font-medium">✓ Uloženo</span>
+          {:else}
+            <span class="shrink-0 text-xs bg-primary text-white rounded-full px-2.5 py-1 font-medium">Vyhodnotit →</span>
           {/if}
-        </div>
+        </button>
       {/if}
 
       <!-- Daily eczema assessment -->
@@ -579,3 +532,84 @@
     {/if}
   </div>
 </div>
+
+<!-- Evaluation modal (bottom sheet) -->
+{#if showEvalModal && evalPhase}
+  {@const evalCat = evalPhase.type === 'reintroduction' ? getCategoryBySlug(evalPhase.categorySlugs[0]) : null}
+  <button
+    class="fixed inset-0 bg-black/40 z-40"
+    onclick={() => (showEvalModal = false)}
+    aria-label="Zavřít"
+  ></button>
+  <div
+    class="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-lg p-5 space-y-4 max-h-[80vh] overflow-y-auto"
+    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1.25rem)"
+  >
+    <div class="flex items-start justify-between">
+      <div>
+        {#if evalPhase.type === 'reset'}
+          <p class="text-sm font-semibold text-text">⚖️ Hodnocení: Výchozí stav kůže</p>
+          <p class="text-xs text-text-muted mt-1">Jak vypadá kůže miminka na konci resetovací fáze? Toto bude referenční bod.</p>
+        {:else if evalPhase.type === 'elimination'}
+          <p class="text-sm font-semibold text-text">⚖️ Hodnocení: Konec eliminační fáze</p>
+          <p class="text-xs text-text-muted mt-1">Jak vypadá kůže miminka po eliminaci? Ustálil se stav oproti začátku?</p>
+        {:else}
+          <p class="text-sm font-semibold text-text">⚖️ Celkové hodnocení: {evalCat?.icon} {evalCat?.nameCs}</p>
+          <p class="text-xs text-text-muted mt-1">Jak miminko reagovalo na {evalCat?.nameCs?.toLowerCase()} během testování?</p>
+        {/if}
+      </div>
+      <button
+        class="shrink-0 text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 ml-3"
+        onclick={() => (showEvalModal = false)}
+      >Zavřít</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2">
+      {#each activeOutcomeOptions as opt}
+        <button
+          type="button"
+          class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-medium transition-all
+            {evalOutcome === opt.value
+              ? opt.color + ' shadow-sm'
+              : 'bg-white border-surface-dark text-text hover:border-primary/30'}"
+          onclick={() => { evalOutcome = opt.value; evalSaved = false; }}
+        >
+          <span class="text-lg leading-none">{opt.icon}</span>
+          <span class="leading-tight">{opt.label}</span>
+        </button>
+      {/each}
+    </div>
+
+    {#if evalOutcome}
+      <textarea
+        bind:value={evalNotes}
+        placeholder="Poznámka (volitelné) — např. drobné zarudnutí 2. den…"
+        rows="2"
+        class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm text-text resize-none
+          focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface"
+        oninput={() => (evalSaved = false)}
+      ></textarea>
+
+      <button
+        class="w-full py-3 rounded-xl font-semibold text-sm transition-all
+          {evalSaved ? 'bg-success/20 text-success' : 'bg-primary text-white'}"
+        onclick={() => { saveEvaluation(); showEvalModal = false; }}
+        disabled={evalSaved}
+      >
+        {evalSaved ? '✓ Hodnocení uloženo' : 'Uložit hodnocení'}
+      </button>
+
+      {#if evalMutationFeedback}
+        <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+          <p class="text-sm font-semibold text-text">Program upraven</p>
+          <div class="space-y-1.5 text-xs text-text-muted">
+            <p>⏸️ Přidán klidový režim ({evalMutationFeedback.restDays === 1 ? '1 den' : `${evalMutationFeedback.restDays} dny`}) — kůže se zotavuje</p>
+            <p>🏋️ Zahájen trénink: {evalMutationFeedback.allergenIcon} {evalMutationFeedback.allergenName} — malé dávky pro budování tolerance</p>
+            <p>📅 Zbývající fáze posunuty</p>
+          </div>
+          <a href="/program" class="inline-block text-xs text-primary font-medium mt-1">Zobrazit aktualizovaný program →</a>
+        </div>
+      {/if}
+    {/if}
+  </div>
+{/if}
