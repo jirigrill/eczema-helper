@@ -186,6 +186,8 @@ focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white
 ```
 Textarea adds `resize-none bg-surface`.
 
+**`type="date"` inputs:** always add a scoped CSS rule `input[type="date"] { -webkit-appearance: none; appearance: none; }`. Safari (iOS 17 and earlier) renders date inputs as `inline-flex` internally, causing `width: 100%` to be ignored and the field to overflow its container. `appearance: none` resets this. The native iOS date picker still opens on tap.
+
 ### Badge / Tag
 ```
 inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1
