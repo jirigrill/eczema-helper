@@ -5,12 +5,12 @@
   import { onMount, tick } from 'svelte';
   import { page } from '$app/stores';
   import type { AppState, DailyAssessment, ReintroductionEvaluation, AllergenOutcome, SkinStatusOutcome } from '$lib/domain/models';
-  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getReintroductionDayInfo, isPhaseEndForEvaluation, generateDemoData, insertRestDays, addTrainingPhase, getTrainingRemindersForDate } from '$lib/domain/schedule';
-  import { DEMO_MEALS, MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS, getCategoryBySlug } from '$lib/data/categories';
+  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getReintroductionDayInfo, isPhaseEndForEvaluation, insertRestDays, addTrainingPhase, getTrainingRemindersForDate } from '$lib/domain/schedule';
+  import { getCategoryBySlug } from '$lib/data/categories';
+  import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
+  import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { formatDateCs, formatDateLongCs, todayIso, addDays } from '$lib/utils/date';
   import EczemaCheck from '$lib/components/EczemaCheck.svelte';
-
-  const STATE_KEY = 'v2-prototype-state';
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
   let dateStripEl = $state<HTMLElement | null>(null);
@@ -20,26 +20,17 @@
     let isInitial = true;
 
     function refresh() {
-      try {
-        const raw = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null');
-        if (raw) {
-          const simToday = addDays(todayIso(), raw.dateOffset ?? 0);
-          const demo = raw.schedule ? generateDemoData(raw.schedule, simToday) : { meals: [], assessments: [], evaluations: [], mutatedSchedule: raw.schedule };
-          state = {
-            ...raw,
-            schedule: demo.mutatedSchedule ?? raw.schedule,
-            meals: [...demo.meals, ...DEMO_MEALS, ...(raw.meals ?? [])],
-            assessments: [...demo.assessments, ...(raw.assessments ?? [])],
-            evaluations: [...demo.evaluations, ...(raw.evaluations ?? [])],
-          };
-          if (isInitial) {
-            selectedDate = paramDate ?? simToday;
-            isInitial = false;
-          } else {
-            selectedDate = simToday;
-          }
+      const raw = loadState();
+      if (raw.answers) {
+        const simToday = addDays(todayIso(), raw.dateOffset ?? 0);
+        state = raw;
+        if (isInitial) {
+          selectedDate = paramDate ?? simToday;
+          isInitial = false;
+        } else {
+          selectedDate = simToday;
         }
-      } catch { /* */ }
+      }
     }
     refresh();
     window.addEventListener('v2-state-change', refresh);
@@ -86,29 +77,11 @@
     schedule ? getTrainingRemindersForDate(schedule, selectedDate, state.meals) : []
   );
 
-  function stripDemoData(s: AppState): AppState {
-    return {
-      ...s,
-      meals: s.meals.filter(m => !m.id.startsWith('demo-')),
-      assessments: [],
-      evaluations: s.evaluations.filter(e => !e.phaseId.startsWith('demo-')),
-    };
-  }
-
   function saveAssessment(a: DailyAssessment) {
-    const updated = {
-      ...state,
-      assessments: [
-        ...(state.assessments ?? []).filter(x => x.date !== a.date),
-        a,
-      ],
-    };
-    const toPersist = stripDemoData(updated);
-    toPersist.assessments = updated.assessments.filter(x => {
-      return (state.assessments ?? []).some(orig => orig.date === x.date) || x.date === a.date;
-    });
-    localStorage.setItem(STATE_KEY, JSON.stringify(toPersist));
-    state = updated;
+    const raw = loadState();
+    raw.assessments = [...(raw.assessments ?? []).filter(x => x.date !== a.date), a];
+    saveState(raw);
+    state = { ...state, assessments: [...(state.assessments ?? []).filter(x => x.date !== a.date), a] };
   }
 
   // End-of-phase evaluation (reset, elimination, reintroduction)
@@ -166,11 +139,8 @@
       date: selectedDate,
     };
 
-    const rawState = JSON.parse(localStorage.getItem(STATE_KEY) ?? '{}');
-    rawState.evaluations = [
-      ...(rawState.evaluations ?? []).filter((e: ReintroductionEvaluation) => e.phaseId !== evalPhase.id),
-      evaluation,
-    ];
+    const raw = loadState();
+    raw.evaluations = [...(raw.evaluations ?? []).filter(e => e.phaseId !== evalPhase.id), evaluation];
 
     // Schedule mutation on negative reintroduction outcome
     if (
@@ -178,19 +148,15 @@
       (evalOutcome === 'clear-reaction' || evalOutcome === 'severe-reaction')
     ) {
       const restDays = evalOutcome === 'severe-reaction' ? 2 : 1;
-      let mutated = insertRestDays(rawState.schedule, evalPhase.id, restDays);
+      let mutated = insertRestDays(raw.schedule!, evalPhase.id, restDays);
       mutated = addTrainingPhase(mutated, evalPhase.categorySlugs[0], evalPhase.id);
-      rawState.schedule = mutated;
+      raw.schedule = mutated;
     }
 
-    localStorage.setItem(STATE_KEY, JSON.stringify(rawState));
-    state = {
-      ...state,
-      schedule: rawState.schedule,
-      evaluations: [...(state.evaluations ?? []).filter(e => e.phaseId !== evalPhase.id), evaluation],
-    };
+    saveState(raw);
+    state = { ...state, schedule: raw.schedule, evaluations: raw.evaluations };
     evalSaved = true;
-    window.dispatchEvent(new CustomEvent('v2-state-change'));
+    notifyStateChange();
   }
 
   const evalMutationFeedback = $derived.by(() => {

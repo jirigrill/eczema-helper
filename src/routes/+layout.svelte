@@ -6,33 +6,27 @@
   import type { AppState } from '$lib/domain/models';
   import { getPhaseForDate } from '$lib/domain/schedule';
   import { todayIso, addDays, formatDateCs } from '$lib/utils/date';
+  import { fetchScenario, listScenarios } from '$lib/data/scenario-loader';
+  import { loadState, saveAndNotify as persistAndNotify } from '$lib/data/storage';
 
   let { children } = $props();
 
-  const STATE_KEY = 'v2-prototype-state';
-
-  function loadState(): AppState {
-    if (typeof localStorage === 'undefined') return { answers: null, schedule: null, meals: [], assessments: [], evaluations: [] };
-    try {
-      return JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') ?? { answers: null, schedule: null, meals: [], assessments: [], evaluations: [] };
-    } catch {
-      return { answers: null, schedule: null, meals: [], assessments: [], evaluations: [] };
-    }
-  }
-
   let protoState = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
   let currentPath = $derived($page.url.pathname);
+  let scenarios = $state<{ id: string; name: string }[]>([]);
+  let scenarioLoading = $state(false);
+  let scenarioError = $state<string | null>(null);
 
   onMount(() => {
     protoState = loadState();
     if (!protoState.answers && !currentPath.endsWith('/')) {
       goto('/');
     }
-    // Keep layout state in sync when other pages modify localStorage
     function syncState() {
       protoState = loadState();
     }
     window.addEventListener('v2-state-change', syncState);
+    listScenarios().then(list => { scenarios = list; });
     return () => window.removeEventListener('v2-state-change', syncState);
   });
 
@@ -49,24 +43,18 @@
     protoState.schedule ? getPhaseForDate(protoState.schedule, currentDate) : null
   );
 
-  // Always reload fresh from localStorage before mutating — prevents stale overwrites
-  function freshState(): AppState {
-    return loadState();
-  }
-
   function saveAndNotify(updated: AppState) {
     protoState = updated;
-    localStorage.setItem(STATE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('v2-state-change'));
+    persistAndNotify(updated);
   }
 
   function adjustOffset(delta: number) {
-    const current = freshState();
+    const current = loadState();
     saveAndNotify({ ...current, dateOffset: (current.dateOffset ?? 0) + delta });
   }
 
   function resetOffset() {
-    const current = freshState();
+    const current = loadState();
     let newOffset = 0;
     if (current.schedule) {
       const realToday = todayIso();
@@ -77,12 +65,32 @@
   }
 
   function jumpToEnd() {
-    const current = freshState();
+    const current = loadState();
     if (!current.schedule) return;
     const end = current.schedule.estimatedEndDate;
     const realToday = todayIso();
     const newOffset = Math.round((new Date(end + 'T00:00:00').getTime() - new Date(realToday + 'T00:00:00').getTime()) / 86400000) + 2;
     saveAndNotify({ ...current, dateOffset: newOffset });
+  }
+
+  async function loadScenario(id: string) {
+    scenarioLoading = true;
+    scenarioError = null;
+    const result = await fetchScenario(id);
+    scenarioLoading = false;
+    if (!result.ok) {
+      scenarioError = result.error;
+      return;
+    }
+    // Auto-reset offset to day before program start so navigation begins at the start
+    const state = result.data;
+    if (state.schedule) {
+      const realToday = todayIso();
+      const target = addDays(state.schedule.startDate, -1);
+      state.dateOffset = Math.round((new Date(target + 'T00:00:00').getTime() - new Date(realToday + 'T00:00:00').getTime()) / 86400000);
+    }
+    saveAndNotify(state);
+    goto('/program');
   }
 </script>
 
@@ -140,7 +148,7 @@
     {@render children()}
   </main>
 
-  <!-- Floating date simulation panel (dev only, hidden during onboarding) -->
+  <!-- Floating date simulation panel (dev only) -->
   {#if !isOnboarding && protoState.answers}
     <div
       class="fixed right-3 bottom-3 z-50 bg-white/95 backdrop-blur border border-surface-dark rounded-2xl shadow-sm px-3 py-2 space-y-1.5"
@@ -181,6 +189,58 @@
           aria-label="Přeskočit na konec programu"
         >⏭ Konec</button>
       {/if}
+
+      {#if scenarios.length > 0}
+        <div class="border-t border-surface-dark pt-1.5 space-y-1">
+          {#if protoState.activeScenario}
+            <p class="text-[10px] text-primary leading-none truncate max-w-[88px]">▶ {protoState.activeScenario}</p>
+          {/if}
+          {#if scenarioError}
+            <p class="text-[10px] text-danger leading-tight max-w-[88px]">{scenarioError}</p>
+          {/if}
+          <select
+            class="w-full text-[10px] text-text-muted border border-surface-dark rounded-lg px-1.5 py-1 bg-white leading-none"
+            disabled={scenarioLoading}
+            onchange={(e) => {
+              const id = (e.target as HTMLSelectElement).value;
+              if (id) loadScenario(id);
+              (e.target as HTMLSelectElement).value = '';
+            }}
+          >
+            <option value="">{scenarioLoading ? 'Načítám…' : 'Načíst scénář…'}</option>
+            {#each scenarios as s}
+              <option value={s.id}>{s.name}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
+  <!-- Scenario picker shown on onboarding / no answers state -->
+  {#if (isOnboarding || !protoState.answers) && scenarios.length > 0}
+    <div
+      class="fixed right-3 bottom-3 z-50 bg-white/95 backdrop-blur border border-surface-dark rounded-2xl shadow-sm px-3 py-2 space-y-1"
+      style:bottom="calc(env(safe-area-inset-bottom, 0px) + 0.75rem)"
+    >
+      <p class="text-[10px] text-text-muted leading-none text-center">Dev</p>
+      {#if scenarioError}
+        <p class="text-[10px] text-danger leading-tight max-w-[88px]">{scenarioError}</p>
+      {/if}
+      <select
+        class="w-full text-[10px] text-text-muted border border-surface-dark rounded-lg px-1.5 py-1 bg-white leading-none"
+        disabled={scenarioLoading}
+        onchange={(e) => {
+          const id = (e.target as HTMLSelectElement).value;
+          if (id) loadScenario(id);
+          (e.target as HTMLSelectElement).value = '';
+        }}
+      >
+        <option value="">{scenarioLoading ? 'Načítám…' : 'Načíst scénář…'}</option>
+        {#each scenarios as s}
+          <option value={s.id}>{s.name}</option>
+        {/each}
+      </select>
     </div>
   {/if}
 </div>

@@ -5,18 +5,16 @@
   import { onMount } from 'svelte';
   import type { AppState, Meal, MealItem, AmountSize } from '$lib/domain/models';
   import { detectConflicts, getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule';
-  import { CATEGORIES, AMOUNT_LABELS, MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, getCategoryBySlug } from '$lib/data/categories';
+  import { CATEGORIES, getCategoryBySlug } from '$lib/data/categories';
+  import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
+  import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { todayIso, addDays, formatDateLongCs } from '$lib/utils/date';
-
-  const STATE_KEY = 'v2-prototype-state';
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
 
   onMount(() => {
     function refresh() {
-      try {
-        state = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') ?? { answers: null, schedule: null, meals: [], assessments: [], evaluations: [] };
-      } catch { /* */ }
+      state = loadState();
     }
     refresh();
     window.addEventListener('v2-state-change', refresh);
@@ -100,7 +98,7 @@
       savedAt: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
     };
     state.meals = [...state.meals, meal];
-    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    saveState(state);
 
     currentItems = [];
     mealLabel = '';

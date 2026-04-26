@@ -1,5 +1,5 @@
-import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, MealItem, EczemaSeverity, ReintroductionDayInfo, Meal, DailyAssessment, ReintroductionEvaluation, AllergenOutcome, SkinStatusOutcome, TrainingReminder } from '$lib/domain/models';
-import { PROTOCOL_SLUGS, REINTRODUCTION_ORDER, getCategoryBySlug } from '$lib/data/categories';
+import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, MealItem, EczemaSeverity, ReintroductionDayInfo, Meal, TrainingReminder } from '$lib/domain/models';
+import { getCategoryBySlug } from '$lib/data/categories';
 import { addDays, isDateInRange } from '$lib/utils/date';
 
 // ── Schedule generation ───────────────────────────────────────
@@ -39,6 +39,8 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
   });
   cursor = addDays(resetEnd, 1);
 
+  const protocolSlugs = answers.testedAllergens;
+
   // Phase A: Full elimination
   const elimEnd = addDays(cursor, durations.elimination - 1);
   phases.push({
@@ -47,13 +49,13 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     label: 'Eliminační fáze',
     startDate: cursor,
     endDate: elimEnd,
-    categorySlugs: PROTOCOL_SLUGS,
+    categorySlugs: protocolSlugs,
     description: 'Vylučte všechny sledované alergeny. Čekáme, až se stav kůže miminka ustálí.',
   });
   cursor = addDays(elimEnd, 1);
 
   // Phase B: Sequential reintroduction (4 days each — 3 escalating eating days + evaluation day)
-  const reintroQueue = REINTRODUCTION_ORDER.filter(
+  const reintroQueue = protocolSlugs.filter(
     slug => !permanentEliminations.includes(slug)
   );
   for (const slug of reintroQueue) {
@@ -98,11 +100,17 @@ export function getPhaseForDate(schedule: GeneratedSchedule, date: string): Sche
 // ── What is eliminated on a given date ───────────────────────
 // Permanent eliminations always apply.
 // During reset: only permanent eliminations — mother eats normally.
-// During elimination: all protocol slugs eliminated.
+// During elimination: the phase's own categorySlugs (= tested allergens).
 // During reintroduction of X: X is allowed, already-passed allergens allowed, others eliminated.
 // During rest: like elimination but already-passed allergens are allowed.
 // During training: training allergen allowed in small doses, otherwise like current context.
 // After all phases: only permanent eliminations.
+
+// Derive the protocol from the schedule's elimination phase so it stays data-driven.
+function getProtocolSlugs(schedule: GeneratedSchedule): string[] {
+  const elimPhase = schedule.phases.find(p => p.type === 'elimination');
+  return elimPhase?.categorySlugs ?? [];
+}
 
 export function getEliminatedSlugsForDate(
   schedule: GeneratedSchedule,
@@ -118,7 +126,7 @@ export function getEliminatedSlugsForDate(
   }
 
   if (phase.type === 'elimination') {
-    for (const slug of PROTOCOL_SLUGS) {
+    for (const slug of phase.categorySlugs) {
       if (!schedule.permanentEliminations.includes(slug)) {
         eliminated.add(slug);
       }
@@ -127,10 +135,11 @@ export function getEliminatedSlugsForDate(
   }
 
   if (phase.type === 'reintroduction' || phase.type === 'rest') {
+    const protocolSlugs = getProtocolSlugs(schedule);
     const thisIndex = schedule.phases.indexOf(phase);
     const alreadyPassed = getPassedAllergens(schedule, thisIndex);
 
-    for (const slug of PROTOCOL_SLUGS) {
+    for (const slug of protocolSlugs) {
       if (
         !schedule.permanentEliminations.includes(slug) &&
         !alreadyPassed.has(slug) &&
@@ -377,174 +386,6 @@ export function appendReTestPhases(
 
   const newEndDate = addDays(cursor, -1);
   return { ...schedule, phases: newPhases, estimatedEndDate: newEndDate };
-}
-
-// ── Demo data generation ─────────────────────────────────────
-// Generates sample meals, assessments, evaluations for completed phases.
-// Simulates eggs failing (clear-reaction) with rest day + training phase.
-
-export function generateDemoData(
-  schedule: GeneratedSchedule,
-  simulatedToday: string
-): { meals: Meal[]; assessments: DailyAssessment[]; evaluations: ReintroductionEvaluation[]; mutatedSchedule: GeneratedSchedule } {
-  const meals: Meal[] = [];
-  const assessments: DailyAssessment[] = [];
-  const evaluations: ReintroductionEvaluation[] = [];
-  let mutatedSchedule = schedule;
-
-  // Reset phase: baseline evaluation
-  const resetPhase = schedule.phases.find(p => p.type === 'reset');
-  if (resetPhase && resetPhase.endDate <= simulatedToday) {
-    evaluations.push({
-      phaseId: resetPhase.id,
-      phaseType: 'skin-status',
-      outcome: 'unchanged' as SkinStatusOutcome,
-      notes: 'Výchozí stav kůže zdokumentován',
-      date: resetPhase.endDate,
-    });
-    assessments.push({
-      date: resetPhase.endDate,
-      status: 'unchanged',
-      notes: 'Výchozí stav — referenční bod',
-      photoTaken: true,
-    });
-  }
-
-  // Elimination phase: skin improved
-  const elimPhase = schedule.phases.find(p => p.type === 'elimination');
-  if (elimPhase && elimPhase.endDate <= simulatedToday) {
-    evaluations.push({
-      phaseId: elimPhase.id,
-      phaseType: 'skin-status',
-      outcome: 'improved' as SkinStatusOutcome,
-      notes: 'Kůže se výrazně zlepšila po eliminaci',
-      date: elimPhase.endDate,
-    });
-    assessments.push({
-      date: elimPhase.endDate,
-      status: 'improved',
-      notes: 'Kůže klidnější, méně zarudnutí',
-      photoTaken: true,
-    });
-  }
-
-  // Reintroduction phases — soy fails, others pass
-  const reintroPhases = schedule.phases.filter(p => p.type === 'reintroduction');
-  let scheduleAlreadyMutated = false;
-
-  for (const phase of reintroPhases) {
-    const slug = phase.categorySlugs[0];
-    const cat = getCategoryBySlug(slug);
-    if (!cat) continue;
-
-    const isSoyFailing = slug === 'soy';
-
-    const totalDays = Math.round(
-      (new Date(phase.endDate + 'T00:00:00').getTime() - new Date(phase.startDate + 'T00:00:00').getTime()) / 86400000
-    ) + 1;
-
-    for (let d = 0; d < totalDays; d++) {
-      const date = addDays(phase.startDate, d);
-      if (date > simulatedToday) break;
-
-      // Meal with the allergen (every day is an eating day)
-      const subItem = cat.subItems[0];
-      meals.push({
-        id: `demo-reintro-${phase.id}-d${d}-meal`,
-        date,
-        mealType: d === 0 ? 'breakfast' : d === 1 ? 'lunch' : 'dinner',
-        items: [
-          { id: `demo-ri-${phase.id}-d${d}-i1`, name: subItem?.nameCs ?? cat.nameCs, categorySlug: cat.slug, amount: d === 0 ? 'teaspoon' : d === 1 ? 'spoon' : 'portion' },
-          { id: `demo-ri-${phase.id}-d${d}-i2`, name: 'Rýže', categorySlug: null, amount: 'portion' },
-        ],
-        savedAt: d === 0 ? '08:00' : d === 1 ? '12:30' : '18:00',
-      });
-
-      // Assessment — worsening on soy days 2+
-      if (isSoyFailing && d >= 1) {
-        assessments.push({
-          date,
-          status: 'worsened',
-          notes: d === 1 ? 'Zarudnutí na tvářích' : 'Zhoršení pokračuje',
-          photoTaken: d === 1 || d === totalDays - 1,
-        });
-      } else {
-        assessments.push({
-          date,
-          status: 'unchanged',
-          notes: undefined,
-          photoTaken: d === 0 || d === totalDays - 1,
-        });
-      }
-
-      // Evaluation on last day
-      if (d === totalDays - 1 && date <= simulatedToday) {
-        if (isSoyFailing) {
-          evaluations.push({
-            phaseId: phase.id,
-            phaseType: 'allergen-test',
-            outcome: 'clear-reaction' as AllergenOutcome,
-            allergenSlug: slug,
-            notes: 'Zarudnutí na tvářích 2. den, zhoršení pokračovalo',
-            date,
-          });
-          // Mutate schedule: insert rest day + training
-          if (!scheduleAlreadyMutated) {
-            mutatedSchedule = insertRestDays(mutatedSchedule, phase.id, 1);
-            mutatedSchedule = addTrainingPhase(mutatedSchedule, slug, phase.id);
-            scheduleAlreadyMutated = true;
-          }
-        } else {
-          evaluations.push({
-            phaseId: phase.id,
-            phaseType: 'allergen-test',
-            outcome: 'tolerated' as AllergenOutcome,
-            allergenSlug: slug,
-            notes: `${cat.nameCs} bez problémů`,
-            date,
-          });
-        }
-      }
-    }
-  }
-
-  // Rest phase assessments
-  const restPhases = mutatedSchedule.phases.filter(p => p.type === 'rest');
-  for (const rest of restPhases) {
-    if (rest.startDate <= simulatedToday) {
-      assessments.push({
-        date: rest.startDate,
-        status: 'improved',
-        notes: 'Kůže se zklidňuje',
-        photoTaken: false,
-      });
-    }
-  }
-
-  // Training demo meals — small soy meals scattered through the ongoing training
-  const trainingPhase = mutatedSchedule.phases.find(p => p.type === 'training' && p.categorySlugs[0] === 'soy');
-  if (trainingPhase) {
-    const soyCat = getCategoryBySlug('soy');
-    const soySubItem = soyCat?.subItems[0];
-    // Training meals every ~3-4 days (max 2×/week per guide)
-    const trainingDates = [3, 7, 11, 14, 18, 22, 25];
-    for (let i = 0; i < trainingDates.length; i++) {
-      const tDate = addDays(trainingPhase.startDate, trainingDates[i]);
-      if (tDate > simulatedToday) break;
-      meals.push({
-        id: `demo-training-soy-${i}`,
-        date: tDate,
-        mealType: i % 2 === 0 ? 'snack' : 'lunch',
-        items: [
-          { id: `demo-tr-s${i}`, name: soySubItem?.nameCs ?? 'Sója', categorySlug: 'soy', amount: 'teaspoon' },
-          ...(i % 2 === 1 ? [{ id: `demo-tr-s${i}b`, name: 'Zelenina', categorySlug: null as string | null, amount: 'portion' as const }] : []),
-        ],
-        savedAt: i % 2 === 0 ? '15:00' : '12:00',
-      });
-    }
-  }
-
-  return { meals, assessments, evaluations, mutatedSchedule };
 }
 
 // ── Progress ──────────────────────────────────────────────────

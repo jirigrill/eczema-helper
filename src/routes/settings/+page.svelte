@@ -6,16 +6,13 @@
   import { onMount } from 'svelte';
   import type { AppState } from '$lib/domain/models';
   import { getCategoryBySlug } from '$lib/data/categories';
+  import { loadState, clearState, notifyStateChange } from '$lib/data/storage';
   import { formatDateLongCs } from '$lib/utils/date';
-
-  const STATE_KEY = 'v2-prototype-state';
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
 
   onMount(() => {
-    try {
-      state = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') ?? { answers: null, schedule: null, meals: [], assessments: [], evaluations: [] };
-    } catch { /* */ }
+    state = loadState();
   });
 
   const severityLabel: Record<string, string> = {
@@ -30,7 +27,8 @@
   }
 
   function resetPrototype() {
-    localStorage.removeItem(STATE_KEY);
+    clearState();
+    notifyStateChange();
     goto('/');
   }
 </script>
