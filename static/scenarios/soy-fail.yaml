@@ -1,0 +1,245 @@
+name: "Sója reaguje — těžká ekzéma"
+description: "Sója vyvolá jasnou reakci ve 2. dni znovuzavedení → klidový den + tréninková fáze. Pšenice, vejce a mléčné výrobky tolerovány."
+
+setup:
+  babyBirthDate: "2024-01-15"
+  eczemaSeverity: severe
+  motherAllergies: []
+  babyConfirmedAllergies: []
+  programStartDate: "2024-03-01"
+  # testedAllergens defines which allergens are eliminated during the elimination phase
+  # and the order in which they are reintroduced. Defaults to [soy, wheat, eggs, dairy].
+  testedAllergens: [soy, wheat, eggs, dairy]
+
+# Day indices are relative to programStartDate (0 = 2024-03-01).
+# Evaluations with clear-reaction/severe-reaction automatically insert rest days
+# and a training phase via the domain logic — no need to define them here.
+days:
+  # ── Reset phase (days 0–4) ───────────────────────────────────
+  0:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Ovesná kaše"
+            category: wheat
+            amount: portion
+          - name: "Banán"
+            category: null
+            amount: portion
+        savedAt: "07:30"
+      - type: lunch
+        items:
+          - name: "Kuřecí prso"
+            category: null
+            amount: portion
+          - name: "Brambory"
+            category: null
+            amount: portion
+        savedAt: "12:30"
+  2:
+    assessment: unchanged
+    assessmentNotes: "Výchozí stav — zarudnutí v loketních jamkách"
+    assessmentPhotoTaken: true
+    meals:
+      - type: dinner
+        items:
+          - name: "Losos"
+            category: fish
+            amount: portion
+          - name: "Rýže"
+            category: null
+            amount: portion
+        savedAt: "18:00"
+  4:
+    assessment: unchanged
+    assessmentNotes: "Výchozí stav zdokumentován"
+    assessmentPhotoTaken: true
+    evaluation:
+      type: skin-status
+      outcome: unchanged
+      notes: "Referenční bod — zarudnutí v loketních jamkách, mírné"
+
+  # ── Elimination phase (days 5–25) ───────────────────────────
+  5:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Rýžová kaše"
+            category: null
+            amount: portion
+          - name: "Jablko"
+            category: null
+            amount: portion
+        savedAt: "08:00"
+  10:
+    assessment: improved
+    assessmentNotes: "Kůže se zklidňuje"
+  15:
+    meals:
+      - type: lunch
+        items:
+          - name: "Kuřecí vývar"
+            category: null
+            amount: portion
+          - name: "Zelenina"
+            category: null
+            amount: portion
+        savedAt: "12:00"
+  20:
+    assessment: improved
+    assessmentNotes: "Výrazné zlepšení — zarudnutí ustupuje"
+    assessmentPhotoTaken: true
+  25:
+    assessment: improved
+    assessmentPhotoTaken: true
+    evaluation:
+      type: skin-status
+      outcome: improved
+      notes: "Kůže se výrazně zlepšila po eliminaci všech alergenů"
+
+  # ── Soy reintroduction (days 26–29) ─────────────────────────
+  # Day 26 = reintro day 1 (malé množství)
+  26:
+    assessment: unchanged
+    meals:
+      - type: breakfast
+        items:
+          - name: "Tofu"
+            category: soy
+            amount: teaspoon
+          - name: "Rýže"
+            category: null
+            amount: portion
+        savedAt: "08:30"
+  # Day 27 = reintro day 2 (střední porce) — první příznaky
+  27:
+    assessment: worsened
+    assessmentNotes: "Zarudnutí na tvářích — možná reakce na sóju"
+    assessmentPhotoTaken: true
+    meals:
+      - type: lunch
+        items:
+          - name: "Sójová omáčka"
+            category: soy
+            amount: spoon
+          - name: "Zelenina"
+            category: null
+            amount: portion
+        savedAt: "12:30"
+  # Day 28 = reintro day 3 (neomezeně)
+  28:
+    assessment: worsened
+    assessmentNotes: "Zhoršení pokračuje"
+    meals:
+      - type: dinner
+        items:
+          - name: "Sójové mléko"
+            category: soy
+            amount: portion
+          - name: "Ovesné vločky"
+            category: wheat
+            amount: portion
+        savedAt: "18:00"
+  # Day 29 = reintro day 4 (hodnocení) — jasná reakce → klidový den + trénink
+  29:
+    assessment: worsened
+    assessmentPhotoTaken: true
+    evaluation:
+      type: allergen-test
+      allergen: soy
+      outcome: clear-reaction
+      notes: "Zarudnutí na tvářích od 2. dne, zhoršení pokračovalo — sója vyřazena"
+
+  # ── Rest day (day 30, inserted by domain logic after soy failure) ─
+  30:
+    assessment: improved
+    assessmentNotes: "Kůže se zklidňuje po vysazení sóji"
+
+  # ── Wheat reintroduction (days 31–34 after schedule shift) ──
+  # These day indices match the shifted schedule post-soy-rest
+  31:
+    assessment: unchanged
+    meals:
+      - type: breakfast
+        items:
+          - name: "Chléb"
+            category: wheat
+            amount: spoon
+          - name: "Máslo"
+            category: dairy
+            amount: teaspoon
+        savedAt: "08:00"
+  34:
+    assessment: unchanged
+    evaluation:
+      type: allergen-test
+      allergen: wheat
+      outcome: tolerated
+      notes: "Pšenice bez příznaků"
+
+  # ── Eggs reintroduction (days 35–38) ────────────────────────
+  35:
+    assessment: unchanged
+    meals:
+      - type: breakfast
+        items:
+          - name: "Volské oko"
+            category: eggs
+            amount: portion
+          - name: "Chleba"
+            category: wheat
+            amount: portion
+        savedAt: "08:00"
+  38:
+    assessment: unchanged
+    evaluation:
+      type: allergen-test
+      allergen: eggs
+      outcome: tolerated
+      notes: "Vejce bez příznaků"
+
+  # ── Dairy reintroduction (days 39–42) ───────────────────────
+  39:
+    assessment: unchanged
+    meals:
+      - type: breakfast
+        items:
+          - name: "Jogurt"
+            category: dairy
+            amount: portion
+        savedAt: "08:00"
+  42:
+    assessment: improved
+    assessment_photo_taken: true
+    evaluation:
+      type: allergen-test
+      allergen: dairy
+      outcome: tolerated
+      notes: "Mléčné výrobky tolerovány — program dokončen"
+
+  # ── Training phase meals (soy, post rest day) ────────────────
+  # Small doses every 3–4 days, max 2x/week
+  33:
+    meals:
+      - type: snack
+        items:
+          - name: "Tofu"
+            category: soy
+            amount: teaspoon
+        savedAt: "15:00"
+  37:
+    meals:
+      - type: snack
+        items:
+          - name: "Sójový lecitin"
+            category: soy
+            amount: teaspoon
+        savedAt: "15:00"
+  41:
+    meals:
+      - type: snack
+        items:
+          - name: "Tofu"
+            category: soy
+            amount: teaspoon
+        savedAt: "15:30"

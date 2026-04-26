@@ -9,6 +9,7 @@ export type QuestionnaireAnswers = {
   babyConfirmedAllergies: string[]; // category slugs — permanent, never reintroduced
   programStartDate: string; // ISO date — when the program begins
   completedAt: string; // ISO datetime
+  testedAllergens: string[]; // allergen slugs to eliminate and reintroduce, in reintroduction order
 };
 
 export type SchedulePhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'training';
@@ -86,6 +87,7 @@ export type AppState = {
   assessments: DailyAssessment[];
   evaluations: ReintroductionEvaluation[];
   dateOffset?: number; // days relative to today; 0 = today, positive = future
+  activeScenario?: string; // display name of the loaded scenario, if any
 };
 
 export type TrainingReminder = {

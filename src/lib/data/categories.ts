@@ -1,5 +1,4 @@
-import type { Category, Meal } from '$lib/domain/models';
-import { daysAgo } from '$lib/utils/date';
+import type { Category } from '$lib/domain/models';
 
 // ── Food categories (mirrors DB seed data) ────────────────────
 export const CATEGORIES: Category[] = [
@@ -75,70 +74,11 @@ export const CATEGORIES: Category[] = [
   { slug: 'other', nameCs: 'Ostatní', icon: '🍽️', subItems: [] },
 ];
 
-export const PROTOCOL_SLUGS = ['dairy', 'eggs', 'wheat', 'soy'];
-
-export const REINTRODUCTION_ORDER = ['soy', 'wheat', 'eggs', 'dairy']; // least → most common trigger
-
-export const MEAL_TYPE_LABELS: Record<string, string> = {
-  breakfast: 'Snídaně',
-  lunch: 'Oběd',
-  snack: 'Svačina',
-  dinner: 'Večeře',
-};
-
-export const MEAL_TYPE_ICONS: Record<string, string> = {
-  breakfast: '🌅',
-  lunch: '☀️',
-  snack: '🍎',
-  dinner: '🌙',
-};
-
-export const AMOUNT_LABELS: Record<string, { label: string; short: string }> = {
-  pinch: { label: 'Špetka', short: 'šp.' },
-  teaspoon: { label: 'Lžička', short: 'lž.' },
-  spoon: { label: 'Lžíce', short: 'lžíce' },
-  portion: { label: 'Porce', short: 'porce' },
-  package: { label: 'Balení', short: 'bal.' },
-};
-
-// Demo meals pre-populated for yesterday and two days ago
-export const DEMO_MEALS: Meal[] = [
-  {
-    id: 'demo-1',
-    date: daysAgo(1),
-    mealType: 'breakfast',
-    items: [
-      { id: 'di1', name: 'Ovesná kaše', categorySlug: 'wheat', amount: 'portion' },
-      { id: 'di2', name: 'Banán', categorySlug: null, amount: 'portion' },
-    ],
-    savedAt: '07:30',
-  },
-  {
-    id: 'demo-2',
-    date: daysAgo(1),
-    mealType: 'lunch',
-    items: [
-      { id: 'di3', name: 'Kuřecí prso', categorySlug: null, amount: 'portion' },
-      { id: 'di4', name: 'Brambory', categorySlug: null, amount: 'portion' },
-      { id: 'di5', name: 'Máslo', categorySlug: 'dairy', amount: 'teaspoon' },
-    ],
-    savedAt: '12:15',
-  },
-  {
-    id: 'demo-3',
-    date: daysAgo(2),
-    mealType: 'dinner',
-    items: [
-      { id: 'di6', name: 'Rýže', categorySlug: null, amount: 'portion' },
-      { id: 'di7', name: 'Zelenina', categorySlug: null, amount: 'portion' },
-    ],
-    savedAt: '18:45',
-  },
-];
+// Standard protocol — allergens eliminated and reintroduced in this order (least → most common trigger).
+export const DEFAULT_TESTED_ALLERGENS = ['soy', 'wheat', 'eggs', 'dairy'];
 
 // ── Helpers ───────────────────────────────────────────────────
 
 export function getCategoryBySlug(slug: string): Category | undefined {
   return CATEGORIES.find(c => c.slug === slug);
 }
-

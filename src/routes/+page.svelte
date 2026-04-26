@@ -6,10 +6,9 @@
   import CategoryGrid from '$lib/components/CategoryGrid.svelte';
   import { generateSchedule } from '$lib/domain/schedule';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
-  import { getCategoryBySlug, REINTRODUCTION_ORDER } from '$lib/data/categories';
+  import { getCategoryBySlug, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+  import { saveAndNotify } from '$lib/data/storage';
   import { formatDateLongCs } from '$lib/utils/date';
-
-  const STATE_KEY = 'v2-prototype-state';
 
   // ── Form state ────────────────────────────────────────────
   let step = $state(1);
@@ -26,7 +25,7 @@
   const permanentSlugs = $derived(
     [...new Set([...motherAllergies.map(s => s.split(':')[0]), ...babyAllergies.map(s => s.split(':')[0])])]
   );
-  const reintroQueue = $derived(REINTRODUCTION_ORDER.filter(s => !permanentSlugs.includes(s)));
+  const reintroQueue = $derived(DEFAULT_TESTED_ALLERGENS.filter(s => !permanentSlugs.includes(s)));
   const elimDays = $derived(severity === 'severe' ? 21 : 14);
   const reintroDays = 4;
 
@@ -72,10 +71,10 @@
       babyConfirmedAllergies: babyAllergies,
       programStartDate,
       completedAt: new Date().toISOString(),
+      testedAllergens: DEFAULT_TESTED_ALLERGENS,
     };
     const schedule = generateSchedule(answers);
-    localStorage.setItem(STATE_KEY, JSON.stringify({ answers, schedule, meals: [], assessments: [], evaluations: [] }));
-    window.dispatchEvent(new CustomEvent('v2-state-change'));
+    saveAndNotify({ answers, schedule, meals: [], assessments: [], evaluations: [] });
     goto('/program');
   }
 

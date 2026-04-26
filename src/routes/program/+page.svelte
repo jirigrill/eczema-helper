@@ -4,11 +4,10 @@
   // ═══════════════════════════════════════════════════════════
   import { onMount } from 'svelte';
   import type { AppState, SchedulePhase } from '$lib/domain/models';
-  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getScheduleProgress, appendReTestPhases, generateDemoData, getReintroductionDayInfo } from '$lib/domain/schedule';
-  import { getCategoryBySlug, PROTOCOL_SLUGS } from '$lib/data/categories';
+  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getScheduleProgress, appendReTestPhases, getReintroductionDayInfo } from '$lib/domain/schedule';
+  import { getCategoryBySlug } from '$lib/data/categories';
+  import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { formatDateCs, formatDateLongCs, todayIso, addDays } from '$lib/utils/date';
-
-  const STATE_KEY = 'v2-prototype-state';
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
   let showToast = $state(false);
@@ -17,18 +16,8 @@
 
   onMount(() => {
     function refresh() {
-      try {
-        const raw = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') ?? { answers: null, schedule: null, meals: [], assessments: [], evaluations: [] };
-        const simToday = addDays(todayIso(), raw.dateOffset ?? 0);
-        const demo = raw.schedule ? generateDemoData(raw.schedule, simToday) : { meals: [], assessments: [], evaluations: [], mutatedSchedule: raw.schedule };
-        state = {
-          ...raw,
-          schedule: demo.mutatedSchedule ?? raw.schedule,
-          meals: [...demo.meals, ...(raw.meals ?? [])],
-          assessments: [...demo.assessments, ...(raw.assessments ?? [])],
-          evaluations: [...demo.evaluations, ...(raw.evaluations ?? [])],
-        };
-      } catch { /* */ }
+      const raw = loadState();
+      if (raw.answers) state = raw;
     }
     refresh();
     window.addEventListener('v2-state-change', refresh);
@@ -75,7 +64,8 @@
         for (const s of schedule.phases[i].categorySlugs) alreadyReintroduced.add(s);
       }
     }
-    return PROTOCOL_SLUGS
+    const protocolSlugs = schedule.phases.find(p => p.type === 'elimination')?.categorySlugs ?? [];
+    return protocolSlugs
       .filter(slug => !schedule.permanentEliminations.includes(slug))
       .map(slug => {
         if (phase.categorySlugs.includes(slug)) return { slug, status: 'testing' as const };
@@ -88,10 +78,9 @@
   function addRetestPhases() {
     if (!schedule || !state.answers || selectedRetestSlugs.length === 0) return;
     const updatedSchedule = appendReTestPhases(schedule, selectedRetestSlugs, state.answers.eczemaSeverity);
-    const updated = { ...state, schedule: updatedSchedule };
-    state = updated;
-    localStorage.setItem(STATE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('v2-state-change'));
+    state = { ...state, schedule: updatedSchedule };
+    saveState(state);
+    notifyStateChange();
     selectedRetestSlugs = [];
   }
 

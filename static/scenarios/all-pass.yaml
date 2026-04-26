@@ -1,0 +1,189 @@
+name: "Vše tolerováno — mírná, ořechy navíc"
+description: "Standardní protokol rozšířený o ořechy. Všechny alergeny tolerovány, mírná ekzéma."
+
+setup:
+  babyBirthDate: "2024-01-15"
+  eczemaSeverity: mild
+  motherAllergies: []
+  babyConfirmedAllergies: []
+  programStartDate: "2024-03-01"
+
+  # testedAllergens: which allergens are eliminated AND in what reintroduction order.
+  # Add any category slug from categories.ts: soy, wheat, eggs, dairy, nuts, fish,
+  # shellfish, citrus, chocolate, tomatoes, strawberries, corn, sesame, other.
+  testedAllergens: [soy, wheat, eggs, dairy, nuts]
+
+# ── How to define meals ───────────────────────────────────────────────────────
+#
+# category: use the category slug to mark an item as belonging to that allergen group.
+#   Examples of whole-category items:
+#     - name: "Tofu"         category: soy      # any soy product
+#     - name: "Chléb"        category: wheat    # any wheat product
+#     - name: "Arašídové máslo" category: nuts  # any nut product
+#
+# Specific sub-items (same category slug, different name):
+#     - name: "Arašídy"      category: nuts     # sub-item: peanuts
+#     - name: "Lískové ořechy" category: nuts   # sub-item: hazelnuts
+#     - name: "Mandle"       category: nuts     # sub-item: almonds
+#   Sub-items are just regular items — the name is display-only, category drives conflict detection.
+#
+# category: null — food not tracked as any allergen (safe food):
+#     - name: "Rýže"         category: null
+#     - name: "Mrkev"        category: null
+
+# Day indices relative to programStartDate.
+# mild severity: reset = days 0–4, elimination = days 5–18 (14 days)
+# Reintro with nuts added: soy 19–22, wheat 23–26, eggs 27–30, dairy 31–34, nuts 35–38
+days:
+  # ── Reset phase (days 0–4) ───────────────────────────────────
+  2:
+    assessment: unchanged
+    assessmentNotes: "Výchozí stav — mírné zarudnutí"
+    assessmentPhotoTaken: true
+  4:
+    assessment: unchanged
+    evaluation:
+      type: skin-status
+      outcome: unchanged
+      notes: "Výchozí stav zdokumentován"
+
+  # ── Elimination phase (days 5–18) ───────────────────────────
+  # Soy, wheat, eggs, dairy, AND nuts are all eliminated here.
+  5:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Rýžová kaše"
+            category: null
+            amount: portion
+          - name: "Jablko"
+            category: null
+            amount: portion
+        savedAt: "08:00"
+  10:
+    assessment: improved
+    assessmentNotes: "Kůže se zlepšuje"
+  18:
+    assessment: improved
+    assessmentPhotoTaken: true
+    evaluation:
+      type: skin-status
+      outcome: improved
+      notes: "Výrazné zlepšení — kůže téměř čistá"
+
+  # ── Soy reintroduction (days 19–22) ─────────────────────────
+  19:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Tofu"
+            category: soy
+            amount: teaspoon
+          - name: "Rýže"
+            category: null
+            amount: portion
+        savedAt: "08:00"
+  22:
+    assessment: unchanged
+    evaluation:
+      type: allergen-test
+      allergen: soy
+      outcome: tolerated
+      notes: "Sója bez reakce"
+
+  # ── Wheat reintroduction (days 23–26) ───────────────────────
+  23:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Chléb / rohlík"
+            category: wheat    # whole-category item
+            amount: spoon
+        savedAt: "08:00"
+  26:
+    assessment: unchanged
+    evaluation:
+      type: allergen-test
+      allergen: wheat
+      outcome: tolerated
+      notes: "Pšenice bez příznaků"
+
+  # ── Eggs reintroduction (days 27–30) ────────────────────────
+  27:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Žloutek"
+            category: eggs    # sub-item: just the yolk first (less allergenic)
+            amount: teaspoon
+          - name: "Rýže"
+            category: null
+            amount: portion
+        savedAt: "08:00"
+  29:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Bílek"
+            category: eggs    # sub-item: egg white (more allergenic)
+            amount: teaspoon
+        savedAt: "08:00"
+  30:
+    assessment: unchanged
+    evaluation:
+      type: allergen-test
+      allergen: eggs
+      outcome: tolerated
+      notes: "Vejce tolerována"
+
+  # ── Dairy reintroduction (days 31–34) ───────────────────────
+  31:
+    meals:
+      - type: breakfast
+        items:
+          - name: "Jogurt"
+            category: dairy
+            amount: portion
+        savedAt: "08:00"
+  34:
+    assessment: unchanged
+    evaluation:
+      type: allergen-test
+      allergen: dairy
+      outcome: tolerated
+      notes: "Mléčné výrobky tolerovány"
+
+  # ── Nuts reintroduction (days 35–38) ────────────────────────
+  # Nuts added via testedAllergens above — reintroduced last.
+  35:
+    meals:
+      - type: snack
+        items:
+          - name: "Arašídy"
+            category: nuts    # sub-item: peanuts
+            amount: teaspoon
+        savedAt: "15:00"
+  36:
+    meals:
+      - type: snack
+        items:
+          - name: "Lískové ořechy"
+            category: nuts    # sub-item: hazelnuts
+            amount: spoon
+        savedAt: "15:00"
+  37:
+    meals:
+      - type: snack
+        items:
+          - name: "Mandle"
+            category: nuts    # sub-item: almonds
+            amount: spoon
+        savedAt: "15:00"
+  38:
+    assessment: improved
+    assessmentPhotoTaken: true
+    evaluation:
+      type: allergen-test
+      allergen: nuts
+      outcome: tolerated
+      notes: "Ořechy tolerovány — program dokončen"
