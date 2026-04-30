@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { AppState } from '$lib/domain/models';
-  import { getCategoryBySlug } from '$lib/data/categories';
+  import { getCategoryById } from '$lib/data/categories';
   import { loadState, clearState, notifyStateChange } from '$lib/data/storage';
   import { formatDateLongCs } from '$lib/utils/date';
 
@@ -23,7 +23,7 @@
 
   function slugsToNames(slugs: string[]): string {
     if (slugs.length === 0) return 'žádné';
-    return slugs.map(s => s.startsWith('other:') ? s.slice(6) : (getCategoryBySlug(s)?.nameCs ?? s)).join(', ');
+    return slugs.map(s => s.startsWith('other:') ? s.slice(6) : (getCategoryById(s)?.nameCs ?? s)).join(', ');
   }
 
   function resetPrototype() {

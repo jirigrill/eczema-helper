@@ -9,27 +9,27 @@ setup:
   programStartDate: "2024-03-01"
 
   # testedAllergens: which allergens are eliminated AND in what reintroduction order.
-  # Add any category slug from categories.ts: soy, wheat, eggs, dairy, nuts, fish,
+  # Add any category ID from categories.ts: soy, wheat, eggs, dairy, nuts, fish,
   # shellfish, citrus, chocolate, tomatoes, strawberries, corn, sesame, other.
   testedAllergens: [soy, wheat, eggs, dairy, nuts]
 
 # ── How to define meals ───────────────────────────────────────────────────────
 #
-# category: use the category slug to mark an item as belonging to that allergen group.
-#   Examples of whole-category items:
-#     - name: "Tofu"         category: soy      # any soy product
-#     - name: "Chléb"        category: wheat    # any wheat product
-#     - name: "Arašídové máslo" category: nuts  # any nut product
+# Two ways to specify a meal item:
 #
-# Specific sub-items (same category slug, different name):
-#     - name: "Arašídy"      category: nuts     # sub-item: peanuts
-#     - name: "Lískové ořechy" category: nuts   # sub-item: hazelnuts
-#     - name: "Mandle"       category: nuts     # sub-item: almonds
-#   Sub-items are just regular items — the name is display-only, category drives conflict detection.
+# 1. categoryId only — whole allergen group, name required:
+#     - name: "Arašídové máslo"   categoryId: nuts    # any nut product
+#     - name: "Chléb / rohlík"    categoryId: wheat   # whole-category item
 #
-# category: null — food not tracked as any allergen (safe food):
-#     - name: "Rýže"         category: null
-#     - name: "Mrkev"        category: null
+# 2. subitemId — maps to a specific sub-item; name auto-derived from categories data:
+#     - subitemId: nuts:peanuts    amount: teaspoon    # name → "Arašídy"
+#     - subitemId: eggs:egg-yolk   amount: teaspoon    # name → "Žloutek"
+#     - subitemId: dairy:yogurt    amount: portion     # name → "Jogurt"
+#   You can still override the name: name: "Domácí jogurt"  subitemId: dairy:yogurt
+#
+# categoryId: null — food not tracked as any allergen (safe food):
+#     - name: "Rýže"         categoryId: null
+#     - name: "Mrkev"        categoryId: null
 
 # Day indices relative to programStartDate.
 # mild severity: reset = days 0–4, elimination = days 5–18 (14 days)
@@ -54,10 +54,10 @@ days:
       - type: breakfast
         items:
           - name: "Rýžová kaše"
-            category: null
+            categoryId: null
             amount: portion
           - name: "Jablko"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "08:00"
   10:
@@ -76,18 +76,17 @@ days:
     meals:
       - type: breakfast
         items:
-          - name: "Tofu"
-            category: soy
+          - subitemId: soy:tofu
             amount: teaspoon
           - name: "Rýže"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "08:00"
   22:
     assessment: unchanged
     evaluation:
       type: allergen-test
-      allergen: soy
+      allergenId: soy
       outcome: tolerated
       notes: "Sója bez reakce"
 
@@ -97,14 +96,14 @@ days:
       - type: breakfast
         items:
           - name: "Chléb / rohlík"
-            category: wheat    # whole-category item
+            categoryId: wheat    # whole-category item
             amount: spoon
         savedAt: "08:00"
   26:
     assessment: unchanged
     evaluation:
       type: allergen-test
-      allergen: wheat
+      allergenId: wheat
       outcome: tolerated
       notes: "Pšenice bez příznaků"
 
@@ -113,26 +112,24 @@ days:
     meals:
       - type: breakfast
         items:
-          - name: "Žloutek"
-            category: eggs    # sub-item: just the yolk first (less allergenic)
+          - subitemId: eggs:egg-yolk    # just the yolk first (less allergenic)
             amount: teaspoon
           - name: "Rýže"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "08:00"
   29:
     meals:
       - type: breakfast
         items:
-          - name: "Bílek"
-            category: eggs    # sub-item: egg white (more allergenic)
+          - subitemId: eggs:egg-white    # egg white (more allergenic)
             amount: teaspoon
         savedAt: "08:00"
   30:
     assessment: unchanged
     evaluation:
       type: allergen-test
-      allergen: eggs
+      allergenId: eggs
       outcome: tolerated
       notes: "Vejce tolerována"
 
@@ -141,15 +138,14 @@ days:
     meals:
       - type: breakfast
         items:
-          - name: "Jogurt"
-            category: dairy
+          - subitemId: dairy:yogurt
             amount: portion
         savedAt: "08:00"
   34:
     assessment: unchanged
     evaluation:
       type: allergen-test
-      allergen: dairy
+      allergenId: dairy
       outcome: tolerated
       notes: "Mléčné výrobky tolerovány"
 
@@ -159,24 +155,21 @@ days:
     meals:
       - type: snack
         items:
-          - name: "Arašídy"
-            category: nuts    # sub-item: peanuts
+          - subitemId: nuts:peanuts
             amount: teaspoon
         savedAt: "15:00"
   36:
     meals:
       - type: snack
         items:
-          - name: "Lískové ořechy"
-            category: nuts    # sub-item: hazelnuts
+          - subitemId: nuts:hazelnuts
             amount: spoon
         savedAt: "15:00"
   37:
     meals:
       - type: snack
         items:
-          - name: "Mandle"
-            category: nuts    # sub-item: almonds
+          - subitemId: nuts:almonds
             amount: spoon
         savedAt: "15:00"
   38:
@@ -184,6 +177,6 @@ days:
     assessmentPhotoTaken: true
     evaluation:
       type: allergen-test
-      allergen: nuts
+      allergenId: nuts
       outcome: tolerated
       notes: "Ořechy tolerovány — program dokončen"

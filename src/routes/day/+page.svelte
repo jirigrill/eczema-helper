@@ -6,7 +6,7 @@
   import { page } from '$app/stores';
   import type { AppState, DailyAssessment, ReintroductionEvaluation, AllergenOutcome, SkinStatusOutcome } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getReintroductionDayInfo, isPhaseEndForEvaluation, insertRestDays, addTrainingPhase, getTrainingRemindersForDate } from '$lib/domain/schedule';
-  import { getCategoryBySlug } from '$lib/data/categories';
+  import { getCategoryById } from '$lib/data/categories';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
   import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { formatDateCs, formatDateLongCs, todayIso, addDays } from '$lib/utils/date';
@@ -87,8 +87,8 @@
   // End-of-phase evaluation (reset, elimination, reintroduction)
   const isEvalDay = $derived(schedule ? isPhaseEndForEvaluation(schedule, selectedDate) : false);
   const evalPhase = $derived(isEvalDay ? currentPhase : null);
-  const evalAllergenSlug = $derived(
-    evalPhase?.type === 'reintroduction' ? (evalPhase.categorySlugs[0] ?? null)
+  const evalAllergenId = $derived(
+    evalPhase?.type === 'reintroduction' ? (evalPhase.categoryIds[0] ?? null)
     : evalPhase?.type === 'reset' ? '_baseline'
     : evalPhase?.type === 'elimination' ? '_elimination'
     : null
@@ -134,7 +134,7 @@
       phaseId: evalPhase.id,
       phaseType: isSkinStatusPhase ? 'skin-status' : 'allergen-test',
       outcome: evalOutcome,
-      ...(evalPhase.type === 'reintroduction' && evalAllergenSlug ? { allergenSlug: evalAllergenSlug } : {}),
+      ...(evalPhase.type === 'reintroduction' && evalAllergenId ? { allergenId: evalAllergenId } : {}),
       notes: evalNotes.trim() || undefined,
       date: selectedDate,
     };
@@ -149,7 +149,7 @@
     ) {
       const restDays = evalOutcome === 'severe-reaction' ? 2 : 1;
       let mutated = insertRestDays(raw.schedule!, evalPhase.id, restDays);
-      mutated = addTrainingPhase(mutated, evalPhase.categorySlugs[0], evalPhase.id);
+      mutated = addTrainingPhase(mutated, evalPhase.categoryIds[0], evalPhase.id);
       raw.schedule = mutated;
     }
 
@@ -163,8 +163,8 @@
     if (!evalSaved || !evalPhase || evalPhase.type !== 'reintroduction') return null;
     if (evalOutcome !== 'clear-reaction' && evalOutcome !== 'severe-reaction') return null;
     const restDays = evalOutcome === 'severe-reaction' ? 2 : 1;
-    const cat = getCategoryBySlug(evalPhase.categorySlugs[0]);
-    return { restDays, allergenName: cat?.nameCs ?? evalPhase.categorySlugs[0], allergenIcon: cat?.icon ?? '' };
+    const cat = getCategoryById(evalPhase.categoryIds[0]);
+    return { restDays, allergenName: cat?.nameCs ?? evalPhase.categoryIds[0], allergenIcon: cat?.icon ?? '' };
   });
 
   // Indicator dots for date strip
@@ -256,8 +256,8 @@
           </p>
           {#if eliminatedSlugs.length > 0}
             <div class="flex flex-wrap gap-1.5 pt-1">
-              {#each eliminatedSlugs as slug}
-                {@const cat = getCategoryBySlug(slug)}
+              {#each eliminatedSlugs as categoryId}
+                {@const cat = getCategoryById(categoryId)}
                 {#if cat}
                   <span class="inline-flex items-center gap-1 text-xs bg-danger/10 text-danger rounded-full px-2.5 py-1">
                     {cat.icon} {cat.nameCs}
@@ -288,8 +288,8 @@
               <div>
                 <p class="text-xs text-text-muted mb-1.5">Trvalá omezení (vaše / miminka):</p>
                 <div class="flex flex-wrap gap-1.5">
-                  {#each eliminatedSlugs as slug}
-                    {@const cat = getCategoryBySlug(slug)}
+                  {#each eliminatedSlugs as categoryId}
+                    {@const cat = getCategoryById(categoryId)}
                     {#if cat}
                       <span class="inline-flex items-center gap-1 text-xs bg-surface text-text-muted rounded-full px-2.5 py-1">
                         {cat.icon} {cat.nameCs}
@@ -304,8 +304,8 @@
               <p class="text-xs text-text-muted mb-1.5">Vyřazeno:</p>
               {#if eliminatedSlugs.length > 0}
                 <div class="flex flex-wrap gap-1.5">
-                  {#each eliminatedSlugs as slug}
-                    {@const cat = getCategoryBySlug(slug)}
+                  {#each eliminatedSlugs as categoryId}
+                    {@const cat = getCategoryById(categoryId)}
                     {#if cat}
                       <span class="inline-flex items-center gap-1 text-xs bg-danger/10 text-danger rounded-full px-2.5 py-1">
                         {cat.icon} {cat.nameCs}
@@ -323,8 +323,8 @@
             <div class="border-t border-surface-dark pt-3">
               <p class="text-xs text-text-muted mb-1.5">Dnes testujete:</p>
               <div class="flex flex-wrap gap-1.5">
-                {#each currentPhase.categorySlugs as slug}
-                  {@const cat = getCategoryBySlug(slug)}
+                {#each currentPhase.categoryIds as categoryId}
+                  {@const cat = getCategoryById(categoryId)}
                   {#if cat}
                     <span class="inline-flex items-center gap-1 text-xs bg-success/10 text-success rounded-full px-2.5 py-1 font-medium">
                       {cat.icon} {cat.nameCs} — sledujte reakci
@@ -339,8 +339,8 @@
             <div class="border-t border-surface-dark pt-3">
               <p class="text-xs text-text-muted mb-1.5">Povoleno (protokolové):</p>
               <div class="flex flex-wrap gap-1.5">
-                {#each allowedProtocol as slug}
-                  {@const cat = getCategoryBySlug(slug)}
+                {#each allowedProtocol as categoryId}
+                  {@const cat = getCategoryById(categoryId)}
                   {#if cat}
                     <span class="inline-flex items-center gap-1 text-xs bg-success/10 text-success rounded-full px-2.5 py-1">
                       {cat.icon} {cat.nameCs}
@@ -370,7 +370,7 @@
             {#each allConflicts as conflict}
               <p class="text-xs text-text-muted">
                 <span class="font-medium text-text">{conflict.name}</span>
-                ({getCategoryBySlug(conflict.categorySlug ?? '')?.nameCs}) — {conflict.mealLabel}
+                ({getCategoryById(conflict.categoryId ?? '')?.nameCs}) — {conflict.mealLabel}
               </p>
             {/each}
           </div>
@@ -411,10 +411,10 @@
                 </div>
                 <div class="flex flex-wrap gap-1">
                   {#each meal.items as item}
-                    {@const isConflict = item.categorySlug !== null && eliminatedSlugs.includes(item.categorySlug)}
+                    {@const isConflict = item.categoryId !== null && eliminatedSlugs.includes(item.categoryId)}
                     <span class="inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1
                       {isConflict ? 'bg-warning/15 text-warning border border-warning/30' : 'bg-surface text-text'}">
-                      {getCategoryBySlug(item.categorySlug ?? '')?.icon ?? ''}
+                      {getCategoryById(item.categoryId ?? '')?.icon ?? ''}
                       {item.name}
                       <span class="text-text-muted">{AMOUNT_LABELS[item.amount]?.short}</span>
                       {#if isConflict}<span>⚠</span>{/if}
@@ -429,7 +429,7 @@
 
       <!-- Dosing guidance card (reintroduction phases only) -->
       {#if reintroInfo}
-        {@const cat = getCategoryBySlug(reintroInfo.allergenSlug)}
+        {@const cat = getCategoryById(reintroInfo.allergenId)}
         <div class="rounded-2xl border p-4 space-y-1
           {reintroInfo.isEvaluationDay
             ? 'bg-primary/10 border-primary/30'
@@ -443,7 +443,7 @@
 
       <!-- End-of-phase evaluation trigger -->
       {#if isEvalDay && evalPhase}
-        {@const evalCat = evalPhase.type === 'reintroduction' ? getCategoryBySlug(evalPhase.categorySlugs[0]) : null}
+        {@const evalCat = evalPhase.type === 'reintroduction' ? getCategoryById(evalPhase.categoryIds[0]) : null}
         <button
           type="button"
           class="w-full flex items-center justify-between bg-primary/5 border border-primary/30 rounded-2xl p-4 text-left"
@@ -473,7 +473,7 @@
       <EczemaCheck
         date={selectedDate}
         assessment={currentAssessment}
-        reintroductionAllergenSlug={currentPhase?.type === 'reintroduction' ? (currentPhase.categorySlugs[0] ?? null) : null}
+        reintroductionAllergenId={currentPhase?.type === 'reintroduction' ? (currentPhase.categoryIds[0] ?? null) : null}
         onSave={saveAssessment}
       />
 
@@ -501,7 +501,7 @@
 
 <!-- Evaluation modal (bottom sheet) -->
 {#if showEvalModal && evalPhase}
-  {@const evalCat = evalPhase.type === 'reintroduction' ? getCategoryBySlug(evalPhase.categorySlugs[0]) : null}
+  {@const evalCat = evalPhase.type === 'reintroduction' ? getCategoryById(evalPhase.categoryIds[0]) : null}
   <button
     class="fixed inset-0 bg-black/40 z-40"
     onclick={() => (showEvalModal = false)}

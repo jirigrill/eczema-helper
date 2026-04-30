@@ -13,69 +13,68 @@
     expandable?: boolean;
   } = $props();
 
-  const regularCategories = CATEGORIES.filter(c => c.slug !== 'other');
+  const regularCategories = CATEGORIES.filter(c => c.categoryId !== 'other');
 
   let customInput = $state('');
   let expandedCategory = $state<string | null>(null);
 
   const customItems = $derived(selected.filter(s => s.startsWith('other:')));
 
-  // Whole: explicit whole-slug OR every sub-item individually ticked
-  function isWholeSelected(slug: string): boolean {
-    if (selected.includes(slug)) return true;
-    const cat = CATEGORIES.find(c => c.slug === slug);
+  // Whole: explicit whole-categoryId OR every sub-item individually ticked
+  function isWholeSelected(categoryId: string): boolean {
+    if (selected.includes(categoryId)) return true;
+    const cat = CATEGORIES.find(c => c.categoryId === categoryId);
     if (!cat || cat.subItems.length === 0) return false;
-    return cat.subItems.every(sub => selected.includes(`${slug}:${sub.id}`));
+    return cat.subItems.every(sub => selected.includes(sub.subitemId));
   }
 
-  // Partial: some (but not all) sub-items selected, whole slug not selected
-  function isPartiallySelected(slug: string): boolean {
-    if (isWholeSelected(slug)) return false;
-    return selected.some(s => s.startsWith(slug + ':'));
+  // Partial: some (but not all) sub-items selected, whole categoryId not selected
+  function isPartiallySelected(categoryId: string): boolean {
+    if (isWholeSelected(categoryId)) return false;
+    return selected.some(s => s.startsWith(categoryId + ':'));
   }
 
-  function isCategorySelected(slug: string) {
-    return isWholeSelected(slug) || isPartiallySelected(slug);
+  function isCategorySelected(categoryId: string) {
+    return isWholeSelected(categoryId) || isPartiallySelected(categoryId);
   }
 
-  function toggle(slug: string) {
-    if (disabledSlugs.includes(slug)) return;
+  function toggle(categoryId: string) {
+    if (disabledSlugs.includes(categoryId)) return;
     if (!expandable) {
-      if (selected.includes(slug)) {
-        selected = selected.filter(s => s !== slug);
+      if (selected.includes(categoryId)) {
+        selected = selected.filter(s => s !== categoryId);
       } else {
-        selected = [...selected, slug];
+        selected = [...selected, categoryId];
       }
       return;
     }
-    const cat = CATEGORIES.find(c => c.slug === slug);
+    const cat = CATEGORIES.find(c => c.categoryId === categoryId);
     if (cat && cat.subItems.length > 0) {
-      expandedCategory = expandedCategory === slug ? null : slug;
+      expandedCategory = expandedCategory === categoryId ? null : categoryId;
     } else {
-      if (selected.includes(slug)) {
-        selected = selected.filter(s => s !== slug);
+      if (selected.includes(categoryId)) {
+        selected = selected.filter(s => s !== categoryId);
       } else {
-        selected = [...selected, slug];
+        selected = [...selected, categoryId];
       }
     }
   }
 
-  function toggleAllForCategory(slug: string) {
-    const withoutSubs = selected.filter(s => !s.startsWith(slug + ':'));
-    if (withoutSubs.includes(slug)) {
-      selected = withoutSubs.filter(s => s !== slug);
+  function toggleAllForCategory(categoryId: string) {
+    const withoutSubs = selected.filter(s => !s.startsWith(categoryId + ':'));
+    if (withoutSubs.includes(categoryId)) {
+      selected = withoutSubs.filter(s => s !== categoryId);
     } else {
-      selected = [...withoutSubs, slug];
+      selected = [...withoutSubs, categoryId];
     }
   }
 
-  function toggleSubItem(categorySlug: string, subId: string) {
-    const slug = `${categorySlug}:${subId}`;
-    const withoutWhole = selected.filter(s => s !== categorySlug);
-    if (withoutWhole.includes(slug)) {
-      selected = withoutWhole.filter(s => s !== slug);
+  function toggleSubItem(categoryId: string, subitemId: string) {
+    const withoutWhole = selected.filter(s => s !== categoryId);
+    if (withoutWhole.includes(subitemId)) {
+      selected = withoutWhole.filter(s => s !== subitemId);
     } else {
-      selected = [...withoutWhole, slug];
+      selected = [...withoutWhole, subitemId];
     }
   }
 
@@ -104,24 +103,24 @@
     customInput = '';
   }
 
-  function selectedSubItemCount(slug: string): number {
-    if (selected.includes(slug)) {
-      const cat = CATEGORIES.find(c => c.slug === slug);
+  function selectedSubItemCount(categoryId: string): number {
+    if (selected.includes(categoryId)) {
+      const cat = CATEGORIES.find(c => c.categoryId === categoryId);
       return cat?.subItems.length ?? 1;
     }
-    return selected.filter(s => s.startsWith(slug + ':')).length;
+    return selected.filter(s => s.startsWith(categoryId + ':')).length;
   }
 
   function removeCustom(slug: string) {
     selected = selected.filter(s => s !== slug);
   }
 
-  function isSelected(slug: string) {
-    return selected.includes(slug);
+  function isSelected(id: string) {
+    return selected.includes(id);
   }
 
-  function isDisabled(slug: string) {
-    return disabledSlugs.includes(slug);
+  function isDisabled(categoryId: string) {
+    return disabledSlugs.includes(categoryId);
   }
 
   // Shared dismiss button style (used for both Zavřít actions)
@@ -130,11 +129,11 @@
 
 <div class="space-y-2">
   <div class="grid grid-cols-3 gap-2">
-    {#each regularCategories as cat (cat.slug)}
-      {@const whole = isWholeSelected(cat.slug)}
-      {@const partial = isPartiallySelected(cat.slug)}
-      {@const dis = isDisabled(cat.slug)}
-      {@const isExpanded = expandable && expandedCategory === cat.slug}
+    {#each regularCategories as cat (cat.categoryId)}
+      {@const whole = isWholeSelected(cat.categoryId)}
+      {@const partial = isPartiallySelected(cat.categoryId)}
+      {@const dis = isDisabled(cat.categoryId)}
+      {@const isExpanded = expandable && expandedCategory === cat.categoryId}
       <button
         type="button"
         class="
@@ -154,7 +153,7 @@
                       ? 'bg-danger/12 border-danger/50 text-danger'
                       : 'bg-white border-surface-dark text-text hover:border-primary/40'}
         "
-        onclick={() => toggle(cat.slug)}
+        onclick={() => toggle(cat.categoryId)}
         disabled={dis}
       >
         <span class="text-2xl leading-none">{cat.icon}</span>
@@ -170,7 +169,7 @@
 
   <!-- Sub-item expansion panel (expandable mode only) -->
   {#if expandable && expandedCategory}
-    {@const cat = regularCategories.find(c => c.slug === expandedCategory)}
+    {@const cat = regularCategories.find(c => c.categoryId === expandedCategory)}
     {#if cat && cat.subItems.length > 0}
       <div class="rounded-xl border border-primary/30 bg-white p-3 space-y-2">
         <div class="flex items-center justify-between">
@@ -180,7 +179,7 @@
             class={dismissCls}
             onclick={() => (expandedCategory = null)}
           >
-            {selectedSubItemCount(cat.slug) > 0 ? `Hotovo (${selectedSubItemCount(cat.slug)})` : 'Hotovo'}
+            {selectedSubItemCount(cat.categoryId) > 0 ? `Hotovo (${selectedSubItemCount(cat.categoryId)})` : 'Hotovo'}
           </button>
         </div>
         <!-- "Vše" chip -->
@@ -188,23 +187,22 @@
           <button
             type="button"
             class="py-1.5 px-3 rounded-xl text-sm font-medium transition-all border
-              {isSelected(cat.slug)
+              {isSelected(cat.categoryId)
                 ? variant === 'danger' ? 'bg-danger text-white border-danger' : 'bg-primary text-white border-primary'
                 : 'bg-surface text-text border-surface-dark'}"
-            onclick={() => toggleAllForCategory(cat.slug)}
+            onclick={() => toggleAllForCategory(cat.categoryId)}
           >
             Vše
           </button>
           {#each cat.subItems as sub}
-            {@const subSlug = `${cat.slug}:${sub.id}`}
-            {@const subSel = isSelected(subSlug) || isSelected(cat.slug)}
+            {@const subSel = isSelected(sub.subitemId) || isSelected(cat.categoryId)}
             <button
               type="button"
               class="py-1.5 px-3 rounded-xl text-sm transition-all border
                 {subSel
                   ? variant === 'danger' ? 'bg-danger/15 text-danger border-danger/30' : 'bg-primary/15 text-primary border-primary/30'
                   : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
-              onclick={() => toggleSubItem(cat.slug, sub.id)}
+              onclick={() => toggleSubItem(cat.categoryId, sub.subitemId)}
             >
               {sub.nameCs}
             </button>

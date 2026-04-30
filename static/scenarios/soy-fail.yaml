@@ -21,19 +21,19 @@ days:
       - type: breakfast
         items:
           - name: "Ovesná kaše"
-            category: wheat
+            categoryId: wheat
             amount: portion
           - name: "Banán"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "07:30"
       - type: lunch
         items:
           - name: "Kuřecí prso"
-            category: null
+            categoryId: null
             amount: portion
           - name: "Brambory"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "12:30"
   2:
@@ -44,10 +44,10 @@ days:
       - type: dinner
         items:
           - name: "Losos"
-            category: fish
+            categoryId: fish
             amount: portion
           - name: "Rýže"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "18:00"
   4:
@@ -65,10 +65,10 @@ days:
       - type: breakfast
         items:
           - name: "Rýžová kaše"
-            category: null
+            categoryId: null
             amount: portion
           - name: "Jablko"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "08:00"
   10:
@@ -79,10 +79,10 @@ days:
       - type: lunch
         items:
           - name: "Kuřecí vývar"
-            category: null
+            categoryId: null
             amount: portion
           - name: "Zelenina"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "12:00"
   20:
@@ -104,11 +104,10 @@ days:
     meals:
       - type: breakfast
         items:
-          - name: "Tofu"
-            category: soy
+          - subitemId: soy:tofu
             amount: teaspoon
           - name: "Rýže"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "08:30"
   # Day 27 = reintro day 2 (střední porce) — první příznaky
@@ -119,11 +118,10 @@ days:
     meals:
       - type: lunch
         items:
-          - name: "Sójová omáčka"
-            category: soy
+          - subitemId: soy:soy-sauce
             amount: spoon
           - name: "Zelenina"
-            category: null
+            categoryId: null
             amount: portion
         savedAt: "12:30"
   # Day 28 = reintro day 3 (neomezeně)
@@ -133,11 +131,9 @@ days:
     meals:
       - type: dinner
         items:
-          - name: "Sójové mléko"
-            category: soy
+          - subitemId: soy:soy-milk
             amount: portion
-          - name: "Ovesné vločky"
-            category: wheat
+          - subitemId: wheat:bread
             amount: portion
         savedAt: "18:00"
   # Day 29 = reintro day 4 (hodnocení) — jasná reakce → klidový den + trénink
@@ -146,7 +142,7 @@ days:
     assessmentPhotoTaken: true
     evaluation:
       type: allergen-test
-      allergen: soy
+      allergenId: soy
       outcome: clear-reaction
       notes: "Zarudnutí na tvářích od 2. dne, zhoršení pokračovalo — sója vyřazena"
 
@@ -162,18 +158,16 @@ days:
     meals:
       - type: breakfast
         items:
-          - name: "Chléb"
-            category: wheat
+          - subitemId: wheat:bread
             amount: spoon
-          - name: "Máslo"
-            category: dairy
+          - subitemId: dairy:butter
             amount: teaspoon
         savedAt: "08:00"
   34:
     assessment: unchanged
     evaluation:
       type: allergen-test
-      allergen: wheat
+      allergenId: wheat
       outcome: tolerated
       notes: "Pšenice bez příznaků"
 
@@ -184,17 +178,17 @@ days:
       - type: breakfast
         items:
           - name: "Volské oko"
-            category: eggs
+            categoryId: eggs
             amount: portion
           - name: "Chleba"
-            category: wheat
+            categoryId: wheat
             amount: portion
         savedAt: "08:00"
   38:
     assessment: unchanged
     evaluation:
       type: allergen-test
-      allergen: eggs
+      allergenId: eggs
       outcome: tolerated
       notes: "Vejce bez příznaků"
 
@@ -204,8 +198,7 @@ days:
     meals:
       - type: breakfast
         items:
-          - name: "Jogurt"
-            category: dairy
+          - subitemId: dairy:yogurt
             amount: portion
         savedAt: "08:00"
   42:
@@ -213,7 +206,7 @@ days:
     assessment_photo_taken: true
     evaluation:
       type: allergen-test
-      allergen: dairy
+      allergenId: dairy
       outcome: tolerated
       notes: "Mléčné výrobky tolerovány — program dokončen"
 
@@ -223,23 +216,20 @@ days:
     meals:
       - type: snack
         items:
-          - name: "Tofu"
-            category: soy
+          - subitemId: soy:tofu
             amount: teaspoon
         savedAt: "15:00"
   37:
     meals:
       - type: snack
         items:
-          - name: "Sójový lecitin"
-            category: soy
+          - subitemId: soy:soy-lecithin
             amount: teaspoon
         savedAt: "15:00"
   41:
     meals:
       - type: snack
         items:
-          - name: "Tofu"
-            category: soy
+          - subitemId: soy:tofu
             amount: teaspoon
         savedAt: "15:30"

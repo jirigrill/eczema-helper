@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import type { AppState, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getScheduleProgress, appendReTestPhases, getReintroductionDayInfo } from '$lib/domain/schedule';
-  import { getCategoryBySlug } from '$lib/data/categories';
+  import { getCategoryById } from '$lib/data/categories';
   import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { formatDateCs, formatDateLongCs, todayIso, addDays } from '$lib/utils/date';
 
@@ -49,7 +49,7 @@
       const isBaby = answers?.babyConfirmedAllergies.some(a => normSlug(a) === s) ?? false;
       const reason = isMother && isBaby ? 'vaše + miminka' : isMother ? 'vaše alergie' : 'alergie miminka';
       if (s.startsWith('other:')) return [{ slug: s, icon: '🌿', name: s.slice(6), reason }];
-      const cat = getCategoryBySlug(s.split(':')[0]);
+      const cat = getCategoryById(s.split(':')[0]);
       if (!cat) return [];
       return [{ slug: s, icon: cat.icon, name: cat.nameCs, reason }];
     });
@@ -61,14 +61,14 @@
     const alreadyReintroduced = new Set<string>();
     for (let i = 0; i < phaseIndex; i++) {
       if (schedule.phases[i].type === 'reintroduction') {
-        for (const s of schedule.phases[i].categorySlugs) alreadyReintroduced.add(s);
+        for (const s of schedule.phases[i].categoryIds) alreadyReintroduced.add(s);
       }
     }
-    const protocolSlugs = schedule.phases.find(p => p.type === 'elimination')?.categorySlugs ?? [];
+    const protocolSlugs = schedule.phases.find(p => p.type === 'elimination')?.categoryIds ?? [];
     return protocolSlugs
       .filter(slug => !schedule.permanentEliminations.includes(slug))
       .map(slug => {
-        if (phase.categorySlugs.includes(slug)) return { slug, status: 'testing' as const };
+        if (phase.categoryIds.includes(slug)) return { slug, status: 'testing' as const };
         if (alreadyReintroduced.has(slug)) return { slug, status: 'reintroduced' as const };
         return { slug, status: 'eliminated' as const };
       })
@@ -145,8 +145,8 @@
     return schedule.phases
       .filter((p: SchedulePhase) => p.type === 'training' && p.startDate <= today)
       .map((tp: SchedulePhase) => {
-        const slug = tp.categorySlugs[0];
-        const cat = getCategoryBySlug(slug);
+        const slug = tp.categoryIds[0];
+        const cat = getCategoryById(slug);
         let startIdx = nonTrainingPhases.findIndex((p: SchedulePhase) =>
           p.endDate ? p.endDate >= tp.startDate : p.startDate <= today
         );
@@ -173,7 +173,7 @@
     for (const meal of state.meals.filter((m: { date: string }) => m.date >= phase.startDate && m.date <= phaseEnd)) {
       for (const conflict of detectConflicts(meal.items, eliminated)) {
         if (!conflicts.some(c => c.name === conflict.name && c.date === meal.date)) {
-          const cat = getCategoryBySlug(conflict.categorySlug ?? '');
+          const cat = getCategoryById(conflict.categoryId ?? '');
           conflicts.push({ name: conflict.name, icon: cat?.icon ?? '🍽️', date: meal.date });
         }
       }
@@ -263,7 +263,7 @@
               <p class="text-xs font-semibold text-danger uppercase tracking-wide mb-1.5">Vyřazeno</p>
               <div class="flex flex-wrap gap-1.5">
                 {#each protocolEliminated as slug}
-                  {@const cat = getCategoryBySlug(slug)}
+                  {@const cat = getCategoryById(slug)}
                   {#if cat}
                     <span class="inline-flex items-center gap-1.5 bg-danger/10 text-danger rounded-full px-2.5 py-1 text-xs font-medium">
                       {cat.icon} {cat.nameCs}
@@ -287,7 +287,7 @@
             {/if}
 
           {:else if currentPhase.type === 'reintroduction'}
-            {@const testCat = getCategoryBySlug(currentPhase.categorySlugs[0])}
+            {@const testCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
               <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
@@ -322,7 +322,7 @@
                 <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Stále vyřazeno</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each protocolEliminated as slug}
-                    {@const cat = getCategoryBySlug(slug)}
+                    {@const cat = getCategoryById(slug)}
                     {#if cat}
                       <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
                         {cat.icon} {cat.nameCs}
@@ -357,7 +357,7 @@
             </div>
 
           {:else if currentPhase.type === 'training'}
-            {@const trainingCat = getCategoryBySlug(currentPhase.categorySlugs[0])}
+            {@const trainingCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
               <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
@@ -417,7 +417,7 @@
                 <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Stav alergenů</p>
                 <div class="space-y-0.5 text-text-muted">
                   {#each heroRows as row}
-                    {@const rowCat = getCategoryBySlug(row.slug)}
+                    {@const rowCat = getCategoryById(row.slug)}
                     <div class="flex items-center gap-2">
                       <span>{rowCat?.icon ?? ''}</span>
                       <span class="flex-1">{rowCat?.nameCs ?? row.slug}</span>
@@ -457,7 +457,7 @@
 
           <!-- Training band label on first row -->
           {#if trainingBand && phaseIndex === trainingBand.startIndex}
-            {@const bandCat = getCategoryBySlug(trainingBand.slug)}
+            {@const bandCat = getCategoryById(trainingBand.slug)}
             <div class="ml-11 -mb-1">
               <span class="text-[10px] text-primary/60 font-medium">
                 {bandCat?.icon ?? ''} Trénink: {trainingBand.label}
@@ -520,8 +520,8 @@
                       {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}× nová ložiska</span>{/if}
                     </div>
                     {#if (worsened > 0 || newLesions > 0) && phase.type === 'reintroduction'}
-                      {@const phaseCat = getCategoryBySlug(phase.categorySlugs[0])}
-                      <p class="text-text-muted mt-1">Možná příčina: {phaseCat?.icon} {phaseCat?.nameCs ?? phase.categorySlugs[0]}</p>
+                      {@const phaseCat = getCategoryById(phase.categoryIds[0])}
+                      <p class="text-text-muted mt-1">Možná příčina: {phaseCat?.icon} {phaseCat?.nameCs ?? phase.categoryIds[0]}</p>
                     {/if}
                   {/if}
                 </div>
@@ -534,7 +534,7 @@
                       <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Stav alergenů</p>
                       <div class="space-y-0.5 text-text-muted">
                         {#each rows as row}
-                          {@const rowCat = getCategoryBySlug(row.slug)}
+                          {@const rowCat = getCategoryById(row.slug)}
                           <div class="flex items-center gap-2">
                             <span>{rowCat?.icon ?? ''}</span>
                             <span class="flex-1">{rowCat?.nameCs ?? row.slug}</span>
@@ -615,7 +615,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
               {#each babyAllergens as slug}
-                {@const cat = getCategoryBySlug(slug)}
+                {@const cat = getCategoryById(slug)}
                 {#if cat}
                   {@const isChosen = selectedRetestSlugs.includes(slug)}
                   <button

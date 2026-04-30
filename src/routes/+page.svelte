@@ -6,7 +6,7 @@
   import CategoryGrid from '$lib/components/CategoryGrid.svelte';
   import { generateSchedule } from '$lib/domain/schedule';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
-  import { getCategoryBySlug, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+  import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { saveAndNotify } from '$lib/data/storage';
   import { formatDateLongCs } from '$lib/utils/date';
 
@@ -105,13 +105,12 @@
     if (slugs.length === 0) return 'žádné';
     return slugs.map(s => {
       if (s.startsWith('other:')) return s.slice(6);
-      const parts = s.split(':');
-      if (parts.length === 2) {
-        const cat = getCategoryBySlug(parts[0]);
-        const sub = cat?.subItems.find(i => i.id === parts[1]);
-        return sub?.nameCs ?? parts[1];
+      if (s.includes(':')) {
+        const cat = getCategoryById(s.split(':')[0]);
+        const sub = cat?.subItems.find(i => i.subitemId === s);
+        return sub?.nameCs ?? s.split(':')[1];
       }
-      return getCategoryBySlug(s)?.nameCs ?? s;
+      return getCategoryById(s)?.nameCs ?? s;
     }).join(', ');
   }
 </script>
@@ -386,7 +385,7 @@
               <p>✦ <strong>{elimDays} dní</strong> eliminační fáze</p>
               {#if reintroQueue.length > 0}
                 <p>✦ Znovuzavedení (<strong>{reintroDays} dní</strong> každý):
-                  {reintroQueue.map(s => getCategoryBySlug(s)?.nameCs ?? s).join(' → ')}
+                  {reintroQueue.map(s => getCategoryById(s)?.nameCs ?? s).join(' → ')}
                 </p>
               {:else}
                 <p>✦ <em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny</p>
