@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program — Redesign proposal</title>
+<script src="https://unpkg.com/react@18.2.0/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.2/babel.min.js" crossorigin></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #ECE3DF; min-height: 100vh; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #3D2B2F; }
+
+  .canvas { width: 100%; padding: 36px 32px 96px; }
+
+  .canvas-eyebrow { color: rgba(61,43,47,0.5); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .canvas-heading { color: #3D2B2F; font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+  .canvas-sub { color: rgba(61,43,47,0.55); font-size: 13px; line-height: 1.6; margin-bottom: 36px; max-width: 920px; }
+
+  .section-eyebrow { color: rgba(61,43,47,0.4); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+  .section-heading { color: #3D2B2F; font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+  .section-desc { color: rgba(61,43,47,0.55); font-size: 12px; line-height: 1.6; margin-bottom: 22px; max-width: 720px; }
+
+  .phone-row { display: flex; gap: 20px; overflow-x: auto; padding: 4px 0 14px; align-items: flex-start; flex-wrap: nowrap; }
+  .phone-row::-webkit-scrollbar { height: 6px; }
+  .phone-row::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+  .phone-wrap { flex: 0 0 380px; }
+  .phase-label { color: rgba(61,43,47,0.65); font-size: 11px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+  .phase-label-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .phone-shell {
+    width: 380px; background: #FAF8F8; border-radius: 44px; overflow: hidden;
+    box-shadow: 0 18px 56px rgba(60,30,40,0.18), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .phone-status { height: 44px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 22px 0 18px; position: relative; border-bottom: 1px solid #EDE8E9; }
+  .phone-island { width: 112px; height: 32px; background: #111; border-radius: 18px; position: absolute; left: 50%; transform: translateX(-50%); top: 6px; }
+  .phone-time { font-size: 13px; font-weight: 700; color: #3D2B2F; }
+  .phone-battery { font-size: 11px; color: #3D2B2F; }
+  .phone-content { height: 800px; overflow-y: auto; background: #FAF8F8; }
+  .phone-content::-webkit-scrollbar { display: none; }
+  .phone-nav { background: rgba(255,255,255,0.97); border-top: 1px solid #EDE8E9; display: flex; padding-bottom: 10px; }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 9px 0 4px; gap: 2px; font-size: 9px; color: #7A6468; font-weight: 500; border: none; background: none; cursor: pointer; }
+  .nav-btn.active { color: #8B4557; }
+  .nav-icon { font-size: 22px; }
+
+  .divider { height: 1px; background: rgba(61,43,47,0.1); margin: 48px 0; }
+
+  .notes-section { margin-top: 16px; padding-top: 8px; }
+  .notes-grid { display: grid; grid-template-columns: repeat(4, minmax(280px, 1fr)); gap: 18px; margin-top: 24px; }
+  .note-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(61,43,47,0.1); border-radius: 14px; padding: 16px 18px; }
+  .note-card-title { font-size: 12px; font-weight: 800; color: #3D2B2F; margin-bottom: 8px; }
+  .note-card-body { font-size: 12px; color: rgba(61,43,47,0.65); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+
+const c = {
+  primary:      '#8B4557',
+  primaryLight: '#C4A4AB',
+  surface:      '#FAF8F8',
+  surfaceDark:  '#EDE8E9',
+  text:         '#3D2B2F',
+  textMuted:    '#7A6468',
+  danger:       '#B84444',
+  success:      '#5A8B5A',
+  warning:      '#C9A227',
+  reintro:      '#4A7C6F',
+  white:        '#fff',
+};
+
+// ── Phase data ────────────────────────────────────────────────
+const PHASES = {
+  reset: {
+    type: 'reset',
+    badge: 'RESET',
+    badgeColor: c.textMuted,
+    title: 'Výchozí stav kůže',
+    allergen: null,
+    priorReaction: null,
+    progress: { type: 'long', current: 5, total: 14 },
+    todayBlocks: [
+      { icon: '🍽️', label: 'Jezte normálně', sub: 'bez změn jídla' },
+      { icon: '👁️', label: 'Sledujte kůži', sub: 'všímejte si změn' },
+      { icon: '📸', label: 'Foto kůže', sub: 'baseline', urgency: 'low' },
+    ],
+    canEat: [{ icon: '🍽️', name: 'Vše obvyklé', note: 'jezte normálně' }],
+    avoid:  [{ icon: '🥚', name: 'Vejce', note: 'trvalé vyl.' }],
+    expansionStats: { photos: '4/5', skinPrimary: '✓', skinSecondary: 'klidná', skinTone: 'success', errors: 0 },
+  },
+  elimination: {
+    type: 'elimination',
+    badge: 'ELIMINACE',
+    badgeColor: c.danger,
+    title: 'Eliminační fáze',
+    allergen: null,
+    priorReaction: null,
+    progress: { type: 'long', current: 18, total: 42 },
+    todayBlocks: [
+      { icon: '🚫', label: 'Vylučte alergeny', sub: 'i ve skryté podobě' },
+      { icon: '👁️', label: 'Sledujte kůži', sub: 'čekáme zlepšení' },
+      { icon: '📸', label: 'Foto kůže', sub: 'denně', urgency: 'medium' },
+    ],
+    canEat: [{ icon: '🍚', name: 'Rýže' }, { icon: '🥩', name: 'Maso' }, { icon: '🍎', name: 'Ovoce' }, { icon: '🥦', name: 'Zelenina' }],
+    avoid:  [{ icon: '🥛', name: 'Mléčné výr.' }, { icon: '🌾', name: 'Pšenice' }, { icon: '🫘', name: 'Sója' }, { icon: '🥜', name: 'Ořechy' }, { icon: '🐟', name: 'Ryby' }, { icon: '🍋', name: 'Citrusy' }],
+    expansionStats: { photos: '17/18', skinPrimary: '↗', skinSecondary: 'zlepšení 78 %', skinTone: 'success', errors: 1 },
+  },
+  reintro: {
+    type: 'reintroduction',
+    badge: 'TEST',
+    badgeColor: c.reintro,
+    title: 'Test: Mléčné výrobky',
+    allergen: { icon: '🥛', name: 'Mléčné výrobky' },
+    priorReaction: null,
+    progress: { type: 'short', current: 3, total: 5, evalDate: '3. 5.' },
+    todayBlocks: [
+      { icon: '🥛', label: '½ porce jogurtu', sub: 'cca 50 g' },
+      { icon: '⏱️', label: 'Sledujte 4 h', sub: 'po podání' },
+      { icon: '📸', label: 'Foto kůže', sub: 'ráno + večer', urgency: 'high' },
+    ],
+    canEat: [{ icon: '🥛', name: 'Mléčné výr.', highlight: true }, { icon: '🍚', name: 'Rýže' }, { icon: '🥩', name: 'Maso' }, { icon: '🍎', name: 'Ovoce' }],
+    avoid:  [{ icon: '🌾', name: 'Pšenice' }, { icon: '🫘', name: 'Sója' }, { icon: '🥜', name: 'Ořechy' }, { icon: '🐟', name: 'Ryby' }],
+    expansionStats: { photos: '2/3', skinPrimary: '✓', skinSecondary: 'bez reakce', skinTone: 'success', errors: 0 },
+  },
+  retest: {
+    type: 'retest',
+    badge: 'RE-TEST',
+    badgeColor: c.primary,
+    title: 'Re-test: Vejce',
+    allergen: { icon: '🥚', name: 'Vejce' },
+    priorReaction: 'mírná reakce',
+    priorTestDate: '15.–19. 3.',
+    priorDetail: 'Zarudnutí tváří v den 5–7. Letos začínáme s nižší dávkou a delším pozorováním.',
+    progress: { type: 'short', current: 2, total: 5, evalDate: '7. 5.' },
+    todayBlocks: [
+      { icon: '🥚', label: '¼ vajíčka', sub: 'opatrná dávka' },
+      { icon: '⚠️', label: 'Sledujte 4 h', sub: 'při reakci stop' },
+      { icon: '📸', label: 'Foto kůže', sub: 'ráno + odpol. + večer', urgency: 'critical' },
+    ],
+    canEat: [{ icon: '🥚', name: 'Vejce', highlight: true }, { icon: '🥛', name: 'Mléčné výr.' }, { icon: '🍚', name: 'Rýže' }],
+    avoid:  [{ icon: '🌾', name: 'Pšenice' }, { icon: '🫘', name: 'Sója' }, { icon: '🥜', name: 'Ořechy' }],
+    expansionStats: { photos: '1/2', skinPrimary: '✓', skinSecondary: 'bez reakce', skinTone: 'success', errors: 0 },
+  },
+};
+
+const PHASE_LABELS = {
+  reset:       { label: 'Reset · den 5 / 14', dot: c.textMuted },
+  elimination: { label: 'Eliminace · den 18 / 42', dot: c.danger },
+  reintro:     { label: 'Test alergenu · den 3 / 5', dot: c.reintro },
+  retest:      { label: 'Re-test · den 2 / 5', dot: c.primary },
+  prubeh:      { label: 'Záložka Průběh', dot: '#4A8B8B' },
+};
+
+// ── Skin status data per phase (mock, illustrative) ───────────
+const SKIN_LOG = {
+  reset: [
+    { day: 1, date: '26. 4.', status: 'clear',     label: 'Klidná kůže', photo: true },
+    { day: 2, date: '27. 4.', status: 'clear',     label: 'Klidná kůže', photo: true },
+    { day: 3, date: '28. 4.', status: 'mild',      label: 'Mírné zarudnutí tváří', photo: true },
+    { day: 4, date: '29. 4.', status: 'unchanged', label: 'Beze změny', photo: true },
+    { day: 5, date: '30. 4.', status: 'today',     label: 'Dnes — zaznamenat', photo: false },
+  ],
+  elimination: {
+    summary: {
+      trend: 'improving', trendLabel: '↗ zlepšení',
+      photoCoverage: '17/18 dní',
+      conflicts: 1,
+    },
+    recent: [
+      { day: 14, date: '12. 4.', status: 'improved', label: 'Zlepšení', photo: true },
+      { day: 15, date: '13. 4.', status: 'improved', label: 'Zlepšení', photo: true },
+      { day: 16, date: '14. 4.', status: 'mild',     label: 'Mírné zarudnutí', photo: true, note: 'po latte' },
+      { day: 17, date: '15. 4.', status: 'unchanged',label: 'Beze změny', photo: true },
+      { day: 18, date: '16. 4.', status: 'today',    label: 'Dnes — zaznamenat', photo: false },
+    ],
+  },
+};
+
+const SKIN_STATUS_STYLE = {
+  clear:      { color: c.success,  icon: '✓', bg: c.success },
+  improved:   { color: c.success,  icon: '✓', bg: c.success },
+  unchanged:  { color: c.textMuted,icon: '—', bg: c.textMuted },
+  mild:       { color: c.warning,  icon: '⚠', bg: c.warning },
+  worsened:   { color: c.warning,  icon: '!', bg: c.warning },
+  newlesion:  { color: c.danger,   icon: '!!', bg: c.danger },
+  today:      { color: c.primary,  icon: '●', bg: c.primary },
+};
+
+// ── Phone shell ───────────────────────────────────────────────
+function PhoneShell({ phaseKey, customLabel, dotColor, children }) {
+  const meta = PHASE_LABELS[phaseKey] || { label: customLabel || '', dot: dotColor || c.primary };
+  return (
+    <div className="phone-wrap">
+      {(meta.label || customLabel) && (
+        <div className="phase-label">
+          <div className="phase-label-dot" style={{ background: meta.dot }} />
+          {customLabel || meta.label}
+        </div>
+      )}
+      <div className="phone-shell">
+        <div className="phone-status">
+          <span className="phone-time">9:41</span>
+          <div className="phone-island" />
+          <span className="phone-battery">●●● 🔋</span>
+        </div>
+        <div className="phone-content">{children}</div>
+        <div className="phone-nav">
+          {[['📅','Dnes'],['🍽️','Jídlo'],['📋','Program'],['⚙️','Nastavení']].map(([icon, lbl], i) => (
+            <button key={lbl} className={`nav-btn ${i === 2 ? 'active' : ''}`}>
+              <span className="nav-icon">{icon}</span>{lbl}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Reusables ─────────────────────────────────────────────────
+
+function Badge({ label, color }) {
+  return <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.1em', background: color, color: '#fff', borderRadius: 999, padding: '3px 9px' }}>{label}</span>;
+}
+
+function Tabs({ active, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 4, padding: '0 16px 10px', background: c.white }}>
+      {['Dnes', 'Průběh'].map(t => (
+        <button key={t} onClick={() => onChange(t)}
+          style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            background: active === t ? c.primary : c.surface, color: active === t ? c.white : c.textMuted, transition: 'all .2s' }}>
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PipProgress({ current, total }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 5 }}>
+        <span style={{ fontSize: 11, color: c.textMuted, fontWeight: 600 }}>den {current} / {total}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <div key={i} style={{ height: 7, borderRadius: 4, background: i < current ? c.primary : c.surfaceDark, flex: i < current ? '1 1 22px' : '1 1 14px', transition: 'all .3s' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DayBarProgress({ current, total }) {
+  const pct = Math.round((current / total) * 100);
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+        <span style={{ fontSize: 11, color: c.textMuted, fontWeight: 600 }}>den {current} / {total}</span>
+        <span style={{ fontSize: 10, color: c.textMuted }}>{pct} %</span>
+      </div>
+      <div style={{ height: 8, background: c.surfaceDark, borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: c.primary, borderRadius: 4 }} />
+      </div>
+    </div>
+  );
+}
+
+function TodayBlocks({ blocks }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+      {blocks.map((b, i) => {
+        const isPhoto = b.icon === '📸';
+        const photoStyle = {
+          critical: { bg: c.primary, color: '#fff', sub: 'rgba(255,255,255,.7)', border: c.primary },
+          high:     { bg: `${c.primary}10`, color: c.primary, sub: c.textMuted, border: `${c.primary}45` },
+          medium:   { bg: `${c.primary}06`, color: c.primary, sub: c.textMuted, border: `${c.primary}25` },
+          low:      { bg: c.surface,        color: c.textMuted, sub: c.textMuted, border: c.surfaceDark },
+        }[b.urgency || 'low'];
+        const styled = isPhoto ? photoStyle : { bg: c.white, color: c.text, sub: c.textMuted, border: c.surfaceDark };
+        return (
+          <div key={i} style={{ background: styled.bg, border: `1.5px solid ${styled.border}`, borderRadius: 12, padding: '10px 6px', textAlign: 'center', position: 'relative' }}>
+            <p style={{ fontSize: 22, lineHeight: 1 }}>{b.icon}</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: styled.color, marginTop: 5, lineHeight: 1.2 }}>{b.label}</p>
+            <p style={{ fontSize: 9, color: styled.sub, marginTop: 2, lineHeight: 1.3 }}>{b.sub}</p>
+            {isPhoto && b.urgency === 'critical' && (
+              <span style={{ position: 'absolute', top: -5, right: -5, background: '#fff', color: c.primary, borderRadius: 999, fontSize: 8, padding: '2px 6px', fontWeight: 800, border: `1px solid ${c.primary}` }}>!</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FoodGuideCard({ canEat, avoid, style = {} }) {
+  return (
+    <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, overflow: 'hidden', ...style }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+        <div style={{ padding: '10px 12px', borderRight: `1px solid ${c.surfaceDark}` }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: c.success, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>✓ Smím jíst</p>
+          {canEat.map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 6 }}>
+              <span style={{ fontSize: 17, lineHeight: 1 }}>{f.icon}</span>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 11, color: c.text, fontWeight: f.highlight ? 700 : 400, lineHeight: 1.2 }}>{f.name}</span>
+                {f.note && <span style={{ display: 'block', fontSize: 9, color: c.primary, fontWeight: 700 }}>{f.note}</span>}
+              </div>
+              {f.highlight && <span style={{ fontSize: 9, background: `${c.success}20`, color: c.success, borderRadius: 999, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>dnes</span>}
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: '10px 12px' }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: c.danger, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>✗ Vyhýbám se</p>
+          {avoid.map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, opacity: 0.78 }}>
+              <span style={{ fontSize: 17 }}>{f.icon}</span>
+              <span style={{ fontSize: 11, color: c.textMuted }}>{f.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Shared expansion stats tiles ──────────────────────────────
+function ExpansionStatsTiles({ stats }) {
+  if (!stats) return null;
+  const skinColor = stats.skinTone === 'warning' ? c.warning : stats.skinTone === 'danger' ? c.danger : c.success;
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+      <div style={{ flex: 1, background: c.white, border: `1px solid ${c.surfaceDark}`, borderRadius: 10, padding: '7px 6px', textAlign: 'center' }}>
+        <p style={{ fontSize: 11, color: c.text, fontWeight: 700 }}>📸 {stats.photos}</p>
+        <p style={{ fontSize: 9, color: c.textMuted, marginTop: 1 }}>fotek</p>
+      </div>
+      <div style={{ flex: 1, background: `${skinColor}15`, border: `1px solid ${skinColor}30`, borderRadius: 10, padding: '7px 6px', textAlign: 'center' }}>
+        <p style={{ fontSize: 11, color: skinColor, fontWeight: 700, lineHeight: 1.2 }}>{stats.skinPrimary} {stats.skinSecondary}</p>
+        <p style={{ fontSize: 9, color: c.textMuted, marginTop: 1 }}>kůže</p>
+      </div>
+      <div style={{ flex: 1, background: stats.errors > 0 ? `${c.warning}15` : c.white, border: `1px solid ${stats.errors > 0 ? c.warning + '30' : c.surfaceDark}`, borderRadius: 10, padding: '7px 6px', textAlign: 'center' }}>
+        <p style={{ fontSize: 11, color: stats.errors > 0 ? c.warning : c.text, fontWeight: 700 }}>{stats.errors}×</p>
+        <p style={{ fontSize: 9, color: c.textMuted, marginTop: 1 }}>dietní chyba</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Unified phase expansion ───────────────────────────────────
+// Same shell + stats tiles for ALL phase types
+// Day-list adapts: tests show dose, phases show skin note/photo
+function PhaseExpansion({ phase: p }) {
+  const isTest = p.type === 'reintroduction' || p.type === 'retest';
+  const isReset = p.type === 'reset';
+  const days = isTest
+    ? buildTestDays(p)
+    : (isReset ? SKIN_LOG.reset : SKIN_LOG.elimination.recent);
+  const eyebrow = isTest ? 'Průběh testu · den po dni' : 'Průběh fáze · den po dni';
+
+  return (
+    <div style={{ borderTop: `1px solid ${c.surfaceDark}`, padding: '12px 14px' }}>
+      <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+        {eyebrow}
+      </p>
+
+      <ExpansionStatsTiles stats={p.expansionStats} />
+
+      {days.map((d, i) => {
+        const skinKey = isTest
+          ? (d.status === 'done' ? (d.outcome === 'ok' ? 'clear' : 'mild') : d.status === 'current' ? 'today' : 'future')
+          : d.status;
+        const s = SKIN_STATUS_STYLE[skinKey] || SKIN_STATUS_STYLE.unchanged;
+        const circleBg = skinKey === 'future' ? c.surfaceDark : s.bg;
+        const circleContent = skinKey === 'future' ? '' : (isTest && d.status === 'current' ? d.day : s.icon);
+
+        return (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            padding: '7px 0',
+            borderBottom: i < days.length - 1 ? `1px dashed ${c.surfaceDark}` : 'none',
+            opacity: skinKey === 'future' ? 0.5 : 1,
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+              background: circleBg, color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 800,
+              boxShadow: (skinKey === 'today' || (isTest && d.status === 'current')) ? `0 0 0 3px ${c.primary}25` : 'none',
+              border: skinKey === 'future' ? `2px solid ${c.surfaceDark}` : 'none',
+            }}>{circleContent}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c.text }}>Den {d.day} · {d.label}</span>
+                <span style={{ fontSize: 10, color: c.textMuted }}>{d.date}</span>
+              </div>
+              {isTest && d.dose && <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>{d.dose}</p>}
+              {d.notes && <p style={{ fontSize: 10, color: d.outcome === 'warn' ? c.warning : c.textMuted, marginTop: 2 }}>{d.notes}</p>}
+              {!isTest && d.note && <p style={{ fontSize: 10, color: c.warning, marginTop: 1 }}>{d.note}</p>}
+              {!isTest && d.photo && <p style={{ fontSize: 10, color: c.textMuted, marginTop: 1 }}>📸 foto pořízeno</p>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function buildTestDays(p) {
+  if (p.type === 'reintroduction') return [
+    { day: 1, label: '1. podání', date: '1. 5.', dose: '¼ porce jogurtu (~25 g)', status: 'done', outcome: 'ok', notes: 'Bez reakce, kůže klidná' },
+    { day: 2, label: '2. podání', date: '2. 5.', dose: '½ porce jogurtu (~50 g)', status: 'done', outcome: 'ok', notes: 'Bez reakce' },
+    { day: 3, label: '3. podání', date: '3. 5.', dose: '½ porce jogurtu (~50 g)', status: 'current', notes: 'Dnes — sledujte 4 h' },
+    { day: 4, label: '4. podání', date: '4. 5.', dose: 'Plná porce (~100 g)', status: 'future' },
+    { day: 5, label: 'Hodnocení', date: '5. 5.', dose: 'Bez podání · vyhodnoťte', status: 'future' },
+  ];
+  return [
+    { day: 1, label: '1. podání', date: '30. 4.', dose: '¼ vajíčka (žloutek)', status: 'done', outcome: 'ok', notes: 'Bez reakce' },
+    { day: 2, label: '2. podání', date: '1. 5.', dose: '¼ vajíčka', status: 'current', notes: 'Dnes — opatrně, sledujte 4 h' },
+    { day: 3, label: '3. podání', date: '2. 5.', dose: '½ vajíčka', status: 'future' },
+    { day: 4, label: 'Sledování', date: '3.–6. 5.', dose: 'Bez dalšího podání', status: 'future' },
+    { day: 5, label: 'Hodnocení', date: '7. 5.', dose: 'Vyhodnocení re-testu', status: 'future' },
+  ];
+}
+
+// ── Color treatments ──────────────────────────────────────────
+// "full"     : every phase wears its full color (reset = grey, elim = red, test = teal, retest = wine)
+// "gradient" : 4-step gradient — neutral reset → faint elim → clear test → bold retest
+function getHeroStyling(p, mode) {
+  const isRetest = p.type === 'retest';
+
+  if (mode === 'full') {
+    return {
+      bg: isRetest ? `${c.primary}10` : `${p.badgeColor}10`,
+      border: isRetest ? c.primary : p.badgeColor,
+      borderOpacity: isRetest ? '' : '60',
+    };
+  }
+
+  // gradient mode (4 levels)
+  const levels = {
+    reset:       { bg: c.white,            border: c.surfaceDark, borderOpacity: '' },
+    elimination: { bg: `${c.danger}05`,    border: c.danger,      borderOpacity: '25' },
+    reintroduction: { bg: `${c.reintro}10`,border: c.reintro,     borderOpacity: '50' },
+    retest:      { bg: `${c.primary}10`,   border: c.primary,     borderOpacity: '' },
+  };
+  return levels[p.type];
+}
+
+// ── Hero card — universally expandable ────────────────────────
+function HeroCard({ phase: p, expanded, onToggle, colorStyle = 'gradient' }) {
+  const isTest = p.type === 'reintroduction' || p.type === 'retest';
+  const isRetest = p.type === 'retest';
+  const styling = getHeroStyling(p, colorStyle);
+
+  return (
+    <div style={{
+      borderRadius: 16, overflow: 'hidden', marginBottom: 12,
+      border: `1.5px solid ${styling.border}${styling.borderOpacity}`,
+      background: styling.bg,
+    }}>
+      {isRetest && (
+        <div style={{ background: c.primary, padding: '6px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '.05em' }}>RE-TEST PROBÍHÁ</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,.7)' }}>1. test: {p.priorReaction}</span>
+        </div>
+      )}
+
+      <div onClick={onToggle} style={{ padding: '12px 14px', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {isTest && p.allergen ? (
+              <div style={{ width: 44, height: 44, borderRadius: 13, background: isRetest ? `${c.primary}18` : `${p.badgeColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>{p.allergen.icon}</div>
+            ) : (
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${p.badgeColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                {p.type === 'reset' ? '🔄' : '🚫'}
+              </div>
+            )}
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 800, color: c.text, lineHeight: 1.2 }}>{p.title}</p>
+            </div>
+          </div>
+          <Badge label={p.badge} color={p.badgeColor} />
+        </div>
+
+        {p.progress.type === 'short'
+          ? <PipProgress current={p.progress.current} total={p.progress.total} evalDate={p.progress.evalDate} />
+          : <DayBarProgress current={p.progress.current} total={p.progress.total} />}
+
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${c.surfaceDark}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, color: c.textMuted, fontWeight: 500 }}>
+            {expanded ? 'Skrýt průběh fáze' : (isTest ? 'Zobrazit průběh testu' : 'Zobrazit průběh fáze')}
+          </span>
+          <span style={{ fontSize: 11, color: p.badgeColor, fontWeight: 700 }}>{expanded ? '▴' : '▾'}</span>
+        </div>
+      </div>
+
+      {expanded && <PhaseExpansion phase={p} />}
+    </div>
+  );
+}
+
+// ── Comparison with previous test (re-test only) ──────────────
+function RetestComparisonCard({ phase: p }) {
+  return (
+    <div style={{ background: `${c.warning}10`, border: `1px solid ${c.warning}30`, borderRadius: 14, padding: '12px 14px', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 16 }}>⚠️</span>
+        <p style={{ fontSize: 9, fontWeight: 800, color: c.warning, textTransform: 'uppercase', letterSpacing: '.08em' }}>Srovnání s 1. testem</p>
+      </div>
+      <p style={{ fontSize: 12, color: c.text, lineHeight: 1.5 }}>
+        <strong>{p.priorTestDate}:</strong> <span style={{ color: c.warning, fontWeight: 700 }}>{p.priorReaction}</span>. {p.priorDetail}
+      </p>
+    </div>
+  );
+}
+
+// ── Today blocks-only card (no summary text) ──────────────────
+function InstructionsCard({ phase: p }) {
+  return (
+    <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+      <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Dnešní úkoly</p>
+      <TodayBlocks blocks={p.todayBlocks} />
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// PRŮBĚH TAB (no stats card, all rows clickable)
+// ════════════════════════════════════════════════════════════════
+
+const PRUBEH_ROWS = [
+  { kind: 'phase', icon: '🔄', name: 'Reset · výchozí stav', subtitle: 'Den 1–14 · 2.–15. 1.', tone: 'done', color: c.success },
+  { kind: 'phase', icon: '🚫', name: 'Eliminační fáze', subtitle: 'Den 15–56 · 16. 1.–26. 2.', tone: 'done', color: c.success },
+  { kind: 'allergen', icon: '🥛', name: 'Mléčné výrobky', subtitle: 'Test 27. 2.–3. 3. · toleruje ✓', tone: 'tolerated', color: c.success },
+  { kind: 'allergen', icon: '🌾', name: 'Pšenice / lepek', subtitle: 'Test 4.–8. 3. · toleruje ✓', tone: 'tolerated', color: c.success },
+  { kind: 'allergen', icon: '🫘', name: 'Sója', subtitle: 'Test 9.–13. 3. · mírná reakce ⚠', tone: 'mild', color: c.warning, canRetest: true },
+  { kind: 'allergen', icon: '🥚', name: 'Vejce', subtitle: 'RE-TEST · den 2 / 5 · do 7. 5.', tone: 'retest', color: c.primary, current: true },
+  { kind: 'allergen', icon: '🥜', name: 'Ořechy', subtitle: 'Plánováno ~12. 5.', tone: 'pending' },
+  { kind: 'allergen', icon: '🐟', name: 'Ryby', subtitle: 'Plánováno ~17. 5.', tone: 'pending' },
+  { kind: 'allergen', icon: '🍋', name: 'Citrusy', subtitle: 'Plánováno ~22. 5.', tone: 'pending' },
+  { kind: 'allergen', icon: '🍫', name: 'Čokoláda', subtitle: 'Plánováno ~27. 5.', tone: 'pending' },
+];
+
+function PrubehContent() {
+  return (
+    <div style={{ padding: '12px 14px 0' }}>
+
+      {/* Hero card — overall protocol progress (mirrors Dnes hero) */}
+      <div style={{ background: c.white, borderRadius: 16, border: `1.5px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 13, background: `${c.primary}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>📋</div>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 800, color: c.text }}>Eliminační protokol</p>
+            <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>Den 78 · konec ~30. 6.</p>
+          </div>
+        </div>
+        <DayBarProgress current={78} total={120} />
+      </div>
+
+      {/* Phases & allergens — all rows clickable */}
+      <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8, paddingLeft: 2 }}>Fáze a alergeny</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+        {PRUBEH_ROWS.map((r, i) => {
+          const isPending = r.tone === 'pending';
+          const color = r.color || c.textMuted;
+          return (
+            <div key={i} style={{
+              background: r.current ? `${c.primary}0c` : c.white,
+              border: `1px solid ${r.current ? c.primary + '40' : c.surfaceDark}`,
+              borderRadius: 12, padding: '10px 12px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              cursor: isPending ? 'default' : 'pointer',
+              opacity: isPending ? 0.55 : 1,
+            }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                {r.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{r.name}</span>
+                  {r.current && <span style={{ fontSize: 9, background: c.primary, color: '#fff', borderRadius: 999, padding: '1px 6px', fontWeight: 800 }}>RE-TEST</span>}
+                </div>
+                <p style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.3 }}>{r.subtitle}</p>
+              </div>
+              {r.canRetest && (
+                <button style={{ fontSize: 10, color: c.primary, background: `${c.primary}12`, border: `1px solid ${c.primary}30`, borderRadius: 8, padding: '4px 8px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>+ Re-test</button>
+              )}
+              {!isPending && (
+                <span style={{ fontSize: 16, color: c.textMuted, fontWeight: 600, flexShrink: 0 }}>›</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// MAIN PHONE
+// ════════════════════════════════════════════════════════════════
+
+function ProgramPhone({ phaseKey, defaultTab = 'Dnes', initialExpanded = false, colorStyle = 'gradient' }) {
+  const [tab, setTab] = React.useState(defaultTab);
+  const [expanded, setExpanded] = React.useState(initialExpanded);
+  const p = PHASES[phaseKey];
+  const isRetest = p.type === 'retest';
+
+  return (
+    <PhoneShell phaseKey={phaseKey}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, background: c.white, borderBottom: `1px solid ${c.surfaceDark}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 6px' }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: c.text }}>Program</span>
+          <span style={{ fontSize: 11, color: c.textMuted }}>30. 4. 2026</span>
+        </div>
+        <Tabs active={tab} onChange={setTab} />
+      </div>
+
+      {tab === 'Dnes' ? (
+        <div style={{ padding: '12px 14px 0' }}>
+          <HeroCard phase={p} expanded={expanded} onToggle={() => setExpanded(e => !e)} colorStyle={colorStyle} />
+          {isRetest && <RetestComparisonCard phase={p} />}
+          <InstructionsCard phase={p} />
+          <FoodGuideCard canEat={p.canEat} avoid={p.avoid} style={{ marginBottom: 16 }} />
+        </div>
+      ) : (
+        <PrubehContent />
+      )}
+    </PhoneShell>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// DETAIL SCREENS — reachable from Průběh tab
+// ════════════════════════════════════════════════════════════════
+
+const DETAIL_DATA = {
+  // Tolerated allergen
+  dairy: {
+    icon: '🥛', name: 'Mléčné výrobky', date: '27. 2.–3. 3. 2026',
+    badge: 'TOLERUJE', badgeColor: c.success, accent: c.success,
+    summary: 'Bez jakýchkoli reakcí. Mléčné výrobky můžete bez obav zařadit do jídelníčku.',
+    days: [
+      { day: 1, date: '27. 2.', dose: '¼ porce jogurtu (~25 g)', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: 'Bez reakce' },
+      { day: 2, date: '28. 2.', dose: '½ porce jogurtu (~50 g)', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: 'Bez reakce' },
+      { day: 3, date: '1. 3.',  dose: '½ porce jogurtu (~50 g)', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: 'Bez reakce' },
+      { day: 4, date: '2. 3.',  dose: 'Plná porce (~100 g)', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: 'Bez reakce' },
+      { day: 5, date: '3. 3.',  dose: 'Bez podání · hodnocení', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: '✓ Toleruje' },
+    ],
+    photos: 5,
+    deviations: 0,
+    skinSummary: { primary: '5×', secondary: 'klidná kůže', tone: 'success' },
+  },
+  // Mild reaction
+  soy: {
+    icon: '🫘', name: 'Sója', date: '9.–13. 3. 2026',
+    badge: 'MÍRNÁ REAKCE', badgeColor: c.warning, accent: c.warning,
+    summary: 'Mírné zarudnutí tváří v den 5–7. Doporučujeme re-test za 4–6 týdnů s opatrnější dávkou.',
+    days: [
+      { day: 1, date: '9. 3.',  dose: '¼ porce sójové omáčky', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: 'Bez reakce' },
+      { day: 2, date: '10. 3.', dose: '½ porce', status: 'done', skin: 'clear', skinLabel: 'Klidná kůže', notes: 'Bez reakce' },
+      { day: 3, date: '11. 3.', dose: '½ porce', status: 'done', skin: 'mild', skinLabel: 'Mírné zarudnutí', notes: 'Tváře — sleduji' },
+      { day: 4, date: '12. 3.', dose: 'Plná porce', status: 'done', skin: 'mild', skinLabel: 'Mírné zarudnutí', notes: 'Pokračuje' },
+      { day: 5, date: '13. 3.', dose: 'Hodnocení', status: 'done', skin: 'mild', skinLabel: 'Stále mírné zarudnutí', notes: '⚠ Mírná reakce' },
+    ],
+    photos: 5,
+    deviations: 0,
+    skinSummary: { primary: '3×', secondary: 'mírná reakce', tone: 'warning' },
+  },
+  // Phase
+  elimination: {
+    icon: '🚫', name: 'Eliminační fáze', date: '16. 1.–26. 2. 2026',
+    badge: 'DOKONČENO', badgeColor: c.success, accent: c.success,
+    summary: 'Kůže se výrazně zlepšila během 6 týdnů. Trend zlepšení: 78 % dní. 1× dietní chyba v 3. týdnu.',
+    days: [
+      { day: 38, date: '21. 2.', dose: '—', status: 'done', skin: 'improved', skinLabel: 'Zlepšení', notes: 'Plynulý trend' },
+      { day: 39, date: '22. 2.', dose: '—', status: 'done', skin: 'improved', skinLabel: 'Zlepšení', notes: 'Bez vyrážky' },
+      { day: 40, date: '23. 2.', dose: '—', status: 'done', skin: 'improved', skinLabel: 'Zlepšení', notes: 'Klidná kůže' },
+      { day: 41, date: '24. 2.', dose: '—', status: 'done', skin: 'unchanged', skinLabel: 'Beze změny', notes: '' },
+      { day: 42, date: '25. 2.', dose: '—', status: 'done', skin: 'improved', skinLabel: 'Zlepšení', notes: 'Konec fáze' },
+    ],
+    photos: 41,
+    totalDays: 42,
+    deviations: 1,
+    isPhase: true,
+    skinSummary: { primary: '78 %', secondary: 'dní zlepšení', tone: 'success' },
+  },
+};
+
+function DetailScreen({ id }) {
+  const d = DETAIL_DATA[id];
+  const isPhase = d.isPhase;
+  const customLabel = isPhase ? 'Detail fáze (z Průběh)' : 'Detail testu (z Průběh)';
+
+  return (
+    <PhoneShell phaseKey={null} customLabel={customLabel} dotColor={d.accent}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, background: c.white, borderBottom: `1px solid ${c.surfaceDark}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+          <button style={{ background: 'none', border: 'none', fontSize: 18, color: c.text, cursor: 'pointer' }}>‹</button>
+          <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{isPhase ? 'Detail fáze' : 'Detail testu'}</span>
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 14px 16px' }}>
+
+        {/* Hero card — same pattern */}
+        <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 12, border: `1.5px solid ${d.accent}50`, background: `${d.accent}08` }}>
+          <div style={{ padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: `${d.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>{d.icon}</div>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: c.text, lineHeight: 1.2 }}>{d.name}</p>
+                  <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>{d.date}</p>
+                </div>
+              </div>
+              <Badge label={d.badge} color={d.badgeColor} />
+            </div>
+            <p style={{ fontSize: 12, color: c.text, lineHeight: 1.5 }}>{d.summary}</p>
+          </div>
+        </div>
+
+        {/* Stats card */}
+        <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, textAlign: 'center', padding: '4px 0' }}>
+              <p style={{ fontSize: 17, fontWeight: 800, color: c.text }}>📸 {d.photos}/{d.totalDays || d.days.length}</p>
+              <p style={{ fontSize: 9, color: c.textMuted, marginTop: 2 }}>fotek</p>
+            </div>
+            <div style={{ width: 1, background: c.surfaceDark }} />
+            <div style={{ flex: 1, textAlign: 'center', padding: '4px 0' }}>
+              <p style={{ fontSize: 17, fontWeight: 800, color: d.skinSummary.tone === 'warning' ? c.warning : c.success }}>{d.skinSummary.primary}</p>
+              <p style={{ fontSize: 9, color: c.textMuted, marginTop: 2 }}>{d.skinSummary.secondary}</p>
+            </div>
+            <div style={{ width: 1, background: c.surfaceDark }} />
+            <div style={{ flex: 1, textAlign: 'center', padding: '4px 0' }}>
+              <p style={{ fontSize: 17, fontWeight: 800, color: d.deviations > 0 ? c.warning : c.text }}>{d.deviations}×</p>
+              <p style={{ fontSize: 9, color: c.textMuted, marginTop: 2 }}>dietní chyba</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Day timeline */}
+        <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>{isPhase ? 'Posledních 5 dní fáze' : 'Den po dni'}</p>
+          {d.days.map((dy, i) => {
+            const s = SKIN_STATUS_STYLE[dy.skin] || SKIN_STATUS_STYLE.clear;
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: i < d.days.length - 1 ? `1px dashed ${c.surfaceDark}` : 'none' }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: s.bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                  {s.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.text }}>Den {dy.day} · {dy.skinLabel}</span>
+                    <span style={{ fontSize: 10, color: c.textMuted }}>{dy.date}</span>
+                  </div>
+                  {!isPhase && <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>{dy.dose}</p>}
+                  {dy.notes && <p style={{ fontSize: 10, color: dy.skin === 'mild' ? c.warning : c.textMuted, marginTop: 2 }}>{dy.notes}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Action buttons */}
+        {id === 'soy' && (
+          <button style={{ width: '100%', background: c.primary, color: '#fff', border: 'none', borderRadius: 14, padding: '12px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            + Naplánovat re-test
+          </button>
+        )}
+      </div>
+    </PhoneShell>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// PRŮBĚH SHELL phone (used in row 1)
+// ════════════════════════════════════════════════════════════════
+
+function PrubehShellPhone() {
+  return (
+    <PhoneShell phaseKey="prubeh">
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, background: c.white, borderBottom: `1px solid ${c.surfaceDark}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 6px' }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: c.text }}>Program</span>
+          <span style={{ fontSize: 11, color: c.textMuted }}>30. 4. 2026</span>
+        </div>
+        <div style={{ display: 'flex', gap: 4, padding: '0 16px 10px', background: c.white }}>
+          <button style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, background: c.surface, color: c.textMuted }}>Dnes</button>
+          <button style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, background: c.primary, color: '#fff' }}>Průběh</button>
+        </div>
+      </div>
+      <PrubehContent />
+    </PhoneShell>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// MAIN APP
+// ════════════════════════════════════════════════════════════════
+
+function App() {
+  return (
+    <div className="canvas">
+      <div className="canvas-eyebrow">Atopic Helper · Program redesign</div>
+      <div className="canvas-heading">Finální návrh /program stránky</div>
+      <div className="canvas-sub">
+        Konsolidovaný návrh přepracování /program stránky — Dnes / Průběh tabs napříč 4 fázemi (Reset · Eliminace · Test · Re-test), klikací hero karty s expanzí, drill-down detail obrazovky pro fáze a testy, formulář na naplánování re-testu. Vizuální gradient od neutrální (Reset) k bold (Re-test), den jako základní jednotka.
+      </div>
+
+      <div className="section-eyebrow">Řada 1 — Dnes / Průběh tab napříč fázemi</div>
+      <div className="section-heading">Hero karta · 3 kachle · day-by-day · jídlo · foto</div>
+      <div className="section-desc">
+        Reset → Eliminace → Test → Re-test → Průběh tab. Hero karty klikací (expanze ukazuje denní log + statistiky). Re-test má žlutou srovnávací kartu s 1. testem. Dnešní úkoly jako 3 mini-bloky (porce / monitoring / foto). Strava jako 2-col ✓/✗.
+      </div>
+      <div className="phone-row">
+        <ProgramPhone phaseKey="reset"        initialExpanded={true} colorStyle="gradient" />
+        <ProgramPhone phaseKey="elimination"  initialExpanded={true} colorStyle="gradient" />
+        <ProgramPhone phaseKey="reintro"      initialExpanded={true} colorStyle="gradient" />
+        <ProgramPhone phaseKey="retest"       initialExpanded={true} colorStyle="gradient" />
+        <PrubehShellPhone />
+      </div>
+
+      <div className="divider" />
+
+      <div className="section-eyebrow">Řada 2 — detail obrazovky (z Průběh tabu)</div>
+      <div className="section-heading">Drill-down do fází, testů a naplánování re-testu</div>
+      <div className="section-desc">
+        Klepnutí na řádek v Průběh tabu otevře detail. Stejný layout pro fázi i alergenový test: hero shrnutí + 3 kachle + den-po-dni timeline. Detail alergenu s mírnou reakcí má tlačítko "+ Naplánovat re-test", které otevře setup screen s datem a plánem dávek.
+      </div>
+      <div className="phone-row">
+        <DetailScreenWithLabel id="dairy"       customLabel="Detail · Mléko (toleruje)" dotColor={c.success} />
+        <DetailScreenWithLabel id="soy"         customLabel="Detail · Sója (mírná reakce)" dotColor={c.warning} />
+        <DetailScreenWithLabel id="elimination" customLabel="Detail · Eliminační fáze (dokončeno)" dotColor={c.success} />
+        <RetestSetupWithLabel allergenId="soy"  customLabel="Naplánovat re-test (Sója)" dotColor={c.primary} />
+      </div>
+
+      <div className="divider" />
+
+      {/* Notes section — extra padding to ensure full visibility */}
+      <div className="notes-section">
+        <div className="section-eyebrow">Klíčová designová rozhodnutí</div>
+        <div className="section-heading">Souhrn všech kroků iterace</div>
+        <div className="notes-grid">
+          {[
+            { title: '1. Den jako základní jednotka', body: 'Reset 14 dní · eliminace 42 dní · test 5 dní · re-test 5 dní. Žádné týdny — den je jednoznačný. Pokrok protokolu: "Den 78 / 120". Pily pro krátké fáze (≤7 dní), pruh pro dlouhé.' },
+            { title: '2. Klikací hero karty napříč fázemi', body: 'Reset/Eliminace/Test/Re-test sdílí stejnou expanzi: 3 kachle (foto coverage, shrnutí kůže, dietní chyba) + den-po-dni timeline. Rodič se učí jeden vzor, který platí všude.' },
+            { title: '3. Vizuální gradient místo unifikace', body: 'Reset bíle/neutrálně → Eliminace 5% red tint → Test 10% teal → Re-test full wine + stripe. Barva je signál, ne dekorace. Re-test (s předchozí reakcí) má největší vizuální váhu.' },
+            { title: '4. Dnešní úkoly jako 3 mini-bloky', body: 'Pro testy: porce (¼ vajíčka) · monitoring (Sledujte 4 h) · foto (ráno + odpol. + večer). Foto je 3. blok, ne separátní CTA. Urgence foto bloku se mění od low (reset) po critical (re-test).' },
+            { title: '5. Re-test má vlastní vizuální identitu', body: 'Wine top stripe "RE-TEST PROBÍHÁ · 1. test mírná reakce", žlutá srovnávací karta na Dnes tabu. Kontext prvního testu je vždy viditelný — ne schovaný v expanzi.' },
+            { title: '6. Průběh tab = archiv s drill-down', body: 'Stejný card-jazyk jako Dnes. Všechny řádky klikací (›). Detail screen má hero shrnutí + 3 kachle + day timeline. Detail alergenu s mírnou reakcí umožňuje +Naplánovat re-test.' },
+            { title: '7. "Co je vidět jinde, neopakuj"', body: 'Hero subtitle s alergenem (duplikovalo title), "Hodnocení x.x" (v timeline), "PROBÍHÁ" badge (kontext), "FÁZE" tag (ikona) — vše odstraněno. Méně labels = klidnější UI.' },
+            { title: '8. "Dietní chyba" místo "odchylky"', body: '"Odchylka" v Czech UI je dvojznačná (odchylka kůže? odchylka diety?). "Dietní chyba" je jednoznačná: rodič snědl něco, co neměl. Pojmenování pro rodiče, ne pro vývojáře.' },
+          ].map((n, i) => (
+            <div key={i} className="note-card">
+              <div className="note-card-title">{n.title}</div>
+              <div className="note-card-body">{n.body}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+function DetailScreenWithLabel({ id, customLabel, dotColor }) {
+  return (
+    <div className="phone-wrap">
+      <div className="phase-label">
+        <div className="phase-label-dot" style={{ background: dotColor }} />
+        {customLabel}
+      </div>
+      <DetailScreenInner id={id} />
+    </div>
+  );
+}
+
+function DetailScreenInner({ id }) {
+  const d = DETAIL_DATA[id];
+  const isPhase = d.isPhase;
+  return (
+    <div className="phone-shell">
+      <div className="phone-status">
+        <span className="phone-time">9:41</span>
+        <div className="phone-island" />
+        <span className="phone-battery">●●● 🔋</span>
+      </div>
+      <div className="phone-content">
+        <div style={{ position: 'sticky', top: 0, zIndex: 30, background: c.white, borderBottom: `1px solid ${c.surfaceDark}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+            <button style={{ background: 'none', border: 'none', fontSize: 18, color: c.text, cursor: 'pointer' }}>‹</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{isPhase ? 'Detail fáze' : 'Detail testu'}</span>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 14px 16px' }}>
+          <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 12, border: `1.5px solid ${d.accent}50`, background: `${d.accent}08` }}>
+            <div style={{ padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 13, background: `${d.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>{d.icon}</div>
+                  <div>
+                    <p style={{ fontSize: 15, fontWeight: 800, color: c.text, lineHeight: 1.2 }}>{d.name}</p>
+                    <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>{d.date}</p>
+                  </div>
+                </div>
+                <Badge label={d.badge} color={d.badgeColor} />
+              </div>
+              <p style={{ fontSize: 12, color: c.text, lineHeight: 1.5 }}>{d.summary}</p>
+            </div>
+          </div>
+
+          <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <p style={{ fontSize: 17, fontWeight: 800, color: c.text }}>{d.days.length}</p>
+                <p style={{ fontSize: 9, color: c.textMuted, marginTop: 2 }}>{isPhase ? 'pos. dnů' : 'dní testu'}</p>
+              </div>
+              <div style={{ width: 1, background: c.surfaceDark }} />
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <p style={{ fontSize: 17, fontWeight: 800, color: c.text }}>📸 {d.photos}</p>
+                <p style={{ fontSize: 9, color: c.textMuted, marginTop: 2 }}>fotek</p>
+              </div>
+              <div style={{ width: 1, background: c.surfaceDark }} />
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <p style={{ fontSize: 17, fontWeight: 800, color: d.deviations > 0 ? c.warning : c.text }}>{d.deviations}× ⚠</p>
+                <p style={{ fontSize: 9, color: c.textMuted, marginTop: 2 }}>odchylky</p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+            <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>{isPhase ? 'Posledních 5 dní fáze' : 'Den po dni'}</p>
+            {d.days.map((dy, i) => {
+              const s = SKIN_STATUS_STYLE[dy.skin] || SKIN_STATUS_STYLE.clear;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: i < d.days.length - 1 ? `1px dashed ${c.surfaceDark}` : 'none' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: s.bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                    {s.icon}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: c.text }}>Den {dy.day} · {dy.skinLabel}</span>
+                      <span style={{ fontSize: 10, color: c.textMuted }}>{dy.date}</span>
+                    </div>
+                    {!isPhase && <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>{dy.dose}</p>}
+                    {dy.notes && <p style={{ fontSize: 10, color: dy.skin === 'mild' ? c.warning : c.textMuted, marginTop: 2 }}>{dy.notes}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {id === 'soy' && (
+            <button style={{ width: '100%', background: c.primary, color: '#fff', border: 'none', borderRadius: 14, padding: '12px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              + Naplánovat re-test
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="phone-nav">
+        {[['📅','Dnes'],['🍽️','Jídlo'],['📋','Program'],['⚙️','Nastavení']].map(([icon, lbl], i) => (
+          <button key={lbl} className={`nav-btn ${i === 2 ? 'active' : ''}`}>
+            <span className="nav-icon">{icon}</span>{lbl}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// RETEST SETUP SCREEN — reached from "+ Naplánovat re-test" on a
+// soy-style allergen detail. Lets parent schedule when to retest
+// and review the proposed dose plan.
+// ════════════════════════════════════════════════════════════════
+
+const RETEST_PLAN = {
+  soy: {
+    icon: '🫘',
+    name: 'Sója',
+    priorTestRange: '9.–13. 3. 2026',
+    priorReaction: 'mírná reakce',
+    priorDetail: 'Mírné zarudnutí tváří v den 3–5.',
+    suggestedStart: '12. 5. 2026',
+    suggestionNote: 'Doporučeno: 4–6 týdnů od konce 1. testu',
+    plan: [
+      { day: 1, dose: '¼ porce sójové omáčky', tone: 'easy' },
+      { day: 2, dose: '¼ porce', tone: 'easy' },
+      { day: 3, dose: '½ porce', tone: 'easy' },
+      { day: 4, dose: 'bez podání', tone: 'rest' },
+      { day: 5, dose: 'hodnocení', tone: 'eval' },
+    ],
+    planNote: 'Opatrnější dávkování než při 1. testu — pomalejší zavedení, delší pozorování.',
+  },
+};
+
+function RetestSetupWithLabel({ allergenId, customLabel, dotColor }) {
+  return (
+    <div className="phone-wrap">
+      <div className="phase-label">
+        <div className="phase-label-dot" style={{ background: dotColor }} />
+        {customLabel}
+      </div>
+      <RetestSetupInner allergenId={allergenId} />
+    </div>
+  );
+}
+
+function RetestSetupInner({ allergenId }) {
+  const r = RETEST_PLAN[allergenId];
+
+  return (
+    <div className="phone-shell">
+      <div className="phone-status">
+        <span className="phone-time">9:41</span>
+        <div className="phone-island" />
+        <span className="phone-battery">●●● 🔋</span>
+      </div>
+      <div className="phone-content">
+        {/* Sticky header */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 30, background: c.white, borderBottom: `1px solid ${c.surfaceDark}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+            <button style={{ background: 'none', border: 'none', fontSize: 18, color: c.text, cursor: 'pointer' }}>‹</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>Naplánovat re-test</span>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 14px 16px' }}>
+
+          {/* Hero — context from prior test (mirrors retest comparison card style) */}
+          <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 12, border: `1.5px solid ${c.primary}`, background: `${c.primary}10` }}>
+            <div style={{ padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: `${c.primary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>{r.icon}</div>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 800, color: c.text, lineHeight: 1.2 }}>{r.name}</p>
+                  <p style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>1. test: {r.priorTestRange} · <span style={{ color: c.warning, fontWeight: 700 }}>{r.priorReaction}</span></p>
+                </div>
+              </div>
+              <p style={{ fontSize: 12, color: c.text, lineHeight: 1.5 }}>{r.priorDetail} Re-test umožňuje ověřit, zda se snášenlivost zlepšila — jdeme s opatrnější dávkou a delším pozorováním.</p>
+            </div>
+          </div>
+
+          {/* Date selection card */}
+          <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+            <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Datum zahájení</p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: c.surface, border: `1.5px solid ${c.surfaceDark}`, borderRadius: 12, marginBottom: 8 }}>
+              <span style={{ fontSize: 18 }}>📅</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: c.text, flex: 1 }}>{r.suggestedStart}</span>
+              <span style={{ fontSize: 12, color: c.primary, fontWeight: 600 }}>Změnit ›</span>
+            </div>
+
+            <p style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.4 }}>{r.suggestionNote}</p>
+          </div>
+
+          {/* Dose plan card */}
+          <div style={{ background: c.white, borderRadius: 14, border: `1px solid ${c.surfaceDark}`, padding: '12px 14px', marginBottom: 12 }}>
+            <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Plán podávání</p>
+
+            {r.plan.map((p, i) => {
+              const colors = {
+                easy: { dot: c.primary, label: c.text },
+                rest: { dot: c.surfaceDark, label: c.textMuted },
+                eval: { dot: c.success, label: c.success },
+              }[p.tone];
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 0',
+                  borderBottom: i < r.plan.length - 1 ? `1px dashed ${c.surfaceDark}` : 'none',
+                }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: colors.dot, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800 }}>
+                    {p.day}
+                  </div>
+                  <span style={{ fontSize: 12, color: colors.label, fontWeight: p.tone === 'eval' ? 700 : 500 }}>{p.dose}</span>
+                </div>
+              );
+            })}
+
+            <p style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.4, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${c.surfaceDark}`, fontStyle: 'italic' }}>{r.planNote}</p>
+          </div>
+
+          {/* Confirm button */}
+          <button style={{ width: '100%', background: c.primary, color: '#fff', border: 'none', borderRadius: 14, padding: '13px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            Potvrdit re-test
+          </button>
+
+          <button style={{ width: '100%', marginTop: 8, background: 'transparent', color: c.textMuted, border: 'none', padding: '10px 0', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+            Zrušit
+          </button>
+        </div>
+      </div>
+      <div className="phone-nav">
+        {[['📅','Dnes'],['🍽️','Jídlo'],['📋','Program'],['⚙️','Nastavení']].map(([icon, lbl], i) => (
+          <button key={lbl} className={`nav-btn ${i === 2 ? 'active' : ''}`}>
+            <span className="nav-icon">{icon}</span>{lbl}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
