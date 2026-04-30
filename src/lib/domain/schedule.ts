@@ -1,5 +1,5 @@
 import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, MealItem, EczemaSeverity, ReintroductionDayInfo, Meal, TrainingReminder } from '$lib/domain/models';
-import { getCategoryBySlug } from '$lib/data/categories';
+import { getCategoryById } from '$lib/data/categories';
 import { addDays, isDateInRange } from '$lib/utils/date';
 
 // ── Schedule generation ───────────────────────────────────────
@@ -34,12 +34,12 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     label: 'Resetovací fáze',
     startDate: cursor,
     endDate: resetEnd,
-    categorySlugs: [],
+    categoryIds: [],
     description: 'Jezte normálně (kromě potvrzených alergií). Zaznamenáváme výchozí stav kůže miminka před zahájením eliminace.',
   });
   cursor = addDays(resetEnd, 1);
 
-  const protocolSlugs = answers.testedAllergens;
+  const protocolIds = answers.testedAllergens;
 
   // Phase A: Full elimination
   const elimEnd = addDays(cursor, durations.elimination - 1);
@@ -49,26 +49,26 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     label: 'Eliminační fáze',
     startDate: cursor,
     endDate: elimEnd,
-    categorySlugs: protocolSlugs,
+    categoryIds: protocolIds,
     description: 'Vylučte všechny sledované alergeny. Čekáme, až se stav kůže miminka ustálí.',
   });
   cursor = addDays(elimEnd, 1);
 
   // Phase B: Sequential reintroduction (4 days each — 3 escalating eating days + evaluation day)
-  const reintroQueue = protocolSlugs.filter(
-    slug => !permanentEliminations.includes(slug)
+  const reintroQueue = protocolIds.filter(
+    id => !permanentEliminations.includes(id)
   );
-  for (const slug of reintroQueue) {
-    const cat = getCategoryBySlug(slug);
+  for (const categoryId of reintroQueue) {
+    const cat = getCategoryById(categoryId);
     const reintroEnd = addDays(cursor, durations.reintroduction - 1);
     phases.push({
-      id: `reintro-${slug}`,
+      id: `reintro-${categoryId}`,
       type: 'reintroduction',
-      label: `Znovuzavedení: ${cat?.nameCs ?? slug}`,
+      label: `Znovuzavedení: ${cat?.nameCs ?? categoryId}`,
       startDate: cursor,
       endDate: reintroEnd,
-      categorySlugs: [slug],
-      description: `Postupně zařazujte ${cat?.nameCs?.toLowerCase() ?? slug} zpět do jídelníčku. Sledujte kůži miminka každý den.`,
+      categoryIds: [categoryId],
+      description: `Postupně zařazujte ${cat?.nameCs?.toLowerCase() ?? categoryId} zpět do jídelníčku. Sledujte kůži miminka každý den.`,
     });
     cursor = addDays(reintroEnd, 1);
   }
@@ -100,16 +100,16 @@ export function getPhaseForDate(schedule: GeneratedSchedule, date: string): Sche
 // ── What is eliminated on a given date ───────────────────────
 // Permanent eliminations always apply.
 // During reset: only permanent eliminations — mother eats normally.
-// During elimination: the phase's own categorySlugs (= tested allergens).
+// During elimination: the phase's own categoryIds (= tested allergens).
 // During reintroduction of X: X is allowed, already-passed allergens allowed, others eliminated.
 // During rest: like elimination but already-passed allergens are allowed.
 // During training: training allergen allowed in small doses, otherwise like current context.
 // After all phases: only permanent eliminations.
 
 // Derive the protocol from the schedule's elimination phase so it stays data-driven.
-function getProtocolSlugs(schedule: GeneratedSchedule): string[] {
+function getProtocolIds(schedule: GeneratedSchedule): string[] {
   const elimPhase = schedule.phases.find(p => p.type === 'elimination');
-  return elimPhase?.categorySlugs ?? [];
+  return elimPhase?.categoryIds ?? [];
 }
 
 export function getEliminatedSlugsForDate(
@@ -126,26 +126,26 @@ export function getEliminatedSlugsForDate(
   }
 
   if (phase.type === 'elimination') {
-    for (const slug of phase.categorySlugs) {
-      if (!schedule.permanentEliminations.includes(slug)) {
-        eliminated.add(slug);
+    for (const categoryId of phase.categoryIds) {
+      if (!schedule.permanentEliminations.includes(categoryId)) {
+        eliminated.add(categoryId);
       }
     }
     return [...eliminated];
   }
 
   if (phase.type === 'reintroduction' || phase.type === 'rest') {
-    const protocolSlugs = getProtocolSlugs(schedule);
+    const protocolIds = getProtocolIds(schedule);
     const thisIndex = schedule.phases.indexOf(phase);
     const alreadyPassed = getPassedAllergens(schedule, thisIndex);
 
-    for (const slug of protocolSlugs) {
+    for (const categoryId of protocolIds) {
       if (
-        !schedule.permanentEliminations.includes(slug) &&
-        !alreadyPassed.has(slug) &&
-        !(phase.type === 'reintroduction' && phase.categorySlugs.includes(slug))
+        !schedule.permanentEliminations.includes(categoryId) &&
+        !alreadyPassed.has(categoryId) &&
+        !(phase.type === 'reintroduction' && phase.categoryIds.includes(categoryId))
       ) {
-        eliminated.add(slug);
+        eliminated.add(categoryId);
       }
     }
     return [...eliminated];
@@ -153,7 +153,7 @@ export function getEliminatedSlugsForDate(
 
   if (phase.type === 'training') {
     // Training phases are concurrent — find the "real" phase context from surrounding phases
-    const trainingSlug = phase.categorySlugs[0];
+    const trainingId = phase.categoryIds[0];
     // Find non-training phase for this date (reintroduction or rest)
     const realPhase = schedule.phases.find(
       p => p.type !== 'training' && isDateInRange(date, p.startDate, p.endDate)
@@ -164,7 +164,7 @@ export function getEliminatedSlugsForDate(
         date
       ));
       // Training allergen is allowed in small doses
-      baseEliminated.delete(trainingSlug);
+      baseEliminated.delete(trainingId);
       return [...baseEliminated];
     }
     // If no concurrent phase, only permanent eliminations + training allergen allowed
@@ -182,7 +182,7 @@ function getPassedAllergens(schedule: GeneratedSchedule, beforeIndex: number): S
       // An allergen passed if its reintroduction is NOT followed by a rest phase
       const nextPhase = schedule.phases[i + 1];
       if (!nextPhase || nextPhase.type !== 'rest') {
-        for (const s of p.categorySlugs) passed.add(s);
+        for (const id of p.categoryIds) passed.add(id);
       }
     }
   }
@@ -209,7 +209,7 @@ export function detectConflicts(
   eliminatedSlugs: string[]
 ): MealItem[] {
   return items.filter(
-    item => item.categorySlug !== null && eliminatedSlugs.includes(item.categorySlug)
+    item => item.categoryId !== null && eliminatedSlugs.includes(item.categoryId)
   );
 }
 
@@ -230,8 +230,8 @@ export function getReintroductionDayInfo(
   const phase = getPhaseForDate(schedule, date);
   if (!phase || phase.type !== 'reintroduction') return null;
 
-  const allergenSlug = phase.categorySlugs[0];
-  if (!allergenSlug) return null;
+  const allergenId = phase.categoryIds[0];
+  if (!allergenId) return null;
 
   const phaseStart = new Date(phase.startDate + 'T00:00:00');
   const target = new Date(date + 'T00:00:00');
@@ -243,7 +243,7 @@ export function getReintroductionDayInfo(
 
   const entry = REINTRO_4DAY[Math.min(dayInPhase - 1, REINTRO_4DAY.length - 1)];
 
-  return { dayInPhase, totalDays, allergenSlug, ...entry };
+  return { dayInPhase, totalDays, allergenId, ...entry };
 }
 
 // ── Schedule mutation: insert rest days ──────────────────────
@@ -267,7 +267,7 @@ export function insertRestDays(
     label: 'Klidový režim',
     startDate: restStart,
     endDate: restEnd,
-    categorySlugs: [],
+    categoryIds: [],
     description: 'Kůže se zotavuje — jezte jen potraviny, které miminko toleruje.',
   };
 
@@ -297,7 +297,7 @@ export function insertRestDays(
 
 export function addTrainingPhase(
   schedule: GeneratedSchedule,
-  allergenSlug: string,
+  allergenId: string,
   afterPhaseId: string
 ): GeneratedSchedule {
   const afterPhase = schedule.phases.find(p => p.id === afterPhaseId);
@@ -310,16 +310,16 @@ export function addTrainingPhase(
     ? addDays(nextPhase.endDate, 1)
     : addDays(afterPhase.endDate, 1);
 
-  const cat = getCategoryBySlug(allergenSlug);
+  const cat = getCategoryById(allergenId);
 
   const trainingPhase: SchedulePhase = {
-    id: `training-${allergenSlug}`,
+    id: `training-${allergenId}`,
     type: 'training',
-    label: `Trénink: ${cat?.nameCs ?? allergenSlug}`,
+    label: `Trénink: ${cat?.nameCs ?? allergenId}`,
     startDate: trainingStart,
     endDate: '', // open-ended — no fixed end date
-    categorySlugs: [allergenSlug],
-    description: `Malé dávky ${cat?.nameCs?.toLowerCase() ?? allergenSlug} max 2× týdně pro budování tolerance. Pokračujte, dokud miminko alergen toleruje.`,
+    categoryIds: [allergenId],
+    description: `Malé dávky ${cat?.nameCs?.toLowerCase() ?? allergenId} max 2× týdně pro budování tolerance. Pokračujte, dokud miminko alergen toleruje.`,
   };
 
   const phases = [...schedule.phases, trainingPhase];
@@ -338,11 +338,11 @@ export function getTrainingRemindersForDate(
   );
 
   return trainingPhases.map(phase => {
-    const slug = phase.categorySlugs[0];
-    const cat = getCategoryBySlug(slug);
+    const categoryId = phase.categoryIds[0];
+    const cat = getCategoryById(categoryId);
 
     const relevantMeals = meals
-      .filter(m => m.date <= date && m.items.some(i => i.categorySlug === slug))
+      .filter(m => m.date <= date && m.items.some(i => i.categoryId === categoryId))
       .sort((a, b) => b.date.localeCompare(a.date));
 
     const lastDate = relevantMeals[0]?.date;
@@ -351,9 +351,9 @@ export function getTrainingRemindersForDate(
       : 999;
 
     return {
-      allergenSlug: slug,
+      allergenId: categoryId,
       daysSinceLastDose: daysSince,
-      label: `${cat?.icon ?? ''} ${cat?.nameCs ?? slug}`,
+      label: `${cat?.icon ?? ''} ${cat?.nameCs ?? categoryId}`,
     };
   }).filter(r => r.daysSinceLastDose >= 3);
 }
@@ -362,24 +362,24 @@ export function getTrainingRemindersForDate(
 
 export function appendReTestPhases(
   schedule: GeneratedSchedule,
-  slugs: string[],
+  ids: string[],
   _severity: EczemaSeverity
 ): GeneratedSchedule {
   const reintroductionDays = 4;
   const newPhases = [...schedule.phases];
   let cursor = addDays(schedule.estimatedEndDate, 1);
 
-  for (const slug of slugs) {
-    const cat = getCategoryBySlug(slug);
+  for (const categoryId of ids) {
+    const cat = getCategoryById(categoryId);
     const end = addDays(cursor, reintroductionDays - 1);
     newPhases.push({
-      id: `retest-${slug}-${cursor}`,
+      id: `retest-${categoryId}-${cursor}`,
       type: 'reintroduction',
-      label: `Otestování: ${cat?.nameCs ?? slug}`,
+      label: `Otestování: ${cat?.nameCs ?? categoryId}`,
       startDate: cursor,
       endDate: end,
-      categorySlugs: [slug],
-      description: `Opatrné otestování ${cat?.nameCs?.toLowerCase() ?? slug} pod lékařským dohledem nebo s velkou opatrností.`,
+      categoryIds: [categoryId],
+      description: `Opatrné otestování ${cat?.nameCs?.toLowerCase() ?? categoryId} pod lékařským dohledem nebo s velkou opatrností.`,
     });
     cursor = addDays(end, 1);
   }

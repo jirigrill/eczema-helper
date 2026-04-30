@@ -6,12 +6,13 @@ export type ScenarioSetup = {
   motherAllergies: string[];
   babyConfirmedAllergies: string[];
   programStartDate: string;
-  testedAllergens?: string[]; // allergen slugs in reintroduction order; defaults to [soy, wheat, eggs, dairy]
+  testedAllergens?: string[]; // allergen category IDs in reintroduction order; defaults to [soy, wheat, eggs, dairy]
 };
 
 export type ScenarioMealItem = {
-  name: string;
-  category: string | null;
+  name?: string; // optional when subitemId is provided — derived from sub-item nameCs
+  categoryId?: string | null; // optional when subitemId is provided — derived from subitemId prefix
+  subitemId?: string | null; // e.g. 'dairy:yogurt' — resolves name and categoryId automatically
   amount: AmountSize;
 };
 
@@ -23,7 +24,7 @@ export type ScenarioMeal = {
 
 export type ScenarioDayEvaluation = {
   type: 'allergen-test' | 'skin-status';
-  allergen?: string;
+  allergenId?: string;
   outcome: string;
   notes?: string;
 };

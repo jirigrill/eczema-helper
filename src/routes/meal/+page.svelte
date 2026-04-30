@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import type { AppState, Meal, MealItem, AmountSize } from '$lib/domain/models';
   import { detectConflicts, getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule';
-  import { CATEGORIES, getCategoryBySlug } from '$lib/data/categories';
+  import { CATEGORIES, getCategoryById } from '$lib/data/categories';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
   import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { todayIso, addDays, formatDateLongCs } from '$lib/utils/date';
@@ -42,40 +42,41 @@
   const hasConflicts = $derived(conflicts.length > 0);
 
   function isConflictItem(item: MealItem): boolean {
-    return item.categorySlug !== null && eliminatedToday.includes(item.categorySlug);
+    return item.categoryId !== null && eliminatedToday.includes(item.categoryId);
   }
 
   // ── Category interactions ─────────────────────────────────
-  function toggleCategory(slug: string) {
-    const cat = CATEGORIES.find(c => c.slug === slug);
+  function toggleCategory(categoryId: string) {
+    const cat = CATEGORIES.find(c => c.categoryId === categoryId);
     if (!cat) return;
     if (cat.subItems.length === 0) {
-      addItem({ name: cat.nameCs, categorySlug: slug });
+      addItem({ name: cat.nameCs, categoryId });
       expandedCategory = null;
     } else {
-      expandedCategory = expandedCategory === slug ? null : slug;
+      expandedCategory = expandedCategory === categoryId ? null : categoryId;
     }
   }
 
-  function selectSubItem(categorySlug: string, subId: string, name: string) {
-    addItem({ name, categorySlug });
+  function selectSubItem(categoryId: string, subitemId: string, name: string) {
+    addItem({ name, categoryId, subitemId });
     expandedCategory = null;
   }
 
-  function addItem(partial: { name: string; categorySlug: string | null }) {
-    const exists = currentItems.some(i => i.name === partial.name && i.categorySlug === partial.categorySlug);
+  function addItem(partial: { name: string; categoryId: string | null; subitemId?: string }) {
+    const exists = currentItems.some(i => i.name === partial.name && i.categoryId === partial.categoryId);
     if (exists) return;
     currentItems = [...currentItems, {
       id: crypto.randomUUID(),
       name: partial.name,
-      categorySlug: partial.categorySlug,
+      categoryId: partial.categoryId,
+      subitemId: partial.subitemId ?? null,
       amount: selectedAmount,
     }];
   }
 
   function addCustom() {
     if (!customName.trim()) return;
-    addItem({ name: customName.trim(), categorySlug: null });
+    addItem({ name: customName.trim(), categoryId: null });
     customName = '';
   }
 
@@ -110,8 +111,8 @@
   const canSave = $derived(currentItems.length > 0);
   const todayMeals = $derived(state.meals.filter(m => m.date === today));
 
-  function isCategoryInMeal(slug: string): boolean {
-    return currentItems.some(i => i.categorySlug === slug);
+  function isCategoryInMeal(categoryId: string): boolean {
+    return currentItems.some(i => i.categoryId === categoryId);
   }
 </script>
 
@@ -126,7 +127,7 @@
 
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
-      {@const cat = getCategoryBySlug(reintroInfo.allergenSlug)}
+      {@const cat = getCategoryById(reintroInfo.allergenId)}
       <div class="mt-2 space-y-1.5">
         <div class="bg-success/10 border border-success/30 rounded-xl px-3 py-2">
           <p class="text-xs font-medium text-success">
@@ -144,14 +145,14 @@
         class="mt-2 bg-warning/10 border border-warning/30 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap no-underline"
       >
         <span class="text-xs font-medium text-warning">Dnes vyřazeno:</span>
-        {#each eliminatedToday as slug}
-          {@const cat = getCategoryBySlug(slug)}
+        {#each eliminatedToday as categoryId}
+          {@const cat = getCategoryById(categoryId)}
           {#if cat}
             <span class="text-sm">{cat.icon}</span>
           {/if}
         {/each}
         <span class="text-xs text-warning">
-          {eliminatedToday.map(s => getCategoryBySlug(s)?.nameCs).filter(Boolean).join(', ')}
+          {eliminatedToday.map(s => getCategoryById(s)?.nameCs).filter(Boolean).join(', ')}
         </span>
         <span class="ml-auto text-xs text-warning/70">Program →</span>
       </a>
@@ -219,7 +220,7 @@
       <div class="bg-warning/10 border border-warning/30 rounded-xl p-3">
         <p class="text-sm font-medium text-warning mb-1">⚠ Odchylka od programu</p>
         <p class="text-xs text-text-muted">
-          {conflicts.map(i => `${i.name} (${getCategoryBySlug(i.categorySlug ?? '')?.nameCs})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
+          {conflicts.map(i => `${i.name} (${getCategoryById(i.categoryId ?? '')?.nameCs})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
           Jídlo bude uloženo a odchylka zaznamenána.
         </p>
       </div>
@@ -229,10 +230,10 @@
     <div>
       <p class="text-sm font-medium text-text-muted mb-2">Alergeny a kategorie</p>
       <div class="grid grid-cols-4 gap-2">
-        {#each CATEGORIES as cat (cat.slug)}
-          {@const inMeal = isCategoryInMeal(cat.slug)}
-          {@const isElim = eliminatedToday.includes(cat.slug)}
-          {@const isExpanded = expandedCategory === cat.slug}
+        {#each CATEGORIES as cat (cat.categoryId)}
+          {@const inMeal = isCategoryInMeal(cat.categoryId)}
+          {@const isElim = eliminatedToday.includes(cat.categoryId)}
+          {@const isExpanded = expandedCategory === cat.categoryId}
           <button
             class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
               {isExpanded
@@ -242,7 +243,7 @@
                   : isElim
                     ? 'bg-danger/5 border-danger/20'
                     : 'bg-white border-surface-dark'}"
-            onclick={() => toggleCategory(cat.slug)}
+            onclick={() => toggleCategory(cat.categoryId)}
           >
             <span class="text-2xl leading-none">{cat.icon}</span>
             <span class="leading-tight text-center">{cat.nameCs}</span>
@@ -268,7 +269,7 @@
             <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg
               {isConflictItem(item) ? 'bg-warning/10 border border-warning/30' : 'bg-surface'}">
               <span class="text-base shrink-0">
-                {getCategoryBySlug(item.categorySlug ?? '')?.icon ?? '🍽️'}
+                {getCategoryById(item.categoryId ?? '')?.icon ?? '🍽️'}
               </span>
               <span class="text-sm text-text flex-1 min-w-0 truncate">{item.name}</span>
               {#if isConflictItem(item)}
@@ -306,8 +307,8 @@
               <div class="flex flex-wrap gap-1">
                 {#each meal.items as item}
                   <span class="text-xs bg-surface rounded-full px-2 py-0.5 text-text
-                    {item.categorySlug && eliminatedToday.includes(item.categorySlug) ? 'bg-warning/10 text-warning' : ''}">
-                    {getCategoryBySlug(item.categorySlug ?? '')?.icon ?? ''} {item.name}
+                    {item.categoryId && eliminatedToday.includes(item.categoryId) ? 'bg-warning/10 text-warning' : ''}">
+                    {getCategoryById(item.categoryId ?? '')?.icon ?? ''} {item.name}
                     <span class="text-text-muted">{AMOUNT_LABELS[item.amount]?.short}</span>
                   </span>
                 {/each}
@@ -335,7 +336,7 @@
 
 <!-- Sub-items floating panel -->
 {#if expandedCategory}
-  {@const cat = getCategoryBySlug(expandedCategory)}
+  {@const cat = getCategoryById(expandedCategory)}
   {#if cat && cat.subItems.length > 0}
     <button
       class="fixed inset-0 z-40"
@@ -360,7 +361,7 @@
               {currentItems.some(i => i.name === sub.nameCs)
                 ? 'bg-success/10 text-success border border-success/30'
                 : 'bg-surface text-text border border-surface-dark hover:border-primary/30'}"
-            onclick={() => selectSubItem(cat.slug, sub.id, sub.nameCs)}
+            onclick={() => selectSubItem(cat.categoryId, sub.subitemId, sub.nameCs)}
           >
             {sub.nameCs}
           </button>

@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import type { ScenarioDayEntry } from './scenario-schema';
-import { DEFAULT_TESTED_ALLERGENS } from './categories';
+import { DEFAULT_TESTED_ALLERGENS, getCategoryById } from './categories';
 import type { AppState, Meal, DailyAssessment, ReintroductionEvaluation, GeneratedSchedule } from '$lib/domain/models';
 import { generateSchedule, insertRestDays, addTrainingPhase } from '$lib/domain/schedule';
 import { addDays } from '$lib/utils/date';
@@ -12,10 +12,10 @@ const AMOUNT_SIZES = ['pinch', 'teaspoon', 'spoon', 'portion', 'package'] as con
 const ASSESSMENT_STATUSES = ['improved', 'unchanged', 'worsened', 'new-lesions'] as const;
 const SEVERITIES = ['mild', 'moderate', 'severe'] as const;
 
-function phaseIdForDate(schedule: GeneratedSchedule, date: string, allergenSlug?: string): string {
-  if (allergenSlug) {
+function phaseIdForDate(schedule: GeneratedSchedule, date: string, allergenId?: string): string {
+  if (allergenId) {
     const reintro = schedule.phases.find(
-      p => p.type === 'reintroduction' && p.categorySlugs.includes(allergenSlug)
+      p => p.type === 'reintroduction' && p.categoryIds.includes(allergenId)
     );
     if (reintro) return reintro.id;
   }
@@ -52,12 +52,24 @@ function processDayEntry(
         id: `scenario-d${dayIndex}-m${mi}`,
         date,
         mealType,
-        items: Array.isArray(m.items) ? m.items.map((item, ii) => ({
-          id: `scenario-d${dayIndex}-m${mi}-i${ii}`,
-          name: item.name,
-          categorySlug: item.category ?? null,
-          amount: AMOUNT_SIZES.includes(item.amount as typeof AMOUNT_SIZES[number]) ? item.amount : 'portion',
-        })) : [],
+        items: Array.isArray(m.items) ? m.items.map((item, ii) => {
+          const resolvedSubitemId = item.subitemId ?? null;
+          const resolvedCategoryId = item.categoryId
+            ?? (resolvedSubitemId ? resolvedSubitemId.split(':')[0] : null);
+          const resolvedName = item.name
+            ?? (resolvedSubitemId
+              ? getCategoryById(resolvedSubitemId.split(':')[0])?.subItems.find(s => s.subitemId === resolvedSubitemId)?.nameCs
+              : undefined)
+            ?? resolvedSubitemId
+            ?? 'Neznámá';
+          return {
+            id: `scenario-d${dayIndex}-m${mi}-i${ii}`,
+            name: resolvedName,
+            categoryId: resolvedCategoryId,
+            subitemId: resolvedSubitemId,
+            amount: AMOUNT_SIZES.includes(item.amount as typeof AMOUNT_SIZES[number]) ? item.amount : 'portion',
+          };
+        }) : [],
         savedAt: m.savedAt ?? '12:00',
       });
     });
@@ -65,8 +77,8 @@ function processDayEntry(
 
   if (entry.evaluation) {
     const ev = entry.evaluation;
-    const allergenSlug = ev.allergen;
-    const phaseId = phaseIdForDate(schedule, date, allergenSlug);
+    const allergenId = ev.allergenId;
+    const phaseId = phaseIdForDate(schedule, date, allergenId);
     evaluation = {
       phaseId,
       phaseType: ev.type === 'allergen-test' ? 'allergen-test' : 'skin-status',
@@ -74,14 +86,14 @@ function processDayEntry(
       notes: ev.notes,
       date,
     };
-    if (allergenSlug) evaluation.allergenSlug = allergenSlug;
+    if (allergenId) evaluation.allergenId = allergenId;
 
-    if (ev.type === 'allergen-test' && allergenSlug &&
+    if (ev.type === 'allergen-test' && allergenId &&
       (ev.outcome === 'clear-reaction' || ev.outcome === 'severe-reaction')) {
       const restDays = ev.outcome === 'severe-reaction' ? 2 : 1;
       mutateSchedule = (s) => {
         let mutated = insertRestDays(s, phaseId, restDays);
-        mutated = addTrainingPhase(mutated, allergenSlug, phaseId);
+        mutated = addTrainingPhase(mutated, allergenId, phaseId);
         return mutated;
       };
     }

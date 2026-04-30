@@ -1,16 +1,16 @@
 <script lang="ts">
   import type { DailyAssessment } from '$lib/domain/models';
-  import { getCategoryBySlug } from '$lib/data/categories';
+  import { getCategoryById } from '$lib/data/categories';
 
   let {
     date,
     assessment = undefined,
-    reintroductionAllergenSlug = null,
+    reintroductionAllergenId = null,
     onSave,
   }: {
     date: string;
     assessment?: DailyAssessment | undefined;
-    reintroductionAllergenSlug?: string | null;
+    reintroductionAllergenId?: string | null;
     onSave: (a: DailyAssessment) => void;
   } = $props();
 
@@ -28,7 +28,7 @@
   let photoTaken = $state(assessment?.photoTaken ?? false);
   let saved = $state(!!assessment);
 
-  const allergenCat = $derived(reintroductionAllergenSlug ? getCategoryBySlug(reintroductionAllergenSlug) : null);
+  const allergenCat = $derived(reintroductionAllergenId ? getCategoryById(reintroductionAllergenId) : null);
 
   function save() {
     if (!selectedStatus) return;

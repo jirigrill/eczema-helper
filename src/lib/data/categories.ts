@@ -2,76 +2,76 @@ import type { Category } from '$lib/domain/models';
 
 // ── Food categories (mirrors DB seed data) ────────────────────
 export const CATEGORIES: Category[] = [
-  { slug: 'dairy', nameCs: 'Mléčné výrobky', icon: '🥛', subItems: [
-    { id: 'milk', categorySlug: 'dairy', nameCs: 'Kravské mléko' },
-    { id: 'butter', categorySlug: 'dairy', nameCs: 'Máslo' },
-    { id: 'cheese', categorySlug: 'dairy', nameCs: 'Sýr' },
-    { id: 'yogurt', categorySlug: 'dairy', nameCs: 'Jogurt' },
-    { id: 'cream', categorySlug: 'dairy', nameCs: 'Smetana' },
-    { id: 'cottage', categorySlug: 'dairy', nameCs: 'Tvaroh' },
+  { categoryId: 'dairy', nameCs: 'Mléčné výrobky', icon: '🥛', subItems: [
+    { subitemId: 'dairy:milk', categoryId: 'dairy', nameCs: 'Kravské mléko' },
+    { subitemId: 'dairy:butter', categoryId: 'dairy', nameCs: 'Máslo' },
+    { subitemId: 'dairy:cheese', categoryId: 'dairy', nameCs: 'Sýr' },
+    { subitemId: 'dairy:yogurt', categoryId: 'dairy', nameCs: 'Jogurt' },
+    { subitemId: 'dairy:cream', categoryId: 'dairy', nameCs: 'Smetana' },
+    { subitemId: 'dairy:cottage', categoryId: 'dairy', nameCs: 'Tvaroh' },
   ]},
-  { slug: 'eggs', nameCs: 'Vejce', icon: '🥚', subItems: [
-    { id: 'egg-white', categorySlug: 'eggs', nameCs: 'Bílek' },
-    { id: 'egg-yolk', categorySlug: 'eggs', nameCs: 'Žloutek' },
+  { categoryId: 'eggs', nameCs: 'Vejce', icon: '🥚', subItems: [
+    { subitemId: 'eggs:egg-white', categoryId: 'eggs', nameCs: 'Bílek' },
+    { subitemId: 'eggs:egg-yolk', categoryId: 'eggs', nameCs: 'Žloutek' },
   ]},
-  { slug: 'wheat', nameCs: 'Pšenice / lepek', icon: '🌾', subItems: [
-    { id: 'bread', categorySlug: 'wheat', nameCs: 'Chléb / rohlík' },
-    { id: 'pasta', categorySlug: 'wheat', nameCs: 'Těstoviny' },
-    { id: 'flour', categorySlug: 'wheat', nameCs: 'Mouka' },
-    { id: 'gluten', categorySlug: 'wheat', nameCs: 'Lepek (gluten)' },
+  { categoryId: 'wheat', nameCs: 'Pšenice / lepek', icon: '🌾', subItems: [
+    { subitemId: 'wheat:bread', categoryId: 'wheat', nameCs: 'Chléb / rohlík' },
+    { subitemId: 'wheat:pasta', categoryId: 'wheat', nameCs: 'Těstoviny' },
+    { subitemId: 'wheat:flour', categoryId: 'wheat', nameCs: 'Mouka' },
+    { subitemId: 'wheat:gluten', categoryId: 'wheat', nameCs: 'Lepek (gluten)' },
   ]},
-  { slug: 'soy', nameCs: 'Sója', icon: '🫘', subItems: [
-    { id: 'soy-milk', categorySlug: 'soy', nameCs: 'Sójové mléko' },
-    { id: 'tofu', categorySlug: 'soy', nameCs: 'Tofu' },
-    { id: 'soy-sauce', categorySlug: 'soy', nameCs: 'Sójová omáčka' },
-    { id: 'soy-lecithin', categorySlug: 'soy', nameCs: 'Sójový lecitin' },
+  { categoryId: 'soy', nameCs: 'Sója', icon: '🫘', subItems: [
+    { subitemId: 'soy:soy-milk', categoryId: 'soy', nameCs: 'Sójové mléko' },
+    { subitemId: 'soy:tofu', categoryId: 'soy', nameCs: 'Tofu' },
+    { subitemId: 'soy:soy-sauce', categoryId: 'soy', nameCs: 'Sójová omáčka' },
+    { subitemId: 'soy:soy-lecithin', categoryId: 'soy', nameCs: 'Sójový lecitin' },
   ]},
-  { slug: 'nuts', nameCs: 'Ořechy', icon: '🥜', subItems: [
-    { id: 'peanuts', categorySlug: 'nuts', nameCs: 'Arašídy' },
-    { id: 'walnuts', categorySlug: 'nuts', nameCs: 'Vlašské ořechy' },
-    { id: 'hazelnuts', categorySlug: 'nuts', nameCs: 'Lískové ořechy' },
-    { id: 'almonds', categorySlug: 'nuts', nameCs: 'Mandle' },
-    { id: 'cashews', categorySlug: 'nuts', nameCs: 'Kešu' },
+  { categoryId: 'nuts', nameCs: 'Ořechy', icon: '🥜', subItems: [
+    { subitemId: 'nuts:peanuts', categoryId: 'nuts', nameCs: 'Arašídy' },
+    { subitemId: 'nuts:walnuts', categoryId: 'nuts', nameCs: 'Vlašské ořechy' },
+    { subitemId: 'nuts:hazelnuts', categoryId: 'nuts', nameCs: 'Lískové ořechy' },
+    { subitemId: 'nuts:almonds', categoryId: 'nuts', nameCs: 'Mandle' },
+    { subitemId: 'nuts:cashews', categoryId: 'nuts', nameCs: 'Kešu' },
   ]},
-  { slug: 'fish', nameCs: 'Ryby', icon: '🐟', subItems: [
-    { id: 'freshwater-fish', categorySlug: 'fish', nameCs: 'Sladkovodní ryby' },
-    { id: 'saltwater-fish', categorySlug: 'fish', nameCs: 'Mořské ryby' },
-    { id: 'fish-oil', categorySlug: 'fish', nameCs: 'Rybí tuk' },
+  { categoryId: 'fish', nameCs: 'Ryby', icon: '🐟', subItems: [
+    { subitemId: 'fish:freshwater-fish', categoryId: 'fish', nameCs: 'Sladkovodní ryby' },
+    { subitemId: 'fish:saltwater-fish', categoryId: 'fish', nameCs: 'Mořské ryby' },
+    { subitemId: 'fish:fish-oil', categoryId: 'fish', nameCs: 'Rybí tuk' },
   ]},
-  { slug: 'shellfish', nameCs: 'Korýši a měkkýši', icon: '🦐', subItems: [
-    { id: 'shrimp', categorySlug: 'shellfish', nameCs: 'Krevety' },
-    { id: 'crab', categorySlug: 'shellfish', nameCs: 'Krab' },
-    { id: 'mussels', categorySlug: 'shellfish', nameCs: 'Mušle' },
+  { categoryId: 'shellfish', nameCs: 'Korýši a měkkýši', icon: '🦐', subItems: [
+    { subitemId: 'shellfish:shrimp', categoryId: 'shellfish', nameCs: 'Krevety' },
+    { subitemId: 'shellfish:crab', categoryId: 'shellfish', nameCs: 'Krab' },
+    { subitemId: 'shellfish:mussels', categoryId: 'shellfish', nameCs: 'Mušle' },
   ]},
-  { slug: 'citrus', nameCs: 'Citrusy', icon: '🍋', subItems: [
-    { id: 'oranges', categorySlug: 'citrus', nameCs: 'Pomeranče' },
-    { id: 'lemons', categorySlug: 'citrus', nameCs: 'Citrony' },
-    { id: 'grapefruit', categorySlug: 'citrus', nameCs: 'Grapefruit' },
-    { id: 'mandarins', categorySlug: 'citrus', nameCs: 'Mandarinky' },
+  { categoryId: 'citrus', nameCs: 'Citrusy', icon: '🍋', subItems: [
+    { subitemId: 'citrus:oranges', categoryId: 'citrus', nameCs: 'Pomeranče' },
+    { subitemId: 'citrus:lemons', categoryId: 'citrus', nameCs: 'Citrony' },
+    { subitemId: 'citrus:grapefruit', categoryId: 'citrus', nameCs: 'Grapefruit' },
+    { subitemId: 'citrus:mandarins', categoryId: 'citrus', nameCs: 'Mandarinky' },
   ]},
-  { slug: 'chocolate', nameCs: 'Čokoláda / kakao', icon: '🍫', subItems: [
-    { id: 'dark-choc', categorySlug: 'chocolate', nameCs: 'Hořká čokoláda' },
-    { id: 'milk-choc', categorySlug: 'chocolate', nameCs: 'Mléčná čokoláda' },
-    { id: 'cocoa', categorySlug: 'chocolate', nameCs: 'Kakao' },
+  { categoryId: 'chocolate', nameCs: 'Čokoláda / kakao', icon: '🍫', subItems: [
+    { subitemId: 'chocolate:dark-choc', categoryId: 'chocolate', nameCs: 'Hořká čokoláda' },
+    { subitemId: 'chocolate:milk-choc', categoryId: 'chocolate', nameCs: 'Mléčná čokoláda' },
+    { subitemId: 'chocolate:cocoa', categoryId: 'chocolate', nameCs: 'Kakao' },
   ]},
-  { slug: 'tomatoes', nameCs: 'Rajčata', icon: '🍅', subItems: [
-    { id: 'fresh-tomatoes', categorySlug: 'tomatoes', nameCs: 'Čerstvá rajčata' },
-    { id: 'tomato-sauce', categorySlug: 'tomatoes', nameCs: 'Rajčatová omáčka' },
-    { id: 'ketchup', categorySlug: 'tomatoes', nameCs: 'Kečup' },
+  { categoryId: 'tomatoes', nameCs: 'Rajčata', icon: '🍅', subItems: [
+    { subitemId: 'tomatoes:fresh-tomatoes', categoryId: 'tomatoes', nameCs: 'Čerstvá rajčata' },
+    { subitemId: 'tomatoes:tomato-sauce', categoryId: 'tomatoes', nameCs: 'Rajčatová omáčka' },
+    { subitemId: 'tomatoes:ketchup', categoryId: 'tomatoes', nameCs: 'Kečup' },
   ]},
-  { slug: 'strawberries', nameCs: 'Jahody', icon: '🍓', subItems: [
-    { id: 'fresh-strawberries', categorySlug: 'strawberries', nameCs: 'Čerstvé jahody' },
-    { id: 'strawberry-jam', categorySlug: 'strawberries', nameCs: 'Jahodový džem' },
+  { categoryId: 'strawberries', nameCs: 'Jahody', icon: '🍓', subItems: [
+    { subitemId: 'strawberries:fresh-strawberries', categoryId: 'strawberries', nameCs: 'Čerstvé jahody' },
+    { subitemId: 'strawberries:strawberry-jam', categoryId: 'strawberries', nameCs: 'Jahodový džem' },
   ]},
-  { slug: 'corn', nameCs: 'Kukuřice', icon: '🌽', subItems: [
-    { id: 'corn-flour', categorySlug: 'corn', nameCs: 'Kukuřičná mouka' },
-    { id: 'sweet-corn', categorySlug: 'corn', nameCs: 'Kukuřice (sladká)' },
+  { categoryId: 'corn', nameCs: 'Kukuřice', icon: '🌽', subItems: [
+    { subitemId: 'corn:corn-flour', categoryId: 'corn', nameCs: 'Kukuřičná mouka' },
+    { subitemId: 'corn:sweet-corn', categoryId: 'corn', nameCs: 'Kukuřice (sladká)' },
   ]},
-  { slug: 'sesame', nameCs: 'Sezamové výrobky', icon: '🌰', subItems: [
-    { id: 'sesame-seeds', categorySlug: 'sesame', nameCs: 'Sezamová semínka' },
-    { id: 'tahini', categorySlug: 'sesame', nameCs: 'Tahini' },
+  { categoryId: 'sesame', nameCs: 'Sezamové výrobky', icon: '🌰', subItems: [
+    { subitemId: 'sesame:sesame-seeds', categoryId: 'sesame', nameCs: 'Sezamová semínka' },
+    { subitemId: 'sesame:tahini', categoryId: 'sesame', nameCs: 'Tahini' },
   ]},
-  { slug: 'other', nameCs: 'Ostatní', icon: '🍽️', subItems: [] },
+  { categoryId: 'other', nameCs: 'Ostatní', icon: '🍽️', subItems: [] },
 ];
 
 // Standard protocol — allergens eliminated and reintroduced in this order (least → most common trigger).
@@ -79,6 +79,6 @@ export const DEFAULT_TESTED_ALLERGENS = ['soy', 'wheat', 'eggs', 'dairy'];
 
 // ── Helpers ───────────────────────────────────────────────────
 
-export function getCategoryBySlug(slug: string): Category | undefined {
-  return CATEGORIES.find(c => c.slug === slug);
+export function getCategoryById(id: string): Category | undefined {
+  return CATEGORIES.find(c => c.categoryId === id);
 }
