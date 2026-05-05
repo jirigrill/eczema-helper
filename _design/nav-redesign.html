@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Atopic Helper — V1.7 (Týden + integrated insights)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    primary: '#8B4557', 'primary-light': '#C4A4AB',
+    surface: '#FAF8F8', 'surface-dark': '#EDE8E9',
+    text: '#3D2B2F', 'text-muted': '#7A6468',
+    danger: '#B84444', success: '#5A8B5A', warning: '#C9A227',
+    'sev-1':'#5A8B5A','sev-2':'#8B9B5A','sev-3':'#C9A227','sev-4':'#C97027','sev-5':'#B84444',
+  }}}}
+</script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; background: #E8E4E5; color: #3D2B2F; }
+  .phone { width: 320px; height: 680px; background: #000; border-radius: 44px; padding: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.15); position: relative; flex-shrink: 0; }
+  .phone-screen { width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden; position: relative; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 32px; background: #000; border-radius: 20px; z-index: 50; }
+  .status-bar { position: absolute; top: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 14px; font-weight: 600; color: #000; z-index: 40; }
+  .status-bar .time { padding-top: 14px; }
+  .status-bar .icons { padding-top: 14px; display: flex; gap: 5px; align-items: center; }
+  .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; background: #000; border-radius: 2px; opacity: 0.85; z-index: 60; }
+  .screen-content { position: absolute; top: 52px; left: 0; right: 0; bottom: 0; overflow-y: auto; }
+  .screen-content::-webkit-scrollbar { display: none; }
+  .phone::after { content: ""; position: absolute; inset: 10px; border-radius: 34px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); pointer-events: none; }
+  .variant-label { font-family: ui-monospace, SFMono-Regular, "SF Mono", monospace; letter-spacing: 0.04em; }
+  .frame-tag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #7A6468; }
+  .insight-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 99px; }
+  .photo-thumb { background: linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4)); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="max-w-[1500px] mx-auto px-10 pt-12 pb-8">
+  <div class="text-xs uppercase tracking-widest text-text-muted mb-3 variant-label">_design / nav-v1.7</div>
+  <h1 class="text-3xl font-semibold text-text mb-3">V1.7 — Postup → Týden, fotky jako důkaz</h1>
+  <p class="text-text-muted max-w-2xl leading-relaxed">
+    Záložka přejmenována na <strong>Týden</strong> (časově ohraničené, krásně se páruje s „Dnes"). Program demotován na tenký kontextový proužek v hlavičce. Fotky vstupují jako <strong>důkaz uvnitř insightů</strong> (mini-thumbnail vedle případů), galerie zůstává jako odděšněná spodní řádka pro „prolistovat".
+  </p>
+</header>
+
+<div class="max-w-[1700px] mx-auto px-10 pb-12">
+  <div class="flex flex-wrap gap-12 items-start justify-center">
+
+    <!-- DNES -->
+    <div>
+      <div class="frame-tag mb-2">▸ DNES</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+
+        <div class="screen-content pb-24">
+          <div class="px-5 pt-3 pb-2 flex items-end justify-between">
+            <div>
+              <div class="text-[11px] uppercase tracking-wide text-text-muted">Pondělí · 5. května</div>
+              <h2 class="text-2xl font-bold text-text">Dnes</h2>
+            </div>
+            <button class="text-text-muted p-1.5 -mr-1.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"/></svg>
+            </button>
+          </div>
+
+          <!-- Week strip -->
+          <div class="px-3 pb-3">
+            <div class="grid grid-cols-7 gap-1">
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-sev-4"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-sev-4"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-sev-3"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-sev-2"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full bg-sev-2"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-sev-4"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-white"></span></button>
+            </div>
+          </div>
+
+          <!-- Program micro bar -->
+          <button class="block w-full px-5 pb-3 text-left">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] text-text-muted">Eliminace mléčných · Den 12 / 28</span>
+              <span class="text-[11px] text-text-muted">›</span>
+            </div>
+            <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
+              <div class="h-full bg-primary rounded-full" style="width:43%"></div>
+            </div>
+          </button>
+
+          <!-- Eczema -->
+          <div class="mx-5 bg-white rounded-2xl border border-surface-dark p-4 mb-3">
+            <div class="text-xs text-text-muted uppercase tracking-wide mb-2">Stav ekzému</div>
+            <div class="flex items-center gap-3">
+              <span class="w-3 h-3 rounded-full bg-sev-3 shrink-0"></span>
+              <div class="flex-1">
+                <div class="text-base font-semibold text-text">Podrážděný</div>
+                <div class="text-[11px] text-text-muted">červená místa na lících, svědí</div>
+              </div>
+              <button class="text-[11px] text-text-muted px-2 py-1">upravit</button>
+            </div>
+          </div>
+
+          <!-- Meals -->
+          <div class="px-5 mb-3">
+            <div class="text-xs text-text-muted uppercase tracking-wide mb-2">Dnešní jídla</div>
+            <div class="bg-white rounded-2xl border border-surface-dark divide-y divide-surface-dark">
+              <div class="p-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-xs font-semibold">S</div><div class="flex-1"><div class="text-sm font-medium text-text">Snídaně — ovesná kaše</div><div class="text-xs text-text-muted">7:30 · bez mléka</div></div></div>
+              <div class="p-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold">O</div><div class="flex-1"><div class="text-sm font-medium text-text">Oběd — kuře, rýže</div><div class="text-xs text-text-muted">12:15</div></div></div>
+              <div class="p-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold">SV</div><div class="flex-1"><div class="text-sm font-medium text-text">Svačina — banán</div><div class="text-xs text-text-muted">15:40</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom nav: Dnes | FAB | Týden -->
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5">
+          <div class="bg-white border-t border-surface-dark pt-2 grid grid-cols-3 items-end">
+            <div class="flex flex-col items-center gap-0.5 text-primary">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+              <span class="text-[10px] font-semibold">Dnes</span>
+            </div>
+            <div class="flex justify-center"><button class="-mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light">+</button></div>
+            <div class="flex flex-col items-center gap-0.5 text-text-muted">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <span class="text-[10px]">Týden</span>
+            </div>
+          </div>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">
+        Bottom nav: <em>Dnes / Týden</em> — dvě časová slova v páru. Ikona pro Týden je kalendář.
+      </div>
+    </div>
+
+    <!-- DNES — empty state (nothing filled yet) -->
+    <div>
+      <div class="frame-tag mb-2">▸ DNES · prázdný stav (ráno, nic zatím)</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">7:12</span><span class="icons">●●● ◐</span></div>
+
+        <div class="screen-content pb-24">
+          <div class="px-5 pt-3 pb-2 flex items-end justify-between">
+            <div>
+              <div class="text-[11px] uppercase tracking-wide text-text-muted">Pondělí · 5. května</div>
+              <h2 class="text-2xl font-bold text-text">Dnes</h2>
+            </div>
+            <button class="text-text-muted p-1.5 -mr-1.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"/></svg>
+            </button>
+          </div>
+
+          <!-- Week strip — today's dot is hollow (not filled yet) -->
+          <div class="px-3 pb-3">
+            <div class="grid grid-cols-7 gap-1">
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-sev-4"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-sev-4"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-sev-3"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-sev-2"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full bg-sev-2"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-sev-4"></span></button>
+              <button class="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
+            </div>
+          </div>
+
+          <!-- Program micro bar -->
+          <button class="block w-full px-5 pb-3 text-left">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] text-text-muted">Eliminace mléčných · Den 12 / 28</span>
+              <span class="text-[11px] text-text-muted">›</span>
+            </div>
+            <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
+              <div class="h-full bg-primary rounded-full" style="width:43%"></div>
+            </div>
+          </button>
+
+          <!-- Eczema EMPTY state -->
+          <button class="mx-5 mb-3 block w-[calc(100%-2.5rem)] bg-primary/5 border-2 border-dashed border-primary/30 rounded-2xl p-4 text-left active:bg-primary/10">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs text-primary uppercase tracking-wide font-semibold">Stav ekzému</div>
+              <span class="text-[11px] text-primary">›</span>
+            </div>
+            <div class="text-sm text-primary font-medium">Klepni a zapiš dnešní stav</div>
+            <div class="text-[11px] text-text-muted mt-1">Klidný · mírný · podrážděný · zhoršený · akutní</div>
+          </button>
+
+          <!-- Meals EMPTY state -->
+          <div class="mx-5 mb-3 bg-white border-2 border-dashed border-surface-dark rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs text-text-muted uppercase tracking-wide">Dnešní jídla</div>
+              <span class="text-[11px] text-text-muted">0 záznamů</span>
+            </div>
+            <div class="text-sm text-text-muted">Zatím nic — první záznam přidej tlačítkem dole.</div>
+          </div>
+
+          <!-- subtle hint about FAB -->
+          <div class="px-5 mt-2 mb-3 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" style="transform:rotate(180deg);transform-origin:center"/></svg>
+            <span>Klepni na <strong>+</strong> a vyber: foto · jídlo · stav</span>
+          </div>
+        </div>
+
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5">
+          <div class="bg-white border-t border-surface-dark pt-2 grid grid-cols-3 items-end">
+            <div class="flex flex-col items-center gap-0.5 text-primary">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+              <span class="text-[10px] font-semibold">Dnes</span>
+            </div>
+            <div class="flex justify-center">
+              <button class="-mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20">+</button>
+            </div>
+            <div class="flex flex-col items-center gap-0.5 text-text-muted">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <span class="text-[10px]">Týden</span>
+            </div>
+          </div>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">
+        Ráno, nic ještě nezapsáno: dnešní tečka v stripu je dutý kroužek (vs vyplněná barva u předchozích dnů). Karta ekzému i karta jídel mají dashed border + pozvánku. Subtle hint pod kartami ukazuje na FAB. Sám FAB má jemný primary ring jako „začni tady".
+      </div>
+    </div>
+
+    <!-- TÝDEN (renamed Postup) -->
+    <div>
+      <div class="frame-tag mb-2">▸ TÝDEN</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+
+        <div class="screen-content pb-20">
+          <!-- Header -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="text-xs text-text-muted">29. 4. – 5. 5. · Eliška, 4 měsíce</div>
+            <h2 class="text-2xl font-bold text-text">Týden</h2>
+          </div>
+
+          <!-- Program as thin context strip -->
+          <button class="block w-full px-5 pb-3 text-left">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] text-text-muted">Eliminace mléčných · Den 12 / 28 · do 22. 5.</span>
+              <span class="text-[11px] text-text-muted">›</span>
+            </div>
+            <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
+              <div class="h-full bg-primary rounded-full" style="width:43%"></div>
+            </div>
+          </button>
+
+          <!-- Týden ve zkratce -->
+          <div class="mx-5 mb-4 bg-white rounded-2xl border border-surface-dark p-4">
+            <div class="text-xs text-text-muted uppercase tracking-wide mb-2">Týden ve zkratce</div>
+            <div class="text-base text-text leading-snug mb-3">
+              Postupné zlepšování. Z <strong class="text-sev-4">zhoršeného</strong> na začátku týdne k <strong class="text-sev-2">mírnému</strong> ke konci.
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="text-[11px] bg-success/10 text-success px-2 py-1 rounded-full">3 klidné dny</span>
+              <span class="text-[11px] bg-warning/10 text-warning px-2 py-1 rounded-full">2 zhoršené</span>
+              <span class="text-[11px] bg-surface text-text-muted px-2 py-1 rounded-full">21 jídel</span>
+              <span class="text-[11px] bg-surface text-text-muted px-2 py-1 rounded-full">6 fotek</span>
+            </div>
+          </div>
+
+          <!-- SOUVISLOSTI -->
+          <div class="px-5 mb-3 flex items-center justify-between">
+            <div class="text-xs text-text-muted uppercase tracking-wide">Souvislosti</div>
+            <span class="text-[10px] text-text-muted">3 zjištění</span>
+          </div>
+
+          <!-- INSIGHT 1 · TRIGGER with PHOTO EVIDENCE -->
+          <article class="mx-5 mb-3 bg-white rounded-2xl border border-surface-dark overflow-hidden">
+            <div class="bg-danger/8 px-4 py-3 border-b border-surface-dark">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="insight-tag bg-danger/15 text-danger">⚠ spouštěč</span>
+                <span class="text-[10px] text-text-muted">silný vzorec</span>
+              </div>
+              <div class="text-base font-semibold text-text leading-snug">Mléčné výrobky → zhoršení</div>
+            </div>
+            <div class="p-4">
+              <p class="text-sm text-text leading-relaxed mb-3">
+                Po dnech s mléčným byl stav <strong>zhoršený</strong> ve <strong>3 ze 4</strong> případů. Reakce do <strong>24 hodin</strong>.
+              </p>
+              <!-- evidence with embedded photo thumbs -->
+              <div class="space-y-1.5 mb-3">
+                <div class="flex items-center gap-2 bg-surface rounded-lg px-2.5 py-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-danger shrink-0"></span>
+                  <span class="text-[11px] text-text font-medium w-10 shrink-0">22. 4.</span>
+                  <span class="text-[11px] text-text-muted flex-1 truncate">tvaroh, jogurt</span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-sev-5 shrink-0"></span>
+                  <div class="w-7 h-7 rounded-md photo-thumb shrink-0 ring-1 ring-surface-dark"></div>
+                </div>
+                <div class="flex items-center gap-2 bg-surface rounded-lg px-2.5 py-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-danger shrink-0"></span>
+                  <span class="text-[11px] text-text font-medium w-10 shrink-0">28. 4.</span>
+                  <span class="text-[11px] text-text-muted flex-1 truncate">latté</span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-sev-4 shrink-0"></span>
+                  <div class="w-7 h-7 rounded-md photo-thumb shrink-0 ring-1 ring-surface-dark"></div>
+                </div>
+                <div class="flex items-center gap-2 bg-surface rounded-lg px-2.5 py-1.5 opacity-60">
+                  <span class="w-1.5 h-1.5 rounded-full bg-text-muted shrink-0"></span>
+                  <span class="text-[11px] text-text font-medium w-10 shrink-0">3. 5.</span>
+                  <span class="text-[11px] text-text-muted flex-1 truncate">smetana v kávě</span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-sev-2 shrink-0"></span>
+                  <div class="w-7 h-7 rounded-md photo-thumb shrink-0 ring-1 ring-surface-dark"></div>
+                </div>
+                <div class="flex items-center gap-2 bg-surface rounded-lg px-2.5 py-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-danger shrink-0"></span>
+                  <span class="text-[11px] text-text font-medium w-10 shrink-0">4. 5.</span>
+                  <span class="text-[11px] text-text-muted flex-1 truncate">sýr, máslo</span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-sev-4 shrink-0"></span>
+                  <div class="w-7 h-7 rounded-md photo-thumb shrink-0 ring-1 ring-surface-dark"></div>
+                </div>
+              </div>
+              <div class="text-[11px] text-text-muted leading-relaxed">
+                Výjimka <strong class="text-text">3. 5.</strong> — malé množství, stav nezhoršen.
+              </div>
+            </div>
+          </article>
+
+          <!-- INSIGHT 2 · POSITIVE STREAK with PHOTOS as continuity -->
+          <article class="mx-5 mb-3 bg-white rounded-2xl border border-surface-dark overflow-hidden">
+            <div class="bg-success/8 px-4 py-3 border-b border-surface-dark">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="insight-tag bg-success/15 text-success">✓ pokrok</span>
+                <span class="text-[10px] text-text-muted">nejdelší série</span>
+              </div>
+              <div class="text-base font-semibold text-text leading-snug">4 dny v mírném stavu po sobě</div>
+            </div>
+            <div class="p-4">
+              <p class="text-sm text-text leading-relaxed mb-3">
+                Mezi <strong>1.–4. května</strong> stav nepřesáhl mírnou úroveň — nejdelší klidná série za poslední měsíc.
+              </p>
+              <!-- 4 photos as visual proof of continuity -->
+              <div class="grid grid-cols-4 gap-1.5 mb-2">
+                <div class="aspect-square rounded-lg photo-thumb relative">
+                  <span class="absolute bottom-1 left-1 text-[9px] text-white font-semibold bg-black/40 rounded px-1">1.</span>
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-sev-2 ring-1 ring-white"></span>
+                </div>
+                <div class="aspect-square rounded-lg photo-thumb relative">
+                  <span class="absolute bottom-1 left-1 text-[9px] text-white font-semibold bg-black/40 rounded px-1">2.</span>
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-sev-2 ring-1 ring-white"></span>
+                </div>
+                <div class="aspect-square rounded-lg photo-thumb relative">
+                  <span class="absolute bottom-1 left-1 text-[9px] text-white font-semibold bg-black/40 rounded px-1">3.</span>
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-sev-2 ring-1 ring-white"></span>
+                </div>
+                <div class="aspect-square rounded-lg photo-thumb relative">
+                  <span class="absolute bottom-1 left-1 text-[9px] text-white font-semibold bg-black/40 rounded px-1">4.</span>
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-sev-2 ring-1 ring-white"></span>
+                </div>
+              </div>
+              <div class="text-[11px] text-text-muted leading-relaxed">
+                Společný jmenovatel: jídelníček zcela bezmléčný.
+              </div>
+            </div>
+          </article>
+
+          <!-- INSIGHT 3 · TIME-OF-DAY (no photo evidence — pattern is temporal) -->
+          <article class="mx-5 mb-3 bg-white rounded-2xl border border-surface-dark overflow-hidden">
+            <div class="bg-warning/10 px-4 py-3 border-b border-surface-dark">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="insight-tag bg-warning/20 text-warning">↻ vzorec</span>
+                <span class="text-[10px] text-text-muted">denní rytmus</span>
+              </div>
+              <div class="text-base font-semibold text-text leading-snug">Ráno bývá horší než večer</div>
+            </div>
+            <div class="p-4">
+              <p class="text-sm text-text leading-relaxed mb-3">
+                Ve <strong>4 ze 7</strong> dnů byl stav po probuzení o stupeň horší než předchozí večer.
+              </p>
+              <div class="grid grid-cols-7 gap-1.5">
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">Út</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-4"></span>
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">St</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-4"></span>
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">Čt</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">Pá</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                    <span class="block w-full h-2 rounded-sm bg-sev-2"></span>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">So</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-2"></span>
+                    <span class="block w-full h-2 rounded-sm bg-sev-2"></span>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">Ne</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-4"></span>
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-text-muted mb-1">Po</div>
+                  <div class="space-y-1">
+                    <span class="block w-full h-2 rounded-sm bg-sev-3"></span>
+                    <span class="block w-full h-2 rounded-sm bg-surface-dark"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 text-[10px] text-text-muted mt-2">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-sev-3"></span> ráno</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-sev-2"></span> večer</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Photo gallery — slim, just for browsing -->
+          <div class="px-5 mb-3 mt-2">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs text-text-muted uppercase tracking-wide">Všechny fotky tohoto týdne</div>
+              <button class="text-[11px] text-primary font-medium">42 ›</button>
+            </div>
+            <div class="flex gap-1.5 overflow-x-auto" style="scrollbar-width:none">
+              <div class="w-14 h-14 shrink-0 rounded-lg photo-thumb"></div>
+              <div class="w-14 h-14 shrink-0 rounded-lg photo-thumb"></div>
+              <div class="w-14 h-14 shrink-0 rounded-lg photo-thumb"></div>
+              <div class="w-14 h-14 shrink-0 rounded-lg photo-thumb"></div>
+              <div class="w-14 h-14 shrink-0 rounded-lg photo-thumb"></div>
+              <div class="w-14 h-14 shrink-0 rounded-lg photo-thumb"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-col nav, no FAB -->
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5">
+          <div class="bg-white border-t border-surface-dark pt-2 grid grid-cols-2">
+            <button class="flex flex-col items-center gap-0.5 text-text-muted py-1">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+              <span class="text-[10px]">Dnes</span>
+            </button>
+            <button class="flex flex-col items-center gap-0.5 text-primary py-1">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <span class="text-[10px] font-semibold">Týden</span>
+            </button>
+          </div>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">
+        Hierarchie: program (kontext) → shrnutí týdne (narrative) → 3 insighty s vlastní vizualizací a fotkami uvnitř → galerie jako horizontální strip.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Reasoning -->
+<div class="max-w-[1100px] mx-auto px-10 pb-20 space-y-8">
+  <div>
+    <h2 class="text-xl font-semibold text-text mb-4">Proč „Týden" místo „Postup"</h2>
+    <div class="bg-white rounded-2xl border border-surface-dark p-5 text-sm text-text leading-relaxed space-y-3">
+      <p>„Postup" implikuje pohyb vpřed, cestu, milníky — to dává smysl, když stránka obsahovala graf vývoje. Po odebrání grafu je obsah <em>retrospektivní</em>: shrnutí týdne, insighty z minulosti, fotky z minulých dnů. Slovo „Postup" se neshoduje s tím, co stránka skutečně dělá.</p>
+      <p><strong>„Týden"</strong> je časově ohraničené, krátké, přesné a tvoří dvojici s „Dnes" — uživatelka vidí v bottom nav dvě časová slova vedle sebe (<em>teď</em> vs <em>nedávno</em>) místo jednoho akčního a jednoho abstraktního.</p>
+      <p>Pokud se v budoucnu rozsah období roztáhne (14 / 30 / vše), přejmenuje se na <strong>„Souhrn"</strong> nebo „Pohled". Pro 7-denní fixní rozsah je „Týden" výstižnější.</p>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-xl font-semibold text-text mb-4">Jak Program a fotky zapadají</h2>
+    <div class="bg-white rounded-2xl border border-surface-dark divide-y divide-surface-dark text-sm text-text">
+      <div class="p-4">
+        <div class="font-semibold mb-1">Program → kontextový proužek v hlavičce</div>
+        <div class="text-text-muted leading-relaxed">Program byl předtím karta, která soutěžila s insighty o pozornost. Teď je tenký řádek + thin progress bar nahoře — kontext pro insighty, ne další obsah. Ten samý micro proužek je i na Dnes.</div>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold mb-1">Fotky jako důkaz uvnitř insightů</div>
+        <div class="text-text-muted leading-relaxed">Pro <em>spouštěč</em> insight: 24×24 thumb na konci každého case row — uživatelka vidí <em>jak vypadala kůže ten den</em> hned vedle data a jídla. Pro <em>pokrok</em> insight: 4 fotky 1.–4. 5. v gridu pod textem — vizuální důkaz kontinuity.</div>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold mb-1">Fotky jako galerie → spodní strip</div>
+        <div class="text-text-muted leading-relaxed">Mimo insighty zůstává „Všechny fotky tohoto týdne" jako horizontální scroll-strip s 56×56 thumby. Sekundární funkce — když si chce uživatelka jen prolistovat, klepne sem. Galerie se stahuje z hrdiny stránky na výplň.</div>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold mb-1">Kdy fotka v insightu je</div>
+        <div class="text-text-muted leading-relaxed">Pravidlo: fotka v insightu je, pokud insight tvrdí něco o <em>fyzickém stavu kůže</em> (spouštěč, pokrok, anomálie). Fotka v insightu není, pokud tvrzení je o <em>vzorci v čase / chování</em> (denní rytmus, intervaly mezi jídly) — fotka by tu byla dekorace.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
