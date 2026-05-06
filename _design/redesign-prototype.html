@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atopic Helper — Redesign (Onboarding · Dnes · Týden · Program)</title>
+<title>Atopic Helper — Prototyp (klikací)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: { colors: {
@@ -1982,5 +1982,355 @@ function RetestSetupInner({ allergenId }) {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 
+<!-- ════════════════════════════════════════════════════════════════
+     PROTOTYPE ROUTER — turns the canvas into a clickable prototype.
+     Toggle with Esc to see the full design canvas.
+     ════════════════════════════════════════════════════════════════ -->
+<style id="proto-style">
+  body.proto-mode { overflow: hidden; background: #15161A; color: #E8E4E5; }
+  body.proto-mode > *:not(#proto-shell) { display: none !important; }
+  #proto-shell { display: none; }
+  body.proto-mode #proto-shell {
+    display: grid; grid-template-columns: 280px 1fr; height: 100vh; width: 100vw;
+    position: fixed; inset: 0; z-index: 1000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  #proto-side {
+    background: #1E1F24; border-right: 1px solid #2A2B30;
+    padding: 28px 16px 16px; overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  #proto-side .eyebrow { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #6F7178; margin-bottom: 4px; padding: 0 12px; }
+  #proto-side h2 { font-size: 18px; font-weight: 800; color: #fff; margin: 0 0 22px; padding: 0 12px; }
+  .proto-section-title { font-family: ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6F7178; margin: 14px 12px 6px; }
+  .proto-list { list-style: none; padding: 0; margin: 0; }
+  .proto-list li {
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: #C8CACF; margin-bottom: 2px;
+    display: flex; gap: 10px; align-items: center;
+    transition: background .12s;
+  }
+  .proto-list li:hover { background: rgba(255,255,255,.05); color: #fff; }
+  .proto-list li.active { background: #8B4557; color: #fff; font-weight: 600; }
+  .proto-list li .num { font-family: ui-monospace, monospace; font-size: 10px; color: #6F7178; min-width: 20px; }
+  .proto-list li.active .num { color: rgba(255,255,255,.7); }
+  #proto-meta {
+    font-size: 11px; color: #8C8E94; line-height: 1.6;
+    padding: 14px 12px; border-top: 1px solid #2A2B30; margin-top: auto;
+  }
+  #proto-meta kbd {
+    background: #2A2B30; color: #C8CACF; border: 1px solid #3A3B40;
+    padding: 1px 6px; border-radius: 4px; font-size: 10px;
+    font-family: ui-monospace, monospace;
+  }
+  #proto-meta strong { color: #E8E4E5; }
+  #proto-stage {
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px; padding: 32px;
+    background: radial-gradient(ellipse at center, #21232A 0%, #15161A 70%);
+    position: relative; overflow: hidden;
+  }
+  #proto-stage-name {
+    font-family: ui-monospace, monospace; font-size: 11px;
+    letter-spacing: .12em; color: #9A9CA3; text-transform: uppercase;
+  }
+  #proto-stage-host { width: 320px; height: 680px; flex-shrink: 0; }
+  #proto-stage-host .phone, #proto-stage-host .phone-outer {
+    box-shadow: 0 40px 80px -20px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04) !important;
+  }
+  #proto-toast {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    background: rgba(42,43,48,0.95); color: #E8E4E5;
+    padding: 9px 16px; border-radius: 99px; font-size: 12px;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+    border: 1px solid #3A3B40; max-width: 320px; text-align: center;
+  }
+  #proto-toast.show { opacity: 1; }
+  #proto-controls {
+    position: absolute; top: 24px; right: 28px;
+    display: flex; gap: 6px; align-items: center;
+    font-family: ui-monospace, monospace; font-size: 11px; color: #6F7178;
+  }
+  #proto-controls .key {
+    background: #2A2B30; color: #C8CACF;
+    padding: 3px 8px; border-radius: 5px; border: 1px solid #3A3B40;
+  }
+  #proto-canvas-toggle {
+    position: absolute; top: 24px; left: 28px;
+    background: rgba(255,255,255,.06); color: #E8E4E5;
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 7px 13px; border-radius: 8px; font-size: 12px; cursor: pointer;
+    font-family: -apple-system, sans-serif;
+  }
+  #proto-canvas-toggle:hover { background: rgba(255,255,255,.12); }
+  #proto-history-back {
+    position: absolute; bottom: 32px; left: 32px;
+    background: rgba(255,255,255,.06); color: #C8CACF;
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 6px 11px; border-radius: 8px; font-size: 11px; cursor: pointer;
+    font-family: -apple-system, sans-serif;
+  }
+  #proto-history-back:hover { background: rgba(255,255,255,.12); color: #fff; }
+  #proto-history-back[disabled] { opacity: .35; cursor: default; }
+</style>
+
+<div id="proto-shell">
+  <aside id="proto-side">
+    <div class="eyebrow">Atopic Helper</div>
+    <h2>Klikací prototyp</h2>
+    <div id="proto-screens-host"></div>
+    <div id="proto-meta">
+      <strong>Klikni v telefonu</strong> — bottom nav, karty, FAB, „›".<br><br>
+      <kbd>←</kbd> <kbd>→</kbd> sousední obrazovka<br>
+      <kbd>Esc</kbd> celé designové plátno
+    </div>
+  </aside>
+  <main id="proto-stage">
+    <button id="proto-canvas-toggle" type="button">← Plátno (Esc)</button>
+    <div id="proto-controls"><span class="key">←</span><span class="key">→</span><span style="margin-left:4px">přepnout</span></div>
+    <div id="proto-stage-name"></div>
+    <div id="proto-stage-host"></div>
+    <button id="proto-history-back" type="button" disabled>‹ Zpět</button>
+    <div id="proto-toast" role="status" aria-live="polite"></div>
+  </main>
+</div>
+
+<script>
+(function () {
+  // ── Screen catalog ────────────────────────────────────────────
+  // Order matches the order in which phones appear in the canvas.
+  // Order: least-filled → most-filled. Onboarding first (entry funnel),
+  // Dnes empty before Dnes filled, Program phases in protocol order.
+  const SCREENS = [
+    { slug: 'onb-1',        label: 'Onboarding · Datum narození',  group: 'Onboarding' },
+    { slug: 'onb-2',        label: 'Onboarding · Závažnost',        group: 'Onboarding' },
+    { slug: 'onb-3',        label: 'Onboarding · Alergeny matky',   group: 'Onboarding' },
+    { slug: 'onb-3-detail', label: 'Onboarding · Mléčné · subitemy', group: 'Onboarding' },
+    { slug: 'onb-4',        label: 'Onboarding · Alergeny dítěte',  group: 'Onboarding' },
+    { slug: 'onb-5',        label: 'Onboarding · Datum startu',     group: 'Onboarding' },
+    { slug: 'onb-6',        label: 'Onboarding · Souhrn',           group: 'Onboarding' },
+    { slug: 'dnes-empty',   label: 'Dnes · prázdný (ráno)',         group: 'Hlavní' },
+    { slug: 'dnes',         label: 'Dnes · vyplněno',                group: 'Hlavní' },
+    { slug: 'tyden',        label: 'Týden',                          group: 'Hlavní' },
+    { slug: 'reset',        label: 'Program · Reset (běží)',          group: 'Program' },
+    { slug: 'eliminace',    label: 'Program · Eliminace (běží)',      group: 'Program' },
+    { slug: 'test',         label: 'Program · Test alergenu (běží)',   group: 'Program' },
+    { slug: 're-test',      label: 'Program · Re-test (běží)',         group: 'Program' },
+    { slug: 'detail-mleko', label: 'Detail · Mléko',                  group: 'Detail / akce' },
+    { slug: 'detail-soja',  label: 'Detail · Sója',                   group: 'Detail / akce' },
+    { slug: 'detail-elim',  label: 'Detail · Eliminační fáze',        group: 'Detail / akce' },
+    { slug: 'naplanovat',   label: 'Naplánovat re-test',              group: 'Detail / akce' },
+  ];
+  // Linear onboarding walk — "Další" follows this. Detail screens are off-flow.
+  const ONB_SLUGS = ['onb-1','onb-2','onb-3','onb-4','onb-5','onb-6'];
+  const ONB_ALL = ['onb-1','onb-2','onb-3','onb-3-detail','onb-4','onb-5','onb-6'];
+  const slugIndex = new Map(SCREENS.map((s, i) => [s.slug, i]));
+
+  let snapshots = [];   // [{slug, html}]
+  let currentIdx = 0;
+  let history = [];
+
+  // ── DOM helpers ───────────────────────────────────────────────
+  function $(sel, root) { return (root || document).querySelector(sel); }
+
+  function buildSidebar() {
+    const host = $('#proto-screens-host');
+    host.innerHTML = '';
+    let lastGroup = null;
+    let currentList = null;
+    SCREENS.forEach((s, i) => {
+      if (s.group !== lastGroup) {
+        const t = document.createElement('div');
+        t.className = 'proto-section-title';
+        t.textContent = s.group;
+        host.appendChild(t);
+        currentList = document.createElement('ul');
+        currentList.className = 'proto-list';
+        host.appendChild(currentList);
+        lastGroup = s.group;
+      }
+      const li = document.createElement('li');
+      li.dataset.idx = i;
+      li.innerHTML =
+        '<span class="num">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span>' + s.label + '</span>';
+      li.addEventListener('click', function () { goto(i, { pushHistory: true }); });
+      currentList.appendChild(li);
+    });
+  }
+
+  function toast(msg) {
+    const el = $('#proto-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('show'); }, 1500);
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  function render(idx) {
+    if (idx < 0 || idx >= snapshots.length) return;
+    currentIdx = idx;
+    const host = $('#proto-stage-host');
+    host.innerHTML = snapshots[idx].html;
+    $('#proto-stage-name').textContent = '▸ ' + SCREENS[idx].label;
+    document.querySelectorAll('#proto-screens-host li').forEach(function (li, i) {
+      li.classList.toggle('active', i === idx);
+    });
+    $('#proto-history-back').disabled = history.length === 0;
+    // Capture-phase delegate so we beat any inner handlers.
+    host.removeEventListener('click', intercept, true);
+    host.addEventListener('click', intercept, true);
+  }
+
+  function goto(target, opts) {
+    opts = opts || {};
+    const idx = typeof target === 'number' ? target : slugIndex.get(target);
+    if (idx == null) return;
+    if (idx !== currentIdx && opts.pushHistory !== false) history.push(currentIdx);
+    render(idx);
+  }
+
+  function goBack() {
+    if (history.length) render(history.pop());
+    else toast('Jsi na první obrazovce v historii');
+  }
+
+  // ── Click → screen mapping ────────────────────────────────────
+  function currentSlug() { return SCREENS[currentIdx] && SCREENS[currentIdx].slug; }
+  function isOnboarding() { return ONB_ALL.indexOf(currentSlug()) !== -1; }
+
+  function findTargetByText(raw) {
+    const t = raw.toLowerCase().trim();
+    if (!t) return null;
+    if (/naplánovat re-test|naplanovat re-test/.test(t)) return 'naplanovat';
+    if (/^re-test$/.test(t) || /re-test · /.test(t)) return 're-test';
+    // Eliminace rules MUST run before generic "mléko/mléčn" so that
+    // "Eliminace mléčných" on Today resolves to the elim phase, not detail-mleko.
+    if (/eliminační fáze/.test(t)) return 'detail-elim';
+    if (/^eliminace$/.test(t) || /eliminace mléčných|eliminace · den|vyluč alergeny|sleduj kůži|foto kůže/.test(t)) return 'eliminace';
+    if (/sój|^sója$/.test(t)) return 'detail-soja';
+    if (/^mléčné výrobky$|^mléko$|^mléčn|^🥛/.test(t)) return 'detail-mleko';
+    if (/^týden$/.test(t) || /^tyden$/.test(t)) return 'tyden';
+    if (/^dnes$/.test(t)) return 'dnes';
+    if (/^reset$/.test(t) || /^reset · /.test(t)) return 'reset';
+    if (/^test alergenu/.test(t) || /^test · /.test(t) || /^test$/.test(t)) return 'test';
+    if (/^program$/.test(t)) return 'reset';
+    return null;
+  }
+
+  function intercept(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    let el = e.target;
+    let depth = 0;
+    while (el && depth++ < 6) {
+      const text = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text && text.length <= 120) {
+        // ── Onboarding flow ─────────────────────────────────────
+        if (isOnboarding()) {
+          if (/^další$/i.test(text)) {
+            const onbPos = ONB_SLUGS.indexOf(currentSlug());
+            if (onbPos !== -1 && onbPos < ONB_SLUGS.length - 1) {
+              goto(ONB_SLUGS[onbPos + 1], { pushHistory: true });
+            } else {
+              goto('dnes-empty', { pushHistory: true });
+              toast('Onboarding hotov ✓');
+            }
+            return;
+          }
+          if (/^zpět$/i.test(text)) {
+            const onbPos = ONB_SLUGS.indexOf(currentSlug());
+            if (onbPos > 0) goto(ONB_SLUGS[onbPos - 1], { pushHistory: true });
+            else toast('První krok onboardingu');
+            return;
+          }
+          if (/^hotovo/i.test(text)) {
+            // Drill-down done — return to category grid
+            goto('onb-3', { pushHistory: true });
+            return;
+          }
+          if (/spustit program/i.test(text)) {
+            toast('Program spuštěn ✓');
+            setTimeout(function () { goto('dnes-empty', { pushHistory: true }); }, 600);
+            return;
+          }
+          if (/^upravit ›?$/i.test(text) || /^změnit ›?$/i.test(text)) {
+            toast('Úprava odpovědi — mimo prototyp');
+            return;
+          }
+          // From onb-3 (matka) tap on the Mléčné category tile → drill-down
+          if (currentSlug() === 'onb-3' && /🥛|^mléčn/i.test(text)) {
+            goto('onb-3-detail', { pushHistory: true });
+            return;
+          }
+        }
+
+        // ── Universal interactions ──────────────────────────────
+        if (text === '+') {
+          const dnesIdx = slugIndex.get('dnes');
+          goto(currentIdx === dnesIdx ? 'dnes-empty' : 'dnes', { pushHistory: true });
+          toast('FAB → přepnutí stavu Dnes');
+          return;
+        }
+        if (text === '‹' || text === '←') { goBack(); return; }
+        if (/^zrušit$/i.test(text)) { goBack(); return; }
+        if (/^upravit$/i.test(text)) { toast('Editace stavu — mimo prototyp'); return; }
+        if (/^změnit ›?$/i.test(text)) { toast('Výběr data — mimo prototyp'); return; }
+        if (/^potvrdit/i.test(text)) {
+          toast('Re-test naplánován ✓');
+          setTimeout(function () { goto('re-test', { pushHistory: true }); }, 650);
+          return;
+        }
+        if (/^\d+\s*›$/.test(text)) { toast('Galerie fotek — mimo prototyp'); return; }
+        const slug = findTargetByText(text);
+        if (slug && slugIndex.has(slug)) { goto(slug, { pushHistory: true }); return; }
+      }
+      el = el.parentElement;
+      if (!el || el.classList.contains('phone-screen') || el.classList.contains('phone-shell')) break;
+    }
+    toast('Bez navigace v prototypu');
+  }
+
+  // ── Bootstrap ─────────────────────────────────────────────────
+  function harvestSnapshots() {
+    const phones = Array.from(document.querySelectorAll('.phone, .phone-outer'));
+    if (phones.length < SCREENS.length) return false;
+    snapshots = phones.slice(0, SCREENS.length).map(function (node, i) {
+      return { slug: SCREENS[i].slug, html: node.outerHTML };
+    });
+    return true;
+  }
+
+  function init() {
+    if (!harvestSnapshots()) return false;
+    buildSidebar();
+    document.body.classList.add('proto-mode');
+    render(0);
+    return true;
+  }
+
+  let tries = 0;
+  const poll = setInterval(function () {
+    if (init() || ++tries > 100) clearInterval(poll);
+  }, 80);
+
+  // Global controls
+  document.addEventListener('keydown', function (e) {
+    if (!snapshots.length) return;
+    if (e.key === 'ArrowRight') {
+      goto(Math.min(currentIdx + 1, SCREENS.length - 1), { pushHistory: true });
+    } else if (e.key === 'ArrowLeft') {
+      goto(Math.max(currentIdx - 1, 0), { pushHistory: true });
+    } else if (e.key === 'Escape') {
+      document.body.classList.toggle('proto-mode');
+    }
+  });
+  $('#proto-canvas-toggle').addEventListener('click', function () {
+    document.body.classList.toggle('proto-mode');
+  });
+  $('#proto-history-back').addEventListener('click', goBack);
+})();
+</script>
 </body>
 </html>
