@@ -1,228 +1,676 @@
-# DESIGN.md
+---
+version: alpha
+name: Atopic Helper
+description: "A warm, clinical mobile-app design system for tracking a breastfed newborn's atopic eczema through an elimination diet. Built around a wine-rose primary (#8B4557) and a soft taupe-pink canvas (#E8E4E5), with FAF8F8 surface panels lifted on hairline borders. The system reads as healthcare-craft documentation: editorial tone, generous whitespace, evidence-first cards. Display type uses the system sans (San Francisco / Segoe UI) at 600–700 with no decorative weight. Phone mockups live as black-bezel iPhone shells (320×680) on the canvas; insight cards live as charcoal-rose-tinted panels with 16px corners. The primary wine accent appears on bottom-nav active state, FAB, and progress fills — never decoratively. Page rhythm leans on phone screenshots framed in monospace `▸ FRAME-TAG` annotations rather than atmospheric color. Czech-language UI: dates as `5. 5.`, abbreviations like `Po · Út · St`."
 
-Visual identity spec for the Atopic Helper PWA. Read this before generating or modifying any UI component or page.
+colors:
+  primary: "#8B4557"
+  on-primary: "#FFFFFF"
+  primary-light: "#C4A4AB"
+  ink: "#3D2B2F"
+  ink-muted: "#7A6468"
+  canvas: "#E8E4E5"
+  surface: "#FAF8F8"
+  surface-dark: "#EDE8E9"
+  hairline: "#EDE8E9"
+  device-bezel: "#000000"
+  semantic-success: "#5A8B5A"
+  semantic-warning: "#C9A227"
+  semantic-danger: "#B84444"
+  reintro-accent: "#4A7C6F"
+  sev-1: "#5A8B5A"
+  sev-2: "#8B9B5A"
+  sev-3: "#C9A227"
+  sev-4: "#C97027"
+  sev-5: "#B84444"
 
+typography:
+  display:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 32px
+    fontWeight: 600
+    lineHeight: 1.15
+    letterSpacing: -0.4px
+  page-heading:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 24px
+    fontWeight: 800
+    lineHeight: 1.2
+    letterSpacing: -0.2px
+  screen-heading:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 24px
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: -0.2px
+  card-title:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: -0.1px
+  body:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: 0
+  body-sm:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 13px
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: 0
+  caption:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 11px
+    fontWeight: 400
+    lineHeight: 1.4
+    letterSpacing: 0
+  micro:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: 0
+  eyebrow:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 12px
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: 0.6px
+  insight-tag:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 10px
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: 0.4px
+  status-numeric:
+    fontFamily: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto
+    fontSize: 14px
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: 0
+  frame-tag:
+    fontFamily: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 1
+    letterSpacing: 0.8px
+  variant-label:
+    fontFamily: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 1.3
+    letterSpacing: 0.4px
+
+rounded:
+  xs: 4px
+  sm: 6px
+  md: 8px
+  lg: 12px
+  xl: 16px
+  xxl: 20px
+  device-screen: 34px
+  device-bezel: 44px
+  pill: 9999px
+  full: 9999px
+
+spacing:
+  xxs: 2px
+  xs: 4px
+  sm: 6px
+  md: 8px
+  base: 12px
+  lg: 16px
+  xl: 20px
+  xxl: 28px
+  section: 48px
+
+components:
+  device-bezel:
+    backgroundColor: "{colors.device-bezel}"
+    rounded: "{rounded.device-bezel}"
+    padding: 10px
+    width: 320px
+    height: 680px
+  device-screen:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.device-screen}"
+    width: 100%
+    height: 100%
+  status-bar:
+    backgroundColor: transparent
+    textColor: "{colors.ink}"
+    typography: "{typography.status-numeric}"
+    height: 52px
+    padding: 0 28px
+  dynamic-island:
+    backgroundColor: "{colors.device-bezel}"
+    rounded: "{rounded.pill}"
+    width: 110px
+    height: 32px
+  home-indicator:
+    backgroundColor: "{colors.device-bezel}"
+    rounded: "{rounded.xs}"
+    width: 120px
+    height: 4px
+  card-default:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    borderColor: "{colors.surface-dark}"
+    borderWidth: 1px
+    rounded: "{rounded.xl}"
+    padding: 16px
+  card-empty-state:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.body}"
+    borderColor: "{colors.surface-dark}"
+    borderStyle: dashed
+    borderWidth: 2px
+    rounded: "{rounded.xl}"
+    padding: 16px
+  card-empty-cta:
+    backgroundColor: "rgba(139,69,87,0.05)"
+    textColor: "{colors.primary}"
+    typography: "{typography.body}"
+    borderColor: "rgba(139,69,87,0.30)"
+    borderStyle: dashed
+    borderWidth: 2px
+    rounded: "{rounded.xl}"
+    padding: 16px
+  insight-card-trigger:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    borderColor: "{colors.surface-dark}"
+    borderWidth: 1px
+    rounded: "{rounded.xl}"
+    headerBackground: "rgba(184,68,68,0.08)"
+    headerTagBackground: "rgba(184,68,68,0.15)"
+    headerTagColor: "{colors.semantic-danger}"
+  insight-card-progress:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    borderColor: "{colors.surface-dark}"
+    borderWidth: 1px
+    rounded: "{rounded.xl}"
+    headerBackground: "rgba(90,139,90,0.08)"
+    headerTagBackground: "rgba(90,139,90,0.15)"
+    headerTagColor: "{colors.semantic-success}"
+  insight-card-pattern:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    borderColor: "{colors.surface-dark}"
+    borderWidth: 1px
+    rounded: "{rounded.xl}"
+    headerBackground: "rgba(201,162,39,0.10)"
+    headerTagBackground: "rgba(201,162,39,0.20)"
+    headerTagColor: "{colors.semantic-warning}"
+  evidence-row:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.md}"
+    padding: 6px 10px
+  insight-tag:
+    backgroundColor: "rgba(0,0,0,0.04)"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.insight-tag}"
+    rounded: "{rounded.pill}"
+    padding: 2px 8px
+  chip-success:
+    backgroundColor: "rgba(90,139,90,0.10)"
+    textColor: "{colors.semantic-success}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.pill}"
+    padding: 4px 8px
+  chip-warning:
+    backgroundColor: "rgba(201,162,39,0.10)"
+    textColor: "{colors.semantic-warning}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.pill}"
+    padding: 4px 8px
+  chip-neutral:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.pill}"
+    padding: 4px 8px
+  photo-thumb:
+    backgroundColor: "linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4))"
+    rounded: "{rounded.md}"
+    aspectRatio: 1
+  photo-thumb-evidence:
+    backgroundColor: "linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4))"
+    rounded: "{rounded.md}"
+    width: 28px
+    height: 28px
+    borderColor: "{colors.surface-dark}"
+    borderWidth: 1px
+  fab-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.display}"
+    rounded: "{rounded.full}"
+    width: 56px
+    height: 56px
+    elevation: shadow-lg
+  fab-primary-onboard:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.display}"
+    rounded: "{rounded.full}"
+    width: 56px
+    height: 56px
+    elevation: shadow-lg
+    ringColor: "rgba(139,69,87,0.20)"
+    ringWidth: 4px
+  bottom-nav-2col:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.micro}"
+    borderTopColor: "{colors.surface-dark}"
+    borderTopWidth: 1px
+    paddingTop: 8px
+    paddingBottom: 20px
+  bottom-nav-3col-fab:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.micro}"
+    borderTopColor: "{colors.surface-dark}"
+    borderTopWidth: 1px
+    paddingTop: 8px
+    paddingBottom: 20px
+  nav-item-active:
+    textColor: "{colors.primary}"
+    typography: "{typography.micro}"
+  nav-item-inactive:
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.micro}"
+  week-strip-cell:
+    backgroundColor: transparent
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.md}"
+    padding: 8px 0
+  week-strip-cell-today:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.md}"
+    padding: 8px 0
+  meal-row:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    padding: 12px
+  meal-avatar:
+    backgroundColor: "rgba(90,139,90,0.15)"
+    textColor: "{colors.semantic-success}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    width: 32px
+    height: 32px
+  program-strip:
+    backgroundColor: transparent
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.caption}"
+    progressTrack: "{colors.surface-dark}"
+    progressFill: "{colors.primary}"
+    progressHeight: 4px
+  frame-tag-annotation:
+    backgroundColor: transparent
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.frame-tag}"
+    padding: 0 0 8px 0
+  document-eyebrow:
+    backgroundColor: transparent
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.variant-label}"
+    padding: 0
 ---
 
-## Brand
+## Overview
 
-Health-tech app for tracking a newborn's eczema during an elimination diet. Tone: warm, clinical, trustworthy. Czech UI. Mobile-first PWA.
+Atopic Helper's design system is a **warm clinical mobile-app canvas**. It is built for high-fidelity iPhone mockups — every surface in the system lives inside a black-bezel device shell, photographed against a soft taupe-pink page (`{colors.canvas}` #E8E4E5). On top of `{colors.surface}` (#FAF8F8) inside the device, white panels (`#FFFFFF`) lifted on `{colors.surface-dark}` hairlines carry content blocks. The single brand accent is **wine-rose** `{colors.primary}` (#8B4557) — used scarcely on the active bottom-nav state, the FAB, primary CTAs, and progress fills.
 
----
+The system avoids decorative gradients and AI-generated imagery. Where photos appear (eczema documentation), they sit as `{components.photo-thumb}` rectangles with the brand-tinted gradient placeholder until real medical photos are loaded — the gradient is functional, not atmospheric.
 
-## Color Tokens
+Display type runs the system sans stack (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto`) at weights 600–800 with subtle negative tracking. The voice is editorial: insights read like tiny investigative articles, not dashboard tiles. A monospace cut (`ui-monospace, SFMono-Regular, "SF Mono"`) appears only on **document chrome** — frame annotations like `▸ DNES`, page eyebrows like `docs/design / redesign-v1` — never inside the app screens themselves.
 
-Defined in `src/app.css` via Tailwind v4 `@theme {}`. Always use token names, not raw hex values.
+The page rhythm is **phone-as-protagonist**: 320×680 black-bezel devices in a horizontal row, each annotated above with a `▸ NAME` frame tag in monospace and a short caption below in muted body text. The canvas behind is a single quiet field, never broken by section dividers within a row.
 
-| Token | Value | Use |
-|---|---|---|
-| `--color-primary` | `#8B4557` | Brand, CTAs, active states |
-| `--color-primary-light` | `#C4A4AB` | Soft highlights |
-| `--color-surface` | `#FAF8F8` | Page background |
-| `--color-surface-dark` | `#EDE8E9` | Borders, dividers |
-| `--color-text` | `#3D2B2F` | Body text |
-| `--color-text-muted` | `#7A6468` | Secondary text, labels |
-| `--color-danger` | `#B84444` | Elimination, alerts |
-| `--color-success` | `#5A8B5A` | Reintroduction, positive states |
-| `--color-warning` | `#C9A227` | Caution states |
-| `--color-reintro-accent` | `#4A7C6F` | Teal accent |
+**Key Characteristics:**
 
-**Severity scale** (maps to 1–5 eczema score):
+- **Wine-rose primary** (`{colors.primary}` #8B4557) — single chromatic accent, used on FAB / active nav / primary CTA only.
+- **Five-step severity scale** (`{colors.sev-1}` green → `{colors.sev-5}` red) — the only multi-hue palette, exclusive to skin-state visualization.
+- **Three semantic colors** (`{colors.semantic-success}` / `{colors.semantic-warning}` / `{colors.semantic-danger}`) for state pills and insight headers — saturation kept low (8–20% alpha) so they never compete with content.
+- **`{colors.canvas}` #E8E4E5** is the document background; **`{colors.surface}` #FAF8F8** is the in-device background. The contrast is gentle but always present — no flat-on-flat.
+- **Cards are 16px-cornered** (`{rounded.xl}`) with 1px hairline borders; pills are full-rounded; phone-screen corners are 34px (`{rounded.device-screen}`).
+- **Insights have three header variants** (trigger / progress / pattern) — each with its own tinted header strip, never the body.
+- **Photos are evidence, not decoration** — they appear inside insight cards next to case rows (28×28) or as 4-up grids proving streak continuity. They do not appear as hero imagery.
+- **Frame annotations use monospace** with a `▸` chevron prefix — this is signage for the design document, not part of the app UI.
+- **Czech-first content**: dates as `5. 5.`, day abbreviations `Po Út St Čt Pá So Ne`, severity vocabulary `klidný · mírný · podrážděný · zhoršený · akutní`.
 
-| Token | Value |
-|---|---|
-| `--color-severity-1` | `#5A8B5A` (green) |
-| `--color-severity-2` | `#8B9B5A` |
-| `--color-severity-3` | `#C9A227` (amber) |
-| `--color-severity-4` | `#C97027` (orange) |
-| `--color-severity-5` | `#B84444` (red) |
+## Colors
 
-**Opacity scale** (applied as Tailwind `/N` modifiers):
+> Source: `docs/design/redesign.html` `<style>` block + Tailwind extension; see `src/app.css` for runtime token names.
 
-| Modifier | Use |
-|---|---|
-| `/5` | Very light background (info panels) |
-| `/10` | Light background (card variants) |
-| `/20` | Subtle border |
-| `/30` | Prominent border |
-| `/40–/50` | Focus rings, interaction states |
-| `/60` | Muted text, secondary elements |
+### Brand & Accent
 
----
+- **Primary Wine** (`{colors.primary}`): Single brand accent — FAB, primary CTA, active nav state, progress fill, link emphasis. Wine-rose #8B4557.
+- **Primary Light** (`{colors.primary-light}`): Soft photo-thumbnail gradient start; rare hover backdrop. #C4A4AB.
+
+### Surface
+
+- **Canvas** (`{colors.canvas}`): Document background outside the phone — #E8E4E5, soft taupe-pink. Never used inside an app screen.
+- **Surface** (`{colors.surface}`): In-device background — #FAF8F8, near-white with the faintest pink. Carries every screen.
+- **Surface Dark** (`{colors.surface-dark}`): Hairline borders, dividers, dim chips, week-strip empty pills. #EDE8E9.
+- **Hairline** (alias of surface-dark): All 1px card borders, divider lines.
+- **Device Bezel** (`{colors.device-bezel}`): #000000 — only the iPhone shell + dynamic island + home indicator. Not used as a foreground color.
+
+### Text
+
+- **Ink** (`{colors.ink}`): All headlines and body type — #3D2B2F. Warm dark plum, never pure black.
+- **Ink Muted** (`{colors.ink-muted}`): Secondary type, captions, eyebrows, frame tags — #7A6468.
+
+### Severity Scale (5-Step Skin State)
+
+The only multi-hue palette in the system. Always cited by token, never by name. Maps to the eczema severity score (1=calm, 5=acute).
+
+- **Sev 1** (`{colors.sev-1}`): #5A8B5A · `klidná` (calm)
+- **Sev 2** (`{colors.sev-2}`): #8B9B5A · `mírná` (mild)
+- **Sev 3** (`{colors.sev-3}`): #C9A227 · `podrážděná` (irritated)
+- **Sev 4** (`{colors.sev-4}`): #C97027 · `zhoršená` (worsened)
+- **Sev 5** (`{colors.sev-5}`): #B84444 · `akutní` (acute)
+
+The severity scale is reserved for **skin-state representation** — week-strip dots, photo overlay markers, severity pills next to evidence rows. It must not be used decoratively on chips or buttons that are unrelated to skin state.
+
+### Semantic
+
+- **Success** (`{colors.semantic-success}`): #5A8B5A — same hex as sev-1; used for "✓ pokrok" insight headers, success chips, meal-avatar dish-OK state.
+- **Warning** (`{colors.semantic-warning}`): #C9A227 — same hex as sev-3; used for "↻ vzorec" insight headers and intermediate states.
+- **Danger** (`{colors.semantic-danger}`): #B84444 — same hex as sev-5; used for "⚠ spouštěč" insight headers, dietary-error counters, allergen avoid markers.
+- **Reintro Accent** (`{colors.reintro-accent}`): #4A7C6F teal — exclusive to the Test phase of the elimination protocol (reserved by the system; not yet used in any prototype).
+
+The convergence between severity colors and semantic colors is **intentional**: a danger state in the system *means* the same thing as a sev-5 skin reading. Reusing the hex prevents the user from learning two parallel red palettes.
+
+### Color Usage Rules
+
+- The **wine primary** never appears as a fill on more than one element per screen. If the FAB is wine, the active nav can be wine, but a third wine fill (e.g., a chip) breaks the hierarchy.
+- **Tinted backgrounds** for insight headers use 8–10% alpha (`rgba(184,68,68,0.08)`); tag pills inside use 15–20% alpha. This keeps the header readable without overwhelming the white card body.
+- **Pure black** never appears as text. Only on the device bezel and dynamic island.
+- **Pure white** (`#FFFFFF`) is reserved for **card surfaces inside the device**. The page canvas and the in-device backdrop both use off-whites.
 
 ## Typography
 
-- **Font family**: System default (no custom fonts)
-- **All inputs/selects**: minimum `16px` to prevent iOS zoom
+### Font Family
 
-| Size | Tailwind | Use |
-|---|---|---|
-| 72px | `text-7xl` | Hero emoji/icons |
-| 24px | `text-2xl` | Major page headings |
-| 20px | `text-xl` | Section headers |
-| 18px | `text-lg` | Page sub-headers |
-| 16px | `text-base` | Body, form labels |
-| 14px | `text-sm` | Secondary content |
-| 12px | `text-xs` | Captions, badges, tags |
-| 10–11px | `text-[10px]` / `text-[11px]` | Micro labels only |
+- **Display / Body** — System sans stack: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto`. One family for all in-app type.
+- **Mono** — System mono stack: `ui-monospace, SFMono-Regular, "SF Mono", Menlo`. Used **only** on the document chrome (frame tags `▸ DNES`, version eyebrows `docs/design / redesign-v1`). Never inside the simulated app screens.
 
-| Weight | Use |
-|---|---|
-| `font-bold` | Major headings |
-| `font-semibold` | Section headers, primary buttons |
-| `font-medium` | Labels, secondary headings |
-| `font-normal` | Body text |
+The marketing/document layer and the in-device layer use the **same primary stack**, so when you screenshot a phone the type looks native — no foreign weight or family slips into the app.
 
----
+### Hierarchy
 
-## Spacing
+| Token | Size | Weight | Line Height | Letter Spacing | Use |
+|---|---|---|---|---|---|
+| `{typography.display}` | 32px | 600 | 1.15 | -0.4px | Document hero (rare) |
+| `{typography.page-heading}` | 24px | 800 | 1.20 | -0.2px | Document section heading (`Finální návrh /program stránky`) |
+| `{typography.screen-heading}` | 24px | 700 | 1.20 | -0.2px | In-device screen title (`Dnes`, `Týden`, `Postup`) |
+| `{typography.card-title}` | 16px | 600 | 1.25 | -0.1px | Insight card title (`Mléčné výrobky → zhoršení`) |
+| `{typography.body}` | 14px | 400 | 1.50 | 0 | Insight card body, evidence rows |
+| `{typography.body-sm}` | 13px | 400 | 1.50 | 0 | Smaller body, week-strip numbers |
+| `{typography.caption}` | 11px | 400 | 1.40 | 0 | Captions under devices, meta lines |
+| `{typography.micro}` | 10px | 500 | 1.30 | 0 | Bottom-nav labels, frame chips, week strip day-letters |
+| `{typography.eyebrow}` | 12px | 600 | 1.30 | 0.6px (uppercase) | In-device section eyebrows (`STAV EKZÉMU`, `DNEŠNÍ JÍDLA`) |
+| `{typography.insight-tag}` | 10px | 600 | 1.0 | 0.4px (uppercase) | `⚠ SPOUŠTĚČ` / `✓ POKROK` / `↻ VZOREC` pill labels |
+| `{typography.frame-tag}` | 10px | 500 | 1.0 | 0.8px (uppercase, mono) | `▸ DNES`, `▸ TÝDEN` document annotations |
+| `{typography.variant-label}` | 12px | 400 | 1.30 | 0.4px (mono) | Document version eyebrow (`docs/design / redesign-v1`) |
 
-Base unit: Tailwind default (1 = 4px).
+### Principles
 
-**Page containers:** `px-4 pt-4 pb-8` or `px-5 pt-6 pb-8`, always `max-w-lg mx-auto`
+- **Single voice from screen-heading to body.** All in-device type uses one family — only weight and size change.
+- **Eyebrows are uppercase with positive tracking** (+0.4 to +0.8px). They mark *taxonomy* not *content*.
+- **Mono is taxonomy, not content.** Every monospace string in the system is **chrome around** the design (frame tags, version labels) — never type inside the app. This silently signals "you are looking at a design artifact".
+- **Bold is reserved for emphasis inside flowing prose.** A sentence like "stav byl **zhoršený** ve **3 ze 4** případů" uses bold to surface the testable claim. Headers don't need bold — they're already heavy via weight 600/700.
+- **No italics for tone.** Italic appears only for citations (`*latte*`) or rare disclaimers. Tone is carried by word choice, not by slant.
 
-**Section spacing:** `space-y-4` (standard), `space-y-5`/`space-y-6` (generous)
+### Note on Czech Diacritics
 
-**Card internal:** `p-3` (compact) or `p-4` (standard)
-
-**Button padding:** `px-4 py-3.5` (primary), `px-3 py-2` (secondary), `px-2.5 py-1` (small)
-
-**Input padding:** `px-4 py-3` (standard), `px-3 py-2` (compact)
-
-**Gap:** `gap-2` (standard flex/grid), `gap-3`/`gap-4` (sections)
-
----
-
-## Border Radius
-
-| Class | Use |
-|---|---|
-| `rounded-full` | Pills, badges, circular nodes |
-| `rounded-2xl` | Major cards, containers |
-| `rounded-xl` | Buttons, inputs, regular cards, alerts |
-| `rounded-lg` | Small buttons, minor elements |
-| `rounded-md` | Very minor elements |
-
----
-
-## Shadows & Elevation
-
-| Class | Use |
-|---|---|
-| none | Default flat cards |
-| `shadow-sm` | Active buttons, floating panels |
-| `shadow-lg` | Toasts, elevated modals |
-
-Focus states: `focus:outline-none focus:ring-2 focus:ring-primary/40` (inputs), `ring-4 ring-primary/20` (selected nodes)
-
----
+All in-app type renders Czech diacritics — `š ž č ř ě á í ó ú ý ě ů`. The chosen system stack handles these correctly on macOS, iOS, Windows, and Android. Never substitute (e.g., `zhorseny` for `zhoršený`).
 
 ## Layout
 
-- **Max width:** `max-w-lg mx-auto` on every page and header — never full bleed on large screens
-- **Grid:** `grid-cols-3 gap-2` (categories), `grid-cols-4 gap-2` (meal types), `grid-cols-2 gap-2` (evaluation pairs)
-- **Dynamic height:** `h-[calc(100dvh-3.5rem)]` for full-screen sections below a header
-- **Safe areas (PWA):** `env(safe-area-inset-bottom, 0px)` on all fixed bottom elements
+### Spacing System
 
-**Z-index layers:**
+- **Base unit**: 4px.
+- **Tokens**: `{spacing.xxs}` 2px · `{spacing.xs}` 4px · `{spacing.sm}` 6px · `{spacing.md}` 8px · `{spacing.base}` 12px · `{spacing.lg}` 16px · `{spacing.xl}` 20px · `{spacing.xxl}` 28px · `{spacing.section}` 48px.
+- **Card interior**: `{spacing.lg}` 16px on default cards; `{spacing.xl}` 20px on hero/insight cards.
+- **Screen horizontal padding**: `{spacing.xl}` 20px (`px-5` Tailwind) — every screen content block aligns to this gutter.
+- **Inter-card gap**: `{spacing.base}` 12px (`mb-3` Tailwind) — vertical rhythm between stacked cards.
+- **Status bar height**: 52px (notched); content starts immediately below.
+- **Bottom nav clearance**: 80–96px from bottom — `pb-20` to `pb-24` on screen-content.
 
-| Layer | z-index | Use |
+### Grid & Container
+
+- **Document grid**: `max-w-[1700px]` centered; row of phones in `flex flex-wrap gap-12 items-start justify-center`.
+- **Phone canvas**: 320×680 device bezel · 300×660 inner screen · screen-content scrolls vertically.
+- **Week strip**: 7-column grid, `grid-cols-7 gap-1`, each cell ≈40px tall.
+- **Insight evidence**: stacked rows, full-width inside the card padding.
+- **Photo grids**: 4-up `grid-cols-4 gap-1.5` for streak proof; horizontal `flex gap-1.5 overflow-x-auto` for galleries.
+
+### Whitespace Philosophy
+
+The taupe canvas (`{colors.canvas}`) IS the whitespace between phones. **Within a screen**, whitespace is generous: 12–16px between cards, 20px screen gutter, 28px between sections inside scrolling content. **Within a card**, density rises: 6–10px between evidence rows, because density there *is the point* (this is data, not decoration).
+
+Sections never separate by horizontal rules within a screen. Hierarchy comes from card boundaries + uppercase eyebrows + vertical gap — not from lines.
+
+## Elevation & Depth
+
+| Level | Treatment | Use |
 |---|---|---|
-| Content | `z-10` | Timeline nodes, inline elevated elements |
-| Sticky sub-headers | `z-20` | Date strips |
-| Header / save bar | `z-30` | Top header, fixed bottom bar |
-| Overlays | `z-50` | Toasts, floating panels, dialogs |
+| 0 (flat) | No border, no shadow | Body type, plain text on screen |
+| 1 (paper card) | `#FFFFFF` background on `{colors.surface}`, 1px `{colors.surface-dark}` border, `{rounded.xl}` corners | Default cards (eczema status, meal list, insight, week summary) |
+| 2 (tinted insight header) | Insight card body at level 1, but the **header strip** uses 8% alpha tint of the matching semantic color | `⚠ spouštěč` (danger tint), `✓ pokrok` (success tint), `↻ vzorec` (warning tint) |
+| 3 (device bezel) | `{colors.device-bezel}` black with `{rounded.device-bezel}` 44px corners, inner `{rounded.device-screen}` 34px screen, soft drop shadow `0 30px 60px -20px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.15)` | Phone mockup container |
+| 4 (FAB) | `{colors.primary}` background, full-rounded, `shadow-lg` drop shadow, optional 4px `rgba(139,69,87,0.20)` ring on onboarding state | The plus button on `Dnes` |
+| 5 (focus ring on FAB) | 4px ring at 20% primary alpha around the FAB | Empty-state hint (the screen is asking the user to start) |
 
----
+The system **resists shadow elsewhere**. Inside the device, every elevation is carried by surface change + 1px hairline. Drop shadow appears only on the device bezel itself and the FAB — both of which simulate physical objects.
 
-## Layout Philosophy
+### Decorative Depth
 
-**Prefer scroll-free pages.** Each page should ideally display its full content within a single viewport without requiring the user to scroll. Apply this as a design constraint when ordering and sizing content:
+- **Subtle inner highlight** on the device bezel: `inset 0 0 0 1px rgba(255,255,255,0.06)` — gives the black bezel a faint pixel-rendered edge so it doesn't read as flat-fill.
+- **No atmospheric gradients on screen backgrounds.** The only gradients in the system are: (a) photo-thumb placeholder, (b) FAB shadow falloff. That's it.
 
-- Show the most critical information and actions first (above the fold)
-- Collapse secondary content behind expandable sections, modals, or tabs rather than stacking it vertically
-- Use compact spacing and smaller text sizes for supplementary details
-- Prefer horizontal layouts (chips, grid) over vertical lists where content density allows
+## Shapes
 
-This rule applies to action screens (day log, meal entry, settings). It does **not** apply to inherently long content like the program timeline or food category grids, where scrolling is unavoidable and expected.
+### Border Radius Scale
 
-## Component Patterns
+| Token | Value | Use |
+|---|---|---|
+| `{rounded.xs}` | 4px | Home indicator, narrow chips, small thumbnails |
+| `{rounded.sm}` | 6px | Inline tags |
+| `{rounded.md}` | 8px | Evidence rows, week-strip cells, photo evidence thumbs (28×28), small buttons |
+| `{rounded.lg}` | 12px | Mid-size cards, secondary buttons |
+| `{rounded.xl}` | 16px | All default content cards (eczema status, meals list, insights, week summary, program card) |
+| `{rounded.xxl}` | 20px | Dynamic Island |
+| `{rounded.device-screen}` | 34px | Inner phone screen |
+| `{rounded.device-bezel}` | 44px | Outer phone bezel |
+| `{rounded.pill}` / `{rounded.full}` | 9999px | Severity dots, photo overlay markers, status chips, FAB, dynamic island ends, meal avatar |
 
-### Card
-```
-bg-white rounded-2xl border border-surface-dark p-4 space-y-3
-```
+### Shape Principles
 
-**Semantic variants** (replace `{color}` with `primary` / `danger` / `success` / `warning`):
-```
-bg-{color}/5 border border-{color}/20 rounded-xl px-4 py-3
-```
-Warning uses `/10` background and `/30` border.
+- **Cards default to `{rounded.xl}` 16px.** Going lower feels jagged for medical/wellness content; going higher feels toy-like.
+- **Pills are full-rounded** (`{rounded.pill}`) regardless of size. A sev-dot at 6×6 and a chip at 80×24 both use the same radius rule.
+- **Phone-screen corners (34px) and bezel corners (44px) are exact iPhone proportions** — they should not be tweaked for visual taste; they reflect device truth.
+- **Square corners are not used.** Even icons within cards (severity dots, photo markers) round to a full circle.
 
-### Primary Button
-```
-w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base
-```
+## Iconography
 
-### Secondary Button
-```
-py-2 px-3 rounded-xl text-sm font-medium border border-surface-dark bg-white text-text
-```
+The system uses **stroke-based outline SVG icons** at `viewBox="0 0 24 24"`, `stroke="currentColor"`, `stroke-width="2"`, no fill. Icons inherit color from their parent element (e.g., bottom-nav active state).
 
-### Small / Pill Button
-```
-text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary
-```
+Standard sizes:
+- Bottom-nav: 22×22px
+- Status-bar chrome (cogwheel on screen header): 20×20px
+- Inline accent (hint arrow under empty-state cards): 14×14px
 
-### Disabled State
-```
-opacity-50 cursor-not-allowed bg-surface-dark text-text-muted
-```
+**Emojis are not navigation icons.** Earlier iterations used 📅 / 🍽️ / 📋 / ⚙️ for nav — these were replaced with SVG paths. Emojis remain acceptable inside content cards as **content** (a meal item showing 🥛 to indicate dairy, an evidence row labeling the food group). The distinction: emoji-as-content is information; emoji-as-chrome is slop.
 
-### Input / Textarea
-```
-w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
-focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white
-```
-Textarea adds `resize-none bg-surface`.
+The single decorative glyph is **▸** (BLACK RIGHT-POINTING SMALL TRIANGLE U+25B8) — used as the prefix on every frame tag. It is not a navigation cue inside the app, only a chrome marker on the design document.
 
-**`type="date"` inputs:** always add a scoped CSS rule `input[type="date"] { -webkit-appearance: none; appearance: none; }`. Safari (iOS 17 and earlier) renders date inputs as `inline-flex` internally, causing `width: 100%` to be ignored and the field to overflow its container. `appearance: none` resets this. The native iOS date picker still opens on tap.
+## Components
 
-### Badge / Tag
-```
-inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1
-```
-Fill with semantic color pair: `bg-success/10 text-success`, `bg-warning/15 text-warning border border-warning/30`, `bg-surface text-text-muted`.
+### Phone Bezel & Screen
 
-### Header (sticky)
-```
-sticky top-0 z-30 bg-white border-b border-surface-dark px-4 py-2.5 max-w-lg mx-auto
-```
+- `{components.device-bezel}` — 320×680 black shell with 44px outer corners, 10px padding inset, soft drop shadow. Holds exactly one screen.
+- `{components.device-screen}` — 100% inside the bezel, `{colors.surface}` background, 34px corners, `overflow: hidden`. Status bar absolute at top, screen-content scrollable below, optional bottom-nav docked absolute.
+- `{components.dynamic-island}` — 110×32px black pill at top-center, `top: 10px`, z-index above content. Always present on every device frame.
+- `{components.home-indicator}` — 120×4px black bar at bottom-center, `bottom: 8px`, opacity 0.85.
 
-### Segmented Tab Control
-```
-flex bg-surface rounded-lg p-0.5 gap-0.5
-  active tab:  px-3 py-1.5 rounded-md text-xs font-medium bg-white text-primary shadow-sm
-  inactive tab: px-3 py-1.5 rounded-md text-xs font-medium text-text-muted
-```
+### Status Bar
 
-### Timeline Node
-```
-shrink-0 w-8 h-8 rounded-full flex items-center justify-center z-10
-  completed: bg-success text-white
-  current:   bg-primary text-white ring-4 ring-primary/20
-  upcoming:  bg-white border-2 border-surface-dark text-text-muted
-```
+- `{components.status-bar}` — 52px tall, transparent background (sits on screen surface), 28px horizontal padding. Time on left (`9:41`, weight 600), three dots + battery glyph on right (`●●● ◐`).
+- The status bar is **always rendered** even on internal screens. It is part of the iPhone illusion, not the app UI.
 
-### Toast
-```
-fixed bottom-28 left-1/2 -translate-x-1/2 bg-success text-white text-sm rounded-xl px-5 py-3 shadow-lg z-50
-```
+### Cards
 
----
+- `{components.card-default}` — White surface, 1px hairline, 16px corners, 16px padding. Default container for any content block (eczema status, meals list, week summary, program details).
+- `{components.card-empty-state}` — Same dimensions as default but with **dashed** 2px hairline border. Used when the user has not yet entered data (`Zatím nic — první záznam přidej tlačítkem dole`).
+- `{components.card-empty-cta}` — Variant with primary-tinted background (5% alpha) and primary dashed border (30% alpha) — used for **inviting input** (`Klepni a zapiš dnešní stav`). The empty CTA color is louder than the empty-state because it's asking for action.
 
-## Animation
+### Insight Cards (Three Variants)
 
-- `transition-all duration-300` — general transitions
-- `transition-opacity` — show/hide
-- SVG progress ring: `stroke-dashoffset` animated over `0.6s ease`
+Insight cards have a **two-zone layout**: tinted header (8% alpha of semantic color) + white body. The tag pill in the header uses 15–20% alpha; the body holds the explanation, evidence rows, and any nuance.
+
+- `{components.insight-card-trigger}` — Header tinted with `rgba(184,68,68,0.08)` (danger). Used for findings of the form *X causes Y* (e.g., dairy → flare).
+- `{components.insight-card-progress}` — Header tinted with `rgba(90,139,90,0.08)` (success). Used for streak / improvement findings.
+- `{components.insight-card-pattern}` — Header tinted with `rgba(201,162,39,0.10)` (warning). Used for cyclical / temporal patterns (e.g., morning vs evening severity).
+
+The body of every insight card is the same: 14px text paragraph, then evidence rows (or a 7-day matrix, or a 4-photo grid — the body adapts to the type of pattern), then a small italic nuance line at 11px.
+
+### Evidence Row
+
+- `{components.evidence-row}` — Single horizontal bar inside an insight card. Layout: 6px severity dot · 40px date · flexible food/cause text · 10px sev marker · 28×28 photo thumb. Background `{colors.surface}`, 8px corners.
+- A row marked `opacity: 0.60` denotes a counter-example (the date that *doesn't* fit the pattern, kept visible to prove falsifiability).
+
+### Tags & Chips
+
+- `{components.insight-tag}` — Uppercase pill at 10px / weight 600 / +0.4px tracking. Sits in the insight header. Always paired with a glyph: `⚠`, `✓`, `↻`.
+- `{components.chip-success}` / `{components.chip-warning}` / `{components.chip-neutral}` — Pill shape, semantic-tinted background, semantic-tinted text. Used in the week-summary card (`3 klidné dny`, `2 zhoršené`, `21 jídel`, `6 fotek`).
+
+### Photo Components
+
+- `{components.photo-thumb}` — Generic full-bleed photo placeholder, 1:1 aspect, brand-tinted gradient until real photo loads. 8px corners.
+- `{components.photo-thumb-evidence}` — 28×28 inline thumb with 1px hairline border, sits at the end of an evidence row.
+- A photo carries a severity dot in the top-right (`w-2 h-2 rounded-full` in sev-N color, 1px white ring) when the photo represents a documented skin state.
+
+### Bottom Navigation
+
+- `{components.bottom-nav-2col}` — Two-column grid (Dnes / Týden), no FAB. Active item uses `{components.nav-item-active}` — wine text, weight 600. Inactive uses `{components.nav-item-inactive}` — muted text, weight 400. Each item: 22×22 SVG icon above 10px label.
+- `{components.bottom-nav-3col-fab}` — Three-column grid: nav · FAB · nav. The FAB is positioned with `-mt-7` to lift above the nav baseline. Used on `Dnes` (where input is the primary action). Optional 4px ring on first-launch / empty state to invite first tap.
+- `{components.fab-primary}` — 56×56px, full-rounded, primary fill, white plus glyph. Standard FAB.
+- `{components.fab-primary-onboard}` — Same FAB with a 4px primary-at-20%-alpha ring, used only when the screen is empty and the FAB is the next action.
+
+### Week Strip
+
+- 7-column grid; each cell is `{components.week-strip-cell}`. Day-letter at 10px uppercase + day-number at 14px weight 600 + a 6×6 sev-N dot below.
+- The current day uses `{components.week-strip-cell-today}` — primary fill, white text. If today's data is **not yet recorded**, the dot below is hollow (`bg-white/30 ring-1 ring-white`) — a quiet "still waiting on you" signal.
+
+### Meal Row
+
+- `{components.meal-row}` — Horizontal: 32×32 avatar · meal name (14px weight 500) · meta line (11px muted) · optional trailing icon.
+- `{components.meal-avatar}` — 32×32 full-rounded, success-tinted background, success-tinted single-character label (`S` snídaně, `O` oběd, `SV` svačina, `V` večeře).
+
+### Program Strip
+
+- `{components.program-strip}` — Single-row meta + 4px progress bar. Sits beneath the week strip on `Dnes`, and also at the top of `Týden` as context.
+- Format: `Eliminace mléčných · Den 12 / 28` left, `›` right, then a 4px track with primary fill.
+- This is the **only** place in the system where a long-running phase appears as inline chrome. Everywhere else (e.g., the `/program` page), the phase is full-card content.
+
+### Document Chrome (Outside the Phone)
+
+- `{components.document-eyebrow}` — Top-of-page label like `Atopic Helper · Redesign` — uppercase, monospace, muted, +0.4px tracking.
+- `{components.frame-tag-annotation}` — `▸ DNES` style annotation that sits **directly above each phone**. Monospace 10px / weight 500 / +0.8px tracking / muted color.
+- The frame-tag and the eyebrow are the only **monospace** elements in the entire system. Their job is to mark "this is design documentation, not the app".
+
+## Voice & Content
+
+### Tone
+
+- **Editorial, not dashboard.** Insights are framed as short articles: *type → claim → body → evidence → nuance*. They are not labeled tiles.
+- **Falsifiable, not authoritative.** Every claim shows the cases that support it AND the cases that contradict it (the dimmed exception row in evidence). The user is being trusted to evaluate, not told what to believe.
+- **Czech-first.** All in-product copy is Czech. English appears only in code, file names, and design-doc captions.
+
+### Vocabulary
+
+The system uses a fixed severity vocabulary mapped to the 5-point scale:
+
+| Sev | Czech | English (notes only) |
+|---|---|---|
+| 1 | klidná | calm |
+| 2 | mírná | mild |
+| 3 | podrážděná | irritated |
+| 4 | zhoršená | worsened |
+| 5 | akutní | acute |
+
+These words are never substituted (no `okay / fine / bad / very bad`). The user trains on this vocabulary, and the system honors it.
+
+### Date Format
+
+- Czech: `5. 5.` (day, period, non-breaking space, month, period).
+- Range: `1. – 4. května` (with day names spelled out only at the document chrome level).
+- ISO dates are not used in UI copy.
+
+## Examples (Reference Compositions)
+
+### Composition 1 — `Dnes` (filled state)
+
+A 320×680 device. Inside, top to bottom:
+1. Status bar (52px, `9:41 ●●● ◐`).
+2. Header row: `Pondělí · 5. května` eyebrow + `Dnes` 24/700 heading; right-aligned 20×20 cog icon.
+3. Week strip (7 cells, today filled wine, others muted with sev dots).
+4. Program strip (`Eliminace mléčných · Den 12 / 28` + 4px progress).
+5. Stav ekzému card — white, 16px corners, sev-3 dot + label + `upravit` button.
+6. Dnešní jídla card — divided rows, success-avatar each.
+7. Bottom nav (3-col with FAB).
+
+### Composition 2 — `Dnes` (empty state, morning)
+
+Same layout as Composition 1, but cards 5 and 6 use `{components.card-empty-state}` and `{components.card-empty-cta}`. Status bar shows `7:12`. The week-strip "today" cell shows a hollow ring instead of a filled dot. The FAB carries a 4px ring to invite first-tap. A 14×14 chevron + "Klepni na **+** a vyber: foto · jídlo · stav" hint sits between the empty cards and the nav.
+
+### Composition 3 — `Týden`
+
+Same device frame; inside:
+1. Header: `29. 4. – 5. 5. · Eliška, 4 měsíce` eyebrow + `Týden` heading.
+2. Program strip (now repeated as context).
+3. Week-summary card — narrative line + 4 chips.
+4. Souvislosti eyebrow + count.
+5. **Three insight cards in sequence** — trigger / progress / pattern. Each header uses its semantic tint; each body adapts visualization to the pattern type.
+6. Photo gallery strip (horizontal scroll, 56×56 thumbs).
+7. Bottom nav (2-col, no FAB — Týden is read-only).
+
+## Alignment Checklist (for Reusing This System)
+
+When pulling a new screen into this system, verify:
+
+1. **Canvas**: page background is `{colors.canvas}` #E8E4E5. Not white, not pure surface.
+2. **Phone shell**: black bezel 44px / inner screen 34px / 10px padding / drop shadow as specified. No white "slab phone" without a bezel.
+3. **Frame tag**: every phone is annotated with `▸ NAME` in monospace 10px / +0.8px tracking / muted color, sitting 8px above the bezel.
+4. **Status bar**: 52px, 28px gutters, `9:41` + `●●● ◐`. No emoji battery (`🔋`).
+5. **Bottom nav**: SVG icons at 22×22 with `stroke-width=2`, never emoji. Active state in primary wine.
+6. **Cards**: white fill, 1px `{colors.surface-dark}` hairline, 16px corners (`{rounded.xl}`), 16px padding.
+7. **Eyebrows**: uppercase, +0.6px tracking, 12px / weight 600, ink-muted color. Not bold body text.
+8. **Insight cards**: tinted header strip + white body. Header tint = 8% alpha; tag pill = 15–20% alpha.
+9. **Severity colors**: only on skin-state representations. Not on chips that mean something else.
+10. **Mono**: only on document chrome (frame tags, version eyebrow). Never inside the simulated app screen.
+11. **Dates**: Czech format `5. 5.` with non-breaking spaces. Day-letters `Po Út St Čt Pá So Ne` always two-character.
+12. **Empty states**: dashed border (default empty) or primary-tinted dashed border (empty-CTA). Never solid borders for empty states.
+
+A screen is "in-system" when **all twelve** are satisfied.
