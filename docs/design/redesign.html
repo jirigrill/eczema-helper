@@ -1888,14 +1888,11 @@ function App() {
       <div className="divider" />
 
       <div className="section-eyebrow">B — Program stránka · Řada 2</div>
-      <div className="section-heading">Drill-down do fází, testů a naplánování re-testu</div>
+      <div className="section-heading">Naplánování re-testu z rozbalené fáze</div>
       <div className="section-desc">
-        Klepnutí na řádek v Průběh tabu otevře detail. Stejný layout pro fázi i alergenový test: hero shrnutí + 3 kachle + den-po-dni timeline. Detail alergenu s mírnou reakcí má tlačítko "+ Naplánovat re-test", které otevře setup screen s datem a plánem dávek.
+        Detail fáze a alergenového testu se zobrazí přímo v rozbalené řádce v Průběh tabu (nemáme samostatný detail screen — duplikoval by stejná data). Re-test se otevírá z tlačítka „+ Re-test" inline u alergenu s reakcí.
       </div>
       <div className="phone-row">
-        <DetailScreenWithLabel id="dairy"       customLabel="Detail · Mléko (toleruje)" dotColor={c.success} />
-        <DetailScreenWithLabel id="soy"         customLabel="Detail · Sója (mírná reakce)" dotColor={c.warning} />
-        <DetailScreenWithLabel id="elimination" customLabel="Detail · Eliminační fáze (dokončeno)" dotColor={c.success} />
         <RetestSetupWithLabel allergenId="soy"  customLabel="Naplánovat re-test (Sója)" dotColor={c.primary} />
       </div>
 
@@ -2246,9 +2243,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </button>
           </div>
 
-          <!-- Logováno teď · live view of saved Meal items -->
+          <!-- V tomto jídle · live view of saved Meal items -->
           <div class="mx-5 mb-2">
-            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Logováno teď</div>
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
             <div class="space-y-1.5">
               <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
                 <span class="text-lg">🍗</span>
@@ -2326,9 +2323,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </div>
           </div>
 
-          <!-- Logováno teď · 2 items, 1 conflict (warning border) -->
+          <!-- V tomto jídle · 2 items, 1 conflict (warning border) -->
           <div class="mx-5 mb-2">
-            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Logováno teď</div>
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
             <div class="space-y-1.5">
               <div class="rounded-xl flex items-center gap-3 px-3 py-2.5" style="background:rgba(196,124,69,0.08);border:1px solid rgba(196,124,69,0.4)">
                 <span class="text-lg">🥛</span>
