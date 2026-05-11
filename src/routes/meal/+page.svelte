@@ -7,21 +7,23 @@
   import { detectConflicts, getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule';
   import { CATEGORIES, getCategoryById } from '$lib/data/categories';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
-  import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
-  import { todayIso, addDays, formatDateLongCs } from '$lib/utils/date';
+  import { todayIso, formatDateLongCs } from '$lib/utils/date';
+  import { AtopicDb } from '$lib/db/atopic-db';
+  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+
+  const db = new AtopicDb();
+  const questionnaireRepo = new DexieQuestionnaireRepository(db);
+  const scheduleRepo = new DexieScheduleRepository(db);
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
 
-  onMount(() => {
-    function refresh() {
-      state = loadState();
-    }
-    refresh();
-    window.addEventListener('v2-state-change', refresh);
-    return () => window.removeEventListener('v2-state-change', refresh);
+  onMount(async () => {
+    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
+    if (answers && schedule) state = { ...state, answers, schedule };
   });
 
-  const today = $derived(addDays(todayIso(), state.dateOffset ?? 0));
+  const today = $derived(todayIso());
   const eliminatedToday = $derived(state.schedule ? getEliminatedSlugsForDate(state.schedule, today) : []);
   const reintroInfo = $derived(state.schedule ? getReintroductionDayInfo(state.schedule, today) : null);
 
@@ -98,8 +100,8 @@
       label: mealLabel.trim() || undefined,
       savedAt: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
     };
+    // TODO(slice-2): persist to Dexie meals table
     state.meals = [...state.meals, meal];
-    saveState(state);
 
     currentItems = [];
     mealLabel = '';

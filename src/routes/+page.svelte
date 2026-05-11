@@ -7,8 +7,14 @@
   import { generateSchedule } from '$lib/domain/schedule';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
-  import { saveAndNotify } from '$lib/data/storage';
   import { formatDateLongCs } from '$lib/utils/date';
+  import { AtopicDb } from '$lib/db/atopic-db';
+  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+
+  const db = new AtopicDb();
+  const questionnaireRepo = new DexieQuestionnaireRepository(db);
+  const scheduleRepo = new DexieScheduleRepository(db);
 
   // ── Form state ────────────────────────────────────────────
   let step = $state(1);
@@ -63,8 +69,8 @@
   }
 
   // ── Save & proceed ────────────────────────────────────────
-  function confirm() {
-    const answers: QuestionnaireAnswers = {
+  async function confirm() {
+    const answers: QuestionnaireAnswers = $state.snapshot({
       babyBirthDate,
       eczemaSeverity: severity,
       motherAllergies,
@@ -72,9 +78,10 @@
       programStartDate,
       completedAt: new Date().toISOString(),
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
-    };
+    });
     const schedule = generateSchedule(answers);
-    saveAndNotify({ answers, schedule, meals: [], assessments: [], evaluations: [] });
+    await questionnaireRepo.save(answers);
+    await scheduleRepo.save(schedule);
     goto('/program');
   }
 

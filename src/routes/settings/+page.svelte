@@ -6,13 +6,20 @@
   import { onMount } from 'svelte';
   import type { AppState } from '$lib/domain/models';
   import { getCategoryById } from '$lib/data/categories';
-  import { loadState, clearState, notifyStateChange } from '$lib/data/storage';
   import { formatDateLongCs } from '$lib/utils/date';
+  import { AtopicDb } from '$lib/db/atopic-db';
+  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+
+  const db = new AtopicDb();
+  const questionnaireRepo = new DexieQuestionnaireRepository(db);
+  const scheduleRepo = new DexieScheduleRepository(db);
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
 
-  onMount(() => {
-    state = loadState();
+  onMount(async () => {
+    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
+    if (answers && schedule) state = { ...state, answers, schedule };
   });
 
   const severityLabel: Record<string, string> = {
@@ -26,9 +33,8 @@
     return slugs.map(s => s.startsWith('other:') ? s.slice(6) : (getCategoryById(s)?.nameCs ?? s)).join(', ');
   }
 
-  function resetPrototype() {
-    clearState();
-    notifyStateChange();
+  async function resetPrototype() {
+    await Promise.all([db.answers.clear(), db.schedule.clear()]);
     goto('/');
   }
 </script>
