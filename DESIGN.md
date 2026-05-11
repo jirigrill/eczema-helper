@@ -181,6 +181,24 @@ components:
     borderWidth: 2px
     rounded: "{rounded.xl}"
     padding: 16px
+  task-tile-pending:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    captionColor: "{colors.ink-muted}"
+    typography: "{typography.micro}"
+    borderColor: "{colors.surface-dark}"
+    borderWidth: 1px
+    rounded: "{rounded.lg}"
+    padding: 8px
+  task-tile-done:
+    backgroundColor: "rgba(90,139,90,0.05)"
+    textColor: "{colors.ink}"
+    captionColor: "{colors.semantic-success}"
+    typography: "{typography.micro}"
+    borderColor: "rgba(90,139,90,0.30)"
+    borderWidth: 1px
+    rounded: "{rounded.lg}"
+    padding: 8px
   insight-card-trigger:
     backgroundColor: "#FFFFFF"
     textColor: "{colors.ink}"
@@ -545,6 +563,15 @@ The single decorative glyph is **▸** (BLACK RIGHT-POINTING SMALL TRIANGLE U+25
 - `{components.card-empty-state}` — Same dimensions as default but with **dashed** 2px hairline border. Used when the user has not yet entered data (`Zatím nic — první záznam přidej tlačítkem dole`).
 - `{components.card-empty-cta}` — Variant with primary-tinted background (5% alpha) and primary dashed border (30% alpha) — used for **inviting input** (`Klepni a zapiš dnešní stav`). The empty CTA color is louder than the empty-state because it's asking for action.
 
+### Task Tiles (Dnes udělej)
+
+The `Dnes udělej` block stacks 3 daily tasks side-by-side. Tiles share identical geometry (`{rounded.lg}` 12px corners, 1px hairline, 8px padding, centered icon · label · sub-label). Only **state** changes the surface and caption color — never the border weight, dashes, or border color hue.
+
+- `{components.task-tile-pending}` — White surface, `{colors.surface-dark}` 1px hairline. Sub-label `čeká` in `{colors.ink-muted}`. **Never** primary-dashed, never warning-tinted, never severity-colored — pending is the quiet default.
+- `{components.task-tile-done}` — Success-tinted surface (5% alpha), success-tinted hairline (30% alpha). Sub-label `✓ ok` / `✓ pořízeno` in `{colors.semantic-success}`.
+
+Why one neutral pending style: the wine primary is reserved for FAB / active-nav / progress fill (see Color Usage Rules). Dashing a single pending tile in primary visually competes with the FAB and breaks the "one wine fill per screen" rule. A pending reintro evaluation is still a pending task — it uses the same neutral surface; the **header counter** carries any urgency, not the tile.
+
 ### Insight Cards (Three Variants)
 
 Insight cards have a **two-zone layout**: tinted header (8% alpha of semantic color) + white body. The tag pill in the header uses 15–20% alpha; the body holds the explanation, evidence rows, and any nuance.
@@ -628,6 +655,24 @@ These words are never substituted (no `okay / fine / bad / very bad`). The user 
 - Range: `1. – 4. května` (with day names spelled out only at the document chrome level).
 - ISO dates are not used in UI copy.
 
+### Primary CTA Verbs
+
+The single primary CTA per screen carries the wine-rose accent. Its verb signals whether pressing it **commits data** or just **closes the session**. The four verbs below cover every primary CTA in the app — do not introduce new ones.
+
+| Verb | Meaning | When to use | Example screens |
+|---|---|---|---|
+| **`Uložit`** | **Single-commit save.** Without pressing it, the user's input is lost. Modal / blocking semantics. | One-shot decision per session (status, score, evaluation). May add object: `Uložit hodnocení`, `Uložit stav`. | Stav kůže · Vyhodnocení testu |
+| **`Hotovo`** | **Session closure.** Data is already autosaved per-action; the button only returns to the caller. | Builder / list / multi-item editor where each tap persists immediately. Optionally suffix with count: `Hotovo · 3 položky`. | Přidat jídlo · Onboarding final step |
+| **`Pokračovat`** / **`Další`** | **Flow navigation.** Moves to the next step of a wizard. Not a commit. | Multi-step flows (onboarding). Prefer `Další` for short wizards; `Pokračovat` only when the next step is conceptually distinct. | Onboarding intermediate steps |
+| **`Potvrdit X`** | **Explicit acknowledgment.** Reserved for irreversible or high-stakes confirmations. Always carries the object: `Potvrdit datum`, `Potvrdit smazání`. | Date pickers, destructive actions. | Date selector |
+
+**Rules:**
+
+1. Choose by data semantics, not aesthetics. If the screen autosaves per tap, use `Hotovo` even if it feels less weighty — `Uložit` would be a lie.
+2. Disabled state: same label, muted background (`#D4CBCC` bg, `#7A6468` text). Never change the verb based on enabled state.
+3. Object suffix (`Uložit hodnocení`, `Hotovo · 3 položky`, `Potvrdit datum`) is allowed and encouraged when it adds clarity. Keep ≤24 characters total.
+4. Never combine: no `Uložit a pokračovat`, no `Hotovo · uložit`. One semantic per CTA.
+
 ## Examples (Reference Compositions)
 
 ### Composition 1 — `Dnes` (filled state)
@@ -672,5 +717,6 @@ When pulling a new screen into this system, verify:
 10. **Mono**: only on document chrome (frame tags, version eyebrow). Never inside the simulated app screen.
 11. **Dates**: Czech format `5. 5.` with non-breaking spaces. Day-letters `Po Út St Čt Pá So Ne` always two-character.
 12. **Empty states**: dashed border (default empty) or primary-tinted dashed border (empty-CTA). Never solid borders for empty states.
+13. **Task tiles in `Dnes udělej`**: pending tiles use `{components.task-tile-pending}` (neutral white + hairline) — never primary-dashed, never warning-tinted. Done tiles use `{components.task-tile-done}` (success-tinted). All three tiles in the row share one geometry; only state changes color.
 
-A screen is "in-system" when **all twelve** are satisfied.
+A screen is "in-system" when **all thirteen** are satisfied.

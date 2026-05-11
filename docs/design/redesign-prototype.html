@@ -56,14 +56,14 @@
 
   /* Nav phone shell (Tailwind, 320×680 — for nav/Týden showcase) */
   .phone { width: 320px; height: 680px; background: #000; border-radius: 44px; padding: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.15); position: relative; flex-shrink: 0; }
-  .phone-screen { width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden; position: relative; }
+  .phone-screen { width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
   .phone::after { content: ""; position: absolute; inset: 10px; border-radius: 34px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); pointer-events: none; }
   .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 32px; background: #000; border-radius: 20px; z-index: 50; }
-  .status-bar { position: absolute; top: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 14px; font-weight: 600; color: #000; z-index: 40; }
+  .status-bar { flex-shrink: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 14px; font-weight: 600; color: #000; z-index: 40; }
   .status-bar .time { padding-top: 14px; }
   .status-bar .icons { padding-top: 14px; display: flex; gap: 5px; align-items: center; }
   .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; background: #000; border-radius: 2px; opacity: 0.85; z-index: 60; }
-  .screen-content { position: absolute; top: 52px; left: 0; right: 0; bottom: 0; overflow-y: auto; }
+  .screen-content { flex: 1; min-height: 0; overflow-y: auto; }
   .screen-content::-webkit-scrollbar { display: none; }
   .insight-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 99px; }
   .photo-thumb { background: linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4)); }
@@ -83,11 +83,6 @@
 
   .divider { height: 1px; background: rgba(61,43,47,0.1); margin: 48px 0; }
 
-  .notes-section { margin-top: 16px; padding-top: 8px; }
-  .notes-grid { display: grid; grid-template-columns: repeat(4, minmax(280px, 1fr)); gap: 18px; margin-top: 24px; }
-  .note-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(61,43,47,0.1); border-radius: 14px; padding: 16px 18px; }
-  .note-card-title { font-size: 12px; font-weight: 800; color: #3D2B2F; margin-bottom: 8px; }
-  .note-card-body { font-size: 12px; color: rgba(61,43,47,0.65); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -116,6 +111,112 @@
 
   <div class="flex flex-wrap gap-10 items-start">
 
+    <!-- ONB 0 — Vítej (pre-onboarding) -->
+    <div>
+      <div class="phase-label">▸ ONBOARDING · 0 · Vítej</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-28 flex flex-col">
+          <div class="px-5 pt-8 flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8B4557" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <div class="text-[10px] uppercase tracking-wide text-text-muted mb-2">Atopický pomocník</div>
+            <h1 class="text-2xl font-bold text-text leading-tight mb-3">Vítej</h1>
+            <p class="text-[13px] text-text leading-relaxed mb-2">
+              Pomůžeme ti najít, co miminku <strong>spouští ekzém</strong>.
+            </p>
+            <p class="text-[12px] text-text-muted leading-relaxed">
+              Společně projdeme <strong>eliminační dietou</strong> a postupně budeme testovat jednotlivé alergeny. Ty zaznamenáváš jídlo a stav kůže — my hledáme souvislosti.
+            </p>
+          </div>
+
+          <div class="px-5 mt-6 space-y-2.5">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-sm font-bold shrink-0">1</div>
+              <div class="flex-1">
+                <div class="text-[13px] font-semibold text-text leading-tight">Krátký dotazník</div>
+                <div class="text-[11px] text-text-muted leading-snug">6 otázek o miminku a vašem jídelníčku.</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-sm font-bold shrink-0">2</div>
+              <div class="flex-1">
+                <div class="text-[13px] font-semibold text-text leading-tight">Plán na míru</div>
+                <div class="text-[11px] text-text-muted leading-snug">Sestavíme harmonogram fází podle závažnosti.</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-sm font-bold shrink-0">3</div>
+              <div class="flex-1">
+                <div class="text-[13px] font-semibold text-text leading-tight">Denní záznamy</div>
+                <div class="text-[11px] text-text-muted leading-snug">Pár klepnutí denně — zbytek vyhodnotíme.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 mt-6 text-[11px] text-text-muted leading-relaxed flex items-start gap-2">
+            <span class="text-primary">ⓘ</span>
+            <span>Všechna data zůstávají v zařízení. Nikam je neodesíláme.</span>
+          </div>
+        </div>
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
+          <button class="w-full py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm">Začít</button>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Úvodní obrazovka před prvním otevřením dotazníku. Klepnutí na <em>Začít</em> spustí onboarding (krok 1 — datum narození).</div>
+    </div>
+
+    <!-- ONB 1 — Datum narození · prázdný stav (před výběrem) -->
+    <div>
+      <div class="phase-label">▸ ONBOARDING · 1 / 6 · Datum narození · prázdný</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <div class="px-5 pt-3 pb-3">
+            <div class="text-[11px] uppercase tracking-wide text-text-muted">Vítej · Atopický pomocník</div>
+            <div class="flex items-center gap-1.5 mt-3">
+              <span class="h-1.5 flex-1 rounded-full bg-primary"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-surface-dark"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-surface-dark"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-surface-dark"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-surface-dark"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-surface-dark"></span>
+            </div>
+            <div class="text-[10px] text-text-muted mt-1.5 text-right">Krok 1 z 6</div>
+          </div>
+          <div class="px-5 pt-2">
+            <h2 class="text-xl font-bold text-text leading-tight">Kdy se miminko narodilo?</h2>
+            <p class="text-[12px] text-text-muted mt-1.5 leading-relaxed">Pomůže nám to spočítat věk a doporučit správný harmonogram.</p>
+          </div>
+          <div class="px-5 mt-5">
+            <button class="w-full bg-primary/5 border-2 border-dashed border-primary/30 rounded-2xl p-4 text-left active:bg-primary/10">
+              <div class="text-[10px] text-primary uppercase tracking-wide mb-1">Datum narození</div>
+              <div class="text-base text-primary font-medium flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                <span>Vyber datum</span>
+              </div>
+            </button>
+            <div class="mt-3 text-[11px] text-text-muted leading-relaxed flex items-start gap-2">
+              <span class="text-primary">ⓘ</span>
+              <span>Tato data zůstávají v zařízení. Nikam je neodesíláme.</span>
+            </div>
+          </div>
+        </div>
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
+          <div class="flex gap-2">
+            <button class="flex-1 py-3 rounded-2xl bg-surface-dark text-text-muted font-semibold text-sm" disabled>Zpět</button>
+            <button class="flex-[2] py-3 rounded-2xl bg-surface-dark text-text-muted font-semibold text-sm" disabled>Další</button>
+          </div>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Před výběrem data. Tlačítko <em>Další</em> šedé / vypnuté. Klepnutí na pole otevře date-picker.</div>
+    </div>
+
     <!-- ONB 1 — Datum narození -->
     <div>
       <div class="phase-label">▸ ONBOARDING · 1 / 6 · Datum narození</div>
@@ -140,9 +241,9 @@
             <p class="text-[12px] text-text-muted mt-1.5 leading-relaxed">Pomůže nám to spočítat věk a doporučit správný harmonogram.</p>
           </div>
           <div class="px-5 mt-5">
-            <button class="w-full bg-white border-2 border-dashed border-surface-dark rounded-2xl p-4 text-left active:border-primary/40">
-              <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1">Datum narození</div>
-              <div class="text-base text-text-muted">— vyber datum —</div>
+            <button class="w-full bg-white border-2 border-primary/40 rounded-2xl p-4 text-left">
+              <div class="text-[10px] text-primary uppercase tracking-wide mb-1">Datum narození</div>
+              <div class="text-base text-text font-medium">15. 1. 2026</div>
             </button>
             <div class="mt-3 text-[11px] text-text-muted leading-relaxed flex items-start gap-2">
               <span class="text-primary">ⓘ</span>
@@ -153,12 +254,12 @@
         <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
           <div class="flex gap-2">
             <button class="flex-1 py-3 rounded-2xl bg-surface-dark text-text-muted font-semibold text-sm" disabled>Zpět</button>
-            <button class="flex-[2] py-3 rounded-2xl bg-surface-dark text-text-muted font-semibold text-sm" disabled>Další</button>
+            <button class="flex-[2] py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Další</button>
           </div>
         </nav>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Prázdný stav. Tlačítko <em>Další</em> aktivní teprve po vyplnění data.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Datum vyplněno → tlačítko <em>Další</em> aktivní. Klepnutí na pole otevře date-picker (date-birth).</div>
     </div>
 
     <!-- ONB 2 — Závažnost -->
@@ -370,6 +471,57 @@
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Více vybráno. Žlutá karta varuje před překryvem s krokem 3.</div>
     </div>
 
+    <!-- ONB 5 — Datum startu · prázdný stav (před výběrem) -->
+    <div>
+      <div class="phase-label">▸ ONBOARDING · 5 / 6 · Datum startu · prázdný</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <div class="px-5 pt-3 pb-3">
+            <div class="text-[11px] uppercase tracking-wide text-text-muted">Vítej · Atopický pomocník</div>
+            <div class="flex items-center gap-1.5 mt-3">
+              <span class="h-1.5 flex-1 rounded-full bg-primary"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-primary"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-primary"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-primary"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-primary"></span>
+              <span class="h-1.5 flex-1 rounded-full bg-surface-dark"></span>
+            </div>
+            <div class="text-[10px] text-text-muted mt-1.5 text-right">Krok 5 z 6</div>
+          </div>
+          <div class="px-5 pt-2">
+            <h2 class="text-xl font-bold text-text leading-tight">Kdy chceš začít?</h2>
+            <p class="text-[12px] text-text-muted mt-1.5 leading-relaxed">Reset začíná od tohoto data. Eliminace pak 14 dní.</p>
+          </div>
+          <div class="px-5 mt-4">
+            <button class="w-full bg-primary/5 border-2 border-dashed border-primary/30 rounded-2xl p-3 text-left flex items-center gap-3 active:bg-primary/10">
+              <span class="text-2xl">📅</span>
+              <div class="flex-1">
+                <div class="text-[10px] text-primary uppercase tracking-wide">Start programu</div>
+                <div class="text-base font-semibold text-primary">Vyber datum</div>
+              </div>
+              <span class="text-primary text-sm font-semibold">›</span>
+            </button>
+          </div>
+          <div class="mx-5 mt-3 bg-white border-2 border-dashed border-surface-dark rounded-2xl p-4">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-2">Plánovaný harmonogram</div>
+            <div class="text-[12px] text-text-muted leading-relaxed">
+              Po výběru data spočítáme reset, eliminaci a 7 testů alergenů. Konec programu se zobrazí zde.
+            </div>
+          </div>
+        </div>
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
+          <div class="flex gap-2">
+            <button class="flex-1 py-3 rounded-2xl bg-white border border-surface-dark text-text-muted font-semibold text-sm">Zpět</button>
+            <button class="flex-[2] py-3 rounded-2xl bg-surface-dark text-text-muted font-semibold text-sm" disabled>Další</button>
+          </div>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Před výběrem startu. Harmonogram je placeholder, <em>Další</em> vypnuté. Klepnutí na pole otevře date-picker.</div>
+    </div>
+
     <!-- ONB 5 — Datum startu -->
     <div>
       <div class="phase-label">▸ ONBOARDING · 5 / 6 · Datum startu</div>
@@ -491,14 +643,170 @@
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Hotovo. Tlačítko vede na Dnes (prázdný stav, ráno).</div>
     </div>
 
+    <!-- DATE PICKER — Datum narození (Onboarding krok 1 · drill-down) -->
+    <div>
+      <div class="phase-label">▸ ONBOARDING · Datum narození · výběr</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-24">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-3">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Datum narození</span>
+            </div>
+          </div>
+          <div class="px-5 pt-4 pb-2">
+            <p class="text-[12px] text-text-muted">Kdy se miminko narodilo?</p>
+          </div>
+          <div class="px-5 flex items-center justify-between mt-3 mb-2">
+            <button class="text-primary font-bold text-lg">‹</button>
+            <span class="text-[15px] font-bold text-text">Září 2025</span>
+            <button class="text-primary font-bold text-lg">›</button>
+          </div>
+          <div class="px-5 grid grid-cols-7 gap-1 mb-1 text-center">
+            <span class="text-[10px] text-text-muted py-1">Po</span>
+            <span class="text-[10px] text-text-muted py-1">Út</span>
+            <span class="text-[10px] text-text-muted py-1">St</span>
+            <span class="text-[10px] text-text-muted py-1">Čt</span>
+            <span class="text-[10px] text-text-muted py-1">Pá</span>
+            <span class="text-[10px] text-text-muted py-1">So</span>
+            <span class="text-[10px] text-text-muted py-1">Ne</span>
+          </div>
+          <div class="px-5 grid grid-cols-7 gap-1 text-center text-[12px]">
+            <button class="py-2 rounded-lg text-text">1</button>
+            <button class="py-2 rounded-lg text-text">2</button>
+            <button class="py-2 rounded-lg text-text">3</button>
+            <button class="py-2 rounded-lg text-text">4</button>
+            <button class="py-2 rounded-lg text-text">5</button>
+            <button class="py-2 rounded-lg text-text-muted">6</button>
+            <button class="py-2 rounded-lg text-text-muted">7</button>
+            <button class="py-2 rounded-lg text-text">8</button>
+            <button class="py-2 rounded-lg text-text">9</button>
+            <button class="py-2 rounded-lg text-text">10</button>
+            <button class="py-2 rounded-lg text-text">11</button>
+            <button class="py-2 rounded-lg bg-primary text-white font-semibold">12</button>
+            <button class="py-2 rounded-lg text-text-muted">13</button>
+            <button class="py-2 rounded-lg text-text-muted">14</button>
+            <button class="py-2 rounded-lg text-text">15</button>
+            <button class="py-2 rounded-lg text-text">16</button>
+            <button class="py-2 rounded-lg text-text">17</button>
+            <button class="py-2 rounded-lg text-text">18</button>
+            <button class="py-2 rounded-lg text-text">19</button>
+            <button class="py-2 rounded-lg text-text-muted">20</button>
+            <button class="py-2 rounded-lg text-text-muted">21</button>
+            <button class="py-2 rounded-lg text-text">22</button>
+            <button class="py-2 rounded-lg text-text">23</button>
+            <button class="py-2 rounded-lg text-text">24</button>
+            <button class="py-2 rounded-lg text-text">25</button>
+            <button class="py-2 rounded-lg text-text">26</button>
+            <button class="py-2 rounded-lg text-text-muted">27</button>
+            <button class="py-2 rounded-lg text-text-muted">28</button>
+            <button class="py-2 rounded-lg text-text">29</button>
+            <button class="py-2 rounded-lg text-text">30</button>
+          </div>
+          <div class="mx-5 mt-4 bg-white border border-surface-dark rounded-2xl p-3 text-center">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1">Vybráno</div>
+            <div class="text-[15px] font-bold text-primary">12. 9. 2025</div>
+          </div>
+        </div>
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
+          <button class="w-full py-3 rounded-2xl bg-primary text-white font-bold text-sm">Potvrdit datum</button>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Tap „— vyber datum —" v kroku 1 → tento screen. Potvrdit vrací na krok 1 s vybraným datem.</div>
+    </div>
+
+    <!-- DATE PICKER — Datum startu programu (Onboarding krok 5 · drill-down) -->
+    <div>
+      <div class="phase-label">▸ ONBOARDING · Datum startu · výběr</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-24">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-3">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Datum startu</span>
+            </div>
+          </div>
+          <div class="px-5 pt-4 pb-2">
+            <p class="text-[12px] text-text-muted">Kdy chceš začít program?</p>
+          </div>
+          <div class="px-5 flex items-center justify-between mt-3 mb-2">
+            <button class="text-primary font-bold text-lg">‹</button>
+            <span class="text-[15px] font-bold text-text">Leden 2026</span>
+            <button class="text-primary font-bold text-lg">›</button>
+          </div>
+          <div class="px-5 grid grid-cols-7 gap-1 mb-1 text-center">
+            <span class="text-[10px] text-text-muted py-1">Po</span>
+            <span class="text-[10px] text-text-muted py-1">Út</span>
+            <span class="text-[10px] text-text-muted py-1">St</span>
+            <span class="text-[10px] text-text-muted py-1">Čt</span>
+            <span class="text-[10px] text-text-muted py-1">Pá</span>
+            <span class="text-[10px] text-text-muted py-1">So</span>
+            <span class="text-[10px] text-text-muted py-1">Ne</span>
+          </div>
+          <div class="px-5 grid grid-cols-7 gap-1 text-center text-[12px]">
+            <span></span><span></span><span></span>
+            <button class="py-2 rounded-lg text-text">1</button>
+            <button class="py-2 rounded-lg bg-primary text-white font-semibold">2</button>
+            <button class="py-2 rounded-lg text-text-muted">3</button>
+            <button class="py-2 rounded-lg text-text-muted">4</button>
+            <button class="py-2 rounded-lg text-text">5</button>
+            <button class="py-2 rounded-lg text-text">6</button>
+            <button class="py-2 rounded-lg text-text">7</button>
+            <button class="py-2 rounded-lg text-text">8</button>
+            <button class="py-2 rounded-lg text-text">9</button>
+            <button class="py-2 rounded-lg text-text-muted">10</button>
+            <button class="py-2 rounded-lg text-text-muted">11</button>
+            <button class="py-2 rounded-lg text-text">12</button>
+            <button class="py-2 rounded-lg text-text">13</button>
+            <button class="py-2 rounded-lg text-text">14</button>
+            <button class="py-2 rounded-lg text-text">15</button>
+            <button class="py-2 rounded-lg text-text">16</button>
+            <button class="py-2 rounded-lg text-text-muted">17</button>
+            <button class="py-2 rounded-lg text-text-muted">18</button>
+            <button class="py-2 rounded-lg text-text">19</button>
+            <button class="py-2 rounded-lg text-text">20</button>
+            <button class="py-2 rounded-lg text-text">21</button>
+            <button class="py-2 rounded-lg text-text">22</button>
+            <button class="py-2 rounded-lg text-text">23</button>
+            <button class="py-2 rounded-lg text-text-muted">24</button>
+            <button class="py-2 rounded-lg text-text-muted">25</button>
+            <button class="py-2 rounded-lg text-text">26</button>
+            <button class="py-2 rounded-lg text-text">27</button>
+            <button class="py-2 rounded-lg text-text">28</button>
+            <button class="py-2 rounded-lg text-text">29</button>
+            <button class="py-2 rounded-lg text-text">30</button>
+            <button class="py-2 rounded-lg text-text-muted">31</button>
+            <span></span>
+          </div>
+          <div class="mx-5 mt-3 bg-white border border-surface-dark rounded-2xl p-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1 text-center">Vybráno</div>
+            <div class="text-[15px] font-bold text-primary text-center">2. 1. 2026</div>
+            <div class="mt-2 pt-2 border-t border-surface-dark text-[11px] text-text-muted leading-relaxed">
+              Reset 5 dní · Eliminace od 7. 1. · 1. test cca 21. 1.
+            </div>
+          </div>
+        </div>
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
+          <button class="w-full py-3 rounded-2xl bg-primary text-white font-bold text-sm">Potvrdit datum</button>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Tap „Změnit ›" v kroku 5 → tento screen. Potvrdit vrací na krok 5 s vybraným datem a aktualizovaným harmonogramem.</div>
+    </div>
+
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
-     SECTION A — NAVIGACE + TÝDEN  (static Tailwind, 320×680 phones)
+     SECTION A — DNES  (static Tailwind, 320×680 phones)
      ════════════════════════════════════════════════════════════════ -->
 <div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
-  <div class="section-eyebrow">A — Navigace + Týden</div>
+  <div class="section-eyebrow">A — Dnes</div>
   <div class="section-heading">Postup → Týden, fotky jako důkaz</div>
   <div class="section-desc">
     Záložka přejmenována na <strong>Týden</strong> (časově ohraničené, krásně se páruje s „Dnes"). Program demotován na tenký kontextový proužek v hlavičce. Fotky vstupují jako <strong>důkaz uvnitř insightů</strong> (mini-thumbnail vedle případů), galerie zůstává jako odlehčená spodní řádka pro „prolistovat".
@@ -554,32 +862,31 @@
             </div>
           </button>
 
-          <!-- DNES UDĚLEJ — daily CTA from Program (NEW) -->
-          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
-            <div class="flex items-center justify-between mb-2.5">
-              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Dnes udělej</div>
-              <span class="text-[10px] text-text-muted">0 / 3</span>
-            </div>
-            <div class="grid grid-cols-3 gap-1.5">
-              <button class="bg-white border border-surface-dark rounded-xl p-2 text-center">
-                <div class="text-xl">🚫</div>
-                <div class="text-[10px] font-bold text-text mt-1 leading-tight">Vyluč alergeny</div>
-                <div class="text-[9px] text-text-muted mt-0.5">i skryté</div>
-              </button>
-              <button class="bg-white border border-surface-dark rounded-xl p-2 text-center">
-                <div class="text-xl">👁️</div>
-                <div class="text-[10px] font-bold text-text mt-1 leading-tight">Sleduj kůži</div>
-                <div class="text-[9px] text-text-muted mt-0.5">čekáme zlepšení</div>
-              </button>
-              <button class="bg-primary/5 border-2 border-dashed border-primary/40 rounded-xl p-2 text-center">
-                <div class="text-xl">📸</div>
-                <div class="text-[10px] font-bold text-primary mt-1 leading-tight">Foto kůže</div>
-                <div class="text-[9px] text-text-muted mt-0.5">denně</div>
-              </button>
-            </div>
+          <!-- TOP COUNTER — tracker + reminder in one line, no icons -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between">
+            <div class="text-[12px] text-text">Dnes ti chybí stav, foto a jídla.</div>
+            <div class="text-[10px] text-text-muted font-bold tracking-wide">0 / 3</div>
           </div>
 
-          <!-- Smím / vyhýbám se (přesunuto z Programu) -->
+          <!-- STAV EKZÉMU — empty (passive status) -->
+          <div class="mx-5 mb-3 bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              <span class="text-[10px] text-text-muted">neuložen</span>
+            </div>
+            <div class="text-sm text-text-muted">Zatím není záznam pro dnešek.</div>
+          </div>
+
+          <!-- FOTO KŮŽE — empty (passive status) -->
+          <div class="mx-5 mb-3 bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Foto kůže</div>
+              <span class="text-[10px] text-text-muted">chybí</span>
+            </div>
+            <div class="text-sm text-text-muted">Žádný snímek pro dnešek.</div>
+          </div>
+
+          <!-- Smím / vyhýbám se (reference) -->
           <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl overflow-hidden">
             <div class="grid grid-cols-2 divide-x divide-surface-dark">
               <div class="p-3">
@@ -603,26 +910,19 @@
             </div>
           </div>
 
-          <button class="mx-5 mb-3 block w-[calc(100%-2.5rem)] bg-primary/5 border-2 border-dashed border-primary/30 rounded-2xl p-4 text-left active:bg-primary/10">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-xs text-primary uppercase tracking-wide font-semibold">Stav ekzému</div>
-              <span class="text-[11px] text-primary">›</span>
+          <!-- DNEŠNÍ JÍDLA — empty (passive status) -->
+          <div class="mx-5 mb-3 bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Dnešní jídla</div>
+              <span class="text-[10px] text-text-muted">0 záznamů</span>
             </div>
-            <div class="text-sm text-primary font-medium">Klepni a zapiš dnešní stav</div>
-            <div class="text-[11px] text-text-muted mt-1">Klidný · mírný · podrážděný · zhoršený · akutní</div>
-          </button>
-
-          <div class="mx-5 mb-3 bg-white border-2 border-dashed border-surface-dark rounded-2xl p-4">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-xs text-text-muted uppercase tracking-wide">Dnešní jídla</div>
-              <span class="text-[11px] text-text-muted">0 záznamů</span>
-            </div>
-            <div class="text-sm text-text-muted">Zatím nic — první záznam přidej tlačítkem dole.</div>
+            <div class="text-sm text-text-muted">Zatím žádný záznam.</div>
           </div>
 
+          <!-- Bottom hint — single FAB-pointer, replaces 3× per-card hints -->
           <div class="px-5 mt-2 mb-3 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" style="transform:rotate(180deg);transform-origin:center"/></svg>
-            <span>Klepni na <strong>+</strong> a vyber: foto · jídlo · stav</span>
+            <span>Vše zapisuj přes <strong>+</strong>: foto · jídlo · stav</span>
           </div>
         </div>
 
@@ -644,7 +944,7 @@
         <div class="home-indicator"></div>
       </div></div>
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">
-        Ráno: phase hero říká „v jaké jsi fázi", pod ním 3 dnešní úkoly přímo z Programu (foto má dashed-primary). Klepnutím na hero se otevře Program.
+        Ráno: phase hero, pod ním řádek „chybí …" + dashed karty pro stav, foto a jídla. Karty jsou pasivní (status), zápis vede výhradně přes FAB. Klepnutím na hero se otevře Program.
       </div>
     </div>
 
@@ -696,32 +996,58 @@
             </div>
           </button>
 
-          <!-- DNES UDĚLEJ -->
+          <!-- TOP COUNTER (all done) -->
+          <div class="mx-5 mb-3 bg-success/5 border border-success/30 rounded-2xl px-3.5 py-2.5 flex items-center justify-between">
+            <div class="text-[12px] text-success font-semibold">Vše dnes hotovo.</div>
+            <div class="text-[10px] text-success font-bold tracking-wide">3 / 3 ✓</div>
+          </div>
+
+          <!-- STAV EKZÉMU — multi-entry list -->
           <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
-            <div class="flex items-center justify-between mb-2.5">
-              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Dnes udělej</div>
-              <span class="text-[10px] text-success font-semibold">3 / 3 ✓</span>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              <span class="text-[10px] text-text-muted">3 záznamy</span>
             </div>
-            <div class="grid grid-cols-3 gap-1.5">
-              <button class="bg-success/5 border border-success/30 rounded-xl p-2 text-center relative">
-                <div class="text-xl">🚫</div>
-                <div class="text-[10px] font-bold text-text mt-1 leading-tight">Vyluč alergeny</div>
-                <div class="text-[9px] text-success mt-0.5 font-semibold">✓ ok</div>
+            <div class="divide-y divide-surface-dark">
+              <button class="w-full flex items-center gap-3 py-2 text-left">
+                <span class="text-[10px] text-text-muted w-9 shrink-0">9:12</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-sev-1 shrink-0"></span>
+                <span class="flex-1 text-sm text-text">Klidný</span>
+                <span class="text-text-muted text-xs">›</span>
               </button>
-              <button class="bg-success/5 border border-success/30 rounded-xl p-2 text-center">
-                <div class="text-xl">👁️</div>
-                <div class="text-[10px] font-bold text-text mt-1 leading-tight">Sleduj kůži</div>
-                <div class="text-[9px] text-success mt-0.5 font-semibold">✓ ok</div>
+              <button class="w-full flex items-center gap-3 py-2 text-left">
+                <span class="text-[10px] text-text-muted w-9 shrink-0">14:30</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-sev-2 shrink-0"></span>
+                <span class="flex-1 text-sm text-text">Mírný · lokty</span>
+                <span class="text-text-muted text-xs">›</span>
               </button>
-              <button class="bg-success/5 border border-success/30 rounded-xl p-2 text-center">
-                <div class="text-xl">📸</div>
-                <div class="text-[10px] font-bold text-text mt-1 leading-tight">Foto kůže</div>
-                <div class="text-[9px] text-success mt-0.5 font-semibold">✓ pořízeno</div>
+              <button class="w-full flex items-center gap-3 py-2 text-left">
+                <span class="text-[10px] text-text-muted w-9 shrink-0">19:45</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-sev-1 shrink-0"></span>
+                <span class="flex-1 text-sm text-text">Klidný</span>
+                <span class="text-text-muted text-xs">›</span>
               </button>
             </div>
           </div>
 
-          <!-- Smím / vyhýbám se (přesunuto z Programu) -->
+          <!-- FOTO KŮŽE — multi-entry thumbs -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Foto kůže</div>
+              <span class="text-[10px] text-text-muted">2 snímky</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="aspect-square rounded-xl bg-surface-dark relative overflow-hidden">
+                <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white bg-black/50 rounded px-1 py-0.5 text-center">8:55</span>
+              </button>
+              <button class="aspect-square rounded-xl bg-surface-dark relative overflow-hidden">
+                <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white bg-black/50 rounded px-1 py-0.5 text-center">19:50</span>
+              </button>
+              <div class="aspect-square"></div>
+            </div>
+          </div>
+
+          <!-- Smím / vyhýbám se (reference) -->
           <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl overflow-hidden">
             <div class="grid grid-cols-2 divide-x divide-surface-dark">
               <div class="p-3">
@@ -745,24 +1071,28 @@
             </div>
           </div>
 
-          <div class="mx-5 bg-white rounded-2xl border border-surface-dark p-4 mb-3">
-            <div class="text-xs text-text-muted uppercase tracking-wide mb-2">Stav ekzému</div>
-            <div class="flex items-center gap-3">
-              <span class="w-3 h-3 rounded-full bg-sev-3 shrink-0"></span>
-              <div class="flex-1">
-                <div class="text-base font-semibold text-text">Podrážděný</div>
-                <div class="text-[11px] text-text-muted">červená místa na lících, svědí</div>
-              </div>
-              <button class="text-[11px] text-text-muted px-2 py-1">upravit</button>
+          <!-- DNEŠNÍ JÍDLA — list -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Dnešní jídla</div>
+              <span class="text-[10px] text-text-muted">3 záznamy</span>
             </div>
-          </div>
-
-          <div class="px-5 mb-3">
-            <div class="text-xs text-text-muted uppercase tracking-wide mb-2">Dnešní jídla</div>
-            <div class="bg-white rounded-2xl border border-surface-dark divide-y divide-surface-dark">
-              <div class="p-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-xs font-semibold">S</div><div class="flex-1"><div class="text-sm font-medium text-text">Snídaně — ovesná kaše</div><div class="text-xs text-text-muted">7:30 · bez mléka</div></div></div>
-              <div class="p-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold">O</div><div class="flex-1"><div class="text-sm font-medium text-text">Oběd — kuře, rýže</div><div class="text-xs text-text-muted">12:15</div></div></div>
-              <div class="p-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold">SV</div><div class="flex-1"><div class="text-sm font-medium text-text">Svačina — banán</div><div class="text-xs text-text-muted">15:40</div></div></div>
+            <div class="divide-y divide-surface-dark">
+              <button class="w-full p-2 flex items-center gap-3 text-left">
+                <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-xs font-semibold shrink-0">S</div>
+                <div class="flex-1"><div class="text-sm font-medium text-text">Snídaně — ovesná kaše</div><div class="text-[11px] text-text-muted">7:30 · bez mléka</div></div>
+                <span class="text-text-muted text-xs">›</span>
+              </button>
+              <button class="w-full p-2 flex items-center gap-3 text-left">
+                <div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold shrink-0">O</div>
+                <div class="flex-1"><div class="text-sm font-medium text-text">Oběd — kuře, rýže</div><div class="text-[11px] text-text-muted">12:15</div></div>
+                <span class="text-text-muted text-xs">›</span>
+              </button>
+              <button class="w-full p-2 flex items-center gap-3 text-left">
+                <div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold shrink-0">SV</div>
+                <div class="flex-1"><div class="text-sm font-medium text-text">Svačina — banán</div><div class="text-[11px] text-text-muted">15:40</div></div>
+                <span class="text-text-muted text-xs">›</span>
+              </button>
             </div>
           </div>
         </div>
@@ -783,9 +1113,210 @@
         <div class="home-indicator"></div>
       </div></div>
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">
-        Stejná osnova s vyplněnými daty. Phase hero + 3 hotové úkoly + zapsaný stav + 3 jídla. Hero pořád vede do Programu.
+        Vyplněný den: counter „Vše hotovo ✓", multi-entry karty (3× stav, 2× foto, 3× jídla). Klepnutí na řádek = úprava záznamu. Nový záznam vždy přes FAB.
       </div>
     </div>
+
+    <!-- DNES · vyhodnocení testu čeká — eval banner above phase hero -->
+    <div>
+      <div class="phase-label">▸ DNES · vyhodnocení testu čeká</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-24">
+          <div class="px-5 pt-3 pb-2 flex items-end justify-between">
+            <div>
+              <div class="text-[11px] uppercase tracking-wide text-text-muted">Pondělí · 5. května</div>
+              <h2 class="text-2xl font-bold text-text">Dnes</h2>
+            </div>
+          </div>
+
+          <button class="block mx-5 mb-3 w-[calc(100%-2.5rem)] bg-white rounded-2xl border border-surface-dark p-3.5 text-left">
+            <div class="flex items-center gap-2.5 mb-2">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0" style="background:rgba(74,124,111,0.18)">🔬</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-sm font-bold text-text">Test sóji</span>
+                  <span class="text-[8px] font-extrabold tracking-wider text-white rounded-full px-1.5 py-0.5" style="background:#4A7C6F">TEST</span>
+                </div>
+                <div class="text-[11px] text-text-muted mt-0.5">Den 5 / 5 · poslední den</div>
+              </div>
+              <span class="text-text-muted text-sm">›</span>
+            </div>
+            <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
+              <div class="h-full rounded-full" style="background:#4A7C6F;width:100%"></div>
+            </div>
+          </button>
+
+          <!-- TOP COUNTER — 4 tasks today (stav, foto, jídla, vyhodnocení testu) -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between">
+            <div class="text-[12px] text-text">Dnes vyhodnoť test sóji.</div>
+            <div class="text-[10px] text-text-muted font-bold tracking-wide">3 / 4</div>
+          </div>
+
+          <!-- VYHODNOCENÍ TESTU — passive status, action lives in FAB -->
+          <div class="mx-5 mb-3 bg-white border-2 border-dashed rounded-2xl p-3.5" style="border-color:rgba(74,124,111,0.4)">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-[10px] uppercase tracking-wide font-semibold" style="color:#4A7C6F">Vyhodnocení testu sóji</div>
+              <span class="text-[10px]" style="color:#4A7C6F">čeká</span>
+            </div>
+            <div class="text-sm text-text-muted">Den 5/5 dokončen. Posuď reakci a rozhodni o zařazení.</div>
+          </div>
+
+          <!-- STAV EKZÉMU — single entry today -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              <span class="text-[10px] text-text-muted">1 záznam</span>
+            </div>
+            <button class="w-full flex items-center gap-3 py-2 text-left">
+              <span class="text-[10px] text-text-muted w-9 shrink-0">8:20</span>
+              <span class="w-2.5 h-2.5 rounded-full bg-sev-2 shrink-0"></span>
+              <div class="flex-1">
+                <div class="text-sm text-text">Mírně podrážděný</div>
+                <div class="text-[11px] text-text-muted">tváře — pozoruji od dnes ráno</div>
+              </div>
+              <span class="text-text-muted text-xs">›</span>
+            </button>
+          </div>
+
+          <!-- FOTO KŮŽE — single thumb -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Foto kůže</div>
+              <span class="text-[10px] text-text-muted">1 snímek</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="aspect-square rounded-xl bg-surface-dark relative overflow-hidden">
+                <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white bg-black/50 rounded px-1 py-0.5 text-center">8:30</span>
+              </button>
+              <div class="aspect-square"></div>
+              <div class="aspect-square"></div>
+            </div>
+          </div>
+
+          <!-- DNEŠNÍ JÍDLA — list -->
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Dnešní jídla</div>
+              <span class="text-[10px] text-text-muted">2 záznamy</span>
+            </div>
+            <div class="divide-y divide-surface-dark">
+              <button class="w-full p-2 flex items-center gap-3 text-left">
+                <div class="w-8 h-8 rounded-full bg-success/15 text-success flex items-center justify-center text-xs font-semibold shrink-0">S</div>
+                <div class="flex-1"><div class="text-sm font-medium text-text">Snídaně — rýžová kaše</div><div class="text-[11px] text-text-muted">7:30 · sója (test)</div></div>
+                <span class="text-text-muted text-xs">›</span>
+              </button>
+              <button class="w-full p-2 flex items-center gap-3 text-left">
+                <div class="w-8 h-8 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-semibold shrink-0">O</div>
+                <div class="flex-1"><div class="text-sm font-medium text-text">Oběd — kuře, brambory</div><div class="text-[11px] text-text-muted">12:00</div></div>
+                <span class="text-text-muted text-xs">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5">
+          <div class="bg-white border-t border-surface-dark pt-2 grid grid-cols-3 items-end">
+            <div class="flex flex-col items-center gap-0.5 text-primary"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg><span class="text-[10px] font-semibold">Dnes</span></div>
+            <div class="flex justify-center"><button class="-mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light">+</button></div>
+            <div class="flex flex-col items-center gap-0.5 text-text-muted"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="text-[10px]">Týden</span></div>
+          </div>
+        </nav>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Poslední den reintro testu — 4 úkoly (stav, foto, jídla, vyhodnocení). Counter ukazuje 3/4. Karta vyhodnocení je pasivní; akci spouští FAB, který má v ten den 4. položku „Vyhodnotit test" (v barvě testu).</div>
+    </div>
+
+    <!-- DNES · FAB sheet (test-end day) — 4 items including Vyhodnotit test -->
+    <div>
+      <div class="phase-label">▸ DNES · FAB otevřený (den vyhodnocení testu)</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+
+        <!-- dimmed page beneath the sheet -->
+        <div class="screen-content pb-24 opacity-40 pointer-events-none">
+          <div class="px-5 pt-3 pb-2 flex items-end justify-between">
+            <div>
+              <div class="text-[11px] uppercase tracking-wide text-text-muted">Pondělí · 5. května</div>
+              <h2 class="text-2xl font-bold text-text">Dnes</h2>
+            </div>
+          </div>
+          <div class="mx-5 mb-3 bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between">
+            <div class="text-[12px] text-text">Dnes vyhodnoť test sóji.</div>
+            <div class="text-[10px] text-text-muted font-bold tracking-wide">3 / 4</div>
+          </div>
+          <div class="mx-5 mb-3 bg-white border-2 border-dashed rounded-2xl p-3.5" style="border-color:rgba(74,124,111,0.4)">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-[10px] uppercase tracking-wide font-semibold" style="color:#4A7C6F">Vyhodnocení testu sóji</div>
+              <span class="text-[10px]" style="color:#4A7C6F">čeká</span>
+            </div>
+            <div class="text-sm text-text-muted">Den 5/5 dokončen.</div>
+          </div>
+        </div>
+
+        <!-- backdrop -->
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:10"></div>
+        <!-- bottom sheet — 4 items, last is the test eval (teal accent) -->
+        <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;background:#FFFFFF;border-radius:20px 20px 0 0">
+          <div class="px-5 pt-4 pb-2 text-center">
+            <div class="text-[11px] text-text-muted uppercase tracking-wide">Co chceš zapsat?</div>
+          </div>
+          <div class="mx-5 border-t border-surface-dark"></div>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(122,100,104,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-text-muted text-left">Přidat fotku</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,69,87,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B4557" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] font-semibold text-text text-left">Přidat jídlo</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-5 py-4">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(122,100,104,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7H2v-7a6 6 0 0 1 6-6"/><circle cx="12" cy="6" r="3"/><path d="M9 14h6"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-text-muted text-left">Zaznamenat stav kůže</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <div class="mx-5 border-t border-surface-dark"></div>
+          <button class="w-full flex items-center gap-3 px-5 py-4">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(74,124,111,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A7C6F" stroke-width="2"><path d="M9 3h6v3l4 8a4 4 0 0 1-4 5H9a4 4 0 0 1-4-5l4-8z"/><path d="M7 14h10"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-left" style="color:#4A7C6F">Vyhodnotit test sóji</span>
+            <span class="text-sm" style="color:#4A7C6F">›</span>
+          </button>
+          <button class="w-full py-4 text-center text-[13px] text-text-muted">Zrušit</button>
+          <div style="height:20px"></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">FAB sheet má v den vyhodnocení testu 4. položku „Vyhodnotit test" v barvě testu (teal). Oddělená separátorem od tří denních akcí; Czech sublabel vysvětluje. Po skončení testu položka zmizí.</div>
+    </div>
+
+
+  </div>
+
+  <div class="divider"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION A.5 — TÝDEN  (static Tailwind, 320×680 phone)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">A.5 — Týden</div>
+  <div class="section-heading">Týdenní souhrn a souvislosti</div>
+  <div class="section-desc">
+    Druhá záložka v navigaci. Časově ohraničený přehled: program (kontext) → shrnutí týdne → 3 insighty s fotkami uvnitř → galerie jako horizontální strip. Read-only — bez FAB.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
 
     <!-- TÝDEN -->
     <div>
@@ -1290,8 +1821,6 @@ function PhaseExpansion({ phase: p }) {
         {eyebrow}
       </p>
 
-      <ExpansionStatsTiles stats={p.expansionStats} />
-
       {days.map((d, i) => {
         const skinKey = isTest
           ? (d.status === 'done' ? (d.outcome === 'ok' ? 'clear' : 'mild') : d.status === 'current' ? 'today' : 'future')
@@ -1732,41 +2261,14 @@ function App() {
       <div className="divider" />
 
       <div className="section-eyebrow">B — Program stránka · Řada 2</div>
-      <div className="section-heading">Drill-down do fází, testů a naplánování re-testu</div>
+      <div className="section-heading">Naplánování re-testu z rozbalené fáze</div>
       <div className="section-desc">
-        Klepnutí na řádek v Průběh tabu otevře detail. Stejný layout pro fázi i alergenový test: hero shrnutí + 3 kachle + den-po-dni timeline. Detail alergenu s mírnou reakcí má tlačítko "+ Naplánovat re-test", které otevře setup screen s datem a plánem dávek.
+        Detail fáze a alergenového testu se zobrazí přímo v rozbalené řádce v Průběh tabu (nemáme samostatný detail screen — duplikoval by stejná data). Re-test se otevírá z tlačítka „+ Re-test" inline u alergenu s reakcí.
       </div>
       <div className="phone-row">
-        <DetailScreenWithLabel id="dairy"       customLabel="Detail · Mléko (toleruje)" dotColor={c.success} />
-        <DetailScreenWithLabel id="soy"         customLabel="Detail · Sója (mírná reakce)" dotColor={c.warning} />
-        <DetailScreenWithLabel id="elimination" customLabel="Detail · Eliminační fáze (dokončeno)" dotColor={c.success} />
         <RetestSetupWithLabel allergenId="soy"  customLabel="Naplánovat re-test (Sója)" dotColor={c.primary} />
       </div>
 
-      <div className="divider" />
-
-      {/* Notes section — extra padding to ensure full visibility */}
-      <div className="notes-section">
-        <div className="section-eyebrow">Klíčová designová rozhodnutí</div>
-        <div className="section-heading">Souhrn všech kroků iterace</div>
-        <div className="notes-grid">
-          {[
-            { title: '1. Den jako základní jednotka', body: 'Reset 14 dní · eliminace 42 dní · test 5 dní · re-test 5 dní. Žádné týdny — den je jednoznačný. Pokrok protokolu: "Den 78 / 120". Pily pro krátké fáze (≤7 dní), pruh pro dlouhé.' },
-            { title: '2. Klikací hero karty napříč fázemi', body: 'Reset/Eliminace/Test/Re-test sdílí stejnou expanzi: 3 kachle (foto coverage, shrnutí kůže, dietní chyba) + den-po-dni timeline. Rodič se učí jeden vzor, který platí všude.' },
-            { title: '3. Vizuální gradient místo unifikace', body: 'Reset bíle/neutrálně → Eliminace 5% red tint → Test 10% teal → Re-test full wine + stripe. Barva je signál, ne dekorace. Re-test (s předchozí reakcí) má největší vizuální váhu.' },
-            { title: '4. Dnešní úkoly jako 3 mini-bloky', body: 'Pro testy: porce (¼ vajíčka) · monitoring (Sledujte 4 h) · foto (ráno + odpol. + večer). Foto je 3. blok, ne separátní CTA. Urgence foto bloku se mění od low (reset) po critical (re-test).' },
-            { title: '5. Re-test má vlastní vizuální identitu', body: 'Wine top stripe "RE-TEST PROBÍHÁ · 1. test mírná reakce", žlutá srovnávací karta na Dnes tabu. Kontext prvního testu je vždy viditelný — ne schovaný v expanzi.' },
-            { title: '6. Průběh tab = archiv s drill-down', body: 'Stejný card-jazyk jako Dnes. Všechny řádky klikací (›). Detail screen má hero shrnutí + 3 kachle + day timeline. Detail alergenu s mírnou reakcí umožňuje +Naplánovat re-test.' },
-            { title: '7. "Co je vidět jinde, neopakuj"', body: 'Hero subtitle s alergenem (duplikovalo title), "Hodnocení x.x" (v timeline), "PROBÍHÁ" badge (kontext), "FÁZE" tag (ikona) — vše odstraněno. Méně labels = klidnější UI.' },
-            { title: '8. "Dietní chyba" místo "odchylky"', body: '"Odchylka" v Czech UI je dvojznačná (odchylka kůže? odchylka diety?). "Dietní chyba" je jednoznačná: rodič snědl něco, co neměl. Pojmenování pro rodiče, ne pro vývojáře.' },
-          ].map((n, i) => (
-            <div key={i} className="note-card">
-              <div className="note-card-title">{n.title}</div>
-              <div className="note-card-body">{n.body}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
     </div>
   );
@@ -1982,6 +2484,986 @@ function RetestSetupInner({ allergenId }) {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.1 — FAB AKCE · VÝBĚR AKCE
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.1 — FAB Akce · Výběr akce</div>
+  <div class="section-heading">Výběr akce</div>
+  <div class="section-desc">
+    Action sheet zobrazený po klepnutí na FAB „+". Rozcestník na tři denní akce (přidat jídlo, fotku, zaznamenat stav kůže).
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
+
+    <!-- FAB ACTION MENU — výběr akce -->
+    <div>
+      <div class="phase-label">▸ FAB · Výběr akce</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <!-- Dnes backdrop (simplified) -->
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;background:#FAF8F8">
+          <div class="px-5 pt-3">
+            <div class="text-[11px] uppercase tracking-wide text-text-muted">Pondělí · 5. května</div>
+            <div class="text-2xl font-bold text-text">Dnes</div>
+          </div>
+        </div>
+        <!-- Overlay -->
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:10"></div>
+        <!-- Bottom sheet -->
+        <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;background:#FFFFFF;border-radius:20px 20px 0 0">
+          <div class="px-5 pt-4 pb-2 text-center">
+            <div class="text-[11px] text-text-muted uppercase tracking-wide">Co chceš přidat?</div>
+          </div>
+          <div class="mx-5 border-t border-surface-dark"></div>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,69,87,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B4557" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] font-semibold text-text text-left">Přidat jídlo</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(122,100,104,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-text-muted text-left">Přidat fotku</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(122,100,104,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7H2v-7a6 6 0 0 1 6-6"/><circle cx="12" cy="6" r="3"/><path d="M9 14h6"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-text-muted text-left">Zaznamenat stav kůže</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full py-4 text-center text-[13px] text-text-muted">Zrušit</button>
+          <div style="height:20px"></div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">FAB „+" → action sheet. SVG ikony místo emoji. „Přidat jídlo" vede na formulář, „Přidat fotku" na placeholder, „Zaznamenat stav kůže" na obrazovku Stav kůže miminka.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.2 — FAB AKCE · STAV KŮŽE
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.2 — FAB Akce · Stav kůže</div>
+  <div class="section-heading">Stav kůže miminka</div>
+  <div class="section-desc">
+    Denní hodnocení pokožky — tři varianty: běžný den, reintro test (s kontextovou pilulkou), zhoršení v testu (eskalace).
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
+
+    <!-- ECZEMA CHECK · normal day · no test active -->
+    <div>
+      <div class="phase-label">▸ Stav kůže · běžný den</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">19:42</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-6">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Stav kůže miminka</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+          </div>
+          <div class="px-5 pt-5">
+            <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-4">
+              <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
+              <div class="grid grid-cols-2 gap-2">
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-success">✓</span>
+                  <span class="leading-tight">Zlepšení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-text-muted">—</span>
+                  <span class="leading-tight">Beze změny</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-warning">!</span>
+                  <span class="leading-tight">Zhoršení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-danger">!!</span>
+                  <span class="leading-tight">Nová ložiska</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Denní hodnocení. Výběrem stavu se animovaně odkryje poznámka + foto + Uložit.</div>
+    </div>
+
+    <!-- ECZEMA CHECK · reintro day · context pill, no status picked yet -->
+    <div>
+      <div class="phase-label">▸ Stav kůže · reintro test</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">19:42</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-6">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Stav kůže miminka</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+          </div>
+          <div class="px-5 pt-5">
+            <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-4">
+              <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
+              <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium text-success" style="background:rgba(90,139,90,0.1)">Test vejce · den 3 z 5</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-success">✓</span>
+                  <span class="leading-tight">Zlepšení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-text-muted">—</span>
+                  <span class="leading-tight">Beze změny</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-warning">!</span>
+                  <span class="leading-tight">Zhoršení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-danger">!!</span>
+                  <span class="leading-tight">Nová ložiska</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Reintro den: stejná otázka a 4 tlačítka. Kontext testu jako malý pill uvnitř karty nad tlačítky.</div>
+    </div>
+
+    <!-- ECZEMA CHECK · reintro day · status = Zhoršení selected, progressive fields visible -->
+    <div>
+      <div class="phase-label">▸ Stav kůže · reintro test · stav vybrán</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">19:42</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-6">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Stav kůže miminka</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+          </div>
+          <div class="px-5 pt-4">
+            <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-3.5">
+              <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
+              <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium text-success" style="background:rgba(90,139,90,0.1)">Test vejce · den 3 z 5</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-success">✓</span>
+                  <span class="leading-tight">Zlepšení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-text-muted">—</span>
+                  <span class="leading-tight">Beze změny</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-warning text-sm font-medium" style="background:rgba(196,124,69,0.1);border-color:rgba(196,124,69,0.5)">
+                  <span class="text-xl leading-none">!</span>
+                  <span class="leading-tight">Zhoršení ●</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-danger">!!</span>
+                  <span class="leading-tight">Nová ložiska</span>
+                </button>
+              </div>
+              <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm bg-surface" placeholder="Zarudnutí na tvářích po snídani…">Zarudnutí na tvářích po snídani</textarea>
+              <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white">
+                <svg class="w-4 h-4 shrink-0 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span class="text-[12px] font-medium text-text-muted">Přidat fotku</span>
+              </button>
+              <button class="w-full py-2.5 rounded-xl bg-primary text-white font-semibold text-sm">Uložit</button>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Po výběru stavu se odkryjí poznámka + foto + Uložit. SVG kamera místo emoji.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.3 — FAB AKCE · PŘIDAT JÍDLO
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.3 — FAB Akce · Přidat jídlo</div>
+  <div class="section-heading">Přidat jídlo</div>
+  <div class="section-desc">
+    Formulář pro logování jídel. Varianty: default, reintro test (alergenové kategorie), přepnutí pillu (autosave toast), bez programu, vyhledávání, úprava položky.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
+
+    <!-- MEAL ADD · DEFAULT — Oběd auto-selected, 2 logged items, no conflicts -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · default</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <!-- Meal type pills · label-only · time-default = Oběd -->
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+          </div>
+
+          <!-- Recents · last 7 days · current meal-type only · top 5 -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Naposledy</div>
+            <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍗 Kuř.·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍚 Rýže·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥦 Brok.·Malé</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥕 Mrkev·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍞 Chl.·Velké</button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="px-5 pt-1 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text-muted">Hledat potravinu…</span>
+            </div>
+          </div>
+
+          <!-- Categories accordion (collapsed) -->
+          <div class="px-5 pb-3">
+            <button class="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-xs">▸</span>
+              <span class="flex-1 text-[12px] font-medium text-text text-left">Všechny kategorie</span>
+              <span class="text-[11px] text-text-muted">14</span>
+            </button>
+          </div>
+
+          <!-- V tomto jídle · live view of saved Meal items -->
+          <div class="mx-5 mb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
+            <div class="space-y-1.5">
+              <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🍗</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-text truncate">Kuřecí maso</div>
+                  <div class="text-[10px] text-text-muted">Maso · Porce · Vařené</div>
+                </div>
+                <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+              </div>
+              <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🍚</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-text truncate">Rýže</div>
+                  <div class="text-[10px] text-text-muted">Vlastní · Porce · Vařené</div>
+                </div>
+                <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Poznámka k Obědu · progresivní -->
+          <div class="mx-5 mb-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Poznámka k Obědu</div>
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-[12px] bg-white" placeholder="Volitelně…"></textarea>
+          </div>
+        </div>
+        <!-- Sticky CTA -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Autosave per tap. Sticky CTA „Hotovo" zavře session a vrátí na page odkud uživatel přišel. Poznámka k Obědu se zobrazí po prvním přidání položky.</div>
+    </div>
+
+    <!-- MEAL ADD · REINTRO — Den 2 z 5 vejce, 1 conflict logged, toast visible -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · reintro test</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">7:48</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <!-- Meal type pills · Snídaně active -->
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+            <!-- Reintro guidance banner · only during active reintro -->
+            <div class="mx-5 mb-3 rounded-xl px-3 py-2" style="background:rgba(90,139,90,0.1);border:1px solid rgba(90,139,90,0.3)">
+              <div class="text-[11px] font-semibold text-success">🔬 Den 2 z 5: zkus ½ lžičky</div>
+              <div class="text-[10px] text-text-muted mt-0.5">Vejce · žloutek</div>
+            </div>
+          </div>
+
+          <!-- Recents · Snídaně-specific -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Naposledy</div>
+            <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥣 Ovesná·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍌 Banán·1 ks</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍞 Chl.·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥑 Avok.·Malé</button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="px-5 pt-1 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text-muted">Hledat potravinu…</span>
+            </div>
+          </div>
+
+          <!-- V tomto jídle · 2 items, 1 conflict (warning border) -->
+          <div class="mx-5 mb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
+            <div class="space-y-1.5">
+              <div class="rounded-xl flex items-center gap-3 px-3 py-2.5" style="background:rgba(196,124,69,0.08);border:1px solid rgba(196,124,69,0.4)">
+                <span class="text-lg">🥛</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-text truncate">⚠ Kravské mléko</div>
+                  <div class="text-[10px]" style="color:#C47C45">Mléčné výrobky · Porce · vyřazeno</div>
+                </div>
+                <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+              </div>
+              <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🥚</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-text truncate">Žloutek</div>
+                  <div class="text-[10px] text-success">Vejce · Ochutnávka · 🔬 dávka 1 z 5</div>
+                </div>
+                <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Poznámka k Snídani · progresivní -->
+          <div class="mx-5 mb-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Poznámka k Snídani</div>
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-[12px] bg-white" placeholder="Volitelně…"></textarea>
+          </div>
+        </div>
+        <!-- Toast · 3s autodismiss · only on conflict tap -->
+        <div class="absolute left-0 right-0 z-30" style="bottom:84px">
+          <div class="mx-4 rounded-xl px-3 py-2.5 flex items-center gap-2" style="background:rgba(196,124,69,0.95);box-shadow:0 6px 20px -6px rgba(0,0,0,0.25)">
+            <span class="text-white text-[11px] font-semibold flex-1">⚠ Mléko vyřazeno — odchylka zaznamenána</span>
+            <button class="text-white text-sm leading-none">✕</button>
+          </div>
+        </div>
+        <!-- Sticky CTA -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Reintro fáze — banner s dnešní dávkou, řádek s ⚠ rámečkem pro vyřazenou potravinu, conflict toast 3 s při klepnutí. Poznámka k Snídani progresivní. CTA „Hotovo".</div>
+    </div>
+
+    <!-- MEAL ADD · PILL SWITCH — Snídaně activated, Oběd silently saved, green toast -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · přepnutí pillu</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <!-- Meal type pills · Snídaně active -->
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+          </div>
+
+          <!-- Recents · Snídaně-specific -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Naposledy</div>
+            <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥣 Ovesná·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍌 Banán·1 ks</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍞 Chl.·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥑 Avok.·Malé</button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="px-5 pt-1 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text-muted">Hledat potravinu…</span>
+            </div>
+          </div>
+
+          <!-- V tomto jídle · empty state (new slot) -->
+          <div class="mx-5 mb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
+            <div class="rounded-xl px-3 py-4 text-center" style="background:rgba(139,69,87,0.04);border:1px dashed rgba(139,69,87,0.25)">
+              <div class="text-[11px] text-text-muted">Zatím prázdné. Klepni na potravinu výše.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Green pill-switch toast · above CTA -->
+        <div class="absolute left-0 right-0 z-30" style="bottom:84px">
+          <div class="mx-4 rounded-xl px-3 py-2 flex items-center gap-2" style="background:rgba(90,139,90,0.95);box-shadow:0 6px 20px -6px rgba(0,0,0,0.25)">
+            <span class="text-white text-[11px] font-semibold flex-1">✓ Oběd uložen · 2 položky</span>
+          </div>
+        </div>
+        <!-- Sticky CTA · disabled (new slot empty) -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl text-white font-semibold text-sm" style="background:#D4CBCC;color:#7A6468">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Pill přepnut na Snídani — Oběd se tiše uložil. Non-blocking toast 2 s. Žádný modal. Sticky CTA disabled (nový slot prázdný).</div>
+    </div>
+
+    <!-- MEAL ADD · BEZ PROGRAMU — empty state, no schedule, no recents -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · bez programu</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <!-- Header · no banner, no protocol context -->
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+          </div>
+
+          <!-- No recents row (hidden) -->
+
+          <!-- Search · primary entry point when nothing else is shown -->
+          <div class="px-5 pt-4 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text-muted">Hledat potravinu…</span>
+            </div>
+          </div>
+
+          <!-- Categories accordion (collapsed) -->
+          <div class="px-5 pb-3">
+            <button class="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-xs">▸</span>
+              <span class="flex-1 text-[12px] font-medium text-text text-left">Všechny kategorie</span>
+              <span class="text-[11px] text-text-muted">14</span>
+            </button>
+          </div>
+
+          <!-- Empty hint -->
+          <div class="px-5 pt-8 text-center">
+            <div class="text-[12px] text-text-muted leading-relaxed" style="max-width:220px;margin:0 auto">
+              Začni psát potravinu výše, nebo otevři kategorie.
+            </div>
+          </div>
+        </div>
+        <!-- Sticky CTA · disabled (slot empty) -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl text-white font-semibold text-sm" style="background:#D4CBCC;color:#7A6468">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Bez aktivního programu — žádné protokolové štítky, žádné recents, žádný banner. Hledání + kategorie jako jediný vstup. Sticky CTA „Hotovo" disabled dokud uživatel nepřidá první položku. Poznámka skryta (slot prázdný).</div>
+    </div>
+
+    <!-- MEAL ADD · VYHLEDÁVÁNÍ — search active, "ml" typed, sub-items only -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · vyhledávání</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+          </div>
+
+          <!-- Search · active state, "ml" typed -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border-2" style="border-color:#8B4557">
+              <span class="text-primary text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text font-medium">ml<span class="opacity-60">|</span></span>
+              <button class="text-text-muted text-sm leading-none">✕</button>
+            </div>
+          </div>
+
+          <!-- Search results · sub-items only (Q6 — leaves) · status pill per row -->
+          <div class="px-5 pt-1">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Výsledky</div>
+            <div class="space-y-1">
+              <button class="w-full bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🥛</span>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-[12px] font-semibold text-text truncate">Kravské mléko</div>
+                  <div class="text-[10px] text-text-muted">Mléčné výrobky</div>
+                </div>
+                <span class="text-[10px] font-semibold text-danger px-2 py-0.5 rounded-full" style="background:rgba(184,68,68,0.1)">Vyloučeno</span>
+              </button>
+              <button class="w-full bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🫘</span>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-[12px] font-semibold text-text truncate">Sójové mléko</div>
+                  <div class="text-[10px] text-text-muted">Sója</div>
+                </div>
+                <span class="text-[10px] font-semibold text-danger px-2 py-0.5 rounded-full" style="background:rgba(184,68,68,0.1)">Vyloučeno</span>
+              </button>
+              <button class="w-full bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🧀</span>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-[12px] font-semibold text-text truncate">Sýr</div>
+                  <div class="text-[10px] text-text-muted">Mléčné výrobky</div>
+                </div>
+                <span class="text-[10px] font-semibold text-danger px-2 py-0.5 rounded-full" style="background:rgba(184,68,68,0.1)">Vyloučeno</span>
+              </button>
+              <button class="w-full bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🍶</span>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-[12px] font-semibold text-text truncate">Jogurt</div>
+                  <div class="text-[10px] text-text-muted">Mléčné výrobky</div>
+                </div>
+                <span class="text-[10px] font-semibold text-danger px-2 py-0.5 rounded-full" style="background:rgba(184,68,68,0.1)">Vyloučeno</span>
+              </button>
+              <!-- Custom fallback row · always last when no exact match -->
+              <button class="w-full rounded-xl flex items-center gap-3 px-3 py-2.5" style="background:rgba(139,69,87,0.06);border:1px dashed rgba(139,69,87,0.4)">
+                <span class="text-lg text-primary">＋</span>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-[12px] font-semibold text-primary truncate">Přidat „ml" jako vlastní</div>
+                  <div class="text-[10px] text-text-muted">Mimo kategorie</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Sticky CTA · disabled (no items in slot during search) -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl text-white font-semibold text-sm" style="background:#D4CBCC;color:#7A6468">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Vyhledávání aktivní — listy alergenů (sub-items only), pravý štítek statusu, dole vždy fallback „přidat jako vlastní" pro položky mimo kategorie. Recents a accordion skryté po dobu hledání. CTA sticky.</div>
+    </div>
+
+    <!-- MEAL ADD · ÚPRAVA POLOŽKY — logged row tapped, inline portion+prep chips visible -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · úprava položky</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+          </div>
+
+          <!-- Recents collapsed visually (just show one to save space) -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Naposledy</div>
+            <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍗 Kuř.·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍚 Rýže·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥦 Brok.·Malé</button>
+            </div>
+          </div>
+
+          <div class="px-5 pt-1 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text-muted">Hledat potravinu…</span>
+            </div>
+          </div>
+
+          <!-- V tomto jídle · Kuřecí maso expanded with quantity + prep chips -->
+          <div class="mx-5 mb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
+            <div class="space-y-1.5">
+              <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🍚</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-text truncate">Rýže</div>
+                  <div class="text-[10px] text-text-muted">Vlastní · Porce · Vařené</div>
+                </div>
+                <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+              </div>
+
+              <!-- Tapped row · quantity + prep chips visible inline -->
+              <div class="bg-white rounded-xl border-2 px-3 py-3 space-y-2.5" style="border-color:#8B4557">
+                <div class="flex items-center gap-3">
+                  <span class="text-lg">🍗</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[12px] font-semibold text-text truncate">Kuřecí maso</div>
+                    <div class="text-[10px] text-primary">uprav množství a přípravu</div>
+                  </div>
+                  <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+                </div>
+                <div>
+                  <div class="text-[9px] text-text-muted uppercase tracking-wide mb-1">Množství</div>
+                  <div class="flex gap-1 flex-wrap">
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Špetka</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Lžička</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Lžíce</button>
+                    <button class="px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">Porce ●</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Balení</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-text-muted uppercase tracking-wide mb-1">Příprava</div>
+                  <div class="flex gap-1 flex-wrap">
+                    <button class="px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">Vařené ●</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Dušené</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Pečené</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Smažené</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
+                <span class="text-lg">🥦</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-semibold text-text truncate">Brokolice</div>
+                  <div class="text-[10px] text-text-muted">Zelenina · Malé · Dušené</div>
+                </div>
+                <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Poznámka k Obědu · progresivní -->
+          <div class="mx-5 mb-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Poznámka k Obědu</div>
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-[12px] bg-white" placeholder="Volitelně…"></textarea>
+          </div>
+        </div>
+        <!-- Sticky CTA -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Klepnutí na uloženou položku otevře inline edit kartu se dvěma řadami chipů — Množství a Příprava. Defaulty „Porce" + „Vařené" (kategorie meat) z last-used/category fallback. Tap na chip = okamžitá změna a autosave.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.4 — FAB AKCE · VYHODNOCENÍ TESTU
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.4 — FAB Akce · Vyhodnocení testu</div>
+  <div class="section-heading">Vyhodnocení testu</div>
+  <div class="section-desc">
+    Hodnocení reakce na testovaný alergen po posledním dnu reintrodukčního testu. Toast potvrdí uložení, pak přechod zpět na Dnes.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
+
+    <!-- REINTRO EVAL — end-of-test evaluation screen: SVG icons, DOPORUČENO badge (Variant B) -->
+    <div>
+      <div class="phase-label">▸ Vyhodnocení testu</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-6">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Vyhodnocení testu</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+          </div>
+
+          <div class="px-5 pt-3 pb-3">
+            <!-- Test header — SVG egg, no emoji -->
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(74,124,111,0.18)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A7C6F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C8.13 22 5 18.42 5 14C5 8.48 8.13 2 12 2C15.87 2 19 8.48 19 14C19 18.42 15.87 22 12 22Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-base font-bold text-text">Vejce</div>
+                <div class="text-[11px] text-text-muted">5denní test · 1.–5. 5. 2026</div>
+              </div>
+            </div>
+
+            <!-- Recap timeline -->
+            <div class="bg-white border border-surface-dark rounded-2xl p-3 mb-3">
+              <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Průběh testu</div>
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <span class="font-medium text-text">½ lžičky</span>
+                  <span class="text-text-muted ml-auto">klidná</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <span class="font-medium text-text">1 lžička</span>
+                  <span class="text-text-muted ml-auto">klidná</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <span class="font-medium text-text">2 lžičky</span>
+                  <span class="text-text-muted ml-auto">klidná</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style="background:#C9A227">4</span>
+                  <span class="font-medium text-text">½ porce</span>
+                  <span class="ml-auto font-medium" style="color:#C9A227">mírné zarudnutí</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style="background:#C9A227">5</span>
+                  <span class="font-medium text-text">1 porce</span>
+                  <span class="ml-auto font-medium" style="color:#C9A227">mírné zarudnutí</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Outcome cards — Variant B: DOPORUČENO badge on Mírná reakce, SVG icons, nothing pre-selected -->
+            <div class="text-[11px] font-semibold text-text mb-2">Jak miminko alergen sneslo?</div>
+            <div class="space-y-1.5 mb-3">
+              <!-- Toleruje -->
+              <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(90,139,90,0.12)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A8B5A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-bold text-text">Toleruje</div>
+                  <div class="text-[10px] text-text-muted">Žádná reakce</div>
+                </div>
+              </button>
+              <!-- Mírná reakce — DOPORUČENO badge, teal border, not pre-selected -->
+              <div>
+                <div class="mb-1">
+                  <span class="text-[9px] font-semibold uppercase tracking-wide text-white px-2 py-0.5 rounded-full" style="background:#4A7C6F;letter-spacing:0.5px">Doporučeno</span>
+                </div>
+                <button class="w-full bg-white rounded-xl px-3 py-2.5 flex items-center gap-3 text-left" style="border:1.5px solid #4A7C6F">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(201,162,39,0.12)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[12px] font-bold text-text">Mírná reakce</div>
+                    <div class="text-[10px] text-text-muted">Zarudnutí, mírné svědění</div>
+                  </div>
+                </button>
+              </div>
+              <!-- Jasná reakce -->
+              <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(184,68,68,0.10)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-bold text-text">Jasná reakce</div>
+                  <div class="text-[10px] text-text-muted">Zhoršení po podání</div>
+                </div>
+              </button>
+              <!-- Silná reakce -->
+              <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(184,68,68,0.10)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-bold text-text">Silná reakce</div>
+                  <div class="text-[10px] text-text-muted">Otok, dušnost — k lékaři</div>
+                </div>
+              </button>
+            </div>
+
+            <!-- Notes -->
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm bg-white mb-3" placeholder="Poznámka (volitelné)…"></textarea>
+
+            <!-- Save — disabled until selection -->
+            <button class="w-full py-3 rounded-xl font-bold text-sm" style="background:#D4CBCC;color:#7A6468;cursor:default">Uložit hodnocení</button>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Variant B: DOPORUČENO teal badge nad kartou Mírná reakce (app doporučí, nevybere). SVG ikony místo emoji. CTA šedé dokud uživatel nevybere. Screen 34 odstraněn.</div>
+    </div>
+
+    <!-- REINTRO EVAL · TOAST — post-save state, shown 2 s before returning to Dnes -->
+    <div>
+      <div class="phase-label">▸ Vyhodnocení testu · uloženo (toast)</div>
+      <div class="phone"><div class="phone-screen" style="position:relative">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-6">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Vyhodnocení testu</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+          </div>
+          <div class="px-5 pt-3 pb-3">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(74,124,111,0.18)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A7C6F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C8.13 22 5 18.42 5 14C5 8.48 8.13 2 12 2C15.87 2 19 8.48 19 14C19 18.42 15.87 22 12 22Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-base font-bold text-text">Vejce</div>
+                <div class="text-[11px] text-text-muted">5denní test · 1.–5. 5. 2026</div>
+              </div>
+            </div>
+            <!-- Cards — Silná reakce selected (to demonstrate toast for worst case) -->
+            <div class="text-[11px] font-semibold text-text mb-2">Jak miminko alergen sneslo?</div>
+            <div class="space-y-1.5 mb-3">
+              <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left opacity-40">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(90,139,90,0.12)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A8B5A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Toleruje</div><div class="text-[10px] text-text-muted">Žádná reakce</div></div>
+              </button>
+              <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left opacity-40">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(201,162,39,0.12)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Mírná reakce</div><div class="text-[10px] text-text-muted">Zarudnutí, mírné svědění</div></div>
+              </button>
+              <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left opacity-40">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(184,68,68,0.10)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Jasná reakce</div><div class="text-[10px] text-text-muted">Zhoršení po podání</div></div>
+              </button>
+              <!-- Silná reakce — selected -->
+              <button class="w-full rounded-xl px-3 py-2.5 flex items-center gap-3 text-left" style="background:rgba(184,68,68,0.08);border:2px solid #B84444">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(184,68,68,0.15)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Silná reakce</div><div class="text-[10px] text-text-muted">Otok, dušnost — k lékaři</div></div>
+                <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:#B84444"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </button>
+            </div>
+            <button class="w-full py-3 rounded-xl font-bold text-sm opacity-40" style="background:#8B4557;color:#fff">Uložit hodnocení</button>
+          </div>
+        </div>
+        <!-- Toast — white card + 4px danger strip + FAB-level shadow (DESIGN.md) -->
+        <div style="position:absolute;bottom:38px;left:14px;right:14px;background:#FFFFFF;border:1px solid rgba(184,68,68,0.25);border-radius:16px;overflow:hidden;display:flex;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);z-index:50;">
+          <div style="width:4px;align-self:stretch;background:#B84444;flex-shrink:0"></div>
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(184,68,68,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:10px 10px 10px 12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div style="flex:1;padding:10px 12px 10px 0">
+            <div style="font-size:12px;font-weight:700;color:#3D2B2F;line-height:1.3">Vejce trvale vyřazeno</div>
+            <div style="font-size:10px;color:#7A6468;margin-top:2px">Hodnocení uloženo · silná reakce</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Toast se zobrazí 2 s po uložení, pak přechod na Dnes. Bílá karta + 4px danger strip + hairline + FAB shadow. Řeší feedback pro Silnou reakci bez obrazovky 34.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.5 — FAB AKCE · PŘIDAT FOTKU
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.5 — FAB Akce · Přidat fotku</div>
+  <div class="section-heading">Přidat fotku</div>
+  <div class="section-desc">
+    Placeholder pro šifrované ukládání fotek kůže (AES-256-GCM). Funkce se připravuje.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
+
+    <!-- PHOTO — placeholder -->
+    <div>
+      <div class="phase-label">▸ Přidat fotku · placeholder</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-24">
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-3">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat fotku</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-center px-8 pt-16 text-center">
+            <div class="relative mb-5">
+              <div style="width:80px;height:80px;border-radius:50%;background:rgba(139,69,87,0.1);display:flex;align-items:center;justify-content:center">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8B4557" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <div style="position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:#EDE8E9;display:flex;align-items:center;justify-content:center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+            </div>
+            <div class="text-base font-semibold text-text mb-2">Šifrované ukládání fotek</div>
+            <div class="text-[13px] text-text-muted leading-relaxed mb-6" style="max-width:200px">Bezpečné snímky kůže miminka — tato funkce se připravuje.</div>
+            <button class="px-5 py-2.5 rounded-xl border border-surface-dark text-text-muted text-[13px] opacity-50 cursor-not-allowed">Vybrat foto</button>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Placeholder. SVG camera + lock ikony (DESIGN.md pravidlo). Funkce připravujeme.</div>
+    </div>
+
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════════════════
      PROTOTYPE ROUTER — turns the canvas into a clickable prototype.
      Toggle with Esc to see the full design canvas.
@@ -2102,28 +3584,45 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   // Order: least-filled → most-filled. Onboarding first (entry funnel),
   // Dnes empty before Dnes filled, Program phases in protocol order.
   const SCREENS = [
-    { slug: 'onb-1',        label: 'Onboarding · Datum narození',  group: 'Onboarding' },
-    { slug: 'onb-2',        label: 'Onboarding · Závažnost',        group: 'Onboarding' },
-    { slug: 'onb-3',        label: 'Onboarding · Alergeny matky',   group: 'Onboarding' },
+    { slug: 'welcome',      label: 'Vítej · úvod',                   group: 'Onboarding' },
+    { slug: 'onb-1-empty',  label: 'Onboarding · Datum narození · prázdný', group: 'Onboarding' },
+    { slug: 'onb-1',        label: 'Onboarding · Datum narození',    group: 'Onboarding' },
+    { slug: 'onb-2',        label: 'Onboarding · Závažnost',         group: 'Onboarding' },
+    { slug: 'onb-3',        label: 'Onboarding · Alergeny matky',    group: 'Onboarding' },
     { slug: 'onb-3-detail', label: 'Onboarding · Mléčné · subitemy', group: 'Onboarding' },
-    { slug: 'onb-4',        label: 'Onboarding · Alergeny dítěte',  group: 'Onboarding' },
-    { slug: 'onb-5',        label: 'Onboarding · Datum startu',     group: 'Onboarding' },
-    { slug: 'onb-6',        label: 'Onboarding · Souhrn',           group: 'Onboarding' },
-    { slug: 'dnes-empty',   label: 'Dnes · prázdný (ráno)',         group: 'Hlavní' },
-    { slug: 'dnes',         label: 'Dnes · vyplněno',                group: 'Hlavní' },
-    { slug: 'tyden',        label: 'Týden',                          group: 'Hlavní' },
+    { slug: 'onb-4',        label: 'Onboarding · Alergeny dítěte',   group: 'Onboarding' },
+    { slug: 'onb-5-empty',  label: 'Onboarding · Datum startu · prázdný',   group: 'Onboarding' },
+    { slug: 'onb-5',        label: 'Onboarding · Datum startu',      group: 'Onboarding' },
+    { slug: 'onb-6',        label: 'Onboarding · Souhrn',            group: 'Onboarding' },
+    { slug: 'date-birth',   label: 'Datum narození · výběr',         group: 'Onboarding' },
+    { slug: 'date-start',   label: 'Datum startu · výběr',           group: 'Onboarding' },
+    { slug: 'dnes-empty',          label: 'Dnes · prázdný (ráno)',          group: 'Dnes' },
+    { slug: 'dnes',                label: 'Dnes · vyplněno',                 group: 'Dnes' },
+    { slug: 'dnes-eval-pending',   label: 'Dnes · vyhodnocení testu čeká',   group: 'Dnes' },
+    { slug: 'fab-test-eval',       label: 'Dnes · FAB s vyhodnocením testu', group: 'Dnes' },
+    { slug: 'tyden',               label: 'Týden',                           group: 'Týden' },
     { slug: 'reset',        label: 'Program · Reset (běží)',          group: 'Program' },
     { slug: 'eliminace',    label: 'Program · Eliminace (běží)',      group: 'Program' },
-    { slug: 'test',         label: 'Program · Test alergenu (běží)',   group: 'Program' },
-    { slug: 're-test',      label: 'Program · Re-test (běží)',         group: 'Program' },
-    { slug: 'detail-mleko', label: 'Detail · Mléko',                  group: 'Detail / akce' },
-    { slug: 'detail-soja',  label: 'Detail · Sója',                   group: 'Detail / akce' },
-    { slug: 'detail-elim',  label: 'Detail · Eliminační fáze',        group: 'Detail / akce' },
+    { slug: 'test',         label: 'Program · Test alergenu (běží)', group: 'Program' },
+    { slug: 're-test',      label: 'Program · Re-test (běží)',        group: 'Program' },
     { slug: 'naplanovat',   label: 'Naplánovat re-test',              group: 'Detail / akce' },
+    { slug: 'fab-menu',            label: 'FAB · Výběr akce',              group: 'FAB Akce · Výběr akce' },
+    { slug: 'eczema-check',          label: 'Stav kůže · běžný den',       group: 'FAB Akce · Stav kůže' },
+    { slug: 'eczema-check-reintro',  label: 'Stav kůže · reintro test',    group: 'FAB Akce · Stav kůže' },
+    { slug: 'eczema-check-escalate', label: 'Stav kůže · zhoršení v testu', group: 'FAB Akce · Stav kůže' },
+    { slug: 'meal-add',            label: 'Přidat jídlo · default',        group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-reintro',    label: 'Přidat jídlo · reintro test',   group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-pill-switch',label: 'Přidat jídlo · přepnutí pillu',  group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-empty',      label: 'Přidat jídlo · bez programu',   group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-search',     label: 'Přidat jídlo · vyhledávání',    group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-portion',    label: 'Přidat jídlo · úprava položky', group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'reintro-eval',        label: 'Vyhodnocení testu',              group: 'FAB Akce · Vyhodnocení testu' },
+    { slug: 'reintro-eval-toast',  label: 'Vyhodnocení testu · uloženo (toast)', group: 'FAB Akce · Vyhodnocení testu' },
+    { slug: 'photo',               label: 'Přidat fotku',                  group: 'FAB Akce · Přidat fotku' },
   ];
   // Linear onboarding walk — "Další" follows this. Detail screens are off-flow.
-  const ONB_SLUGS = ['onb-1','onb-2','onb-3','onb-4','onb-5','onb-6'];
-  const ONB_ALL = ['onb-1','onb-2','onb-3','onb-3-detail','onb-4','onb-5','onb-6'];
+  const ONB_SLUGS = ['welcome','onb-1','onb-2','onb-3','onb-4','onb-5','onb-6'];
+  const ONB_ALL = ['welcome','onb-1-empty','onb-1','onb-2','onb-3','onb-3-detail','onb-4','onb-5-empty','onb-5','onb-6'];
   const slugIndex = new Map(SCREENS.map((s, i) => [s.slug, i]));
 
   let snapshots = [];   // [{slug, html}]
@@ -2203,14 +3702,20 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   function findTargetByText(raw) {
     const t = raw.toLowerCase().trim();
     if (!t) return null;
-    if (/naplánovat re-test|naplanovat re-test/.test(t)) return 'naplanovat';
-    if (/^re-test$/.test(t) || /re-test · /.test(t)) return 're-test';
-    // Eliminace rules MUST run before generic "mléko/mléčn" so that
-    // "Eliminace mléčných" on Today resolves to the elim phase, not detail-mleko.
-    if (/eliminační fáze/.test(t)) return 'detail-elim';
-    if (/^eliminace$/.test(t) || /eliminace mléčných|eliminace · den|vyluč alergeny|sleduj kůži|foto kůže/.test(t)) return 'eliminace';
-    if (/sój|^sója$/.test(t)) return 'detail-soja';
-    if (/^mléčné výrobky$|^mléko$|^mléčn|^🥛/.test(t)) return 'detail-mleko';
+    if (/přidat jídlo/i.test(t)) return 'meal-add';
+    if (/přidat fotku/i.test(t)) return 'photo';
+    if (/^uložit jídlo$/i.test(t)) return 'dnes';
+    if (/^uložit hodnocení$/i.test(t)) return 'reintro-eval-toast';
+    if (/^uložit$/i.test(t)) return 'dnes';
+    if (/vyhodnoť test|vyhodnotit test|vyhodnocení testu/i.test(t)) return 'reintro-eval';
+    if (/stav ekzému|stav kůže|sleduj kůži|^upravit$/i.test(t)) return 'eczema-check';
+    if (/naplánovat re-test|naplanovat re-test|\+\s*re-test/.test(t)) return 'naplanovat';
+    if (/re-test · /.test(t)) return 're-test';
+    // Bare "Re-test" → planning screen (Sója is the prototype's example).
+    if (/^re-test$/.test(t)) return 'naplanovat';
+    if (/^eliminace$/.test(t) || /eliminační fáze|eliminace mléčných|eliminace · den|vyluč alergeny|foto kůže/.test(t)) return 'eliminace';
+    if (/sój|^sója$/.test(t)) return 're-test';
+    if (/^mléčné výrobky$|^mléko$|^mléčn|^🥛/.test(t)) return 'eliminace';
     if (/^týden$/.test(t) || /^tyden$/.test(t)) return 'tyden';
     if (/^dnes$/.test(t)) return 'dnes';
     if (/^reset$/.test(t) || /^reset · /.test(t)) return 'reset';
@@ -2222,6 +3727,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   function intercept(e) {
     e.preventDefault();
     e.stopPropagation();
+    // Skip clicks on disabled controls (e.g. greyed Další/Zpět in empty states)
+    let dis = e.target;
+    while (dis && dis !== document.body) {
+      if (dis.disabled || dis.getAttribute && dis.getAttribute('disabled') !== null) {
+        return;
+      }
+      dis = dis.parentElement;
+    }
     let el = e.target;
     let depth = 0;
     while (el && depth++ < 6) {
@@ -2229,6 +3742,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       if (text && text.length <= 120) {
         // ── Onboarding flow ─────────────────────────────────────
         if (isOnboarding()) {
+          // Welcome → start with the empty Datum narození step
+          if (currentSlug() === 'welcome' && /^začít$/i.test(text)) {
+            goto('onb-1-empty', { pushHistory: true });
+            return;
+          }
           if (/^další$/i.test(text)) {
             const onbPos = ONB_SLUGS.indexOf(currentSlug());
             if (onbPos !== -1 && onbPos < ONB_SLUGS.length - 1) {
@@ -2240,6 +3758,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             return;
           }
           if (/^zpět$/i.test(text)) {
+            // Empty variants step back to their filled neighbours / prior step
+            if (currentSlug() === 'onb-1-empty') { toast('První krok onboardingu'); return; }
+            if (currentSlug() === 'onb-5-empty') { goto('onb-4', { pushHistory: true }); return; }
             const onbPos = ONB_SLUGS.indexOf(currentSlug());
             if (onbPos > 0) goto(ONB_SLUGS[onbPos - 1], { pushHistory: true });
             else toast('První krok onboardingu');
@@ -2250,9 +3771,42 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             goto('onb-3', { pushHistory: true });
             return;
           }
+          // Empty date fields → open picker
+          if ((currentSlug() === 'onb-1-empty' || currentSlug() === 'onb-1') && /vyber datum/i.test(text)) {
+            goto('date-birth', { pushHistory: true });
+            return;
+          }
+          if (currentSlug() === 'onb-5-empty' && /vyber datum/i.test(text)) {
+            goto('date-start', { pushHistory: true });
+            return;
+          }
           if (/spustit program/i.test(text)) {
             toast('Program spuštěn ✓');
             setTimeout(function () { goto('dnes-empty', { pushHistory: true }); }, 600);
+            return;
+          }
+          // Souhrn (onb-6) — Upravit on each summary card routes to its source step
+          if (currentSlug() === 'onb-6' && (/^upravit ›?$/i.test(text) || /^změnit ›?$/i.test(text))) {
+            var cardEl = el.parentElement;
+            for (var d = 0; d < 4 && cardEl; d++) {
+              var cardText = (cardEl.innerText || cardEl.textContent || '').toLowerCase();
+              if (/narozen|narození/.test(cardText)) { goto('date-birth', { pushHistory: true }); return; }
+              if (/závažnost/.test(cardText))        { goto('onb-2',      { pushHistory: true }); return; }
+              if (/alergen.*matk|trvale|vyloučeno/.test(cardText)) { goto('onb-3', { pushHistory: true }); return; }
+              if (/alergen.*dít|alergeny dítěte/.test(cardText))   { goto('onb-4', { pushHistory: true }); return; }
+              if (/start|harmonogram|konec/.test(cardText))        { goto('date-start', { pushHistory: true }); return; }
+              cardEl = cardEl.parentElement;
+            }
+            toast('Editace stavu — mimo prototyp');
+            return;
+          }
+          // Other onboarding screens with Upravit/Změnit (filled date fields)
+          if (currentSlug() === 'onb-1' && (/^upravit ›?$/i.test(text) || /^změnit ›?$/i.test(text))) {
+            goto('date-birth', { pushHistory: true });
+            return;
+          }
+          if (currentSlug() === 'onb-5' && (/^změnit ›?$/i.test(text) || /^upravit ›?$/i.test(text))) {
+            goto('date-start', { pushHistory: true });
             return;
           }
           if (/^upravit ›?$/i.test(text) || /^změnit ›?$/i.test(text)) {
@@ -2268,21 +3822,48 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 
         // ── Universal interactions ──────────────────────────────
         if (text === '+') {
-          const dnesIdx = slugIndex.get('dnes');
-          goto(currentIdx === dnesIdx ? 'dnes-empty' : 'dnes', { pushHistory: true });
-          toast('FAB → přepnutí stavu Dnes');
+          // On test-end day the FAB sheet has a 4th item (Vyhodnotit test).
+          const target = currentSlug() === 'dnes-eval-pending' ? 'fab-test-eval' : 'fab-menu';
+          goto(target, { pushHistory: true });
           return;
         }
         if (text === '‹' || text === '←') { goBack(); return; }
         if (/^zrušit$/i.test(text)) { goBack(); return; }
-        if (/^upravit$/i.test(text)) { toast('Editace stavu — mimo prototyp'); return; }
-        if (/^změnit ›?$/i.test(text)) { toast('Výběr data — mimo prototyp'); return; }
+        if (/^upravit ›?$/i.test(text)) {
+          if (currentSlug() === 'onb-6') {
+            // Walk up one level to get the card label for context
+            var cardEl = el.parentElement;
+            var cardText = cardEl ? (cardEl.innerText || cardEl.textContent || '').toLowerCase() : '';
+            if (/narozen|narození/.test(cardText)) { goto('date-birth', { pushHistory: true }); return; }
+            if (/závažnost/.test(cardText)) { goto('onb-2', { pushHistory: true }); return; }
+            if (/trvale|vyloučeno/.test(cardText)) { goto('onb-3', { pushHistory: true }); return; }
+            if (/start|konec/.test(cardText)) { goto('date-start', { pushHistory: true }); return; }
+          }
+          toast('Editace stavu — mimo prototyp');
+          return;
+        }
+        if (/^změnit ›?$/i.test(text)) {
+          if (currentSlug() === 'onb-5') { goto('date-start', { pushHistory: true }); return; }
+          toast('Výběr data — mimo prototyp');
+          return;
+        }
+        if (/^potvrdit datum$/i.test(text)) {
+          if (currentSlug() === 'date-birth') { goto('onb-1', { pushHistory: true }); return; }
+          if (currentSlug() === 'date-start') { goto('onb-5', { pushHistory: true }); return; }
+          goBack();
+          return;
+        }
         if (/^potvrdit/i.test(text)) {
           toast('Re-test naplánován ✓');
           setTimeout(function () { goto('re-test', { pushHistory: true }); }, 650);
           return;
         }
         if (/^\d+\s*›$/.test(text)) { toast('Galerie fotek — mimo prototyp'); return; }
+        // Context-specific overrides for fab-test-eval (reintro test eval day)
+        if (currentSlug() === 'fab-test-eval') {
+          if (/přidat jídlo/i.test(text)) { goto('meal-add-reintro', { pushHistory: true }); return; }
+          if (/zaznamenat stav kůže/i.test(text)) { goto('eczema-check-reintro', { pushHistory: true }); return; }
+        }
         const slug = findTargetByText(text);
         if (slug && slugIndex.has(slug)) { goto(slug, { pushHistory: true }); return; }
       }
