@@ -83,11 +83,6 @@
 
   .divider { height: 1px; background: rgba(61,43,47,0.1); margin: 48px 0; }
 
-  .notes-section { margin-top: 16px; padding-top: 8px; }
-  .notes-grid { display: grid; grid-template-columns: repeat(4, minmax(280px, 1fr)); gap: 18px; margin-top: 24px; }
-  .note-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(61,43,47,0.1); border-radius: 14px; padding: 16px 18px; }
-  .note-card-title { font-size: 12px; font-weight: 800; color: #3D2B2F; margin-bottom: 8px; }
-  .note-card-body { font-size: 12px; color: rgba(61,43,47,0.65); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -2274,30 +2269,6 @@ function App() {
         <RetestSetupWithLabel allergenId="soy"  customLabel="Naplánovat re-test (Sója)" dotColor={c.primary} />
       </div>
 
-      <div className="divider" />
-
-      {/* Notes section — extra padding to ensure full visibility */}
-      <div className="notes-section">
-        <div className="section-eyebrow">Klíčová designová rozhodnutí</div>
-        <div className="section-heading">Souhrn všech kroků iterace</div>
-        <div className="notes-grid">
-          {[
-            { title: '1. Den jako základní jednotka', body: 'Reset 14 dní · eliminace 42 dní · test 5 dní · re-test 5 dní. Žádné týdny — den je jednoznačný. Pokrok protokolu: "Den 78 / 120". Pily pro krátké fáze (≤7 dní), pruh pro dlouhé.' },
-            { title: '2. Klikací hero karty napříč fázemi', body: 'Reset/Eliminace/Test/Re-test sdílí stejnou expanzi: hero karta + den-po-dni timeline. Rodič se učí jeden vzor, který platí všude. Agregátní statistiky fáze (fotky, kůže, chyby) byly odstraněny — duplikovaly Týden a vlastní detail screen.' },
-            { title: '3. Vizuální gradient místo unifikace', body: 'Reset bíle/neutrálně → Eliminace 5% red tint → Test 10% teal → Re-test full wine + stripe. Barva je signál, ne dekorace. Re-test (s předchozí reakcí) má největší vizuální váhu.' },
-            { title: '4. Dnešní úkoly jako 3 mini-bloky', body: 'Pro testy: porce (¼ vajíčka) · monitoring (Sledujte 4 h) · foto (ráno + odpol. + večer). Foto je 3. blok, ne separátní CTA. Urgence foto bloku se mění od low (reset) po critical (re-test).' },
-            { title: '5. Re-test má vlastní vizuální identitu', body: 'Wine top stripe "RE-TEST PROBÍHÁ · 1. test mírná reakce", žlutá srovnávací karta na Dnes tabu. Kontext prvního testu je vždy viditelný — ne schovaný v expanzi.' },
-            { title: '6. Průběh tab = archiv s drill-down', body: 'Stejný card-jazyk jako Dnes. Všechny řádky klikací (›). Detail fáze i alergenového testu se zobrazí přímo v rozbalené řádce — žádný samostatný detail screen. Re-test inline přes „+ Re-test" tlačítko.' },
-            { title: '7. "Co je vidět jinde, neopakuj"', body: 'Hero subtitle s alergenem (duplikovalo title), "Hodnocení x.x" (v timeline), "PROBÍHÁ" badge (kontext), "FÁZE" tag (ikona) — vše odstraněno. Méně labels = klidnější UI.' },
-            { title: '8. "Dietní chyba" místo "odchylky"', body: '"Odchylka" v Czech UI je dvojznačná (odchylka kůže? odchylka diety?). "Dietní chyba" je jednoznačná: rodič snědl něco, co neměl. Pojmenování pro rodiče, ne pro vývojáře.' },
-          ].map((n, i) => (
-            <div key={i} className="note-card">
-              <div className="note-card-title">{n.title}</div>
-              <div className="note-card-body">{n.body}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
     </div>
   );
