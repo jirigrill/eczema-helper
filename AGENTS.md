@@ -10,6 +10,10 @@ Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic ec
 
 ## Documentation
 
+**Before changing the domain or making architectural decisions**, read `CONTEXT.md` (domain vocabulary + invariants) and `docs/adr/` (numbered architectural decisions). The invariant index in `CONTEXT.md` points to the relevant ADRs. Do not introduce vocabulary or decisions that conflict with what is recorded there; revise the ADR instead.
+
+- `CONTEXT.md` — domain glossary + invariant index
+- `docs/adr/` — numbered architectural decision records (ADR-0001 … ADR-0008 so far)
 - `docs/README.md` — project status + structure overview
 - `docs/architecture/tech-stack.md` — framework and runtime choices
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture (intended shape for re-wired backend)
