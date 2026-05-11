@@ -655,6 +655,24 @@ These words are never substituted (no `okay / fine / bad / very bad`). The user 
 - Range: `1. – 4. května` (with day names spelled out only at the document chrome level).
 - ISO dates are not used in UI copy.
 
+### Primary CTA Verbs
+
+The single primary CTA per screen carries the wine-rose accent. Its verb signals whether pressing it **commits data** or just **closes the session**. The four verbs below cover every primary CTA in the app — do not introduce new ones.
+
+| Verb | Meaning | When to use | Example screens |
+|---|---|---|---|
+| **`Uložit`** | **Single-commit save.** Without pressing it, the user's input is lost. Modal / blocking semantics. | One-shot decision per session (status, score, evaluation). May add object: `Uložit hodnocení`, `Uložit stav`. | Stav kůže · Vyhodnocení testu |
+| **`Hotovo`** | **Session closure.** Data is already autosaved per-action; the button only returns to the caller. | Builder / list / multi-item editor where each tap persists immediately. Optionally suffix with count: `Hotovo · 3 položky`. | Přidat jídlo · Onboarding final step |
+| **`Pokračovat`** / **`Další`** | **Flow navigation.** Moves to the next step of a wizard. Not a commit. | Multi-step flows (onboarding). Prefer `Další` for short wizards; `Pokračovat` only when the next step is conceptually distinct. | Onboarding intermediate steps |
+| **`Potvrdit X`** | **Explicit acknowledgment.** Reserved for irreversible or high-stakes confirmations. Always carries the object: `Potvrdit datum`, `Potvrdit smazání`. | Date pickers, destructive actions. | Date selector |
+
+**Rules:**
+
+1. Choose by data semantics, not aesthetics. If the screen autosaves per tap, use `Hotovo` even if it feels less weighty — `Uložit` would be a lie.
+2. Disabled state: same label, muted background (`#D4CBCC` bg, `#7A6468` text). Never change the verb based on enabled state.
+3. Object suffix (`Uložit hodnocení`, `Hotovo · 3 položky`, `Potvrdit datum`) is allowed and encouraged when it adds clarity. Keep ≤24 characters total.
+4. Never combine: no `Uložit a pokračovat`, no `Hotovo · uložit`. One semantic per CTA.
+
 ## Examples (Reference Compositions)
 
 ### Composition 1 — `Dnes` (filled state)

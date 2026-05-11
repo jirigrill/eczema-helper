@@ -56,14 +56,14 @@
 
   /* Nav phone shell (Tailwind, 320×680 — for nav/Týden showcase) */
   .phone { width: 320px; height: 680px; background: #000; border-radius: 44px; padding: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.15); position: relative; flex-shrink: 0; }
-  .phone-screen { width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden; position: relative; }
+  .phone-screen { width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
   .phone::after { content: ""; position: absolute; inset: 10px; border-radius: 34px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); pointer-events: none; }
   .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 32px; background: #000; border-radius: 20px; z-index: 50; }
-  .status-bar { position: absolute; top: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 14px; font-weight: 600; color: #000; z-index: 40; }
+  .status-bar { flex-shrink: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 14px; font-weight: 600; color: #000; z-index: 40; }
   .status-bar .time { padding-top: 14px; }
   .status-bar .icons { padding-top: 14px; display: flex; gap: 5px; align-items: center; }
   .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; background: #000; border-radius: 2px; opacity: 0.85; z-index: 60; }
-  .screen-content { position: absolute; top: 52px; left: 0; right: 0; bottom: 0; overflow-y: auto; }
+  .screen-content { flex: 1; min-height: 0; overflow-y: auto; }
   .screen-content::-webkit-scrollbar { display: none; }
   .insight-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 99px; }
   .photo-thumb { background: linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4)); }
@@ -2683,7 +2683,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
-        <div class="screen-content pb-6">
+        <div class="screen-content pb-20">
           <!-- Header -->
           <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
             <div class="flex items-center gap-3 px-5 py-2.5">
@@ -2737,7 +2737,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <span class="text-lg">🍗</span>
                 <div class="flex-1 min-w-0">
                   <div class="text-[12px] font-semibold text-text truncate">Kuřecí maso</div>
-                  <div class="text-[10px] text-text-muted">Maso · Porce</div>
+                  <div class="text-[10px] text-text-muted">Maso · Porce · Vařené</div>
                 </div>
                 <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
               </div>
@@ -2745,21 +2745,26 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <span class="text-lg">🍚</span>
                 <div class="flex-1 min-w-0">
                   <div class="text-[12px] font-semibold text-text truncate">Rýže</div>
-                  <div class="text-[10px] text-text-muted">Vlastní · Porce</div>
+                  <div class="text-[10px] text-text-muted">Vlastní · Porce · Vařené</div>
                 </div>
                 <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
               </div>
             </div>
           </div>
 
-          <!-- + Poznámka collapsed -->
-          <div class="mx-5 mb-2">
-            <button class="w-full text-left text-[11px] text-primary py-1.5">+ Poznámka</button>
+          <!-- Poznámka k Obědu · progresivní -->
+          <div class="mx-5 mb-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Poznámka k Obědu</div>
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-[12px] bg-white" placeholder="Volitelně…"></textarea>
           </div>
+        </div>
+        <!-- Sticky CTA -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm">Hotovo</button>
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Default — auto-výběr typu jídla podle času (poledne → Oběd), recents 7 dní pro daný slot, 1 klik na potravinu = uloženo s default „Porce". Bez tlačítka Uložit (auto-save).</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Autosave per tap. Sticky CTA „Hotovo" zavře session a vrátí na page odkud uživatel přišel. Poznámka k Obědu se zobrazí po prvním přidání položky.</div>
     </div>
 
     <!-- MEAL ADD · REINTRO — Den 2 z 5 vejce, 1 conflict logged, toast visible -->
@@ -2768,7 +2773,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">7:48</span><span class="icons">●●● ◐</span></div>
-        <div class="screen-content pb-6">
+        <div class="screen-content pb-20">
           <!-- Header -->
           <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
             <div class="flex items-center gap-3 px-5 py-2.5">
@@ -2832,21 +2837,91 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </div>
           </div>
 
-          <!-- + Poznámka collapsed -->
-          <div class="mx-5 mb-2">
-            <button class="w-full text-left text-[11px] text-primary py-1.5">+ Poznámka</button>
+          <!-- Poznámka k Snídani · progresivní -->
+          <div class="mx-5 mb-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Poznámka k Snídani</div>
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-[12px] bg-white" placeholder="Volitelně…"></textarea>
           </div>
         </div>
         <!-- Toast · 3s autodismiss · only on conflict tap -->
-        <div class="absolute left-0 right-0 z-30" style="bottom:60px">
+        <div class="absolute left-0 right-0 z-30" style="bottom:84px">
           <div class="mx-4 rounded-xl px-3 py-2.5 flex items-center gap-2" style="background:rgba(196,124,69,0.95);box-shadow:0 6px 20px -6px rgba(0,0,0,0.25)">
             <span class="text-white text-[11px] font-semibold flex-1">⚠ Mléko vyřazeno — odchylka zaznamenána</span>
             <button class="text-white text-sm leading-none">✕</button>
           </div>
         </div>
+        <!-- Sticky CTA -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm">Hotovo</button>
+        </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Reintro fáze — banner s dnešní dávkou, řádek s ⚠ rámečkem pro vyřazenou potravinu, toast se objeví na 3 s při kliknutí. Reintro položka je rozlišená jako test, ne odchylka.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Reintro fáze — banner s dnešní dávkou, řádek s ⚠ rámečkem pro vyřazenou potravinu, conflict toast 3 s při klepnutí. Poznámka k Snídani progresivní. CTA „Hotovo".</div>
+    </div>
+
+    <!-- MEAL ADD · PILL SWITCH — Snídaně activated, Oběd silently saved, green toast -->
+    <div>
+      <div class="phase-label">▸ Přidat jídlo · přepnutí pillu</div>
+      <div class="phone"><div class="phone-screen">
+        <div class="island"></div>
+        <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
+        <div class="screen-content pb-20">
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
+            <div class="flex items-center gap-3 px-5 py-2.5">
+              <button class="text-text text-lg leading-none">‹</button>
+              <span class="text-sm font-bold text-text">Přidat jídlo</span>
+              <div class="ml-auto text-[11px] text-text-muted">út 5. 5.</div>
+            </div>
+            <!-- Meal type pills · Snídaně active -->
+            <div class="flex gap-1.5 px-5 pb-3">
+              <button class="flex-1 py-1.5 rounded-full bg-primary text-white text-[11px] font-semibold">Snídaně</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Oběd</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Svačina</button>
+              <button class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-[11px] font-medium">Večeře</button>
+            </div>
+          </div>
+
+          <!-- Recents · Snídaně-specific -->
+          <div class="px-5 pt-3 pb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Naposledy</div>
+            <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥣 Ovesná·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍌 Banán·1 ks</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🍞 Chl.·Porce</button>
+              <button class="flex-shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-surface-dark text-[11px] text-text whitespace-nowrap">🥑 Avok.·Malé</button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="px-5 pt-1 pb-2">
+            <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-surface-dark">
+              <span class="text-text-muted text-sm">🔍</span>
+              <span class="flex-1 text-[13px] text-text-muted">Hledat potravinu…</span>
+            </div>
+          </div>
+
+          <!-- V tomto jídle · empty state (new slot) -->
+          <div class="mx-5 mb-2">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
+            <div class="rounded-xl px-3 py-4 text-center" style="background:rgba(139,69,87,0.04);border:1px dashed rgba(139,69,87,0.25)">
+              <div class="text-[11px] text-text-muted">Zatím prázdné. Klepni na potravinu výše.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Green pill-switch toast · above CTA -->
+        <div class="absolute left-0 right-0 z-30" style="bottom:84px">
+          <div class="mx-4 rounded-xl px-3 py-2 flex items-center gap-2" style="background:rgba(90,139,90,0.95);box-shadow:0 6px 20px -6px rgba(0,0,0,0.25)">
+            <span class="text-white text-[11px] font-semibold flex-1">✓ Oběd uložen · 2 položky</span>
+          </div>
+        </div>
+        <!-- Sticky CTA · disabled (new slot empty) -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl text-white font-semibold text-sm" style="background:#D4CBCC;color:#7A6468">Hotovo</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Pill přepnut na Snídani — Oběd se tiše uložil. Non-blocking toast 2 s. Žádný modal. Sticky CTA disabled (nový slot prázdný).</div>
     </div>
 
     <!-- MEAL ADD · BEZ PROGRAMU — empty state, no schedule, no recents -->
@@ -2855,7 +2930,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
-        <div class="screen-content pb-6">
+        <div class="screen-content pb-20">
           <!-- Header · no banner, no protocol context -->
           <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
             <div class="flex items-center gap-3 px-5 py-2.5">
@@ -2897,9 +2972,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </div>
           </div>
         </div>
+        <!-- Sticky CTA · disabled (slot empty) -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl text-white font-semibold text-sm" style="background:#D4CBCC;color:#7A6468">Hotovo</button>
+        </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Bez aktivního programu — žádné protokolové štítky, žádné recents, žádný banner. Hledání + kategorie jako jediný vstup. Stránka funguje i bez onboardingu.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Bez aktivního programu — žádné protokolové štítky, žádné recents, žádný banner. Hledání + kategorie jako jediný vstup. Sticky CTA „Hotovo" disabled dokud uživatel nepřidá první položku. Poznámka skryta (slot prázdný).</div>
     </div>
 
     <!-- MEAL ADD · VYHLEDÁVÁNÍ — search active, "ml" typed, sub-items only -->
@@ -2908,7 +2987,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
-        <div class="screen-content pb-6">
+        <div class="screen-content pb-20">
           <!-- Header -->
           <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
             <div class="flex items-center gap-3 px-5 py-2.5">
@@ -2980,18 +3059,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </div>
           </div>
         </div>
+        <!-- Sticky CTA · disabled (no items in slot during search) -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl text-white font-semibold text-sm" style="background:#D4CBCC;color:#7A6468">Hotovo</button>
+        </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Vyhledávání aktivní — listy alergenů (sub-items only), pravý štítek statusu, dole vždy fallback „přidat jako vlastní" pro položky mimo kategorie. Recents a accordion skryté po dobu hledání.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Vyhledávání aktivní — listy alergenů (sub-items only), pravý štítek statusu, dole vždy fallback „přidat jako vlastní" pro položky mimo kategorie. Recents a accordion skryté po dobu hledání. CTA sticky.</div>
     </div>
 
-    <!-- MEAL ADD · ÚPRAVA PORCE -->
+    <!-- MEAL ADD · ÚPRAVA POLOŽKY -->
     <div>
-      <div class="phase-label">▸ Přidat jídlo · úprava porce</div>
+      <div class="phase-label">▸ Přidat jídlo · úprava položky</div>
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">12:34</span><span class="icons">●●● ◐</span></div>
-        <div class="screen-content pb-6">
+        <div class="screen-content pb-20">
           <div class="sticky top-0 z-10 bg-surface border-b border-surface-dark">
             <div class="flex items-center gap-3 px-5 py-2.5">
               <button class="text-text text-lg leading-none">‹</button>
@@ -3022,52 +3105,71 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </div>
           </div>
 
+          <!-- V tomto jídle · Kuřecí maso expanded with quantity + prep chips -->
           <div class="mx-5 mb-2">
             <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">V tomto jídle</div>
             <div class="space-y-1.5">
               <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
-                <span class="text-lg">🍗</span>
+                <span class="text-lg">🍚</span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-[12px] font-semibold text-text truncate">Kuřecí maso</div>
-                  <div class="text-[10px] text-text-muted">Maso · Porce</div>
+                  <div class="text-[12px] font-semibold text-text truncate">Rýže</div>
+                  <div class="text-[10px] text-text-muted">Vlastní · Porce · Vařené</div>
                 </div>
                 <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
               </div>
               <div class="bg-white rounded-xl border-2 px-3 py-3 space-y-2.5" style="border-color:#8B4557">
                 <div class="flex items-center gap-3">
-                  <span class="text-lg">🥑</span>
+                  <span class="text-lg">🍗</span>
                   <div class="flex-1 min-w-0">
-                    <div class="text-[12px] font-semibold text-text truncate">Avokádo</div>
-                    <div class="text-[10px] text-primary">vyber množství</div>
+                    <div class="text-[12px] font-semibold text-text truncate">Kuřecí maso</div>
+                    <div class="text-[10px] text-primary">uprav množství a přípravu</div>
                   </div>
                   <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
                 </div>
-                <div class="flex gap-1 flex-wrap">
-                  <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Špetka</button>
-                  <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Lžička</button>
-                  <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Lžíce</button>
-                  <button class="px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">Porce ●</button>
-                  <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Balení</button>
+                <div>
+                  <div class="text-[9px] text-text-muted uppercase tracking-wide mb-1">Množství</div>
+                  <div class="flex gap-1 flex-wrap">
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Špetka</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Lžička</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Lžíce</button>
+                    <button class="px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">Porce ●</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Balení</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-text-muted uppercase tracking-wide mb-1">Příprava</div>
+                  <div class="flex gap-1 flex-wrap">
+                    <button class="px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">Vařené ●</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Dušené</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Pečené</button>
+                    <button class="px-2.5 py-1 rounded-full bg-surface-dark text-text-muted text-[11px]">Smažené</button>
+                  </div>
                 </div>
               </div>
               <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
-                <span class="text-lg">🍚</span>
+                <span class="text-lg">🥦</span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-[12px] font-semibold text-text truncate">Rýže</div>
-                  <div class="text-[10px] text-text-muted">Vlastní · Porce</div>
+                  <div class="text-[12px] font-semibold text-text truncate">Brokolice</div>
+                  <div class="text-[10px] text-text-muted">Zelenina · Malé · Dušené</div>
                 </div>
                 <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
               </div>
             </div>
           </div>
 
-          <div class="mx-5 mb-2">
-            <button class="w-full text-left text-[11px] text-primary py-1.5">+ Poznámka</button>
+          <!-- Poznámka k Obědu · progresivní -->
+          <div class="mx-5 mb-3">
+            <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Poznámka k Obědu</div>
+            <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-[12px] bg-white" placeholder="Volitelně…"></textarea>
           </div>
+        </div>
+        <!-- Sticky CTA -->
+        <div class="absolute left-0 right-0 z-20 px-5 pb-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent" style="bottom:0">
+          <button class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm">Hotovo</button>
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Klepnutí na uloženou položku otevře inline řádek s pily porcí. Default je „Porce". Tap na chip = okamžitá změna a uložení.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Klepnutí na uloženou položku otevře inline edit kartu se dvěma řadami chipů — Množství a Příprava. Defaulty „Porce" + „Vařené" (kategorie meat) z last-used/category fallback. Tap na chip = okamžitá změna a autosave.</div>
     </div>
 
     <!-- REINTRO EVAL — end-of-test evaluation screen: SVG icons, DOPORUČENO badge (Variant B) -->
@@ -3405,9 +3507,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     { slug: 'eczema-check-escalate', label: 'Stav kůže · zhoršení v testu', group: 'FAB Akce · Stav kůže' },
     { slug: 'meal-add',            label: 'Přidat jídlo · default',        group: 'FAB Akce · Přidat jídlo' },
     { slug: 'meal-add-reintro',    label: 'Přidat jídlo · reintro test',   group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-pill-switch',label: 'Přidat jídlo · přepnutí pillu',  group: 'FAB Akce · Přidat jídlo' },
     { slug: 'meal-add-empty',      label: 'Přidat jídlo · bez programu',   group: 'FAB Akce · Přidat jídlo' },
     { slug: 'meal-add-search',     label: 'Přidat jídlo · vyhledávání',    group: 'FAB Akce · Přidat jídlo' },
-    { slug: 'meal-add-portion',    label: 'Přidat jídlo · úprava porce',   group: 'FAB Akce · Přidat jídlo' },
+    { slug: 'meal-add-portion',    label: 'Přidat jídlo · úprava položky', group: 'FAB Akce · Přidat jídlo' },
     { slug: 'reintro-eval',        label: 'Vyhodnocení testu',              group: 'FAB Akce · Vyhodnocení testu' },
     { slug: 'reintro-eval-toast',  label: 'Vyhodnocení testu · uloženo (toast)', group: 'FAB Akce · Vyhodnocení testu' },
     { slug: 'photo',               label: 'Přidat fotku',                  group: 'FAB Akce · Přidat fotku' },
