@@ -1261,58 +1261,44 @@
         </div>
 
         <!-- backdrop -->
-        <div class="absolute inset-0 bg-black/30 z-20"></div>
-
+        <div style="position:absolute;top:52px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:10"></div>
         <!-- bottom sheet — 4 items, last is the test eval (teal accent) -->
-        <div class="absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-3xl shadow-2xl pb-5">
-          <div class="flex justify-center pt-2 pb-2">
-            <div class="w-10 h-1 rounded-full bg-surface-dark"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;background:#FFFFFF;border-radius:20px 20px 0 0">
+          <div class="px-5 pt-4 pb-2 text-center">
+            <div class="text-[11px] text-text-muted uppercase tracking-wide">Co chceš zapsat?</div>
           </div>
-          <div class="px-4 pb-2">
-            <div class="text-[11px] text-text-muted uppercase tracking-wide font-semibold text-center mb-2">Co chceš zapsat?</div>
-            <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface text-left">
-              <span class="w-9 h-9 rounded-lg bg-surface flex items-center justify-center text-text-muted shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>
-              </span>
-              <div class="flex-1">
-                <div class="text-sm font-semibold text-text">Foto kůže</div>
-                <div class="text-[11px] text-text-muted">snímek skvrny</div>
-              </div>
-              <span class="text-text-muted text-xs">›</span>
-            </button>
-            <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface text-left">
-              <span class="w-9 h-9 rounded-lg bg-surface flex items-center justify-center text-text-muted shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v18M19 3v18"/><path d="M5 8h14"/><path d="M9 3v5"/></svg>
-              </span>
-              <div class="flex-1">
-                <div class="text-sm font-semibold text-text">Jídlo</div>
-                <div class="text-[11px] text-text-muted">co dnes jedl</div>
-              </div>
-              <span class="text-text-muted text-xs">›</span>
-            </button>
-            <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl active:bg-surface text-left">
-              <span class="w-9 h-9 rounded-lg bg-surface flex items-center justify-center text-text-muted shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-              </span>
-              <div class="flex-1">
-                <div class="text-sm font-semibold text-text">Stav ekzému</div>
-                <div class="text-[11px] text-text-muted">jak vypadá kůže</div>
-              </div>
-              <span class="text-text-muted text-xs">›</span>
-            </button>
-            <div class="border-t border-surface-dark my-1.5"></div>
-            <button class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left active:opacity-80" style="background:rgba(74,124,111,0.08)">
-              <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(74,124,111,0.18);color:#4A7C6F">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v3l4 8a4 4 0 0 1-4 5H9a4 4 0 0 1-4-5l4-8z"/><path d="M7 14h10"/></svg>
-              </span>
-              <div class="flex-1">
-                <div class="text-sm font-semibold" style="color:#4A7C6F">Vyhodnotit test sóji</div>
-                <div class="text-[11px] text-text-muted">posuď reakci · poslední den</div>
-              </div>
-              <span class="text-xs" style="color:#4A7C6F">›</span>
-            </button>
-          </div>
-          <button class="w-full text-center text-[12px] text-text-muted py-2.5 mt-1 border-t border-surface-dark">Zrušit</button>
+          <div class="mx-5 border-t border-surface-dark"></div>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(122,100,104,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-text-muted text-left">Přidat fotku</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,69,87,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B4557" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] font-semibold text-text text-left">Přidat jídlo</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-5 py-4">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(122,100,104,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7H2v-7a6 6 0 0 1 6-6"/><circle cx="12" cy="6" r="3"/><path d="M9 14h6"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-text-muted text-left">Zaznamenat stav kůže</span>
+            <span class="text-text-muted text-sm">›</span>
+          </button>
+          <div class="mx-5 border-t border-surface-dark"></div>
+          <button class="w-full flex items-center gap-3 px-5 py-4">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(74,124,111,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A7C6F" stroke-width="2"><path d="M9 3h6v3l4 8a4 4 0 0 1-4 5H9a4 4 0 0 1-4-5l4-8z"/><path d="M7 14h10"/></svg>
+            </div>
+            <span class="flex-1 text-[15px] text-left" style="color:#4A7C6F">Vyhodnotit test sóji</span>
+            <span class="text-sm" style="color:#4A7C6F">›</span>
+          </button>
+          <button class="w-full py-4 text-center text-[13px] text-text-muted">Zrušit</button>
+          <div style="height:20px"></div>
         </div>
         <div class="home-indicator"></div>
       </div></div>
@@ -3665,6 +3651,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
           return;
         }
         if (/^\d+\s*›$/.test(text)) { toast('Galerie fotek — mimo prototyp'); return; }
+        // Context-specific overrides for fab-test-eval (reintro test eval day)
+        if (currentSlug() === 'fab-test-eval') {
+          if (/přidat jídlo/i.test(text)) { goto('meal-add-reintro', { pushHistory: true }); return; }
+          if (/zaznamenat stav kůže/i.test(text)) { goto('eczema-check-reintro', { pushHistory: true }); return; }
+        }
         const slug = findTargetByText(text);
         if (slug && slugIndex.has(slug)) { goto(slug, { pushHistory: true }); return; }
       }
