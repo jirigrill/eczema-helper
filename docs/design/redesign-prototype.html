@@ -812,9 +812,9 @@
      ════════════════════════════════════════════════════════════════ -->
 <div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
   <div class="section-eyebrow">A — Dnes</div>
-  <div class="section-heading">Dnes a jeho detaily pohromadě</div>
+  <div class="section-heading">Postup → Týden, fotky jako důkaz</div>
   <div class="section-desc">
-    Obrazovky pro <strong>aktuální den</strong>: prázdný stav (ráno), vyplněno, vyhodnocení testu čeká. FAB a obrazovky logování kůže jsou v sekci FAB Akce.
+    Záložka přejmenována na <strong>Týden</strong> (časově ohraničené, krásně se páruje s „Dnes"). Program demotován na tenký kontextový proužek v hlavičce. Fotky vstupují jako <strong>důkaz uvnitř insightů</strong> (mini-thumbnail vedle případů), galerie zůstává jako odlehčená spodní řádka pro „prolistovat".
   </div>
 
   <div class="flex flex-wrap gap-10 items-start">
@@ -2513,15 +2513,15 @@ function RetestSetupInner({ allergenId }) {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 
+
 <!-- ════════════════════════════════════════════════════════════════
-     SECTION C — FAB AKCE  (static Tailwind, 320×680 phones)
-     Všechny obrazovky spouštěné přes FAB „+"
+     SECTION C.1 — FAB AKCE · VÝBĚR AKCE
      ════════════════════════════════════════════════════════════════ -->
 <div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
-  <div class="section-eyebrow">C — FAB Akce</div>
-  <div class="section-heading">FAB · Stav kůže · Přidat jídlo · Přidat fotku · Vyhodnocení testu</div>
+  <div class="section-eyebrow">C.1 — FAB Akce · Výběr akce</div>
+  <div class="section-heading">Výběr akce</div>
   <div class="section-desc">
-    Všechny obrazovky dostupné přes FAB „+" tlačítko. Pravidlo: FAB-triggered = FAB Akce. SVG ikony místo emoji (DESIGN.md).
+    Action sheet zobrazený po klepnutí na FAB „+". Rozcestník na tři denní akce (přidat jídlo, fotku, zaznamenat stav kůže).
   </div>
 
   <div class="flex flex-wrap gap-10 items-start">
@@ -2576,7 +2576,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">FAB „+" → action sheet. SVG ikony místo emoji. „Přidat jídlo" vede na formulář, „Přidat fotku" na placeholder, „Zaznamenat stav kůže" na obrazovku Stav kůže miminka.</div>
     </div>
 
-    <!-- ECZEMA CHECK · normal day -->
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.2 — FAB AKCE · STAV KŮŽE
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.2 — FAB Akce · Stav kůže</div>
+  <div class="section-heading">Stav kůže miminka</div>
+  <div class="section-desc">
+    Denní hodnocení pokožky — tři varianty: běžný den, reintro test (s kontextovou pilulkou), zhoršení v testu (eskalace).
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
+
+    <!-- ECZEMA CHECK · normal day · no test active -->
     <div>
       <div class="phase-label">▸ Stav kůže · běžný den</div>
       <div class="phone"><div class="phone-screen">
@@ -2594,10 +2609,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-4">
               <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
               <div class="grid grid-cols-2 gap-2">
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-success">✓</span><span class="leading-tight">Zlepšení</span></button>
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-text-muted">—</span><span class="leading-tight">Beze změny</span></button>
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-warning">!</span><span class="leading-tight">Zhoršení</span></button>
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-danger">!!</span><span class="leading-tight">Nová ložiska</span></button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-success">✓</span>
+                  <span class="leading-tight">Zlepšení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-text-muted">—</span>
+                  <span class="leading-tight">Beze změny</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-warning">!</span>
+                  <span class="leading-tight">Zhoršení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-danger">!!</span>
+                  <span class="leading-tight">Nová ložiska</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2607,7 +2634,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Denní hodnocení. Výběrem stavu se animovaně odkryje poznámka + foto + Uložit.</div>
     </div>
 
-    <!-- ECZEMA CHECK · reintro day, no status picked -->
+    <!-- ECZEMA CHECK · reintro day · context pill, no status picked yet -->
     <div>
       <div class="phase-label">▸ Stav kůže · reintro test</div>
       <div class="phone"><div class="phone-screen">
@@ -2626,10 +2653,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
               <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
               <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium text-success" style="background:rgba(90,139,90,0.1)">Test vejce · den 3 z 5</div>
               <div class="grid grid-cols-2 gap-2">
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-success">✓</span><span class="leading-tight">Zlepšení</span></button>
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-text-muted">—</span><span class="leading-tight">Beze změny</span></button>
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-warning">!</span><span class="leading-tight">Zhoršení</span></button>
-                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-danger">!!</span><span class="leading-tight">Nová ložiska</span></button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-success">✓</span>
+                  <span class="leading-tight">Zlepšení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-text-muted">—</span>
+                  <span class="leading-tight">Beze změny</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-warning">!</span>
+                  <span class="leading-tight">Zhoršení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-danger">!!</span>
+                  <span class="leading-tight">Nová ložiska</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2639,7 +2678,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Reintro den: stejná otázka a 4 tlačítka. Kontext testu jako malý pill uvnitř karty nad tlačítky.</div>
     </div>
 
-    <!-- ECZEMA CHECK · reintro day · status selected (Zhoršení) + progressive fields -->
+    <!-- ECZEMA CHECK · reintro day · status = Zhoršení selected, progressive fields visible -->
     <div>
       <div class="phase-label">▸ Stav kůže · reintro test · stav vybrán</div>
       <div class="phone"><div class="phone-screen">
@@ -2658,10 +2697,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
               <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
               <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium text-success" style="background:rgba(90,139,90,0.1)">Test vejce · den 3 z 5</div>
               <div class="grid grid-cols-2 gap-2">
-                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-success">✓</span><span class="leading-tight">Zlepšení</span></button>
-                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-text-muted">—</span><span class="leading-tight">Beze změny</span></button>
-                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-warning text-sm font-medium" style="background:rgba(196,124,69,0.1);border-color:rgba(196,124,69,0.5)"><span class="text-xl leading-none">!</span><span class="leading-tight">Zhoršení ●</span></button>
-                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium"><span class="text-xl leading-none text-danger">!!</span><span class="leading-tight">Nová ložiska</span></button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-success">✓</span>
+                  <span class="leading-tight">Zlepšení</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-text-muted">—</span>
+                  <span class="leading-tight">Beze změny</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-warning text-sm font-medium" style="background:rgba(196,124,69,0.1);border-color:rgba(196,124,69,0.5)">
+                  <span class="text-xl leading-none">!</span>
+                  <span class="leading-tight">Zhoršení ●</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
+                  <span class="text-xl leading-none text-danger">!!</span>
+                  <span class="leading-tight">Nová ložiska</span>
+                </button>
               </div>
               <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm bg-surface" placeholder="Zarudnutí na tvářích po snídani…">Zarudnutí na tvářích po snídani</textarea>
               <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white">
@@ -2674,8 +2725,23 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Po výběru stavu se odkryjí poznámka + foto + Uložit. Žádná eskalační karta.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Po výběru stavu se odkryjí poznámka + foto + Uložit. SVG kamera místo emoji.</div>
     </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.3 — FAB AKCE · PŘIDAT JÍDLO
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.3 — FAB Akce · Přidat jídlo</div>
+  <div class="section-heading">Přidat jídlo</div>
+  <div class="section-desc">
+    Formulář pro logování jídel. Varianty: default, reintro test (alergenové kategorie), přepnutí pillu (autosave toast), bez programu, vyhledávání, úprava položky.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
 
     <!-- MEAL ADD · DEFAULT — Oběd auto-selected, 2 logged items, no conflicts -->
     <div>
@@ -3068,7 +3134,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Vyhledávání aktivní — listy alergenů (sub-items only), pravý štítek statusu, dole vždy fallback „přidat jako vlastní" pro položky mimo kategorie. Recents a accordion skryté po dobu hledání. CTA sticky.</div>
     </div>
 
-    <!-- MEAL ADD · ÚPRAVA POLOŽKY -->
+    <!-- MEAL ADD · ÚPRAVA POLOŽKY — logged row tapped, inline portion+prep chips visible -->
     <div>
       <div class="phase-label">▸ Přidat jídlo · úprava položky</div>
       <div class="phone"><div class="phone-screen">
@@ -3089,6 +3155,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             </div>
           </div>
 
+          <!-- Recents collapsed visually (just show one to save space) -->
           <div class="px-5 pt-3 pb-2">
             <div class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Naposledy</div>
             <div class="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
@@ -3117,6 +3184,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 </div>
                 <button class="text-text-muted text-sm ml-1 flex-shrink-0">✕</button>
               </div>
+
+              <!-- Tapped row · quantity + prep chips visible inline -->
               <div class="bg-white rounded-xl border-2 px-3 py-3 space-y-2.5" style="border-color:#8B4557">
                 <div class="flex items-center gap-3">
                   <span class="text-lg">🍗</span>
@@ -3146,6 +3215,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                   </div>
                 </div>
               </div>
+
               <div class="bg-white border border-surface-dark rounded-xl flex items-center gap-3 px-3 py-2.5">
                 <span class="text-lg">🥦</span>
                 <div class="flex-1 min-w-0">
@@ -3171,6 +3241,21 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
       </div></div>
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Klepnutí na uloženou položku otevře inline edit kartu se dvěma řadami chipů — Množství a Příprava. Defaulty „Porce" + „Vařené" (kategorie meat) z last-used/category fallback. Tap na chip = okamžitá změna a autosave.</div>
     </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.4 — FAB AKCE · VYHODNOCENÍ TESTU
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.4 — FAB Akce · Vyhodnocení testu</div>
+  <div class="section-heading">Vyhodnocení testu</div>
+  <div class="section-desc">
+    Hodnocení reakce na testovaný alergen po posledním dnu reintrodukčního testu. Toast potvrdí uložení, pak přechod zpět na Dnes.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
 
     <!-- REINTRO EVAL — end-of-test evaluation screen: SVG icons, DOPORUČENO badge (Variant B) -->
     <div>
@@ -3203,11 +3288,31 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             <div class="bg-white border border-surface-dark rounded-2xl p-3 mb-3">
               <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Průběh testu</div>
               <div class="space-y-1.5">
-                <div class="flex items-center gap-2 text-[11px]"><span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">1</span><span class="font-medium text-text">½ lžičky</span><span class="text-text-muted ml-auto">klidná</span></div>
-                <div class="flex items-center gap-2 text-[11px]"><span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span><span class="font-medium text-text">1 lžička</span><span class="text-text-muted ml-auto">klidná</span></div>
-                <div class="flex items-center gap-2 text-[11px]"><span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span><span class="font-medium text-text">2 lžičky</span><span class="text-text-muted ml-auto">klidná</span></div>
-                <div class="flex items-center gap-2 text-[11px]"><span class="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style="background:#C9A227">4</span><span class="font-medium text-text">½ porce</span><span class="ml-auto font-medium" style="color:#C9A227">mírné zarudnutí</span></div>
-                <div class="flex items-center gap-2 text-[11px]"><span class="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style="background:#C9A227">5</span><span class="font-medium text-text">1 porce</span><span class="ml-auto font-medium" style="color:#C9A227">mírné zarudnutí</span></div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <span class="font-medium text-text">½ lžičky</span>
+                  <span class="text-text-muted ml-auto">klidná</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <span class="font-medium text-text">1 lžička</span>
+                  <span class="text-text-muted ml-auto">klidná</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <span class="font-medium text-text">2 lžičky</span>
+                  <span class="text-text-muted ml-auto">klidná</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style="background:#C9A227">4</span>
+                  <span class="font-medium text-text">½ porce</span>
+                  <span class="ml-auto font-medium" style="color:#C9A227">mírné zarudnutí</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px]">
+                  <span class="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style="background:#C9A227">5</span>
+                  <span class="font-medium text-text">1 porce</span>
+                  <span class="ml-auto font-medium" style="color:#C9A227">mírné zarudnutí</span>
+                </div>
               </div>
             </div>
 
@@ -3219,7 +3324,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(90,139,90,0.12)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A8B5A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
-                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Toleruje</div><div class="text-[10px] text-text-muted">Žádná reakce</div></div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-bold text-text">Toleruje</div>
+                  <div class="text-[10px] text-text-muted">Žádná reakce</div>
+                </div>
               </button>
               <!-- Mírná reakce — DOPORUČENO badge, teal border, not pre-selected -->
               <div>
@@ -3230,7 +3338,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                   <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(201,162,39,0.12)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A227" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   </div>
-                  <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Mírná reakce</div><div class="text-[10px] text-text-muted">Zarudnutí, mírné svědění</div></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[12px] font-bold text-text">Mírná reakce</div>
+                    <div class="text-[10px] text-text-muted">Zarudnutí, mírné svědění</div>
+                  </div>
                 </button>
               </div>
               <!-- Jasná reakce -->
@@ -3238,17 +3349,24 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(184,68,68,0.10)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 </div>
-                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Jasná reakce</div><div class="text-[10px] text-text-muted">Zhoršení po podání</div></div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-bold text-text">Jasná reakce</div>
+                  <div class="text-[10px] text-text-muted">Zhoršení po podání</div>
+                </div>
               </button>
               <!-- Silná reakce -->
               <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left">
                 <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(184,68,68,0.10)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B84444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                 </div>
-                <div class="flex-1 min-w-0"><div class="text-[12px] font-bold text-text">Silná reakce</div><div class="text-[10px] text-text-muted">Otok, dušnost — k lékaři</div></div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[12px] font-bold text-text">Silná reakce</div>
+                  <div class="text-[10px] text-text-muted">Otok, dušnost — k lékaři</div>
+                </div>
               </button>
             </div>
 
+            <!-- Notes -->
             <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm bg-white mb-3" placeholder="Poznámka (volitelné)…"></textarea>
 
             <!-- Save — disabled until selection -->
@@ -3257,7 +3375,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Variant B: DOPORUČENO teal badge nad kartou Mírná reakce. SVG ikony místo emoji. CTA šedé dokud uživatel nevybere. Screen 34 odstraněn.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Variant B: DOPORUČENO teal badge nad kartou Mírná reakce (app doporučí, nevybere). SVG ikony místo emoji. CTA šedé dokud uživatel nevybere. Screen 34 odstraněn.</div>
     </div>
 
     <!-- REINTRO EVAL · TOAST — post-save state, shown 2 s before returning to Dnes -->
@@ -3284,6 +3402,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <div class="text-[11px] text-text-muted">5denní test · 1.–5. 5. 2026</div>
               </div>
             </div>
+            <!-- Cards — Silná reakce selected (to demonstrate toast for worst case) -->
             <div class="text-[11px] font-semibold text-text mb-2">Jak miminko alergen sneslo?</div>
             <div class="space-y-1.5 mb-3">
               <button class="w-full bg-white border border-surface-dark rounded-xl px-3 py-2.5 flex items-center gap-3 text-left opacity-40">
@@ -3321,8 +3440,23 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Toast se zobrazí 2 s po uložení, pak přechod na Dnes. Bílá karta + 4px danger strip + hairline + FAB shadow. Screen 34 odstraněn.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Toast se zobrazí 2 s po uložení, pak přechod na Dnes. Bílá karta + 4px danger strip + hairline + FAB shadow. Řeší feedback pro Silnou reakci bez obrazovky 34.</div>
     </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION C.5 — FAB AKCE · PŘIDAT FOTKU
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-top: 0; padding-bottom: 24px;">
+  <div class="section-eyebrow">C.5 — FAB Akce · Přidat fotku</div>
+  <div class="section-heading">Přidat fotku</div>
+  <div class="section-desc">
+    Placeholder pro šifrované ukládání fotek kůže (AES-256-GCM). Funkce se připravuje.
+  </div>
+
+  <div class="flex flex-wrap gap-10 items-start">
 
     <!-- PHOTO — placeholder -->
     <div>
