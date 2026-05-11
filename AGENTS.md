@@ -4,9 +4,9 @@ Guidance for AI agents working in this repository.
 
 ## Project Overview
 
-Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic eczema through elimination diet. Single-child, two-parent, Czech UI. Medical photos will be E2E encrypted (AES-256-GCM, PBKDF2) when photo features are wired.
+Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic eczema through elimination diet. v1 is single-device on the breastfeeding mother's phone, Czech UI. See [ADR-0001](docs/adr/0001-single-device-v1.md). Medical photos use AES-256-GCM + PBKDF2-derived keys inside the encrypted manual-export blob; encryption-at-rest in IndexedDB is deferred past v1 with a shipping constraint, see [ADR-0005](docs/adr/0005-photo-encryption-deferred.md).
 
-**Status:** Prototype-first frontend. The app lives at `src/routes/` and is a UI-only prototype of the eczema-tracking flow. Backend, persistence, auth, and AI features were removed during a UX pivot and will be re-authored against the new domain when the prototype stabilizes.
+**Status:** Foundation-first build of v1, the Protocol Executor (see [ADR-0007](docs/adr/0007-v1-scope.md)). The HTML prototype in `docs/design/redesign-prototype.html` is the design source of truth; SvelteKit routes are being re-authored against it. Persistence comes back as Dexie/IndexedDB in slice 1 ([ADR-0006](docs/adr/0006-dexie-persistence.md), [ADR-0008](docs/adr/0008-tracer-bullet-slices.md)). No server-side backend or auth in v1; the derived-insight engine ships in v1.1.
 
 ## Documentation
 
@@ -25,9 +25,10 @@ Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic ec
 - **Styling:** Tailwind CSS 4 (mobile-first)
 - **Adapter:** svelte-adapter-bun
 - **PWA:** @vite-pwa/sveltekit (kept for offline-first work, not yet wired)
-- **Future backend:** PostgreSQL 16 + postgres.js, bcrypt, Web Crypto API, Claude Vision API
-- **Local offline DB (future):** Dexie.js
-- **Deployment:** Docker image + docker-compose.prod.yml on VPS
+- **Local DB (v1):** Dexie / IndexedDB. Normalized tables, reactive queries via `liveQuery`. See [ADR-0006](docs/adr/0006-dexie-persistence.md).
+- **Crypto:** Web Crypto API (AES-256-GCM, PBKDF2). v1 uses it for the encrypted manual-export blob ([ADR-0002](docs/adr/0002-backup-floor.md)); the same primitives unlock photo encryption-at-rest when [ADR-0005](docs/adr/0005-photo-encryption-deferred.md)'s shipping constraint requires it.
+- **Backend:** none in v1. A small entitlement API may appear once subscriptions are in scope; not before.
+- **Deployment:** Docker image + docker-compose.prod.yml on VPS (will simplify to static bundle behind nginx — see issue #35).
 
 ## Directory Layout
 
@@ -55,7 +56,7 @@ src/
 
 ## Architecture Intent
 
-Ports & Adapters (Hexagonal). Currently only the **Domain** layer exists (pure logic in `lib/domain/`). When backend is re-wired, add `lib/domain/ports/` (interfaces) and `lib/adapters/` (implementations) back. See `docs/architecture/ports-and-adapters.md`.
+Ports & Adapters (Hexagonal). Pure domain logic lives in `lib/domain/`. Ports under `lib/domain/ports/` define interfaces for persistence and other I/O. Adapters under `lib/adapters/` implement them. Slice 1 reintroduces the ports + adapters layer for Dexie persistence — hexagonal applies to local I/O too, not only to a remote backend. See `docs/architecture/ports-and-adapters.md` and [ADR-0006](docs/adr/0006-dexie-persistence.md).
 
 ## Commands
 
@@ -194,6 +195,8 @@ git branch -d <feature-branch>
 ## When Modifying the Repo
 
 After significant changes, verify:
-1. `docs/README.md` — still accurate?
-2. `AGENTS.md` — conventions/commands still match?
-3. Grep for dead imports (`grep -rn "\\\$lib/" src/`) after deletes.
+1. `CONTEXT.md` — vocabulary still matches the code?
+2. `docs/adr/` — any new architectural decisions to record, or any ADRs to revise?
+3. `docs/README.md` — still accurate?
+4. `AGENTS.md` — conventions/commands still match?
+5. Grep for dead imports (`grep -rn "\\\$lib/" src/`) after deletes.
