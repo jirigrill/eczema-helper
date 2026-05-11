@@ -1337,7 +1337,7 @@
 
           <div class="px-5 pt-5">
             <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-4">
-              <p class="text-sm font-semibold text-text">Jak je dnes pokožka?</p>
+              <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
 
               <div class="grid grid-cols-2 gap-2">
                 <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
@@ -1357,17 +1357,15 @@
                   <span class="leading-tight">Nová ložiska</span>
                 </button>
               </div>
-
-              <div class="text-[11px] text-text-muted text-center">Vyber stav, pak doplň poznámku a fotku.</div>
             </div>
           </div>
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Denní hodnocení během eliminace, resetu nebo bez testu. Po výběru stavu se zobrazí poznámka, foto toggle a uložení.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Denní hodnocení. Výběrem stavu se animovaně odkryje poznámka + foto + Uložit.</div>
     </div>
 
-    <!-- ECZEMA CHECK · reintro day · context banner, no status picked yet -->
+    <!-- ECZEMA CHECK · reintro day · context pill, no status picked yet -->
     <div>
       <div class="phase-label">▸ Stav kůže · reintro test</div>
       <div class="phone"><div class="phone-screen">
@@ -1384,18 +1382,14 @@
 
           <div class="px-5 pt-5">
             <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-4">
-              <p class="text-sm font-semibold text-text">Jak miminko reagovalo na dávku?</p>
+              <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
 
-              <!-- Reintro context banner -->
-              <div class="rounded-xl px-3 py-2.5" style="background:rgba(90,139,90,0.1);border:1px solid rgba(90,139,90,0.3)">
-                <p class="text-[12px] font-medium text-success">🔬 Sledujte reakci na 🥚 Vejce</p>
-                <p class="text-[11px] text-text-muted mt-0.5">Den 3 z 5 · zaznamenejte jakékoliv změny po podání alergenu.</p>
-              </div>
+              <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium text-success" style="background:rgba(90,139,90,0.1)">Test vejce · den 3 z 5</div>
 
               <div class="grid grid-cols-2 gap-2">
                 <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
                   <span class="text-xl leading-none text-success">✓</span>
-                  <span class="leading-tight">Bez reakce</span>
+                  <span class="leading-tight">Zlepšení</span>
                 </button>
                 <button class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
                   <span class="text-xl leading-none text-text-muted">—</span>
@@ -1415,12 +1409,12 @@
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Stejné UI, ale během reintro testu se nahoře zobrazí zelený banner s alergenem, na který sledujeme reakci. Otázka je přeformulována (reagovalo na dávku) místo (jak je pokožka).</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Reintro den: stejná otázka a 4 tlačítka. Kontext testu jako malý pill uvnitř karty nad tlačítky.</div>
     </div>
 
-    <!-- ECZEMA CHECK · reintro day · status = Zhoršení selected, escalation CTA visible -->
+    <!-- ECZEMA CHECK · reintro day · status = Zhoršení selected, progressive fields visible -->
     <div>
-      <div class="phase-label">▸ Stav kůže · reintro test · zhoršení</div>
+      <div class="phase-label">▸ Stav kůže · reintro test · stav vybrán</div>
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">19:42</span><span class="icons">●●● ◐</span></div>
@@ -1435,16 +1429,14 @@
 
           <div class="px-5 pt-4">
             <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-3.5">
-              <p class="text-sm font-semibold text-text">Jak miminko reagovalo na dávku?</p>
+              <p class="text-sm font-semibold text-text">Jak vypadá dnes pokožka?</p>
 
-              <div class="rounded-xl px-3 py-2" style="background:rgba(90,139,90,0.1);border:1px solid rgba(90,139,90,0.3)">
-                <p class="text-[11px] font-medium text-success">🔬 Sledujte reakci na 🥚 Vejce</p>
-              </div>
+              <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium text-success" style="background:rgba(90,139,90,0.1)">Test vejce · den 3 z 5</div>
 
               <div class="grid grid-cols-2 gap-2">
                 <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
                   <span class="text-xl leading-none text-success">✓</span>
-                  <span class="leading-tight">Bez reakce</span>
+                  <span class="leading-tight">Zlepšení</span>
                 </button>
                 <button class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white text-text text-sm font-medium">
                   <span class="text-xl leading-none text-text-muted">—</span>
@@ -1463,24 +1455,17 @@
               <textarea rows="2" class="w-full rounded-xl border border-surface-dark px-3 py-2 text-sm bg-surface" placeholder="Zarudnutí na tvářích po snídani…">Zarudnutí na tvářích po snídani</textarea>
 
               <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-surface-dark bg-white">
-                <span class="text-base leading-none">📸</span>
-                <span class="text-[12px] font-medium text-text-muted">Označit jako vyfocenou</span>
+                <svg class="w-4 h-4 shrink-0 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span class="text-[12px] font-medium text-text-muted">Přidat fotku</span>
               </button>
 
-              <!-- ESCALATION CARD -->
-              <div class="rounded-xl px-3 py-2.5" style="background:rgba(196,124,69,0.12);border:1px solid rgba(196,124,69,0.5)">
-                <p class="text-[11px] font-bold text-warning">⚠ Reakce na alergen</p>
-                <p class="text-[11px] text-text mt-0.5 leading-snug">Doporučujeme test ukončit dříve.</p>
-                <button class="mt-2 w-full text-center py-1.5 rounded-lg text-[11px] font-bold text-white" style="background:#C47C45">Vyhodnotit test předčasně →</button>
-              </div>
-
-              <button class="w-full py-2.5 rounded-xl bg-primary text-white font-semibold text-sm">Uložit hodnocení</button>
+              <button class="w-full py-2.5 rounded-xl bg-primary text-white font-semibold text-sm">Uložit</button>
             </div>
           </div>
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Při výběru ⚠ Zhoršení nebo Nová ložiska v reintro testu se nad tlačítkem Uložit zobrazí karta s odkazem na předčasné vyhodnocení testu. Otevírá stejnou obrazovku jako Vyhodnocení testu.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Po výběru stavu se odkryjí poznámka + foto + Uložit. SVG kamera místo emoji. „Přidat fotku" vede na screen 34. Žádná eskalační karta.</div>
     </div>
 
   </div>
