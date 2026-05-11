@@ -6,25 +6,26 @@
   import type { AppState, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getScheduleProgress, appendReTestPhases, getReintroductionDayInfo } from '$lib/domain/schedule';
   import { getCategoryById } from '$lib/data/categories';
-  import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
-  import { formatDateCs, formatDateLongCs, todayIso, addDays } from '$lib/utils/date';
+  import { formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
+  import { AtopicDb } from '$lib/db/atopic-db';
+  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+
+  const db = new AtopicDb();
+  const questionnaireRepo = new DexieQuestionnaireRepository(db);
+  const scheduleRepo = new DexieScheduleRepository(db);
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
   let showToast = $state(false);
   let selectedRetestSlugs = $state<string[]>([]);
   let expandedPhaseId = $state<string | null>(null);
 
-  onMount(() => {
-    function refresh() {
-      const raw = loadState();
-      if (raw.answers) state = raw;
-    }
-    refresh();
-    window.addEventListener('v2-state-change', refresh);
-    return () => window.removeEventListener('v2-state-change', refresh);
+  onMount(async () => {
+    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
+    if (answers && schedule) state = { ...state, answers, schedule };
   });
 
-  const today = $derived(addDays(todayIso(), state.dateOffset ?? 0));
+  const today = $derived(todayIso());
   const schedule = $derived(state.schedule);
   const currentPhase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
   const eliminatedToday = $derived(schedule ? getEliminatedSlugsForDate(schedule, today) : []);
@@ -75,12 +76,11 @@
       .sort((a, b) => ({ testing: 0, eliminated: 1, reintroduced: 2 }[a.status] - { testing: 0, eliminated: 1, reintroduced: 2 }[b.status]));
   }
 
-  function addRetestPhases() {
+  async function addRetestPhases() {
     if (!schedule || !state.answers || selectedRetestSlugs.length === 0) return;
     const updatedSchedule = appendReTestPhases(schedule, selectedRetestSlugs, state.answers.eczemaSeverity);
     state = { ...state, schedule: updatedSchedule };
-    saveState(state);
-    notifyStateChange();
+    await scheduleRepo.save(updatedSchedule);
     selectedRetestSlugs = [];
   }
 

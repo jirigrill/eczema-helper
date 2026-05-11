@@ -8,37 +8,30 @@
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getReintroductionDayInfo, isPhaseEndForEvaluation, insertRestDays, addTrainingPhase, getTrainingRemindersForDate } from '$lib/domain/schedule';
   import { getCategoryById } from '$lib/data/categories';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
-  import { loadState, saveState, notifyStateChange } from '$lib/data/storage';
   import { formatDateCs, formatDateLongCs, todayIso, addDays } from '$lib/utils/date';
+  import { AtopicDb } from '$lib/db/atopic-db';
+  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+
+  const db = new AtopicDb();
+  const questionnaireRepo = new DexieQuestionnaireRepository(db);
+  const scheduleRepo = new DexieScheduleRepository(db);
   import EczemaCheck from '$lib/components/EczemaCheck.svelte';
 
   let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
   let dateStripEl = $state<HTMLElement | null>(null);
 
-  onMount(() => {
+  onMount(async () => {
     const paramDate = $page.url.searchParams.get('date');
-    let isInitial = true;
-
-    function refresh() {
-      const raw = loadState();
-      if (raw.answers) {
-        const simToday = addDays(todayIso(), raw.dateOffset ?? 0);
-        state = raw;
-        if (isInitial) {
-          selectedDate = paramDate ?? simToday;
-          isInitial = false;
-        } else {
-          selectedDate = simToday;
-        }
-      }
+    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
+    if (answers && schedule) {
+      state = { ...state, answers, schedule };
+      selectedDate = paramDate ?? todayIso();
     }
-    refresh();
-    window.addEventListener('v2-state-change', refresh);
     tick().then(() => scrollTodayIntoView());
-    return () => window.removeEventListener('v2-state-change', refresh);
   });
 
-  const today = $derived(addDays(todayIso(), state.dateOffset ?? 0));
+  const today = $derived(todayIso());
   let selectedDate = $state(todayIso());
 
   const dateStrip = $derived.by(() => {
@@ -78,9 +71,7 @@
   );
 
   function saveAssessment(a: DailyAssessment) {
-    const raw = loadState();
-    raw.assessments = [...(raw.assessments ?? []).filter(x => x.date !== a.date), a];
-    saveState(raw);
+    // TODO(slice-3): persist to Dexie assessments table
     state = { ...state, assessments: [...(state.assessments ?? []).filter(x => x.date !== a.date), a] };
   }
 
@@ -128,7 +119,7 @@
     }
   });
 
-  function saveEvaluation() {
+  async function saveEvaluation() {
     if (!evalOutcome || !evalPhase) return;
     const evaluation: ReintroductionEvaluation = {
       phaseId: evalPhase.id,
@@ -139,8 +130,8 @@
       date: selectedDate,
     };
 
-    const raw = loadState();
-    raw.evaluations = [...(raw.evaluations ?? []).filter(e => e.phaseId !== evalPhase.id), evaluation];
+    const updatedEvaluations = [...(state.evaluations ?? []).filter(e => e.phaseId !== evalPhase.id), evaluation];
+    let updatedSchedule = state.schedule!;
 
     // Schedule mutation on negative reintroduction outcome
     if (
@@ -148,15 +139,14 @@
       (evalOutcome === 'clear-reaction' || evalOutcome === 'severe-reaction')
     ) {
       const restDays = evalOutcome === 'severe-reaction' ? 2 : 1;
-      let mutated = insertRestDays(raw.schedule!, evalPhase.id, restDays);
-      mutated = addTrainingPhase(mutated, evalPhase.categoryIds[0], evalPhase.id);
-      raw.schedule = mutated;
+      updatedSchedule = insertRestDays(updatedSchedule, evalPhase.id, restDays);
+      updatedSchedule = addTrainingPhase(updatedSchedule, evalPhase.categoryIds[0], evalPhase.id);
+      await scheduleRepo.save(updatedSchedule);
     }
 
-    saveState(raw);
-    state = { ...state, schedule: raw.schedule, evaluations: raw.evaluations };
+    // TODO(slice-3): persist evaluations to Dexie evaluations table
+    state = { ...state, schedule: updatedSchedule, evaluations: updatedEvaluations };
     evalSaved = true;
-    notifyStateChange();
   }
 
   const evalMutationFeedback = $derived.by(() => {

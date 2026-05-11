@@ -87,8 +87,6 @@ export type AppState = {
   meals: Meal[];
   assessments: DailyAssessment[];
   evaluations: ReintroductionEvaluation[];
-  dateOffset?: number; // days relative to today; 0 = today, positive = future
-  activeScenario?: string; // display name of the loaded scenario, if any
 };
 
 export type TrainingReminder = {
