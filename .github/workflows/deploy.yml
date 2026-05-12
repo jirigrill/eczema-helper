@@ -34,7 +34,7 @@ jobs:
       - name: Health check
         run: |
           for i in $(seq 1 10); do
-            if curl -sf https://eczema.nofiat.me/ | grep -q '<title>'; then
+            if curl -sf https://eczema.nofiat.me/ | grep -q 'modulepreload'; then
               echo "✅ Healthy"
               exit 0
             fi
