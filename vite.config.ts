@@ -4,6 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  resolve: {
+    // Force client-side Svelte build when running tests
+    conditions: process.env.VITEST ? ['browser'] : [],
+  },
   plugins: [
     tailwindcss(),
     sveltekit(),
@@ -25,11 +29,11 @@ export default defineConfig({
     })
   ],
   test: {
+    globals: true,
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    exclude: ['e2e/**', 'node_modules/**', '.claude/**'],
-    // Include integration tests explicitly
-    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
+    exclude: ['e2e/**', 'node_modules/**', '.claude/**', 'tests/e2e/**'],
+    include: ['src/**/*.test.ts'],
     pool: 'forks',
     poolOptions: {
       forks: {
