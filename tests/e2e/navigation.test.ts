@@ -1,37 +1,51 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+// Clear via Dexie's API so liveQuery subscriptions react to the change.
+// Raw IDB writes bypass Dexie's mutation tracking and do NOT trigger liveQuery.
 async function clearDb(page: Page) {
-  await page.evaluate(() => indexedDB.deleteDatabase('atopic-helper'));
+  await page.evaluate(async () => {
+    // Use a variable so TypeScript doesn't try to statically resolve this
+    // Vite dev-server path as a Node module.
+    const path = '/src/lib/db/atopic-db.ts';
+    const { AtopicDb } = await import(/* @vite-ignore */ path);
+    const db = new AtopicDb();
+    await db.answers.clear();
+    await db.schedule.clear();
+    db.close();
+  });
 }
 
 async function completeOnboarding(page: Page) {
-  await page.goto('/');
-  await expect(page).toHaveURL('/');
+  // beforeEach already navigated to / — just wait for the welcome screen
+  await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
 
-  // Step 1 — baby birth date
-  await page.fill('input[type="date"]', '2025-01-01');
-  await page.getByRole('button', { name: /Pokračovat|Další/i }).click();
+  // Step 1 — welcome screen
+  await page.getByRole('button', { name: 'Začít' }).click();
 
-  // Step 2 — eczema severity (moderate is pre-selected)
-  await page.getByRole('button', { name: /Pokračovat|Další/i }).click();
+  // Step 2 — baby birth date + severity (moderate pre-selected)
+  await page.fill('#birthdate', '2025-01-01');
+  await page.getByRole('button', { name: 'Pokračovat' }).click();
 
   // Step 3 — mother allergies (skip)
-  await page.getByRole('button', { name: /Pokračovat|Další/i }).click();
+  await page.getByRole('button', { name: 'Pokračovat' }).click();
 
   // Step 4 — baby confirmed allergies (skip)
-  await page.getByRole('button', { name: /Pokračovat|Další/i }).click();
+  await page.getByRole('button', { name: 'Pokračovat' }).click();
 
-  // Step 5 — allergens to test (pre-selected defaults, continue)
-  await page.getByRole('button', { name: /Pokračovat|Další/i }).click();
+  // Step 5 — program start date (pre-filled to today)
+  await page.getByRole('button', { name: 'Pokračovat' }).click();
 
-  // Step 6 — program start date + submit
-  await page.getByRole('button', { name: /Spustit program|Dokončit/i }).click();
+  // Step 6 — summary, confirm
+  await page.getByRole('button', { name: 'Potvrdit a spustit program' }).click();
 }
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
+  // Full reload ensures Dexie reinitialises with the now-empty stores
+  // and component state is fully reset.
+  await page.reload({ waitUntil: 'networkidle' });
 });
 
 test('redirect to / from /today when IndexedDB is empty', async ({ page }) => {
@@ -42,8 +56,8 @@ test('redirect to / from /today when IndexedDB is empty', async ({ page }) => {
 test('full onboarding → /today with nav header visible', async ({ page }) => {
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
-  await expect(page.getByText('Dnes')).toBeVisible();
-  await expect(page.getByText('Program')).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('link', { name: /Dnes/ })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('link', { name: /Program/ })).toBeVisible();
 });
 
 test('reactive redirect: clearing DB mid-session redirects to /', async ({ page }) => {
