@@ -18,3 +18,5 @@ export class AtopicDb extends Dexie {
     });
   }
 }
+
+export const db = new AtopicDb();

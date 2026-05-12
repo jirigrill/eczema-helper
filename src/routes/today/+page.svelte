@@ -7,6 +7,7 @@
   } from "$lib/domain/schedule";
   import { getCategoryById } from "$lib/data/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
+  import { getPhaseDisplay } from "$lib/utils/phase-display";
 
   const today = todayIso();
 
@@ -31,56 +32,12 @@
   );
 
   // 7-day strip: 6 days back + today
-  const weekDays = $derived(
-    Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)),
-  );
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
 
   function weekdayShort(iso: string): string {
     return new Date(iso + "T00:00:00").toLocaleDateString("cs-CZ", {
       weekday: "short",
     });
-  }
-
-  function phaseIcon(type: string): string {
-    return (
-      (
-        {
-          reset: "📊",
-          elimination: "🚫",
-          reintroduction: "🔬",
-          rest: "⏸️",
-          training: "🏋️",
-        } as Record<string, string>
-      )[type] ?? "📅"
-    );
-  }
-
-  function phaseBadgeClass(type: string): string {
-    return (
-      (
-        {
-          reset: "bg-surface-dark text-text-muted",
-          elimination: "bg-danger text-white",
-          reintroduction: "bg-success text-white",
-          rest: "bg-surface-dark text-text-muted",
-          training: "bg-primary text-white",
-        } as Record<string, string>
-      )[type] ?? "bg-surface-dark text-text-muted"
-    );
-  }
-
-  function phaseIconBg(type: string): string {
-    return (
-      (
-        {
-          reset: "bg-surface-dark",
-          elimination: "bg-danger/15",
-          reintroduction: "bg-success/15",
-          rest: "bg-surface-dark",
-          training: "bg-primary/15",
-        } as Record<string, string>
-      )[type] ?? "bg-surface-dark"
-    );
   }
 
   function czechWeekday(iso: string): string {
@@ -162,37 +119,46 @@
         class="block bg-white rounded-2xl border border-surface-dark p-3.5 text-left"
       >
         <div class="flex items-center gap-2.5 mb-2">
-          <div
-            class="w-9 h-9 rounded-lg {phaseIconBg(
-              phase?.type ?? '',
-            )} flex items-center justify-center text-lg shrink-0"
-          >
-            {phaseIcon(phase?.type ?? "")}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-sm font-bold text-text"
-                >{phase?.label ?? "Program skončil"}</span
-              >
-              {#if phase}
+          {#if phase}
+            {@const display = getPhaseDisplay(phase.type)}
+            <div
+              class="w-9 h-9 rounded-lg {display.iconBg} flex items-center justify-center text-lg shrink-0"
+            >
+              {display.icon}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-sm font-bold text-text">{phase.label}</span>
                 <span
-                  class="text-[8px] font-extrabold tracking-wider rounded-full px-1.5 py-0.5 {phaseBadgeClass(
-                    phase.type,
-                  )}"
+                  class="text-[8px] font-extrabold tracking-wider rounded-full px-1.5 py-0.5 {display.badge}"
                 >
                   {phase.type.toUpperCase()}
                 </span>
+              </div>
+              {#if progress}
+                <div class="text-[11px] text-text-muted mt-0.5">
+                  Den {progress.currentDay} / {progress.totalDays}
+                  {#if phase.endDate}
+                    · do {formatDateLongCs(phase.endDate)}
+                  {/if}
+                </div>
               {/if}
             </div>
-            {#if progress}
-              <div class="text-[11px] text-text-muted mt-0.5">
-                Den {progress.currentDay} / {progress.totalDays}
-                {#if phase?.endDate}
-                  · do {formatDateLongCs(phase.endDate)}
-                {/if}
-              </div>
-            {/if}
-          </div>
+          {:else}
+            <div
+              class="w-9 h-9 rounded-lg bg-surface-dark flex items-center justify-center text-lg shrink-0"
+            >
+              📅
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="text-sm font-bold text-text">Program skončil</span>
+              {#if progress}
+                <div class="text-[11px] text-text-muted mt-0.5">
+                  Den {progress.currentDay} / {progress.totalDays}
+                </div>
+              {/if}
+            </div>
+          {/if}
           <span class="text-text-muted text-sm">›</span>
         </div>
         {#if progress}

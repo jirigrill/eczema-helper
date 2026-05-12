@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPhaseForDate, getEliminatedSlugsForDate } from './schedule';
+import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress } from './schedule';
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
@@ -181,5 +181,50 @@ describe('getPhaseForDate — training phase', () => {
   it('treats open-ended training phase as active on any date after its start', () => {
     const result = getPhaseForDate(scheduleWithTraining, '2026-12-31');
     expect(result?.id).toBe('training-dairy');
+  });
+});
+
+describe('getScheduleProgress', () => {
+  // 10-day program: 2026-05-01 → 2026-05-10
+  const tenDaySchedule: GeneratedSchedule = {
+    permanentEliminations: [],
+    startDate: '2026-05-01',
+    estimatedEndDate: '2026-05-10',
+    phases: [],
+  };
+
+  it('clamps to day 1 when called before program start', () => {
+    const result = getScheduleProgress(tenDaySchedule, '2026-04-28');
+    expect(result.currentDay).toBe(1);
+    expect(result.totalDays).toBe(10);
+  });
+
+  it('clamps to totalDays when called after program end', () => {
+    const result = getScheduleProgress(tenDaySchedule, '2026-05-20');
+    expect(result.currentDay).toBe(10);
+    expect(result.totalDays).toBe(10);
+  });
+
+  it('returns correct mid-program day', () => {
+    const result = getScheduleProgress(tenDaySchedule, '2026-05-05');
+    expect(result.currentDay).toBe(5);
+    expect(result.totalDays).toBe(10);
+  });
+
+  it('returns 100 on the last day', () => {
+    const result = getScheduleProgress(tenDaySchedule, '2026-05-10');
+    expect(result.percentComplete).toBe(100);
+  });
+
+  it('rounds percentComplete correctly for fractional values', () => {
+    // day 1 of 3: Math.round(1/3 * 100) = Math.round(33.33) = 33
+    const threeDay: GeneratedSchedule = {
+      permanentEliminations: [],
+      startDate: '2026-05-01',
+      estimatedEndDate: '2026-05-03',
+      phases: [],
+    };
+    const result = getScheduleProgress(threeDay, '2026-05-01');
+    expect(result.percentComplete).toBe(33);
   });
 });

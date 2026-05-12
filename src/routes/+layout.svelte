@@ -2,25 +2,16 @@
   import '../app.css';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
-  import { AtopicDb } from '$lib/db/atopic-db';
-  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-  import type { QuestionnaireAnswers } from '$lib/domain/models';
+  import { questionnaireStore } from '$lib/stores/questionnaire';
 
   let { children } = $props();
 
-  const db = new AtopicDb();
-  const questionnaireRepo = new DexieQuestionnaireRepository(db);
-  const scheduleRepo = new DexieScheduleRepository(db);
-
-  let answers = $state<QuestionnaireAnswers | null>(null);
-  let currentPath = $derived($page.url.pathname);
+  const answers = $derived($questionnaireStore);
+  const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
 
-  onMount(async () => {
-    answers = await questionnaireRepo.load();
-    if (!answers && !isOnboarding) {
+  $effect(() => {
+    if (answers === null && !isOnboarding) {
       goto('/');
     }
   });

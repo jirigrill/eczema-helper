@@ -1,11 +1,9 @@
 import { readable } from "svelte/store";
 import { liveQuery } from "dexie";
 
-import { AtopicDb, SINGLETON_ID } from "$lib/db/atopic-db";
+import { db, SINGLETON_ID } from "$lib/db/atopic-db";
 import type { GeneratedSchedule } from "$lib/domain/models";
 import type { Readable } from "svelte/store";
-
-const db = new AtopicDb();
 
 export const scheduleStore: Readable<GeneratedSchedule | null> = readable(
   null as GeneratedSchedule | null,
