@@ -162,7 +162,7 @@ clean:
 
 # Check remote health
 health:
-    curl -sf https://eczema.nofiat.me/ | grep -q '<title>' && echo "✅ Healthy" || echo "❌ Health check failed"
+    curl -sf https://eczema.nofiat.me/ | grep -q 'modulepreload' && echo "✅ Healthy" || echo "❌ Health check failed"
 
 # Check VPS disk space
 check-disk:
