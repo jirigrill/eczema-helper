@@ -35,7 +35,6 @@ setup-macos:
     fi
 
     brew install just mkcert
-    command -v docker &> /dev/null || echo "⚠️  Install Docker Desktop manually (needed for 'just rollback')"
     command -v bun &> /dev/null || (curl -fsSL https://bun.sh/install | bash && echo "⚠️  Restart terminal")
     mkcert -install
     echo "✅ macOS ready"
@@ -48,7 +47,7 @@ setup-linux:
     elif [[ -f /etc/redhat-release ]] || [[ -f /etc/fedora-release ]]; then
         just setup-linux-redhat
     else
-        echo "⚠️  Install manually: Bun, Docker, mkcert"
+        echo "⚠️  Install manually: Bun, mkcert"
         exit 1
     fi
 
@@ -63,7 +62,6 @@ setup-linux-debian:
         sudo apt-get install -y nodejs
     fi
 
-    command -v docker &> /dev/null || (sudo apt-get install -y docker.io docker-compose-plugin && sudo usermod -aG docker $USER)
     command -v mkcert &> /dev/null || (sudo curl -L "$(curl -s https://api.github.com/repos/FiloSottile/mkcert/releases/latest | grep 'browser_download_url.*linux-amd64' | cut -d'\"' -f4)" -o /usr/local/bin/mkcert && sudo chmod +x /usr/local/bin/mkcert)
     command -v just &> /dev/null || (curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /tmp && sudo mv /tmp/just /usr/local/bin/)
     command -v bun &> /dev/null || (curl -fsSL https://bun.sh/install | bash && echo "⚠️  Restart terminal")
@@ -81,7 +79,6 @@ setup-linux-redhat:
         sudo dnf install -y nodejs
     fi
 
-    command -v docker &> /dev/null || (sudo dnf install -y docker docker-compose && sudo systemctl enable --now docker && sudo usermod -aG docker $USER)
     command -v mkcert &> /dev/null || (sudo curl -L "$(curl -s https://api.github.com/repos/FiloSottile/mkcert/releases/latest | grep 'browser_download_url.*linux-amd64' | cut -d'\"' -f4)" -o /usr/local/bin/mkcert && sudo chmod +x /usr/local/bin/mkcert)
     command -v just &> /dev/null || (curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /tmp && sudo mv /tmp/just /usr/local/bin/)
     command -v bun &> /dev/null || (curl -fsSL https://bun.sh/install | bash && echo "⚠️  Restart terminal")
@@ -92,7 +89,7 @@ setup-linux-redhat:
 # Verify tools installed
 check-tools:
     #!/usr/bin/env bash
-    for tool in node bun docker mkcert just; do
+    for tool in node bun mkcert just; do
         if command -v "$tool" &> /dev/null; then
             echo "✅ $tool"
         else
@@ -110,24 +107,15 @@ setup-hooks:
 
 # ========== DEVELOPMENT ==========
 
-# Start dev server (Vite only — backend infra is not yet wired)
+# Start dev server
 dev:
     bun run dev -- --host 0.0.0.0
-
-# Stop leftover processes
-stop:
-    pkill -9 -f caddy 2>/dev/null || true
-    @echo "🛑 Stopped"
-
-# View dev server logs (if backgrounded)
-logs:
-    @echo "Nothing to log in pure-frontend mode. When backend comes back, wire this to docker compose logs."
 
 # Run Vitest unit + component tests
 test-unit:
     bun run test
 
-# Run Playwright e2e tests (requires dev server or starts one)
+# Run Playwright e2e tests
 test-e2e:
     bunx playwright test
 
@@ -170,59 +158,15 @@ clean:
 
 # ========== DEPLOYMENT ==========
 
-# Set env vars: DEPLOY_HOST, DEPLOY_USER
 # Normal deploys happen automatically via CI on merge to main.
-
-# Roll back to a specific GHCR image tag (git SHA or "latest")
-rollback tag="latest":
-    #!/usr/bin/env bash
-    : "${DEPLOY_HOST:?Need DEPLOY_HOST env var}"
-    DEPLOY_USER="${DEPLOY_USER:-deploy}"
-    IMAGE="ghcr.io/jirigrill/eczema-helper:{{tag}}"
-
-    echo "⏪ Rolling back to $IMAGE on $DEPLOY_HOST..."
-    ssh "$DEPLOY_USER@$DEPLOY_HOST" "
-        docker pull $IMAGE &&
-        IMAGE=$IMAGE docker compose -f /opt/eczema-tracker/docker-compose.prod.yml up -d &&
-        echo '✅ Rollback complete'
-    "
 
 # Check remote health
 health:
-    #!/usr/bin/env bash
-    : "${DEPLOY_HOST:?Need DEPLOY_HOST}"
-    curl -sf "https://$DEPLOY_HOST/api/health" | jq . || echo "❌ Health check failed"
-
-# View remote logs
-logs-remote service="app" lines="50":
-    #!/usr/bin/env bash
-    : "${DEPLOY_HOST:?Need DEPLOY_HOST}"
-    ssh "${DEPLOY_USER:-deploy}@$DEPLOY_HOST" "cd ${DEPLOY_DIR:-/opt/eczema-tracker} && docker compose logs --tail={{lines}} -f {{service}}"
+    curl -sf https://eczema.nofiat.me/ | grep -q '<title>' && echo "✅ Healthy" || echo "❌ Health check failed"
 
 # Check VPS disk space
 check-disk:
-    #!/usr/bin/env bash
-    : "${DEPLOY_HOST:?Need DEPLOY_HOST}"
-    ssh "${DEPLOY_USER:-deploy}@$DEPLOY_HOST" "df -h / /data /backups 2>/dev/null || df -h /"
-
-# ========== UTILITY ==========
-
-# Generate .env template
-env-template:
-    #!/usr/bin/env bash
-    printf '%s\n' \
-        "# Deployment" \
-        "DEPLOY_HOST=your-vps-ip" \
-        "DEPLOY_USER=deploy" \
-        "DEPLOY_DIR=/opt/eczema-tracker" \
-        "" \
-        "# Backend env (unused until backend is wired up)" \
-        "POSTGRES_HOST=localhost" \
-        "POSTGRES_PORT=5432" \
-        "POSTGRES_DB=eczema_helper" \
-        "POSTGRES_USER=eczema" \
-        "POSTGRES_PASSWORD=change-me" \
-        "SESSION_SECRET=change-me-32-char-min"
+    ssh do-droplet "df -h /"
 
 # Show help
 help:
@@ -234,7 +178,6 @@ help:
     @echo ""
     @echo "Development:"
     @echo "  just dev          - Start Vite dev server"
-    @echo "  just stop         - Stop any leftover processes"
     @echo ""
     @echo "Build:"
     @echo "  just build        - Type-check + build"
@@ -242,8 +185,7 @@ help:
     @echo "  just clean        - Clean build artifacts"
     @echo ""
     @echo "Deploy:"
-    @echo "  just rollback [TAG] - Pull GHCR image and restart (default: latest)"
-    @echo "  just health         - Check remote /api/health"
-    @echo "  just logs-remote    - Tail remote logs"
+    @echo "  just health       - Check https://eczema.nofiat.me/"
+    @echo "  just check-disk   - VPS disk usage"
     @echo ""
     @echo "Full list: just --list"

@@ -23,12 +23,12 @@ Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic ec
 - **Framework:** SvelteKit 2 + TypeScript (strict mode)
 - **Runtime:** Bun
 - **Styling:** Tailwind CSS 4 (mobile-first)
-- **Adapter:** svelte-adapter-bun
+- **Adapter:** @sveltejs/adapter-static (static PWA, `fallback: 'index.html'` for client-side routing)
 - **PWA:** @vite-pwa/sveltekit (kept for offline-first work, not yet wired)
 - **Local DB (v1):** Dexie / IndexedDB. Normalized tables, reactive queries via `liveQuery`. See [ADR-0006](docs/adr/0006-dexie-persistence.md).
 - **Crypto:** Web Crypto API (AES-256-GCM, PBKDF2). v1 uses it for the encrypted manual-export blob ([ADR-0002](docs/adr/0002-backup-floor.md)); the same primitives unlock photo encryption-at-rest when [ADR-0005](docs/adr/0005-photo-encryption-deferred.md)'s shipping constraint requires it.
 - **Backend:** none in v1. A small entitlement API may appear once subscriptions are in scope; not before.
-- **Deployment:** Docker image + docker-compose.prod.yml on VPS (will simplify to static bundle behind nginx — see issue #35).
+- **Deployment:** Static bundle rsynced to `/var/www/eczema/` on VPS, served by Caddy.
 
 ## Directory Layout
 
@@ -64,8 +64,7 @@ Ports & Adapters (Hexagonal). Pure domain logic lives in `lib/domain/`. Ports un
 just dev          # Start Vite dev server (no backend yet)
 just build        # Type-check + build
 just check        # Same as build
-just deploy       # Build Docker image and deploy to VPS
-just health       # Curl /api/health on remote
+just health       # Check https://eczema.nofiat.me/ is up
 ```
 
 Run `just` or `just help` for the full recipe list.
