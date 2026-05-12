@@ -82,6 +82,48 @@ describe('today/+page.svelte', () => {
     expect(progressBar).toBeInTheDocument();
   });
 
+  it('shows counter row when schedule is present', async () => {
+    mockScheduleStore.set(sampleSchedule);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getByText } = render(TodayPage);
+    await tick();
+    expect(getByText('Dnes ti chybí stav, foto a jídla.')).toBeInTheDocument();
+    expect(getByText('0 / 3')).toBeInTheDocument();
+  });
+
+  it('shows all three stub cards when schedule is present', async () => {
+    mockScheduleStore.set(sampleSchedule);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getByText } = render(TodayPage);
+    await tick();
+    expect(getByText('Stav ekzému')).toBeInTheDocument();
+    expect(getByText('Foto kůže')).toBeInTheDocument();
+    expect(getByText('Dnešní jídla')).toBeInTheDocument();
+  });
+
+  it('shows bottom hint when schedule is present', async () => {
+    mockScheduleStore.set(sampleSchedule);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getByText } = render(TodayPage);
+    await tick();
+    expect(getByText(/Vše zapisuj přes/)).toBeInTheDocument();
+  });
+
+  it('Foto kůže stub appears between Stav ekzému and Dnešní jídla', async () => {
+    mockScheduleStore.set(sampleSchedule);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { container } = render(TodayPage);
+    await tick();
+    const headings = Array.from(
+      container.querySelectorAll('.text-\\[10px\\].uppercase')
+    ).map((el) => el.textContent?.trim());
+    const stavIdx = headings.findIndex((t) => t === 'Stav ekzému');
+    const fotoIdx = headings.findIndex((t) => t === 'Foto kůže');
+    const jidlaIdx = headings.findIndex((t) => t === 'Dnešní jídla');
+    expect(stavIdx).toBeLessThan(fotoIdx);
+    expect(fotoIdx).toBeLessThan(jidlaIdx);
+  });
+
   it('shows "Program skončil" when no phase matches today', async () => {
     const pastSchedule: GeneratedSchedule = {
       permanentEliminations: [],
