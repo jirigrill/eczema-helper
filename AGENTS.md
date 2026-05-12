@@ -115,6 +115,23 @@ High-fidelity HTML prototypes live in `docs/design/`:
 - Callback props (`onclick`, `onsubmit`), not `createEventDispatcher`.
 - Tailwind utility classes. Scoped `<style>` only when Tailwind can't express it.
 
+### Testing
+
+Two tiers — see `docs/architecture/testing-strategy.md` for full rationale.
+
+**Tier 1 — Vitest + @testing-library/svelte** (`src/**/*.test.ts`, colocated):
+- Domain logic, adapters, utility functions — test pure inputs/outputs.
+- Svelte components — test rendering, prop variants, user interactions, edge-case states.
+- Mock `$app/navigation` and `$app/stores` via `vi.mock(...)` for components that call `goto` or read `$page`.
+- `fake-indexeddb` is loaded globally in `src/test-setup.ts`; Dexie works without extra setup.
+
+**Tier 2 — Playwright** (`tests/e2e/**/*.test.ts`):
+- Navigation flows that span multiple routes.
+- Reactive behaviors driven by live Dexie queries (e.g. layout redirect when DB is cleared).
+- PWA and offline scenarios.
+
+**Rule of thumb:** if the assertion is "component renders X" or "clicking Y calls Z", use Tier 1. If the assertion is "user ends up on route /foo after action", use Tier 2.
+
 ### Security
 
 - Never log sensitive data (passwords, tokens, decrypted photos, API keys).
