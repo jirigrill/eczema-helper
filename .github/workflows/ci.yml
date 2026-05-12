@@ -54,7 +54,7 @@ jobs:
         run: bunx svelte-kit sync
 
       - name: Run unit tests
-        run: bunx vitest run
+        run: bun run test
 
   # Stub jobs to satisfy branch protection (required checks).
   # Integration and E2E tests were deleted during the prototype-first
