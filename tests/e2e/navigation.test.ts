@@ -53,11 +53,11 @@ test('redirect to / from /today when IndexedDB is empty', async ({ page }) => {
   await expect(page).toHaveURL('/');
 });
 
-test('full onboarding → /today with nav header visible', async ({ page }) => {
+test('full onboarding → /today with bottom nav visible', async ({ page }) => {
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
-  await expect(page.getByRole('banner').getByRole('link', { name: /Dnes/ })).toBeVisible();
-  await expect(page.getByRole('banner').getByRole('link', { name: /Program/ })).toBeVisible();
+  await expect(page.getByRole('navigation').getByRole('link', { name: /Dnes/ })).toBeVisible();
+  await expect(page.getByRole('navigation').getByRole('link', { name: /Týden/ })).toBeVisible();
 });
 
 test('reactive redirect: clearing DB mid-session redirects to /', async ({ page }) => {
