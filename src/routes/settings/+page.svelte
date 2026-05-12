@@ -39,10 +39,16 @@
   }
 </script>
 
-<div class="px-4 pt-5 pb-10 space-y-5 max-w-lg mx-auto min-h-[calc(100dvh-3.5rem)] flex flex-col justify-center">
+<div class="max-w-lg mx-auto">
+  <div class="px-4 pt-4 pb-3 sticky top-0 bg-surface z-20 border-b border-surface-dark flex items-center gap-3">
+    <button class="text-text text-lg leading-none" onclick={() => history.back()}>‹</button>
+    <h1 class="text-sm font-bold text-text">Nastavení</h1>
+  </div>
+
+<div class="px-4 pt-5 pb-10 space-y-5 flex flex-col">
 
   <div>
-    <h1 class="text-lg font-semibold text-text">Nastavení prototypu</h1>
+    <h2 class="text-lg font-semibold text-text">Nastavení prototypu</h2>
     <p class="text-sm text-text-muted">Souhrn aktuální konfigurace a možnost restartu</p>
   </div>
 
@@ -100,4 +106,5 @@
       Restartovat dotazník
     </button>
   </div>
+</div>
 </div>

@@ -100,7 +100,7 @@
     </div>
   </div>
 
-  <div class="px-4 pb-8 space-y-3">
+  <div class="px-4 pb-24 space-y-3">
     {#if !schedule}
       <div
         class="bg-white rounded-2xl border border-surface-dark p-6 text-center"
@@ -171,6 +171,42 @@
         {/if}
       </a>
 
+      <!-- Counter row -->
+      <div class="bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between">
+        <div class="text-[12px] text-text">Dnes ti chybí stav, foto a jídla.</div>
+        <div class="text-[10px] text-text-muted font-bold tracking-wide">0 / 3</div>
+      </div>
+
+      <!-- Stav ekzému — stub (slice 3) -->
+      <div
+        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
+      >
+        <div class="flex items-center justify-between mb-1">
+          <div
+            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
+          >
+            Stav ekzému
+          </div>
+          <span class="text-[10px] text-text-muted">neuložen</span>
+        </div>
+        <div class="text-sm text-text-muted">Zatím není záznam pro dnešek.</div>
+      </div>
+
+      <!-- Foto kůže — stub (slice 3) -->
+      <div
+        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
+      >
+        <div class="flex items-center justify-between mb-1">
+          <div
+            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
+          >
+            Foto kůže
+          </div>
+          <span class="text-[10px] text-text-muted">chybí</span>
+        </div>
+        <div class="text-sm text-text-muted">Žádný snímek pro dnešek.</div>
+      </div>
+
       <!-- Smím / Vyhýbej se -->
       <div
         class="bg-white border border-surface-dark rounded-2xl overflow-hidden"
@@ -223,21 +259,6 @@
         </div>
       </div>
 
-      <!-- Stav ekzému — stub (slice 3) -->
-      <div
-        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
-      >
-        <div class="flex items-center justify-between mb-1">
-          <div
-            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
-          >
-            Stav ekzému
-          </div>
-          <span class="text-[10px] text-text-muted">neuložen</span>
-        </div>
-        <div class="text-sm text-text-muted">Zatím není záznam pro dnešek.</div>
-      </div>
-
       <!-- Dnešní jídla — stub (slice 2) -->
       <div
         class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
@@ -251,6 +272,14 @@
           <span class="text-[10px] text-text-muted">0 záznamů</span>
         </div>
         <div class="text-sm text-text-muted">Zatím žádný záznam.</div>
+      </div>
+
+      <!-- Bottom hint -->
+      <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg);transform-origin:center">
+          <path d="M12 19V5M5 12l7-7 7 7"/>
+        </svg>
+        <span>Vše zapisuj přes <strong>+</strong>: foto · jídlo · stav</span>
       </div>
     {/if}
   </div>

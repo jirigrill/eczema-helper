@@ -123,7 +123,10 @@
   <!-- Header -->
   <div class="px-4 pt-4 pb-3 sticky top-0 bg-surface z-20 border-b border-surface-dark">
     <div class="flex items-center justify-between">
-      <h1 class="text-lg font-semibold text-text">Přidat jídlo</h1>
+      <div class="flex items-center gap-3">
+        <button class="text-text text-lg leading-none" onclick={() => history.back()}>‹</button>
+        <h1 class="text-sm font-bold text-text">Přidat jídlo</h1>
+      </div>
       <p class="text-sm text-text-muted">{formatDateLongCs(today)}</p>
     </div>
 
