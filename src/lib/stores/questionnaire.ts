@@ -5,7 +5,7 @@ import { db, SINGLETON_ID } from "$lib/db/atopic-db";
 import type { QuestionnaireAnswers } from "$lib/domain/models";
 import type { Readable } from "svelte/store";
 
-export const questionnaireStore: Readable<QuestionnaireAnswers | null | undefined> = readable(
+export const questionnaireStore: Readable<QuestionnaireAnswers | null | undefined> = readable<QuestionnaireAnswers | null | undefined>(
   undefined,
   (set) => {
     const subscription = liveQuery(async () => {
