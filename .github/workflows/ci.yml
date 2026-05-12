@@ -56,17 +56,34 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
-  # Stub jobs to satisfy branch protection (required checks).
-  # Integration and E2E tests were deleted during the prototype-first
-  # pivot; re-author the jobs when real test coverage returns.
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "No integration tests yet — stub to satisfy branch protection"
-
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
     steps:
-      - run: echo "No E2E tests yet — stub to satisfy branch protection"
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('bun.lock') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cached run)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: bunx playwright install-deps chromium
+
+      - name: Sync SvelteKit types
+        run: bunx svelte-kit sync
+
+      - name: Run E2E tests
+        run: bunx playwright test

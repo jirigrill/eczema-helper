@@ -123,6 +123,14 @@ stop:
 logs:
     @echo "Nothing to log in pure-frontend mode. When backend comes back, wire this to docker compose logs."
 
+# Run Vitest unit + component tests
+test-unit:
+    bun run test
+
+# Run Playwright e2e tests (requires dev server or starts one)
+test-e2e:
+    bunx playwright test
+
 # Format code
 fmt:
     bunx prettier --write "src/**/*.{ts,svelte}"

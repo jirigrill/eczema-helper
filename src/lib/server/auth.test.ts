@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { hashPassword, verifyPassword } from './auth';
 
+// bcrypt cost=12 is intentionally slow; give each test room on CI runners
+const BCRYPT_TIMEOUT = 15_000;
+
 describe('auth utilities', () => {
   describe('hashPassword', () => {
     it('returns a bcrypt hash', async () => {
@@ -14,13 +17,13 @@ describe('auth utilities', () => {
       const hash1 = await hashPassword('samepassword');
       const hash2 = await hashPassword('samepassword');
       expect(hash1).not.toBe(hash2);
-    });
+    }, BCRYPT_TIMEOUT);
 
     it('handles empty string (bcrypt can hash it)', async () => {
       const hash = await hashPassword('');
       // bcrypt hashes start with $2a$, $2b$, or $2y$ followed by cost factor
       expect(hash).toMatch(/^\$2[aby]\$\d{2}\$/);
-    });
+    }, BCRYPT_TIMEOUT);
   });
 
   describe('verifyPassword', () => {
@@ -29,14 +32,14 @@ describe('auth utilities', () => {
       const hash = await hashPassword(password);
       const valid = await verifyPassword(password, hash);
       expect(valid).toBe(true);
-    });
+    }, BCRYPT_TIMEOUT);
 
     it('fails with incorrect password', async () => {
       const password = 'mypassword';
       const hash = await hashPassword(password);
       const valid = await verifyPassword('wrongpassword', hash);
       expect(valid).toBe(false);
-    });
+    }, BCRYPT_TIMEOUT);
 
     it('fails with wrong hash', async () => {
       const valid = await verifyPassword('test123', '$2b$12$abcdefghijklmnopqrstuuiwxyz1234567890AB');
