@@ -16,9 +16,8 @@
   const dnesActive = $derived(currentPath.startsWith('/today'));
 
   $effect(() => {
-    if (answers === null && !isOnboarding) {
-      goto('/');
-    }
+    if (answers === undefined) return;
+    if (answers === null && !isOnboarding) goto('/');
   });
 </script>
 

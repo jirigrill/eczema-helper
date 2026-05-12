@@ -68,6 +68,14 @@ test('reactive redirect: clearing DB mid-session redirects to /', async ({ page 
   await expect(page).toHaveURL('/', { timeout: 5000 });
 });
 
+test('hard reload on /today after onboarding stays on /today', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page).toHaveURL('/today');
+});
+
 test('onboarding → /today shows phase and allergen columns', async ({ page }) => {
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
