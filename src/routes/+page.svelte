@@ -8,11 +8,10 @@
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { formatDateLongCs } from '$lib/utils/date';
-  import { AtopicDb } from '$lib/db/atopic-db';
+  import { db } from '$lib/db/atopic-db';
   import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
   import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 
-  const db = new AtopicDb();
   const questionnaireRepo = new DexieQuestionnaireRepository(db);
   const scheduleRepo = new DexieScheduleRepository(db);
 
