@@ -44,18 +44,18 @@
         {#if !currentPath.startsWith('/meal') && !currentPath.startsWith('/settings')}
           <div class="flex bg-surface rounded-lg p-0.5 gap-0.5">
             <a
+              href="/today"
+              class="px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                {currentPath.startsWith('/today') ? 'bg-white text-primary shadow-sm' : 'text-text-muted'}"
+            >
+              📊 Dnes
+            </a>
+            <a
               href="/program"
               class="px-3 py-1.5 rounded-md text-xs font-medium transition-all
                 {currentPath.startsWith('/program') ? 'bg-white text-primary shadow-sm' : 'text-text-muted'}"
             >
               📅 Program
-            </a>
-            <a
-              href="/day"
-              class="px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                {currentPath.startsWith('/day') ? 'bg-white text-primary shadow-sm' : 'text-text-muted'}"
-            >
-              📊 Dnes
             </a>
           </div>
         {:else}

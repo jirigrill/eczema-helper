@@ -1,0 +1,291 @@
+<script lang="ts">
+  import { scheduleStore } from "$lib/stores/schedule";
+  import {
+    getPhaseForDate,
+    getEliminatedSlugsForDate,
+    getScheduleProgress,
+  } from "$lib/domain/schedule";
+  import { getCategoryById } from "$lib/data/categories";
+  import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
+
+  const today = todayIso();
+
+  const schedule = $derived($scheduleStore);
+  const phase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
+  const eliminatedSlugs = $derived(
+    schedule ? getEliminatedSlugsForDate(schedule, today) : [],
+  );
+  const progress = $derived(
+    schedule ? getScheduleProgress(schedule, today) : null,
+  );
+
+  // Protocol allergens allowed today (in protocol but not currently eliminated)
+  const protocolSlugs = $derived(
+    schedule
+      ? (schedule.phases.find((p) => p.type === "elimination")?.categoryIds ??
+          [])
+      : [],
+  );
+  const allowedProtocol = $derived(
+    protocolSlugs.filter((s) => !eliminatedSlugs.includes(s)),
+  );
+
+  // 7-day strip: 6 days back + today
+  const weekDays = $derived(
+    Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)),
+  );
+
+  function weekdayShort(iso: string): string {
+    return new Date(iso + "T00:00:00").toLocaleDateString("cs-CZ", {
+      weekday: "short",
+    });
+  }
+
+  function phaseIcon(type: string): string {
+    return (
+      (
+        {
+          reset: "📊",
+          elimination: "🚫",
+          reintroduction: "🔬",
+          rest: "⏸️",
+          training: "🏋️",
+        } as Record<string, string>
+      )[type] ?? "📅"
+    );
+  }
+
+  function phaseBadgeClass(type: string): string {
+    return (
+      (
+        {
+          reset: "bg-surface-dark text-text-muted",
+          elimination: "bg-danger text-white",
+          reintroduction: "bg-success text-white",
+          rest: "bg-surface-dark text-text-muted",
+          training: "bg-primary text-white",
+        } as Record<string, string>
+      )[type] ?? "bg-surface-dark text-text-muted"
+    );
+  }
+
+  function phaseIconBg(type: string): string {
+    return (
+      (
+        {
+          reset: "bg-surface-dark",
+          elimination: "bg-danger/15",
+          reintroduction: "bg-success/15",
+          rest: "bg-surface-dark",
+          training: "bg-primary/15",
+        } as Record<string, string>
+      )[type] ?? "bg-surface-dark"
+    );
+  }
+
+  function czechWeekday(iso: string): string {
+    return new Date(iso + "T00:00:00").toLocaleDateString("cs-CZ", {
+      weekday: "long",
+    });
+  }
+</script>
+
+<div class="max-w-lg mx-auto">
+  <!-- Header -->
+  <div class="px-5 pt-4 pb-2 flex items-end justify-between">
+    <div>
+      <div class="text-[11px] uppercase tracking-wide text-text-muted">
+        {czechWeekday(today)} · {formatDateLongCs(today)}
+      </div>
+      <h2 class="text-2xl font-bold text-text">Dnes</h2>
+    </div>
+    <a
+      href="/settings"
+      class="text-text-muted p-1.5 -mr-1.5"
+      aria-label="Nastavení"
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="12" r="3" />
+        <path
+          d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"
+        />
+      </svg>
+    </a>
+  </div>
+
+  <!-- 7-day strip -->
+  <div class="px-3 pb-3">
+    <div class="grid grid-cols-7 gap-1">
+      {#each weekDays as day}
+        {@const isToday = day === today}
+        <div
+          class="flex flex-col items-center gap-1 py-2 rounded-lg
+						{isToday ? 'bg-primary text-white' : 'text-text-muted'}"
+        >
+          <span class="text-[10px] uppercase">{weekdayShort(day)}</span>
+          <span class="text-sm font-semibold"
+            >{new Date(day + "T00:00:00").getDate()}</span
+          >
+          <span
+            class="w-1.5 h-1.5 rounded-full {isToday
+              ? 'bg-white/30 ring-1 ring-white'
+              : 'bg-transparent'}"
+          ></span>
+        </div>
+      {/each}
+    </div>
+  </div>
+
+  <div class="px-4 pb-8 space-y-3">
+    {#if !schedule}
+      <div
+        class="bg-white rounded-2xl border border-surface-dark p-6 text-center"
+      >
+        <p class="text-text-muted text-sm">
+          Program není nastaven. Dokončete dotazník.
+        </p>
+        <a href="/" class="text-primary text-sm font-medium mt-2 inline-block"
+          >Spustit dotazník →</a
+        >
+      </div>
+    {:else}
+      <!-- Phase hero -->
+      <a
+        href="/program"
+        class="block bg-white rounded-2xl border border-surface-dark p-3.5 text-left"
+      >
+        <div class="flex items-center gap-2.5 mb-2">
+          <div
+            class="w-9 h-9 rounded-lg {phaseIconBg(
+              phase?.type ?? '',
+            )} flex items-center justify-center text-lg shrink-0"
+          >
+            {phaseIcon(phase?.type ?? "")}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-sm font-bold text-text"
+                >{phase?.label ?? "Program skončil"}</span
+              >
+              {#if phase}
+                <span
+                  class="text-[8px] font-extrabold tracking-wider rounded-full px-1.5 py-0.5 {phaseBadgeClass(
+                    phase.type,
+                  )}"
+                >
+                  {phase.type.toUpperCase()}
+                </span>
+              {/if}
+            </div>
+            {#if progress}
+              <div class="text-[11px] text-text-muted mt-0.5">
+                Den {progress.currentDay} / {progress.totalDays}
+                {#if phase?.endDate}
+                  · do {formatDateLongCs(phase.endDate)}
+                {/if}
+              </div>
+            {/if}
+          </div>
+          <span class="text-text-muted text-sm">›</span>
+        </div>
+        {#if progress}
+          <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
+            <div
+              class="h-full bg-primary rounded-full"
+              style:width="{progress.percentComplete}%"
+            ></div>
+          </div>
+        {/if}
+      </a>
+
+      <!-- Smím / Vyhýbej se -->
+      <div
+        class="bg-white border border-surface-dark rounded-2xl overflow-hidden"
+      >
+        <div class="grid grid-cols-2 divide-x divide-surface-dark">
+          <div class="p-3">
+            <div
+              class="text-[9px] font-extrabold tracking-wider text-success uppercase mb-1.5"
+            >
+              ✓ Smím
+            </div>
+            {#if allowedProtocol.length > 0}
+              <div class="space-y-1">
+                {#each allowedProtocol as slug}
+                  {@const cat = getCategoryById(slug)}
+                  {#if cat}
+                    <div class="text-[11px] text-text leading-snug">
+                      {cat.icon}
+                      {cat.nameCs}
+                    </div>
+                  {/if}
+                {/each}
+              </div>
+            {:else}
+              <div class="text-[11px] text-text-muted">—</div>
+            {/if}
+          </div>
+          <div class="p-3">
+            <div
+              class="text-[9px] font-extrabold tracking-wider text-danger uppercase mb-1.5"
+            >
+              ✗ Vyhýbej se
+            </div>
+            {#if eliminatedSlugs.length > 0}
+              <div class="space-y-1">
+                {#each eliminatedSlugs as slug}
+                  {@const cat = getCategoryById(slug)}
+                  {#if cat}
+                    <div class="text-[11px] text-text-muted leading-snug">
+                      {cat.icon}
+                      {cat.nameCs}
+                    </div>
+                  {/if}
+                {/each}
+              </div>
+            {:else}
+              <div class="text-[11px] text-success">Žádná omezení</div>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- Stav ekzému — stub (slice 3) -->
+      <div
+        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
+      >
+        <div class="flex items-center justify-between mb-1">
+          <div
+            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
+          >
+            Stav ekzému
+          </div>
+          <span class="text-[10px] text-text-muted">neuložen</span>
+        </div>
+        <div class="text-sm text-text-muted">Zatím není záznam pro dnešek.</div>
+      </div>
+
+      <!-- Dnešní jídla — stub (slice 2) -->
+      <div
+        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
+      >
+        <div class="flex items-center justify-between mb-1">
+          <div
+            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
+          >
+            Dnešní jídla
+          </div>
+          <span class="text-[10px] text-text-muted">0 záznamů</span>
+        </div>
+        <div class="text-sm text-text-muted">Zatím žádný záznam.</div>
+      </div>
+    {/if}
+  </div>
+</div>
