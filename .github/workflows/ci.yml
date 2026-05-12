@@ -75,12 +75,7 @@ jobs:
           key: playwright-chromium-${{ hashFiles('bun.lock') }}
 
       - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: bunx playwright install --with-deps chromium
-
-      - name: Install Playwright system deps (cached run)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: bunx playwright install-deps chromium
 
       - name: Sync SvelteKit types
         run: bunx svelte-kit sync
