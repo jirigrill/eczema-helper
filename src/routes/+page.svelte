@@ -82,7 +82,7 @@
     const schedule = generateSchedule(answers);
     await questionnaireRepo.save(answers);
     await scheduleRepo.save(schedule);
-    goto('/program');
+    goto('/today');
   }
 
   // ── Summary helpers ───────────────────────────────────────
