@@ -4,10 +4,9 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  resolve: {
-    // Force client-side Svelte build when running tests
-    conditions: process.env.VITEST ? ['browser'] : [],
-  },
+  ...(process.env.VITEST && {
+    resolve: { conditions: ['browser'] },
+  }),
   plugins: [
     tailwindcss(),
     sveltekit(),
