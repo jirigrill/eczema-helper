@@ -5,22 +5,22 @@
 
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
-  import { questionnaireStore } from '$lib/stores/questionnaire';
+  import { scheduleContext } from '$lib/stores/schedule-context';
 
   let { children } = $props();
 
-  const answers = $derived($questionnaireStore);
+  const ctx = $derived($scheduleContext);
   const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
   const isDetailScreen = $derived(
     currentPath.startsWith('/meal') || currentPath.startsWith('/settings')
   );
-  const showNav = $derived(!isOnboarding && !!answers && !isDetailScreen);
+  const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
   const dnesActive = $derived(currentPath.startsWith('/today'));
 
   $effect(() => {
-    if (answers === undefined) return;
-    if (answers === null && !isOnboarding) goto('/');
+    if (ctx.status === 'loading') return;
+    if (ctx.status === 'empty' && !isOnboarding) goto('/');
   });
 </script>
 

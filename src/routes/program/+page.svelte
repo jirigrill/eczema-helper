@@ -2,46 +2,41 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Unified Program Page
   // ═══════════════════════════════════════════════════════════
-  import { onMount } from 'svelte';
-  import type { AppState, SchedulePhase } from '$lib/domain/models';
-  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, getScheduleProgress, appendReTestPhases, getReintroductionDayInfo } from '$lib/domain/schedule';
+  import type { SchedulePhase } from '$lib/domain/models';
+  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, appendReTestPhases } from '$lib/domain/schedule';
   import { getCategoryById } from '$lib/data/categories';
   import { formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
-  import { AtopicDb } from '$lib/db/atopic-db';
-  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
+  import { db } from '$lib/db/atopic-db';
   import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+  import { scheduleContext } from '$lib/stores/schedule-context';
 
-  const db = new AtopicDb();
-  const questionnaireRepo = new DexieQuestionnaireRepository(db);
   const scheduleRepo = new DexieScheduleRepository(db);
 
-  let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
   let showToast = $state(false);
   let selectedRetestSlugs = $state<string[]>([]);
   let expandedPhaseId = $state<string | null>(null);
-
-  onMount(async () => {
-    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
-    if (answers && schedule) state = { ...state, answers, schedule };
-  });
+  let meals = $state<import('$lib/domain/models').Meal[]>([]);
+  let assessments = $state<import('$lib/domain/models').DailyAssessment[]>([]);
+  let evaluations = $state<import('$lib/domain/models').ReintroductionEvaluation[]>([]);
 
   const today = $derived(todayIso());
-  const schedule = $derived(state.schedule);
+  const ctx = $derived($scheduleContext);
+  const schedule = $derived(ctx.status === 'ready' ? ctx.schedule : null);
+  const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const currentPhase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
-  const eliminatedToday = $derived(schedule ? getEliminatedSlugsForDate(schedule, today) : []);
+  const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
   const permanentSlugs = $derived(schedule?.permanentEliminations ?? []);
   const protocolEliminated = $derived(eliminatedToday.filter(s => !permanentSlugs.includes(s)));
-  const progress = $derived(schedule ? getScheduleProgress(schedule, today) : null);
+  const progress = $derived(ctx.status === 'ready' ? ctx.progress : null);
   const isBeforeSchedule = $derived(!!schedule && today < schedule.startDate);
   const isProgramDone = $derived(!!schedule && !isBeforeSchedule && today > schedule.estimatedEndDate && activeTrainingPhases.length === 0);
-  const reintroInfo = $derived(schedule ? getReintroductionDayInfo(schedule, today) : null);
+  const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
   const activeTrainingPhases = $derived(
     schedule ? schedule.phases.filter(p => p.type === 'training' && p.startDate <= today && (p.endDate === '' || p.endDate >= today)) : []
   );
 
   type DisplayAllergen = { slug: string; icon: string; name: string; reason: string };
   const permanentEliminated = $derived.by((): DisplayAllergen[] => {
-    const answers = state.answers;
     function normSlug(s: string) {
       return s.includes(':') && !s.startsWith('other:') ? s.split(':')[0] : s;
     }
@@ -77,8 +72,8 @@
   }
 
   async function addRetestPhases() {
-    if (!schedule || !state.answers || selectedRetestSlugs.length === 0) return;
-    const updatedSchedule = appendReTestPhases(schedule, selectedRetestSlugs, state.answers.eczemaSeverity);
+    if (!schedule || !answers || selectedRetestSlugs.length === 0) return;
+    const updatedSchedule = appendReTestPhases(schedule, selectedRetestSlugs, answers.eczemaSeverity);
     state = { ...state, schedule: updatedSchedule };
     await scheduleRepo.save(updatedSchedule);
     selectedRetestSlugs = [];
@@ -170,7 +165,7 @@
     const eliminated = getEliminatedSlugsForDate(schedule, phase.startDate);
     const phaseEnd = phase.endDate || today;
     const conflicts: { name: string; icon: string; date: string }[] = [];
-    for (const meal of state.meals.filter((m: { date: string }) => m.date >= phase.startDate && m.date <= phaseEnd)) {
+    for (const meal of meals.filter((m: { date: string }) => m.date >= phase.startDate && m.date <= phaseEnd)) {
       for (const conflict of detectConflicts(meal.items, eliminated)) {
         if (!conflicts.some(c => c.name === conflict.name && c.date === meal.date)) {
           const cat = getCategoryById(conflict.categoryId ?? '');
@@ -371,8 +366,8 @@
 
         <!-- ═══ Live phase details ═══ -->
         {@const heroConflicts = phaseConflictCount(currentPhase)}
-        {@const heroAssessments = (state.assessments ?? []).filter((a: { date: string }) => a.date >= currentPhase.startDate && a.date <= (currentPhase.endDate || today))}
-        {@const heroEval = (state.evaluations ?? []).find((e: ReintroductionEvaluation) => e.phaseId === currentPhase.id)}
+        {@const heroAssessments = (assessments ?? []).filter((a: { date: string }) => a.date >= currentPhase.startDate && a.date <= (currentPhase.endDate || today))}
+        {@const heroEval = (evaluations ?? []).find((e: ReintroductionEvaluation) => e.phaseId === currentPhase.id)}
 
         <div class="space-y-3 border-t border-surface-dark pt-3 text-xs">
           <div>
@@ -452,7 +447,7 @@
         {#each nonTrainingPhases as phase, phaseIndex (phase.id)}
           {@const done = isCompleted(phase)}
           {@const current = isCurrent(phase)}
-          {@const phaseEval = (state.evaluations ?? []).find((e: ReintroductionEvaluation) => e.phaseId === phase.id)}
+          {@const phaseEval = (evaluations ?? []).find((e: ReintroductionEvaluation) => e.phaseId === phase.id)}
           {@const trainingBand = isInTrainingBand(phaseIndex)}
 
           <!-- Training band label on first row -->
@@ -482,7 +477,7 @@
 
             {#if expandedPhaseId === phase.id}
               {@const conflicts = phaseConflictCount(phase)}
-              {#each [(state.assessments ?? []).filter((a: { date: string }) => a.date >= phase.startDate && a.date <= phase.endDate)] as phaseAssessments}
+              {#each [(assessments ?? []).filter((a: { date: string }) => a.date >= phase.startDate && a.date <= phase.endDate)] as phaseAssessments}
               <div class="ml-11 pb-2 space-y-3 text-xs">
 
                 <!-- Dietary deviations -->
@@ -592,7 +587,7 @@
 
     <!-- ═══ End-of-program card ═══ -->
     {#if isProgramDone}
-      {@const babyAllergens = state.answers?.babyConfirmedAllergies ?? []}
+      {@const babyAllergens = answers?.babyConfirmedAllergies ?? []}
       <div class="bg-success/10 border border-success/30 rounded-2xl p-5 space-y-4">
         <div class="text-center">
           <p class="text-2xl mb-1">🎉</p>

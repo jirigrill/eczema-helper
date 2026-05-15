@@ -1,34 +1,23 @@
 <script lang="ts">
-  import { scheduleStore } from "$lib/stores/schedule";
-  import {
-    getPhaseForDate,
-    getEliminatedSlugsForDate,
-    getScheduleProgress,
-  } from "$lib/domain/schedule";
+  import { scheduleContext } from "$lib/stores/schedule-context";
+  import { getPhaseForDate } from "$lib/domain/schedule";
   import { getCategoryById } from "$lib/data/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { getPhaseDisplay } from "$lib/utils/phase-display";
 
   const today = todayIso();
 
-  const schedule = $derived($scheduleStore);
-  const phase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
-  const eliminatedSlugs = $derived(
-    schedule ? getEliminatedSlugsForDate(schedule, today) : [],
-  );
-  const progress = $derived(
-    schedule ? getScheduleProgress(schedule, today) : null,
-  );
-
-  // Protocol allergens allowed today (in protocol but not currently eliminated)
+  const ctx = $derived($scheduleContext);
+  const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
   const protocolSlugs = $derived(
-    schedule
-      ? (schedule.phases.find((p) => p.type === "elimination")?.categoryIds ??
-          [])
+    ctx.status === 'ready'
+      ? (ctx.schedule.phases.find((p) => p.type === "elimination")?.categoryIds ?? [])
       : [],
   );
   const allowedProtocol = $derived(
-    protocolSlugs.filter((s) => !eliminatedSlugs.includes(s)),
+    ctx.status === 'ready'
+      ? protocolSlugs.filter((s) => !ctx.eliminatedToday.includes(s))
+      : [],
   );
 
   // 7-day strip: 6 days back + today
@@ -101,7 +90,7 @@
   </div>
 
   <div class="px-4 pb-24 space-y-3">
-    {#if !schedule}
+    {#if ctx.status !== 'ready'}
       <div
         class="bg-white rounded-2xl border border-surface-dark p-6 text-center"
       >
@@ -135,9 +124,9 @@
                   {phase.type.toUpperCase()}
                 </span>
               </div>
-              {#if progress}
+              {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
-                  Den {progress.currentDay} / {progress.totalDays}
+                  Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
                   {#if phase.endDate}
                     · do {formatDateLongCs(phase.endDate)}
                   {/if}
@@ -152,20 +141,20 @@
             </div>
             <div class="flex-1 min-w-0">
               <span class="text-sm font-bold text-text">Program skončil</span>
-              {#if progress}
+              {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
-                  Den {progress.currentDay} / {progress.totalDays}
+                  Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
                 </div>
               {/if}
             </div>
           {/if}
           <span class="text-text-muted text-sm">›</span>
         </div>
-        {#if progress}
+        {#if ctx.progress}
           <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
             <div
               class="h-full bg-primary rounded-full"
-              style:width="{progress.percentComplete}%"
+              style:width="{ctx.progress.percentComplete}%"
             ></div>
           </div>
         {/if}
@@ -240,9 +229,9 @@
             >
               ✗ Vyhýbej se
             </div>
-            {#if eliminatedSlugs.length > 0}
+            {#if ctx.eliminatedToday.length > 0}
               <div class="space-y-1">
-                {#each eliminatedSlugs as slug}
+                {#each ctx.eliminatedToday as slug}
                   {@const cat = getCategoryById(slug)}
                   {#if cat}
                     <div class="text-[11px] text-text-muted leading-snug">

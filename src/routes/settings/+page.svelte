@@ -3,24 +3,14 @@
   // V2 Prototype — Settings (reset + current answers summary)
   // ═══════════════════════════════════════════════════════════
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
-  import type { AppState } from '$lib/domain/models';
   import { getCategoryById } from '$lib/data/categories';
   import { formatDateLongCs } from '$lib/utils/date';
-  import { AtopicDb } from '$lib/db/atopic-db';
-  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+  import { db } from '$lib/db/atopic-db';
+  import { scheduleContext } from '$lib/stores/schedule-context';
 
-  const db = new AtopicDb();
-  const questionnaireRepo = new DexieQuestionnaireRepository(db);
-  const scheduleRepo = new DexieScheduleRepository(db);
-
-  let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
-
-  onMount(async () => {
-    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
-    if (answers && schedule) state = { ...state, answers, schedule };
-  });
+  const ctx = $derived($scheduleContext);
+  const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
+  const schedule = $derived(ctx.status === 'ready' ? ctx.schedule : null);
 
   const severityLabel: Record<string, string> = {
     mild: 'Mírná',
@@ -52,7 +42,7 @@
     <p class="text-sm text-text-muted">Souhrn aktuální konfigurace a možnost restartu</p>
   </div>
 
-  {#if state.answers}
+  {#if answers}
     <!-- Current answers summary -->
     <div class="space-y-3">
       <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Aktuální konfigurace</p>
@@ -60,32 +50,32 @@
       <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-2">
         <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Miminko</p>
         <p class="text-sm text-text">
-          Narozeno: <strong>{formatDateLongCs(state.answers.babyBirthDate)}</strong>
+          Narozeno: <strong>{formatDateLongCs(answers.babyBirthDate)}</strong>
         </p>
         <p class="text-sm text-text">
-          Závažnost ekzému: <strong>{severityLabel[state.answers.eczemaSeverity]}</strong>
+          Závažnost ekzému: <strong>{severityLabel[answers.eczemaSeverity]}</strong>
         </p>
       </div>
 
       <div class="bg-white rounded-xl border border-surface-dark p-4">
         <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Moje alergie</p>
-        <p class="text-sm text-text">{slugsToNames(state.answers.motherAllergies)}</p>
+        <p class="text-sm text-text">{slugsToNames(answers.motherAllergies)}</p>
       </div>
 
       <div class="bg-white rounded-xl border border-surface-dark p-4">
         <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Potvrzené alergie miminka</p>
-        <p class="text-sm text-text">{slugsToNames(state.answers.babyConfirmedAllergies)}</p>
+        <p class="text-sm text-text">{slugsToNames(answers.babyConfirmedAllergies)}</p>
       </div>
 
-      {#if state.schedule}
+      {#if schedule}
         <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-1">
           <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Program</p>
           <p class="text-sm text-text">
-            Celkem {state.schedule.phases.length} fází ·
-            do {formatDateLongCs(state.schedule.estimatedEndDate)}
+            Celkem {schedule.phases.length} fází ·
+            do {formatDateLongCs(schedule.estimatedEndDate)}
           </p>
           <p class="text-sm text-text">
-            Zapsáno jídel: <strong>{state.meals.length}</strong>
+            Zapsáno jídel: <strong>0</strong>
           </p>
         </div>
       {/if}

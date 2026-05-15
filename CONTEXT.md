@@ -6,6 +6,15 @@ crystallise; do not let it drift from the code.
 
 ## Glossary
 
+### ScheduleContext
+Today's protocol state as the UI sees it — a reactive bundle of
+`GeneratedSchedule`, `QuestionnaireAnswers`, and derived protocol values
+(`eliminatedToday`, `reintroInfo`, `progress`) computed for the current
+date. Exposed as a discriminated union: `loading | empty | ready`. Derived
+fields only exist on `ready`. This is an application-layer concept, not a
+domain concept — it is the authoritative name for what routes consume, as
+distinct from the raw `GeneratedSchedule` stored in the database.
+
 ### DailyAssessment
 What the parent observed about the baby's skin on a given calendar day:
 status (`improved` / `unchanged` / `worsened` / `new-lesions`), optional
