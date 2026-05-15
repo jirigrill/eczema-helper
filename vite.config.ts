@@ -4,9 +4,6 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  ...(process.env.VITEST && {
-    resolve: { conditions: ['browser'] },
-  }),
   plugins: [
     tailwindcss(),
     sveltekit(),
@@ -27,23 +24,4 @@ export default defineConfig({
       disable: true
     })
   ],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['src/test-setup.ts'],
-    exclude: ['e2e/**', 'node_modules/**', '.claude/**', 'tests/e2e/**'],
-    include: ['src/**/*.test.ts'],
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
-    // Ensure tests run in sequence to avoid database race conditions
-    sequence: {
-      shuffle: false,
-    },
-    // Integration tests use the same database as the dev server (with cleanup)
-    // This is required because tests make HTTP requests to the running dev server
-  }
 });
