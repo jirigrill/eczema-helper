@@ -13,32 +13,32 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.60.0",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.16.0",
-    "@sveltejs/vite-plugin-svelte": "^5.0.3",
-    "@tailwindcss/vite": "^4.0.0",
+    "@sveltejs/kit": "^2.60.1",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
-    "@types/node": "^22.0.0",
-    "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
+    "@types/node": "^22.19.19",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^2.46.1",
-    "fake-indexeddb": "^6.0.0",
-    "globals": "^15.14.0",
-    "jsdom": "^26.0.0",
-    "prettier": "^3.4.2",
-    "prettier-plugin-svelte": "^3.3.2",
-    "svelte": "^5.0.0",
-    "svelte-check": "^4.1.1",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.3",
-    "vite": "^6.2.6",
-    "vitest": "^3.0.5"
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^15.15.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^3.5.2",
+    "svelte": "^5.55.7",
+    "svelte-check": "^4.4.8",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@vite-pwa/sveltekit": "^0.6.0",
-    "dexie": "^4.0.10"
+    "@vite-pwa/sveltekit": "^0.6.8",
+    "dexie": "^4.4.2"
   },
   "type": "module"
 }
