@@ -1,6 +1,9 @@
 <script lang="ts">
   import '../app.css';
   import { page } from '$app/stores';
+  import { useRegisterSW } from 'virtual:pwa-register/svelte';
+
+  useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
   import { questionnaireStore } from '$lib/stores/questionnaire';
 

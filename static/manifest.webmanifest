@@ -3,6 +3,7 @@
   "short_name": "Ekzém",
   "description": "Sledování eliminační diety pro atopický ekzém kojence",
   "id": "/",
+  "lang": "cs",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAF8F8",
