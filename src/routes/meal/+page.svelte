@@ -2,30 +2,19 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
-  import { onMount } from 'svelte';
-  import type { AppState, Meal, MealItem, AmountSize } from '$lib/domain/models';
-  import { detectConflicts, getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule';
+  import type { Meal, MealItem, AmountSize } from '$lib/domain/models';
+  import { detectConflicts } from '$lib/domain/schedule';
   import { CATEGORIES, getCategoryById } from '$lib/data/categories';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
-  import { AtopicDb } from '$lib/db/atopic-db';
-  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+  import { scheduleContext } from '$lib/stores/schedule-context';
 
-  const db = new AtopicDb();
-  const questionnaireRepo = new DexieQuestionnaireRepository(db);
-  const scheduleRepo = new DexieScheduleRepository(db);
-
-  let state = $state<AppState>({ answers: null, schedule: null, meals: [], assessments: [], evaluations: [] });
-
-  onMount(async () => {
-    const [answers, schedule] = await Promise.all([questionnaireRepo.load(), scheduleRepo.load()]);
-    if (answers && schedule) state = { ...state, answers, schedule };
-  });
+  let meals = $state<Meal[]>([]);
 
   const today = $derived(todayIso());
-  const eliminatedToday = $derived(state.schedule ? getEliminatedSlugsForDate(state.schedule, today) : []);
-  const reintroInfo = $derived(state.schedule ? getReintroductionDayInfo(state.schedule, today) : null);
+  const ctx = $derived($scheduleContext);
+  const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
+  const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
 
   // ── Form state ────────────────────────────────────────────
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
@@ -101,7 +90,7 @@
       savedAt: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
     };
     // TODO(slice-2): persist to Dexie meals table
-    state.meals = [...state.meals, meal];
+    meals = [...meals, meal];
 
     currentItems = [];
     mealLabel = '';
@@ -111,7 +100,7 @@
   }
 
   const canSave = $derived(currentItems.length > 0);
-  const todayMeals = $derived(state.meals.filter(m => m.date === today));
+  const todayMeals = $derived(meals.filter(m => m.date === today));
 
   function isCategoryInMeal(categoryId: string): boolean {
     return currentItems.some(i => i.categoryId === categoryId);

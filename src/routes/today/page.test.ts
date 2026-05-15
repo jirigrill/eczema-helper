@@ -2,20 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { GeneratedSchedule } from '$lib/domain/models';
+import type { ScheduleContext } from '$lib/stores/schedule-context';
+import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
 
-const mockScheduleStore = writable<GeneratedSchedule | null>(null);
+const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 
-vi.mock('$lib/stores/schedule', () => ({
-  scheduleStore: { subscribe: mockScheduleStore.subscribe },
+vi.mock('$lib/stores/schedule-context', () => ({
+  scheduleContext: { subscribe: mockScheduleContext.subscribe },
 }));
 
 const today = new Date().toISOString().split('T')[0];
+const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
   permanentEliminations: [],
   startDate: today,
-  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+  estimatedEndDate: futureDate,
   phases: [
     {
       id: 'reset',
@@ -29,35 +31,64 @@ const sampleSchedule: GeneratedSchedule = {
   ],
 };
 
+const sampleAnswers: QuestionnaireAnswers = {
+  babyBirthDate: '2025-01-01',
+  eczemaSeverity: 'moderate',
+  motherAllergies: [],
+  babyConfirmedAllergies: [],
+  programStartDate: today,
+  completedAt: new Date().toISOString(),
+  testedAllergens: ['dairy'],
+};
+
+const readyContext: ScheduleContext = {
+  status: 'ready',
+  schedule: sampleSchedule,
+  answers: sampleAnswers,
+  eliminatedToday: [],
+  reintroInfo: null,
+  progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
+};
+
 beforeEach(() => {
-  mockScheduleStore.set(null);
+  mockScheduleContext.set({ status: 'loading' });
 });
 
 describe('today/+page.svelte', () => {
-  it('shows "Program není nastaven" when schedule is null', async () => {
+  it('shows "Program není nastaven" when status is empty', async () => {
+    mockScheduleContext.set({ status: 'empty' });
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
     expect(getByText('Program není nastaven. Dokončete dotazník.')).toBeInTheDocument();
   });
 
-  it('shows link to questionnaire when schedule is null', async () => {
+  it('shows link to questionnaire when status is empty', async () => {
+    mockScheduleContext.set({ status: 'empty' });
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
     expect(getByText('Spustit dotazník →')).toBeInTheDocument();
   });
 
-  it('shows phase hero when schedule is present', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows "Program není nastaven" when status is loading', async () => {
+    mockScheduleContext.set({ status: 'loading' });
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getByText } = render(TodayPage);
+    await tick();
+    expect(getByText('Program není nastaven. Dokončete dotazník.')).toBeInTheDocument();
+  });
+
+  it('shows phase hero when status is ready', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
     expect(getByText('Resetovací fáze')).toBeInTheDocument();
   });
 
-  it('shows allergen columns (Smím / Vyhýbej se) when schedule is present', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows allergen columns (Smím / Vyhýbej se) when status is ready', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
@@ -65,16 +96,16 @@ describe('today/+page.svelte', () => {
     expect(getByText('✗ Vyhýbej se')).toBeInTheDocument();
   });
 
-  it('shows "Žádná omezení" in elimination column during reset phase', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows "Žádná omezení" in elimination column when eliminatedToday is empty', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
     expect(getByText('Žádná omezení')).toBeInTheDocument();
   });
 
-  it('shows progress bar when schedule is present', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows progress bar when status is ready', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { container } = render(TodayPage);
     await tick();
@@ -82,8 +113,8 @@ describe('today/+page.svelte', () => {
     expect(progressBar).toBeInTheDocument();
   });
 
-  it('shows counter row when schedule is present', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows counter row when status is ready', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
@@ -91,8 +122,8 @@ describe('today/+page.svelte', () => {
     expect(getByText('0 / 3')).toBeInTheDocument();
   });
 
-  it('shows all three stub cards when schedule is present', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows all three stub cards when status is ready', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
@@ -101,16 +132,16 @@ describe('today/+page.svelte', () => {
     expect(getByText('Dnešní jídla')).toBeInTheDocument();
   });
 
-  it('shows bottom hint when schedule is present', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('shows bottom hint when status is ready', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();
     expect(getByText(/Vše zapisuj přes/)).toBeInTheDocument();
   });
 
-  it('Foto kůže stub appears between Stav ekzému and Dnešní jídla', async () => {
-    mockScheduleStore.set(sampleSchedule);
+  it('stub cards appear in correct order', async () => {
+    mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { container } = render(TodayPage);
     await tick();
@@ -141,7 +172,11 @@ describe('today/+page.svelte', () => {
         },
       ],
     };
-    mockScheduleStore.set(pastSchedule);
+    mockScheduleContext.set({
+      ...readyContext,
+      schedule: pastSchedule,
+      progress: { currentDay: 30, totalDays: 30, percentComplete: 100 },
+    });
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
     await tick();

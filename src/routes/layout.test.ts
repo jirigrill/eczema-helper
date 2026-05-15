@@ -3,17 +3,31 @@ import { render } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import { createRawSnippet } from 'svelte';
-import type { QuestionnaireAnswers } from '$lib/domain/models';
+import type { ScheduleContext } from '$lib/stores/schedule-context';
+import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
 
 const mockGoto = vi.fn();
-const mockQuestionnaireStore = writable<QuestionnaireAnswers | null>(null);
+const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 const mockPageStore = writable({ url: new URL('http://localhost/today'), params: {}, data: {} });
 
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }));
-vi.mock('$lib/stores/questionnaire', () => ({
-  questionnaireStore: { subscribe: mockQuestionnaireStore.subscribe },
+vi.mock('$lib/stores/schedule-context', () => ({
+  scheduleContext: { subscribe: mockScheduleContext.subscribe },
 }));
+
+const today = new Date().toISOString().split('T')[0];
+
+const sampleSchedule: GeneratedSchedule = {
+  permanentEliminations: [],
+  startDate: today,
+  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+  phases: [{
+    id: 'reset', type: 'reset', label: 'Resetovací fáze', description: '',
+    categoryIds: [], startDate: today,
+    endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
+  }],
+};
 
 const sampleAnswers: QuestionnaireAnswers = {
   babyBirthDate: '2025-01-01',
@@ -25,6 +39,15 @@ const sampleAnswers: QuestionnaireAnswers = {
   testedAllergens: ['dairy'],
 };
 
+const readyContext: ScheduleContext = {
+  status: 'ready',
+  schedule: sampleSchedule,
+  answers: sampleAnswers,
+  eliminatedToday: [],
+  reintroInfo: null,
+  progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
+};
+
 const emptyChildren = createRawSnippet(() => ({ render: () => '<span></span>' }));
 
 async function renderLayout() {
@@ -34,13 +57,13 @@ async function renderLayout() {
 
 beforeEach(() => {
   mockGoto.mockReset();
-  mockQuestionnaireStore.set(null);
+  mockScheduleContext.set({ status: 'loading' });
   mockPageStore.set({ url: new URL('http://localhost/today'), params: {}, data: {} });
 });
 
 describe('+layout.svelte — redirect', () => {
   it('calls goto("/") when answers are null and not on onboarding', async () => {
-    mockQuestionnaireStore.set(null);
+    mockScheduleContext.set({ status: 'empty' });
     await renderLayout();
     await tick();
     expect(mockGoto).toHaveBeenCalledWith('/');
@@ -48,7 +71,7 @@ describe('+layout.svelte — redirect', () => {
 
   it('does not call goto when already on onboarding route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: {}, data: {} });
-    mockQuestionnaireStore.set(null);
+    mockScheduleContext.set({ status: 'empty' });
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
@@ -65,14 +88,14 @@ describe('+layout.svelte — bottom nav visibility', () => {
 
   it('hides nav on onboarding route even when answers are present', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: {}, data: {} });
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
     expect(queryByText('Dnes')).not.toBeInTheDocument();
   });
 
   it('shows nav with Dnes and Týden tabs when answers are present on a main route', async () => {
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { getByText } = await renderLayout();
     await tick();
     expect(getByText('Dnes')).toBeInTheDocument();
@@ -81,7 +104,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
 
   it('hides nav on /meal route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/meal'), params: {}, data: {} });
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
     expect(queryByText('Dnes')).not.toBeInTheDocument();
@@ -90,7 +113,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
 
   it('hides nav on /settings route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/settings'), params: {}, data: {} });
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
     expect(queryByText('Dnes')).not.toBeInTheDocument();
@@ -98,7 +121,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('renders FAB when nav is visible', async () => {
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
     const fab = container.querySelector('button[aria-label="Přidat záznam"]');
@@ -109,7 +132,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
 describe('+layout.svelte — active tab state', () => {
   it('marks Dnes tab active on /today', async () => {
     mockPageStore.set({ url: new URL('http://localhost/today'), params: {}, data: {} });
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
     const dnesLink = container.querySelector('a[href="/today"]');
@@ -120,7 +143,7 @@ describe('+layout.svelte — active tab state', () => {
 
   it('marks Týden tab active on /week', async () => {
     mockPageStore.set({ url: new URL('http://localhost/week'), params: {}, data: {} });
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
     const dnesLink = container.querySelector('a[href="/today"]');
@@ -131,7 +154,7 @@ describe('+layout.svelte — active tab state', () => {
 
   it('marks Týden tab active on /program', async () => {
     mockPageStore.set({ url: new URL('http://localhost/program'), params: {}, data: {} });
-    mockQuestionnaireStore.set(sampleAnswers);
+    mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
     const tydenLink = container.querySelector('a[href="/week"]');
