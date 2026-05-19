@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress } from './schedule';
+import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress } from './schedule-queries';
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {

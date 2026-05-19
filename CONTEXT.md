@@ -10,10 +10,11 @@ crystallise; do not let it drift from the code.
 Today's protocol state as the UI sees it — a reactive bundle of
 `GeneratedSchedule`, `QuestionnaireAnswers`, and derived protocol values
 (`eliminatedToday`, `reintroInfo`, `progress`) computed for the current
-date. Exposed as a discriminated union: `loading | empty | ready`. Derived
-fields only exist on `ready`. This is an application-layer concept, not a
-domain concept — it is the authoritative name for what routes consume, as
-distinct from the raw `GeneratedSchedule` stored in the database.
+date. Exposed as a discriminated union: `loading | empty | ready | error`.
+Derived fields only exist on `ready`. The `error` variant carries a string
+message from a failed repository load. This is an application-layer concept,
+not a domain concept — it is the authoritative name for what routes consume,
+as distinct from the raw `GeneratedSchedule` stored in the database.
 
 ### DailyAssessment
 What the parent observed about the baby's skin on a given calendar day:
@@ -37,6 +38,27 @@ pure function: `insights(meals, assessments, schedule) → Insight[]`.
 Examples: "after dairy days, skin worsened in 3 of 4 cases — reaction
 within 24h." Insights surface counter-examples too. Dismissals/pins are
 UI state, not domain state.
+
+### EliminationWindow
+What the mother is forbidden to eat on a given day, derived by
+`getEliminatedSlugsForDate(schedule, date)`. The result depends on the
+current phase type:
+
+| Phase | Eliminated |
+|---|---|
+| `reset` | Permanent eliminations only — mother eats normally otherwise |
+| `elimination` | Permanent eliminations + all protocol allergens |
+| `reintroduction` of X | Permanent + protocol minus X (current) minus already-passed allergens |
+| `rest` | Permanent + protocol minus already-passed allergens (no current exception) |
+| `training` of X | Same as the concurrent non-training phase, but X is also allowed in small doses |
+| After all phases | Permanent eliminations only |
+
+An allergen counts as **passed** only if its reintroduction phase is *not*
+immediately followed by a rest phase. A rest phase signals a reaction —
+the allergen remains eliminated until re-tested.
+
+`permanentEliminations` (from `motherAllergies` + `babyConfirmedAllergies`)
+always apply regardless of phase type.
 
 ### Actor
 The person whose food intake a `Meal` describes. In v1 always `'mother'`

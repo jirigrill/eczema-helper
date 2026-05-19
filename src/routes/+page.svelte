@@ -4,7 +4,7 @@
   // ═══════════════════════════════════════════════════════════
   import { goto } from '$app/navigation';
   import CategoryGrid from '$lib/components/CategoryGrid.svelte';
-  import { generateSchedule } from '$lib/domain/schedule';
+  import { generateSchedule } from '$lib/domain/schedule-builder';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { formatDateLongCs } from '$lib/utils/date';

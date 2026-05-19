@@ -6,7 +6,7 @@ import {
 	getEliminatedSlugsForDate,
 	getReintroductionDayInfo,
 	getScheduleProgress,
-} from '$lib/domain/schedule';
+} from '$lib/domain/schedule-queries';
 import type { GeneratedSchedule, QuestionnaireAnswers, ReintroductionDayInfo } from '$lib/domain/models';
 import { todayIso } from '$lib/utils/date';
 
