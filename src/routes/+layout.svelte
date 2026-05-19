@@ -6,6 +6,8 @@
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
+  import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
 
   let { children } = $props();
 
@@ -36,9 +38,7 @@
           href="/today"
           class="flex flex-col items-center gap-0.5 {dnesActive ? 'text-primary' : 'text-text-muted'}"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/>
-          </svg>
+          <TodayIcon class="w-[22px] h-[22px]" />
           <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}">Dnes</span>
         </a>
         <div class="flex justify-center">
@@ -51,9 +51,7 @@
           href="/week"
           class="flex flex-col items-center gap-0.5 {!dnesActive ? 'text-primary' : 'text-text-muted'}"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
-          </svg>
+          <CalendarIcon class="w-[22px] h-[22px]" />
           <span class="text-[10px] {!dnesActive ? 'font-semibold' : ''}">Týden</span>
         </a>
       </div>

@@ -20,7 +20,17 @@
   <input
     {id}
     bind:value
-    class="w-full border border-surface-dark rounded-xl px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
+    class="w-full border border-surface-dark rounded-xl px-4 py-3 text-base text-text focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
     {...rest}
   />
 </div>
+
+<style>
+  /* Safari renders input[type="date"] as inline-flex, causing width:100% to be
+     ignored on iOS 17 and earlier. appearance:none resets it to a standard
+     box-model element so width and padding behave as expected. */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+</style>

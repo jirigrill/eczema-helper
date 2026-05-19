@@ -19,19 +19,19 @@ describe('InMemoryQuestionnaireRepository', () => {
     repo = new InMemoryQuestionnaireRepository();
   });
 
-  it('returns null when nothing has been saved', async () => {
-    expect(await repo.load()).toBeNull();
+  it('returns Ok(null) when nothing has been saved', async () => {
+    expect(await repo.load()).toEqual({ ok: true, data: null });
   });
 
-  it('returns saved answers after save', async () => {
-    await repo.save(sampleAnswers);
-    expect(await repo.load()).toEqual(sampleAnswers);
+  it('returns Ok(answers) after save', async () => {
+    expect(await repo.save(sampleAnswers)).toMatchObject({ ok: true });
+    expect(await repo.load()).toMatchObject({ ok: true, data: sampleAnswers });
   });
 
   it('overwrites previous answers on second save', async () => {
     await repo.save(sampleAnswers);
     const updated = { ...sampleAnswers, eczemaSeverity: 'severe' as const };
     await repo.save(updated);
-    expect(await repo.load()).toEqual(updated);
+    expect(await repo.load()).toMatchObject({ ok: true, data: updated });
   });
 });
