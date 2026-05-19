@@ -1,6 +1,6 @@
 <script lang="ts">
   import { scheduleContext } from "$lib/stores/schedule-context";
-  import { getPhaseForDate } from "$lib/domain/schedule";
+  import { getPhaseForDate } from "$lib/domain/schedule-queries";
   import { getCategoryById } from "$lib/data/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { getPhaseDisplay } from "$lib/utils/phase-display";

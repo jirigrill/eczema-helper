@@ -3,7 +3,7 @@
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
   import type { Meal, MealItem, AmountSize } from '$lib/domain/models';
-  import { detectConflicts } from '$lib/domain/schedule';
+  import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES, getCategoryById } from '$lib/data/categories';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';

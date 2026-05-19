@@ -3,7 +3,8 @@
   // V2 Prototype — Unified Program Page
   // ═══════════════════════════════════════════════════════════
   import type { SchedulePhase } from '$lib/domain/models';
-  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts, appendReTestPhases } from '$lib/domain/schedule';
+  import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
+  import { appendReTestPhases } from '$lib/domain/schedule-builder';
   import { getCategoryById } from '$lib/data/categories';
   import { formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
