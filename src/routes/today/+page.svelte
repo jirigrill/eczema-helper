@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
+  import ErrorAlert from "$lib/components/error-alert.svelte";
   import { getCategoryById } from "$lib/data/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { getPhaseDisplay } from "$lib/utils/phase-display";
@@ -90,7 +91,9 @@
   </div>
 
   <div class="px-4 pb-24 space-y-3">
-    {#if ctx.status !== 'ready'}
+    {#if ctx.status === 'error'}
+      <ErrorAlert message={ctx.message} />
+    {:else if ctx.status !== 'ready'}
       <div
         class="bg-white rounded-2xl border border-surface-dark p-6 text-center"
       >

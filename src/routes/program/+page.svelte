@@ -10,10 +10,13 @@
   import { db } from '$lib/db/atopic-db';
   import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import Toast from '$lib/components/Toast.svelte';
+  import ErrorAlert from '$lib/components/error-alert.svelte';
 
   const scheduleRepo = new DexieScheduleRepository(db);
 
   let showToast = $state(false);
+  let toastMessage = $state('Tato funkce bude dostupná brzy');
   let selectedRetestSlugs = $state<string[]>([]);
   let expandedPhaseId = $state<string | null>(null);
   let meals = $state<import('$lib/domain/models').Meal[]>([]);
@@ -75,8 +78,8 @@
   async function addRetestPhases() {
     if (!schedule || !answers || selectedRetestSlugs.length === 0) return;
     const updatedSchedule = appendReTestPhases(schedule, selectedRetestSlugs, answers.eczemaSeverity);
-    state = { ...state, schedule: updatedSchedule };
-    await scheduleRepo.save(updatedSchedule);
+    const result = await scheduleRepo.save(updatedSchedule);
+    if (!result.ok) { toastMessage = result.error; showToast = true; return; }
     selectedRetestSlugs = [];
   }
 
@@ -178,14 +181,16 @@
   }
 
   function handleEditSchedule() {
+    toastMessage = 'Tato funkce bude dostupná brzy';
     showToast = true;
-    setTimeout(() => (showToast = false), 2500);
   }
 </script>
 
 <div class="px-4 pt-4 pb-6 space-y-4 max-w-lg mx-auto">
 
-  {#if !schedule}
+  {#if ctx.status === 'error'}
+    <ErrorAlert message={ctx.message} />
+  {:else if !schedule}
     <p class="text-text-muted text-sm">Nejprve dokončete dotazník.</p>
   {:else}
 
@@ -656,7 +661,5 @@
 </div>
 
 {#if showToast}
-  <div class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-text text-white text-sm rounded-xl px-5 py-3 shadow-lg z-50">
-    Tato funkce bude dostupná brzy
-  </div>
+  <Toast message={toastMessage} onClose={() => (showToast = false)} />
 {/if}

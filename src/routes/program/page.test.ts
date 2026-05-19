@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
@@ -52,7 +52,12 @@ const readyContext: ScheduleContext = {
 };
 
 beforeEach(() => {
+  vi.useFakeTimers();
   mockScheduleContext.set({ status: 'loading' });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('program/+page.svelte', () => {
@@ -86,5 +91,27 @@ describe('program/+page.svelte', () => {
     const { getByText } = render(ProgramPage);
     await tick();
     expect(getByText('3%')).toBeInTheDocument();
+  });
+
+  it('shows toast message after clicking Upravit program', async () => {
+    mockScheduleContext.set(readyContext);
+    const { default: ProgramPage } = await import('./+page.svelte');
+    const { getByText, getByRole } = render(ProgramPage);
+    await tick();
+    getByText('Upravit program').click();
+    await tick();
+    expect(getByRole('alert')).toHaveTextContent('Tato funkce bude dostupná brzy');
+  });
+
+  it('toast disappears after its duration', async () => {
+    mockScheduleContext.set(readyContext);
+    const { default: ProgramPage } = await import('./+page.svelte');
+    const { getByText, queryByRole } = render(ProgramPage);
+    await tick();
+    getByText('Upravit program').click();
+    await tick();
+    vi.advanceTimersByTime(5000);
+    await tick();
+    expect(queryByRole('alert')).not.toBeInTheDocument();
   });
 });

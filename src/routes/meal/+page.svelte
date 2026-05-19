@@ -8,6 +8,7 @@
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import Toast from '$lib/components/Toast.svelte';
 
   let meals = $state<Meal[]>([]);
 
@@ -384,12 +385,12 @@
   </div>
 {/if}
 
-<!-- Success toast with day link -->
 {#if showSuccess}
-  <div class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-success text-white text-sm rounded-xl px-5 py-3 shadow-lg z-50 text-center min-w-[200px]">
-    <p class="font-medium">✓ Jídlo uloženo</p>
-    <a href="/day" class="block text-white/90 text-xs mt-1.5 underline underline-offset-2">
-      Zobrazit přehled dne →
-    </a>
-  </div>
+  <Toast
+    message="✓ Jídlo uloženo"
+    type="success"
+    href="/day"
+    linkLabel="Zobrazit přehled dne →"
+    onClose={() => (showSuccess = false)}
+  />
 {/if}

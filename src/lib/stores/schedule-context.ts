@@ -13,6 +13,7 @@ import { todayIso } from '$lib/utils/date';
 export type ScheduleContext =
 	| { status: 'loading' }
 	| { status: 'empty' }
+	| { status: 'error'; message: string }
 	| {
 			status: 'ready';
 			schedule: GeneratedSchedule;
@@ -49,7 +50,7 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 				progress: getScheduleProgress(schedule as GeneratedSchedule, today),
 			});
 		},
-		error: () => set({ status: 'empty' }),
+		error: (e: unknown) => set({ status: 'error', message: e instanceof Error ? e.message : String(e) }),
 	});
 
 	return () => subscription.unsubscribe();

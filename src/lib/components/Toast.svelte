@@ -5,12 +5,16 @@
     message,
     duration = 5000,
     type = 'info',
+    href,
+    linkLabel,
     onUndo,
     onClose,
   }: {
     message: string;
     duration?: number;
     type?: 'info' | 'success' | 'warning' | 'error';
+    href?: string;
+    linkLabel?: string;
     onUndo?: () => void;
     onClose?: () => void;
   } = $props();
@@ -48,7 +52,7 @@
 {#if visible}
   <div
     class="
-      fixed bottom-20 left-4 right-4 z-50
+      fixed bottom-[84px] left-4 right-4 z-50
       flex items-center justify-between gap-3
       px-4 py-3 rounded-xl shadow-lg
       animate-slideUp
@@ -56,9 +60,14 @@
     "
     role="alert"
   >
-    <span class="text-sm">{message}</span>
+    <div class="flex flex-col gap-1 min-w-0">
+      <span class="text-sm">{message}</span>
+      {#if href && linkLabel}
+        <a {href} class="text-xs opacity-80 underline underline-offset-2">{linkLabel}</a>
+      {/if}
+    </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 shrink-0">
       {#if onUndo}
         <button
           type="button"

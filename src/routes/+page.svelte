@@ -4,6 +4,8 @@
   // ═══════════════════════════════════════════════════════════
   import { goto } from '$app/navigation';
   import CategoryGrid from '$lib/components/CategoryGrid.svelte';
+  import FormInput from '$lib/components/form-input.svelte';
+  import ErrorAlert from '$lib/components/error-alert.svelte';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
@@ -43,6 +45,7 @@
 
   // ── Navigation ────────────────────────────────────────────
   let returnToSummary = $state(false);
+  let saveError = $state<string | null>(null);
 
   function next() {
     if (returnToSummary) {
@@ -69,6 +72,7 @@
 
   // ── Save & proceed ────────────────────────────────────────
   async function confirm() {
+    saveError = null;
     const answers: QuestionnaireAnswers = $state.snapshot({
       babyBirthDate,
       eczemaSeverity: severity,
@@ -79,8 +83,10 @@
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
     });
     const schedule = generateSchedule(answers);
-    await questionnaireRepo.save(answers);
-    await scheduleRepo.save(schedule);
+    const saveAnswers = await questionnaireRepo.save(answers);
+    if (!saveAnswers.ok) { saveError = saveAnswers.error; return; }
+    const saveSchedule = await scheduleRepo.save(schedule);
+    if (!saveSchedule.ok) { saveError = saveSchedule.error; return; }
     goto('/today');
   }
 
@@ -177,19 +183,13 @@
           <p class="text-sm text-text-muted">Datum narození a závažnost ekzému</p>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-text mb-2" for="birthdate">
-            Datum narození miminka
-          </label>
-          <input
-            id="birthdate"
-            type="date"
-            bind:value={babyBirthDate}
-            max={new Date().toISOString().split('T')[0]}
-            class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
-              focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
-          />
-        </div>
+        <FormInput
+          id="birthdate"
+          label="Datum narození miminka"
+          type="date"
+          bind:value={babyBirthDate}
+          max={new Date().toISOString().split('T')[0]}
+        />
 
         <div>
           <p class="text-sm font-medium text-text mb-3">Jak závažný je ekzém miminka?</p>
@@ -312,19 +312,13 @@
           <p class="text-sm text-text-muted">Kdy chcete začít s eliminační dietou?</p>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-text mb-2" for="startdate">
-            Datum začátku
-          </label>
-          <input
-            id="startdate"
-            type="date"
-            bind:value={programStartDate}
-            min={new Date().toISOString().split('T')[0]}
-            class="w-full rounded-xl border border-surface-dark px-4 py-3 text-base text-text
-              focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
-          />
-        </div>
+        <FormInput
+          id="startdate"
+          label="Datum začátku"
+          type="date"
+          bind:value={programStartDate}
+          min={new Date().toISOString().split('T')[0]}
+        />
 
         <div class="bg-primary/5 rounded-xl px-4 py-3 border border-primary/20">
           <p class="text-sm text-text leading-relaxed">
@@ -401,6 +395,9 @@
         </div>
 
         <div class="mt-auto">
+          {#if saveError}
+            <ErrorAlert message={saveError} />
+          {/if}
           <button
             class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
             onclick={confirm}
@@ -413,14 +410,3 @@
 
   </div>
 </div>
-
-<style>
-  /* Safari renders input[type="date"] as inline-flex, causing width:100% to be
-     ignored on iOS 17 and earlier. appearance:none resets it to a standard
-     box-model element so width and padding behave as expected. The native date
-     picker still fires on tap — only the CSS rendering changes. */
-  input[type="date"] {
-    -webkit-appearance: none;
-    appearance: none;
-  }
-</style>
