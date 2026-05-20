@@ -2,6 +2,10 @@
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
   import ErrorAlert from "$lib/components/error-alert.svelte";
+  import EmptyStateCard from "$lib/components/EmptyStateCard.svelte";
+  import AllergenChip from "$lib/components/AllergenChip.svelte";
+  import PhaseBadge from "$lib/components/PhaseBadge.svelte";
+  import ProgressBar from "$lib/components/ProgressBar.svelte";
   import { getCategoryById } from "$lib/data/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { getPhaseDisplay } from "$lib/utils/phase-display";
@@ -121,11 +125,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-sm font-bold text-text">{phase.label}</span>
-                <span
-                  class="text-[8px] font-extrabold tracking-wider rounded-full px-1.5 py-0.5 {display.badge}"
-                >
-                  {phase.type.toUpperCase()}
-                </span>
+                <PhaseBadge type={phase.type} />
               </div>
               {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
@@ -154,12 +154,7 @@
           <span class="text-text-muted text-sm">›</span>
         </div>
         {#if ctx.progress}
-          <div class="h-1 bg-surface-dark rounded-full overflow-hidden">
-            <div
-              class="h-full bg-primary rounded-full"
-              style:width="{ctx.progress.percentComplete}%"
-            ></div>
-          </div>
+          <ProgressBar value={ctx.progress.percentComplete} />
         {/if}
       </a>
 
@@ -170,34 +165,14 @@
       </div>
 
       <!-- Stav ekzému — stub (slice 3) -->
-      <div
-        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
-      >
-        <div class="flex items-center justify-between mb-1">
-          <div
-            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
-          >
-            Stav ekzému
-          </div>
-          <span class="text-[10px] text-text-muted">neuložen</span>
-        </div>
+      <EmptyStateCard label="Stav ekzému" status="neuložen">
         <div class="text-sm text-text-muted">Zatím není záznam pro dnešek.</div>
-      </div>
+      </EmptyStateCard>
 
       <!-- Foto kůže — stub (slice 3) -->
-      <div
-        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
-      >
-        <div class="flex items-center justify-between mb-1">
-          <div
-            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
-          >
-            Foto kůže
-          </div>
-          <span class="text-[10px] text-text-muted">chybí</span>
-        </div>
+      <EmptyStateCard label="Foto kůže" status="chybí">
         <div class="text-sm text-text-muted">Žádný snímek pro dnešek.</div>
-      </div>
+      </EmptyStateCard>
 
       <!-- Smím / Vyhýbej se -->
       <div
@@ -213,13 +188,7 @@
             {#if allowedProtocol.length > 0}
               <div class="space-y-1">
                 {#each allowedProtocol as slug}
-                  {@const cat = getCategoryById(slug)}
-                  {#if cat}
-                    <div class="text-[11px] text-text leading-snug">
-                      {cat.icon}
-                      {cat.nameCs}
-                    </div>
-                  {/if}
+                  <div><AllergenChip {slug} /></div>
                 {/each}
               </div>
             {:else}
@@ -235,13 +204,7 @@
             {#if ctx.eliminatedToday.length > 0}
               <div class="space-y-1">
                 {#each ctx.eliminatedToday as slug}
-                  {@const cat = getCategoryById(slug)}
-                  {#if cat}
-                    <div class="text-[11px] text-text-muted leading-snug">
-                      {cat.icon}
-                      {cat.nameCs}
-                    </div>
-                  {/if}
+                  <div><AllergenChip {slug} muted={true} /></div>
                 {/each}
               </div>
             {:else}
@@ -252,19 +215,9 @@
       </div>
 
       <!-- Dnešní jídla — stub (slice 2) -->
-      <div
-        class="bg-white border-2 border-dashed border-surface-dark rounded-2xl p-3.5"
-      >
-        <div class="flex items-center justify-between mb-1">
-          <div
-            class="text-[10px] text-text-muted uppercase tracking-wide font-semibold"
-          >
-            Dnešní jídla
-          </div>
-          <span class="text-[10px] text-text-muted">0 záznamů</span>
-        </div>
+      <EmptyStateCard label="Dnešní jídla" status="0 záznamů">
         <div class="text-sm text-text-muted">Zatím žádný záznam.</div>
-      </div>
+      </EmptyStateCard>
 
       <!-- Bottom hint -->
       <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">

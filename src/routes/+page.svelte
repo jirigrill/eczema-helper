@@ -6,6 +6,9 @@
   import CategoryGrid from '$lib/components/CategoryGrid.svelte';
   import FormInput from '$lib/components/form-input.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
+  import InfoBanner from '$lib/components/InfoBanner.svelte';
+  import SummaryCard from '$lib/components/SummaryCard.svelte';
+  import ProgressBar from '$lib/components/ProgressBar.svelte';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
@@ -130,9 +133,7 @@
 <div class="min-h-screen bg-surface flex flex-col">
   <!-- Progress bar -->
   {#if step > 1 && step < TOTAL_STEPS}
-    <div class="h-1 bg-surface-dark">
-      <div class="h-full bg-primary transition-all duration-300" style:width="{progress}%"></div>
-    </div>
+    <ProgressBar value={progress} />
   {/if}
 
   <!-- Back button -->
@@ -242,12 +243,12 @@
           </p>
         </div>
 
-        <div class="bg-primary/5 rounded-xl px-4 py-3 border border-primary/20">
+        <InfoBanner variant="info">
           <p class="text-sm text-text">
             Tyto potraviny budou <strong>trvale vyřazeny</strong> — neplánujeme je znovuzavodit, protože je samy nejíte.
             Přesto je budeme sledovat, abyste věděly o náhodném kontaktu.
           </p>
-        </div>
+        </InfoBanner>
 
         <CategoryGrid bind:selected={motherAllergies} variant="primary" expandable={true} />
 
@@ -276,12 +277,12 @@
           </p>
         </div>
 
-        <div class="bg-danger/5 rounded-xl px-4 py-3 border border-danger/20">
+        <InfoBanner variant="danger">
           <p class="text-sm text-text">
             Potvrzené alergeny budou po dobu diety <strong>vyřazeny</strong>.
             Jejich otestování a případné znovu zařazení by mělo proběhnout <strong>velmi opatrně</strong> či <strong>s lékařem</strong>.
           </p>
-        </div>
+        </InfoBanner>
 
         <CategoryGrid
           bind:selected={babyAllergies}
@@ -320,12 +321,12 @@
           min={new Date().toISOString().split('T')[0]}
         />
 
-        <div class="bg-primary/5 rounded-xl px-4 py-3 border border-primary/20">
+        <InfoBanner variant="info">
           <p class="text-sm text-text leading-relaxed">
             Program začne <strong>resetovací fází</strong> ({5} dní) — jezte normálně,
             zaznamenáváme výchozí stav kůže miminka. Poté přejdeme k eliminaci.
           </p>
-        </div>
+        </InfoBanner>
 
         <div class="mt-auto">
           <button
@@ -347,34 +348,22 @@
 
         <!-- Summary cards -->
         <div class="space-y-3">
-          <div class="bg-white rounded-xl border border-surface-dark p-4">
-            <div class="flex items-center justify-between mb-1">
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Miminko</p>
-              <button class="text-xs text-primary" onclick={() => editStep(2)}>Upravit</button>
-            </div>
+          <SummaryCard label="Miminko" onEdit={() => editStep(2)}>
             <p class="text-sm text-text">Věk: <strong>{formatBabyAge()}</strong></p>
             <p class="text-sm text-text mt-0.5">
               Závažnost: <strong>{severityOptions.find(s => s.value === severity)?.label}</strong>
             </p>
-          </div>
+          </SummaryCard>
 
-          <div class="bg-white rounded-xl border border-surface-dark p-4">
-            <div class="flex items-center justify-between mb-1">
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Moje alergie</p>
-              <button class="text-xs text-primary" onclick={() => editStep(3)}>Upravit</button>
-            </div>
+          <SummaryCard label="Moje alergie" onEdit={() => editStep(3)}>
             <p class="text-sm text-text">{slugsToNames(motherAllergies)}</p>
-          </div>
+          </SummaryCard>
 
-          <div class="bg-white rounded-xl border border-surface-dark p-4">
-            <div class="flex items-center justify-between mb-1">
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Potvrzené alergie miminka</p>
-              <button class="text-xs text-primary" onclick={() => editStep(4)}>Upravit</button>
-            </div>
+          <SummaryCard label="Potvrzené alergie miminka" onEdit={() => editStep(4)}>
             <p class="text-sm text-text">{slugsToNames(babyAllergies)}</p>
-          </div>
+          </SummaryCard>
 
-          <div class="bg-primary/5 rounded-xl border border-primary/20 p-4">
+          <InfoBanner variant="info">
             <div class="flex items-center justify-between mb-2">
               <p class="text-xs font-semibold text-primary uppercase tracking-wide">Program</p>
               <button class="text-xs text-primary" onclick={() => editStep(5)}>Upravit</button>
@@ -391,7 +380,7 @@
                 <p>✦ <em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny</p>
               {/if}
             </div>
-          </div>
+          </InfoBanner>
         </div>
 
         <div class="mt-auto">

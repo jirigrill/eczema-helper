@@ -9,6 +9,8 @@
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { scheduleContext } from '$lib/stores/schedule-context';
   import Toast from '$lib/components/Toast.svelte';
+  import PageHeader from '$lib/components/PageHeader.svelte';
+  import InfoBanner from '$lib/components/InfoBanner.svelte';
 
   let meals = $state<Meal[]>([]);
 
@@ -111,46 +113,46 @@
 <div class="pb-8 max-w-lg mx-auto">
 
   <!-- Header -->
-  <div class="px-4 pt-4 pb-3 sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <button class="text-text text-lg leading-none" onclick={() => history.back()}>‹</button>
-        <h1 class="text-sm font-bold text-text">Přidat jídlo</h1>
-      </div>
-      <p class="text-sm text-text-muted">{formatDateLongCs(today)}</p>
-    </div>
+  <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
+    <PageHeader title="Přidat jídlo" onBack={() => history.back()}>
+      {#snippet right()}
+        <p class="text-sm text-text-muted">{formatDateLongCs(today)}</p>
+      {/snippet}
+    </PageHeader>
 
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
       {@const cat = getCategoryById(reintroInfo.allergenId)}
-      <div class="mt-2 space-y-1.5">
-        <div class="bg-success/10 border border-success/30 rounded-xl px-3 py-2">
+      <div class="px-4 pt-2 space-y-1.5">
+        <InfoBanner variant="success">
           <p class="text-xs font-medium text-success">
             🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}: {reintroInfo.label}
           </p>
           <p class="text-xs text-text-muted mt-0.5">{reintroInfo.guidance} ({cat?.nameCs})</p>
-        </div>
+        </InfoBanner>
       </div>
     {/if}
 
     <!-- Schedule context banner (tappable → schedule) -->
     {#if eliminatedToday.length > 0}
-      <a
-        href="/program"
-        class="mt-2 bg-warning/10 border border-warning/30 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap no-underline"
-      >
-        <span class="text-xs font-medium text-warning">Dnes vyřazeno:</span>
-        {#each eliminatedToday as categoryId}
-          {@const cat = getCategoryById(categoryId)}
-          {#if cat}
-            <span class="text-sm">{cat.icon}</span>
-          {/if}
-        {/each}
-        <span class="text-xs text-warning">
-          {eliminatedToday.map(s => getCategoryById(s)?.nameCs).filter(Boolean).join(', ')}
-        </span>
-        <span class="ml-auto text-xs text-warning/70">Program →</span>
-      </a>
+      <div class="px-4 pt-2 pb-3">
+        <a
+          href="/program"
+          class="bg-warning/10 border border-warning/30 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap no-underline"
+        >
+          <span class="text-xs font-medium text-warning">Dnes vyřazeno:</span>
+          {#each eliminatedToday as categoryId}
+            {@const cat = getCategoryById(categoryId)}
+            {#if cat}
+              <span class="text-sm">{cat.icon}</span>
+            {/if}
+          {/each}
+          <span class="text-xs text-warning">
+            {eliminatedToday.map(s => getCategoryById(s)?.nameCs).filter(Boolean).join(', ')}
+          </span>
+          <span class="ml-auto text-xs text-warning/70">Program →</span>
+        </a>
+      </div>
     {/if}
   </div>
 
@@ -212,13 +214,13 @@
 
     <!-- Conflict warning -->
     {#if hasConflicts}
-      <div class="bg-warning/10 border border-warning/30 rounded-xl p-3">
+      <InfoBanner variant="warning">
         <p class="text-sm font-medium text-warning mb-1">⚠ Odchylka od programu</p>
         <p class="text-xs text-text-muted">
           {conflicts.map(i => `${i.name} (${getCategoryById(i.categoryId ?? '')?.nameCs})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
           Jídlo bude uloženo a odchylka zaznamenána.
         </p>
-      </div>
+      </InfoBanner>
     {/if}
 
     <!-- Category grid -->
