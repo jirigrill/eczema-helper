@@ -7,6 +7,8 @@
   import { formatDateLongCs } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import PageHeader from '$lib/components/PageHeader.svelte';
+  import SummaryCard from '$lib/components/SummaryCard.svelte';
 
   const ctx = $derived($scheduleContext);
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
@@ -30,10 +32,7 @@
 </script>
 
 <div class="max-w-lg mx-auto">
-  <div class="px-4 pt-4 pb-3 sticky top-0 bg-surface z-20 border-b border-surface-dark flex items-center gap-3">
-    <button class="text-text text-lg leading-none" onclick={() => history.back()}>‹</button>
-    <h1 class="text-sm font-bold text-text">Nastavení</h1>
-  </div>
+  <PageHeader title="Nastavení" onBack={() => history.back()} />
 
 <div class="px-4 pt-5 pb-10 space-y-5 flex flex-col">
 
@@ -47,37 +46,33 @@
     <div class="space-y-3">
       <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Aktuální konfigurace</p>
 
-      <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-2">
-        <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Miminko</p>
+      <SummaryCard label="Miminko">
         <p class="text-sm text-text">
           Narozeno: <strong>{formatDateLongCs(answers.babyBirthDate)}</strong>
         </p>
-        <p class="text-sm text-text">
+        <p class="text-sm text-text mt-0.5">
           Závažnost ekzému: <strong>{severityLabel[answers.eczemaSeverity]}</strong>
         </p>
-      </div>
+      </SummaryCard>
 
-      <div class="bg-white rounded-xl border border-surface-dark p-4">
-        <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Moje alergie</p>
+      <SummaryCard label="Moje alergie">
         <p class="text-sm text-text">{slugsToNames(answers.motherAllergies)}</p>
-      </div>
+      </SummaryCard>
 
-      <div class="bg-white rounded-xl border border-surface-dark p-4">
-        <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Potvrzené alergie miminka</p>
+      <SummaryCard label="Potvrzené alergie miminka">
         <p class="text-sm text-text">{slugsToNames(answers.babyConfirmedAllergies)}</p>
-      </div>
+      </SummaryCard>
 
       {#if schedule}
-        <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-1">
-          <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Program</p>
+        <SummaryCard label="Program">
           <p class="text-sm text-text">
             Celkem {schedule.phases.length} fází ·
             do {formatDateLongCs(schedule.estimatedEndDate)}
           </p>
-          <p class="text-sm text-text">
+          <p class="text-sm text-text mt-0.5">
             Zapsáno jídel: <strong>0</strong>
           </p>
-        </div>
+        </SummaryCard>
       {/if}
     </div>
   {:else}
