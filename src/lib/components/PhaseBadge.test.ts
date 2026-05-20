@@ -15,13 +15,16 @@ describe('PhaseBadge', () => {
     expect(container.querySelector('[data-variant="elimination"]')).not.toBeNull();
   });
 
-  it('renders Czech label for elimination', () => {
-    const { getByText } = render(PhaseBadge, { props: { type: 'elimination' } });
-    expect(getByText('Eliminace')).toBeInTheDocument();
-  });
+  const czechLabels: [SchedulePhaseType, string][] = [
+    ['reset',          'Reset'],
+    ['elimination',    'Eliminace'],
+    ['reintroduction', 'Reintrodukce'],
+    ['rest',           'Odpočinek'],
+    ['training',       'Trénink'],
+  ];
 
-  it('renders Czech label for reintroduction', () => {
-    const { getByText } = render(PhaseBadge, { props: { type: 'reintroduction' } });
-    expect(getByText('Reintrodukce')).toBeInTheDocument();
+  it.each(czechLabels)('renders Czech label for type "%s"', (type, label) => {
+    const { getByText } = render(PhaseBadge, { props: { type } });
+    expect(getByText(label)).toBeInTheDocument();
   });
 });

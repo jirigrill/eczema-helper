@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import PageHeader from './PageHeader.svelte';
 
 describe('PageHeader', () => {
@@ -24,5 +25,11 @@ describe('PageHeader', () => {
     const { getByText } = render(PageHeader, { props: { title: 'Test', onBack } });
     await fireEvent.click(getByText('‹'));
     expect(onBack).toHaveBeenCalledOnce();
+  });
+
+  it('renders right snippet content when provided', () => {
+    const right = createRawSnippet(() => ({ render: () => '<span>Pravá strana</span>' }));
+    const { getByText } = render(PageHeader, { props: { title: 'Test', right } });
+    expect(getByText('Pravá strana')).toBeInTheDocument();
   });
 });

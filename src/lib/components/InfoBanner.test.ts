@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import InfoBanner from './InfoBanner.svelte';
 
 describe('InfoBanner', () => {
@@ -28,5 +29,11 @@ describe('InfoBanner', () => {
     const anchor = container.querySelector('a[data-variant="warning"]');
     expect(anchor).not.toBeNull();
     expect(anchor?.getAttribute('href')).toBe('/program');
+  });
+
+  it('renders slot content', () => {
+    const children = createRawSnippet(() => ({ render: () => '<p>Bannertekst</p>' }));
+    const { getByText } = render(InfoBanner, { props: { variant: 'warning', children } });
+    expect(getByText('Bannertekst')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import SummaryCard from './SummaryCard.svelte';
 
 describe('SummaryCard', () => {
@@ -24,5 +25,11 @@ describe('SummaryCard', () => {
     const { getByText } = render(SummaryCard, { props: { label: 'Test', onEdit } });
     await fireEvent.click(getByText('Upravit'));
     expect(onEdit).toHaveBeenCalledOnce();
+  });
+
+  it('renders slot content', () => {
+    const children = createRawSnippet(() => ({ render: () => '<p>Obsah karty</p>' }));
+    const { getByText } = render(SummaryCard, { props: { label: 'Test', children } });
+    expect(getByText('Obsah karty')).toBeInTheDocument();
   });
 });
