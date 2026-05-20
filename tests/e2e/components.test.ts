@@ -13,6 +13,10 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 
+// ---------------------------------------------------------------------------
+// DB helpers
+// ---------------------------------------------------------------------------
+
 async function clearDb(page: Page) {
   await page.evaluate(async () => {
     const path = '/src/lib/db/atopic-db.ts';
@@ -24,31 +28,71 @@ async function clearDb(page: Page) {
   });
 }
 
+/**
+ * Seed Dexie with a generated schedule starting `daysAgo` days in the past.
+ * Moderate severity: reset=5d, elimination=14d, reintroduction=4d each.
+ *
+ * daysAgo=10 → today is day 11 of the 14-day elimination phase.
+ * daysAgo=22 → today is day 3 of the first reintroduction phase (soy).
+ */
+async function seedSchedule(page: Page, daysAgo: number) {
+  await page.evaluate(async (offset: number) => {
+    const builderPath  = '/src/lib/domain/schedule-builder.ts';
+    const qRepoPath    = '/src/lib/adapters/dexie-questionnaire-repository.ts';
+    const sRepoPath    = '/src/lib/adapters/dexie-schedule-repository.ts';
+    const dbPath       = '/src/lib/db/atopic-db.ts';
+    const categoriesPath = '/src/lib/data/categories.ts';
+    const { generateSchedule }             = await import(/* @vite-ignore */ builderPath);
+    const { DexieQuestionnaireRepository } = await import(/* @vite-ignore */ qRepoPath);
+    const { DexieScheduleRepository }      = await import(/* @vite-ignore */ sRepoPath);
+    const { AtopicDb }                     = await import(/* @vite-ignore */ dbPath);
+    const { DEFAULT_TESTED_ALLERGENS }     = await import(/* @vite-ignore */ categoriesPath);
+
+    const db = new AtopicDb();
+    const qRepo = new DexieQuestionnaireRepository(db);
+    const sRepo = new DexieScheduleRepository(db);
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - offset);
+
+    const answers = {
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate' as const,
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: startDate.toISOString().split('T')[0],
+      completedAt: new Date().toISOString(),
+      testedAllergens: DEFAULT_TESTED_ALLERGENS,
+    };
+
+    const schedule = generateSchedule(answers);
+    await qRepo.save(answers);
+    await sRepo.save(schedule);
+    db.close();
+  }, daysAgo);
+}
+
+// ---------------------------------------------------------------------------
+// Navigation helpers
+// ---------------------------------------------------------------------------
+
 async function advanceToOnboardingStep(page: Page, step: number) {
-  // Step 1 → click Začít
   await page.getByRole('button', { name: 'Začít' }).click();
   if (step === 1) return;
 
-  // Step 2 → fill birth date + Pokračovat
   await page.fill('#birthdate', '2025-01-01');
   await page.getByRole('button', { name: 'Pokračovat' }).click();
   if (step === 2) return;
 
-  // Step 3 → Pokračovat (skip mother allergies)
   if (step === 3) return;
 
   await page.getByRole('button', { name: 'Pokračovat' }).click();
   if (step === 4) return;
 }
 
-async function completeOnboarding(page: Page) {
-  await advanceToOnboardingStep(page, 3);
-  await page.getByRole('button', { name: 'Pokračovat' }).click(); // step 3
-  await page.getByRole('button', { name: 'Pokračovat' }).click(); // step 4
-  await page.getByRole('button', { name: 'Pokračovat' }).click(); // step 5
-  await page.getByRole('button', { name: 'Potvrdit a spustit program' }).click();
-  await expect(page).toHaveURL('/today');
-}
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -79,37 +123,33 @@ test('InfoBanner danger variant colour snapshot', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------
-// InfoBanner — success + warning variants (meal page)
+// InfoBanner — warning variant (meal page, elimination phase)
+// Seed a schedule 10 days in the past → today = day 11 of elimination.
+// eliminatedToday is non-empty → warning banner visible on meal page.
 // ---------------------------------------------------------------------------
 
-test('InfoBanner success variant colour snapshot', async () => {
-  // The success variant only appears during a reintroduction phase, which
-  // requires a fully-progressed schedule. Covered by the warning snapshot
-  // test which exercises the same CSS opacity pattern.
-  test.skip();
-});
-
 test('InfoBanner warning variant colour snapshot', async ({ page }) => {
-  await completeOnboarding(page);
+  await seedSchedule(page, 10);
   await page.goto('/meal');
 
-  // The warning eliminated-today banner is shown when allergens are active.
-  // After default onboarding (moderate severity), the reset phase has no
-  // eliminations, so this banner may not be visible on day 1.
-  // Take a snapshot of the conflict warning instead by adding an eliminated item.
-  // For now we assert the banner structure exists at the data-variant level.
   const banner = page.locator('[data-variant="warning"]').first();
-
-  // If no warning banner is on the meal page right now (no eliminations yet),
-  // skip the screenshot rather than fail — this variant is best tested when
-  // an elimination phase is active.
-  const count = await banner.count();
-  if (count === 0) {
-    test.skip();
-    return;
-  }
   await expect(banner).toBeVisible();
   await expect(banner).toHaveScreenshot('infobanner-warning.png');
+});
+
+// ---------------------------------------------------------------------------
+// InfoBanner — success variant (meal page, reintroduction phase)
+// Seed a schedule 22 days in the past → today = day 3 of soy reintroduction.
+// reintroInfo is non-null → success dosing-guidance banner visible.
+// ---------------------------------------------------------------------------
+
+test('InfoBanner success variant colour snapshot', async ({ page }) => {
+  await seedSchedule(page, 22);
+  await page.goto('/meal');
+
+  const banner = page.locator('[data-variant="success"]').first();
+  await expect(banner).toBeVisible();
+  await expect(banner).toHaveScreenshot('infobanner-success.png');
 });
 
 // ---------------------------------------------------------------------------
@@ -117,8 +157,9 @@ test('InfoBanner warning variant colour snapshot', async ({ page }) => {
 // ---------------------------------------------------------------------------
 
 test('PhaseBadge colour snapshot on today page', async ({ page }) => {
-  await completeOnboarding(page);
-  // PhaseBadge carries data-variant={phase.type}
+  await seedSchedule(page, 10);
+  await page.goto('/today');
+
   const badge = page.locator('span[data-variant]').first();
   await expect(badge).toBeVisible();
   await expect(badge).toHaveScreenshot('phasebadge.png');
