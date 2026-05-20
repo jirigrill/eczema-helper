@@ -12,6 +12,7 @@
   import { scheduleContext } from '$lib/stores/schedule-context';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
+  import AllergenChip from '$lib/components/AllergenChip.svelte';
 
   const scheduleRepo = new DexieScheduleRepository(db);
 
@@ -247,7 +248,7 @@
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
                     <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      {item.icon} {item.name}
+                      <AllergenChip slug={item.slug} bare />
                     </span>
                   {/each}
                 </div>
@@ -267,7 +268,7 @@
                   {@const cat = getCategoryById(slug)}
                   {#if cat}
                     <span class="inline-flex items-center gap-1.5 bg-danger/10 text-danger rounded-full px-2.5 py-1 text-xs font-medium">
-                      {cat.icon} {cat.nameCs}
+                      <AllergenChip {slug} bare />
                     </span>
                   {/if}
                 {/each}
@@ -280,7 +281,7 @@
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
                     <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      {item.icon} {item.name}
+                      <AllergenChip slug={item.slug} bare />
                     </span>
                   {/each}
                 </div>
@@ -307,7 +308,7 @@
                 <p class="text-xs font-semibold text-success uppercase tracking-wide mb-1.5">Testujete</p>
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span class="inline-flex items-center gap-1.5 bg-success/10 text-success rounded-full px-2.5 py-1 text-xs font-medium">
-                    {testCat.icon} {testCat.nameCs}
+                    <AllergenChip slug={currentPhase.categoryIds[0]} bare />
                   </span>
                   {#if reintroInfo}
                     <span class="text-xs text-text-muted">
@@ -326,7 +327,7 @@
                     {@const cat = getCategoryById(slug)}
                     {#if cat}
                       <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                        {cat.icon} {cat.nameCs}
+                        <AllergenChip {slug} bare />
                       </span>
                     {/if}
                   {/each}
@@ -340,7 +341,7 @@
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
                     <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      {item.icon} {item.name}
+                      <AllergenChip slug={item.slug} bare />
                     </span>
                   {/each}
                 </div>

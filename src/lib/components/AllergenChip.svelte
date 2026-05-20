@@ -6,9 +6,11 @@
   let {
     slug,
     muted = false,
+    bare = false,
   }: {
     slug: string;
     muted?: boolean;
+    bare?: boolean;
   } = $props();
 
   function resolveDisplay(s: string): { icon: string; name: string } {
@@ -25,6 +27,10 @@
   const display = $derived(resolveDisplay(slug));
 </script>
 
-<span class="text-[11px] leading-snug {muted ? 'text-text-muted' : 'text-text'}">
+{#if bare}
   {display.icon} {display.name}
-</span>
+{:else}
+  <span class="text-[11px] leading-snug {muted ? 'text-text-muted' : 'text-text'}">
+    {display.icon} {display.name}
+  </span>
+{/if}

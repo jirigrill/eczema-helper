@@ -3,9 +3,13 @@
 
   let {
     variant,
+    href,
+    class: extraClass = '',
     children,
   }: {
     variant: 'info' | 'success' | 'warning' | 'danger';
+    href?: string;
+    class?: string;
     children?: Snippet;
   } = $props();
 
@@ -17,9 +21,19 @@
   };
 </script>
 
-<div
-  data-variant={variant}
-  class="rounded-xl px-4 py-3 border {CLASSES[variant]}"
->
-  {@render children?.()}
-</div>
+{#if href}
+  <a
+    {href}
+    data-variant={variant}
+    class="no-underline rounded-xl px-4 py-3 border {CLASSES[variant]} {extraClass}"
+  >
+    {@render children?.()}
+  </a>
+{:else}
+  <div
+    data-variant={variant}
+    class="rounded-xl px-4 py-3 border {CLASSES[variant]} {extraClass}"
+  >
+    {@render children?.()}
+  </div>
+{/if}

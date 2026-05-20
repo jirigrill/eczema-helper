@@ -136,10 +136,7 @@
     <!-- Schedule context banner (tappable → schedule) -->
     {#if eliminatedToday.length > 0}
       <div class="px-4 pt-2 pb-3">
-        <a
-          href="/program"
-          class="bg-warning/10 border border-warning/30 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap no-underline"
-        >
+        <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
           <span class="text-xs font-medium text-warning">Dnes vyřazeno:</span>
           {#each eliminatedToday as categoryId}
             {@const cat = getCategoryById(categoryId)}
@@ -151,7 +148,7 @@
             {eliminatedToday.map(s => getCategoryById(s)?.nameCs).filter(Boolean).join(', ')}
           </span>
           <span class="ml-auto text-xs text-warning/70">Program →</span>
-        </a>
+        </InfoBanner>
       </div>
     {/if}
   </div>

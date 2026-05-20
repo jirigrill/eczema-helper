@@ -21,4 +21,14 @@ describe('AllergenChip', () => {
     const { container } = render(AllergenChip, { props: { slug: 'dairy', muted: true } });
     expect(container.querySelector('.text-text-muted')).not.toBeNull();
   });
+
+  it('bare mode renders text without its own span wrapper', () => {
+    const { container } = render(AllergenChip, { props: { slug: 'dairy', bare: true } });
+    expect(container.querySelector('span')).toBeNull();
+  });
+
+  it('bare mode still renders the category name', () => {
+    const { getByText } = render(AllergenChip, { props: { slug: 'dairy', bare: true } });
+    expect(getByText(/Mléčné výrobky/)).toBeInTheDocument();
+  });
 });

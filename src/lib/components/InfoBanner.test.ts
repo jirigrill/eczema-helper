@@ -16,4 +16,17 @@ describe('InfoBanner', () => {
       expect(container.querySelector(`[data-variant="${variant}"]`)).not.toBeNull();
     }
   );
+
+  it('renders as a div when no href is provided', () => {
+    const { container } = render(InfoBanner, { props: { variant: 'info' } });
+    expect(container.querySelector('div[data-variant]')).not.toBeNull();
+    expect(container.querySelector('a[data-variant]')).toBeNull();
+  });
+
+  it('renders as an anchor when href is provided', () => {
+    const { container } = render(InfoBanner, { props: { variant: 'warning', href: '/program' } });
+    const anchor = container.querySelector('a[data-variant="warning"]');
+    expect(anchor).not.toBeNull();
+    expect(anchor?.getAttribute('href')).toBe('/program');
+  });
 });
