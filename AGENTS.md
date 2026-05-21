@@ -76,6 +76,9 @@ Run `just` or `just help` for the full recipe list.
 High-fidelity HTML prototypes live in `docs/design/`:
 - `docs/design/redesign-prototype.html` — all screens (static canvas + interactive prototype mode, toggle with Esc)
 - `docs/design/redesign.png` — static screenshot export
+- `docs/design/components-showcase.html` — all `lib/components/` with variant states side by side
+
+**Whenever a component in `src/lib/components/` is modified (props, variants, styles) or a new component is added, update `docs/design/components-showcase.html` to match.** Each component section in the showcase has a `<!-- sync with: src/lib/components/Foo.svelte -->` comment marking which file it mirrors.
 
 ## Code Standards
 
