@@ -9,6 +9,7 @@
   import { scheduleContext } from '$lib/stores/schedule-context';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SummaryCard from '$lib/components/SummaryCard.svelte';
+  import Button from '$lib/components/Button.svelte';
 
   const ctx = $derived($scheduleContext);
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
@@ -84,12 +85,7 @@
     <p class="body-muted">
       Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.
     </p>
-    <button
-      class="w-full py-3.5 rounded-xl bg-danger text-white font-semibold text-base"
-      onclick={resetPrototype}
-    >
-      Restartovat dotazník
-    </button>
+    <Button color="danger" onclick={resetPrototype}>Restartovat dotazník</Button>
   </div>
 </div>
 </div>

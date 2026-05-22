@@ -9,6 +9,7 @@
   import InfoBanner from '$lib/components/InfoBanner.svelte';
   import SummaryCard from '$lib/components/SummaryCard.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
+  import Button from '$lib/components/Button.svelte';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
@@ -168,12 +169,7 @@
             </div>
           {/each}
         </div>
-        <button
-          class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
-          onclick={next}
-        >
-          Začít
-        </button>
+        <Button onclick={next}>Začít</Button>
       </div>
 
     <!-- ═══ Step 2: Baby info ═══ -->
@@ -222,14 +218,7 @@
           <p class="text-xs text-text-muted mb-1 text-center">
             Závažnost ovlivní délku jednotlivých fází programu
           </p>
-          <button
-            class="w-full py-3.5 rounded-xl font-semibold text-base transition-opacity
-              {canAdvance() ? 'bg-primary text-white' : 'bg-surface-dark text-text-muted'}"
-            onclick={next}
-            disabled={!canAdvance()}
-          >
-            Pokračovat
-          </button>
+          <Button onclick={next} disabled={!canAdvance()}>Pokračovat</Button>
         </div>
       </div>
 
@@ -253,12 +242,9 @@
         <CategoryGrid bind:selected={motherAllergies} variant="primary" expandable={true} />
 
         <div class="mt-auto space-y-2">
-          <button
-            class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
-            onclick={next}
-          >
+          <Button onclick={next}>
             {motherAllergies.length > 0 ? `Pokračovat (${affectedCategoryCount(motherAllergies)} ${affectedCategoryCount(motherAllergies) === 1 ? 'alergen' : affectedCategoryCount(motherAllergies) <= 4 ? 'alergeny' : 'alergenů'})` : 'Pokračovat'}
-          </button>
+          </Button>
           {#if motherAllergies.length === 0}
             <button class="w-full py-2 body-muted" onclick={next}>
               Nemám žádnou alergii
@@ -291,12 +277,9 @@
         />
 
         <div class="mt-auto space-y-2">
-          <button
-            class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
-            onclick={next}
-          >
+          <Button onclick={next}>
             {babyAllergies.length > 0 ? `Pokračovat (${affectedCategoryCount(babyAllergies)} ${affectedCategoryCount(babyAllergies) === 1 ? 'alergen' : affectedCategoryCount(babyAllergies) <= 4 ? 'alergeny' : 'alergenů'})` : 'Pokračovat'}
-          </button>
+          </Button>
           {#if babyAllergies.length === 0}
             <button class="w-full py-2 body-muted" onclick={next}>
               Žádné potvrzené alergie
@@ -329,12 +312,7 @@
         </InfoBanner>
 
         <div class="mt-auto">
-          <button
-            class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
-            onclick={next}
-          >
-            Pokračovat
-          </button>
+          <Button onclick={next}>Pokračovat</Button>
         </div>
       </div>
 
@@ -387,12 +365,7 @@
           {#if saveError}
             <ErrorAlert message={saveError} />
           {/if}
-          <button
-            class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
-            onclick={confirm}
-          >
-            Potvrdit a spustit program
-          </button>
+          <Button onclick={confirm}>Potvrdit a spustit program</Button>
         </div>
       </div>
     {/if}
