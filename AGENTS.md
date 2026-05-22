@@ -80,6 +80,14 @@ High-fidelity HTML prototypes live in `docs/design/`:
 
 **Whenever a component in `src/lib/components/` is modified (props, variants, styles) or a new component is added, update `docs/design/components-showcase.html` to match.** Each component section in the showcase has a `<!-- sync with: src/lib/components/Foo.svelte -->` comment marking which file it mirrors.
 
+### Component Reuse & Extraction Rule
+
+Before implementing any new UI element in a route:
+
+1. **Check existing components first.** Scan `src/lib/components/` — if a component already covers the design item (or can be extended via props/variants), use it. Do not re-implement it inline.
+2. **Extract before use when reuse is plausible.** If the design item is not an obvious one-off singleton (appears on more than one screen, or represents a recurring UI pattern), create it as a named component in `src/lib/components/` first, then import it into the route.
+3. **Singleton exception.** Truly one-off layout sections tightly coupled to a single route with no design-system generality may live inline — but this is the exception, not the default.
+
 ## Code Standards
 
 ### TypeScript
