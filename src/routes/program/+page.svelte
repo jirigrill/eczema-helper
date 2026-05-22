@@ -13,6 +13,7 @@
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
+  import AllergenChipGroup from '$lib/components/AllergenChipGroup.svelte';
   import Button from '$lib/components/Button.svelte';
 
   const scheduleRepo = new DexieScheduleRepository(db);
@@ -246,13 +247,7 @@
               <div>
                 <p class="section-label">Trvalá omezení</p>
                 <p class="text-xs text-text-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
-                <div class="flex flex-wrap gap-1.5">
-                  {#each permanentEliminated as item}
-                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      <AllergenChip slug={item.slug} bare />
-                    </span>
-                  {/each}
-                </div>
+                <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
               </div>
             {/if}
 
@@ -264,28 +259,13 @@
             </div>
             <div>
               <p class="section-label text-danger">Vyřazeno</p>
-              <div class="flex flex-wrap gap-1.5">
-                {#each protocolEliminated as slug}
-                  {@const cat = getCategoryById(slug)}
-                  {#if cat}
-                    <span class="inline-flex items-center gap-1.5 bg-danger/10 text-danger rounded-full px-2.5 py-1 text-xs font-medium">
-                      <AllergenChip {slug} bare />
-                    </span>
-                  {/if}
-                {/each}
-              </div>
+              <AllergenChipGroup slugs={protocolEliminated.filter(s => getCategoryById(s))} color="danger" />
             </div>
             {#if permanentEliminated.length > 0}
               <div>
                 <p class="section-label">Trvalá omezení</p>
                 <p class="text-xs text-text-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
-                <div class="flex flex-wrap gap-1.5">
-                  {#each permanentEliminated as item}
-                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      <AllergenChip slug={item.slug} bare />
-                    </span>
-                  {/each}
-                </div>
+                <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
               </div>
             {/if}
 
@@ -323,29 +303,14 @@
             {#if protocolEliminated.length > 0}
               <div>
                 <p class="section-label">Stále vyřazeno</p>
-                <div class="flex flex-wrap gap-1.5">
-                  {#each protocolEliminated as slug}
-                    {@const cat = getCategoryById(slug)}
-                    {#if cat}
-                      <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                        <AllergenChip {slug} bare />
-                      </span>
-                    {/if}
-                  {/each}
-                </div>
+                <AllergenChipGroup slugs={protocolEliminated.filter(s => getCategoryById(s))} color="neutral" />
               </div>
             {/if}
 
             {#if permanentEliminated.length > 0}
               <div>
                 <p class="section-label">Trvalá omezení</p>
-                <div class="flex flex-wrap gap-1.5">
-                  {#each permanentEliminated as item}
-                    <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      <AllergenChip slug={item.slug} bare />
-                    </span>
-                  {/each}
-                </div>
+                <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
               </div>
             {/if}
 
