@@ -147,7 +147,7 @@
     </button>
   {/if}
 
-  <div class="flex-1 flex flex-col px-5 pt-6 pb-8 max-w-lg mx-auto w-full">
+  <div class="flex-1 flex flex-col w-full page-container pb-8">
 
     <!-- ═══ Step 1: Welcome ═══ -->
     {#if step === 1}
@@ -160,7 +160,7 @@
             Budeme sledovat, co jíte, a porovnávat to s programem — abyste věděla, proč se kůže miminka mění.
           </p>
         </div>
-        <div class="w-full bg-white rounded-xl border border-surface-dark p-4 text-left space-y-2">
+        <div class="card-base w-full text-left space-y-2">
           <p class="text-sm font-medium text-text">Co vás čeká:</p>
           {#each ['Krátký dotazník (4 otázky)', 'Osobní program vyloučení a znovuzavedení', 'Denní záznamy jídel s upozorněním na odchylky'] as item}
             <div class="flex items-start gap-2 body-muted">

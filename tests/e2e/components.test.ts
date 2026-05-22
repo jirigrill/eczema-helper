@@ -106,7 +106,7 @@ test.beforeEach(async ({ page }) => {
 
 test('InfoBanner info variant colour snapshot', async ({ page }) => {
   await advanceToOnboardingStep(page, 3);
-  const banner = page.locator('[data-variant="info"]').first();
+  const banner = page.locator('[data-state="info"]').first();
   await expect(banner).toBeVisible();
   await expect(banner).toHaveScreenshot('infobanner-info.png');
 });
@@ -117,7 +117,7 @@ test('InfoBanner info variant colour snapshot', async ({ page }) => {
 
 test('InfoBanner danger variant colour snapshot', async ({ page }) => {
   await advanceToOnboardingStep(page, 4);
-  const banner = page.locator('[data-variant="danger"]').first();
+  const banner = page.locator('[data-state="danger"]').first();
   await expect(banner).toBeVisible();
   await expect(banner).toHaveScreenshot('infobanner-danger.png');
 });
@@ -132,7 +132,7 @@ test('InfoBanner warning variant colour snapshot', async ({ page }) => {
   await seedSchedule(page, 10);
   await page.goto('/meal');
 
-  const banner = page.locator('[data-variant="warning"]').first();
+  const banner = page.locator('[data-state="warning"]').first();
   await expect(banner).toBeVisible();
   await expect(banner).toHaveScreenshot('infobanner-warning.png');
 });
@@ -147,7 +147,7 @@ test('InfoBanner success variant colour snapshot', async ({ page }) => {
   await seedSchedule(page, 22);
   await page.goto('/meal');
 
-  const banner = page.locator('[data-variant="success"]').first();
+  const banner = page.locator('[data-state="success"]').first();
   await expect(banner).toBeVisible();
   await expect(banner).toHaveScreenshot('infobanner-success.png');
 });
@@ -160,7 +160,7 @@ test('PhaseBadge colour snapshot on today page', async ({ page }) => {
   await seedSchedule(page, 10);
   await page.goto('/today');
 
-  const badge = page.locator('span[data-variant]').first();
+  const badge = page.locator('span[data-state]').first();
   await expect(badge).toBeVisible();
   await expect(badge).toHaveScreenshot('phasebadge.png');
 });

@@ -189,7 +189,7 @@
   }
 </script>
 
-<div class="page-container pb-6 space-y-4">
+<div class="page-container pb-24 space-y-4">
 
   {#if ctx.status === 'error'}
     <ErrorAlert message={ctx.message} />

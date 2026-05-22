@@ -35,7 +35,7 @@
 <div class="max-w-lg mx-auto">
   <PageHeader title="Nastavení" onBack={() => history.back()} />
 
-<div class="px-4 pt-5 pb-10 space-y-5 flex flex-col">
+<div class="px-4 pt-4 pb-10 space-y-5 flex flex-col">
 
   <div>
     <h2 class="text-lg font-semibold text-text">Nastavení prototypu</h2>

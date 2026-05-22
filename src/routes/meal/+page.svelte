@@ -111,7 +111,7 @@
   }
 </script>
 
-<div class="pb-8 max-w-lg mx-auto">
+<div class="page-container pb-8">
 
   <!-- Header -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
@@ -255,7 +255,7 @@
 
     <!-- Current meal basket -->
     {#if currentItems.length > 0}
-      <div class="bg-white rounded-xl border border-surface-dark p-3">
+      <div class="card-base">
         <p class="text-sm font-medium text-text mb-2">
           {MEAL_TYPE_ICONS[selectedMealType]} {MEAL_TYPE_LABELS[selectedMealType]} — vybrané položky
         </p>
@@ -293,7 +293,7 @@
         <p class="text-sm font-medium text-text-muted mb-2">Dnes uložená jídla</p>
         <div class="space-y-2">
           {#each todayMeals as meal (meal.id)}
-            <div class="bg-white rounded-xl border border-surface-dark p-3">
+            <div class="card-base">
               <div class="flex items-center gap-2 mb-1.5">
                 <span>{MEAL_TYPE_ICONS[meal.mealType]}</span>
                 <span class="text-sm font-medium text-text">{MEAL_TYPE_LABELS[meal.mealType]}</span>

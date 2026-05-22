@@ -112,7 +112,7 @@
       <!-- Phase hero -->
       <a
         href="/program"
-        class="block bg-white rounded-2xl border border-surface-dark p-3.5 text-left"
+        class="block bg-white rounded-2xl border border-surface-dark p-4 text-left"
       >
         <div class="flex items-center gap-2.5 mb-2">
           {#if phase}

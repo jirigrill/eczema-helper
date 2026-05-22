@@ -10,9 +10,9 @@ describe('PhaseBadge', () => {
     expect(() => render(PhaseBadge, { props: { type } })).not.toThrow();
   });
 
-  it('sets data-variant to the phase type', () => {
+  it('sets data-state to the phase type', () => {
     const { container } = render(PhaseBadge, { props: { type: 'elimination' } });
-    expect(container.querySelector('[data-variant="elimination"]')).not.toBeNull();
+    expect(container.querySelector('[data-state="elimination"]')).not.toBeNull();
   });
 
   const czechLabels: [SchedulePhaseType, string][] = [
