@@ -24,7 +24,7 @@
 <button
   {type}
   {disabled}
-  data-variant={variant}
+  data-state={variant}
   data-color={color}
   onclick={disabled ? undefined : onclick}
   class="

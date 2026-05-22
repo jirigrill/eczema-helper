@@ -146,7 +146,7 @@ describe('today/+page.svelte', () => {
     const { container } = render(TodayPage);
     await tick();
     const headings = Array.from(
-      container.querySelectorAll('.text-\\[10px\\].uppercase')
+      container.querySelectorAll('.section-label')
     ).map((el) => el.textContent?.trim());
     const stavIdx = headings.findIndex((t) => t === 'Stav ekzému');
     const fotoIdx = headings.findIndex((t) => t === 'Foto kůže');
