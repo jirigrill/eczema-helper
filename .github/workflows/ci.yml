@@ -59,14 +59,8 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Need full history so we can push back to the PR branch
-          ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: oven-sh/setup-bun@v2
 
@@ -86,18 +80,15 @@ jobs:
       - name: Sync SvelteKit types
         run: bunx svelte-kit sync
 
-      - name: Run E2E tests (generate missing snapshots, then compare)
-        run: |
-          # First pass: generate any missing snapshot baselines
-          bunx playwright test --update-snapshots || true
-          # Second pass: full comparison run (fails on real regressions)
-          bunx playwright test
+      - name: Run E2E tests
+        run: bunx playwright test
 
-      - name: Commit new snapshot baselines
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "tests/e2e/"
-          git diff --staged --quiet && exit 0
-          git commit -m "test: add missing playwright snapshot baselines [skip ci]"
-          git push
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

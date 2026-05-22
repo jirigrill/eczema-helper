@@ -119,6 +119,12 @@ test-unit:
 test-e2e:
     bunx playwright test
 
+# Regenerate Playwright snapshot baselines locally (review the diff before committing!)
+# NOTE: baselines are platform-specific. CI runs on Linux/Chromium — if you're not on
+# Linux, prefer triggering the "Update Playwright Snapshots" workflow_dispatch instead.
+test-e2e-update:
+    bunx playwright test --update-snapshots
+
 # Format code
 fmt:
     bunx prettier --write "src/**/*.{ts,svelte}"
