@@ -12,8 +12,8 @@
   } = $props();
 </script>
 
-<div class="bg-white rounded-xl border border-surface-dark p-4">
-  <div class="flex items-center justify-between mb-1">
+<div class="card-base">
+  <div class="flex items-center justify-between">
     <p class="section-label mb-0">{label}</p>
     {#if onEdit}
       <button class="text-xs text-primary" onclick={onEdit}>Upravit</button>
