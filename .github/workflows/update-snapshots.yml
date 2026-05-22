@@ -40,5 +40,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "tests/e2e/"
           git diff --staged --quiet && echo "No snapshot changes, exiting." && exit 0
+          echo "### Changed snapshots — review before merging:" >> "$GITHUB_STEP_SUMMARY"
+          git diff --staged --name-only | while read f; do echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"; done
           git commit -m "test: update playwright snapshots"
           git push origin HEAD:${{ github.ref_name }}
