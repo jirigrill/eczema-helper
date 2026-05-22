@@ -37,7 +37,7 @@
   }
 </script>
 
-<div class="bg-white rounded-2xl border border-surface-dark p-4 space-y-4">
+<div class="card-base space-y-4">
   <div class="flex items-center justify-between">
     <p class="text-sm font-semibold text-text">Stav kůže miminka</p>
     {#if saved}

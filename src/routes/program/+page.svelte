@@ -187,7 +187,7 @@
   }
 </script>
 
-<div class="px-4 pt-4 pb-6 space-y-4 max-w-lg mx-auto">
+<div class="page-container pb-6 space-y-4">
 
   {#if ctx.status === 'error'}
     <ErrorAlert message={ctx.message} />
@@ -196,7 +196,7 @@
   {:else}
 
     <!-- ═══ Hero card: progress + current phase + CTA ═══ -->
-    <div class="bg-white rounded-2xl border border-surface-dark p-4 space-y-3">
+    <div class="card-base space-y-3">
       <div class="flex items-center gap-4">
         <!-- Progress ring -->
         <div class="shrink-0 relative w-16 h-16">
@@ -238,12 +238,12 @@
           {#if currentPhase.type === 'reset'}
 
             <div>
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
+              <p class="section-label mb-1">Co dělat</p>
               <p class="text-xs text-text-muted">Jezte normálně — zaznamenáváme <strong>výchozí stav kůže</strong> miminka. Denně zaznamenejte stav kůže v přehledu dne.</p>
             </div>
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Trvalá omezení</p>
+                <p class="section-label">Trvalá omezení</p>
                 <p class="text-xs text-text-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
@@ -258,11 +258,11 @@
           {:else if currentPhase.type === 'elimination'}
 
             <div>
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
+              <p class="section-label mb-1">Co dělat</p>
               <p class="text-xs text-text-muted">Vylučte všechny níže uvedené alergeny — <strong>i ve skryté podobě</strong> (etikety, omáčky, pečivo). Čekáme na ustálení kůže miminka.</p>
             </div>
             <div>
-              <p class="text-xs font-semibold text-danger uppercase tracking-wide mb-1.5">Vyřazeno</p>
+              <p class="section-label text-danger">Vyřazeno</p>
               <div class="flex flex-wrap gap-1.5">
                 {#each protocolEliminated as slug}
                   {@const cat = getCategoryById(slug)}
@@ -276,7 +276,7 @@
             </div>
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Trvalá omezení</p>
+                <p class="section-label">Trvalá omezení</p>
                 <p class="text-xs text-text-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
@@ -292,7 +292,7 @@
             {@const testCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
+              <p class="section-label mb-1">Co dělat</p>
               <p class="text-xs text-text-muted">
                 Zařaďte <strong>{testCat?.nameCs?.toLowerCase() ?? ''}</strong> do jídelníčku.
                 {#if reintroInfo?.isEvaluationDay}
@@ -305,7 +305,7 @@
 
             {#if testCat}
               <div>
-                <p class="text-xs font-semibold text-success uppercase tracking-wide mb-1.5">Testujete</p>
+                <p class="section-label text-success">Testujete</p>
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span class="inline-flex items-center gap-1.5 bg-success/10 text-success rounded-full px-2.5 py-1 text-xs font-medium">
                     <AllergenChip slug={currentPhase.categoryIds[0]} bare />
@@ -321,7 +321,7 @@
 
             {#if protocolEliminated.length > 0}
               <div>
-                <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Stále vyřazeno</p>
+                <p class="section-label">Stále vyřazeno</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each protocolEliminated as slug}
                     {@const cat = getCategoryById(slug)}
@@ -337,7 +337,7 @@
 
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Trvalá omezení</p>
+                <p class="section-label">Trvalá omezení</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item}
                     <span class="inline-flex items-center gap-1.5 bg-surface border border-surface-dark text-text-muted rounded-full px-2.5 py-1 text-xs font-medium">
@@ -351,7 +351,7 @@
           {:else if currentPhase.type === 'rest'}
 
             <div>
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
+              <p class="section-label mb-1">Co dělat</p>
               <p class="text-xs text-text-muted">
                 Klidový režim — kůže se zotavuje. Jezte <strong>pouze potraviny, které miminko toleruje</strong>.
                 Žádné nové alergeny nezařazujte.
@@ -362,7 +362,7 @@
             {@const trainingCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
-              <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Co dělat</p>
+              <p class="section-label mb-1">Co dělat</p>
               <p class="text-xs text-text-muted">
                 Tréninková fáze — občas zařaďte malou dávku <strong>{trainingCat?.nameCs?.toLowerCase() ?? ''}</strong> (max 2× týdně, max 1 lžička). Budujete toleranci.
               </p>
@@ -378,7 +378,7 @@
 
         <div class="space-y-3 border-t border-surface-dark pt-3 text-xs">
           <div>
-            <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Odchylky v jídelníčku</p>
+            <p class="section-label mb-1">Odchylky v jídelníčku</p>
             {#if heroConflicts.count === 0}
               <p class="text-text-muted">Žádné odchylky — vše v souladu s programem.</p>
             {:else}
@@ -395,7 +395,7 @@
           </div>
 
           <div>
-            <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Reakce kůže</p>
+            <p class="section-label mb-1">Reakce kůže</p>
             {#if heroAssessments.length === 0}
               <p class="text-text-muted">Žádné záznamy stavu kůže.</p>
             {:else}
@@ -416,7 +416,7 @@
             {@const heroRows = getAllergenStatusRows(currentPhase)}
             {#if heroRows.length > 1}
               <div>
-                <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Stav alergenů</p>
+                <p class="section-label mb-1">Stav alergenů</p>
                 <div class="space-y-0.5 text-text-muted">
                   {#each heroRows as row}
                     {@const rowCat = getCategoryById(row.slug)}
@@ -434,7 +434,7 @@
           {/if}
 
           <div>
-            <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Celkové hodnocení</p>
+            <p class="section-label mb-1">Celkové hodnocení</p>
             {#if heroEval}
               <p class="font-medium {evalColor(heroEval)}">{evalLabel(heroEval)}{#if heroEval.notes} <span class="font-normal text-text-muted">— {heroEval.notes}</span>{/if}</p>
             {:else}
@@ -489,7 +489,7 @@
 
                 <!-- Dietary deviations -->
                 <div>
-                  <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Odchylky v jídelníčku</p>
+                  <p class="section-label mb-1">Odchylky v jídelníčku</p>
                   {#if conflicts.count === 0}
                     <p class="text-text-muted">Žádné odchylky — vše v souladu s programem.</p>
                   {:else}
@@ -507,7 +507,7 @@
 
                 <!-- Skin reactions -->
                 <div>
-                  <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Reakce kůže</p>
+                  <p class="section-label mb-1">Reakce kůže</p>
                   {#if phaseAssessments.length === 0}
                     <p class="text-text-muted">Žádné záznamy stavu kůže.</p>
                   {:else}
@@ -533,7 +533,7 @@
                   {@const rows = getAllergenStatusRows(phase)}
                   {#if rows.length > 1}
                     <div>
-                      <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Stav alergenů</p>
+                      <p class="section-label mb-1">Stav alergenů</p>
                       <div class="space-y-0.5 text-text-muted">
                         {#each rows as row}
                           {@const rowCat = getCategoryById(row.slug)}
@@ -552,7 +552,7 @@
 
                 <!-- Overall evaluation -->
                 <div>
-                  <p class="font-semibold text-text-muted uppercase tracking-wide mb-1">Celkové hodnocení</p>
+                  <p class="section-label mb-1">Celkové hodnocení</p>
                   {#if phaseEval}
                     <p class="font-medium {evalColor(phaseEval)}">{evalLabel(phaseEval)}{#if phaseEval.notes} <span class="font-normal text-text-muted">— {phaseEval.notes}</span>{/if}</p>
                   {:else}
@@ -599,7 +599,7 @@
         <div class="text-center">
           <p class="text-2xl mb-1">🎉</p>
           <p class="text-base font-bold text-text">Program dokončen!</p>
-          <p class="text-sm text-text-muted mt-1">
+          <p class="body-muted mt-1">
             {schedule.phases.length} fází · celkem {Math.round(
               (new Date(schedule.estimatedEndDate + 'T00:00:00').getTime() -
                new Date(schedule.startDate + 'T00:00:00').getTime()) / 86400000

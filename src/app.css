@@ -31,6 +31,46 @@
   --color-sync-offline: #7A6468;
 }
 
+@layer components {
+  /* ── Layout atoms ─────────────────────────────────────────────────── */
+
+  .card-base {
+    @apply bg-white rounded-2xl border border-surface-dark p-4;
+  }
+
+  .page-container {
+    @apply max-w-lg mx-auto px-4 pt-4;
+    /* Callers add bottom padding: pb-24 (nav-bar pages) or pb-8 (floating-button pages) */
+  }
+
+  /* ── Typography atoms ─────────────────────────────────────────────── */
+
+  .section-label {
+    @apply text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5;
+  }
+
+  .body {
+    @apply text-sm text-text;
+  }
+
+  .body-muted {
+    @apply text-sm text-text-muted;
+  }
+
+  /* ── Semantic color variants via data-state ───────────────────────── */
+  /*
+   * Components set data-state={variant} on their root element.
+   * This block is the single authoritative source for variant colors —
+   * no per-component color classes needed.
+   */
+
+  [data-state="danger"]  { @apply bg-danger/10  border-danger/20  text-danger; }
+  [data-state="success"] { @apply bg-success/10 border-success/30 text-success; }
+  [data-state="warning"] { @apply bg-warning/10 border-warning/30 text-warning; }
+  [data-state="primary"] { @apply bg-primary/12 border-primary/40 text-primary; }
+  [data-state="neutral"] { @apply bg-surface    border-surface-dark text-text-muted; }
+}
+
 input, select, textarea {
   font-size: 16px; /* prevent iOS zoom on focus */
 }

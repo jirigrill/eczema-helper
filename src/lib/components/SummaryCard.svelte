@@ -14,7 +14,7 @@
 
 <div class="bg-white rounded-xl border border-surface-dark p-4">
   <div class="flex items-center justify-between mb-1">
-    <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">{label}</p>
+    <p class="section-label mb-0">{label}</p>
     {#if onEdit}
       <button class="text-xs text-primary" onclick={onEdit}>Upravit</button>
     {/if}
