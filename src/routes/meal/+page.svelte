@@ -129,7 +129,7 @@
           <p class="text-xs font-medium text-success">
             🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}: {reintroInfo.label}
           </p>
-          <p class="text-xs text-text-muted mt-0.5">{reintroInfo.guidance} ({cat?.nameCs})</p>
+          <p class="body-muted mt-0.5">{reintroInfo.guidance} ({cat?.nameCs})</p>
         </InfoBanner>
       </div>
     {/if}
@@ -214,7 +214,7 @@
     {#if hasConflicts}
       <InfoBanner variant="warning">
         <p class="text-sm font-medium text-warning mb-1">⚠ Odchylka od programu</p>
-        <p class="text-xs text-text-muted">
+        <p class="body-muted">
           {conflicts.map(i => `${i.name} (${getCategoryById(i.categoryId ?? '')?.nameCs})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
           Jídlo bude uloženo a odchylka zaznamenána.
         </p>
@@ -297,7 +297,7 @@
               <div class="flex items-center gap-2 mb-1.5">
                 <span>{MEAL_TYPE_ICONS[meal.mealType]}</span>
                 <span class="text-sm font-medium text-text">{MEAL_TYPE_LABELS[meal.mealType]}</span>
-                <span class="text-xs text-text-muted">{meal.savedAt}</span>
+                <span class="body-muted">{meal.savedAt}</span>
               </div>
               <div class="flex flex-wrap gap-1">
                 {#each meal.items as item}
