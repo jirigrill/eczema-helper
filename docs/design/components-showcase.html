@@ -75,6 +75,7 @@
 <!-- Table of contents -->
 <nav class="toc">
   <div class="toc-title">Components</div>
+  <a href="#button">Button</a>
   <a href="#allergen-chip">AllergenChip</a>
   <a href="#category-grid">CategoryGrid</a>
   <a href="#eczema-check">EczemaCheck</a>
@@ -94,6 +95,69 @@
   <p class="canvas-eyebrow">docs/design / components-showcase</p>
   <h1 class="canvas-heading">Components</h1>
   <p class="canvas-sub">All reusable components from <code>src/lib/components/</code> with their props and variant states.</p>
+
+  <!-- ─── Button ──────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/Button.svelte -->
+  <div class="component-section" id="button">
+    <h2 class="component-heading">Button</h2>
+    <p class="component-desc">
+      Two variants: <code>primary</code> (full-width CTA) and <code>ghost-sm</code> (inline dismiss). Three colors for primary: <code>primary</code>, <code>warning</code>, <code>danger</code>.
+    </p>
+
+    <div class="variant-grid">
+
+      <!-- primary / primary (default) -->
+      <div class="variant-tile" style="max-width:320px">
+        <button class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base">
+          Začít
+        </button>
+        <p class="variant-name">variant=primary, color=primary</p>
+      </div>
+
+      <!-- primary / warning -->
+      <div class="variant-tile" style="max-width:320px">
+        <button class="w-full py-3.5 rounded-xl bg-warning text-white font-semibold text-base">
+          ⚠ Uložit s odchylkou
+        </button>
+        <p class="variant-name">variant=primary, color=warning</p>
+      </div>
+
+      <!-- primary / danger -->
+      <div class="variant-tile" style="max-width:320px">
+        <button class="w-full py-3.5 rounded-xl bg-danger text-white font-semibold text-base">
+          Restartovat dotazník
+        </button>
+        <p class="variant-name">variant=primary, color=danger</p>
+      </div>
+
+      <!-- primary / disabled -->
+      <div class="variant-tile" style="max-width:320px">
+        <button class="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base opacity-40 cursor-not-allowed" disabled>
+          Pokračovat
+        </button>
+        <p class="variant-name">variant=primary, disabled</p>
+      </div>
+
+      <!-- ghost-sm -->
+      <div class="variant-tile">
+        <button class="text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium hover:text-text hover:border-text-muted transition-colors">
+          Hotovo
+        </button>
+        <p class="variant-name">variant=ghost-sm</p>
+      </div>
+
+      <!-- ghost-sm with count -->
+      <div class="variant-tile">
+        <button class="text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium hover:text-text hover:border-text-muted transition-colors">
+          Hotovo (3)
+        </button>
+        <p class="variant-name">variant=ghost-sm, with count</p>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
 
   <!-- ─── AllergenChip ─────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/AllergenChip.svelte -->

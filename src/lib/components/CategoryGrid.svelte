@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CATEGORIES } from '$lib/data/categories';
+  import Button from '$lib/components/Button.svelte';
 
   let {
     selected = $bindable<string[]>([]),
@@ -123,8 +124,6 @@
     return disabledSlugs.includes(categoryId);
   }
 
-  // Shared dismiss button style (used for both Zavřít actions)
-  const dismissCls = 'text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium hover:text-text hover:border-text-muted transition-colors';
 </script>
 
 <div class="space-y-2">
@@ -174,13 +173,9 @@
       <div class="rounded-xl border border-primary/30 bg-white p-3 space-y-2">
         <div class="flex items-center justify-between">
           <p class="text-sm font-medium text-text">{cat.icon} {cat.nameCs}</p>
-          <button
-            type="button"
-            class={dismissCls}
-            onclick={() => (expandedCategory = null)}
-          >
+          <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>
             {selectedSubItemCount(cat.categoryId) > 0 ? `Hotovo (${selectedSubItemCount(cat.categoryId)})` : 'Hotovo'}
-          </button>
+          </Button>
         </div>
         <!-- "Vše" chip -->
         <div class="flex flex-wrap gap-2">

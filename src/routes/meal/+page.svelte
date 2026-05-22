@@ -11,6 +11,7 @@
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
+  import Button from '$lib/components/Button.svelte';
 
   let meals = $state<Meal[]>([]);
 
@@ -343,10 +344,7 @@
     >
       <div class="flex items-center justify-between">
         <p class="text-sm font-medium text-text">{cat.icon} {cat.nameCs}</p>
-        <button
-          class="text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium"
-          onclick={() => (expandedCategory = null)}
-        >Hotovo</button>
+        <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>Hotovo</Button>
       </div>
       <div class="flex flex-wrap gap-2 pb-1">
         {#each cat.subItems as sub}
@@ -372,14 +370,10 @@
     style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 0.75rem)"
   >
     <div class="max-w-lg mx-auto">
-      <button
-        class="w-full py-3.5 rounded-xl text-white font-semibold text-base
-          {hasConflicts ? 'bg-warning' : 'bg-primary'}"
-        onclick={saveMeal}
-      >
+      <Button color={hasConflicts ? 'warning' : 'primary'} onclick={saveMeal}>
         {hasConflicts ? '⚠ Uložit s odchylkou' : 'Uložit'} — {MEAL_TYPE_LABELS[selectedMealType]}
         ({currentItems.length} {currentItems.length === 1 ? 'položka' : currentItems.length <= 4 ? 'položky' : 'položek'})
-      </button>
+      </Button>
     </div>
   </div>
 {/if}

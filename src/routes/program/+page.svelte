@@ -13,6 +13,7 @@
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
+  import Button from '$lib/components/Button.svelte';
 
   const scheduleRepo = new DexieScheduleRepository(db);
 
@@ -651,12 +652,7 @@
 
     <!-- Edit notice -->
     <div class="text-center pt-2">
-      <button
-        class="text-xs text-text-muted border border-surface-dark rounded-xl px-4 py-2 opacity-50"
-        onclick={handleEditSchedule}
-      >
-        Upravit program
-      </button>
+      <Button variant="ghost-sm" onclick={handleEditSchedule}>Upravit program</Button>
     </div>
   {/if}
 </div>
