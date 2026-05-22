@@ -77,6 +77,7 @@
   <div class="toc-title">Components</div>
   <a href="#button">Button</a>
   <a href="#allergen-chip">AllergenChip</a>
+  <a href="#allergen-chip-group">AllergenChipGroup</a>
   <a href="#category-grid">CategoryGrid</a>
   <a href="#eczema-check">EczemaCheck</a>
   <a href="#empty-state-card">EmptyStateCard</a>
@@ -152,6 +153,46 @@
           Hotovo (3)
         </button>
         <p class="variant-name">variant=ghost-sm, with count</p>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── AllergenChipGroup ───────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/AllergenChipGroup.svelte -->
+  <div class="component-section" id="allergen-chip-group">
+    <h2 class="component-heading">AllergenChipGroup</h2>
+    <p class="component-desc">
+      Renders a row of allergen chips from a <code>slugs</code> array. Appearance driven by <code>data-state</code> on each chip. Empty <code>slugs</code> renders nothing.
+    </p>
+
+    <div class="variant-grid">
+
+      <!-- neutral -->
+      <div class="variant-tile">
+        <div class="flex flex-wrap gap-1.5">
+          <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🥛 Mléčné výrobky</span>
+          <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🥚 Vejce</span>
+          <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🌾 Lepek</span>
+        </div>
+        <p class="variant-name">color=neutral (3 slugs)</p>
+      </div>
+
+      <!-- danger -->
+      <div class="variant-tile">
+        <div class="flex flex-wrap gap-1.5">
+          <span data-state="danger" class="inline-flex items-center gap-1.5 bg-red-50 border border-red-100 text-red-600 rounded-full px-2.5 py-1 text-xs font-medium">🥛 Mléčné výrobky</span>
+          <span data-state="danger" class="inline-flex items-center gap-1.5 bg-red-50 border border-red-100 text-red-600 rounded-full px-2.5 py-1 text-xs font-medium">🥚 Vejce</span>
+        </div>
+        <p class="variant-name">color=danger (2 slugs)</p>
+      </div>
+
+      <!-- empty -->
+      <div class="variant-tile">
+        <p class="text-xs text-[#7A6770] italic">(renders nothing)</p>
+        <p class="variant-name">empty slugs</p>
       </div>
 
     </div>
