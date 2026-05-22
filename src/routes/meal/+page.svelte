@@ -116,7 +116,7 @@
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
     <PageHeader title="Přidat jídlo" onBack={() => history.back()}>
       {#snippet right()}
-        <p class="text-sm text-text-muted">{formatDateLongCs(today)}</p>
+        <p class="body-muted">{formatDateLongCs(today)}</p>
       {/snippet}
     </PageHeader>
 
@@ -265,7 +265,7 @@
               <span class="text-base shrink-0">
                 {getCategoryById(item.categoryId ?? '')?.icon ?? '🍽️'}
               </span>
-              <span class="text-sm text-text flex-1 min-w-0 truncate">{item.name}</span>
+              <span class="body flex-1 min-w-0 truncate">{item.name}</span>
               {#if isConflictItem(item)}
                 <span class="text-xs text-warning shrink-0">⚠</span>
               {/if}

@@ -139,7 +139,7 @@
   <!-- Back button -->
   {#if step > 1}
     <button
-      class="self-start m-4 mb-0 text-sm text-text-muted flex items-center gap-1 hover:text-text"
+      class="self-start m-4 mb-0 body-muted flex items-center gap-1 hover:text-text"
       onclick={back}
     >
       ← Zpět
@@ -162,7 +162,7 @@
         <div class="w-full bg-white rounded-xl border border-surface-dark p-4 text-left space-y-2">
           <p class="text-sm font-medium text-text">Co vás čeká:</p>
           {#each ['Krátký dotazník (4 otázky)', 'Osobní program vyloučení a znovuzavedení', 'Denní záznamy jídel s upozorněním na odchylky'] as item}
-            <div class="flex items-start gap-2 text-sm text-text-muted">
+            <div class="flex items-start gap-2 body-muted">
               <span class="text-success mt-0.5">✓</span>
               <span>{item}</span>
             </div>
@@ -181,7 +181,7 @@
       <div class="flex-1 flex flex-col justify-center gap-6">
         <div>
           <h2 class="text-xl font-bold text-text mb-1">Miminko</h2>
-          <p class="text-sm text-text-muted">Datum narození a závažnost ekzému</p>
+          <p class="body-muted">Datum narození a závažnost ekzému</p>
         </div>
 
         <FormInput
@@ -205,7 +205,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="font-semibold text-text">{opt.label}</p>
-                    <p class="text-sm text-text-muted mt-0.5">{opt.desc}</p>
+                    <p class="body-muted mt-0.5">{opt.desc}</p>
                   </div>
                   {#if severity === opt.value}
                     <span class="text-primary text-xl">●</span>
@@ -238,13 +238,13 @@
       <div class="flex-1 flex flex-col gap-5">
         <div>
           <h2 class="text-xl font-bold text-text mb-1">Moje alergie</h2>
-          <p class="text-sm text-text-muted">
+          <p class="body-muted">
             Jsem alergická / mám intoleranci na:
           </p>
         </div>
 
         <InfoBanner variant="info">
-          <p class="text-sm text-text">
+          <p class="body">
             Tyto potraviny budou <strong>trvale vyřazeny</strong> — neplánujeme je znovuzavodit, protože je samy nejíte.
             Přesto je budeme sledovat, abyste věděly o náhodném kontaktu.
           </p>
@@ -260,7 +260,7 @@
             {motherAllergies.length > 0 ? `Pokračovat (${affectedCategoryCount(motherAllergies)} ${affectedCategoryCount(motherAllergies) === 1 ? 'alergen' : affectedCategoryCount(motherAllergies) <= 4 ? 'alergeny' : 'alergenů'})` : 'Pokračovat'}
           </button>
           {#if motherAllergies.length === 0}
-            <button class="w-full py-2 text-sm text-text-muted" onclick={next}>
+            <button class="w-full py-2 body-muted" onclick={next}>
               Nemám žádnou alergii
             </button>
           {/if}
@@ -272,13 +272,13 @@
       <div class="flex-1 flex flex-col gap-5">
         <div>
           <h2 class="text-xl font-bold text-text mb-1">Potvrzené alergie miminka</h2>
-          <p class="text-sm text-text-muted">
+          <p class="body-muted">
             Má miminko potvrzenou alergii od lékaře?
           </p>
         </div>
 
         <InfoBanner variant="danger">
-          <p class="text-sm text-text">
+          <p class="body">
             Potvrzené alergeny budou po dobu diety <strong>vyřazeny</strong>.
             Jejich otestování a případné znovu zařazení by mělo proběhnout <strong>velmi opatrně</strong> či <strong>s lékařem</strong>.
           </p>
@@ -298,7 +298,7 @@
             {babyAllergies.length > 0 ? `Pokračovat (${affectedCategoryCount(babyAllergies)} ${affectedCategoryCount(babyAllergies) === 1 ? 'alergen' : affectedCategoryCount(babyAllergies) <= 4 ? 'alergeny' : 'alergenů'})` : 'Pokračovat'}
           </button>
           {#if babyAllergies.length === 0}
-            <button class="w-full py-2 text-sm text-text-muted" onclick={next}>
+            <button class="w-full py-2 body-muted" onclick={next}>
               Žádné potvrzené alergie
             </button>
           {/if}
@@ -310,7 +310,7 @@
       <div class="flex-1 flex flex-col justify-center gap-6">
         <div>
           <h2 class="text-xl font-bold text-text mb-1">Začátek programu</h2>
-          <p class="text-sm text-text-muted">Kdy chcete začít s eliminační dietou?</p>
+          <p class="body-muted">Kdy chcete začít s eliminační dietou?</p>
         </div>
 
         <FormInput
@@ -322,7 +322,7 @@
         />
 
         <InfoBanner variant="info">
-          <p class="text-sm text-text leading-relaxed">
+          <p class="body leading-relaxed">
             Program začne <strong>resetovací fází</strong> ({5} dní) — jezte normálně,
             zaznamenáváme výchozí stav kůže miminka. Poté přejdeme k eliminaci.
           </p>
@@ -343,33 +343,33 @@
       <div class="flex-1 flex flex-col gap-5">
         <div>
           <h2 class="text-xl font-bold text-text mb-1">Shrnutí</h2>
-          <p class="text-sm text-text-muted">Zkontrolujte odpovědi před spuštěním programu</p>
+          <p class="body-muted">Zkontrolujte odpovědi před spuštěním programu</p>
         </div>
 
         <!-- Summary cards -->
         <div class="space-y-3">
           <SummaryCard label="Miminko" onEdit={() => editStep(2)}>
-            <p class="text-sm text-text">Věk: <strong>{formatBabyAge()}</strong></p>
-            <p class="text-sm text-text mt-0.5">
+            <p class="body">Věk: <strong>{formatBabyAge()}</strong></p>
+            <p class="body mt-0.5">
               Závažnost: <strong>{severityOptions.find(s => s.value === severity)?.label}</strong>
             </p>
           </SummaryCard>
 
           <SummaryCard label="Moje alergie" onEdit={() => editStep(3)}>
-            <p class="text-sm text-text">{slugsToNames(motherAllergies)}</p>
+            <p class="body">{slugsToNames(motherAllergies)}</p>
           </SummaryCard>
 
           <SummaryCard label="Potvrzené alergie miminka" onEdit={() => editStep(4)}>
-            <p class="text-sm text-text">{slugsToNames(babyAllergies)}</p>
+            <p class="body">{slugsToNames(babyAllergies)}</p>
           </SummaryCard>
 
           <InfoBanner variant="info">
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs font-semibold text-primary uppercase tracking-wide">Program</p>
+              <p class="section-label text-primary mb-0">Program</p>
               <button class="text-xs text-primary" onclick={() => editStep(5)}>Upravit</button>
             </div>
-            <p class="text-sm text-text mb-2">Začátek: <strong>{formatDateLongCs(programStartDate)}</strong></p>
-            <div class="space-y-1 text-sm text-text">
+            <p class="body mb-2">Začátek: <strong>{formatDateLongCs(programStartDate)}</strong></p>
+            <div class="body space-y-1">
               <p>✦ <strong>5 dní</strong> resetovací fáze</p>
               <p>✦ <strong>{elimDays} dní</strong> eliminační fáze</p>
               {#if reintroQueue.length > 0}

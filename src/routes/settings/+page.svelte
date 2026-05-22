@@ -38,50 +38,50 @@
 
   <div>
     <h2 class="text-lg font-semibold text-text">Nastavení prototypu</h2>
-    <p class="text-sm text-text-muted">Souhrn aktuální konfigurace a možnost restartu</p>
+    <p class="body-muted">Souhrn aktuální konfigurace a možnost restartu</p>
   </div>
 
   {#if answers}
     <!-- Current answers summary -->
     <div class="space-y-3">
-      <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Aktuální konfigurace</p>
+      <p class="section-label mb-0">Aktuální konfigurace</p>
 
       <SummaryCard label="Miminko">
-        <p class="text-sm text-text">
+        <p class="body">
           Narozeno: <strong>{formatDateLongCs(answers.babyBirthDate)}</strong>
         </p>
-        <p class="text-sm text-text mt-0.5">
+        <p class="body mt-0.5">
           Závažnost ekzému: <strong>{severityLabel[answers.eczemaSeverity]}</strong>
         </p>
       </SummaryCard>
 
       <SummaryCard label="Moje alergie">
-        <p class="text-sm text-text">{slugsToNames(answers.motherAllergies)}</p>
+        <p class="body">{slugsToNames(answers.motherAllergies)}</p>
       </SummaryCard>
 
       <SummaryCard label="Potvrzené alergie miminka">
-        <p class="text-sm text-text">{slugsToNames(answers.babyConfirmedAllergies)}</p>
+        <p class="body">{slugsToNames(answers.babyConfirmedAllergies)}</p>
       </SummaryCard>
 
       {#if schedule}
         <SummaryCard label="Program">
-          <p class="text-sm text-text">
+          <p class="body">
             Celkem {schedule.phases.length} fází ·
             do {formatDateLongCs(schedule.estimatedEndDate)}
           </p>
-          <p class="text-sm text-text mt-0.5">
+          <p class="body mt-0.5">
             Zapsáno jídel: <strong>0</strong>
           </p>
         </SummaryCard>
       {/if}
     </div>
   {:else}
-    <p class="text-sm text-text-muted">Dotazník ještě nebyl vyplněn.</p>
+    <p class="body-muted">Dotazník ještě nebyl vyplněn.</p>
   {/if}
 
   <!-- Reset -->
   <div class="pt-4 border-t border-surface-dark space-y-3">
-    <p class="text-sm text-text-muted">
+    <p class="body-muted">
       Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.
     </p>
     <button

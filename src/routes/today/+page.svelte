@@ -166,12 +166,12 @@
 
       <!-- Stav ekzému — stub (slice 3) -->
       <EmptyStateCard label="Stav ekzému" status="neuložen">
-        <div class="text-sm text-text-muted">Zatím není záznam pro dnešek.</div>
+        <div class="body-muted">Zatím není záznam pro dnešek.</div>
       </EmptyStateCard>
 
       <!-- Foto kůže — stub (slice 3) -->
       <EmptyStateCard label="Foto kůže" status="chybí">
-        <div class="text-sm text-text-muted">Žádný snímek pro dnešek.</div>
+        <div class="body-muted">Žádný snímek pro dnešek.</div>
       </EmptyStateCard>
 
       <!-- Smím / Vyhýbej se -->
@@ -216,7 +216,7 @@
 
       <!-- Dnešní jídla — stub (slice 2) -->
       <EmptyStateCard label="Dnešní jídla" status="0 záznamů">
-        <div class="text-sm text-text-muted">Zatím žádný záznam.</div>
+        <div class="body-muted">Zatím žádný záznam.</div>
       </EmptyStateCard>
 
       <!-- Bottom hint -->
