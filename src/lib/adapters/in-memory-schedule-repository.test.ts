@@ -4,7 +4,7 @@ import type { GeneratedSchedule } from '$lib/domain/models';
 
 const sampleSchedule: GeneratedSchedule = {
   phases: [],
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: '2025-06-01',
   estimatedEndDate: '2025-09-01',
 };

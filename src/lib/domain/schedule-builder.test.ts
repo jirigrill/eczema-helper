@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateSchedule, insertRestDays, addTrainingPhase } from './schedule-builder';
+import { getPermanentEliminations } from '$lib/domain/models';
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase } from '$lib/domain/models';
 
 function minimalAnswers(overrides: Partial<QuestionnaireAnswers> = {}): QuestionnaireAnswers {
@@ -55,11 +56,26 @@ describe('generateSchedule', () => {
     expect(reintroIds).toContain('eggs');
   });
 
-  it('does not include training or rest phases', () => {
+  it('does not include tolerance-building or rest phases', () => {
     const schedule = generateSchedule(minimalAnswers());
     const types = schedule.phases.map(p => p.type);
-    expect(types).not.toContain('training');
+    expect(types).not.toContain('tolerance-building');
     expect(types).not.toContain('rest');
+  });
+
+  it('populates permanentMother from answers.motherAllergies', () => {
+    const schedule = generateSchedule(minimalAnswers({ motherAllergies: ['dairy', 'eggs'] }));
+    expect(schedule.permanentMother).toEqual(['dairy', 'eggs']);
+  });
+
+  it('populates permanentBaby from answers.babyConfirmedAllergies', () => {
+    const schedule = generateSchedule(minimalAnswers({ babyConfirmedAllergies: ['nuts'] }));
+    expect(schedule.permanentBaby).toEqual(['nuts']);
+  });
+
+  it('does not have a permanentEliminations field', () => {
+    const schedule = generateSchedule(minimalAnswers());
+    expect(schedule).not.toHaveProperty('permanentEliminations');
   });
 
   it('defaults programStartDate to today when absent', () => {
@@ -70,9 +86,33 @@ describe('generateSchedule', () => {
   });
 });
 
+describe('getPermanentEliminations', () => {
+  it('returns concatenation of permanentMother and permanentBaby', () => {
+    const schedule = generateSchedule(minimalAnswers({
+      motherAllergies: ['dairy'],
+      babyConfirmedAllergies: ['nuts'],
+    }));
+    expect(getPermanentEliminations(schedule)).toEqual(['dairy', 'nuts']);
+  });
+
+  it('returns empty array when both fields are empty', () => {
+    const schedule = generateSchedule(minimalAnswers());
+    expect(getPermanentEliminations(schedule)).toEqual([]);
+  });
+
+  it('deduplicates allergens that appear in both mother and baby lists', () => {
+    const schedule = generateSchedule(minimalAnswers({
+      motherAllergies: ['dairy'],
+      babyConfirmedAllergies: ['dairy'],
+    }));
+    expect(getPermanentEliminations(schedule)).toEqual(['dairy']);
+  });
+});
+
 describe('insertRestDays', () => {
   const baseSchedule: GeneratedSchedule = {
-    permanentEliminations: [],
+    permanentMother: [],
+    permanentBaby: [],
     startDate: '2026-05-01',
     estimatedEndDate: '2026-05-30',
     phases: [
@@ -106,7 +146,8 @@ describe('insertRestDays', () => {
 
 describe('addTrainingPhase', () => {
   const scheduleWithRest: GeneratedSchedule = {
-    permanentEliminations: [],
+    permanentMother: [],
+    permanentBaby: [],
     startDate: '2026-05-01',
     estimatedEndDate: '2026-05-26',
     phases: [
@@ -115,17 +156,17 @@ describe('addTrainingPhase', () => {
     ],
   };
 
-  it('appends a training phase after the rest phase when one follows the reintro', () => {
+  it('appends a tolerance-building phase after the rest phase when one follows the reintro', () => {
     const result = addTrainingPhase(scheduleWithRest, 'dairy', 'reintro-dairy');
-    const training = result.phases.find(p => p.type === 'training')!;
-    expect(training.startDate).toBe('2026-05-27');
-    expect(training.endDate).toBe('');
+    const tb = result.phases.find(p => p.type === 'tolerance-building')!;
+    expect(tb.startDate).toBe('2026-05-27');
+    expect(tb.endDate).toBe('');
   });
 
-  it('training phase is open-ended (endDate is empty string)', () => {
+  it('tolerance-building phase is open-ended (endDate is empty string)', () => {
     const result = addTrainingPhase(scheduleWithRest, 'dairy', 'reintro-dairy');
-    const training = result.phases.find(p => p.type === 'training')!;
-    expect(training.endDate).toBe('');
+    const tb = result.phases.find(p => p.type === 'tolerance-building')!;
+    expect(tb.endDate).toBe('');
   });
 
   it('returns the original schedule unchanged when phase id is not found', () => {

@@ -1,4 +1,4 @@
-import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, TrainingReminder } from '$lib/domain/models';
+import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder } from '$lib/domain/models';
 import { getCategoryById } from '$lib/data/categories';
 import { addDays } from '$lib/utils/date';
 
@@ -29,12 +29,12 @@ function phaseDurations(severity: EczemaSeverity) {
  */
 export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedule {
   const durations = phaseDurations(answers.eczemaSeverity);
-  const permanentEliminations = [
-    ...new Set(
-      [...answers.motherAllergies, ...answers.babyConfirmedAllergies]
-        .map(s => s.includes(':') && !s.startsWith('other:') ? s.split(':')[0] : s)
-    ),
-  ];
+
+  const normalize = (ids: string[]) =>
+    ids.map(s => s.includes(':') && !s.startsWith('other:') ? s.split(':')[0] : s);
+
+  const permanentMother = [...new Set(normalize(answers.motherAllergies))];
+  const permanentBaby = [...new Set(normalize(answers.babyConfirmedAllergies))];
 
   const startDate = answers.programStartDate ?? new Date().toISOString().split('T')[0];
 
@@ -70,6 +70,7 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
   cursor = addDays(elimEnd, 1);
 
   // Phase B: Sequential reintroduction (4 days each — 3 escalating eating days + evaluation day)
+  const permanentEliminations = [...new Set([...permanentMother, ...permanentBaby])];
   const reintroQueue = protocolIds.filter(
     id => !permanentEliminations.includes(id)
   );
@@ -92,7 +93,8 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
 
   return {
     phases,
-    permanentEliminations,
+    permanentMother,
+    permanentBaby,
     startDate,
     estimatedEndDate: lastPhase.endDate,
   };
@@ -131,9 +133,9 @@ export function insertRestDays(
     description: 'Kůže se zotavuje — jezte jen potraviny, které miminko toleruje.',
   };
 
-  // Shift all non-training phases after idx forward by `days`
+  // Shift all non-tolerance-building phases after idx forward by `days`
   for (let i = idx + 1; i < phases.length; i++) {
-    if (phases[i].type !== 'training') {
+    if (phases[i].type !== 'tolerance-building') {
       phases[i] = {
         ...phases[i],
         startDate: addDays(phases[i].startDate, days),
@@ -144,7 +146,7 @@ export function insertRestDays(
 
   phases.splice(idx + 1, 0, restPhase);
 
-  const lastNonTraining = [...phases].reverse().find(p => p.type !== 'training');
+  const lastNonTraining = [...phases].reverse().find(p => p.type !== 'tolerance-building');
   const estimatedEndDate = lastNonTraining?.endDate ?? schedule.estimatedEndDate;
 
   return { ...schedule, phases, estimatedEndDate };
@@ -173,9 +175,9 @@ export function addTrainingPhase(
   const cat = getCategoryById(allergenId);
 
   const trainingPhase: SchedulePhase = {
-    id: `training-${allergenId}`,
-    type: 'training',
-    label: `Trénink: ${cat?.nameCs ?? allergenId}`,
+    id: `tolerance-building-${allergenId}`,
+    type: 'tolerance-building',
+    label: `Budování tolerance: ${cat?.nameCs ?? allergenId}`,
     startDate: trainingStart,
     endDate: '', // open-ended — no fixed end date
     categoryIds: [allergenId],
@@ -228,13 +230,13 @@ export function appendReTestPhases(
  * meal exists `daysSince` is set to 999, ensuring the reminder always fires
  * on the first day of training.
  */
-export function getTrainingRemindersForDate(
+export function getToleranceBuildingRemindersForDate(
   schedule: GeneratedSchedule,
   date: string,
   meals: Meal[]
-): TrainingReminder[] {
+): ToleranceBuildingReminder[] {
   const trainingPhases = schedule.phases.filter(
-    p => p.type === 'training' && date >= p.startDate && (p.endDate === '' || date <= p.endDate)
+    p => p.type === 'tolerance-building' && date >= p.startDate && (p.endDate === '' || date <= p.endDate)
   );
 
   return trainingPhases.map(phase => {

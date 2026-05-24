@@ -12,7 +12,7 @@ Terms already defined in depth elsewhere are referenced, not duplicated.
 
 The elimination protocol is a fixed sequence of named phases. Each phase has a `type`
 (`SchedulePhaseType`) and a date range. The sequence produced by `generateSchedule()` is:
-Reset → Elimination → (Reintroduction → Rest)× → Training×
+Reset → Elimination → (Reintroduction → Rest)× → Tolerance-Building×
 
 ### Reset Phase
 *Czech: Resetovací fáze*
@@ -45,14 +45,16 @@ of a rest phase immediately following a reintro phase **signals a reaction** —
 allergen stays eliminated until re-tested. An allergen counts as **passed** only when
 its reintro is *not* followed by a rest phase. → See `EliminationWindow` in `CONTEXT.md`.
 
-### Training Phase
-*Czech: Trénink*
+### Tolerance-Building Phase
+*Czech: Budování tolerance*
 
 Open-ended maintenance phase (typically up to 3 months). The mother consumes a small
 dose of a **tolerated** allergen twice weekly to build lasting tolerance. Multiple
-training phases may run concurrently (one per passed allergen). Has no fixed end date.
-The `EliminationWindow` during training = same as the concurrent non-training phase,
-but the training allergen is additionally permitted in small doses.
+tolerance-building phases may run concurrently (one per passed allergen). Has no fixed
+end date. The `EliminationWindow` during a tolerance-building phase = same as the
+concurrent non-tolerance-building phase, but the trained allergen is additionally
+permitted in small doses. Phase type literal: `'tolerance-building'` (renamed from the
+former `'training'` per ADR-0012). Icon: 🥄.
 
 ### ReintroductionDayInfo
 
@@ -78,24 +80,44 @@ The ordered list of allergens the protocol will eliminate and then reintroduce
 sequentially. Set during onboarding. Default order: `['soy', 'wheat', 'eggs', 'dairy']`
 (least → most common trigger). Drives the reintroduction sequence in `generateSchedule()`.
 
-### Permanent Eliminations
+### Permanent Mother Allergens
+*Czech: Maminčiny alergeny*
+
+Mother's own lifelong allergies, sourced from `answers.motherAllergies`. Stored on
+`GeneratedSchedule.permanentMother`. Never enter a reintroduction phase and are never
+offered for retest. Always in the `EliminationWindow`. Identity is immutable.
+
+### Permanent Baby Allergens
+*Czech: Potvrzené alergie miminka*
+
+Baby's confirmed allergies from the questionnaire, sourced from
+`answers.babyConfirmedAllergies`. Stored on `GeneratedSchedule.permanentBaby`.
+Eliminated by default but **eligible for end-of-program retest** via
+`appendReTestPhases`. Origin is immutable — an allergen that retests cleanly stays in
+`permanentBaby` with `AllergenStatus = 'passed'`.
+
+### Permanent Eliminations (aggregate)
 *Czech: Trvale vyřazené alergeny*
 
-The union of `motherAllergies` and `babyConfirmedAllergies` from `QuestionnaireAnswers`.
-These allergens are **always forbidden regardless of phase type**, including during
-training and after all protocol phases end. Never reintroduced.
+The union of `permanentMother` and `permanentBaby`. Exposed as a free function
+`getPermanentEliminations(schedule): string[]` — not stored as a field on
+`GeneratedSchedule`. Used by day-view consumers that need "anything forbidden by
+identity, regardless of origin."
 
 ### Protocol Allergens
 
 The full set of allergens eliminated during the elimination phase. Extracted from the
 schedule's elimination phase. Equals `testedAllergens` minus any already-permanent
-eliminations.
+eliminations (mother or baby). Disjoint from `permanentMother` and `permanentBaby` by
+construction.
 
-### Passed Allergens
-
-Allergens whose reintroduction phase was **not** immediately followed by a rest phase,
-meaning the body tolerated them. Computed by `getPassedAllergens(schedule)`. Passed
-allergens are no longer in the `EliminationWindow` after their reintro phase ends.
+### AllergenStatus
+→ Defined in `CONTEXT.md`. The per-allergen lifecycle state derived by
+`getAllergenStatuses(schedule, date)` in `src/lib/domain/allergen-status.ts`. One entry
+per allergen in the closed universe `permanentMother ∪ permanentBaby ∪ protocolMembers`.
+Status values: `permanent-mother`, `permanent-baby`, `not-yet-tested`, `eliminated`,
+`testing`, `passed`, `reacted`, `tolerance-building`. Carries an `origin: 'mother' |
+'baby' | 'protocol'` field so identity survives status changes. See ADR-0012.
 
 ### EliminationWindow
 → Defined in `CONTEXT.md`. The set of allergens the mother may not eat on a given date,
@@ -126,9 +148,11 @@ Persisted by `QuestionnaireRepository`. Source of truth for `generateSchedule()`
 ### GeneratedSchedule
 
 The output of `generateSchedule(answers)`: an ordered array of `SchedulePhase` objects
-with date ranges, plus `permanentEliminations` and `estimatedEndDate`. Persisted by
-`ScheduleRepository`. Treated as immutable after generation — mutations (adding rest
-days, training phases) produce a new schedule object.
+with date ranges, plus `permanentMother`, `permanentBaby`, and `estimatedEndDate`.
+Persisted by `ScheduleRepository`. Treated as immutable after generation — mutations
+(`insertRestDays`, `appendTolerantBuildingPhase`, `appendReTestPhases`) produce a new
+schedule object. The aggregate `permanentEliminations` is a derived free function, not
+a stored field.
 
 ### ScheduleContext
 → Defined in `CONTEXT.md`. The reactive bundle of `GeneratedSchedule` +
@@ -142,11 +166,24 @@ Input from onboarding. One of: `'mild'` (Mírná) · `'moderate'` (Střední) ·
 (Těžká). Determines the duration of the elimination phase (14 vs. 21 days) and
 influences rest phase lengths.
 
-### TrainingReminder
+### ToleranceBuildingReminder
 
-A notification generated by `getTrainingRemindersForDate(schedule, date)` when a
-training allergen has not been consumed in 3+ days — the threshold for re-exposure.
-Not stored; computed on demand.
+A notification generated by `getToleranceBuildingRemindersForDate(schedule, date)` when
+a tolerance-building allergen has not been consumed in 3+ days — the threshold for
+re-exposure. Not stored; computed on demand. (Renamed from `TrainingReminder` per
+ADR-0012.)
+
+### RetestRejection
+
+The typed error returned by `appendReTestPhases(schedule, ids, today)` when one or more
+ids cannot be retested. Discriminated union with three variants:
+- `not-baby-confirmed` — id is a mother allergy or a protocol-only allergen.
+- `already-cleared` — id is a baby allergy whose latest retest came back clean.
+- `retest-already-scheduled` — a future retest phase for this id already exists.
+
+Each variant carries `invalidIds: string[]` so the route can render specific Czech copy.
+Defined next to its producer in `schedule-builder.ts`, not in `$lib/types/result.ts`.
+See ADR-0012.
 
 ---
 

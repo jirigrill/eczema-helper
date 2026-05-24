@@ -15,7 +15,7 @@ const today = new Date().toISOString().split('T')[0];
 const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: today,
   estimatedEndDate: futureDate,
   phases: [
@@ -157,7 +157,7 @@ describe('today/+page.svelte', () => {
 
   it('shows "Program skončil" when no phase matches today', async () => {
     const pastSchedule: GeneratedSchedule = {
-      permanentEliminations: [],
+      permanentMother: [], permanentBaby: [],
       startDate: '2020-01-01',
       estimatedEndDate: '2020-02-01',
       phases: [

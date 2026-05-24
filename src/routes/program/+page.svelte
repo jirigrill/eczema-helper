@@ -32,14 +32,15 @@
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const currentPhase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
   const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
-  const permanentSlugs = $derived(schedule?.permanentEliminations ?? []);
+  import { getPermanentEliminations } from '$lib/domain/models';
+  const permanentSlugs = $derived(schedule ? getPermanentEliminations(schedule) : []);
   const protocolEliminated = $derived(eliminatedToday.filter(s => !permanentSlugs.includes(s)));
   const progress = $derived(ctx.status === 'ready' ? ctx.progress : null);
   const isBeforeSchedule = $derived(!!schedule && today < schedule.startDate);
   const isProgramDone = $derived(!!schedule && !isBeforeSchedule && today > schedule.estimatedEndDate && activeTrainingPhases.length === 0);
   const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
   const activeTrainingPhases = $derived(
-    schedule ? schedule.phases.filter(p => p.type === 'training' && p.startDate <= today && (p.endDate === '' || p.endDate >= today)) : []
+    schedule ? schedule.phases.filter(p => p.type === 'tolerance-building' && p.startDate <= today && (p.endDate === '' || p.endDate >= today)) : []
   );
 
   type DisplayAllergen = { slug: string; icon: string; name: string; reason: string };
@@ -69,7 +70,7 @@
     }
     const protocolSlugs = schedule.phases.find(p => p.type === 'elimination')?.categoryIds ?? [];
     return protocolSlugs
-      .filter(slug => !schedule.permanentEliminations.includes(slug))
+      .filter(slug => !getPermanentEliminations(schedule).includes(slug))
       .map(slug => {
         if (phase.categoryIds.includes(slug)) return { slug, status: 'testing' as const };
         if (alreadyReintroduced.has(slug)) return { slug, status: 'reintroduced' as const };
@@ -138,14 +139,14 @@
   }
 
   const nonTrainingPhases = $derived(
-    schedule ? schedule.phases.filter((p: SchedulePhase) => p.type !== 'training') : []
+    schedule ? schedule.phases.filter((p: SchedulePhase) => p.type !== 'tolerance-building') : []
   );
 
   type TrainingBand = { slug: string; label: string; startIndex: number; endIndex: number };
   const trainingBands = $derived.by((): TrainingBand[] => {
     if (!schedule) return [];
     return schedule.phases
-      .filter((p: SchedulePhase) => p.type === 'training' && p.startDate <= today)
+      .filter((p: SchedulePhase) => p.type === 'tolerance-building' && p.startDate <= today)
       .map((tp: SchedulePhase) => {
         const slug = tp.categoryIds[0];
         const cat = getCategoryById(slug);
@@ -324,13 +325,13 @@
               </p>
             </div>
 
-          {:else if currentPhase.type === 'training'}
+          {:else if currentPhase.type === 'tolerance-building'}
             {@const trainingCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
               <p class="section-label">Co dělat</p>
               <p class="body-muted">
-                Tréninková fáze — občas zařaďte malou dávku <strong>{trainingCat?.nameCs?.toLowerCase() ?? ''}</strong> (max 2× týdně, max 1 lžička). Budujete toleranci.
+                Budování tolerance — občas zařaďte malou dávku <strong>{trainingCat?.nameCs?.toLowerCase() ?? ''}</strong> (max 2× týdně, max 1 lžička). Budujete toleranci.
               </p>
             </div>
 

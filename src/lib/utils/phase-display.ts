@@ -7,7 +7,7 @@ const PHASE_DISPLAY: Record<SchedulePhaseType, PhaseDisplay> = {
   elimination:    { icon: '🚫', badge: 'bg-danger text-white',            iconBg: 'bg-danger/15',    label: 'Eliminace' },
   reintroduction: { icon: '🔬', badge: 'bg-success text-white',           iconBg: 'bg-success/15',   label: 'Reintrodukce' },
   rest:           { icon: '⏸️', badge: 'bg-surface-dark text-text-muted', iconBg: 'bg-surface-dark', label: 'Odpočinek' },
-  training:       { icon: '🏋️', badge: 'bg-primary text-white',           iconBg: 'bg-primary/15',   label: 'Trénink' },
+  'tolerance-building': { icon: '🥄', badge: 'bg-primary text-white', iconBg: 'bg-primary/15', label: 'Budování tolerance' },
 };
 
 const PHASE_DISPLAY_FALLBACK: PhaseDisplay = {

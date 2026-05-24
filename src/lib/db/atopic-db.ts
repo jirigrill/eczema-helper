@@ -16,6 +16,12 @@ export class AtopicDb extends Dexie {
       answers: '&id',
       schedule: '&id',
     });
+    // v2: GeneratedSchedule schema split (permanentEliminations → permanentMother + permanentBaby)
+    // and phase type rename ('training' → 'tolerance-building'). No migration hook — pre-launch.
+    this.version(2).stores({
+      answers: '&id',
+      schedule: '&id',
+    });
   }
 }
 

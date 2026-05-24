@@ -1,4 +1,5 @@
 import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo } from '$lib/domain/models';
+import { getPermanentEliminations } from '$lib/domain/models';
 import { isDateInRange } from '$lib/utils/date';
 
 // ── Current phase ─────────────────────────────────────────────
@@ -9,9 +10,9 @@ function isPhaseActiveOnDate(phase: SchedulePhase, date: string): boolean {
 }
 
 export function getPhaseForDate(schedule: GeneratedSchedule, date: string): SchedulePhase | null {
-  // Training phases overlap with others — prefer non-training phases first
-  const nonTraining = schedule.phases.find(p => p.type !== 'training' && isPhaseActiveOnDate(p, date));
-  if (nonTraining) return nonTraining;
+  // Tolerance-building phases overlap with others — prefer non-tolerance-building phases first
+  const nonTb = schedule.phases.find(p => p.type !== 'tolerance-building' && isPhaseActiveOnDate(p, date));
+  if (nonTb) return nonTb;
   return schedule.phases.find(p => isPhaseActiveOnDate(p, date)) ?? null;
 }
 
@@ -44,12 +45,12 @@ function getPassedAllergens(schedule: GeneratedSchedule, beforeIndex: number): S
  *
  * The result depends on the active phase type — see the EliminationWindow
  * entry in CONTEXT.md for the full per-phase semantics table. In brief:
- * - `reset`: only `permanentEliminations`
+ * - `reset`: only permanent eliminations (mother + baby)
  * - `elimination`: permanent + all protocol allergens
  * - `reintroduction` of X: permanent + protocol minus X minus already-passed
  * - `rest`: permanent + protocol minus already-passed (no current exception)
- * - `training` of X: same as the concurrent non-training phase, but X is also allowed
- * - after all phases: only `permanentEliminations`
+ * - `tolerance-building` of X: same as the concurrent non-tolerance-building phase, but X is also allowed
+ * - after all phases: only permanent eliminations
  *
  * An allergen counts as "passed" only if its reintroduction phase is not
  * immediately followed by a rest phase (a rest phase signals a reaction).
@@ -58,7 +59,8 @@ export function getEliminatedSlugsForDate(
   schedule: GeneratedSchedule,
   date: string
 ): string[] {
-  const eliminated = new Set<string>(schedule.permanentEliminations);
+  const permanent = getPermanentEliminations(schedule);
+  const eliminated = new Set<string>(permanent);
   const phase = getPhaseForDate(schedule, date);
 
   if (!phase) return [...eliminated];
@@ -69,7 +71,7 @@ export function getEliminatedSlugsForDate(
 
   if (phase.type === 'elimination') {
     for (const categoryId of phase.categoryIds) {
-      if (!schedule.permanentEliminations.includes(categoryId)) {
+      if (!permanent.includes(categoryId)) {
         eliminated.add(categoryId);
       }
     }
@@ -83,7 +85,7 @@ export function getEliminatedSlugsForDate(
 
     for (const categoryId of protocolIds) {
       if (
-        !schedule.permanentEliminations.includes(categoryId) &&
+        !permanent.includes(categoryId) &&
         !alreadyPassed.has(categoryId) &&
         !(phase.type === 'reintroduction' && phase.categoryIds.includes(categoryId))
       ) {
@@ -93,23 +95,23 @@ export function getEliminatedSlugsForDate(
     return [...eliminated];
   }
 
-  if (phase.type === 'training') {
-    // Training phases are concurrent — find the "real" phase context from surrounding phases
-    const trainingId = phase.categoryIds[0];
-    // Find non-training phase for this date (reintroduction or rest)
+  if (phase.type === 'tolerance-building') {
+    // Tolerance-building phases are concurrent — find the "real" phase context from surrounding phases
+    const toleranceId = phase.categoryIds[0];
+    // Find non-tolerance-building phase for this date (reintroduction or rest)
     const realPhase = schedule.phases.find(
-      p => p.type !== 'training' && isDateInRange(date, p.startDate, p.endDate)
+      p => p.type !== 'tolerance-building' && isDateInRange(date, p.startDate, p.endDate)
     );
     if (realPhase) {
       const baseEliminated = new Set(getEliminatedSlugsForDate(
-        { ...schedule, phases: schedule.phases.filter(p => p.type !== 'training') },
+        { ...schedule, phases: schedule.phases.filter(p => p.type !== 'tolerance-building') },
         date
       ));
-      // Training allergen is allowed in small doses
-      baseEliminated.delete(trainingId);
+      // Tolerance-building allergen is allowed in small doses
+      baseEliminated.delete(toleranceId);
       return [...baseEliminated];
     }
-    // If no concurrent phase, only permanent eliminations + training allergen allowed
+    // If no concurrent phase, only permanent eliminations apply
     return [...eliminated];
   }
 
@@ -125,7 +127,7 @@ export function isPhaseEndForEvaluation(
 ): boolean {
   const phase = getPhaseForDate(schedule, date);
   if (!phase) return false;
-  if (phase.type === 'rest' || phase.type === 'training') return false;
+  if (phase.type === 'rest' || phase.type === 'tolerance-building') return false;
   return date === phase.endDate;
 }
 
