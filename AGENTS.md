@@ -12,7 +12,8 @@ Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic ec
 
 **Before changing the domain or making architectural decisions**, read `CONTEXT.md` (domain vocabulary + invariants) and `docs/adr/` (numbered architectural decisions). The invariant index in `CONTEXT.md` points to the relevant ADRs. Do not introduce vocabulary or decisions that conflict with what is recorded there; revise the ADR instead.
 
-- `CONTEXT.md` — domain glossary + invariant index
+- `UBIQUITOUS_LANGUAGE.md` — shared vocabulary for all domain, UI, and architecture terms; the first place to look up or define a term
+- `CONTEXT.md` — deep definitions and invariants for core domain concepts (linked from `UBIQUITOUS_LANGUAGE.md`)
 - `docs/adr/` — numbered architectural decision records (ADR-0001 … ADR-0008 so far)
 - `docs/README.md` — project status + structure overview
 - `docs/architecture/tech-stack.md` — framework and runtime choices
@@ -222,8 +223,11 @@ git branch -d <feature-branch>
 ## When Modifying the Repo
 
 After significant changes, verify:
-1. `CONTEXT.md` — vocabulary still matches the code?
-2. `docs/adr/` — any new architectural decisions to record, or any ADRs to revise?
-3. `docs/README.md` — still accurate?
-4. `AGENTS.md` — conventions/commands still match?
-5. Grep for dead imports (`grep -rn "\\\$lib/" src/`) after deletes.
+1. `UBIQUITOUS_LANGUAGE.md` — any new domain, UI, or architecture terms introduced? Add them. Any existing term renamed or redefined? Update it here first, then in code.
+2. `CONTEXT.md` — vocabulary still matches the code? Update deep definitions and invariants if the domain model changed.
+3. `docs/adr/` — any new architectural decisions to record, or any ADRs to revise?
+4. `docs/README.md` — still accurate?
+5. `AGENTS.md` — conventions/commands still match?
+6. Grep for dead imports (`grep -rn "\\\$lib/" src/`) after deletes.
+
+**Term ownership rule:** every named concept that appears in more than one file (type name, route label, component name, phase name) must have an entry in `UBIQUITOUS_LANGUAGE.md`. If it is a core domain invariant, it also gets a deep entry in `CONTEXT.md`. If it drives an architectural decision, it also gets an ADR.
