@@ -11,7 +11,7 @@ describe('InfoBanner', () => {
   });
 
   it.each([
-    ['info', 'primary'],
+    ['info', 'info'],
     ['success', 'success'],
     ['warning', 'warning'],
     ['danger', 'danger'],
