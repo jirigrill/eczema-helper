@@ -16,11 +16,12 @@
 
   type Status = DailyAssessment['status'];
 
-  const statusOptions: { value: Status; label: string; icon: string; color: string }[] = [
-    { value: 'improved',    label: 'Zlepšení',     icon: '✓',  color: 'bg-success/10 border-success/30 text-success' },
-    { value: 'unchanged',   label: 'Beze změny',   icon: '—',  color: 'bg-surface border-surface-dark text-text' },
-    { value: 'worsened',    label: 'Zhoršení',     icon: '!',  color: 'bg-warning/10 border-warning/30 text-warning' },
-    { value: 'new-lesions', label: 'Nová ložiska', icon: '!!', color: 'bg-danger/10 border-danger/30 text-danger' },
+  type StateVariant = 'success' | 'neutral' | 'warning' | 'danger';
+  const statusOptions: { value: Status; label: string; icon: string; state: StateVariant }[] = [
+    { value: 'improved',    label: 'Zlepšení',     icon: '✓',  state: 'success' },
+    { value: 'unchanged',   label: 'Beze změny',   icon: '—',  state: 'neutral' },
+    { value: 'worsened',    label: 'Zhoršení',     icon: '!',  state: 'warning' },
+    { value: 'new-lesions', label: 'Nová ložiska', icon: '!!', state: 'danger' },
   ];
 
   let selectedStatus = $state<Status | null>(assessment?.status ?? null);
@@ -46,7 +47,7 @@
   </div>
 
   {#if allergenCat}
-    <div class="bg-success/10 border border-success/30 rounded-xl px-3 py-2">
+    <div data-state="success" class="border rounded-xl px-3 py-2">
       <p class="text-xs text-success font-medium">
         🔬 Sledujte reakci na {allergenCat.icon} {allergenCat.nameCs}
       </p>
@@ -61,9 +62,10 @@
     {#each statusOptions as opt}
       <button
         type="button"
+        data-state={selectedStatus === opt.value ? opt.state : undefined}
         class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-medium transition-all
           {selectedStatus === opt.value
-            ? opt.color + ' border-opacity-100 shadow-sm'
+            ? 'shadow-sm'
             : 'bg-white border-surface-dark text-text hover:border-primary/30'}"
         onclick={() => { selectedStatus = opt.value; saved = false; }}
       >
@@ -86,9 +88,10 @@
     <!-- Photo toggle -->
     <button
       type="button"
+      data-state={photoTaken ? 'success' : undefined}
       class="w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 transition-all
         {photoTaken
-          ? 'bg-success/10 border-success/30 text-success'
+          ? ''
           : 'bg-white border-surface-dark text-text-muted hover:border-primary/30'}"
       onclick={() => { photoTaken = !photoTaken; saved = false; }}
     >

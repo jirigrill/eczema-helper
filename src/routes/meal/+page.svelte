@@ -229,14 +229,9 @@
           {@const isElim = eliminatedToday.includes(cat.categoryId)}
           {@const isExpanded = expandedCategory === cat.categoryId}
           <button
+            data-state={isExpanded ? 'info' : inMeal ? 'success' : isElim ? 'danger' : undefined}
             class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
-              {isExpanded
-                ? 'bg-primary/10 border-primary/30'
-                : inMeal
-                  ? 'bg-success/10 border-success/30'
-                  : isElim
-                    ? 'bg-danger/5 border-danger/20'
-                    : 'bg-white border-surface-dark'}"
+              {!isExpanded && !inMeal && !isElim ? 'bg-white border-surface-dark' : ''}"
             onclick={() => toggleCategory(cat.categoryId)}
           >
             <span class="text-2xl leading-none">{cat.icon}</span>
@@ -261,7 +256,8 @@
         <div class="space-y-1.5">
           {#each currentItems as item (item.id)}
             <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg
-              {isConflictItem(item) ? 'bg-warning/10 border border-warning/30' : 'bg-surface'}">
+              {isConflictItem(item) ? 'border' : 'bg-surface'}"
+              data-state={isConflictItem(item) ? 'warning' : undefined}>
               <span class="text-base shrink-0">
                 {getCategoryById(item.categoryId ?? '')?.icon ?? '🍽️'}
               </span>
@@ -347,10 +343,11 @@
       <div class="flex flex-wrap gap-2 pb-1">
         {#each cat.subItems as sub}
           <button
-            class="py-2 px-3 rounded-xl text-sm transition-all
+            data-state={currentItems.some(i => i.name === sub.nameCs) ? 'success' : undefined}
+            class="py-2 px-3 rounded-xl text-sm transition-all border
               {currentItems.some(i => i.name === sub.nameCs)
-                ? 'bg-success/10 text-success border border-success/30'
-                : 'bg-surface text-text border border-surface-dark hover:border-primary/30'}"
+                ? ''
+                : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
             onclick={() => selectSubItem(cat.categoryId, sub.subitemId, sub.nameCs)}
           >
             {sub.nameCs}

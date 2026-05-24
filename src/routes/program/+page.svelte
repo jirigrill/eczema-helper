@@ -434,7 +434,7 @@
           {/if}
 
           <!-- Phase row -->
-          <div class="{trainingBand ? 'border-l-2 border-primary/20 bg-primary/5 rounded-r-lg pl-0.5' : ''}">
+          <div class="{trainingBand ? 'border-l-2 border-primary/30 bg-primary/10 rounded-r-lg pl-0.5' : ''}">
           {#if done}
             <!-- Completed: flat row, colored circle by outcome -->
             <button
@@ -561,7 +561,7 @@
     <!-- ═══ End-of-program card ═══ -->
     {#if isProgramDone}
       {@const babyAllergens = answers?.babyConfirmedAllergies ?? []}
-      <div class="bg-success/10 border border-success/30 rounded-2xl p-5 space-y-4">
+      <div data-state="success" class="border rounded-2xl p-5 space-y-4">
         <div class="text-center">
           <p class="text-2xl mb-1">🎉</p>
           <p class="text-base font-bold text-text">Program dokončen!</p>
@@ -603,12 +603,9 @@
               {/each}
             </div>
             {#if selectedRetestSlugs.length > 0}
-              <button
-                class="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm"
-                onclick={addRetestPhases}
-              >
+              <Button onclick={addRetestPhases}>
                 Přidat testovací fáze ({selectedRetestSlugs.length})
-              </button>
+              </Button>
             {/if}
           </div>
         {/if}
