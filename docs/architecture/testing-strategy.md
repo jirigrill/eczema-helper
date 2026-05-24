@@ -59,6 +59,21 @@ The layout guard (`if answers === null → goto('/')`) involves:
 
 Mocking all three in jsdom would test the mocks, not the behavior. A Playwright test that opens `/today`, clears IndexedDB via `page.evaluate(...)`, and asserts `page.url()` is `'/'` tests the real thing with minimal setup.
 
+## Visual regression testing — deliberately not used
+
+This project does **not** use Playwright's `toHaveScreenshot` visual
+snapshot tests. CSS-level regressions (wrong opacity, wrong colour
+token, broken atom) are caught by manual review, not by automation.
+
+Rationale and re-entry conditions in [ADR-0010](../adr/0010-no-visual-snapshot-tests.md).
+Full options matrix (Docker locally, visual SaaS, keep with platform
+skips, etc.) captured in [issue #82](https://github.com/jirigrill/eczema-helper/issues/82).
+
+If you find yourself wanting visual coverage back, start there before
+re-introducing baselines — the previous attempt's friction is well
+documented and the preferred re-entry path is the Docker-local
+approach, not the workflow-trigger approach that was tried first.
+
 ## Infrastructure state
 
 | Piece | Status |
