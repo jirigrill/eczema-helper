@@ -10,11 +10,16 @@ describe('InfoBanner', () => {
     expect(wrapper).not.toBeNull();
   });
 
-  it.each(['info', 'success', 'warning', 'danger'] as const)(
-    'sets data-state="%s"',
-    (variant) => {
+  it.each([
+    ['info', 'info'],
+    ['success', 'success'],
+    ['warning', 'warning'],
+    ['danger', 'danger'],
+  ] as const)(
+    'maps variant=%s to data-state=%s',
+    (variant, state) => {
       const { container } = render(InfoBanner, { props: { variant } });
-      expect(container.querySelector(`[data-state="${variant}"]`)).not.toBeNull();
+      expect(container.querySelector(`[data-state="${state}"]`)).not.toBeNull();
     }
   );
 

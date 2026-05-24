@@ -43,7 +43,7 @@
 
 <div class="max-w-lg mx-auto">
   <!-- Header -->
-  <div class="px-5 pt-4 pb-2 flex items-end justify-between">
+  <div class="px-4 pt-4 pb-2 flex items-end justify-between">
     <div>
       <div class="text-[11px] uppercase tracking-wide text-text-muted">
         {czechWeekday(today)} · {formatDateLongCs(today)}

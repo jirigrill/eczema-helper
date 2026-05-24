@@ -42,9 +42,9 @@
 
   // ── Severity options ──────────────────────────────────────
   const severityOptions: { value: EczemaSeverity; label: string; desc: string; border: string; bg: string }[] = [
-    { value: 'mild', label: 'Mírná', desc: 'Občasné suché fleky, minimální svědění', border: 'border-l-4 border-success', bg: 'bg-success/5' },
-    { value: 'moderate', label: 'Střední', desc: 'Časté zarudnutí, svědění narušuje spánek', border: 'border-l-4 border-warning', bg: 'bg-warning/5' },
-    { value: 'severe', label: 'Těžká', desc: 'Rozsáhlý ekzém, silné svědění, možné krvácení', border: 'border-l-4 border-danger', bg: 'bg-danger/5' },
+    { value: 'mild', label: 'Mírná', desc: 'Občasné suché fleky, minimální svědění', border: 'border-l-4 border-success', bg: 'bg-success/10' },
+    { value: 'moderate', label: 'Střední', desc: 'Časté zarudnutí, svědění narušuje spánek', border: 'border-l-4 border-warning', bg: 'bg-warning/10' },
+    { value: 'severe', label: 'Těžká', desc: 'Rozsáhlý ekzém, silné svědění, možné krvácení', border: 'border-l-4 border-danger', bg: 'bg-danger/10' },
   ];
 
   // ── Navigation ────────────────────────────────────────────
@@ -194,7 +194,7 @@
             {#each severityOptions as opt}
               <button
                 type="button"
-                class="w-full text-left rounded-xl border-2 p-4 transition-all
+                class="w-full text-left rounded-2xl border-2 p-4 transition-all
                   {severity === opt.value ? opt.border + ' ' + opt.bg + ' shadow-sm' : 'border-surface-dark bg-white'}"
                 onclick={() => (severity = opt.value)}
               >

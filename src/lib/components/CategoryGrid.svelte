@@ -135,21 +135,28 @@
       {@const isExpanded = expandable && expandedCategory === cat.categoryId}
       <button
         type="button"
+        data-state={dis
+          ? undefined
+          : isExpanded || (partial && variant === 'primary')
+            ? 'info'
+            : partial && variant === 'danger'
+              ? 'danger'
+              : undefined}
         class="
           flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium
           transition-all min-h-[72px] border
           {dis
             ? 'bg-surface border-surface-dark text-text-muted opacity-50 cursor-not-allowed'
             : isExpanded
-              ? 'bg-primary/10 border-primary/30 text-primary'
+              ? ''
               : whole && variant === 'primary'
                 ? 'bg-primary border-primary text-white shadow-sm'
                 : whole && variant === 'danger'
                   ? 'bg-danger border-danger text-white shadow-sm'
                   : partial && variant === 'primary'
-                    ? 'bg-primary/12 border-primary/40 text-primary'
+                    ? ''
                     : partial && variant === 'danger'
-                      ? 'bg-danger/12 border-danger/40 text-danger'
+                      ? ''
                       : 'bg-white border-surface-dark text-text hover:border-primary/40'}
         "
         onclick={() => toggle(cat.categoryId)}
@@ -193,10 +200,9 @@
             {@const subSel = isSelected(sub.subitemId) || isSelected(cat.categoryId)}
             <button
               type="button"
+              data-state={subSel ? (variant === 'danger' ? 'danger' : 'info') : undefined}
               class="py-1.5 px-3 rounded-xl text-sm transition-all border
-                {subSel
-                  ? variant === 'danger' ? 'bg-danger/15 text-danger border-danger/50' : 'bg-primary/15 text-primary border-primary/50'
-                  : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
+                {subSel ? '' : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
               onclick={() => toggleSubItem(cat.categoryId, sub.subitemId)}
             >
               {sub.nameCs}

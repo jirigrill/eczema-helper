@@ -24,13 +24,13 @@ describe('Button', () => {
     expect(onclick).not.toHaveBeenCalled();
   });
 
-  it('ghost-sm variant is visually distinct from primary via data-state', () => {
+  it('ghost-sm variant is visually distinct from primary via data-variant', () => {
     const { getByRole, rerender } = render(Button, { props: { variant: 'primary' } });
     const btn = getByRole('button');
-    expect(btn).toHaveAttribute('data-state', 'primary');
+    expect(btn).toHaveAttribute('data-variant', 'primary');
 
     rerender({ variant: 'ghost-sm' });
-    expect(btn).toHaveAttribute('data-state', 'ghost-sm');
+    expect(btn).toHaveAttribute('data-variant', 'ghost-sm');
   });
 
   it('color prop is reflected via data-color', () => {
