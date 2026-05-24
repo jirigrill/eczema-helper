@@ -16,7 +16,7 @@ const today = new Date().toISOString().split('T')[0];
 const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: today,
   estimatedEndDate: futureDate,
   phases: [

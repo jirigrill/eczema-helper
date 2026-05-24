@@ -7,7 +7,7 @@ function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 't
 }
 
 const baseSchedule: GeneratedSchedule = {
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: '2026-05-01',
   estimatedEndDate: '2026-07-01',
   phases: [
@@ -19,7 +19,7 @@ const baseSchedule: GeneratedSchedule = {
 
 // Two successive reintros without a rest between them → first allergen is "passed"
 const scheduleWithPassedAllergen: GeneratedSchedule = {
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: '2026-05-01',
   estimatedEndDate: '2026-07-01',
   phases: [
@@ -32,7 +32,7 @@ const scheduleWithPassedAllergen: GeneratedSchedule = {
 
 // Reintro followed by a rest phase → allergen is NOT considered passed
 const scheduleWithRestPhase: GeneratedSchedule = {
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: '2026-05-01',
   estimatedEndDate: '2026-07-01',
   phases: [
@@ -45,7 +45,7 @@ const scheduleWithRestPhase: GeneratedSchedule = {
 
 // Training phase starts after rest; a subsequent reintro overlaps with it
 const scheduleWithTraining: GeneratedSchedule = {
-  permanentEliminations: [],
+  permanentMother: [], permanentBaby: [],
   startDate: '2026-05-01',
   estimatedEndDate: '2026-07-01',
   phases: [
@@ -54,8 +54,8 @@ const scheduleWithTraining: GeneratedSchedule = {
     phase({ id: 'reintro-dairy',  type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
     phase({ id: 'rest-1',         type: 'rest',           startDate: '2026-05-31', endDate: '2026-06-01' }),
     // training starts Jun 2, open-ended (endDate '')
-    phase({ id: 'training-dairy', type: 'training',       startDate: '2026-06-02', endDate: '',           categoryIds: ['dairy'] }),
-    // reintro-eggs also starts Jun 2 — overlaps with training
+    phase({ id: 'tolerance-building-dairy', type: 'tolerance-building', startDate: '2026-06-02', endDate: '', categoryIds: ['dairy'] }),
+    // reintro-eggs also starts Jun 2 — overlaps with tolerance-building
     phase({ id: 'reintro-eggs',   type: 'reintroduction', startDate: '2026-06-02', endDate: '2026-06-05', categoryIds: ['eggs'] }),
   ],
 };
@@ -94,7 +94,7 @@ describe('getPhaseForDate', () => {
 
 describe('getEliminatedSlugsForDate', () => {
   it('returns only permanent eliminations during reset', () => {
-    const schedule = { ...baseSchedule, permanentEliminations: ['soy'] };
+    const schedule = { ...baseSchedule, permanentMother: ['soy'], permanentBaby: [] };
     const slugs = getEliminatedSlugsForDate(schedule, '2026-05-03');
     expect(slugs).toEqual(['soy']);
   });
@@ -106,7 +106,7 @@ describe('getEliminatedSlugsForDate', () => {
   });
 
   it('excludes permanent eliminations from protocol allergens (already covered)', () => {
-    const schedule = { ...baseSchedule, permanentEliminations: ['dairy'] };
+    const schedule = { ...baseSchedule, permanentMother: ['dairy'], permanentBaby: [] };
     const slugs = getEliminatedSlugsForDate(schedule, '2026-05-10');
     expect(slugs).toContain('dairy');
     expect(slugs).toContain('eggs');
@@ -175,19 +175,19 @@ describe('getPhaseForDate — training phase', () => {
   it('returns the training phase when it is the only active phase', () => {
     // Jun 6: reintro-eggs ended Jun 5; training-dairy is still open-ended
     const result = getPhaseForDate(scheduleWithTraining, '2026-06-06');
-    expect(result?.id).toBe('training-dairy');
+    expect(result?.id).toBe('tolerance-building-dairy');
   });
 
   it('treats open-ended training phase as active on any date after its start', () => {
     const result = getPhaseForDate(scheduleWithTraining, '2026-12-31');
-    expect(result?.id).toBe('training-dairy');
+    expect(result?.id).toBe('tolerance-building-dairy');
   });
 });
 
 describe('getScheduleProgress', () => {
   // 10-day program: 2026-05-01 → 2026-05-10
   const tenDaySchedule: GeneratedSchedule = {
-    permanentEliminations: [],
+    permanentMother: [], permanentBaby: [],
     startDate: '2026-05-01',
     estimatedEndDate: '2026-05-10',
     phases: [],
@@ -219,7 +219,7 @@ describe('getScheduleProgress', () => {
   it('rounds percentComplete correctly for fractional values', () => {
     // day 1 of 3: Math.round(1/3 * 100) = Math.round(33.33) = 33
     const threeDay: GeneratedSchedule = {
-      permanentEliminations: [],
+      permanentMother: [], permanentBaby: [],
       startDate: '2026-05-01',
       estimatedEndDate: '2026-05-03',
       phases: [],

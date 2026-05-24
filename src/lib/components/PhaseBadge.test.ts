@@ -4,7 +4,7 @@ import PhaseBadge from './PhaseBadge.svelte';
 import type { SchedulePhaseType } from '$lib/domain/models';
 
 describe('PhaseBadge', () => {
-  const phases: SchedulePhaseType[] = ['reset', 'elimination', 'reintroduction', 'rest', 'training'];
+  const phases: SchedulePhaseType[] = ['reset', 'elimination', 'reintroduction', 'rest', 'tolerance-building'];
 
   it.each(phases)('renders without throwing for type "%s"', (type) => {
     expect(() => render(PhaseBadge, { props: { type } })).not.toThrow();
@@ -20,7 +20,7 @@ describe('PhaseBadge', () => {
     ['elimination',    'Eliminace'],
     ['reintroduction', 'Reintrodukce'],
     ['rest',           'Odpočinek'],
-    ['training',       'Trénink'],
+    ['tolerance-building', 'Budování tolerance'],
   ];
 
   it.each(czechLabels)('renders Czech label for type "%s"', (type, label) => {

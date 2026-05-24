@@ -12,7 +12,7 @@ export type QuestionnaireAnswers = {
   testedAllergens: string[]; // category IDs to eliminate and reintroduce, in reintroduction order
 };
 
-export type SchedulePhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'training';
+export type SchedulePhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';
 
 export type SchedulePhase = {
   id: string;
@@ -26,10 +26,19 @@ export type SchedulePhase = {
 
 export type GeneratedSchedule = {
   phases: SchedulePhase[];
-  permanentEliminations: string[]; // category IDs never reintroduced
+  permanentMother: string[]; // category IDs from mother's confirmed allergies — never reintroduced
+  permanentBaby: string[]; // category IDs from baby's confirmed allergies — never reintroduced
   startDate: string;
   estimatedEndDate: string;
 };
+
+/**
+ * Returns all permanently eliminated allergens (union of mother's and baby's).
+ * Use this instead of accessing both fields directly.
+ */
+export function getPermanentEliminations(schedule: GeneratedSchedule): string[] {
+  return [...new Set([...schedule.permanentMother, ...schedule.permanentBaby])];
+}
 
 export type AmountSize = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
@@ -89,7 +98,7 @@ export type AppState = {
   evaluations: ReintroductionEvaluation[];
 };
 
-export type TrainingReminder = {
+export type ToleranceBuildingReminder = {
   allergenId: string;
   daysSinceLastDose: number;
   label: string;
