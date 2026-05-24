@@ -16,7 +16,7 @@
   {#if onBack}
     <button class="text-text text-lg leading-none" onclick={onBack}>‹</button>
   {/if}
-  <h1 class="text-sm font-bold text-text flex-1">{title}</h1>
+  <h1 class="body-bold flex-1">{title}</h1>
   {#if right}
     {@render right()}
   {/if}

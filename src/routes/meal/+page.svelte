@@ -158,7 +158,7 @@
 
     <!-- Meal type -->
     <div>
-      <p class="text-sm font-medium text-text-muted mb-2">Typ jídla</p>
+      <p class="field-label">Typ jídla</p>
       <div class="grid grid-cols-4 gap-2">
         {#each mealTypes as type}
           <button
@@ -175,7 +175,7 @@
 
     <!-- Amount selector -->
     <div>
-      <p class="text-sm font-medium text-text-muted mb-2">Množství (vyberte před přidáním)</p>
+      <p class="field-label">Množství (vyberte před přidáním)</p>
       <div class="flex gap-1.5 overflow-x-auto pb-1">
         {#each amounts as [value, info]}
           <button
@@ -191,7 +191,7 @@
 
     <!-- Custom item input -->
     <div>
-      <p class="text-sm font-medium text-text-muted mb-2">Přidat vlastní potravinu</p>
+      <p class="field-label">Přidat vlastní potravinu</p>
       <div class="flex gap-2">
         <input
           type="text"
@@ -222,7 +222,7 @@
 
     <!-- Category grid -->
     <div>
-      <p class="text-sm font-medium text-text-muted mb-2">Alergeny a kategorie</p>
+      <p class="field-label">Alergeny a kategorie</p>
       <div class="grid grid-cols-4 gap-2">
         {#each CATEGORIES as cat (cat.categoryId)}
           {@const inMeal = isCategoryInMeal(cat.categoryId)}
@@ -250,7 +250,7 @@
     <!-- Current meal basket -->
     {#if currentItems.length > 0}
       <div class="card-base">
-        <p class="text-sm font-medium text-text mb-2">
+        <p class="body-medium mb-2">
           {MEAL_TYPE_ICONS[selectedMealType]} {MEAL_TYPE_LABELS[selectedMealType]} — vybrané položky
         </p>
         <div class="space-y-1.5">
@@ -285,13 +285,13 @@
     <!-- Today's saved meals -->
     {#if todayMeals.length > 0}
       <div>
-        <p class="text-sm font-medium text-text-muted mb-2">Dnes uložená jídla</p>
+        <p class="field-label">Dnes uložená jídla</p>
         <div class="space-y-2">
           {#each todayMeals as meal (meal.id)}
             <div class="card-base">
               <div class="flex items-center gap-2 mb-1.5">
                 <span>{MEAL_TYPE_ICONS[meal.mealType]}</span>
-                <span class="text-sm font-medium text-text">{MEAL_TYPE_LABELS[meal.mealType]}</span>
+                <span class="body-medium">{MEAL_TYPE_LABELS[meal.mealType]}</span>
                 <span class="body-muted">{meal.savedAt}</span>
               </div>
               <div class="flex flex-wrap gap-1">
@@ -337,7 +337,7 @@
       style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
     >
       <div class="flex items-center justify-between">
-        <p class="text-sm font-medium text-text">{cat.icon} {cat.nameCs}</p>
+        <p class="body-medium">{cat.icon} {cat.nameCs}</p>
         <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>Hotovo</Button>
       </div>
       <div class="flex flex-wrap gap-2 pb-1">

@@ -179,7 +179,7 @@
     {#if cat && cat.subItems.length > 0}
       <div class="rounded-xl border border-primary/30 bg-white p-3 space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-text">{cat.icon} {cat.nameCs}</p>
+          <p class="body-medium">{cat.icon} {cat.nameCs}</p>
           <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>
             {selectedSubItemCount(cat.categoryId) > 0 ? `Hotovo (${selectedSubItemCount(cat.categoryId)})` : 'Hotovo'}
           </Button>

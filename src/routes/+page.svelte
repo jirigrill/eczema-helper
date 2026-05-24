@@ -154,14 +154,14 @@
       <div class="flex-1 flex flex-col items-center justify-center text-center gap-6">
         <div class="text-7xl">🌿</div>
         <div>
-          <h1 class="text-2xl font-bold text-text mb-3">Průvodce eliminační dietou při atopickém ekzému</h1>
+          <h1 class="page-heading mb-3">Průvodce eliminační dietou při atopickém ekzému</h1>
           <p class="text-text-muted leading-relaxed">
             Pomůžeme vám sestavit osobní plán eliminační diety — co jíte vy jako kojící maminka ovlivňuje kůži miminka.
             Budeme sledovat, co jíte, a porovnávat to s programem — abyste věděla, proč se kůže miminka mění.
           </p>
         </div>
         <div class="card-base w-full text-left space-y-2">
-          <p class="text-sm font-medium text-text">Co vás čeká:</p>
+          <p class="body-medium">Co vás čeká:</p>
           {#each ['Krátký dotazník (4 otázky)', 'Osobní program vyloučení a znovuzavedení', 'Denní záznamy jídel s upozorněním na odchylky'] as item}
             <div class="flex items-start gap-2 body-muted">
               <span class="text-success mt-0.5">✓</span>
@@ -176,7 +176,7 @@
     {:else if step === 2}
       <div class="flex-1 flex flex-col justify-center gap-6">
         <div>
-          <h2 class="text-xl font-bold text-text mb-1">Miminko</h2>
+          <h2 class="card-heading">Miminko</h2>
           <p class="body-muted">Datum narození a závažnost ekzému</p>
         </div>
 
@@ -189,7 +189,7 @@
         />
 
         <div>
-          <p class="text-sm font-medium text-text mb-3">Jak závažný je ekzém miminka?</p>
+          <p class="body-medium mb-3">Jak závažný je ekzém miminka?</p>
           <div class="space-y-3">
             {#each severityOptions as opt}
               <button
@@ -226,7 +226,7 @@
     {:else if step === 3}
       <div class="flex-1 flex flex-col gap-5">
         <div>
-          <h2 class="text-xl font-bold text-text mb-1">Moje alergie</h2>
+          <h2 class="card-heading">Moje alergie</h2>
           <p class="body-muted">
             Jsem alergická / mám intoleranci na:
           </p>
@@ -257,7 +257,7 @@
     {:else if step === 4}
       <div class="flex-1 flex flex-col gap-5">
         <div>
-          <h2 class="text-xl font-bold text-text mb-1">Potvrzené alergie miminka</h2>
+          <h2 class="card-heading">Potvrzené alergie miminka</h2>
           <p class="body-muted">
             Má miminko potvrzenou alergii od lékaře?
           </p>
@@ -292,7 +292,7 @@
     {:else if step === 5}
       <div class="flex-1 flex flex-col justify-center gap-6">
         <div>
-          <h2 class="text-xl font-bold text-text mb-1">Začátek programu</h2>
+          <h2 class="card-heading">Začátek programu</h2>
           <p class="body-muted">Kdy chcete začít s eliminační dietou?</p>
         </div>
 
@@ -320,7 +320,7 @@
     {:else if step === 6}
       <div class="flex-1 flex flex-col gap-5">
         <div>
-          <h2 class="text-xl font-bold text-text mb-1">Shrnutí</h2>
+          <h2 class="card-heading">Shrnutí</h2>
           <p class="body-muted">Zkontrolujte odpovědi před spuštěním programu</p>
         </div>
 
