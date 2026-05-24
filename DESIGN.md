@@ -421,9 +421,18 @@ The convergence between severity colors and semantic colors is **intentional**: 
 ### Color Usage Rules
 
 - The **wine primary** never appears as a fill on more than one element per screen. If the FAB is wine, the active nav can be wine, but a third wine fill (e.g., a chip) breaks the hierarchy.
-- **Tinted backgrounds** for insight headers use 8–10% alpha (`rgba(184,68,68,0.08)`); tag pills inside use 15–20% alpha. This keeps the header readable without overwhelming the white card body.
 - **Pure black** never appears as text. Only on the device bezel and dynamic island.
 - **Pure white** (`#FFFFFF`) is reserved for **card surfaces inside the device**. The page canvas and the in-device backdrop both use off-whites.
+
+#### Semantic Opacity Tiers
+
+Three opacity tiers exist for semantic-colour backgrounds. Each has a distinct role; do not substitute one for another (see [ADR-0011](docs/adr/0011-semantic-opacity-tiers.md)):
+
+| Tier | Tailwind suffix | Role | Examples |
+|------|----------------|------|---------|
+| **Subtle tint** | `/5` | Surface is *associated* with a colour but passive — not selected, not alarming. Background only; no border/text change. | Not-selected severity choice card, training-band background, `card-empty-cta` background, `task-tile-done` surface |
+| **Icon / selection background** | `/15` | Circular container or chip *actively represents* the colour's meaning. Background only; text is the semantic colour at full opacity. | Phase step-number circles, meal-type avatars, selected allergen chips, insight tag pills |
+| **Banner scale** | `/10`–`/40` | Banner-level component — background + border + text are set together via `[data-state]`. | InfoBanner, status chips, alert cards |
 
 ## Typography
 
