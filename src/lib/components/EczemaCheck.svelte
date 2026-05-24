@@ -17,10 +17,10 @@
   type Status = DailyAssessment['status'];
 
   const statusOptions: { value: Status; label: string; icon: string; color: string }[] = [
-    { value: 'improved',    label: 'Zlepšení',     icon: '✓',  color: 'bg-success/10 border-success/40 text-success' },
+    { value: 'improved',    label: 'Zlepšení',     icon: '✓',  color: 'bg-success/10 border-success/30 text-success' },
     { value: 'unchanged',   label: 'Beze změny',   icon: '—',  color: 'bg-surface border-surface-dark text-text' },
-    { value: 'worsened',    label: 'Zhoršení',     icon: '!',  color: 'bg-warning/10 border-warning/40 text-warning' },
-    { value: 'new-lesions', label: 'Nová ložiska', icon: '!!', color: 'bg-danger/10 border-danger/40 text-danger' },
+    { value: 'worsened',    label: 'Zhoršení',     icon: '!',  color: 'bg-warning/10 border-warning/30 text-warning' },
+    { value: 'new-lesions', label: 'Nová ložiska', icon: '!!', color: 'bg-danger/10 border-danger/30 text-danger' },
   ];
 
   let selectedStatus = $state<Status | null>(assessment?.status ?? null);
@@ -46,7 +46,7 @@
   </div>
 
   {#if allergenCat}
-    <div class="bg-success/10 border border-success/20 rounded-xl px-3 py-2">
+    <div class="bg-success/10 border border-success/30 rounded-xl px-3 py-2">
       <p class="text-xs text-success font-medium">
         🔬 Sledujte reakci na {allergenCat.icon} {allergenCat.nameCs}
       </p>
@@ -88,7 +88,7 @@
       type="button"
       class="w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 transition-all
         {photoTaken
-          ? 'bg-success/10 border-success/40 text-success'
+          ? 'bg-success/10 border-success/30 text-success'
           : 'bg-white border-surface-dark text-text-muted hover:border-primary/30'}"
       onclick={() => { photoTaken = !photoTaken; saved = false; }}
     >
