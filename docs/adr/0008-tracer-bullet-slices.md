@@ -1,6 +1,6 @@
 # 0008 — v1 tracer-bullet slice order
 
-**Status:** Accepted
+**Status:** Accepted — slice 1 landed (onboarding + today on Dexie `answers`/`schedule`); slices 2–3 still ahead.
 **Date:** 2026-05-11
 
 ## Context
@@ -105,6 +105,3 @@ patterns — they reuse slices 1–3's shapes.
   removing the `dateOffset` / `activeScenario` developer affordances
   from `AppState`, replacing `photoTaken: boolean` with a real photo
   reference) happen *during* the slice that touches them.
-- The `lib/server/`, `lib/data/storage.ts` (localStorage prototype),
-  and `lib/data/scenario-loader.ts` artefacts from prior iterations
-  are removed in slice 1's cleanup pass — Dexie supersedes them.
