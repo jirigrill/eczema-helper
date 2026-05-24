@@ -1,6 +1,15 @@
 import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder } from '$lib/domain/models';
+import type { Result } from '$lib/types/result';
 import { getCategoryById } from '$lib/data/categories';
 import { addDays } from '$lib/utils/date';
+import { getAllergenStatuses } from '$lib/domain/allergen-status';
+
+// ── Re-test eligibility rejection ────────────────────────────
+
+export type RetestRejection =
+  | { code: 'not-baby-confirmed'; invalidIds: string[] }
+  | { code: 'already-cleared';    invalidIds: string[] }
+  | { code: 'retest-already-scheduled'; invalidIds: string[] };
 
 // ── Schedule generation ───────────────────────────────────────
 
@@ -190,11 +199,53 @@ export function addTrainingPhase(
 
 // ── Append re-test phases for confirmed baby allergies ────────
 
+/**
+ * Appends reintroduction phases for baby-confirmed allergens that are
+ * eligible for a re-test.
+ *
+ * Acceptance rule (ADR-0012): an id is accepted iff
+ *   (a) it is in `schedule.permanentBaby`,
+ *   (b) its current `AllergenStatus` as of `today` is exactly `permanent-baby`, and
+ *   (c) no active or future `reintroduction` phase for that id already exists.
+ *
+ * Rejection variants (checked in priority order):
+ *   1. `not-baby-confirmed`      — id not in permanentBaby
+ *   2. `retest-already-scheduled` — an active or future reintroduction phase exists
+ *   3. `already-cleared`          — status is not `permanent-baby` (e.g. `passed`)
+ */
 export function appendReTestPhases(
   schedule: GeneratedSchedule,
   ids: string[],
-  _severity: EczemaSeverity
-): GeneratedSchedule {
+  today: string,
+): Result<GeneratedSchedule, RetestRejection> {
+  // 1. not-baby-confirmed
+  const notBaby = ids.filter(id => !schedule.permanentBaby.includes(id));
+  if (notBaby.length > 0) {
+    return { ok: false, error: { code: 'not-baby-confirmed', invalidIds: notBaby } };
+  }
+
+  // 2. retest-already-scheduled (active or future reintroduction phase)
+  const alreadyScheduled = ids.filter(id =>
+    schedule.phases.some(
+      p => p.type === 'reintroduction' &&
+           p.categoryIds.includes(id) &&
+           (p.endDate === '' || p.endDate >= today)
+    )
+  );
+  if (alreadyScheduled.length > 0) {
+    return { ok: false, error: { code: 'retest-already-scheduled', invalidIds: alreadyScheduled } };
+  }
+
+  // 3. already-cleared (status is not permanent-baby — e.g. passed a previous retest)
+  const statuses = getAllergenStatuses(schedule, today);
+  const notEligible = ids.filter(id =>
+    statuses.find(s => s.id === id)?.status !== 'permanent-baby'
+  );
+  if (notEligible.length > 0) {
+    return { ok: false, error: { code: 'already-cleared', invalidIds: notEligible } };
+  }
+
+  // All ids valid — append phases
   const reintroductionDays = 4;
   const newPhases = [...schedule.phases];
   let cursor = addDays(schedule.estimatedEndDate, 1);
@@ -215,7 +266,7 @@ export function appendReTestPhases(
   }
 
   const newEndDate = addDays(cursor, -1);
-  return { ...schedule, phases: newPhases, estimatedEndDate: newEndDate };
+  return { ok: true, data: { ...schedule, phases: newPhases, estimatedEndDate: newEndDate } };
 }
 
 // ── Training reminders for a given date ──────────────────────
