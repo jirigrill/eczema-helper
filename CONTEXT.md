@@ -50,15 +50,63 @@ current phase type:
 | `elimination` | Permanent eliminations + all protocol allergens |
 | `reintroduction` of X | Permanent + protocol minus X (current) minus already-passed allergens |
 | `rest` | Permanent + protocol minus already-passed allergens (no current exception) |
-| `training` of X | Same as the concurrent non-training phase, but X is also allowed in small doses |
+| `tolerance-building` of X | Same as the concurrent non-training phase, but X is also allowed in small doses |
 | After all phases | Permanent eliminations only |
 
-An allergen counts as **passed** only if its reintroduction phase is *not*
-immediately followed by a rest phase. A rest phase signals a reaction —
-the allergen remains eliminated until re-tested.
+`EliminationWindow` is now *derived from* `AllergenStatus` — the per-phase
+table above is the projection rule, but the source of truth is the status
+query. `getEliminatedSlugsForDate` collapses to a filter over
+`getAllergenStatuses` returning ids of statuses `{ permanent-mother,
+permanent-baby, eliminated, reacted, not-yet-tested }`.
 
-`permanentEliminations` (from `motherAllergies` + `babyConfirmedAllergies`)
-always apply regardless of phase type.
+`permanentEliminations` (the aggregate of `motherAllergies` +
+`babyConfirmedAllergies`) always applies regardless of phase type. The
+schedule stores `permanentMother` and `permanentBaby` as separate
+fields; `permanentEliminations` is the derived concatenation for the
+day-view filter.
+
+### AllergenStatus
+The per-allergen lifecycle state on a given calendar date, derived by
+`getAllergenStatuses(schedule, date)`. One entry per allergen in the
+*closed universe* `permanentMother ∪ permanentBaby ∪ protocolMembers`
+— allergens outside that universe have no status (they are ordinary
+foods, not allergens-of-interest).
+
+Status is a discriminated string union:
+
+| Status | Meaning |
+|---|---|
+| `permanent-mother` | Mother's own allergy. Lifelong. Never enters a reintroduction. Terminal. |
+| `permanent-baby` | Baby's confirmed allergy. Eliminated by default; eligible for end-of-program retest via `appendReTestPhases`. |
+| `not-yet-tested` | Protocol allergen with a reintroduction phase still in the future, or never scheduled. |
+| `eliminated` | Currently inside the active `elimination` (or `reset`) phase. |
+| `testing` | Currently inside a `reintroduction` phase. |
+| `passed` | Latest reintroduction completed cleanly (no rest follow-up). |
+| `reacted` | Latest reintroduction was followed by a rest phase (reaction signal). |
+| `tolerance-building` | Open-ended `tolerance-building` phase active for this allergen. |
+
+**Invariants:**
+
+- *Latest-reintroduction wins.* An allergen may appear in multiple
+  reintroduction phases (initial protocol + retest phases appended via
+  `appendReTestPhases`). Status is determined by the most recent
+  reintroduction phase that has started on or before `date`.
+- *Reintroduction supersedes earlier `tolerance-building`.* If both a
+  `tolerance-building` phase and a later `reintroduction` phase for the
+  same allergen have started, the reintroduction phase drives the
+  status.
+- *Origin survives clearance.* A `permanent-mother` allergen never
+  becomes `testing` — no domain operation creates a reintroduction
+  phase for one. A `permanent-baby` allergen with a future retest phase
+  remains `permanent-baby` until that phase activates; on activation it
+  becomes `testing`, then either `passed` (clean retest) or reverts to
+  `permanent-baby` (reacted retest).
+- *Closed universe.* `getAllergenStatuses(schedule, date)` returns
+  exactly `|permanentMother ∪ permanentBaby ∪ protocolMembers|` entries.
+  No more, no fewer. The three sets are disjoint by construction
+  (the protocol generator excludes permanents from `protocolMembers`).
+
+See [ADR-0012](docs/adr/0012-allergen-status-lifecycle.md).
 
 ### Actor
 The person whose food intake a `Meal` describes. In v1 always `'mother'`
