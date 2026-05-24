@@ -132,8 +132,8 @@ test('data-state="warning" applies non-transparent background', async ({ page })
   expect(bg).not.toBe('transparent');
 });
 
-test('data-state="primary" applies non-transparent background', async ({ page }) => {
-  const el = await injectElement(page, { id: 'test-state-primary', dataState: 'primary' });
+test('data-state="info" applies non-transparent background', async ({ page }) => {
+  const el = await injectElement(page, { id: 'test-state-info', dataState: 'info' });
   const bg = await el.evaluate((e) => getComputedStyle(e).backgroundColor);
   expect(bg).not.toBe('rgba(0, 0, 0, 0)');
   expect(bg).not.toBe('transparent');
