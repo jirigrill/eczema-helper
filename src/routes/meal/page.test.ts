@@ -49,6 +49,7 @@ describe('meal/+page.svelte', () => {
       status: 'ready',
       schedule: sampleSchedule,
       answers: sampleAnswers,
+      allergenStatuses: [],
       eliminatedToday: [],
       reintroInfo: null,
       progress: { currentDay: 1, totalDays: 14, percentComplete: 7 },
@@ -64,6 +65,7 @@ describe('meal/+page.svelte', () => {
       status: 'ready',
       schedule: sampleSchedule,
       answers: sampleAnswers,
+      allergenStatuses: [],
       eliminatedToday: ['dairy'],
       reintroInfo: null,
       progress: { currentDay: 1, totalDays: 14, percentComplete: 7 },
@@ -79,6 +81,7 @@ describe('meal/+page.svelte', () => {
       status: 'ready',
       schedule: sampleSchedule,
       answers: sampleAnswers,
+      allergenStatuses: [],
       eliminatedToday: [],
       reintroInfo: {
         allergenId: 'dairy',

@@ -7,7 +7,8 @@ import {
 	getReintroductionDayInfo,
 	getScheduleProgress,
 } from '$lib/domain/schedule-queries';
-import type { GeneratedSchedule, QuestionnaireAnswers, ReintroductionDayInfo } from '$lib/domain/models';
+import { getAllergenStatuses } from '$lib/domain/allergen-status';
+import type { AllergenStatus, GeneratedSchedule, QuestionnaireAnswers, ReintroductionDayInfo } from '$lib/domain/models';
 import { todayIso } from '$lib/utils/date';
 
 export type ScheduleContext =
@@ -18,6 +19,7 @@ export type ScheduleContext =
 			status: 'ready';
 			schedule: GeneratedSchedule;
 			answers: QuestionnaireAnswers;
+			allergenStatuses: AllergenStatus[];
 			eliminatedToday: string[];
 			reintroInfo: ReintroductionDayInfo | null;
 			progress: { currentDay: number; totalDays: number; percentComplete: number };
@@ -40,14 +42,16 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 			const { id: _sid, ...schedule } = scheduleRow;
 			const { id: _aid, ...answers } = answersRow;
 			const today = todayIso();
+			const typedSchedule = schedule as GeneratedSchedule;
 
 			set({
 				status: 'ready',
-				schedule: schedule as GeneratedSchedule,
+				schedule: typedSchedule,
 				answers: answers as QuestionnaireAnswers,
-				eliminatedToday: getEliminatedSlugsForDate(schedule as GeneratedSchedule, today),
-				reintroInfo: getReintroductionDayInfo(schedule as GeneratedSchedule, today),
-				progress: getScheduleProgress(schedule as GeneratedSchedule, today),
+				allergenStatuses: getAllergenStatuses(typedSchedule, today),
+				eliminatedToday: getEliminatedSlugsForDate(typedSchedule, today),
+				reintroInfo: getReintroductionDayInfo(typedSchedule, today),
+				progress: getScheduleProgress(typedSchedule, today),
 			});
 		},
 		error: (e: unknown) => set({ status: 'error', message: e instanceof Error ? e.message : String(e) }),
