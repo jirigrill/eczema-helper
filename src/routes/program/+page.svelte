@@ -220,13 +220,13 @@
         <div class="flex-1 min-w-0">
           {#if isBeforeSchedule}
             <p class="font-semibold text-text text-sm">Program ještě nezačal</p>
-            <p class="text-xs text-text-muted mt-0.5">Začíná {formatDateCs(schedule.startDate)}</p>
+            <p class="body-muted mt-0.5">Začíná {formatDateCs(schedule.startDate)}</p>
           {:else if isProgramDone}
             <p class="font-semibold text-text text-sm">Program dokončen 🎉</p>
-            <p class="text-xs text-text-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
+            <p class="body-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
           {:else if currentPhase}
             <p class="font-semibold text-text text-sm leading-snug">{currentPhase.label}</p>
-            <p class="text-xs text-text-muted mt-0.5">
+            <p class="body-muted mt-0.5">
               den {currentDayInPhase(currentPhase)}{currentPhase.endDate ? ` z ${phaseDayCount(currentPhase)}` : ''} · {formatDateLongCs(today)}
             </p>
           {/if}
@@ -241,12 +241,12 @@
 
             <div>
               <p class="section-label mb-1">Co dělat</p>
-              <p class="text-xs text-text-muted">Jezte normálně — zaznamenáváme <strong>výchozí stav kůže</strong> miminka. Denně zaznamenejte stav kůže v přehledu dne.</p>
+              <p class="body-muted">Jezte normálně — zaznamenáváme <strong>výchozí stav kůže</strong> miminka. Denně zaznamenejte stav kůže v přehledu dne.</p>
             </div>
             {#if permanentEliminated.length > 0}
               <div>
                 <p class="section-label">Trvalá omezení</p>
-                <p class="text-xs text-text-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
+                <p class="body-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
                 <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
               </div>
             {/if}
@@ -255,7 +255,7 @@
 
             <div>
               <p class="section-label mb-1">Co dělat</p>
-              <p class="text-xs text-text-muted">Vylučte všechny níže uvedené alergeny — <strong>i ve skryté podobě</strong> (etikety, omáčky, pečivo). Čekáme na ustálení kůže miminka.</p>
+              <p class="body-muted">Vylučte všechny níže uvedené alergeny — <strong>i ve skryté podobě</strong> (etikety, omáčky, pečivo). Čekáme na ustálení kůže miminka.</p>
             </div>
             <div>
               <p class="section-label text-danger">Vyřazeno</p>
@@ -264,7 +264,7 @@
             {#if permanentEliminated.length > 0}
               <div>
                 <p class="section-label">Trvalá omezení</p>
-                <p class="text-xs text-text-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
+                <p class="body-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
                 <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
               </div>
             {/if}
@@ -274,7 +274,7 @@
 
             <div>
               <p class="section-label mb-1">Co dělat</p>
-              <p class="text-xs text-text-muted">
+              <p class="body-muted">
                 Zařaďte <strong>{testCat?.nameCs?.toLowerCase() ?? ''}</strong> do jídelníčku.
                 {#if reintroInfo?.isEvaluationDay}
                   Dnes vyhodnoťte celkovou reakci miminka.
@@ -292,7 +292,7 @@
                     <AllergenChip slug={currentPhase.categoryIds[0]} bare />
                   </span>
                   {#if reintroInfo}
-                    <span class="text-xs text-text-muted">
+                    <span class="body-muted">
                       den {reintroInfo.dayInPhase} z {reintroInfo.totalDays} · {reintroInfo.label}
                     </span>
                   {/if}
@@ -318,7 +318,7 @@
 
             <div>
               <p class="section-label mb-1">Co dělat</p>
-              <p class="text-xs text-text-muted">
+              <p class="body-muted">
                 Klidový režim — kůže se zotavuje. Jezte <strong>pouze potraviny, které miminko toleruje</strong>.
                 Žádné nové alergeny nezařazujte.
               </p>
@@ -329,7 +329,7 @@
 
             <div>
               <p class="section-label mb-1">Co dělat</p>
-              <p class="text-xs text-text-muted">
+              <p class="body-muted">
                 Tréninková fáze — občas zařaďte malou dávku <strong>{trainingCat?.nameCs?.toLowerCase() ?? ''}</strong> (max 2× týdně, max 1 lžička). Budujete toleranci.
               </p>
             </div>
@@ -443,9 +443,9 @@
               onclick={() => (expandedPhaseId = expandedPhaseId === phase.id ? null : phase.id)}
             >
               <div class="shrink-0 w-8 h-8 rounded-full {nodeColor(phaseEval)} flex items-center justify-center z-10"></div>
-              <span class="text-xs text-text-muted flex-1 truncate">{phase.label}</span>
+              <span class="body-muted flex-1 truncate">{phase.label}</span>
               <span class="text-xs text-text-muted/50 shrink-0">{formatDateCs(phase.startDate)}{phase.endDate ? `–${formatDateCs(phase.endDate)}` : '–…'}</span>
-              <span class="text-xs text-text-muted shrink-0">{expandedPhaseId === phase.id ? '▾' : '▸'}</span>
+              <span class="body-muted shrink-0">{expandedPhaseId === phase.id ? '▾' : '▸'}</span>
             </button>
 
             {#if expandedPhaseId === phase.id}
@@ -549,7 +549,7 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-white border-2 border-surface-dark flex items-center justify-center text-sm z-10">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="text-xs text-text-muted flex-1">{phase.label}</span>
+              <span class="body-muted flex-1">{phase.label}</span>
               <span class="text-xs text-text-muted/60 shrink-0">{phase.endDate ? dnyCs(phaseDayCount(phase)) : 'průběžně'}</span>
             </div>
           {/if}
@@ -577,7 +577,7 @@
           <div class="border-t border-success/20 pt-4 space-y-3">
             <div>
               <p class="text-sm font-semibold text-text mb-1">Otestování potvrzených alergií miminka</p>
-              <p class="text-xs text-text-muted leading-relaxed">
+              <p class="body-muted leading-relaxed">
                 Testování by mělo proběhnout <strong>velmi opatrně</strong> a ideálně <strong>s lékařem</strong>.
               </p>
             </div>

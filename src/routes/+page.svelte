@@ -215,7 +215,7 @@
         </div>
 
         <div class="mt-auto">
-          <p class="text-xs text-text-muted mb-1 text-center">
+          <p class="body-muted mb-1 text-center">
             Závažnost ovlivní délku jednotlivých fází programu
           </p>
           <Button onclick={next} disabled={!canAdvance()}>Pokračovat</Button>
