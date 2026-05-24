@@ -231,7 +231,7 @@
           <button
             class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
               {isExpanded
-                ? 'bg-primary/10 border-primary/40'
+                ? 'bg-primary/10 border-primary/30'
                 : inMeal
                   ? 'bg-success/10 border-success/30'
                   : isElim
