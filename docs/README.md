@@ -21,7 +21,7 @@ Prototype-first frontend. Backend, persistence, and AI features are not wired ye
 ## Design docs
 
 - [tech-stack.md](architecture/tech-stack.md) — framework, runtime, deployment choices
-- [ports-and-adapters.md](architecture/ports-and-adapters.md) — hexagonal architecture (intended shape for when backend returns)
+- [ports-and-adapters.md](architecture/ports-and-adapters.md) — hexagonal architecture; current ports and Dexie/in-memory adapters
 
 ## Commands
 

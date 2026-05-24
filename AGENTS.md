@@ -17,7 +17,7 @@ Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic ec
 - `docs/adr/` — numbered architectural decision records (ADR-0001 … ADR-0011 so far)
 - `docs/README.md` — project status + structure overview
 - `docs/architecture/tech-stack.md` — framework and runtime choices
-- `docs/architecture/ports-and-adapters.md` — hexagonal architecture (intended shape for re-wired backend)
+- `docs/architecture/ports-and-adapters.md` — hexagonal architecture, current ports/adapters around Dexie
 
 ## Tech Stack
 
