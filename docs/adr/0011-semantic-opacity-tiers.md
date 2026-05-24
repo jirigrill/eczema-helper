@@ -21,8 +21,10 @@ Approve `/5` and `/15` as two **named semantic tiers** distinct from the `[data-
 
 **Tier semantics:**
 
-- **`/5` — subtle contextual tint.** The surface is *associated* with a colour but is neither selected nor alarming. Used for passive decorative backgrounds (empty-CTA invite, not-selected choice card, done-tile surface). Single-property background only; no border or text colour change.
-- **`/15` — icon / selection background.** A circular container or chip is *actively representing* that colour's meaning (phase step, meal type, selected allergen). Single-property background only; the text colour is the semantic colour at full opacity.
+- **`/5` — subtle contextual tint.** The surface is *associated* with a colour but is neither selected nor alarming. Used for passive decorative backgrounds (empty-CTA invite, not-selected choice card, done-tile surface). Background only; no border or text colour change.
+- **`/15` — icon / selection background.** An element is *actively representing* that colour's meaning. Two sub-patterns:
+  - **Icon container** (circular/avatar): background `/15` only; text at full semantic opacity. Used for phase step-number circles, meal-type avatars.
+  - **Selection chip** (inline pill): background `/15` + text at full semantic opacity + border `/30`. Used for selected allergen chips, insight tag pills.
 
 The `[data-state]` scale (`/10`–`/40`) remains for **banner-level** components where background + border + text are set together (InfoBanner, status chips, etc.).
 

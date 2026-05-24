@@ -431,7 +431,7 @@ Three opacity tiers exist for semantic-colour backgrounds. Each has a distinct r
 | Tier | Tailwind suffix | Role | Examples |
 |------|----------------|------|---------|
 | **Subtle tint** | `/5` | Surface is *associated* with a colour but passive — not selected, not alarming. Background only; no border/text change. | Not-selected severity choice card, training-band background, `card-empty-cta` background, `task-tile-done` surface |
-| **Icon / selection background** | `/15` | Circular container or chip *actively represents* the colour's meaning. Background only; text is the semantic colour at full opacity. | Phase step-number circles, meal-type avatars, selected allergen chips, insight tag pills |
+| **Icon / selection background** | `/15` | Element *actively represents* the colour's meaning. Two sub-patterns: (a) **icon container** — circular/avatar, background only, text at full semantic opacity; (b) **selection chip** — inline pill, background `/15` + text at full semantic opacity + border `/30`. | Phase step-number circles, meal-type avatars (sub-pattern a); selected allergen chips, insight tag pills (sub-pattern b) |
 | **Banner scale** | `/10`–`/40` | Banner-level component — background + border + text are set together via `[data-state]`. | InfoBanner, status chips, alert cards |
 
 ## Typography
