@@ -194,7 +194,7 @@
   {#if ctx.status === 'error'}
     <ErrorAlert message={ctx.message} />
   {:else if !schedule}
-    <p class="text-text-muted text-sm">Nejprve dokončete dotazník.</p>
+    <p class="body-muted">Nejprve dokončete dotazník.</p>
   {:else}
 
     <!-- ═══ Hero card: progress + current phase + CTA ═══ -->
@@ -208,7 +208,7 @@
               stroke-linecap="round"
               stroke-dasharray={2 * Math.PI * 27}
               stroke-dashoffset={2 * Math.PI * 27 * (1 - (isBeforeSchedule ? 0 : (progress?.percentComplete ?? 0)) / 100)}
-              style="transition: stroke-dashoffset 0.6s ease"
+              class="progress-ring-animated"
             />
           </svg>
           <div class="absolute inset-0 flex items-center justify-center">
@@ -219,13 +219,13 @@
         <!-- Phase info -->
         <div class="flex-1 min-w-0">
           {#if isBeforeSchedule}
-            <p class="font-semibold text-text text-sm">Program ještě nezačal</p>
+            <p class="body-semibold">Program ještě nezačal</p>
             <p class="body-muted mt-0.5">Začíná {formatDateCs(schedule.startDate)}</p>
           {:else if isProgramDone}
-            <p class="font-semibold text-text text-sm">Program dokončen 🎉</p>
+            <p class="body-semibold">Program dokončen 🎉</p>
             <p class="body-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
           {:else if currentPhase}
-            <p class="font-semibold text-text text-sm leading-snug">{currentPhase.label}</p>
+            <p class="body-semibold leading-snug">{currentPhase.label}</p>
             <p class="body-muted mt-0.5">
               den {currentDayInPhase(currentPhase)}{currentPhase.endDate ? ` z ${phaseDayCount(currentPhase)}` : ''} · {formatDateLongCs(today)}
             </p>
@@ -240,7 +240,7 @@
           {#if currentPhase.type === 'reset'}
 
             <div>
-              <p class="section-label mb-1">Co dělat</p>
+              <p class="section-label">Co dělat</p>
               <p class="body-muted">Jezte normálně — zaznamenáváme <strong>výchozí stav kůže</strong> miminka. Denně zaznamenejte stav kůže v přehledu dne.</p>
             </div>
             {#if permanentEliminated.length > 0}
@@ -254,7 +254,7 @@
           {:else if currentPhase.type === 'elimination'}
 
             <div>
-              <p class="section-label mb-1">Co dělat</p>
+              <p class="section-label">Co dělat</p>
               <p class="body-muted">Vylučte všechny níže uvedené alergeny — <strong>i ve skryté podobě</strong> (etikety, omáčky, pečivo). Čekáme na ustálení kůže miminka.</p>
             </div>
             <div>
@@ -273,7 +273,7 @@
             {@const testCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
-              <p class="section-label mb-1">Co dělat</p>
+              <p class="section-label">Co dělat</p>
               <p class="body-muted">
                 Zařaďte <strong>{testCat?.nameCs?.toLowerCase() ?? ''}</strong> do jídelníčku.
                 {#if reintroInfo?.isEvaluationDay}
@@ -317,7 +317,7 @@
           {:else if currentPhase.type === 'rest'}
 
             <div>
-              <p class="section-label mb-1">Co dělat</p>
+              <p class="section-label">Co dělat</p>
               <p class="body-muted">
                 Klidový režim — kůže se zotavuje. Jezte <strong>pouze potraviny, které miminko toleruje</strong>.
                 Žádné nové alergeny nezařazujte.
@@ -328,7 +328,7 @@
             {@const trainingCat = getCategoryById(currentPhase.categoryIds[0])}
 
             <div>
-              <p class="section-label mb-1">Co dělat</p>
+              <p class="section-label">Co dělat</p>
               <p class="body-muted">
                 Tréninková fáze — občas zařaďte malou dávku <strong>{trainingCat?.nameCs?.toLowerCase() ?? ''}</strong> (max 2× týdně, max 1 lžička). Budujete toleranci.
               </p>
@@ -344,12 +344,12 @@
 
         <div class="space-y-3 border-t border-surface-dark pt-3 text-xs">
           <div>
-            <p class="section-label mb-1">Odchylky v jídelníčku</p>
+            <p class="section-label">Odchylky v jídelníčku</p>
             {#if heroConflicts.count === 0}
               <p class="text-text-muted">Žádné odchylky — vše v souladu s programem.</p>
             {:else}
               <p class="text-warning font-medium mb-1">{heroConflicts.count} odchylek</p>
-              <div class="space-y-0.5 text-text-muted">
+              <div class="muted-list">
                 {#each heroConflicts.items as c}
                   <p>{c.icon} {c.name} · {formatDateCs(c.date)}</p>
                 {/each}
@@ -361,7 +361,7 @@
           </div>
 
           <div>
-            <p class="section-label mb-1">Reakce kůže</p>
+            <p class="section-label">Reakce kůže</p>
             {#if heroAssessments.length === 0}
               <p class="text-text-muted">Žádné záznamy stavu kůže.</p>
             {:else}
@@ -382,8 +382,8 @@
             {@const heroRows = getAllergenStatusRows(currentPhase)}
             {#if heroRows.length > 1}
               <div>
-                <p class="section-label mb-1">Stav alergenů</p>
-                <div class="space-y-0.5 text-text-muted">
+                <p class="section-label">Stav alergenů</p>
+                <div class="muted-list">
                   {#each heroRows as row}
                     {@const rowCat = getCategoryById(row.slug)}
                     <div class="flex items-center gap-2">
@@ -400,7 +400,7 @@
           {/if}
 
           <div>
-            <p class="section-label mb-1">Celkové hodnocení</p>
+            <p class="section-label">Celkové hodnocení</p>
             {#if heroEval}
               <p class="font-medium {evalColor(heroEval)}">{evalLabel(heroEval)}{#if heroEval.notes} <span class="font-normal text-text-muted">— {heroEval.notes}</span>{/if}</p>
             {:else}
@@ -455,12 +455,12 @@
 
                 <!-- Dietary deviations -->
                 <div>
-                  <p class="section-label mb-1">Odchylky v jídelníčku</p>
+                  <p class="section-label">Odchylky v jídelníčku</p>
                   {#if conflicts.count === 0}
                     <p class="text-text-muted">Žádné odchylky — vše v souladu s programem.</p>
                   {:else}
                     <p class="text-warning font-medium mb-1">{conflicts.count} odchylek</p>
-                    <div class="space-y-0.5 text-text-muted">
+                    <div class="muted-list">
                       {#each conflicts.items as c}
                         <p>{c.icon} {c.name} · {formatDateCs(c.date)}</p>
                       {/each}
@@ -473,7 +473,7 @@
 
                 <!-- Skin reactions -->
                 <div>
-                  <p class="section-label mb-1">Reakce kůže</p>
+                  <p class="section-label">Reakce kůže</p>
                   {#if phaseAssessments.length === 0}
                     <p class="text-text-muted">Žádné záznamy stavu kůže.</p>
                   {:else}
@@ -499,8 +499,8 @@
                   {@const rows = getAllergenStatusRows(phase)}
                   {#if rows.length > 1}
                     <div>
-                      <p class="section-label mb-1">Stav alergenů</p>
-                      <div class="space-y-0.5 text-text-muted">
+                      <p class="section-label">Stav alergenů</p>
+                      <div class="muted-list">
                         {#each rows as row}
                           {@const rowCat = getCategoryById(row.slug)}
                           <div class="flex items-center gap-2">
@@ -518,7 +518,7 @@
 
                 <!-- Overall evaluation -->
                 <div>
-                  <p class="section-label mb-1">Celkové hodnocení</p>
+                  <p class="section-label">Celkové hodnocení</p>
                   {#if phaseEval}
                     <p class="font-medium {evalColor(phaseEval)}">{evalLabel(phaseEval)}{#if phaseEval.notes} <span class="font-normal text-text-muted">— {phaseEval.notes}</span>{/if}</p>
                   {:else}
@@ -622,3 +622,9 @@
 {#if showToast}
   <Toast message={toastMessage} onClose={() => (showToast = false)} />
 {/if}
+
+<style>
+  .progress-ring-animated {
+    transition: stroke-dashoffset 0.6s ease;
+  }
+</style>

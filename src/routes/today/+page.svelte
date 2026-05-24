@@ -45,10 +45,10 @@
   <!-- Header -->
   <div class="px-4 pt-4 pb-2 flex items-end justify-between">
     <div>
-      <div class="text-[11px] uppercase tracking-wide text-text-muted">
+      <div class="micro-label">
         {czechWeekday(today)} · {formatDateLongCs(today)}
       </div>
-      <h2 class="text-2xl font-bold text-text">Dnes</h2>
+      <h2 class="page-heading">Dnes</h2>
     </div>
     <a
       href="/settings"
@@ -101,7 +101,7 @@
       <div
         class="bg-white rounded-2xl border border-surface-dark p-6 text-center"
       >
-        <p class="text-text-muted text-sm">
+        <p class="body-muted">
           Program není nastaven. Dokončete dotazník.
         </p>
         <a href="/" class="text-primary text-sm font-medium mt-2 inline-block"
@@ -124,7 +124,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-sm font-bold text-text">{phase.label}</span>
+                <span class="body-bold">{phase.label}</span>
                 <PhaseBadge type={phase.type} />
               </div>
               {#if ctx.progress}
@@ -143,7 +143,7 @@
               📅
             </div>
             <div class="flex-1 min-w-0">
-              <span class="text-sm font-bold text-text">Program skončil</span>
+              <span class="body-bold">Program skončil</span>
               {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
                   Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
@@ -151,7 +151,7 @@
               {/if}
             </div>
           {/if}
-          <span class="text-text-muted text-sm">›</span>
+          <span class="body-muted">›</span>
         </div>
         {#if ctx.progress}
           <ProgressBar value={ctx.progress.percentComplete} />
@@ -221,7 +221,7 @@
 
       <!-- Bottom hint -->
       <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg);transform-origin:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rotate-180">
           <path d="M12 19V5M5 12l7-7 7 7"/>
         </svg>
         <span>Vše zapisuj přes <strong>+</strong>: foto · jídlo · stav</span>

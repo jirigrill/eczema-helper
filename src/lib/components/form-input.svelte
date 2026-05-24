@@ -11,7 +11,7 @@
 </script>
 
 <div>
-  <label for={id} class="block text-sm font-medium text-text mb-1">
+  <label for={id} class="block body-medium mb-1">
     {label}
     {#if hint}
       <span class="text-text-muted font-normal">({hint})</span>
