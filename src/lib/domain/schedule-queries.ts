@@ -1,5 +1,6 @@
-import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo } from '$lib/domain/models';
+import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue } from '$lib/domain/models';
 import { getPermanentEliminations } from '$lib/domain/models';
+import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange } from '$lib/utils/date';
 
 // ── Current phase ─────────────────────────────────────────────
@@ -17,105 +18,43 @@ export function getPhaseForDate(schedule: GeneratedSchedule, date: string): Sche
 }
 
 // ── What is eliminated on a given date ───────────────────────
-// See CONTEXT.md → EliminationWindow for the per-phase semantics table.
+// See CONTEXT.md → EliminationWindow for the two-step rule.
 
-// Derive the protocol from the schedule's elimination phase so it stays data-driven.
-function getProtocolIds(schedule: GeneratedSchedule): string[] {
-  const elimPhase = schedule.phases.find(p => p.type === 'elimination');
-  return elimPhase?.categoryIds ?? [];
-}
-
-function getPassedAllergens(schedule: GeneratedSchedule, beforeIndex: number): Set<string> {
-  const passed = new Set<string>();
-  for (let i = 0; i < beforeIndex; i++) {
-    const p = schedule.phases[i];
-    if (p.type === 'reintroduction') {
-      // An allergen passed if its reintroduction is NOT followed by a rest phase
-      const nextPhase = schedule.phases[i + 1];
-      if (!nextPhase || nextPhase.type !== 'rest') {
-        for (const id of p.categoryIds) passed.add(id);
-      }
-    }
-  }
-  return passed;
-}
+const FORBIDDEN_STATUSES = new Set<AllergenStatusValue>([
+  'permanent-mother',
+  'permanent-baby',
+  'eliminated',
+  'reacted',
+  'not-yet-tested',
+]);
 
 /**
  * Returns the allergen slugs the mother must not eat on `date`.
  *
- * The result depends on the active phase type — see the EliminationWindow
- * entry in CONTEXT.md for the full per-phase semantics table. In brief:
- * - `reset`: only permanent eliminations (mother + baby)
- * - `elimination`: permanent + all protocol allergens
- * - `reintroduction` of X: permanent + protocol minus X minus already-passed
- * - `rest`: permanent + protocol minus already-passed (no current exception)
- * - `tolerance-building` of X: same as the concurrent non-tolerance-building phase, but X is also allowed
- * - after all phases: only permanent eliminations
- *
- * An allergen counts as "passed" only if its reintroduction phase is not
- * immediately followed by a rest phase (a rest phase signals a reaction).
+ * Two-step rule (see CONTEXT.md → EliminationWindow):
+ * 1. Reset guard — during `reset` or before the program starts, return only
+ *    permanent eliminations. Protocol allergens carry status `eliminated`
+ *    during reset, but the mother eats them normally to establish a baseline.
+ * 2. Status filter — for all other phases, return ids of allergens whose
+ *    `AllergenStatus` is in { permanent-mother, permanent-baby, eliminated,
+ *    reacted, not-yet-tested }. Statuses { testing, passed,
+ *    tolerance-building } are not forbidden.
  */
 export function getEliminatedSlugsForDate(
   schedule: GeneratedSchedule,
   date: string
 ): string[] {
-  const permanent = getPermanentEliminations(schedule);
-  const eliminated = new Set<string>(permanent);
   const phase = getPhaseForDate(schedule, date);
 
-  if (!phase) return [...eliminated];
-
-  if (phase.type === 'reset') {
-    return [...eliminated];
+  // Step 1: reset guard
+  if (!phase || phase.type === 'reset') {
+    return getPermanentEliminations(schedule);
   }
 
-  if (phase.type === 'elimination') {
-    for (const categoryId of phase.categoryIds) {
-      if (!permanent.includes(categoryId)) {
-        eliminated.add(categoryId);
-      }
-    }
-    return [...eliminated];
-  }
-
-  if (phase.type === 'reintroduction' || phase.type === 'rest') {
-    const protocolIds = getProtocolIds(schedule);
-    const thisIndex = schedule.phases.indexOf(phase);
-    const alreadyPassed = getPassedAllergens(schedule, thisIndex);
-
-    for (const categoryId of protocolIds) {
-      if (
-        !permanent.includes(categoryId) &&
-        !alreadyPassed.has(categoryId) &&
-        !(phase.type === 'reintroduction' && phase.categoryIds.includes(categoryId))
-      ) {
-        eliminated.add(categoryId);
-      }
-    }
-    return [...eliminated];
-  }
-
-  if (phase.type === 'tolerance-building') {
-    // Tolerance-building phases are concurrent — find the "real" phase context from surrounding phases
-    const toleranceId = phase.categoryIds[0];
-    // Find non-tolerance-building phase for this date (reintroduction or rest)
-    const realPhase = schedule.phases.find(
-      p => p.type !== 'tolerance-building' && isDateInRange(date, p.startDate, p.endDate)
-    );
-    if (realPhase) {
-      const baseEliminated = new Set(getEliminatedSlugsForDate(
-        { ...schedule, phases: schedule.phases.filter(p => p.type !== 'tolerance-building') },
-        date
-      ));
-      // Tolerance-building allergen is allowed in small doses
-      baseEliminated.delete(toleranceId);
-      return [...baseEliminated];
-    }
-    // If no concurrent phase, only permanent eliminations apply
-    return [...eliminated];
-  }
-
-  return [...eliminated];
+  // Step 2: status filter
+  return getAllergenStatuses(schedule, date)
+    .filter(s => FORBIDDEN_STATUSES.has(s.status))
+    .map(s => s.id);
 }
 
 // ── End-of-phase evaluation check ────────────────────────────

@@ -50,14 +50,22 @@ current phase type:
 | `elimination` | Permanent eliminations + all protocol allergens |
 | `reintroduction` of X | Permanent + protocol minus X (current) minus already-passed allergens |
 | `rest` | Permanent + protocol minus already-passed allergens (no current exception) |
-| `tolerance-building` of X | Same as the concurrent non-training phase, but X is also allowed in small doses |
+| `tolerance-building` of X | X is allowed in small doses (status `tolerance-building` → not forbidden); every other allergen follows its own current `AllergenStatus` |
 | After all phases | Permanent eliminations only |
 
 `EliminationWindow` is now *derived from* `AllergenStatus` — the per-phase
 table above is the projection rule, but the source of truth is the status
-query. `getEliminatedSlugsForDate` collapses to a filter over
-`getAllergenStatuses` returning ids of statuses `{ permanent-mother,
-permanent-baby, eliminated, reacted, not-yet-tested }`.
+query. `getEliminatedSlugsForDate` works in two steps:
+
+1. **Reset guard.** If the active phase is `reset` (or no phase is active),
+   return only `permanentEliminations`. Protocol allergens carry status
+   `eliminated` during reset (they are inside the early-phase window), but
+   the mother eats them normally during reset to establish a baseline —
+   forbidding them here would defeat that purpose.
+2. **Status filter.** For all other phases, return ids of allergens whose
+   status is in `{ permanent-mother, permanent-baby, eliminated, reacted,
+   not-yet-tested }`. Statuses `{ testing, passed, tolerance-building }` are
+   not forbidden.
 
 `permanentEliminations` (the aggregate of `motherAllergies` +
 `babyConfirmedAllergies`) always applies regardless of phase type. The

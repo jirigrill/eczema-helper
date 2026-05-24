@@ -80,10 +80,23 @@
   }
 
   async function addRetestPhases() {
-    if (!schedule || !answers || selectedRetestSlugs.length === 0) return;
-    const updatedSchedule = appendReTestPhases(schedule, selectedRetestSlugs, answers.eczemaSeverity);
-    const result = await scheduleRepo.save(updatedSchedule);
-    if (!result.ok) { toastMessage = result.error; showToast = true; return; }
+    if (!schedule || selectedRetestSlugs.length === 0) return;
+    const retestResult = appendReTestPhases(schedule, selectedRetestSlugs, today);
+    if (!retestResult.ok) {
+      const { code, invalidIds } = retestResult.error;
+      const names = invalidIds.map(id => getCategoryById(id)?.nameCs ?? id).join(', ');
+      if (code === 'not-baby-confirmed') {
+        toastMessage = `Nelze přidat retest: ${names} není potvrzená alergie miminka.`;
+      } else if (code === 'already-cleared') {
+        toastMessage = `Nelze přidat retest: ${names} již bylo úspěšně otestováno.`;
+      } else if (code === 'retest-already-scheduled') {
+        toastMessage = `Retest pro ${names} již existuje v plánu.`;
+      }
+      showToast = true;
+      return;
+    }
+    const saveResult = await scheduleRepo.save(retestResult.data);
+    if (!saveResult.ok) { toastMessage = saveResult.error; showToast = true; return; }
     selectedRetestSlugs = [];
   }
 

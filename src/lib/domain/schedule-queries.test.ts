@@ -163,6 +163,36 @@ describe('getEliminatedSlugsForDate — rest phase', () => {
   });
 });
 
+// Regression: reacted allergen must stay eliminated in phases after its rest
+// (the old tolerance-building recursion could incorrectly drop it)
+const scheduleReactedThenRetest: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: '2026-05-01',
+  estimatedEndDate: '2026-07-01',
+  phases: [
+    phase({ id: 'reset',         type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
+    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', categoryIds: ['dairy', 'eggs'] }),
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
+    phase({ id: 'rest-1',        type: 'rest',           startDate: '2026-05-31', endDate: '2026-06-02' }),
+    phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-06-03', endDate: '2026-06-06', categoryIds: ['eggs'] }),
+  ],
+};
+
+describe('getEliminatedSlugsForDate — reacted allergen stays eliminated', () => {
+  // dairy reintro → rest (reacted), then eggs reintro starts
+  // dairy status is now 'reacted' → must appear in eliminated slugs during eggs reintro
+
+  it('reacted allergen appears in eliminated slugs during a subsequent reintro phase', () => {
+    const slugs = getEliminatedSlugsForDate(scheduleReactedThenRetest, '2026-06-04');
+    expect(slugs).toContain('dairy');
+  });
+
+  it('the currently-tested allergen is not eliminated during its own reintro', () => {
+    const slugs = getEliminatedSlugsForDate(scheduleReactedThenRetest, '2026-06-04');
+    expect(slugs).not.toContain('eggs');
+  });
+});
+
 describe('getPhaseForDate — training phase', () => {
   // training is open-ended (endDate = '') and lower priority than regular phases
 
