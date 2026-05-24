@@ -197,8 +197,7 @@
           type="text"
           bind:value={customName}
           placeholder="Název potraviny…"
-          class="flex-1 rounded-xl border border-surface-dark px-3 py-2.5 text-sm text-text
-            focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
+          class="input-base flex-1 px-3 py-2.5 bg-white"
           onkeydown={(e) => e.key === 'Enter' && addCustom()}
         />
         <button
@@ -321,8 +320,7 @@
           type="text"
           bind:value={mealLabel}
           placeholder="Poznámka (volitelné, např. u babičky)"
-          class="w-full rounded-xl border border-surface-dark px-4 py-2.5 text-sm text-text
-            focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
+          class="input-base w-full px-4 py-2.5 bg-white"
         />
       </div>
     {/if}
