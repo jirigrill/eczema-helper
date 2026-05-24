@@ -62,6 +62,12 @@ describe('CategoryGrid', () => {
     expect(getByText('Paprika')).toBeInTheDocument();
   });
 
+  it('custom allergen input uses input-base atom', () => {
+    const { getByPlaceholderText } = render(CategoryGrid, { props: { selected: [] } });
+    const input = getByPlaceholderText('Např. Cibule, Mrkev…');
+    expect(input.className).toMatch(/\binput-base\b/);
+  });
+
   it('expandable mode opens sub-item panel on category click', async () => {
     const { getByText } = render(CategoryGrid, {
       props: { selected: [], expandable: true },

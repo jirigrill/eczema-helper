@@ -236,8 +236,7 @@
         type="text"
         bind:value={customInput}
         placeholder="Např. Cibule, Mrkev…"
-        class="flex-1 rounded-xl border border-surface-dark px-3 py-2 text-sm text-text
-          focus:outline-none focus:ring-2 focus:ring-primary/40 bg-surface"
+        class="input-base flex-1 px-3 py-2 bg-surface"
         onkeydown={(e) => e.key === 'Enter' && addCustom()}
       />
       <button
