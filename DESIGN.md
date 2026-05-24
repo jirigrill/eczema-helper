@@ -720,3 +720,5 @@ When pulling a new screen into this system, verify:
 13. **Task tiles in `Dnes udělej`**: pending tiles use `{components.task-tile-pending}` (neutral white + hairline) — never primary-dashed, never warning-tinted. Done tiles use `{components.task-tile-done}` (success-tinted). All three tiles in the row share one geometry; only state changes color.
 
 A screen is "in-system" when **all thirteen** are satisfied.
+
+**Before implementing any new UI element**, also apply the Component Reuse & Extraction Rule in `AGENTS.md → Design System`: check `src/lib/components/` first; extract to a named component before use if the element is not a one-off singleton.
