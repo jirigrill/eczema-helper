@@ -80,11 +80,10 @@ approach, not the workflow-trigger approach that was tried first.
 |---|---|
 | `vitest` | installed, configured in `vite.config.ts` |
 | `fake-indexeddb` | installed, auto-loaded in `src/test-setup.ts` |
-| `@testing-library/svelte` | **not yet installed** — needed for component tests |
-| `@playwright/test` | installed, **not yet configured** (`playwright.config.ts` missing) |
+| `@testing-library/svelte` + `@testing-library/jest-dom` | installed |
+| `@playwright/test` | installed, configured (`playwright.config.ts`), specs in `tests/e2e/` |
 | CI `unit-tests` job | active |
-| CI `integration-tests` job | stub — re-author when coverage exists |
-| CI `e2e-tests` job | stub — re-author when Playwright config lands |
+| CI `e2e-tests` job | active |
 
 ## Mocking SvelteKit internals in Vitest
 
