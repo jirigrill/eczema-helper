@@ -14,7 +14,6 @@
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
-  import AllergenChipGroup from '$lib/components/AllergenChipGroup.svelte';
   import Button from '$lib/components/Button.svelte';
 
   const scheduleRepo = new DexieScheduleRepository(db);
@@ -320,7 +319,11 @@
               <div>
                 <p class="section-label">Trvalá omezení</p>
                 <p class="body-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
-                <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
+                <div class="flex flex-wrap gap-1.5">
+                  {#each permanentEliminated as item (item.slug)}
+                    <AllergenChip slug={item.slug} />
+                  {/each}
+                </div>
               </div>
             {/if}
 
@@ -332,13 +335,21 @@
             </div>
             <div>
               <p class="section-label text-danger">Vyřazeno</p>
-              <AllergenChipGroup slugs={protocolEliminated.filter(s => getCategoryById(s))} color="danger" />
+              <div class="flex flex-wrap gap-1.5">
+                {#each protocolEliminated.filter(s => getCategoryById(s)) as slug (slug)}
+                  <AllergenChip {slug} color="warning" />
+                {/each}
+              </div>
             </div>
             {#if permanentEliminated.length > 0}
               <div>
                 <p class="section-label">Trvalá omezení</p>
                 <p class="body-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
-                <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
+                <div class="flex flex-wrap gap-1.5">
+                  {#each permanentEliminated as item (item.slug)}
+                    <AllergenChip slug={item.slug} />
+                  {/each}
+                </div>
               </div>
             {/if}
 
@@ -361,9 +372,7 @@
               <div>
                 <p class="section-label text-success">Testujete</p>
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="inline-flex items-center gap-1.5 bg-success/10 text-success rounded-full px-2.5 py-1 text-xs font-medium">
-                    <AllergenChip slug={currentPhase.categoryIds[0]} bare />
-                  </span>
+                  <AllergenChip slug={currentPhase.categoryIds[0]} color="success" />
                   {#if reintroInfo}
                     <span class="body-muted">
                       den {reintroInfo.dayInPhase} z {reintroInfo.totalDays} · {reintroInfo.label}
@@ -376,14 +385,22 @@
             {#if protocolEliminated.length > 0}
               <div>
                 <p class="section-label">Stále vyřazeno</p>
-                <AllergenChipGroup slugs={protocolEliminated.filter(s => getCategoryById(s))} color="neutral" />
+                <div class="flex flex-wrap gap-1.5">
+                  {#each protocolEliminated.filter(s => getCategoryById(s)) as slug (slug)}
+                    <AllergenChip {slug} />
+                  {/each}
+                </div>
               </div>
             {/if}
 
             {#if permanentEliminated.length > 0}
               <div>
                 <p class="section-label">Trvalá omezení</p>
-                <AllergenChipGroup slugs={permanentEliminated.map(i => i.slug)} color="neutral" />
+                <div class="flex flex-wrap gap-1.5">
+                  {#each permanentEliminated as item (item.slug)}
+                    <AllergenChip slug={item.slug} />
+                  {/each}
+                </div>
               </div>
             {/if}
 
@@ -666,7 +683,11 @@
       <div class="card-base space-y-3">
         <p class="section-label">Maminčiny alergeny</p>
         <p class="body-muted text-xs">Trvale vyřazeno — vaše vlastní alergie.</p>
-        <AllergenChipGroup slugs={motherAllergenStatuses.map(s => s.id)} color="neutral" />
+        <div class="flex flex-wrap gap-1.5">
+          {#each motherAllergenStatuses as s (s.id)}
+            <AllergenChip slug={s.id} />
+          {/each}
+        </div>
       </div>
     {/if}
 

@@ -186,9 +186,9 @@
               ✓ Smím
             </div>
             {#if allowedProtocol.length > 0}
-              <div class="space-y-1">
+              <div class="flex flex-wrap gap-1.5">
                 {#each allowedProtocol as slug}
-                  <div><AllergenChip {slug} /></div>
+                  <AllergenChip {slug} />
                 {/each}
               </div>
             {:else}
@@ -202,9 +202,9 @@
               ✗ Vyhýbej se
             </div>
             {#if ctx.eliminatedToday.length > 0}
-              <div class="space-y-1">
+              <div class="flex flex-wrap gap-1.5">
                 {#each ctx.eliminatedToday as slug}
-                  <div><AllergenChip {slug} muted={true} /></div>
+                  <AllergenChip {slug} color="warning" />
                 {/each}
               </div>
             {:else}

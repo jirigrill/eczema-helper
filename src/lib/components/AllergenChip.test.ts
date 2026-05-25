@@ -17,18 +17,24 @@ describe('AllergenChip', () => {
     expect(() => render(AllergenChip, { props: { slug: 'unknown-slug' } })).not.toThrow();
   });
 
-  it('applies muted styling when muted=true', () => {
-    const { container } = render(AllergenChip, { props: { slug: 'dairy', muted: true } });
-    expect(container.querySelector('.text-text-muted')).not.toBeNull();
+  it('defaults to neutral data-state', () => {
+    const { container } = render(AllergenChip, { props: { slug: 'dairy' } });
+    expect(container.querySelector('[data-state="neutral"]')).not.toBeNull();
   });
 
-  it('bare mode renders text without its own span wrapper', () => {
-    const { container } = render(AllergenChip, { props: { slug: 'dairy', bare: true } });
-    expect(container.querySelector('span')).toBeNull();
+  it('applies warning data-state for color=warning', () => {
+    const { container } = render(AllergenChip, { props: { slug: 'dairy', color: 'warning' } });
+    expect(container.querySelector('[data-state="warning"]')).not.toBeNull();
   });
 
-  it('bare mode still renders the category name', () => {
-    const { getByText } = render(AllergenChip, { props: { slug: 'dairy', bare: true } });
-    expect(getByText(/Mléčné výrobky/)).toBeInTheDocument();
+  it('applies success data-state for color=success', () => {
+    const { container } = render(AllergenChip, { props: { slug: 'dairy', color: 'success' } });
+    expect(container.querySelector('[data-state="success"]')).not.toBeNull();
+  });
+
+  it('always renders pill chrome', () => {
+    const { container } = render(AllergenChip, { props: { slug: 'dairy' } });
+    const span = container.querySelector('span');
+    expect(span?.className).toContain('rounded-full');
   });
 });

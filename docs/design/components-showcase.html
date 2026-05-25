@@ -77,7 +77,7 @@
   <div class="toc-title">Components</div>
   <a href="#button">Button</a>
   <a href="#allergen-chip">AllergenChip</a>
-  <a href="#allergen-chip-group">AllergenChipGroup</a>
+
   <a href="#category-grid">CategoryGrid</a>
   <a href="#eczema-check">EczemaCheck</a>
   <a href="#empty-state-card">EmptyStateCard</a>
@@ -160,70 +160,25 @@
 
   <hr class="section-hr">
 
-  <!-- ─── AllergenChipGroup ───────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/AllergenChipGroup.svelte -->
-  <div class="component-section" id="allergen-chip-group">
-    <h2 class="component-heading">AllergenChipGroup</h2>
-    <p class="component-desc">
-      Renders a row of allergen chips from a <code>slugs</code> array. Appearance driven by <code>data-state</code> on each chip. Empty <code>slugs</code> renders nothing.
-    </p>
-
-    <div class="variant-grid">
-
-      <!-- neutral -->
-      <div class="variant-tile">
-        <div class="flex flex-wrap gap-1.5">
-          <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🥛 Mléčné výrobky</span>
-          <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🥚 Vejce</span>
-          <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🌾 Lepek</span>
-        </div>
-        <p class="variant-name">color=neutral (3 slugs)</p>
-      </div>
-
-      <!-- danger -->
-      <div class="variant-tile">
-        <div class="flex flex-wrap gap-1.5">
-          <span data-state="danger" class="inline-flex items-center gap-1.5 bg-red-50 border border-red-100 text-red-600 rounded-full px-2.5 py-1 text-xs font-medium">🥛 Mléčné výrobky</span>
-          <span data-state="danger" class="inline-flex items-center gap-1.5 bg-red-50 border border-red-100 text-red-600 rounded-full px-2.5 py-1 text-xs font-medium">🥚 Vejce</span>
-        </div>
-        <p class="variant-name">color=danger (2 slugs)</p>
-      </div>
-
-      <!-- empty -->
-      <div class="variant-tile">
-        <p class="text-xs text-[#7A6770] italic">(renders nothing)</p>
-        <p class="variant-name">empty slugs</p>
-      </div>
-
-    </div>
-  </div>
-
-  <hr class="section-hr">
-
   <!-- ─── AllergenChip ─────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/AllergenChip.svelte -->
   <div class="component-section" id="allergen-chip">
-    <p class="component-label">▸ <span>AllergenChip</span> — slug, muted?, bare?</p>
+    <p class="component-label">▸ <span>AllergenChip</span> — slug, color?: 'neutral' | 'warning' | 'success'</p>
     <div class="variant-row">
       <div class="variant-tile">
-        <span class="text-[11px] leading-snug text-[#3D2B2F]">🥛 Mléčné výrobky</span>
-        <p class="variant-name">default</p>
+        <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🥛 Mléčné výrobky</span>
+        <p class="variant-name">color=neutral (default)</p>
       </div>
       <div class="variant-tile">
-        <span class="text-[11px] leading-snug text-[#7A6468]">🥚 Vejce</span>
-        <p class="variant-name">muted=true</p>
+        <span data-state="warning" class="inline-flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-full px-2.5 py-1 text-xs font-medium">🥚 Vejce</span>
+        <p class="variant-name">color=warning (currently eliminated)</p>
       </div>
       <div class="variant-tile">
-        <span class="text-[11px] leading-snug text-[#3D2B2F]">🌾 Pšenice / lepek</span>
-        <p class="variant-name">bare=false (span wrapper)</p>
+        <span data-state="success" class="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 rounded-full px-2.5 py-1 text-xs font-medium">🌾 Pšenice / lepek</span>
+        <p class="variant-name">color=success (currently testing)</p>
       </div>
       <div class="variant-tile">
-        <!-- bare=true: plain text, no span -->
-        <span class="text-[11px] text-[#3D2B2F]">🥜 Ořechy</span>
-        <p class="variant-name">bare=true (plain text)</p>
-      </div>
-      <div class="variant-tile">
-        <span class="text-[11px] leading-snug text-[#3D2B2F]">🌿 Vlastní: Cibule</span>
+        <span data-state="neutral" class="inline-flex items-center gap-1.5 bg-[#F5F1F2] border border-[#D8D4D5] text-[#7A6770] rounded-full px-2.5 py-1 text-xs font-medium">🌿 Cibule</span>
         <p class="variant-name">slug=other:Cibule</p>
       </div>
     </div>

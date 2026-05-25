@@ -318,8 +318,13 @@ photo toggle.
 
 ### AllergenChip
 
-Renders a single allergen as an icon + name pill. Resolves `other:` prefixed slugs
-(custom allergens) to a deterministic icon via hash. Props: `slug`, `muted`, `bare`.
+A self-contained pill chip that renders a single allergen as icon + name with full
+pill chrome (rounded-full border, semantic background). Resolves `other:` prefixed
+slugs (custom allergens) to a deterministic icon via hash. Props: `slug`,
+`color?: 'neutral' | 'warning' | 'success'` (defaults to `'neutral'`). Color maps
+to the DESIGN.md `chip-neutral` / `chip-warning` / `chip-success` tokens via
+`data-state` in `app.css`. To render a list of chips, inline a `flex flex-wrap gap-1.5`
+container with `{#each}` — there is no separate group component.
 
 ### EmptyStateCard
 
