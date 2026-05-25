@@ -8,10 +8,9 @@
 Czech display strings are baked into domain records emitted by
 `schedule-builder.ts` and `schedule-queries.ts`. A `SchedulePhase` record
 carries `label: 'Eliminační fáze'` and `description: '...'` — Czech text
-frozen onto data that is otherwise locale-agnostic. A separate `phase-display.ts`
-in `src/lib/utils/` holds icon and color metadata alongside its own short
-badge labels, creating two out-of-sync label values for the same concept.
-UI chrome (button labels, empty-state copy, headers) is inlined
+frozen onto data that is otherwise locale-agnostic. `phase-display.ts` in
+`src/lib/utils/` holds additional display text alongside icon and color
+metadata. UI chrome (button labels, empty-state copy, headers) is inlined
 in `.svelte` files with no consistent home.
 
 This coupling has two costs:
