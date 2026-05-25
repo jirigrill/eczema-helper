@@ -2,11 +2,12 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Unified Program Page
   // ═══════════════════════════════════════════════════════════
-  import type { SchedulePhase } from '$lib/domain/models';
+  import type { AllergenStatusValue, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
+  import { getAllergenStatuses } from '$lib/domain/allergen-status';
   import { appendReTestPhases } from '$lib/domain/schedule-builder';
   import { getCategoryById } from '$lib/data/categories';
-  import { formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
+  import { addDays, formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
   import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
   import { scheduleContext } from '$lib/stores/schedule-context';
@@ -59,25 +60,54 @@
     });
   });
 
-  function getAllergenStatusRows(phase: SchedulePhase): { slug: string; status: 'testing' | 'eliminated' | 'reintroduced' }[] {
-    if (!schedule || phase.type !== 'reintroduction') return [];
-    const phaseIndex = schedule.phases.indexOf(phase);
-    const alreadyReintroduced = new Set<string>();
-    for (let i = 0; i < phaseIndex; i++) {
-      if (schedule.phases[i].type === 'reintroduction') {
-        for (const s of schedule.phases[i].categoryIds) alreadyReintroduced.add(s);
-      }
+  // ── Allergen status helpers ────────────────────────────────
+  function allergenStatusLabel(status: AllergenStatusValue): string {
+    switch (status) {
+      case 'testing': return 'testuje se';
+      case 'passed': return '✓ znovuzavedena';
+      case 'reacted': return 'reagovalo';
+      case 'tolerance-building': return 'buduje toleranci';
+      case 'eliminated':
+      case 'not-yet-tested': return 'vyřazena';
+      default: return status;
     }
-    const protocolSlugs = schedule.phases.find(p => p.type === 'elimination')?.categoryIds ?? [];
-    return protocolSlugs
-      .filter(slug => !getPermanentEliminations(schedule).includes(slug))
-      .map(slug => {
-        if (phase.categoryIds.includes(slug)) return { slug, status: 'testing' as const };
-        if (alreadyReintroduced.has(slug)) return { slug, status: 'reintroduced' as const };
-        return { slug, status: 'eliminated' as const };
-      })
-      .sort((a, b) => ({ testing: 0, eliminated: 1, reintroduced: 2 }[a.status] - { testing: 0, eliminated: 1, reintroduced: 2 }[b.status]));
   }
+
+  function allergenStatusColor(status: AllergenStatusValue): string {
+    switch (status) {
+      case 'passed': return 'text-success';
+      case 'testing': return 'text-primary';
+      case 'reacted': return 'text-danger';
+      case 'tolerance-building': return 'text-primary/60';
+      default: return 'text-text-muted/60';
+    }
+  }
+
+  function statusOrder(status: AllergenStatusValue): number {
+    const order: Partial<Record<AllergenStatusValue, number>> = {
+      'testing': 0, 'passed': 1, 'tolerance-building': 2,
+      'reacted': 3, 'eliminated': 4, 'not-yet-tested': 4,
+    };
+    return order[status] ?? 5;
+  }
+
+  // Protocol + retest allergens (excludes permanent-mother / permanent-baby).
+  // Used in hero card; for historical phases, call getAllergenStatuses directly with addDays(endDate, 1).
+  const protocolAllergenStatuses = $derived(
+    ctx.status === 'ready'
+      ? ctx.allergenStatuses
+          .filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby')
+          .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))
+      : []
+  );
+
+  const motherAllergenStatuses = $derived(
+    ctx.status === 'ready' ? ctx.allergenStatuses.filter(s => s.status === 'permanent-mother') : []
+  );
+
+  const babyPermanentStatuses = $derived(
+    ctx.status === 'ready' ? ctx.allergenStatuses.filter(s => s.status === 'permanent-baby') : []
+  );
 
   async function addRetestPhases() {
     if (!schedule || selectedRetestSlugs.length === 0) return;
@@ -393,19 +423,19 @@
           </div>
 
           {#if currentPhase.type === 'reintroduction'}
-            {@const heroRows = getAllergenStatusRows(currentPhase)}
-            {#if heroRows.length > 1}
+            {#if protocolAllergenStatuses.length > 1}
               <div>
                 <p class="section-label">Stav alergenů</p>
                 <div class="muted-list">
-                  {#each heroRows as row}
-                    {@const rowCat = getCategoryById(row.slug)}
+                  {#each protocolAllergenStatuses as row}
+                    {@const rowCat = getCategoryById(row.id)}
                     <div class="flex items-center gap-2">
                       <span>{rowCat?.icon ?? ''}</span>
-                      <span class="flex-1">{rowCat?.nameCs ?? row.slug}</span>
-                      <span class="{row.status === 'reintroduced' ? 'text-success' : 'text-danger/60'}">
-                        {row.status === 'testing' ? '✓ otestována' : row.status === 'reintroduced' ? '✓ znovuzavedena' : 'vyřazena'}
-                      </span>
+                      <span class="flex-1">{rowCat?.nameCs ?? row.id}</span>
+                      {#if schedule?.permanentBaby.includes(row.id)}
+                        <span class="text-text-muted/50 text-[10px]">z dotazníku</span>
+                      {/if}
+                      <span class="{allergenStatusColor(row.status)}">{allergenStatusLabel(row.status)}</span>
                     </div>
                   {/each}
                 </div>
@@ -509,20 +539,23 @@
                 </div>
 
                 <!-- Per-allergen status for reintroduction -->
-                {#if phase.type === 'reintroduction'}
-                  {@const rows = getAllergenStatusRows(phase)}
-                  {#if rows.length > 1}
+                {#if phase.type === 'reintroduction' && schedule}
+                  {@const phaseRows = getAllergenStatuses(schedule, addDays(phase.endDate, 1))
+                    .filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby')
+                    .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))}
+                  {#if phaseRows.length > 1}
                     <div>
                       <p class="section-label">Stav alergenů</p>
                       <div class="muted-list">
-                        {#each rows as row}
-                          {@const rowCat = getCategoryById(row.slug)}
+                        {#each phaseRows as row}
+                          {@const rowCat = getCategoryById(row.id)}
                           <div class="flex items-center gap-2">
                             <span>{rowCat?.icon ?? ''}</span>
-                            <span class="flex-1">{rowCat?.nameCs ?? row.slug}</span>
-                            <span class="{row.status === 'reintroduced' ? 'text-success' : 'text-danger/60'}">
-                              {row.status === 'testing' ? '✓ otestována' : row.status === 'reintroduced' ? '✓ znovuzavedena' : 'vyřazena'}
-                            </span>
+                            <span class="flex-1">{rowCat?.nameCs ?? row.id}</span>
+                            {#if schedule.permanentBaby.includes(row.id)}
+                              <span class="text-text-muted/50 text-[10px]">z dotazníku</span>
+                            {/if}
+                            <span class="{allergenStatusColor(row.status)}">{allergenStatusLabel(row.status)}</span>
                           </div>
                         {/each}
                       </div>
@@ -574,8 +607,7 @@
 
     <!-- ═══ End-of-program card ═══ -->
     {#if isProgramDone}
-      {@const babyAllergens = answers?.babyConfirmedAllergies ?? []}
-      <div data-state="success" class="border rounded-2xl p-5 space-y-4">
+      <div data-state="success" class="border rounded-2xl p-5">
         <div class="text-center">
           <p class="text-2xl mb-1">🎉</p>
           <p class="text-base font-bold text-text">Program dokončen!</p>
@@ -586,42 +618,47 @@
             ) + 1} dní
           </p>
         </div>
+      </div>
+    {/if}
 
-        {#if babyAllergens.length > 0}
-          <div class="border-t border-success/20 pt-4 space-y-3">
-            <div>
-              <p class="text-sm font-semibold text-text mb-1">Otestování potvrzených alergií miminka</p>
-              <p class="body-muted leading-relaxed">
-                Testování by mělo proběhnout <strong>velmi opatrně</strong> a ideálně <strong>s lékařem</strong>.
-              </p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              {#each babyAllergens as slug}
-                {@const cat = getCategoryById(slug)}
-                {#if cat}
-                  {@const isChosen = selectedRetestSlugs.includes(slug)}
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 font-medium border transition-all
-                      {isChosen ? 'bg-primary text-white border-primary' : 'bg-white text-text border-surface-dark'}"
-                    onclick={() => {
-                      selectedRetestSlugs = isChosen
-                        ? selectedRetestSlugs.filter(s => s !== slug)
-                        : [...selectedRetestSlugs, slug];
-                    }}
-                  >
-                    {cat.icon} {cat.nameCs}
-                    {#if isChosen}<span class="ml-1">✓</span>{/if}
-                  </button>
-                {/if}
-              {/each}
-            </div>
-            {#if selectedRetestSlugs.length > 0}
-              <Button onclick={addRetestPhases}>
-                Přidat testovací fáze ({selectedRetestSlugs.length})
-              </Button>
+    <!-- ═══ Permanent allergen sections ═══ -->
+    {#if motherAllergenStatuses.length > 0}
+      <div class="card-base space-y-3">
+        <p class="section-label">Maminčiny alergeny</p>
+        <p class="body-muted text-xs">Trvale vyřazeno — vaše vlastní alergie.</p>
+        <AllergenChipGroup slugs={motherAllergenStatuses.map(s => s.id)} color="neutral" />
+      </div>
+    {/if}
+
+    {#if babyPermanentStatuses.length > 0}
+      <div class="card-base space-y-3">
+        <p class="section-label">Potvrzené alergie miminka</p>
+        <p class="body-muted text-xs">Trvale vyřazeno. Testování doporučujeme konzultovat s lékařem.</p>
+        <div class="flex flex-wrap gap-2">
+          {#each babyPermanentStatuses as allergenStatus}
+            {@const cat = getCategoryById(allergenStatus.id)}
+            {#if cat}
+              {@const isChosen = selectedRetestSlugs.includes(allergenStatus.id)}
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 font-medium border transition-all
+                  {isChosen ? 'bg-primary text-white border-primary' : 'bg-white text-text border-surface-dark'}"
+                onclick={() => {
+                  selectedRetestSlugs = isChosen
+                    ? selectedRetestSlugs.filter(s => s !== allergenStatus.id)
+                    : [...selectedRetestSlugs, allergenStatus.id];
+                }}
+              >
+                {cat.icon} {cat.nameCs}
+                {#if isChosen}<span class="ml-1">✓</span>{/if}
+              </button>
             {/if}
-          </div>
+          {/each}
+        </div>
+        {#if selectedRetestSlugs.length > 0}
+          <Button onclick={addRetestPhases}>
+            Přidat testovací fáze ({selectedRetestSlugs.length})
+          </Button>
         {/if}
       </div>
     {/if}

@@ -45,6 +45,7 @@ const readyContext: ScheduleContext = {
   status: 'ready',
   schedule: sampleSchedule,
   answers: sampleAnswers,
+  allergenStatuses: [],
   eliminatedToday: [],
   reintroInfo: null,
   progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
