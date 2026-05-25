@@ -5,7 +5,7 @@
   import type { AllergenStatusValue, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
   import { getAllergenStatuses } from '$lib/domain/allergen-status';
-  import { appendReTestPhases } from '$lib/domain/schedule-builder';
+  import { appendReTestPhases, removeReTestPhase } from '$lib/domain/schedule-builder';
   import { getCategoryById } from '$lib/data/categories';
   import { addDays, formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
@@ -21,6 +21,8 @@
 
   let showToast = $state(false);
   let toastMessage = $state('Tato funkce bude dostupná brzy');
+  let toastType = $state<'info' | 'success' | 'warning' | 'error'>('info');
+  let toastUndo = $state<(() => void) | undefined>(undefined);
   let selectedRetestSlugs = $state<string[]>([]);
   let expandedPhaseId = $state<string | null>(null);
   let meals = $state<import('$lib/domain/models').Meal[]>([]);
@@ -117,17 +119,43 @@
       const names = invalidIds.map(id => getCategoryById(id)?.nameCs ?? id).join(', ');
       if (code === 'not-baby-confirmed') {
         toastMessage = `Nelze přidat retest: ${names} není potvrzená alergie miminka.`;
+        toastType = 'error';
       } else if (code === 'already-cleared') {
         toastMessage = `Nelze přidat retest: ${names} již bylo úspěšně otestováno.`;
+        toastType = 'error';
       } else if (code === 'retest-already-scheduled') {
-        toastMessage = `Retest pro ${names} již existuje v plánu.`;
+        toastMessage = `Retest pro ${names} již je naplánován.`;
+        toastType = 'warning';
+        toastUndo = () => {
+          for (const id of invalidIds) cancelRetestPhase(id);
+        };
       }
       showToast = true;
       return;
     }
     const saveResult = await scheduleRepo.save(retestResult.data);
-    if (!saveResult.ok) { toastMessage = saveResult.error; showToast = true; return; }
+    if (!saveResult.ok) { toastMessage = saveResult.error; toastType = 'error'; showToast = true; return; }
     selectedRetestSlugs = [];
+  }
+
+  async function cancelRetestPhase(categoryId: string) {
+    if (!schedule) return;
+    const result = removeReTestPhase(schedule, categoryId, today);
+    if (!result.ok) {
+      toastMessage = result.error.code === 'protocol-phase'
+        ? 'Nelze zrušit: toto je protokolová fáze, ne přidaný retest.'
+        : 'Retest nenalezen — možná již proběhl.';
+      toastType = 'error';
+      toastUndo = undefined;
+      showToast = true;
+      return;
+    }
+    const saveResult = await scheduleRepo.save(result.data);
+    if (!saveResult.ok) { toastMessage = saveResult.error; toastType = 'error'; toastUndo = undefined; showToast = true; return; }
+    toastMessage = 'Retest zrušen.';
+    toastType = 'success';
+    toastUndo = undefined;
+    showToast = true;
   }
 
   function phaseIcon(type: SchedulePhase['type']): string {
@@ -229,6 +257,7 @@
 
   function handleEditSchedule() {
     toastMessage = 'Tato funkce bude dostupná brzy';
+    toastType = 'info';
     showToast = true;
   }
 </script>
@@ -591,13 +620,24 @@
             </div>
 
           {:else}
-            <!-- Upcoming: read-only row -->
-            <div class="flex items-center gap-3 py-1.5 pl-0 pr-2 opacity-50">
+            <!-- Upcoming: read-only row (retest phases get cancel affordance) -->
+            {@const isRetestPhase = phase.id.startsWith('retest-')}
+            <div class="flex items-center gap-3 py-1.5 pl-0 pr-2 {isRetestPhase ? '' : 'opacity-50'}">
               <div class="shrink-0 w-8 h-8 rounded-full bg-white border-2 border-surface-dark flex items-center justify-center text-sm z-10">
                 {phaseIcon(phase.type)}
               </div>
               <span class="body-muted flex-1">{phase.label}</span>
-              <span class="text-xs text-text-muted/60 shrink-0">{phase.endDate ? dnyCs(phaseDayCount(phase)) : 'průběžně'}</span>
+              {#if isRetestPhase}
+                <button
+                  type="button"
+                  class="text-xs text-danger/70 hover:text-danger font-medium shrink-0 px-2 py-1 rounded-lg hover:bg-danger/10 transition-colors"
+                  onclick={() => cancelRetestPhase(phase.categoryIds[0])}
+                >
+                  Zrušit
+                </button>
+              {:else}
+                <span class="text-xs text-text-muted/60 shrink-0">{phase.endDate ? dnyCs(phaseDayCount(phase)) : 'průběžně'}</span>
+              {/if}
             </div>
           {/if}
           </div>
@@ -671,7 +711,12 @@
 </div>
 
 {#if showToast}
-  <Toast message={toastMessage} onClose={() => (showToast = false)} />
+  <Toast
+    message={toastMessage}
+    type={toastType}
+    onUndo={toastUndo}
+    onClose={() => { showToast = false; toastType = 'info'; toastUndo = undefined; }}
+  />
 {/if}
 
 <style>
