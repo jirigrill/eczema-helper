@@ -5,12 +5,10 @@
 
   let {
     slug,
-    muted = false,
-    bare = false,
+    color = 'neutral',
   }: {
     slug: string;
-    muted?: boolean;
-    bare?: boolean;
+    color?: 'neutral' | 'warning' | 'success';
   } = $props();
 
   function resolveDisplay(s: string): { icon: string; name: string } {
@@ -27,10 +25,9 @@
   const display = $derived(resolveDisplay(slug));
 </script>
 
-{#if bare}
+<span
+  data-state={color}
+  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border"
+>
   {display.icon} {display.name}
-{:else}
-  <span class="text-[11px] leading-snug {muted ? 'text-text-muted' : 'text-text'}">
-    {display.icon} {display.name}
-  </span>
-{/if}
+</span>
