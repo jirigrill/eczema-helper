@@ -353,6 +353,27 @@ convention for `save` / `load` operations.
 Discriminated union for fallible operations: `{ ok: true; data: T } | { ok: false; error: string }`.
 Used by all repository methods. Prevents silent swallowing of persistence errors.
 
+### PhaseKind
+
+The stable string-literal type used to identify a protocol phase in domain records.
+Values: `'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building'`.
+Domain records carry `kind: PhaseKind`; display text is resolved from `$lib/strings/phases`.
+See ADR-0014.
+
+### PortionKind
+
+The stable string-literal type for a meal-item portion size.
+Values: `'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package'`.
+Replaces the inline Czech names that were formerly on `AmountSize` usages.
+Display text resolved from `$lib/strings/portions`. See ADR-0014.
+
+### Presentation String
+
+A locale-bound display label resolved from a domain identifier at render time.
+Presentation strings live exclusively in `src/lib/strings/` — never on domain records.
+Domain records carry the identifier (a *kind*); the strings layer maps it to human-readable text.
+See ADR-0014.
+
 ### Singleton ID
 
 The constant string `'singleton'` used as the primary key for both `answers` and
