@@ -25,8 +25,6 @@ const sampleSchedule: GeneratedSchedule = {
     {
       id: 'reset',
       type: 'reset',
-      label: 'Resetovací fáze',
-      description: '',
       categoryIds: [],
       startDate: today,
       endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
@@ -125,7 +123,7 @@ describe('ScheduleContext allergenStatuses consistency', () => {
       permanentMother: [], permanentBaby: [],
       startDate: today, estimatedEndDate: futureDate,
       phases: [{
-        id: 'elim', type: 'elimination', label: 'Eliminace', description: '',
+        id: 'elim', type: 'elimination',
         categoryIds: ['dairy'], startDate: today, endDate: futureDate,
       }],
     };
@@ -150,10 +148,10 @@ const reactedSchedule: GeneratedSchedule = {
   permanentMother: [], permanentBaby: [],
   startDate: d(-20), estimatedEndDate: d(10),
   phases: [
-    { id: 'elim', type: 'elimination', label: 'Eliminace', description: '', categoryIds: ['dairy', 'eggs'], startDate: d(-20), endDate: d(-11) },
-    { id: 'reintro-dairy', type: 'reintroduction', label: 'Zavádění: Mléčné výrobky', description: '', categoryIds: ['dairy'], startDate: d(-10), endDate: d(-7) },
-    { id: 'rest', type: 'rest', label: 'Klidová fáze', description: '', categoryIds: [], startDate: d(-6), endDate: d(-3) },
-    { id: 'reintro-eggs', type: 'reintroduction', label: 'Zavádění: Vejce', description: '', categoryIds: ['eggs'], startDate: d(-2), endDate: d(3) },
+    { id: 'elim', type: 'elimination', categoryIds: ['dairy', 'eggs'], startDate: d(-20), endDate: d(-11) },
+    { id: 'reintro-dairy', type: 'reintroduction', categoryIds: ['dairy'], startDate: d(-10), endDate: d(-7) },
+    { id: 'rest', type: 'rest', categoryIds: [], startDate: d(-6), endDate: d(-3) },
+    { id: 'reintro-eggs', type: 'reintroduction', categoryIds: ['eggs'], startDate: d(-2), endDate: d(3) },
   ],
 };
 
@@ -208,7 +206,7 @@ describe('program timeline — permanent allergen sections', () => {
       permanentBaby: [],
       startDate: today,
       estimatedEndDate: futureDate,
-      phases: [{ id: 'reset', type: 'reset', label: 'Resetovací fáze', description: '', categoryIds: [], startDate: today, endDate: futureDate }],
+      phases: [{ id: 'reset', type: 'reset', categoryIds: [], startDate: today, endDate: futureDate }],
     };
     const ctx: ScheduleContext = {
       status: 'ready',
@@ -240,7 +238,7 @@ describe('program timeline — permanent allergen sections', () => {
       permanentBaby: ['eggs'],
       startDate: today,
       estimatedEndDate: futureDate,
-      phases: [{ id: 'reset', type: 'reset', label: 'Resetovací fáze', description: '', categoryIds: [], startDate: today, endDate: futureDate }],
+      phases: [{ id: 'reset', type: 'reset', categoryIds: [], startDate: today, endDate: futureDate }],
     };
     const ctx: ScheduleContext = {
       status: 'ready',

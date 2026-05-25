@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
 import PhaseBadge from './PhaseBadge.svelte';
-import type { SchedulePhaseType } from '$lib/domain/models';
+import type { PhaseType } from '$lib/domain/models';
 
 describe('PhaseBadge', () => {
-  const phases: SchedulePhaseType[] = ['reset', 'elimination', 'reintroduction', 'rest', 'tolerance-building'];
+  const phases: PhaseType[] = ['reset', 'elimination', 'reintroduction', 'rest', 'tolerance-building'];
 
   it.each(phases)('renders without throwing for type "%s"', (type) => {
     expect(() => render(PhaseBadge, { props: { type } })).not.toThrow();
@@ -15,7 +15,7 @@ describe('PhaseBadge', () => {
     expect(container.querySelector('[data-state="elimination"]')).not.toBeNull();
   });
 
-  const czechLabels: [SchedulePhaseType, string][] = [
+  const czechLabels: [PhaseType, string][] = [
     ['reset',          'Reset'],
     ['elimination',    'Eliminace'],
     ['reintroduction', 'Reintrodukce'],

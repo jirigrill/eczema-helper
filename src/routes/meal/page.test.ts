@@ -21,8 +21,6 @@ const sampleSchedule: GeneratedSchedule = {
   phases: [{
     id: 'elim',
     type: 'elimination',
-    label: 'Eliminační fáze',
-    description: '',
     categoryIds: ['dairy'],
     startDate: today,
     endDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],

@@ -152,12 +152,15 @@ Two tiers — see `docs/architecture/testing-strategy.md` for full rationale.
 
 ## Conventions
 
-- UI text in Czech. All Czech display strings live in `src/lib/strings/` — never inline on domain records (see [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md)):
-  - **Domain-shaped files** (keyed by a domain identifier, must use `satisfies Record<DomainKind, ...>` to enforce exhaustiveness): `phases.ts`, `portions.ts`, `categories.ts`
-  - **UI-chrome files** (keyed by ergonomic name): `actions.ts` (buttons/verbs), `common.ts` (toasts, headers, empty states)
-  - `index.ts` re-exports all of the above
-  - Rule of placement: if the string is keyed by a domain kind, it goes in a domain-shaped file; otherwise it is UI chrome (`actions.ts` / `common.ts`)
-  - All entries `as const`; domain-shaped files require the `satisfies Record<>` clause — missing keys must fail `bunx tsc --noEmit`
+- UI text in Czech. Display text never lives inline on domain records (see [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md)):
+  - **Strings layer** (`src/lib/strings/`) — pure Czech text keyed by domain identifier or ergonomic name, `satisfies Record<DomainKind, ...>` where applicable:
+    - `phases.ts` — `{ label, badgeLabel, description }` keyed by `PhaseType`
+    - `portions.ts`, `categories.ts` — other domain-keyed text
+    - `actions.ts` (buttons/verbs), `common.ts` (toasts, headers, empty states) — UI chrome
+  - **Config layer** (`src/lib/config/`) — spreads from `strings/` and adds visual tokens (icon, Tailwind badge/background classes); single lookup point for consumers:
+    - `phases.ts` — spreads `phaseStrings` + adds `{ icon, badge, iconBg }`
+  - Rule of placement: pure Czech text → `strings/`; visual tokens alongside text → `config/` (which imports from `strings/`)
+  - All entries `as const`; both layers require the `satisfies Record<>` clause — missing keys must fail `bunx tsc --noEmit`
 - Dates formatted Czech-style: `5. 3.` (non-breaking space between day and month)
 - Food categories seeded in `src/lib/data/categories.ts`
 

@@ -23,7 +23,7 @@ const sampleSchedule: GeneratedSchedule = {
   startDate: today,
   estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
   phases: [{
-    id: 'reset', type: 'reset', label: 'Resetovací fáze', description: '',
+    id: 'reset', type: 'reset',
     categoryIds: [], startDate: today,
     endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
   }],

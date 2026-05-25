@@ -163,9 +163,10 @@ after data exists is a migration.
   Log a meal → see it on today, (3) Daily assessment + photo. Then the
   remaining v1 screens.
   See [ADR-0008](docs/adr/0008-tracer-bullet-slices.md).
-- **Domain records carry kinds, not display strings.** Domain-emitted
-  records (`SchedulePhase`, `MealItem`, etc.) carry stable kind
-  identifiers (e.g. `kind: 'elimination'`). Czech display text lives
-  exclusively in `src/lib/strings/`, resolved at render time. Baking
+- **Domain records carry types, not display strings.** Domain-emitted
+  records (`SchedulePhase`, `MealItem`, etc.) carry stable type
+  identifiers (e.g. `type: 'elimination'`). Czech display text and visual
+  tokens live in `src/lib/strings/` (pure text) and `src/lib/config/`
+  (text + visual tokens combined), resolved at render time. Baking
   a display string onto a domain record violates this invariant.
   See [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md).

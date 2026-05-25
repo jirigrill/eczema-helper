@@ -11,7 +11,7 @@ Terms already defined in depth elsewhere are referenced, not duplicated.
 ## Protocol Phases
 
 The elimination protocol is a fixed sequence of named phases. Each phase has a `type`
-(`SchedulePhaseType`) and a date range. The sequence produced by `generateSchedule()` is:
+(`PhaseType`) and a date range. The sequence produced by `generateSchedule()` is:
 Reset → Elimination → (Reintroduction → Rest)× → Tolerance-Building×
 
 ### Reset Phase
@@ -305,7 +305,7 @@ Appears on the Today and Week screens. Driven by `getScheduleProgress()`.
 
 ### PhaseBadge
 
-Component that renders a colored badge for a `SchedulePhaseType`. Color and label are
+Component that renders a colored badge for a `PhaseType`. Color and label are
 mapped by `getPhaseDisplay()`: Reset (gray) · Eliminace (danger) · Reintrodukce (teal)
 · Odpočinek (warning) · Trénink (success).
 
@@ -353,11 +353,12 @@ convention for `save` / `load` operations.
 Discriminated union for fallible operations: `{ ok: true; data: T } | { ok: false; error: string }`.
 Used by all repository methods. Prevents silent swallowing of persistence errors.
 
-### PhaseKind
+### PhaseType
 
 The stable string-literal type used to identify a protocol phase in domain records.
 Values: `'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building'`.
-Domain records carry `kind: PhaseKind`; display text is resolved from `$lib/strings/phases`.
+Domain records carry `type: PhaseType`; Czech text is resolved from `$lib/strings/phases`
+(`label`, `badgeLabel`, `description`); full display config including visual tokens from `$lib/config/phases`.
 See ADR-0014.
 
 ### PortionKind
@@ -370,8 +371,9 @@ Display text resolved from `$lib/strings/portions`. See ADR-0014.
 ### Presentation String
 
 A locale-bound display label resolved from a domain identifier at render time.
-Presentation strings live exclusively in `src/lib/strings/` — never on domain records.
-Domain records carry the identifier (a *kind*); the strings layer maps it to human-readable text.
+Presentation strings never live on domain records. Domain records carry the identifier;
+`src/lib/strings/` (pure Czech text) and `src/lib/config/` (text + visual tokens)
+map it to human-readable text and visual tokens.
 See ADR-0014.
 
 ### Singleton ID

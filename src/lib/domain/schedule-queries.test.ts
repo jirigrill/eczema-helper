@@ -3,7 +3,7 @@ import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress } from 
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
-  return { label: '', description: '', categoryIds: [], ...overrides };
+  return { categoryIds: [], ...overrides };
 }
 
 const baseSchedule: GeneratedSchedule = {

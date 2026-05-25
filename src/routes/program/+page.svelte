@@ -7,6 +7,7 @@
   import { getAllergenStatuses } from '$lib/domain/allergen-status';
   import { appendReTestPhases, removeReTestPhase } from '$lib/domain/schedule-builder';
   import { getCategoryById } from '$lib/data/categories';
+  import { phaseConfig } from '$lib/config/phases';
   import { addDays, formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
   import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
@@ -297,7 +298,7 @@
             <p class="body-semibold">Program dokončen 🎉</p>
             <p class="body-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
           {:else if currentPhase}
-            <p class="body-semibold leading-snug">{currentPhase.label}</p>
+            <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.categoryIds[0] ? `: ${getCategoryById(currentPhase.categoryIds[0])?.nameCs ?? currentPhase.categoryIds[0]}` : ''}</p>
             <p class="body-muted mt-0.5">
               den {currentDayInPhase(currentPhase)}{currentPhase.endDate ? ` z ${phaseDayCount(currentPhase)}` : ''} · {formatDateLongCs(today)}
             </p>
@@ -408,10 +409,7 @@
 
             <div>
               <p class="section-label">Co dělat</p>
-              <p class="body-muted">
-                Klidový režim — kůže se zotavuje. Jezte <strong>pouze potraviny, které miminko toleruje</strong>.
-                Žádné nové alergeny nezařazujte.
-              </p>
+              <p class="body-muted">{phaseConfig[currentPhase.type].description}</p>
             </div>
 
           {:else if currentPhase.type === 'tolerance-building'}
@@ -533,7 +531,7 @@
               onclick={() => (expandedPhaseId = expandedPhaseId === phase.id ? null : phase.id)}
             >
               <div class="shrink-0 w-8 h-8 rounded-full {nodeColor(phaseEval)} flex items-center justify-center z-10"></div>
-              <span class="body-muted flex-1 truncate">{phase.label}</span>
+              <span class="body-muted flex-1 truncate">{phaseConfig[phase.type].label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
               <span class="text-xs text-text-muted/50 shrink-0">{formatDateCs(phase.startDate)}{phase.endDate ? `–${formatDateCs(phase.endDate)}` : '–…'}</span>
               <span class="body-muted shrink-0">{expandedPhaseId === phase.id ? '▾' : '▸'}</span>
             </button>
@@ -632,7 +630,7 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm z-10 ring-4 ring-primary/20">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="text-sm font-semibold text-text flex-1">{phase.label}</span>
+              <span class="text-sm font-semibold text-text flex-1">{phaseConfig[phase.type].label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
               <span class="text-xs bg-primary text-white rounded-full px-2 py-0.5 font-medium shrink-0">Teď</span>
             </div>
 
@@ -643,7 +641,7 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-white border-2 border-surface-dark flex items-center justify-center text-sm z-10">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="body-muted flex-1">{phase.label}</span>
+              <span class="body-muted flex-1">{phaseConfig[phase.type].label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
               {#if isRetestPhase}
                 <button
                   type="button"

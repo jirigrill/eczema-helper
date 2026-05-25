@@ -8,7 +8,7 @@
   import ProgressBar from "$lib/components/ProgressBar.svelte";
   import { getCategoryById } from "$lib/data/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
-  import { getPhaseDisplay } from "$lib/utils/phase-display";
+  import { phaseConfig } from "$lib/config/phases";
 
   const today = todayIso();
 
@@ -116,7 +116,7 @@
       >
         <div class="flex items-center gap-2.5 mb-2">
           {#if phase}
-            {@const display = getPhaseDisplay(phase.type)}
+            {@const display = phaseConfig[phase.type]}
             <div
               class="w-9 h-9 rounded-lg {display.iconBg} flex items-center justify-center text-lg shrink-0"
             >
@@ -124,7 +124,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="body-bold">{phase.label}</span>
+                <span class="body-bold">{display.label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
                 <PhaseBadge type={phase.type} />
               </div>
               {#if ctx.progress}
