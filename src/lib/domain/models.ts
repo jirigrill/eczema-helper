@@ -27,16 +27,14 @@ export type QuestionnaireAnswers = {
   testedAllergens: string[]; // category IDs to eliminate and reintroduce, in reintroduction order
 };
 
-export type SchedulePhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';
+export type PhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';
 
 export type SchedulePhase = {
   id: string;
-  type: SchedulePhaseType;
-  label: string;
+  type: PhaseType;
   startDate: string; // ISO date
   endDate: string; // ISO date
   categoryIds: string[]; // allergens relevant to this phase
-  description: string;
 };
 
 export type GeneratedSchedule = {

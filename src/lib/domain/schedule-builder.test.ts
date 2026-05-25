@@ -17,7 +17,7 @@ function minimalAnswers(overrides: Partial<QuestionnaireAnswers> = {}): Question
 }
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
-  return { label: '', description: '', categoryIds: [], ...overrides };
+  return { categoryIds: [], ...overrides };
 }
 
 describe('generateSchedule', () => {
@@ -84,6 +84,14 @@ describe('generateSchedule', () => {
     const today = new Date().toISOString().split('T')[0];
     expect(schedule.startDate).toBe(today);
   });
+
+  it('emitted phases carry no label or description fields', () => {
+    const schedule = generateSchedule(minimalAnswers());
+    for (const p of schedule.phases) {
+      expect(p).not.toHaveProperty('label');
+      expect(p).not.toHaveProperty('description');
+    }
+  });
 });
 
 describe('getPermanentEliminations', () => {
@@ -142,6 +150,13 @@ describe('insertRestDays', () => {
     const result = insertRestDays(baseSchedule, 'nonexistent', 3);
     expect(result).toBe(baseSchedule);
   });
+
+  it('inserted rest phase carries no label or description fields', () => {
+    const result = insertRestDays(baseSchedule, 'reintro-dairy', 3);
+    const rest = result.phases.find(p => p.type === 'rest')!;
+    expect(rest).not.toHaveProperty('label');
+    expect(rest).not.toHaveProperty('description');
+  });
 });
 
 describe('addTrainingPhase', () => {
@@ -172,6 +187,13 @@ describe('addTrainingPhase', () => {
   it('returns the original schedule unchanged when phase id is not found', () => {
     const result = addTrainingPhase(scheduleWithRest, 'dairy', 'nonexistent');
     expect(result).toBe(scheduleWithRest);
+  });
+
+  it('appended tolerance-building phase carries no label or description fields', () => {
+    const result = addTrainingPhase(scheduleWithRest, 'dairy', 'reintro-dairy');
+    const tb = result.phases.find(p => p.type === 'tolerance-building')!;
+    expect(tb).not.toHaveProperty('label');
+    expect(tb).not.toHaveProperty('description');
   });
 });
 
@@ -209,6 +231,15 @@ describe('appendReTestPhases — happy path', () => {
     if (!result.ok) return;
     const retestPhase = result.data.phases.find(p => p.categoryIds.includes('peanut') && p.type === 'reintroduction')!;
     expect(retestPhase.startDate).toBe('2026-06-21');
+  });
+
+  it('appended retest phases carry no label or description fields', () => {
+    const result = appendReTestPhases(retestBase, ['peanut'], TODAY);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const retestPhase = result.data.phases.find(p => p.categoryIds.includes('peanut') && p.type === 'reintroduction')!;
+    expect(retestPhase).not.toHaveProperty('label');
+    expect(retestPhase).not.toHaveProperty('description');
   });
 });
 

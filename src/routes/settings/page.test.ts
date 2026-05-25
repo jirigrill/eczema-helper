@@ -21,8 +21,6 @@ const sampleSchedule: GeneratedSchedule = {
   phases: [{
     id: 'reset',
     type: 'reset',
-    label: 'Resetovací fáze',
-    description: '',
     categoryIds: [],
     startDate: today,
     endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],

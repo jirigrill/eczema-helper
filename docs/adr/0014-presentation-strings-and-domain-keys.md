@@ -8,9 +8,10 @@
 Czech display strings are baked into domain records emitted by
 `schedule-builder.ts` and `schedule-queries.ts`. A `SchedulePhase` record
 carries `label: 'Eliminační fáze'` and `description: '...'` — Czech text
-frozen onto data that is otherwise locale-agnostic. `phase-display.ts` in
-`src/lib/utils/` holds additional display text alongside icon and color
-metadata. UI chrome (button labels, empty-state copy, headers) is inlined
+frozen onto data that is otherwise locale-agnostic. A separate `phase-display.ts`
+in `src/lib/utils/` holds icon and color metadata alongside its own short
+badge labels, creating two out-of-sync label values for the same concept.
+UI chrome (button labels, empty-state copy, headers) is inlined
 in `.svelte` files with no consistent home.
 
 This coupling has two costs:
@@ -29,24 +30,27 @@ mechanical.
 
 ## Decision
 
-**Domain records carry stable kind identifiers. A dedicated
-`src/lib/strings/` layer owns all human-readable display text.**
+**Domain records carry stable type identifiers. A dedicated display layer
+owns all human-readable text and visual tokens.**
 
 Domain-emitted records change from carrying `label`/`description` strings
-to carrying `kind` discriminators (e.g. `kind: 'elimination'`). The strings
-layer resolves a kind to a display entry at render time.
+to carrying `type` discriminators (e.g. `type: 'elimination'`). The display
+layer resolves a type to a display entry at render time.
 
-The strings layer lives under `src/lib/strings/`, namespaced by concern:
+The display layer is split into two locations by concern:
 
-- **Domain-shaped files** — keyed by domain identifier, enforced with
-  `satisfies Record<DomainKind, ...>` so missing keys fail `tsc`:
-  - `phases.ts` — keyed by `PhaseKind`
+- **`src/lib/strings/`** — pure Czech text, keyed by domain identifier or
+  ergonomic name, enforced with `satisfies Record<DomainKind, ...>` where
+  applicable so missing keys fail `tsc`:
+  - `phases.ts` — keyed by `PhaseType`; fields: `label`, `badgeLabel`, `description`
   - `portions.ts` — keyed by `PortionKind`
   - `categories.ts` — keyed by food category id
-- **UI-chrome files** — keyed by ergonomic action or concept name:
   - `actions.ts` — common verbs (`save`, `edit`, `cancel`, `confirm`, …)
   - `common.ts` — toasts, empty states, form errors, headers, page titles
-- `index.ts` re-exports all of the above.
+- **`src/lib/config/`** — config files that spread from `strings/` and add
+  visual tokens (icon, Tailwind classes). Single lookup point for consumers;
+  enforced with `satisfies Record<DomainKind, ...>`:
+  - `phases.ts` — spreads `phaseStrings` + adds `icon`, `badge`, `iconBg`
 
 All entries are `as const` for literal-type inference. No i18n library is
 adopted. Pluralization and date formatting remain in `src/lib/utils/`.

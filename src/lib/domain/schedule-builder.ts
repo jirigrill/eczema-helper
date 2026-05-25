@@ -55,11 +55,9 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
   phases.push({
     id: 'reset',
     type: 'reset',
-    label: 'Resetovací fáze',
     startDate: cursor,
     endDate: resetEnd,
     categoryIds: [],
-    description: 'Jezte normálně (kromě potvrzených alergií). Zaznamenáváme výchozí stav kůže miminka před zahájením eliminace.',
   });
   cursor = addDays(resetEnd, 1);
 
@@ -70,11 +68,9 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
   phases.push({
     id: 'elimination',
     type: 'elimination',
-    label: 'Eliminační fáze',
     startDate: cursor,
     endDate: elimEnd,
     categoryIds: protocolIds,
-    description: 'Vylučte všechny sledované alergeny. Čekáme, až se stav kůže miminka ustálí.',
   });
   cursor = addDays(elimEnd, 1);
 
@@ -84,16 +80,13 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     id => !permanentEliminations.includes(id)
   );
   for (const categoryId of reintroQueue) {
-    const cat = getCategoryById(categoryId);
     const reintroEnd = addDays(cursor, durations.reintroduction - 1);
     phases.push({
       id: `reintro-${categoryId}`,
       type: 'reintroduction',
-      label: `Znovuzavedení: ${cat?.nameCs ?? categoryId}`,
       startDate: cursor,
       endDate: reintroEnd,
       categoryIds: [categoryId],
-      description: `Postupně zařazujte ${cat?.nameCs?.toLowerCase() ?? categoryId} zpět do jídelníčku. Sledujte kůži miminka každý den.`,
     });
     cursor = addDays(reintroEnd, 1);
   }
@@ -135,11 +128,9 @@ export function insertRestDays(
   const restPhase: SchedulePhase = {
     id: `rest-after-${afterPhaseId}`,
     type: 'rest',
-    label: 'Klidový režim',
     startDate: restStart,
     endDate: restEnd,
     categoryIds: [],
-    description: 'Kůže se zotavuje — jezte jen potraviny, které miminko toleruje.',
   };
 
   // Shift all non-tolerance-building phases after idx forward by `days`
@@ -181,16 +172,12 @@ export function addTrainingPhase(
     ? addDays(nextPhase.endDate, 1)
     : addDays(afterPhase.endDate, 1);
 
-  const cat = getCategoryById(allergenId);
-
   const trainingPhase: SchedulePhase = {
     id: `tolerance-building-${allergenId}`,
     type: 'tolerance-building',
-    label: `Budování tolerance: ${cat?.nameCs ?? allergenId}`,
     startDate: trainingStart,
     endDate: '', // open-ended — no fixed end date
     categoryIds: [allergenId],
-    description: `Malé dávky ${cat?.nameCs?.toLowerCase() ?? allergenId} max 2× týdně pro budování tolerance. Pokračujte, dokud miminko alergen toleruje.`,
   };
 
   const phases = [...schedule.phases, trainingPhase];
@@ -251,16 +238,13 @@ export function appendReTestPhases(
   let cursor = addDays(schedule.estimatedEndDate, 1);
 
   for (const categoryId of ids) {
-    const cat = getCategoryById(categoryId);
     const end = addDays(cursor, reintroductionDays - 1);
     newPhases.push({
       id: `retest-${categoryId}-${cursor}`,
       type: 'reintroduction',
-      label: `Otestování: ${cat?.nameCs ?? categoryId}`,
       startDate: cursor,
       endDate: end,
       categoryIds: [categoryId],
-      description: `Opatrné otestování ${cat?.nameCs?.toLowerCase() ?? categoryId} pod lékařským dohledem nebo s velkou opatrností.`,
     });
     cursor = addDays(end, 1);
   }

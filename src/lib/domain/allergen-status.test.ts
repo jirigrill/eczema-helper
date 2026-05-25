@@ -5,7 +5,7 @@ import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 // ── Fixtures ──────────────────────────────────────────────────
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
-  return { label: '', description: '', categoryIds: [], ...overrides };
+  return { categoryIds: [], ...overrides };
 }
 
 // Base schedule: 2 protocol allergens, 1 mother allergy, 1 baby allergy

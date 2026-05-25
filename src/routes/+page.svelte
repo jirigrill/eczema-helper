@@ -14,6 +14,7 @@
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { formatDateLongCs } from '$lib/utils/date';
+  import { phaseStrings } from '$lib/strings/phases';
   import { db } from '$lib/db/atopic-db';
   import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
   import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
@@ -348,8 +349,8 @@
             </div>
             <p class="body mb-2">Začátek: <strong>{formatDateLongCs(programStartDate)}</strong></p>
             <div class="body space-y-1">
-              <p>✦ <strong>5 dní</strong> resetovací fáze</p>
-              <p>✦ <strong>{elimDays} dní</strong> eliminační fáze</p>
+              <p>✦ <strong>5 dní</strong> {phaseStrings.reset.label}</p>
+              <p>✦ <strong>{elimDays} dní</strong> {phaseStrings.elimination.label}</p>
               {#if reintroQueue.length > 0}
                 <p>✦ Znovuzavedení (<strong>{reintroDays} dní</strong> každý):
                   {reintroQueue.map(s => getCategoryById(s)?.nameCs ?? s).join(' → ')}
