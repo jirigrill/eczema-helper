@@ -269,6 +269,53 @@ export function appendReTestPhases(
   return { ok: true, data: { ...schedule, phases: newPhases, estimatedEndDate: newEndDate } };
 }
 
+// ── Cancel re-test phase ──────────────────────────────────────
+
+export type RemoveRetestRejection =
+  | { code: 'not-scheduled';  categoryId: string }
+  | { code: 'protocol-phase'; categoryId: string };
+
+/**
+ * Removes a previously appended retest phase for `categoryId`.
+ *
+ * Only phases whose `id` starts with `retest-` (appended via `appendReTestPhases`)
+ * are removable. Protocol reintroduction phases are not removable via this operation.
+ *
+ * `estimatedEndDate` is left unchanged ("drop and leave") — the caller can
+ * re-schedule via `appendReTestPhases` after removal.
+ */
+export function removeReTestPhase(
+  schedule: GeneratedSchedule,
+  categoryId: string,
+  today: string,
+): Result<GeneratedSchedule, RemoveRetestRejection> {
+  const retestPhase = schedule.phases.find(
+    p =>
+      p.id.startsWith('retest-') &&
+      p.type === 'reintroduction' &&
+      p.categoryIds.includes(categoryId) &&
+      (p.endDate === '' || p.endDate >= today),
+  );
+
+  if (!retestPhase) {
+    // Check if a protocol phase is blocking
+    const protocolPhase = schedule.phases.find(
+      p =>
+        !p.id.startsWith('retest-') &&
+        p.type === 'reintroduction' &&
+        p.categoryIds.includes(categoryId) &&
+        (p.endDate === '' || p.endDate >= today),
+    );
+    if (protocolPhase) {
+      return { ok: false, error: { code: 'protocol-phase', categoryId } };
+    }
+    return { ok: false, error: { code: 'not-scheduled', categoryId } };
+  }
+
+  const phases = schedule.phases.filter(p => p.id !== retestPhase.id);
+  return { ok: true, data: { ...schedule, phases } };
+}
+
 // ── Training reminders for a given date ──────────────────────
 
 /**

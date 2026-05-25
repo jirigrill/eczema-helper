@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSchedule, insertRestDays, addTrainingPhase, appendReTestPhases } from './schedule-builder';
+import { generateSchedule, insertRestDays, addTrainingPhase, appendReTestPhases, removeReTestPhase } from './schedule-builder';
 import { getPermanentEliminations } from '$lib/domain/models';
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase } from '$lib/domain/models';
 
@@ -281,5 +281,81 @@ describe('appendReTestPhases — retest-already-scheduled', () => {
     if (result.ok) return;
     expect(result.error.code).toBe('retest-already-scheduled');
     expect(result.error.invalidIds).toContain('peanut');
+  });
+});
+
+// ── removeReTestPhase ────────────────────────────────────────
+
+const scheduleWithPlannedRetest: GeneratedSchedule = {
+  ...retestBase,
+  estimatedEndDate: '2026-06-28',
+  phases: [
+    ...retestBase.phases,
+    phase({ id: 'retest-peanut-2026-06-21', type: 'reintroduction', startDate: '2026-06-21', endDate: '2026-06-24', categoryIds: ['peanut'] }),
+  ],
+};
+
+describe('removeReTestPhase — happy path', () => {
+  it('removes the retest phase for the given categoryId', () => {
+    const result = removeReTestPhase(scheduleWithPlannedRetest, 'peanut', TODAY);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const stillPresent = result.data.phases.some(
+      p => p.categoryIds.includes('peanut') && p.id.startsWith('retest-')
+    );
+    expect(stillPresent).toBe(false);
+  });
+
+  it('leaves estimatedEndDate unchanged (drop-and-leave semantics)', () => {
+    const result = removeReTestPhase(scheduleWithPlannedRetest, 'peanut', TODAY);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.estimatedEndDate).toBe(scheduleWithPlannedRetest.estimatedEndDate);
+  });
+});
+
+describe('removeReTestPhase — not-scheduled', () => {
+  // No future retest phase exists for peanut (retestBase has none)
+  it('returns not-scheduled when no future retest phase exists for the allergen', () => {
+    const result = removeReTestPhase(retestBase, 'peanut', TODAY);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('not-scheduled');
+    expect(result.error.categoryId).toBe('peanut');
+  });
+
+  it('returns not-scheduled when the retest phase is already in the past', () => {
+    const scheduleWithPastRetest: GeneratedSchedule = {
+      ...retestBase,
+      phases: [
+        ...retestBase.phases,
+        phase({ id: 'retest-peanut-2026-06-01', type: 'reintroduction', startDate: '2026-06-01', endDate: '2026-06-04', categoryIds: ['peanut'] }),
+      ],
+    };
+    const result = removeReTestPhase(scheduleWithPastRetest, 'peanut', TODAY);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('not-scheduled');
+  });
+});
+
+describe('removeReTestPhase — protocol-phase', () => {
+  // A protocol reintroduction phase exists for dairy — NOT retest- prefixed
+  const scheduleWithProtocolReintro: GeneratedSchedule = {
+    ...retestBase,
+    phases: [
+      ...retestBase.phases,
+      // dairy is being retested via a manually crafted protocol phase (no retest- prefix)
+      phase({ id: 'reintro-dairy-round2', type: 'reintroduction', startDate: '2026-06-25', endDate: '2026-06-28', categoryIds: ['dairy'] }),
+    ],
+    permanentBaby: ['peanut', 'dairy'],
+  };
+
+  it('returns protocol-phase when an active/future reintroduction exists but is not retest- prefixed', () => {
+    const result = removeReTestPhase(scheduleWithProtocolReintro, 'dairy', TODAY);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('protocol-phase');
+    expect(result.error.categoryId).toBe('dairy');
   });
 });

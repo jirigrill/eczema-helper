@@ -2261,12 +2261,14 @@ function App() {
       <div className="divider" />
 
       <div className="section-eyebrow">B — Program stránka · Řada 2</div>
-      <div className="section-heading">Naplánování re-testu z rozbalené fáze</div>
+      <div className="section-heading">Naplánování a zrušení re-testu</div>
       <div className="section-desc">
-        Detail fáze a alergenového testu se zobrazí přímo v rozbalené řádce v Průběh tabu (nemáme samostatný detail screen — duplikoval by stejná data). Re-test se otevírá z tlačítka „+ Re-test" inline u alergenu s reakcí.
+        Re-test se otevírá z tlačítka „+ Re-test" inline u alergenu s reakcí (1. screen). Pokud re-test již existuje v plánu, vrátí <code>appendReTestPhases</code> chybu <code>retest-already-scheduled</code> — matka může fázi zrušit přímo z řádku v časové ose (2. screen). Po zrušení se fáze odebere beze změny <code>estimatedEndDate</code> a zobrazí se toast s tlačítkem Zpět (3. screen).
       </div>
       <div className="phone-row">
-        <RetestSetupWithLabel allergenId="soy"  customLabel="Naplánovat re-test (Sója)" dotColor={c.primary} />
+        <RetestSetupWithLabel allergenId="soy" customLabel="Naplánovat re-test (Sója)" dotColor={c.primary} />
+        <RetestCancelWithLabel customLabel="Zrušit re-test · časová osa" />
+        <RetestAfterCancelWithLabel customLabel="Po zrušení · toast Zpět" />
       </div>
 
 
@@ -2477,6 +2479,163 @@ function RetestSetupInner({ allergenId }) {
         </div>
       </div>
       <PhoneNav />
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// RETEST CANCEL SCREENS — two states of the cancel flow:
+//  1. Planned retest row in the program list + "Zrušit" affordance
+//  2. Post-cancel: retest row gone + "Retest zrušen" toast
+//
+// Layout mirrors ProgramPhone exactly:
+//  PhoneShell > sticky header > protocol bar > "Fáze a alergeny"
+//  eyebrow > ProgramRow (past) > HeroCard (current) >
+//  [ProgramRowWithCancel] > ProgramRow (future/pending)
+// ════════════════════════════════════════════════════════════════
+
+// Variant of ProgramRow for a planned re-test phase that can be cancelled.
+// Matches ProgramRow's card geometry exactly; replaces "›" with "Zrušit" pill.
+function ProgramRowWithCancel({ r }) {
+  const color = r.color || c.primary;
+  return (
+    <div style={{
+      background: c.white,
+      border: `1px solid ${c.primary}30`,
+      borderRadius: 12, padding: '10px 12px',
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <div style={{ width: 32, height: 32, borderRadius: 10, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+        {r.icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{r.name}</span>
+        <p style={{ fontSize: 11, color: c.primary, fontWeight: 600, lineHeight: 1.3, marginTop: 2 }}>{r.subtitle}</p>
+      </div>
+      <button style={{ fontSize: 10, color: c.danger, background: `${c.danger}10`, border: 'none', borderRadius: 8, padding: '4px 8px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer' }}>
+        Zrušit
+      </button>
+    </div>
+  );
+}
+
+// Past rows shared by both cancel screens.
+// Sója row updated: canRetest suppressed, subtitle shows re-test is scheduled.
+const PAST_ROWS_WITH_RETEST = [
+  ...PRUBEH_ROWS.slice(0, 4),
+  { ...PRUBEH_ROWS[4], canRetest: false, subtitle: 'Test 9.–13. 3. · mírná reakce · re-test naplánován', color: c.primary },
+];
+
+// Shared ProgramPhone-style content for the cancel screen.
+// expanded=false by default so the planned retest row is visible above the fold.
+function RetestCancelContent({ showRetestRow, showToast }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const p = PHASES['retest'];
+  const pastRows  = showRetestRow ? PAST_ROWS_WITH_RETEST : PRUBEH_ROWS.slice(0, 5);
+  const futureRows = PRUBEH_ROWS.slice(6);
+
+  return (
+    <React.Fragment>
+      {/* Sticky header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, background: c.white, borderBottom: `1px solid ${c.surfaceDark}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: c.text }}>Program</span>
+          <span style={{ fontSize: 11, color: c.textMuted }}>12. 6. 2026</span>
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 14px 0' }}>
+        {/* Protocol progress — same slim bar as ProgramPhone */}
+        <div style={{ marginBottom: 14, padding: '0 2px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', fontSize: 11, color: c.textMuted, marginBottom: 4 }}>
+            <span><strong style={{ color: c.text, fontWeight: 700 }}>Eliminační protokol</strong> · Den 97 / 120</span>
+            <span style={{ fontSize: 10 }}>do 30. 6.</span>
+          </div>
+          <div style={{ height: 3, background: c.surfaceDark, borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: '81%', background: c.primary }} />
+          </div>
+        </div>
+
+        <p style={{ fontSize: 9, fontWeight: 800, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8, paddingLeft: 2 }}>Fáze a alergeny</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          {pastRows.map((r, i) => <ProgramRow key={'p'+i} r={r} />)}
+
+          {/* Current phase — Vejce re-test, collapsed to show the row below */}
+          <div style={{ marginTop: 4, marginBottom: 4 }}>
+            <HeroCard phase={p} expanded={expanded} onToggle={() => setExpanded(e => !e)} colorStyle="gradient" />
+          </div>
+
+          {/* Planned re-test row (screen 2 only) */}
+          {showRetestRow && (
+            <ProgramRowWithCancel r={{
+              icon: '🫘',
+              name: 'Sója',
+              subtitle: 'Re-test · 12.–16. 6. 2026 · naplánováno',
+              color: c.primary,
+            }} />
+          )}
+
+          {futureRows.map((r, i) => <ProgramRow key={'f'+i} r={r} />)}
+        </div>
+
+        <button style={{
+          width: '100%', marginBottom: 16,
+          background: 'transparent', color: c.primary,
+          border: `1.5px dashed ${c.primary}50`, borderRadius: 12,
+          padding: '11px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+        }}>+ Naplánovat další test</button>
+      </div>
+    </React.Fragment>
+  );
+}
+
+// ── Screen 2: cancel affordance ──────────────────────────────
+
+function RetestCancelWithLabel({ customLabel }) {
+  return (
+    <PhoneShell phaseKey={null} customLabel={customLabel}>
+      <RetestCancelContent showRetestRow={true} showToast={false} />
+    </PhoneShell>
+  );
+}
+
+// ── Screen 3: post-cancel + toast ────────────────────────────
+// Uses manual phone-shell (not PhoneShell) so the toast can be
+// absolutely positioned inside phone-shell but outside phone-content.
+
+function RetestAfterCancelWithLabel({ customLabel }) {
+  return (
+    <div className="phone-wrap">
+      <div className="phase-label">▸ {customLabel}</div>
+      <div className="phone-outer">
+        <div className="phone-shell" style={{ position: 'relative' }}>
+          <div className="phone-status">
+            <span className="phone-time">9:41</span>
+            <div className="phone-island" />
+            <span className="phone-battery">●●● ◐</span>
+          </div>
+          <div className="phone-content">
+            <RetestCancelContent showRetestRow={false} showToast={true} />
+          </div>
+          {/* Toast type=success — bg-success (#5A8B5A) text-white, matches Toast.svelte */}
+          <div style={{
+            position: 'absolute', bottom: 72, left: 8, right: 8,
+            background: c.success, borderRadius: 14, padding: '10px 12px 10px 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.18)', zIndex: 50,
+          }}>
+            <span style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>Retest zrušen.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              <button style={{ background: 'none', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
+                Zpět
+              </button>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18, lineHeight: 1 }}>×</span>
+            </div>
+          </div>
+          <PhoneNav activeIndex={1} />
+        </div>
+      </div>
     </div>
   );
 }
