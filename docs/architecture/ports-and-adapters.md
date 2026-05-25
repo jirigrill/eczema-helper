@@ -4,7 +4,7 @@ The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1
 
 ## Why hexagonal here
 
-- **Testability.** Pure domain functions and ports have in-memory adapters for fast Vitest runs without `fake-indexeddb` setup.
+- **Testability.** Pure domain functions stay free of I/O so they run as plain Vitest unit tests. Dexie adapters are tested against `fake-indexeddb` (loaded globally in `src/test-setup.ts`).
 - **Storage swap.** If v1.1 ever needs to back up to a server or switch local stores, the domain doesn't move.
 - **Boundary discipline.** Forces ourselves to keep `lib/domain/` free of Dexie / DOM / SvelteKit imports.
 
@@ -23,8 +23,8 @@ The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1
 │   ↑ implemented by                                            │
 ├───────────────────────────────────────────────────────────────┤
 │ Adapters          src/lib/adapters/                           │
-│   - dexie-*-repository.ts    (production)                     │
-│   - in-memory-*-repository.ts (tests)                         │
+│   - dexie-*-repository.ts    (production; tested with         │
+│     fake-indexeddb)                                           │
 ├───────────────────────────────────────────────────────────────┤
 │ Infra             src/lib/db/atopic-db.ts (Dexie schema)      │
 └───────────────────────────────────────────────────────────────┘
@@ -58,18 +58,18 @@ Singleton record in the `schedule` table.
 
 ## Adapters
 
-| Port                       | Production adapter                              | Test adapter                                      |
-| -------------------------- | ----------------------------------------------- | ------------------------------------------------- |
-| `QuestionnaireRepository`  | `dexie-questionnaire-repository.ts`             | `in-memory-questionnaire-repository.ts`           |
-| `ScheduleRepository`       | `dexie-schedule-repository.ts`                  | `in-memory-schedule-repository.ts`                |
+| Port                       | Adapter                                         |
+| -------------------------- | ----------------------------------------------- |
+| `QuestionnaireRepository`  | `dexie-questionnaire-repository.ts`             |
+| `ScheduleRepository`       | `dexie-schedule-repository.ts`                  |
 
-Both Dexie adapters target the singleton row identified by `SINGLETON_ID` and translate Dexie exceptions into `Result.err(message)`.
+Each port has a single production adapter. Adapter tests run against `fake-indexeddb` rather than a hand-rolled in-memory fake — see [ADR-0013](../adr/0013-drop-unused-in-memory-adapters.md) for why the in-memory variants were dropped. Both Dexie adapters target the singleton row identified by `SINGLETON_ID` and translate Dexie exceptions into `Result.err(message)`.
 
 ## Reactivity boundary
 
 Ports expose **point reads** (`load()`), not subscriptions. Live reactive reads are a UI concern and are handled in `src/lib/stores/`, which subscribes directly to `Dexie.liveQuery()`. The `ScheduleContext` store ([ADR-0009](../adr/0009-schedule-context-store.md)) is the canonical example — exposes a `loading | empty | ready` discriminated union to routes.
 
-This is deliberate: putting `liveQuery` in the port would couple the domain to Dexie and force the in-memory adapter to ship a fake reactive primitive.
+This is deliberate: putting `liveQuery` in the port would couple the domain to Dexie and force any future test adapter to ship a fake reactive primitive.
 
 ## Future ports (not yet authored)
 
