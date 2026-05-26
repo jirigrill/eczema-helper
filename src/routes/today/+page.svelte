@@ -16,7 +16,7 @@
   const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
   const protocolSlugs = $derived(
     ctx.status === 'ready'
-      ? (ctx.schedule.phases.find((p) => p.type === "elimination")?.categoryIds ?? [])
+      ? (ctx.schedule.phases.find((p) => p.type === "elimination")?.allergenIds ?? [])
       : [],
   );
   const allowedProtocol = $derived(
@@ -124,7 +124,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="body-bold">{display.label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
+                <span class="body-bold">{display.label}{phase.allergenIds[0] ? `: ${getCategoryById(phase.allergenIds[0])?.nameCs ?? phase.allergenIds[0]}` : ''}</span>
                 <PhaseBadge type={phase.type} />
               </div>
               {#if ctx.progress}

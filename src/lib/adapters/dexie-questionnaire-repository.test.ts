@@ -11,7 +11,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   babyConfirmedAllergies: [],
   programStartDate: '2025-06-01',
   completedAt: '2025-06-01T10:00:00.000Z',
-  testedAllergens: ['dairy', 'egg'],
+  testedAllergens: ['dairy', 'eggs'],
 };
 
 describe('DexieQuestionnaireRepository', () => {

@@ -21,7 +21,7 @@ const sampleSchedule: GeneratedSchedule = {
   phases: [{
     id: 'reset',
     type: 'reset',
-    categoryIds: [],
+    allergenIds: [],
     startDate: today,
     endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
   }],

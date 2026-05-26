@@ -1,4 +1,5 @@
-import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue } from '$lib/domain/models';
+import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenId } from '$lib/domain/models';
+import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange } from '$lib/utils/date';
@@ -43,7 +44,7 @@ const FORBIDDEN_STATUSES = new Set<AllergenStatusValue>([
 export function getEliminatedSlugsForDate(
   schedule: GeneratedSchedule,
   date: string
-): string[] {
+): AllergenId[] {
   const phase = getPhaseForDate(schedule, date);
 
   // Step 1: reset guard
@@ -54,7 +55,7 @@ export function getEliminatedSlugsForDate(
   // Step 2: status filter
   return getAllergenStatuses(schedule, date)
     .filter(s => FORBIDDEN_STATUSES.has(s.status))
-    .map(s => s.id);
+    .map(s => s.allergenId);
 }
 
 // ── End-of-phase evaluation check ────────────────────────────
@@ -74,22 +75,16 @@ export function isPhaseEndForEvaluation(
 
 export function detectConflicts(
   items: MealItem[],
-  eliminatedSlugs: string[]
+  eliminatedSlugs: AllergenId[]
 ): MealItem[] {
   return items.filter(
-    item => item.categoryId !== null && eliminatedSlugs.includes(item.categoryId)
+    item => item.allergenId !== null && eliminatedSlugs.includes(item.allergenId)
   );
 }
 
-// ── Reintroduction day info (4-day gradual dosing) ──────────────
-// 4 eating days with escalating doses. Evaluation at end of day 4.
-
-const REINTRO_4DAY: Pick<ReintroductionDayInfo, 'label' | 'guidance' | 'isEvaluationDay'>[] = [
-  { label: 'Malé množství', guidance: '1 lžička nebo malý kousek', isEvaluationDay: false },
-  { label: 'Střední porce', guidance: '2–3 lžíce', isEvaluationDay: false },
-  { label: 'Neomezeně', guidance: 'Jezte alergen bez omezení', isEvaluationDay: false },
-  { label: 'Neomezeně', guidance: 'Jezte alergen bez omezení — večer vyhodnoťte reakci', isEvaluationDay: true },
-];
+// ── Reintroduction day info ───────────────────────────────────
+// Dosing instructions are per-allergen; see src/lib/data/reintroduction-protocols.ts.
+// isEvaluationDay is derived from the protocol config for the current allergen + day.
 
 export function getReintroductionDayInfo(
   schedule: GeneratedSchedule,
@@ -98,7 +93,7 @@ export function getReintroductionDayInfo(
   const phase = getPhaseForDate(schedule, date);
   if (!phase || phase.type !== 'reintroduction') return null;
 
-  const allergenId = phase.categoryIds[0];
+  const allergenId = phase.allergenIds[0];
   if (!allergenId) return null;
 
   const phaseStart = new Date(phase.startDate + 'T00:00:00');
@@ -109,9 +104,11 @@ export function getReintroductionDayInfo(
     (new Date(phase.endDate + 'T00:00:00').getTime() - phaseStart.getTime()) / 86400000
   ) + 1;
 
-  const entry = REINTRO_4DAY[Math.min(dayInPhase - 1, REINTRO_4DAY.length - 1)];
+  const protocol = getProtocolForAllergen(allergenId);
+  const protocolDay = protocol?.days[dayInPhase - 1];
+  const isEvaluationDay = protocolDay?.isEvaluationDay ?? (dayInPhase === totalDays);
 
-  return { dayInPhase, totalDays, allergenId, ...entry };
+  return { dayInPhase, totalDays, allergenId, isEvaluationDay };
 }
 
 // ── Progress ──────────────────────────────────────────────────

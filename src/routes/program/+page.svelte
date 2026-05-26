@@ -138,9 +138,9 @@
     selectedRetestSlugs = [];
   }
 
-  async function cancelRetestPhase(categoryId: string) {
+  async function cancelRetestPhase(allergenId: string) {
     if (!schedule) return;
-    const result = removeReTestPhase(schedule, categoryId, today);
+    const result = removeReTestPhase(schedule, allergenId, today);
     if (!result.ok) {
       toastMessage = result.error.code === 'protocol-phase'
         ? 'Nelze zrušit: toto je protokolová fáze, ne přidaný retest.'
@@ -219,7 +219,7 @@
     return schedule.phases
       .filter((p: SchedulePhase) => p.type === 'tolerance-building' && p.startDate <= today)
       .map((tp: SchedulePhase) => {
-        const slug = tp.categoryIds[0];
+        const slug = tp.allergenIds[0];
         const cat = getCategoryById(slug);
         let startIdx = nonTrainingPhases.findIndex((p: SchedulePhase) =>
           p.endDate ? p.endDate >= tp.startDate : p.startDate <= today
@@ -247,7 +247,7 @@
     for (const meal of meals.filter((m: { date: string }) => m.date >= phase.startDate && m.date <= phaseEnd)) {
       for (const conflict of detectConflicts(meal.items, eliminated)) {
         if (!conflicts.some(c => c.name === conflict.name && c.date === meal.date)) {
-          const cat = getCategoryById(conflict.categoryId ?? '');
+          const cat = getCategoryById(conflict.allergenId ?? '');
           conflicts.push({ name: conflict.name, icon: cat?.icon ?? '🍽️', date: meal.date });
         }
       }
@@ -298,7 +298,7 @@
             <p class="body-semibold">Program dokončen 🎉</p>
             <p class="body-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
           {:else if currentPhase}
-            <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.categoryIds[0] ? `: ${getCategoryById(currentPhase.categoryIds[0])?.nameCs ?? currentPhase.categoryIds[0]}` : ''}</p>
+            <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.allergenIds[0] ? `: ${getCategoryById(currentPhase.allergenIds[0])?.nameCs ?? currentPhase.allergenIds[0]}` : ''}</p>
             <p class="body-muted mt-0.5">
               den {currentDayInPhase(currentPhase)}{currentPhase.endDate ? ` z ${phaseDayCount(currentPhase)}` : ''} · {formatDateLongCs(today)}
             </p>
@@ -355,7 +355,7 @@
             {/if}
 
           {:else if currentPhase.type === 'reintroduction'}
-            {@const testCat = getCategoryById(currentPhase.categoryIds[0])}
+            {@const testCat = getCategoryById(currentPhase.allergenIds[0])}
 
             <div>
               <p class="section-label">Co dělat</p>
@@ -373,7 +373,7 @@
               <div>
                 <p class="section-label text-success">Testujete</p>
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <AllergenChip slug={currentPhase.categoryIds[0]} color="success" />
+                  <AllergenChip slug={currentPhase.allergenIds[0]} color="success" />
                   {#if reintroInfo}
                     <span class="body-muted">
                       den {reintroInfo.dayInPhase} z {reintroInfo.totalDays} · {reintroInfo.label}
@@ -413,7 +413,7 @@
             </div>
 
           {:else if currentPhase.type === 'tolerance-building'}
-            {@const trainingCat = getCategoryById(currentPhase.categoryIds[0])}
+            {@const trainingCat = getCategoryById(currentPhase.allergenIds[0])}
 
             <div>
               <p class="section-label">Co dělat</p>
@@ -472,11 +472,11 @@
                 <p class="section-label">Stav alergenů</p>
                 <div class="muted-list">
                   {#each protocolAllergenStatuses as row}
-                    {@const rowCat = getCategoryById(row.id)}
+                    {@const rowCat = getCategoryById(row.allergenId)}
                     <div class="flex items-center gap-2">
                       <span>{rowCat?.icon ?? ''}</span>
-                      <span class="flex-1">{rowCat?.nameCs ?? row.id}</span>
-                      {#if schedule?.permanentBaby.includes(row.id)}
+                      <span class="flex-1">{rowCat?.nameCs ?? row.allergenId}</span>
+                      {#if schedule?.permanentBaby.includes(row.allergenId)}
                         <span class="text-text-muted/50 text-[10px]">z dotazníku</span>
                       {/if}
                       <span class="{allergenStatusColor(row.status)}">{allergenStatusLabel(row.status)}</span>
@@ -531,7 +531,7 @@
               onclick={() => (expandedPhaseId = expandedPhaseId === phase.id ? null : phase.id)}
             >
               <div class="shrink-0 w-8 h-8 rounded-full {nodeColor(phaseEval)} flex items-center justify-center z-10"></div>
-              <span class="body-muted flex-1 truncate">{phaseConfig[phase.type].label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
+              <span class="body-muted flex-1 truncate">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${getCategoryById(phase.allergenIds[0])?.nameCs ?? phase.allergenIds[0]}` : ''}</span>
               <span class="text-xs text-text-muted/50 shrink-0">{formatDateCs(phase.startDate)}{phase.endDate ? `–${formatDateCs(phase.endDate)}` : '–…'}</span>
               <span class="body-muted shrink-0">{expandedPhaseId === phase.id ? '▾' : '▸'}</span>
             </button>
@@ -576,8 +576,8 @@
                       {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}× nová ložiska</span>{/if}
                     </div>
                     {#if (worsened > 0 || newLesions > 0) && phase.type === 'reintroduction'}
-                      {@const phaseCat = getCategoryById(phase.categoryIds[0])}
-                      <p class="text-text-muted mt-1">Možná příčina: {phaseCat?.icon} {phaseCat?.nameCs ?? phase.categoryIds[0]}</p>
+                      {@const phaseCat = getCategoryById(phase.allergenIds[0])}
+                      <p class="text-text-muted mt-1">Možná příčina: {phaseCat?.icon} {phaseCat?.nameCs ?? phase.allergenIds[0]}</p>
                     {/if}
                   {/if}
                 </div>
@@ -592,11 +592,11 @@
                       <p class="section-label">Stav alergenů</p>
                       <div class="muted-list">
                         {#each phaseRows as row}
-                          {@const rowCat = getCategoryById(row.id)}
+                          {@const rowCat = getCategoryById(row.allergenId)}
                           <div class="flex items-center gap-2">
                             <span>{rowCat?.icon ?? ''}</span>
-                            <span class="flex-1">{rowCat?.nameCs ?? row.id}</span>
-                            {#if schedule.permanentBaby.includes(row.id)}
+                            <span class="flex-1">{rowCat?.nameCs ?? row.allergenId}</span>
+                            {#if schedule.permanentBaby.includes(row.allergenId)}
                               <span class="text-text-muted/50 text-[10px]">z dotazníku</span>
                             {/if}
                             <span class="{allergenStatusColor(row.status)}">{allergenStatusLabel(row.status)}</span>
@@ -630,7 +630,7 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm z-10 ring-4 ring-primary/20">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="text-sm font-semibold text-text flex-1">{phaseConfig[phase.type].label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
+              <span class="text-sm font-semibold text-text flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${getCategoryById(phase.allergenIds[0])?.nameCs ?? phase.allergenIds[0]}` : ''}</span>
               <span class="text-xs bg-primary text-white rounded-full px-2 py-0.5 font-medium shrink-0">Teď</span>
             </div>
 
@@ -641,12 +641,12 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-white border-2 border-surface-dark flex items-center justify-center text-sm z-10">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="body-muted flex-1">{phaseConfig[phase.type].label}{phase.categoryIds[0] ? `: ${getCategoryById(phase.categoryIds[0])?.nameCs ?? phase.categoryIds[0]}` : ''}</span>
+              <span class="body-muted flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${getCategoryById(phase.allergenIds[0])?.nameCs ?? phase.allergenIds[0]}` : ''}</span>
               {#if isRetestPhase}
                 <button
                   type="button"
                   class="text-xs text-danger/70 hover:text-danger font-medium shrink-0 px-2 py-1 rounded-lg hover:bg-danger/10 transition-colors"
-                  onclick={() => cancelRetestPhase(phase.categoryIds[0])}
+                  onclick={() => cancelRetestPhase(phase.allergenIds[0])}
                 >
                   Zrušit
                 </button>
@@ -682,8 +682,8 @@
         <p class="section-label">Maminčiny alergeny</p>
         <p class="body-muted text-xs">Trvale vyřazeno — vaše vlastní alergie.</p>
         <div class="flex flex-wrap gap-1.5">
-          {#each motherAllergenStatuses as s (s.id)}
-            <AllergenChip slug={s.id} />
+          {#each motherAllergenStatuses as s (s.allergenId)}
+            <AllergenChip slug={s.allergenId} />
           {/each}
         </div>
       </div>
@@ -695,17 +695,17 @@
         <p class="body-muted text-xs">Trvale vyřazeno. Testování doporučujeme konzultovat s lékařem.</p>
         <div class="flex flex-wrap gap-2">
           {#each babyPermanentStatuses as allergenStatus}
-            {@const cat = getCategoryById(allergenStatus.id)}
+            {@const cat = getCategoryById(allergenStatus.allergenId)}
             {#if cat}
-              {@const isChosen = selectedRetestSlugs.includes(allergenStatus.id)}
+              {@const isChosen = selectedRetestSlugs.includes(allergenStatus.allergenId)}
               <button
                 type="button"
                 class="inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 font-medium border transition-all
                   {isChosen ? 'bg-primary text-white border-primary' : 'bg-white text-text border-surface-dark'}"
                 onclick={() => {
                   selectedRetestSlugs = isChosen
-                    ? selectedRetestSlugs.filter(s => s !== allergenStatus.id)
-                    : [...selectedRetestSlugs, allergenStatus.id];
+                    ? selectedRetestSlugs.filter(s => s !== allergenStatus.allergenId)
+                    : [...selectedRetestSlugs, allergenStatus.allergenId];
                 }}
               >
                 {cat.icon} {cat.nameCs}

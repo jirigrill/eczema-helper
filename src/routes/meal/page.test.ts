@@ -21,7 +21,7 @@ const sampleSchedule: GeneratedSchedule = {
   phases: [{
     id: 'elim',
     type: 'elimination',
-    categoryIds: ['dairy'],
+    allergenIds: ['dairy'],
     startDate: today,
     endDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
   }],
@@ -85,8 +85,6 @@ describe('meal/+page.svelte', () => {
         allergenId: 'dairy',
         dayInPhase: 2,
         totalDays: 4,
-        label: 'Malá dávka',
-        guidance: 'Zkuste trochu',
         isEvaluationDay: false,
       },
       progress: { currentDay: 1, totalDays: 14, percentComplete: 7 },

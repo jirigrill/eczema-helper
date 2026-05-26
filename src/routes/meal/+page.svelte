@@ -2,10 +2,12 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
-  import type { Meal, MealItem, AmountSize } from '$lib/domain/models';
+  import type { Meal, MealItem, PortionKind } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES, getCategoryById } from '$lib/data/categories';
-  import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
+  import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
+  import { mealConfig } from '$lib/config/meals';
+  import { portionStrings } from '$lib/strings/portions';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { scheduleContext } from '$lib/stores/schedule-context';
   import Toast from '$lib/components/Toast.svelte';
@@ -22,7 +24,7 @@
 
   // ── Form state ────────────────────────────────────────────
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
-  let selectedAmount = $state<AmountSize>('portion');
+  let selectedAmount = $state<PortionKind>('portion');
   let expandedCategory = $state<string | null>(null);
   let currentItems = $state<MealItem[]>([]);
   let mealLabel = $state('');
@@ -30,40 +32,40 @@
   let customName = $state('');
 
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
-  const amounts = Object.entries(AMOUNT_LABELS) as [AmountSize, { label: string; short: string }][];
+  const amounts = Object.entries(portionStrings) as [PortionKind, { label: string; short: string }][];
 
   // ── Conflict detection ────────────────────────────────────
   const conflicts = $derived(detectConflicts(currentItems, eliminatedToday));
   const hasConflicts = $derived(conflicts.length > 0);
 
   function isConflictItem(item: MealItem): boolean {
-    return item.categoryId !== null && eliminatedToday.includes(item.categoryId);
+    return item.allergenId !== null && eliminatedToday.includes(item.allergenId);
   }
 
   // ── Category interactions ─────────────────────────────────
-  function toggleCategory(categoryId: string) {
-    const cat = CATEGORIES.find(c => c.categoryId === categoryId);
+  function toggleCategory(allergenId: string) {
+    const cat = CATEGORIES.find(c => c.allergenId === allergenId);
     if (!cat) return;
     if (cat.subItems.length === 0) {
-      addItem({ name: cat.nameCs, categoryId });
+      addItem({ name: cat.nameCs, allergenId });
       expandedCategory = null;
     } else {
-      expandedCategory = expandedCategory === categoryId ? null : categoryId;
+      expandedCategory = expandedCategory === allergenId ? null : allergenId;
     }
   }
 
-  function selectSubItem(categoryId: string, subitemId: string, name: string) {
-    addItem({ name, categoryId, subitemId });
+  function selectSubItem(allergenId: string, subitemId: string, name: string) {
+    addItem({ name, allergenId, subitemId });
     expandedCategory = null;
   }
 
-  function addItem(partial: { name: string; categoryId: string | null; subitemId?: string }) {
-    const exists = currentItems.some(i => i.name === partial.name && i.categoryId === partial.categoryId);
+  function addItem(partial: { name: string; allergenId: string | null; subitemId?: string }) {
+    const exists = currentItems.some(i => i.name === partial.name && i.allergenId === partial.allergenId);
     if (exists) return;
     currentItems = [...currentItems, {
       id: crypto.randomUUID(),
       name: partial.name,
-      categoryId: partial.categoryId,
+      allergenId: partial.allergenId,
       subitemId: partial.subitemId ?? null,
       amount: selectedAmount,
     }];
@@ -71,7 +73,7 @@
 
   function addCustom() {
     if (!customName.trim()) return;
-    addItem({ name: customName.trim(), categoryId: null });
+    addItem({ name: customName.trim(), allergenId: null });
     customName = '';
   }
 
@@ -79,7 +81,7 @@
     currentItems = currentItems.filter(i => i.id !== id);
   }
 
-  function updateAmount(id: string, amount: AmountSize) {
+  function updateAmount(id: string, amount: PortionKind) {
     currentItems = currentItems.map(i => i.id === id ? { ...i, amount } : i);
   }
 
@@ -106,8 +108,8 @@
   const canSave = $derived(currentItems.length > 0);
   const todayMeals = $derived(meals.filter(m => m.date === today));
 
-  function isCategoryInMeal(categoryId: string): boolean {
-    return currentItems.some(i => i.categoryId === categoryId);
+  function isCategoryInMeal(allergenId: string): boolean {
+    return currentItems.some(i => i.allergenId === allergenId);
   }
 </script>
 
@@ -124,12 +126,13 @@
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
       {@const cat = getCategoryById(reintroInfo.allergenId)}
+      {@const protocolDay = getProtocolForAllergen(reintroInfo.allergenId)?.days[reintroInfo.dayInPhase - 1]}
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">
           <p class="text-xs font-medium text-success">
-            🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}: {reintroInfo.label}
+            🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}
           </p>
-          <p class="body-muted mt-0.5">{reintroInfo.guidance} ({cat?.nameCs})</p>
+          <p class="body-muted mt-0.5">{protocolDay?.instructionCs ?? ''} ({cat?.nameCs})</p>
         </InfoBanner>
       </div>
     {/if}
@@ -139,8 +142,8 @@
       <div class="px-4 pt-2 pb-3">
         <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
           <span class="text-xs font-medium text-warning">Dnes vyřazeno:</span>
-          {#each eliminatedToday as categoryId}
-            {@const cat = getCategoryById(categoryId)}
+          {#each eliminatedToday as allergenId}
+            {@const cat = getCategoryById(allergenId)}
             {#if cat}
               <span class="text-sm">{cat.icon}</span>
             {/if}
@@ -166,8 +169,8 @@
               {selectedMealType === type ? 'bg-primary text-white shadow-sm' : 'bg-white border border-surface-dark text-text'}"
             onclick={() => (selectedMealType = type)}
           >
-            <span class="text-xl">{MEAL_TYPE_ICONS[type]}</span>
-            <span>{MEAL_TYPE_LABELS[type]}</span>
+            <span class="text-xl">{mealConfig[type].icon}</span>
+            <span>{mealConfig[type].label}</span>
           </button>
         {/each}
       </div>
@@ -214,7 +217,7 @@
       <InfoBanner variant="warning">
         <p class="text-sm font-medium text-warning mb-1">⚠ Odchylka od programu</p>
         <p class="body-muted">
-          {conflicts.map(i => `${i.name} (${getCategoryById(i.categoryId ?? '')?.nameCs})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
+          {conflicts.map(i => `${i.name} (${getCategoryById(i.allergenId ?? '')?.nameCs})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
           Jídlo bude uloženo a odchylka zaznamenána.
         </p>
       </InfoBanner>
@@ -224,15 +227,15 @@
     <div>
       <p class="field-label">Alergeny a kategorie</p>
       <div class="grid grid-cols-4 gap-2">
-        {#each CATEGORIES as cat (cat.categoryId)}
-          {@const inMeal = isCategoryInMeal(cat.categoryId)}
-          {@const isElim = eliminatedToday.includes(cat.categoryId)}
-          {@const isExpanded = expandedCategory === cat.categoryId}
+        {#each CATEGORIES as cat (cat.allergenId)}
+          {@const inMeal = isCategoryInMeal(cat.allergenId)}
+          {@const isElim = eliminatedToday.includes(cat.allergenId)}
+          {@const isExpanded = expandedCategory === cat.allergenId}
           <button
             data-state={isExpanded ? 'info' : inMeal ? 'success' : isElim ? 'danger' : undefined}
             class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
               {!isExpanded && !inMeal && !isElim ? 'bg-white border-surface-dark' : ''}"
-            onclick={() => toggleCategory(cat.categoryId)}
+            onclick={() => toggleCategory(cat.allergenId)}
           >
             <span class="text-2xl leading-none">{cat.icon}</span>
             <span class="leading-tight text-center">{cat.nameCs}</span>
@@ -251,7 +254,7 @@
     {#if currentItems.length > 0}
       <div class="card-base">
         <p class="body-medium mb-2">
-          {MEAL_TYPE_ICONS[selectedMealType]} {MEAL_TYPE_LABELS[selectedMealType]} — vybrané položky
+          {mealConfig[selectedMealType].icon} {mealConfig[selectedMealType].label} — vybrané položky
         </p>
         <div class="space-y-1.5">
           {#each currentItems as item (item.id)}
@@ -259,7 +262,7 @@
               {isConflictItem(item) ? 'border' : 'bg-surface'}"
               data-state={isConflictItem(item) ? 'warning' : undefined}>
               <span class="text-base shrink-0">
-                {getCategoryById(item.categoryId ?? '')?.icon ?? '🍽️'}
+                {getCategoryById(item.allergenId ?? '')?.icon ?? '🍽️'}
               </span>
               <span class="body flex-1 min-w-0 truncate">{item.name}</span>
               {#if isConflictItem(item)}
@@ -269,7 +272,7 @@
               <select
                 class="text-xs border border-surface-dark rounded px-1 py-0.5 bg-white shrink-0"
                 value={item.amount}
-                onchange={(e) => updateAmount(item.id, (e.target as HTMLSelectElement).value as AmountSize)}
+                onchange={(e) => updateAmount(item.id, (e.target as HTMLSelectElement).value as PortionKind)}
               >
                 {#each amounts as [val, info]}
                   <option value={val}>{info.short}</option>
@@ -290,16 +293,16 @@
           {#each todayMeals as meal (meal.id)}
             <div class="card-base">
               <div class="flex items-center gap-2 mb-1.5">
-                <span>{MEAL_TYPE_ICONS[meal.mealType]}</span>
-                <span class="body-medium">{MEAL_TYPE_LABELS[meal.mealType]}</span>
+                <span>{mealConfig[meal.mealType].icon}</span>
+                <span class="body-medium">{mealConfig[meal.mealType].label}</span>
                 <span class="body-muted">{meal.savedAt}</span>
               </div>
               <div class="flex flex-wrap gap-1">
                 {#each meal.items as item}
                   <span class="text-xs bg-surface rounded-full px-2 py-0.5 text-text
-                    {item.categoryId && eliminatedToday.includes(item.categoryId) ? 'bg-warning/10 text-warning' : ''}">
-                    {getCategoryById(item.categoryId ?? '')?.icon ?? ''} {item.name}
-                    <span class="text-text-muted">{AMOUNT_LABELS[item.amount]?.short}</span>
+                    {item.allergenId && eliminatedToday.includes(item.allergenId) ? 'bg-warning/10 text-warning' : ''}">
+                    {getCategoryById(item.allergenId ?? '')?.icon ?? ''} {item.name}
+                    <span class="text-text-muted">{portionStrings[item.amount].short}</span>
                   </span>
                 {/each}
               </div>
@@ -348,7 +351,7 @@
               {currentItems.some(i => i.name === sub.nameCs)
                 ? ''
                 : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
-            onclick={() => selectSubItem(cat.categoryId, sub.subitemId, sub.nameCs)}
+            onclick={() => selectSubItem(cat.allergenId, sub.subitemId, sub.nameCs)}
           >
             {sub.nameCs}
           </button>
@@ -366,7 +369,7 @@
   >
     <div class="max-w-lg mx-auto">
       <Button color={hasConflicts ? 'warning' : 'primary'} onclick={saveMeal}>
-        {hasConflicts ? '⚠ Uložit s odchylkou' : 'Uložit'} — {MEAL_TYPE_LABELS[selectedMealType]}
+        {hasConflicts ? '⚠ Uložit s odchylkou' : 'Uložit'} — {mealConfig[selectedMealType].label}
         ({currentItems.length} {currentItems.length === 1 ? 'položka' : currentItems.length <= 4 ? 'položky' : 'položek'})
       </Button>
     </div>

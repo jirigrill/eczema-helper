@@ -1,5 +1,29 @@
 // Domain model for the eczema-tracking app.
 
+// ── Allergen identifiers ──────────────────────────────────────
+// Two-tier shape — see ADR-0014 "Domain-key shapes".
+
+export type ProtocolAllergenId =
+  | 'dairy'
+  | 'eggs'
+  | 'wheat'
+  | 'soy'
+  | 'nuts'
+  | 'fish'
+  | 'shellfish'
+  | 'citrus'
+  | 'chocolate'
+  | 'tomatoes'
+  | 'strawberries'
+  | 'corn'
+  | 'sesame';
+
+export type CustomAllergenId = `other:${string}`;
+
+export type AllergenId = ProtocolAllergenId | CustomAllergenId;
+
+// ── Allergen status ───────────────────────────────────────────
+
 export type AllergenStatusValue =
   | 'permanent-mother'     // Mother's own allergy. Lifelong. Never reintroduced.
   | 'permanent-baby'       // Baby's confirmed allergy. Eliminated; eligible for end-of-program retest.
@@ -11,7 +35,7 @@ export type AllergenStatusValue =
   | 'tolerance-building';  // Open-ended phase delivering small doses.
 
 export type AllergenStatus = {
-  id: string;
+  allergenId: AllergenId;
   status: AllergenStatusValue;
 };
 
@@ -20,11 +44,11 @@ export type EczemaSeverity = 'mild' | 'moderate' | 'severe';
 export type QuestionnaireAnswers = {
   babyBirthDate: string; // ISO date YYYY-MM-DD
   eczemaSeverity: EczemaSeverity;
-  motherAllergies: string[]; // category IDs — permanent, never reintroduced
-  babyConfirmedAllergies: string[]; // category IDs — permanent, never reintroduced
+  motherAllergies: AllergenId[]; // permanent, never reintroduced — may include custom
+  babyConfirmedAllergies: AllergenId[]; // permanent, never reintroduced — may include custom
   programStartDate: string; // ISO date — when the program begins
   completedAt: string; // ISO datetime
-  testedAllergens: string[]; // category IDs to eliminate and reintroduce, in reintroduction order
+  testedAllergens: ProtocolAllergenId[]; // protocol-only — custom slugs can't be reintroduced
 };
 
 export type PhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';
@@ -34,13 +58,13 @@ export type SchedulePhase = {
   type: PhaseType;
   startDate: string; // ISO date
   endDate: string; // ISO date
-  categoryIds: string[]; // allergens relevant to this phase
+  allergenIds: ProtocolAllergenId[]; // protocol allergens relevant to this phase
 };
 
 export type GeneratedSchedule = {
   phases: SchedulePhase[];
-  permanentMother: string[]; // category IDs from mother's confirmed allergies — never reintroduced
-  permanentBaby: string[]; // category IDs from baby's confirmed allergies — never reintroduced
+  permanentMother: AllergenId[]; // mother's confirmed allergies — never reintroduced
+  permanentBaby: AllergenId[]; // baby's confirmed allergies — never reintroduced
   startDate: string;
   estimatedEndDate: string;
 };
@@ -49,24 +73,26 @@ export type GeneratedSchedule = {
  * Returns all permanently eliminated allergens (union of mother's and baby's).
  * Use this instead of accessing both fields directly.
  */
-export function getPermanentEliminations(schedule: GeneratedSchedule): string[] {
+export function getPermanentEliminations(schedule: GeneratedSchedule): AllergenId[] {
   return [...new Set([...schedule.permanentMother, ...schedule.permanentBaby])];
 }
 
-export type AmountSize = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
+export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
 export type MealItem = {
   id: string;
   name: string; // Czech display name
-  categoryId: string | null;
-  subitemId?: string | null; // e.g. 'dairy:yogurt' — optional, narrows categoryId to a specific sub-item
-  amount: AmountSize;
+  allergenId: AllergenId | null;
+  subitemId?: string | null; // e.g. 'dairy:yogurt' — optional, narrows allergenId to a specific sub-item
+  amount: PortionKind;
 };
+
+export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 
 export type Meal = {
   id: string;
   date: string; // ISO date
-  mealType: 'breakfast' | 'lunch' | 'snack' | 'dinner';
+  mealType: MealType;
   items: MealItem[];
   label?: string;
   savedAt: string; // HH:MM
@@ -79,12 +105,20 @@ export type DailyAssessment = {
   photoTaken: boolean;
 };
 
+export type ProtocolDay = {
+  day: number;
+  instructionCs: string;
+  isEvaluationDay: boolean;
+};
+
+export type AllergenProtocol = {
+  days: ProtocolDay[];
+};
+
 export type ReintroductionDayInfo = {
   dayInPhase: number;
   totalDays: number;
-  allergenId: string;
-  label: string;
-  guidance: string;
+  allergenId: ProtocolAllergenId;
   isEvaluationDay: boolean;
 };
 
@@ -98,7 +132,7 @@ export type ReintroductionEvaluation = {
   phaseId: string; // links to SchedulePhase.id
   phaseType: 'allergen-test' | 'skin-status'; // determines which outcome vocabulary applies
   outcome: AllergenOutcome | SkinStatusOutcome;
-  allergenId?: string; // only set for allergen-test evaluations
+  allergenId?: ProtocolAllergenId; // only set for allergen-test evaluations
   notes?: string;
   date: string; // ISO date when evaluation was made
 };
@@ -112,20 +146,20 @@ export type AppState = {
 };
 
 export type ToleranceBuildingReminder = {
-  allergenId: string;
+  allergenId: ProtocolAllergenId;
   daysSinceLastDose: number;
   label: string;
 };
 
 export type Category = {
-  categoryId: string;
+  allergenId: ProtocolAllergenId;
   nameCs: string;
   icon: string;
   subItems: SubItem[];
 };
 
 export type SubItem = {
-  subitemId: string; // format: 'categoryId:uniquePart', e.g. 'dairy:milk'
-  categoryId: string;
+  subitemId: string; // format: 'allergenId:uniquePart', e.g. 'dairy:milk'
+  allergenId: ProtocolAllergenId;
   nameCs: string;
 };

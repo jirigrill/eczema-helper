@@ -58,9 +58,25 @@ former `'training'` per ADR-0012). Icon: 🥄.
 
 ### ReintroductionDayInfo
 
-Day-within-phase guidance returned by `getReintroductionDayInfo(schedule, date)` for
-the active reintroduction phase. Contains: `label` (e.g. "Den 1 / 4"), `guidance`
-(dose instruction), and `isEvaluationDay` (true on day 4, triggers verdict UI).
+Day-within-phase record returned by `getReintroductionDayInfo(schedule, date)` for
+the active reintroduction phase. Contains: `dayInPhase`, `totalDays`, `allergenId`,
+and `isEvaluationDay` (true on the last day, triggers verdict UI). Carries **no Czech
+strings** — the render site resolves the day's dosing instruction from
+`REINTRODUCTION_PROTOCOLS[allergenId].days[dayInPhase - 1].instructionCs`.
+
+### AllergenProtocol
+
+The static dosing config for one allergen's reintroduction phase. Shape:
+`{ days: ProtocolDay[] }`. Stored in `src/lib/data/reintroduction-protocols.ts` as
+`REINTRODUCTION_PROTOCOLS: Record<string, AllergenProtocol>`. v1 ships baseline
+clinical guidelines only; dynamic adjustment per baby profile is deferred.
+
+### ProtocolDay
+
+A single day's entry within an `AllergenProtocol`:
+`{ day: number, instructionCs: string, isEvaluationDay: boolean }`.
+`instructionCs` is Czech dosing text (e.g. "50 g červené čočky"). `isEvaluationDay`
+drives whether the verdict UI appears — it is a domain flag, not display state.
 
 ---
 
@@ -71,7 +87,31 @@ the active reintroduction phase. Contains: `label` (e.g. "Den 1 / 4"), `guidance
 
 A food trigger substance identified by a string slug (e.g. `'dairy'`, `'eggs'`,
 `'wheat'`). Slugs are the stable IDs used in schedules, meals, and elimination windows.
-The display name and icon are resolved from the slug at render time.
+The display name and icon are resolved from the slug at render time. The slug type is
+`AllergenId`.
+
+### AllergenId / ProtocolAllergenId / CustomAllergenId
+
+The typed shape of an allergen slug. Defined in `src/lib/domain/models.ts`:
+
+- `ProtocolAllergenId` — string-literal union of the 13 protocol-defined slugs
+  (`'dairy' | 'eggs' | 'wheat' | 'soy' | 'nuts' | 'fish' | 'shellfish' | 'citrus'
+  | 'chocolate' | 'tomatoes' | 'strawberries' | 'corn' | 'sesame'`). These are the
+  only allergens that can have a reintroduction protocol.
+- `CustomAllergenId = \`other:${string}\`` — user-defined custom allergens (e.g.
+  `'other:Paprika'`). Stored when the mother adds an "other" item in the meal log.
+  Participate in elimination logs but **never** enter a protocol phase.
+- `AllergenId = ProtocolAllergenId | CustomAllergenId` — the unified type. Used at
+  fields whose value can legitimately come from either tier
+  (`MealItem.allergenId`, `motherAllergies`, `babyConfirmedAllergies`,
+  `AllergenStatus.allergenId`).
+
+Fields known by construction to be protocol-only are typed `ProtocolAllergenId`
+directly (`SchedulePhase.allergenIds`, `testedAllergens`,
+`ReintroductionDayInfo.allergenId`, `ToleranceBuildingReminder.allergenId`,
+`DEFAULT_TESTED_ALLERGENS`). Lookups crossing the boundary go through
+`getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined`. See ADR-0014
+"Domain-key shapes" section.
 
 ### Tested Allergens
 *Czech: Sledované alergeny*
@@ -200,19 +240,24 @@ A record of the mother's food intake on a single date. Contains: `date`, `mealTy
 *Czech: Typ jídla*
 
 One of: `'breakfast'` (Snídaně) · `'lunch'` (Oběd) · `'snack'` (Svačina) ·
-`'dinner'` (Večeře).
+`'dinner'` (Večeře). Named type exported from `models.ts`. Czech labels and
+icons resolved from `$lib/config/meals` (`mealConfig[type].label` / `.icon`).
+See ADR-0014.
 
 ### MealItem
 *Czech: Položka jídla*
 
-A single food within a meal: `name`, `categoryId` (allergen slug), optional `subitemId`,
-`amount` (AmountSize).
+A single food within a meal: `name`, `allergenId` (`AllergenId | null`),
+optional `subitemId`, `amount` (`PortionKind`).
 
-### AmountSize
+### PortionKind
 *Czech: Velikost porce*
 
 One of: `'pinch'` (Špetka) · `'teaspoon'` (Lžička) · `'spoon'` (Lžíce) ·
-`'portion'` (Porce) · `'package'` (Balení).
+`'portion'` (Porce) · `'package'` (Balení). The **meal-logging** portion size —
+what the mother recorded eating on a `MealItem`. Distinct from `AllergenProtocol`
+/ `ProtocolDay`, which are the protocol-prescribed dosing instructions during
+reintroduction. See ADR-0014.
 
 ### Actor
 → Defined in `CONTEXT.md`. The person whose food intake a `Meal` describes. Always
@@ -363,10 +408,13 @@ See ADR-0014.
 
 ### PortionKind
 
-The stable string-literal type for a meal-item portion size.
+The stable string-literal type for a **meal-item portion size**.
 Values: `'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package'`.
-Replaces the inline Czech names that were formerly on `AmountSize` usages.
-Display text resolved from `$lib/strings/portions`. See ADR-0014.
+These are descriptive — what the mother actually logged eating on a `MealItem`.
+Czech display labels live in `src/lib/strings/portions.ts`. See ADR-0014.
+
+Not to be confused with `AllergenProtocol` / `ProtocolDay`, which are the
+prescriptive dosing instructions the protocol recommends during reintroduction.
 
 ### Presentation String
 

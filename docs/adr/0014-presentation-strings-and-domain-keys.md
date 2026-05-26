@@ -43,7 +43,7 @@ The display layer is split into two locations by concern:
   applicable so missing keys fail `tsc`:
   - `phases.ts` — keyed by `PhaseType`; fields: `label`, `badgeLabel`, `description`
   - `portions.ts` — keyed by `PortionKind`
-  - `categories.ts` — keyed by food category id
+  - `categories.ts` — keyed by `AllergenId`
   - `actions.ts` — common verbs (`save`, `edit`, `cancel`, `confirm`, …)
   - `common.ts` — toasts, empty states, form errors, headers, page titles
 - **`src/lib/config/`** — config files that spread from `strings/` and add
@@ -53,6 +53,32 @@ The display layer is split into two locations by concern:
 
 All entries are `as const` for literal-type inference. No i18n library is
 adopted. Pluralization and date formatting remain in `src/lib/utils/`.
+
+### Domain-key shapes
+
+Domain identifiers used as `Record<>` keys are string-literal unions defined
+in `src/lib/domain/models.ts`. Where the identifier admits two tiers — a
+fixed protocol-defined set plus a user-extensible set — the type is split:
+
+- `ProtocolAllergenId` — the 13 fixed allergen slugs the reintroduction
+  protocol covers (`'dairy' | 'eggs' | ...`).
+- `CustomAllergenId = \`other:${string}\`` — slugs the mother defines herself
+  (e.g. `'other:Paprika'`). They participate in elimination logs but can
+  never enter a protocol phase.
+- `AllergenId = ProtocolAllergenId | CustomAllergenId` — the union, used at
+  fields whose value could legitimately come from either tier.
+
+Field types are picked per their domain invariant, not uniformly:
+`SchedulePhase.allergenIds: ProtocolAllergenId[]` (protocol-only by
+construction); `MealItem.allergenId: AllergenId | null` (mother may log
+custom items). Lookups crossing the boundary go through
+`getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined` in
+`src/lib/data/reintroduction-protocols.ts`, where the partial mapping is
+honest.
+
+The same shape applies to any future domain identifier with a fixed-plus-
+extensible structure: define the narrow union, the extensible template
+literal, and the unified type alongside in `models.ts`.
 
 ## Alternatives Considered
 
