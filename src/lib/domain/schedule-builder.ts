@@ -1,4 +1,4 @@
-import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder } from '$lib/domain/models';
+import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder, AllergenId, ProtocolAllergenId } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import { getCategoryById } from '$lib/data/categories';
 import { addDays } from '$lib/utils/date';
@@ -7,9 +7,9 @@ import { getAllergenStatuses } from '$lib/domain/allergen-status';
 // ── Re-test eligibility rejection ────────────────────────────
 
 export type RetestRejection =
-  | { code: 'not-baby-confirmed'; invalidIds: string[] }
-  | { code: 'already-cleared';    invalidIds: string[] }
-  | { code: 'retest-already-scheduled'; invalidIds: string[] };
+  | { code: 'not-baby-confirmed'; invalidIds: AllergenId[] }
+  | { code: 'already-cleared';    invalidIds: AllergenId[] }
+  | { code: 'retest-already-scheduled'; invalidIds: AllergenId[] };
 
 // ── Schedule generation ───────────────────────────────────────
 
@@ -39,8 +39,8 @@ function phaseDurations(severity: EczemaSeverity) {
 export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedule {
   const durations = phaseDurations(answers.eczemaSeverity);
 
-  const normalize = (ids: string[]) =>
-    ids.map(s => s.includes(':') && !s.startsWith('other:') ? s.split(':')[0] : s);
+  const normalize = (ids: AllergenId[]): AllergenId[] =>
+    ids.map(s => s.includes(':') && !s.startsWith('other:') ? (s.split(':')[0] as AllergenId) : s);
 
   const permanentMother = [...new Set(normalize(answers.motherAllergies))];
   const permanentBaby = [...new Set(normalize(answers.babyConfirmedAllergies))];
@@ -57,7 +57,7 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     type: 'reset',
     startDate: cursor,
     endDate: resetEnd,
-    categoryIds: [],
+    allergenIds: [],
   });
   cursor = addDays(resetEnd, 1);
 
@@ -70,23 +70,23 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     type: 'elimination',
     startDate: cursor,
     endDate: elimEnd,
-    categoryIds: protocolIds,
+    allergenIds: protocolIds,
   });
   cursor = addDays(elimEnd, 1);
 
   // Phase B: Sequential reintroduction (4 days each — 3 escalating eating days + evaluation day)
-  const permanentEliminations = [...new Set([...permanentMother, ...permanentBaby])];
+  const permanentEliminations = new Set<AllergenId>([...permanentMother, ...permanentBaby]);
   const reintroQueue = protocolIds.filter(
-    id => !permanentEliminations.includes(id)
+    id => !permanentEliminations.has(id)
   );
-  for (const categoryId of reintroQueue) {
+  for (const allergenId of reintroQueue) {
     const reintroEnd = addDays(cursor, durations.reintroduction - 1);
     phases.push({
-      id: `reintro-${categoryId}`,
+      id: `reintro-${allergenId}`,
       type: 'reintroduction',
       startDate: cursor,
       endDate: reintroEnd,
-      categoryIds: [categoryId],
+      allergenIds: [allergenId],
     });
     cursor = addDays(reintroEnd, 1);
   }
@@ -130,7 +130,7 @@ export function insertRestDays(
     type: 'rest',
     startDate: restStart,
     endDate: restEnd,
-    categoryIds: [],
+    allergenIds: [],
   };
 
   // Shift all non-tolerance-building phases after idx forward by `days`
@@ -159,7 +159,7 @@ export function insertRestDays(
 
 export function addTrainingPhase(
   schedule: GeneratedSchedule,
-  allergenId: string,
+  allergenId: ProtocolAllergenId,
   afterPhaseId: string
 ): GeneratedSchedule {
   const afterPhase = schedule.phases.find(p => p.id === afterPhaseId);
@@ -177,7 +177,7 @@ export function addTrainingPhase(
     type: 'tolerance-building',
     startDate: trainingStart,
     endDate: '', // open-ended — no fixed end date
-    categoryIds: [allergenId],
+    allergenIds: [allergenId],
   };
 
   const phases = [...schedule.phases, trainingPhase];
@@ -202,7 +202,7 @@ export function addTrainingPhase(
  */
 export function appendReTestPhases(
   schedule: GeneratedSchedule,
-  ids: string[],
+  ids: ProtocolAllergenId[],
   today: string,
 ): Result<GeneratedSchedule, RetestRejection> {
   // 1. not-baby-confirmed
@@ -215,7 +215,7 @@ export function appendReTestPhases(
   const alreadyScheduled = ids.filter(id =>
     schedule.phases.some(
       p => p.type === 'reintroduction' &&
-           p.categoryIds.includes(id) &&
+           p.allergenIds.includes(id) &&
            (p.endDate === '' || p.endDate >= today)
     )
   );
@@ -226,7 +226,7 @@ export function appendReTestPhases(
   // 3. already-cleared (status is not permanent-baby — e.g. passed a previous retest)
   const statuses = getAllergenStatuses(schedule, today);
   const notEligible = ids.filter(id =>
-    statuses.find(s => s.id === id)?.status !== 'permanent-baby'
+    statuses.find(s => s.allergenId === id)?.status !== 'permanent-baby'
   );
   if (notEligible.length > 0) {
     return { ok: false, error: { code: 'already-cleared', invalidIds: notEligible } };
@@ -237,14 +237,14 @@ export function appendReTestPhases(
   const newPhases = [...schedule.phases];
   let cursor = addDays(schedule.estimatedEndDate, 1);
 
-  for (const categoryId of ids) {
+  for (const allergenId of ids) {
     const end = addDays(cursor, reintroductionDays - 1);
     newPhases.push({
-      id: `retest-${categoryId}-${cursor}`,
+      id: `retest-${allergenId}-${cursor}`,
       type: 'reintroduction',
       startDate: cursor,
       endDate: end,
-      categoryIds: [categoryId],
+      allergenIds: [allergenId],
     });
     cursor = addDays(end, 1);
   }
@@ -256,11 +256,11 @@ export function appendReTestPhases(
 // ── Cancel re-test phase ──────────────────────────────────────
 
 export type RemoveRetestRejection =
-  | { code: 'not-scheduled';  categoryId: string }
-  | { code: 'protocol-phase'; categoryId: string };
+  | { code: 'not-scheduled';  allergenId: ProtocolAllergenId }
+  | { code: 'protocol-phase'; allergenId: ProtocolAllergenId };
 
 /**
- * Removes a previously appended retest phase for `categoryId`.
+ * Removes a previously appended retest phase for `allergenId`.
  *
  * Only phases whose `id` starts with `retest-` (appended via `appendReTestPhases`)
  * are removable. Protocol reintroduction phases are not removable via this operation.
@@ -270,14 +270,14 @@ export type RemoveRetestRejection =
  */
 export function removeReTestPhase(
   schedule: GeneratedSchedule,
-  categoryId: string,
+  allergenId: ProtocolAllergenId,
   today: string,
 ): Result<GeneratedSchedule, RemoveRetestRejection> {
   const retestPhase = schedule.phases.find(
     p =>
       p.id.startsWith('retest-') &&
       p.type === 'reintroduction' &&
-      p.categoryIds.includes(categoryId) &&
+      p.allergenIds.includes(allergenId) &&
       (p.endDate === '' || p.endDate >= today),
   );
 
@@ -287,13 +287,13 @@ export function removeReTestPhase(
       p =>
         !p.id.startsWith('retest-') &&
         p.type === 'reintroduction' &&
-        p.categoryIds.includes(categoryId) &&
+        p.allergenIds.includes(allergenId) &&
         (p.endDate === '' || p.endDate >= today),
     );
     if (protocolPhase) {
-      return { ok: false, error: { code: 'protocol-phase', categoryId } };
+      return { ok: false, error: { code: 'protocol-phase', allergenId } };
     }
-    return { ok: false, error: { code: 'not-scheduled', categoryId } };
+    return { ok: false, error: { code: 'not-scheduled', allergenId } };
   }
 
   const phases = schedule.phases.filter(p => p.id !== retestPhase.id);
@@ -308,7 +308,7 @@ export function removeReTestPhase(
  * doses should appear at most every 3 days to avoid desensitisation.
  *
  * "Last dose date" is the most recent `meal.date` among meals that contain
- * an item whose `categoryId` matches the training allergen. When no such
+ * an item whose `allergenId` matches the training allergen. When no such
  * meal exists `daysSince` is set to 999, ensuring the reminder always fires
  * on the first day of training.
  */
@@ -322,11 +322,11 @@ export function getToleranceBuildingRemindersForDate(
   );
 
   return trainingPhases.map(phase => {
-    const categoryId = phase.categoryIds[0];
-    const cat = getCategoryById(categoryId);
+    const allergenId = phase.allergenIds[0];
+    const cat = getCategoryById(allergenId);
 
     const relevantMeals = meals
-      .filter(m => m.date <= date && m.items.some(i => i.categoryId === categoryId))
+      .filter(m => m.date <= date && m.items.some(i => i.allergenId === allergenId))
       .sort((a, b) => b.date.localeCompare(a.date));
 
     const lastDate = relevantMeals[0]?.date;
@@ -335,9 +335,9 @@ export function getToleranceBuildingRemindersForDate(
       : 999;
 
     return {
-      allergenId: categoryId,
+      allergenId,
       daysSinceLastDose: daysSince,
-      label: `${cat?.icon ?? ''} ${cat?.nameCs ?? categoryId}`,
+      label: `${cat?.icon ?? ''} ${cat?.nameCs ?? allergenId}`,
     };
   }).filter(r => r.daysSinceLastDose >= 3);
 }

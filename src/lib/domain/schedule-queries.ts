@@ -1,5 +1,5 @@
-import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue } from '$lib/domain/models';
-import { REINTRODUCTION_PROTOCOLS } from '$lib/data/reintroduction-protocols';
+import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenId } from '$lib/domain/models';
+import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange } from '$lib/utils/date';
@@ -44,7 +44,7 @@ const FORBIDDEN_STATUSES = new Set<AllergenStatusValue>([
 export function getEliminatedSlugsForDate(
   schedule: GeneratedSchedule,
   date: string
-): string[] {
+): AllergenId[] {
   const phase = getPhaseForDate(schedule, date);
 
   // Step 1: reset guard
@@ -55,7 +55,7 @@ export function getEliminatedSlugsForDate(
   // Step 2: status filter
   return getAllergenStatuses(schedule, date)
     .filter(s => FORBIDDEN_STATUSES.has(s.status))
-    .map(s => s.id);
+    .map(s => s.allergenId);
 }
 
 // ── End-of-phase evaluation check ────────────────────────────
@@ -75,10 +75,10 @@ export function isPhaseEndForEvaluation(
 
 export function detectConflicts(
   items: MealItem[],
-  eliminatedSlugs: string[]
+  eliminatedSlugs: AllergenId[]
 ): MealItem[] {
   return items.filter(
-    item => item.categoryId !== null && eliminatedSlugs.includes(item.categoryId)
+    item => item.allergenId !== null && eliminatedSlugs.includes(item.allergenId)
   );
 }
 
@@ -93,7 +93,7 @@ export function getReintroductionDayInfo(
   const phase = getPhaseForDate(schedule, date);
   if (!phase || phase.type !== 'reintroduction') return null;
 
-  const allergenId = phase.categoryIds[0];
+  const allergenId = phase.allergenIds[0];
   if (!allergenId) return null;
 
   const phaseStart = new Date(phase.startDate + 'T00:00:00');
@@ -104,7 +104,7 @@ export function getReintroductionDayInfo(
     (new Date(phase.endDate + 'T00:00:00').getTime() - phaseStart.getTime()) / 86400000
   ) + 1;
 
-  const protocol = REINTRODUCTION_PROTOCOLS[allergenId];
+  const protocol = getProtocolForAllergen(allergenId);
   const protocolDay = protocol?.days[dayInPhase - 1];
   const isEvaluationDay = protocolDay?.isEvaluationDay ?? (dayInPhase === totalDays);
 

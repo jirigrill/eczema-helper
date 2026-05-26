@@ -22,7 +22,7 @@ const sampleSchedule: GeneratedSchedule = {
     {
       id: 'reset',
       type: 'reset',
-      categoryIds: [],
+      allergenIds: [],
       startDate: today,
       endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
     },
@@ -163,7 +163,7 @@ describe('today/+page.svelte', () => {
         {
           id: 'reset',
           type: 'reset',
-          categoryIds: [],
+          allergenIds: [],
           startDate: '2020-01-01',
           endDate: '2020-01-05',
         },

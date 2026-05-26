@@ -1,4 +1,4 @@
-import type { AllergenProtocol } from '$lib/domain/models';
+import type { AllergenId, AllergenProtocol, ProtocolAllergenId } from '$lib/domain/models';
 
 /**
  * Baseline clinical reintroduction protocol per allergen.
@@ -9,7 +9,7 @@ import type { AllergenProtocol } from '$lib/domain/models';
  *
  * Source: standard elimination-diet reintroduction protocol for breastfeeding mothers.
  */
-export const REINTRODUCTION_PROTOCOLS: Record<string, AllergenProtocol> = {
+export const REINTRODUCTION_PROTOCOLS = {
   dairy: {
     days: [
       { day: 1, instructionCs: '100 ml kravského mléka nebo 1 jogurt', isEvaluationDay: false },
@@ -107,4 +107,8 @@ export const REINTRODUCTION_PROTOCOLS: Record<string, AllergenProtocol> = {
       { day: 3, instructionCs: 'Neomezeně sezamových výrobků — večer vyhodnoťte reakci', isEvaluationDay: true },
     ],
   },
-};
+} as const satisfies Record<ProtocolAllergenId, AllergenProtocol>;
+
+export function getProtocolForAllergen(allergenId: AllergenId): AllergenProtocol | undefined {
+  return (REINTRODUCTION_PROTOCOLS as Record<string, AllergenProtocol>)[allergenId];
+}

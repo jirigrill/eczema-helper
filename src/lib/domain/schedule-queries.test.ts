@@ -3,7 +3,7 @@ import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress, getRei
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
-  return { categoryIds: [], ...overrides };
+  return { allergenIds: [], ...overrides };
 }
 
 const baseSchedule: GeneratedSchedule = {
@@ -12,8 +12,8 @@ const baseSchedule: GeneratedSchedule = {
   estimatedEndDate: '2026-07-01',
   phases: [
     phase({ id: 'reset',        type: 'reset',           startDate: '2026-05-01', endDate: '2026-05-05' }),
-    phase({ id: 'elimination',  type: 'elimination',     startDate: '2026-05-06', endDate: '2026-05-26', categoryIds: ['dairy', 'eggs'] }),
-    phase({ id: 'reintro-dairy',type: 'reintroduction',  startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
+    phase({ id: 'elimination',  type: 'elimination',     startDate: '2026-05-06', endDate: '2026-05-26', allergenIds: ['dairy', 'eggs'] }),
+    phase({ id: 'reintro-dairy',type: 'reintroduction',  startDate: '2026-05-27', endDate: '2026-05-30', allergenIds: ['dairy'] }),
   ],
 };
 
@@ -24,9 +24,9 @@ const scheduleWithPassedAllergen: GeneratedSchedule = {
   estimatedEndDate: '2026-07-01',
   phases: [
     phase({ id: 'reset',         type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
-    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', categoryIds: ['dairy', 'eggs', 'wheat'] }),
-    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
-    phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-05-31', endDate: '2026-06-03', categoryIds: ['eggs'] }),
+    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', allergenIds: ['dairy', 'eggs', 'wheat'] }),
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', allergenIds: ['dairy'] }),
+    phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-05-31', endDate: '2026-06-03', allergenIds: ['eggs'] }),
   ],
 };
 
@@ -37,8 +37,8 @@ const scheduleWithRestPhase: GeneratedSchedule = {
   estimatedEndDate: '2026-07-01',
   phases: [
     phase({ id: 'reset',         type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
-    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', categoryIds: ['dairy', 'eggs'] }),
-    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
+    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', allergenIds: ['dairy', 'eggs'] }),
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', allergenIds: ['dairy'] }),
     phase({ id: 'rest-1',        type: 'rest',           startDate: '2026-05-31', endDate: '2026-06-02' }),
   ],
 };
@@ -50,13 +50,13 @@ const scheduleWithTraining: GeneratedSchedule = {
   estimatedEndDate: '2026-07-01',
   phases: [
     phase({ id: 'reset',          type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
-    phase({ id: 'elimination',    type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', categoryIds: ['dairy', 'eggs'] }),
-    phase({ id: 'reintro-dairy',  type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
+    phase({ id: 'elimination',    type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', allergenIds: ['dairy', 'eggs'] }),
+    phase({ id: 'reintro-dairy',  type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', allergenIds: ['dairy'] }),
     phase({ id: 'rest-1',         type: 'rest',           startDate: '2026-05-31', endDate: '2026-06-01' }),
     // training starts Jun 2, open-ended (endDate '')
-    phase({ id: 'tolerance-building-dairy', type: 'tolerance-building', startDate: '2026-06-02', endDate: '', categoryIds: ['dairy'] }),
+    phase({ id: 'tolerance-building-dairy', type: 'tolerance-building', startDate: '2026-06-02', endDate: '', allergenIds: ['dairy'] }),
     // reintro-eggs also starts Jun 2 — overlaps with tolerance-building
-    phase({ id: 'reintro-eggs',   type: 'reintroduction', startDate: '2026-06-02', endDate: '2026-06-05', categoryIds: ['eggs'] }),
+    phase({ id: 'reintro-eggs',   type: 'reintroduction', startDate: '2026-06-02', endDate: '2026-06-05', allergenIds: ['eggs'] }),
   ],
 };
 
@@ -94,7 +94,7 @@ describe('getPhaseForDate', () => {
 
 describe('getEliminatedSlugsForDate', () => {
   it('returns only permanent eliminations during reset', () => {
-    const schedule = { ...baseSchedule, permanentMother: ['soy'], permanentBaby: [] };
+    const schedule: GeneratedSchedule = { ...baseSchedule, permanentMother: ['soy'], permanentBaby: [] };
     const slugs = getEliminatedSlugsForDate(schedule, '2026-05-03');
     expect(slugs).toEqual(['soy']);
   });
@@ -106,7 +106,7 @@ describe('getEliminatedSlugsForDate', () => {
   });
 
   it('excludes permanent eliminations from protocol allergens (already covered)', () => {
-    const schedule = { ...baseSchedule, permanentMother: ['dairy'], permanentBaby: [] };
+    const schedule: GeneratedSchedule = { ...baseSchedule, permanentMother: ['dairy'], permanentBaby: [] };
     const slugs = getEliminatedSlugsForDate(schedule, '2026-05-10');
     expect(slugs).toContain('dairy');
     expect(slugs).toContain('eggs');
@@ -171,10 +171,10 @@ const scheduleReactedThenRetest: GeneratedSchedule = {
   estimatedEndDate: '2026-07-01',
   phases: [
     phase({ id: 'reset',         type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
-    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', categoryIds: ['dairy', 'eggs'] }),
-    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', categoryIds: ['dairy'] }),
+    phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-26', allergenIds: ['dairy', 'eggs'] }),
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', allergenIds: ['dairy'] }),
     phase({ id: 'rest-1',        type: 'rest',           startDate: '2026-05-31', endDate: '2026-06-02' }),
-    phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-06-03', endDate: '2026-06-06', categoryIds: ['eggs'] }),
+    phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-06-03', endDate: '2026-06-06', allergenIds: ['eggs'] }),
   ],
 };
 
@@ -269,7 +269,7 @@ const dairyReintroSchedule: GeneratedSchedule = {
   startDate: '2026-05-01',
   estimatedEndDate: '2026-07-01',
   phases: [
-    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-31', categoryIds: ['dairy'] }),
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-31', allergenIds: ['dairy'] }),
   ],
 };
 
@@ -293,7 +293,7 @@ describe('getReintroductionDayInfo', () => {
       startDate: '2026-05-01',
       estimatedEndDate: '2026-07-01',
       phases: [
-        phase({ id: 'elimination', type: 'elimination', startDate: '2026-05-01', endDate: '2026-05-20', categoryIds: ['dairy'] }),
+        phase({ id: 'elimination', type: 'elimination', startDate: '2026-05-01', endDate: '2026-05-20', allergenIds: ['dairy'] }),
       ],
     };
     const info = getReintroductionDayInfo(eliminationSchedule, '2026-05-10');

@@ -8,7 +8,7 @@ import {
 	getScheduleProgress,
 } from '$lib/domain/schedule-queries';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import type { AllergenStatus, GeneratedSchedule, QuestionnaireAnswers, ReintroductionDayInfo } from '$lib/domain/models';
+import type { AllergenId, AllergenStatus, GeneratedSchedule, QuestionnaireAnswers, ReintroductionDayInfo } from '$lib/domain/models';
 import { todayIso } from '$lib/utils/date';
 
 export type ScheduleContext =
@@ -20,7 +20,7 @@ export type ScheduleContext =
 			schedule: GeneratedSchedule;
 			answers: QuestionnaireAnswers;
 			allergenStatuses: AllergenStatus[];
-			eliminatedToday: string[];
+			eliminatedToday: AllergenId[];
 			reintroInfo: ReintroductionDayInfo | null;
 			progress: { currentDay: number; totalDays: number; percentComplete: number };
 	  };

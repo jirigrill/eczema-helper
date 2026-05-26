@@ -1,7 +1,7 @@
-import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue } from '$lib/domain/models';
+import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue, AllergenId, ProtocolAllergenId } from '$lib/domain/models';
 
-function getProtocolIds(schedule: GeneratedSchedule): string[] {
-  return schedule.phases.find(p => p.type === 'elimination')?.categoryIds ?? [];
+function getProtocolIds(schedule: GeneratedSchedule): ProtocolAllergenId[] {
+  return schedule.phases.find(p => p.type === 'elimination')?.allergenIds ?? [];
 }
 
 /**
@@ -20,17 +20,17 @@ function getProtocolIds(schedule: GeneratedSchedule): string[] {
  */
 function getProtocolAllergenStatus(
   schedule: GeneratedSchedule,
-  id: string,
+  id: AllergenId,
   date: string
 ): AllergenStatusValue {
   // All reintroduction phases that include this allergen, in chronological order
   const reintroPhases = schedule.phases.filter(
-    p => p.type === 'reintroduction' && p.categoryIds.includes(id)
+    p => p.type === 'reintroduction' && (p.allergenIds as AllergenId[]).includes(id)
   );
 
   // Tolerance-building phase for this allergen (open-ended, at most one active)
   const tbPhase = schedule.phases.find(
-    p => p.type === 'tolerance-building' && p.categoryIds.includes(id)
+    p => p.type === 'tolerance-building' && (p.allergenIds as AllergenId[]).includes(id)
   );
 
   // Latest reintroduction that has already started (startDate <= date)
@@ -78,24 +78,24 @@ export function getAllergenStatuses(
 ): AllergenStatus[] {
   const results: AllergenStatus[] = [];
 
-  for (const id of schedule.permanentMother) {
-    results.push({ id, status: 'permanent-mother' });
+  for (const allergenId of schedule.permanentMother) {
+    results.push({ allergenId, status: 'permanent-mother' });
   }
-  for (const id of schedule.permanentBaby) {
+  for (const allergenId of schedule.permanentBaby) {
     // If a retest phase exists and has started, derive status via protocol logic.
     // A failed retest (→ 'reacted') reverts to 'permanent-baby' per ADR-0012.
     const hasStartedRetest = schedule.phases.some(
-      p => p.type === 'reintroduction' && p.categoryIds.includes(id) && p.startDate <= date
+      p => p.type === 'reintroduction' && (p.allergenIds as AllergenId[]).includes(allergenId) && p.startDate <= date
     );
     if (hasStartedRetest) {
-      const derived = getProtocolAllergenStatus(schedule, id, date);
-      results.push({ id, status: derived === 'reacted' ? 'permanent-baby' : derived });
+      const derived = getProtocolAllergenStatus(schedule, allergenId, date);
+      results.push({ allergenId, status: derived === 'reacted' ? 'permanent-baby' : derived });
     } else {
-      results.push({ id, status: 'permanent-baby' });
+      results.push({ allergenId, status: 'permanent-baby' });
     }
   }
-  for (const id of getProtocolIds(schedule)) {
-    results.push({ id, status: getProtocolAllergenStatus(schedule, id, date) });
+  for (const allergenId of getProtocolIds(schedule)) {
+    results.push({ allergenId, status: getProtocolAllergenStatus(schedule, allergenId, date) });
   }
 
   return results;
