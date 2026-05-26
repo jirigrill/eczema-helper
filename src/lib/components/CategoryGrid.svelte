@@ -1,5 +1,7 @@
 <script lang="ts">
   import { CATEGORIES } from '$lib/data/categories';
+  import { categoryConfig } from '$lib/config/categories';
+  import { subitemStrings } from '$lib/strings/categories';
   import Button from '$lib/components/Button.svelte';
 
   let {
@@ -133,6 +135,7 @@
       {@const partial = isPartiallySelected(cat.allergenId)}
       {@const dis = isDisabled(cat.allergenId)}
       {@const isExpanded = expandable && expandedCategory === cat.allergenId}
+      {@const cfg = categoryConfig[cat.allergenId]}
       <button
         type="button"
         data-state={dis
@@ -162,8 +165,8 @@
         onclick={() => toggle(cat.allergenId)}
         disabled={dis}
       >
-        <span class="text-2xl leading-none">{cat.icon}</span>
-        <span class="leading-tight text-center">{cat.nameCs}</span>
+        <span class="text-2xl leading-none">{cfg.icon}</span>
+        <span class="leading-tight text-center">{cfg.name}</span>
         {#if dis}
           <span class="text-[10px] opacity-70">vaše alergie</span>
         {:else if partial}
@@ -177,9 +180,10 @@
   {#if expandable && expandedCategory}
     {@const cat = regularCategories.find(c => c.allergenId === expandedCategory)}
     {#if cat && cat.subItems.length > 0}
+      {@const cfg = categoryConfig[cat.allergenId]}
       <div class="rounded-xl border border-primary/30 bg-white p-3 space-y-2">
         <div class="flex items-center justify-between">
-          <p class="body-medium">{cat.icon} {cat.nameCs}</p>
+          <p class="body-medium">{cfg.icon} {cfg.name}</p>
           <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>
             {selectedSubItemCount(cat.allergenId) > 0 ? `Hotovo (${selectedSubItemCount(cat.allergenId)})` : 'Hotovo'}
           </Button>
@@ -205,7 +209,7 @@
                 {subSel ? '' : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
               onclick={() => toggleSubItem(cat.allergenId, sub.subitemId)}
             >
-              {sub.nameCs}
+              {subitemStrings[sub.subitemId]}
             </button>
           {/each}
         </div>

@@ -6,7 +6,7 @@
   import AllergenChip from "$lib/components/AllergenChip.svelte";
   import PhaseBadge from "$lib/components/PhaseBadge.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
-  import { getCategoryById } from "$lib/data/categories";
+  import { categoryStrings } from "$lib/strings/categories";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { phaseConfig } from "$lib/config/phases";
 
@@ -124,7 +124,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="body-bold">{display.label}{phase.allergenIds[0] ? `: ${getCategoryById(phase.allergenIds[0])?.nameCs ?? phase.allergenIds[0]}` : ''}</span>
+                <span class="body-bold">{display.label}{phase.allergenIds[0] ? `: ${categoryStrings[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}` : ''}</span>
                 <PhaseBadge type={phase.type} />
               </div>
               {#if ctx.progress}

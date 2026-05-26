@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { DailyAssessment } from '$lib/domain/models';
-  import { getCategoryById } from '$lib/data/categories';
+  import type { DailyAssessment, ProtocolAllergenId } from '$lib/domain/models';
+  import { categoryConfig } from '$lib/config/categories';
 
   let {
     date,
@@ -29,7 +29,7 @@
   let photoTaken = $state(assessment?.photoTaken ?? false);
   let saved = $state(!!assessment);
 
-  const allergenCat = $derived(reintroductionAllergenId ? getCategoryById(reintroductionAllergenId) : null);
+  const allergenCfg = $derived(reintroductionAllergenId ? categoryConfig[reintroductionAllergenId as ProtocolAllergenId] ?? null : null);
 
   function save() {
     if (!selectedStatus) return;
@@ -46,10 +46,10 @@
     {/if}
   </div>
 
-  {#if allergenCat}
+  {#if allergenCfg}
     <div data-state="success" class="border rounded-xl px-3 py-2">
       <p class="text-xs text-success font-medium">
-        🔬 Sledujte reakci na {allergenCat.icon} {allergenCat.nameCs}
+        🔬 Sledujte reakci na {allergenCfg.icon} {allergenCfg.name}
       </p>
       <p class="text-xs text-text-muted mt-0.5">
         Zaznamenejte jakékoliv změny kůže po zavedení tohoto alergenu.

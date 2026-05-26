@@ -1,6 +1,6 @@
 import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder, AllergenId, ProtocolAllergenId } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
-import { getCategoryById } from '$lib/data/categories';
+import { categoryConfig } from '$lib/config/categories';
 import { addDays } from '$lib/utils/date';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 
@@ -323,7 +323,7 @@ export function getToleranceBuildingRemindersForDate(
 
   return trainingPhases.map(phase => {
     const allergenId = phase.allergenIds[0];
-    const cat = getCategoryById(allergenId);
+    const cfg = categoryConfig[allergenId];
 
     const relevantMeals = meals
       .filter(m => m.date <= date && m.items.some(i => i.allergenId === allergenId))
@@ -337,7 +337,7 @@ export function getToleranceBuildingRemindersForDate(
     return {
       allergenId,
       daysSinceLastDose: daysSince,
-      label: `${cat?.icon ?? ''} ${cat?.nameCs ?? allergenId}`,
+      label: `${cfg?.icon ?? ''} ${cfg?.name ?? allergenId}`,
     };
   }).filter(r => r.daysSinceLastDose >= 3);
 }

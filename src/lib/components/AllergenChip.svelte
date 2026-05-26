@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getCategoryById } from '$lib/data/categories';
+  import { categoryConfig } from '$lib/config/categories';
+  import type { ProtocolAllergenId } from '$lib/domain/models';
 
   const CUSTOM_ICONS = ['🌿', '🫚', '🧄', '🧅', '🫛', '🌾', '🍄', '🫙', '🧂', '🌶️', '🫑', '🥬', '🫘', '🥜', '🍯'];
 
@@ -18,8 +19,8 @@
       for (let i = 0; i < name.length; i++) hash = (hash + name.charCodeAt(i)) % CUSTOM_ICONS.length;
       return { icon: CUSTOM_ICONS[hash], name };
     }
-    const cat = getCategoryById(s);
-    return { icon: cat?.icon ?? '🍽️', name: cat?.nameCs ?? s };
+    const cfg = categoryConfig[s as ProtocolAllergenId];
+    return { icon: cfg?.icon ?? '🍽️', name: cfg?.name ?? s };
   }
 
   const display = $derived(resolveDisplay(slug));
