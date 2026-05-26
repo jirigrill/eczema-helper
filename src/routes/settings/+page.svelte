@@ -3,7 +3,8 @@
   // V2 Prototype — Settings (reset + current answers summary)
   // ═══════════════════════════════════════════════════════════
   import { goto } from '$app/navigation';
-  import { getCategoryById } from '$lib/data/categories';
+  import { categoryStrings } from '$lib/strings/categories';
+  import type { ProtocolAllergenId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
   import { scheduleContext } from '$lib/stores/schedule-context';
@@ -23,7 +24,7 @@
 
   function slugsToNames(slugs: string[]): string {
     if (slugs.length === 0) return 'žádné';
-    return slugs.map(s => s.startsWith('other:') ? s.slice(6) : (getCategoryById(s)?.nameCs ?? s)).join(', ');
+    return slugs.map(s => s.startsWith('other:') ? s.slice(6) : (categoryStrings[s as ProtocolAllergenId]?.name ?? s)).join(', ');
   }
 
   async function resetPrototype() {

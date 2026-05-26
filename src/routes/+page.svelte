@@ -12,7 +12,9 @@
   import Button from '$lib/components/Button.svelte';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
-  import { getCategoryById, DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+  import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+  import { categoryStrings, subitemStrings } from '$lib/strings/categories';
+  import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { phaseStrings } from '$lib/strings/phases';
   import { db } from '$lib/db/atopic-db';
@@ -123,11 +125,9 @@
     return slugs.map(s => {
       if (s.startsWith('other:')) return s.slice(6);
       if (s.includes(':')) {
-        const cat = getCategoryById(s.split(':')[0]);
-        const sub = cat?.subItems.find(i => i.subitemId === s);
-        return sub?.nameCs ?? s.split(':')[1];
+        return subitemStrings[s as SubitemId] ?? s.split(':')[1];
       }
-      return getCategoryById(s)?.nameCs ?? s;
+      return categoryStrings[s as ProtocolAllergenId]?.name ?? s;
     }).join(', ');
   }
 </script>
@@ -353,7 +353,7 @@
               <p>✦ <strong>{elimDays} dní</strong> {phaseStrings.elimination.label}</p>
               {#if reintroQueue.length > 0}
                 <p>✦ Znovuzavedení (<strong>{reintroDays} dní</strong> každý):
-                  {reintroQueue.map(s => getCategoryById(s)?.nameCs ?? s).join(' → ')}
+                  {reintroQueue.map(s => categoryStrings[s as ProtocolAllergenId]?.name ?? s).join(' → ')}
                 </p>
               {:else}
                 <p>✦ <em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny</p>

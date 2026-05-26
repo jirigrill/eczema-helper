@@ -153,13 +153,27 @@ export type ToleranceBuildingReminder = {
 
 export type Category = {
   allergenId: ProtocolAllergenId;
-  nameCs: string;
-  icon: string;
   subItems: SubItem[];
 };
 
 export type SubItem = {
-  subitemId: string; // format: 'allergenId:uniquePart', e.g. 'dairy:milk'
+  subitemId: SubitemId;
   allergenId: ProtocolAllergenId;
-  nameCs: string;
 };
+
+// Subitem identifiers — format: 'allergenId:uniquePart', e.g. 'dairy:milk'.
+// Two-tier shape mirrors ProtocolAllergenId — see ADR-0014 "Domain-key shapes".
+export type SubitemId =
+  | 'dairy:milk' | 'dairy:butter' | 'dairy:cheese' | 'dairy:yogurt' | 'dairy:cream' | 'dairy:cottage'
+  | 'eggs:egg-white' | 'eggs:egg-yolk'
+  | 'wheat:bread' | 'wheat:pasta' | 'wheat:flour' | 'wheat:gluten'
+  | 'soy:soy-milk' | 'soy:tofu' | 'soy:soy-sauce' | 'soy:soy-lecithin'
+  | 'nuts:peanuts' | 'nuts:walnuts' | 'nuts:hazelnuts' | 'nuts:almonds' | 'nuts:cashews'
+  | 'fish:freshwater-fish' | 'fish:saltwater-fish' | 'fish:fish-oil'
+  | 'shellfish:shrimp' | 'shellfish:crab' | 'shellfish:mussels'
+  | 'citrus:oranges' | 'citrus:lemons' | 'citrus:grapefruit' | 'citrus:mandarins'
+  | 'chocolate:dark-choc' | 'chocolate:milk-choc' | 'chocolate:cocoa'
+  | 'tomatoes:fresh-tomatoes' | 'tomatoes:tomato-sauce' | 'tomatoes:ketchup'
+  | 'strawberries:fresh-strawberries' | 'strawberries:strawberry-jam'
+  | 'corn:corn-flour' | 'corn:sweet-corn'
+  | 'sesame:sesame-seeds' | 'sesame:tahini';

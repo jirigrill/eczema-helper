@@ -43,13 +43,16 @@ The display layer is split into two locations by concern:
   applicable so missing keys fail `tsc`:
   - `phases.ts` — keyed by `PhaseType`; fields: `label`, `badgeLabel`, `description`
   - `portions.ts` — keyed by `PortionKind`
-  - `categories.ts` — keyed by `AllergenId`
+  - `categories.ts` — `categoryStrings` keyed by `ProtocolAllergenId` (custom
+    allergens have no category metadata) + `subitemStrings` keyed by `SubitemId`
   - `actions.ts` — common verbs (`save`, `edit`, `cancel`, `confirm`, …)
   - `common.ts` — toasts, empty states, form errors, headers, page titles
 - **`src/lib/config/`** — config files that spread from `strings/` and add
   visual tokens (icon, Tailwind classes). Single lookup point for consumers;
   enforced with `satisfies Record<DomainKind, ...>`:
   - `phases.ts` — spreads `phaseStrings` + adds `icon`, `badge`, `iconBg`
+  - `meals.ts` — spreads `mealStrings` + adds `icon` per `MealType`
+  - `categories.ts` — spreads `categoryStrings` + adds `icon` per `ProtocolAllergenId`
 
 All entries are `as const` for literal-type inference. No i18n library is
 adopted. Pluralization and date formatting remain in `src/lib/utils/`.

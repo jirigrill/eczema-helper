@@ -169,6 +169,17 @@ Identifying `MealItem`s in a logged meal that violate the current `EliminationWi
 Performed by `detectConflicts(meal, eliminatedSlugs)`. Surfaces a warning before the
 user saves a meal.
 
+### Category / SubItem / SubitemId
+
+`Category` and `SubItem` are the seed-data shape for food selection. `Category` carries
+only structural fields (`allergenId: ProtocolAllergenId`, `subItems`); `SubItem` carries
+`subitemId: SubitemId` and its parent `allergenId`. No Czech display text on either —
+names live in `$lib/strings/categories` (`categoryStrings[allergenId].name`,
+`subitemStrings[subitemId]`) and icons in `$lib/config/categories`
+(`categoryConfig[allergenId].icon`). `SubitemId` is a closed string-literal union
+defined in `models.ts` mirroring the two-tier shape of `ProtocolAllergenId`. See
+ADR-0014.
+
 ---
 
 ## Schedule & Questionnaire
