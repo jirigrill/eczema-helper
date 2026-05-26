@@ -216,7 +216,9 @@ A record of the mother's food intake on a single date. Contains: `date`, `mealTy
 *Czech: Typ jídla*
 
 One of: `'breakfast'` (Snídaně) · `'lunch'` (Oběd) · `'snack'` (Svačina) ·
-`'dinner'` (Večeře).
+`'dinner'` (Večeře). Named type exported from `models.ts`. Czech labels and
+icons resolved from `$lib/config/meals` (`mealConfig[type].label` / `.icon`).
+See ADR-0014.
 
 ### MealItem
 *Czech: Položka jídla*

@@ -6,7 +6,8 @@
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES, getCategoryById } from '$lib/data/categories';
   import { REINTRODUCTION_PROTOCOLS } from '$lib/data/reintroduction-protocols';
-  import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
+  import { mealConfig } from '$lib/config/meals';
+  import { portionStrings } from '$lib/strings/portions';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { scheduleContext } from '$lib/stores/schedule-context';
   import Toast from '$lib/components/Toast.svelte';
@@ -31,7 +32,7 @@
   let customName = $state('');
 
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
-  const amounts = Object.entries(AMOUNT_LABELS) as [PortionKind, { label: string; short: string }][];
+  const amounts = Object.entries(portionStrings) as [PortionKind, { label: string; short: string }][];
 
   // ── Conflict detection ────────────────────────────────────
   const conflicts = $derived(detectConflicts(currentItems, eliminatedToday));
@@ -168,8 +169,8 @@
               {selectedMealType === type ? 'bg-primary text-white shadow-sm' : 'bg-white border border-surface-dark text-text'}"
             onclick={() => (selectedMealType = type)}
           >
-            <span class="text-xl">{MEAL_TYPE_ICONS[type]}</span>
-            <span>{MEAL_TYPE_LABELS[type]}</span>
+            <span class="text-xl">{mealConfig[type].icon}</span>
+            <span>{mealConfig[type].label}</span>
           </button>
         {/each}
       </div>
@@ -253,7 +254,7 @@
     {#if currentItems.length > 0}
       <div class="card-base">
         <p class="body-medium mb-2">
-          {MEAL_TYPE_ICONS[selectedMealType]} {MEAL_TYPE_LABELS[selectedMealType]} — vybrané položky
+          {mealConfig[selectedMealType].icon} {mealConfig[selectedMealType].label} — vybrané položky
         </p>
         <div class="space-y-1.5">
           {#each currentItems as item (item.id)}
@@ -292,8 +293,8 @@
           {#each todayMeals as meal (meal.id)}
             <div class="card-base">
               <div class="flex items-center gap-2 mb-1.5">
-                <span>{MEAL_TYPE_ICONS[meal.mealType]}</span>
-                <span class="body-medium">{MEAL_TYPE_LABELS[meal.mealType]}</span>
+                <span>{mealConfig[meal.mealType].icon}</span>
+                <span class="body-medium">{mealConfig[meal.mealType].label}</span>
                 <span class="body-muted">{meal.savedAt}</span>
               </div>
               <div class="flex flex-wrap gap-1">
@@ -301,7 +302,7 @@
                   <span class="text-xs bg-surface rounded-full px-2 py-0.5 text-text
                     {item.categoryId && eliminatedToday.includes(item.categoryId) ? 'bg-warning/10 text-warning' : ''}">
                     {getCategoryById(item.categoryId ?? '')?.icon ?? ''} {item.name}
-                    <span class="text-text-muted">{AMOUNT_LABELS[item.amount]?.short}</span>
+                    <span class="text-text-muted">{portionStrings[item.amount].short}</span>
                   </span>
                 {/each}
               </div>
@@ -368,7 +369,7 @@
   >
     <div class="max-w-lg mx-auto">
       <Button color={hasConflicts ? 'warning' : 'primary'} onclick={saveMeal}>
-        {hasConflicts ? '⚠ Uložit s odchylkou' : 'Uložit'} — {MEAL_TYPE_LABELS[selectedMealType]}
+        {hasConflicts ? '⚠ Uložit s odchylkou' : 'Uložit'} — {mealConfig[selectedMealType].label}
         ({currentItems.length} {currentItems.length === 1 ? 'položka' : currentItems.length <= 4 ? 'položky' : 'položek'})
       </Button>
     </div>

@@ -66,10 +66,12 @@ export type MealItem = {
   amount: AmountSize;
 };
 
+export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
+
 export type Meal = {
   id: string;
   date: string; // ISO date
-  mealType: 'breakfast' | 'lunch' | 'snack' | 'dinner';
+  mealType: MealType;
   items: MealItem[];
   label?: string;
   savedAt: string; // HH:MM
