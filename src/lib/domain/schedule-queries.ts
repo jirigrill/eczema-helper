@@ -1,4 +1,5 @@
 import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue } from '$lib/domain/models';
+import { REINTRODUCTION_PROTOCOLS } from '$lib/data/reintroduction-protocols';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange } from '$lib/utils/date';
@@ -81,15 +82,9 @@ export function detectConflicts(
   );
 }
 
-// ── Reintroduction day info (4-day gradual dosing) ──────────────
-// 4 eating days with escalating doses. Evaluation at end of day 4.
-
-const REINTRO_4DAY: Pick<ReintroductionDayInfo, 'label' | 'guidance' | 'isEvaluationDay'>[] = [
-  { label: 'Malé množství', guidance: '1 lžička nebo malý kousek', isEvaluationDay: false },
-  { label: 'Střední porce', guidance: '2–3 lžíce', isEvaluationDay: false },
-  { label: 'Neomezeně', guidance: 'Jezte alergen bez omezení', isEvaluationDay: false },
-  { label: 'Neomezeně', guidance: 'Jezte alergen bez omezení — večer vyhodnoťte reakci', isEvaluationDay: true },
-];
+// ── Reintroduction day info ───────────────────────────────────
+// Dosing instructions are per-allergen; see src/lib/data/reintroduction-protocols.ts.
+// isEvaluationDay is derived from the protocol config for the current allergen + day.
 
 export function getReintroductionDayInfo(
   schedule: GeneratedSchedule,
@@ -109,9 +104,11 @@ export function getReintroductionDayInfo(
     (new Date(phase.endDate + 'T00:00:00').getTime() - phaseStart.getTime()) / 86400000
   ) + 1;
 
-  const entry = REINTRO_4DAY[Math.min(dayInPhase - 1, REINTRO_4DAY.length - 1)];
+  const protocol = REINTRODUCTION_PROTOCOLS[allergenId];
+  const protocolDay = protocol?.days[dayInPhase - 1];
+  const isEvaluationDay = protocolDay?.isEvaluationDay ?? (dayInPhase === totalDays);
 
-  return { dayInPhase, totalDays, allergenId, ...entry };
+  return { dayInPhase, totalDays, allergenId, isEvaluationDay };
 }
 
 // ── Progress ──────────────────────────────────────────────────

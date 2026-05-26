@@ -1,5 +1,3 @@
-import type { AmountSize } from '$lib/domain/models';
-
 export const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Snídaně',
   lunch: 'Oběd',
@@ -14,10 +12,5 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   dinner: '🌙',
 };
 
-export const AMOUNT_LABELS: Record<AmountSize, { label: string; short: string }> = {
-  pinch: { label: 'Špetka', short: 'šp.' },
-  teaspoon: { label: 'Lžička', short: 'lž.' },
-  spoon: { label: 'Lžíce', short: 'lžíce' },
-  portion: { label: 'Porce', short: 'porce' },
-  package: { label: 'Balení', short: 'bal.' },
-};
+// Re-exported from strings layer — single source of truth per ADR-0014.
+export { portionStrings as AMOUNT_LABELS } from '$lib/strings/portions';

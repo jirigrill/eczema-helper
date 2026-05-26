@@ -53,7 +53,10 @@ export function getPermanentEliminations(schedule: GeneratedSchedule): string[] 
   return [...new Set([...schedule.permanentMother, ...schedule.permanentBaby])];
 }
 
-export type AmountSize = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
+/** @deprecated Use PortionKind. Kept as alias during migration. */
+export type AmountSize = PortionKind;
+
+export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
 export type MealItem = {
   id: string;
@@ -79,12 +82,20 @@ export type DailyAssessment = {
   photoTaken: boolean;
 };
 
+export type ProtocolDay = {
+  day: number;
+  instructionCs: string;
+  isEvaluationDay: boolean;
+};
+
+export type AllergenProtocol = {
+  days: ProtocolDay[];
+};
+
 export type ReintroductionDayInfo = {
   dayInPhase: number;
   totalDays: number;
   allergenId: string;
-  label: string;
-  guidance: string;
   isEvaluationDay: boolean;
 };
 

@@ -58,9 +58,25 @@ former `'training'` per ADR-0012). Icon: 🥄.
 
 ### ReintroductionDayInfo
 
-Day-within-phase guidance returned by `getReintroductionDayInfo(schedule, date)` for
-the active reintroduction phase. Contains: `label` (e.g. "Den 1 / 4"), `guidance`
-(dose instruction), and `isEvaluationDay` (true on day 4, triggers verdict UI).
+Day-within-phase record returned by `getReintroductionDayInfo(schedule, date)` for
+the active reintroduction phase. Contains: `dayInPhase`, `totalDays`, `allergenId`,
+and `isEvaluationDay` (true on the last day, triggers verdict UI). Carries **no Czech
+strings** — the render site resolves the day's dosing instruction from
+`REINTRODUCTION_PROTOCOLS[allergenId].days[dayInPhase - 1].instructionCs`.
+
+### AllergenProtocol
+
+The static dosing config for one allergen's reintroduction phase. Shape:
+`{ days: ProtocolDay[] }`. Stored in `src/lib/data/reintroduction-protocols.ts` as
+`REINTRODUCTION_PROTOCOLS: Record<string, AllergenProtocol>`. v1 ships baseline
+clinical guidelines only; dynamic adjustment per baby profile is deferred.
+
+### ProtocolDay
+
+A single day's entry within an `AllergenProtocol`:
+`{ day: number, instructionCs: string, isEvaluationDay: boolean }`.
+`instructionCs` is Czech dosing text (e.g. "50 g červené čočky"). `isEvaluationDay`
+drives whether the verdict UI appears — it is a domain flag, not display state.
 
 ---
 
@@ -208,11 +224,14 @@ One of: `'breakfast'` (Snídaně) · `'lunch'` (Oběd) · `'snack'` (Svačina) �
 A single food within a meal: `name`, `categoryId` (allergen slug), optional `subitemId`,
 `amount` (AmountSize).
 
-### AmountSize
+### AmountSize → PortionKind
 *Czech: Velikost porce*
 
-One of: `'pinch'` (Špetka) · `'teaspoon'` (Lžička) · `'spoon'` (Lžíce) ·
-`'portion'` (Porce) · `'package'` (Balení).
+Being renamed to `PortionKind` per ADR-0014. One of: `'pinch'` (Špetka) · `'teaspoon'`
+(Lžička) · `'spoon'` (Lžíce) · `'portion'` (Porce) · `'package'` (Balení).
+This is the **meal-logging** portion size — what the mother recorded eating on a
+`MealItem`. Distinct from `AllergenProtocol` / `ProtocolDay`, which are the
+protocol-prescribed dosing instructions during reintroduction.
 
 ### Actor
 → Defined in `CONTEXT.md`. The person whose food intake a `Meal` describes. Always
@@ -363,10 +382,13 @@ See ADR-0014.
 
 ### PortionKind
 
-The stable string-literal type for a meal-item portion size.
+The stable string-literal type for a **meal-item portion size** (rename of `AmountSize`).
 Values: `'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package'`.
-Replaces the inline Czech names that were formerly on `AmountSize` usages.
-Display text resolved from `$lib/strings/portions`. See ADR-0014.
+These are descriptive — what the mother actually logged eating on a `MealItem`.
+Czech display labels live in `src/lib/strings/portions.ts`. See ADR-0014.
+
+Not to be confused with `AllergenProtocol` / `ProtocolDay`, which are the
+prescriptive dosing instructions the protocol recommends during reintroduction.
 
 ### Presentation String
 

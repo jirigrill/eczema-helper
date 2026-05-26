@@ -85,8 +85,6 @@ describe('meal/+page.svelte', () => {
         allergenId: 'dairy',
         dayInPhase: 2,
         totalDays: 4,
-        label: 'Malá dávka',
-        guidance: 'Zkuste trochu',
         isEvaluationDay: false,
       },
       progress: { currentDay: 1, totalDays: 14, percentComplete: 7 },

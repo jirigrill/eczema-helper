@@ -2,9 +2,10 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
-  import type { Meal, MealItem, AmountSize } from '$lib/domain/models';
+  import type { Meal, MealItem, PortionKind } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES, getCategoryById } from '$lib/data/categories';
+  import { REINTRODUCTION_PROTOCOLS } from '$lib/data/reintroduction-protocols';
   import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, AMOUNT_LABELS } from '$lib/data/labels';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { scheduleContext } from '$lib/stores/schedule-context';
@@ -22,7 +23,7 @@
 
   // ── Form state ────────────────────────────────────────────
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
-  let selectedAmount = $state<AmountSize>('portion');
+  let selectedAmount = $state<PortionKind>('portion');
   let expandedCategory = $state<string | null>(null);
   let currentItems = $state<MealItem[]>([]);
   let mealLabel = $state('');
@@ -30,7 +31,7 @@
   let customName = $state('');
 
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
-  const amounts = Object.entries(AMOUNT_LABELS) as [AmountSize, { label: string; short: string }][];
+  const amounts = Object.entries(AMOUNT_LABELS) as [PortionKind, { label: string; short: string }][];
 
   // ── Conflict detection ────────────────────────────────────
   const conflicts = $derived(detectConflicts(currentItems, eliminatedToday));
@@ -124,12 +125,13 @@
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
       {@const cat = getCategoryById(reintroInfo.allergenId)}
+      {@const protocolDay = REINTRODUCTION_PROTOCOLS[reintroInfo.allergenId]?.days[reintroInfo.dayInPhase - 1]}
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">
           <p class="text-xs font-medium text-success">
-            🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}: {reintroInfo.label}
+            🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}
           </p>
-          <p class="body-muted mt-0.5">{reintroInfo.guidance} ({cat?.nameCs})</p>
+          <p class="body-muted mt-0.5">{protocolDay?.instructionCs ?? ''} ({cat?.nameCs})</p>
         </InfoBanner>
       </div>
     {/if}

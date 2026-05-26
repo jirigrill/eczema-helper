@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress } from './schedule-queries';
+import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress, getReintroductionDayInfo } from './schedule-queries';
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
@@ -256,5 +256,54 @@ describe('getScheduleProgress', () => {
     };
     const result = getScheduleProgress(threeDay, '2026-05-01');
     expect(result.percentComplete).toBe(33);
+  });
+});
+
+// ── getReintroductionDayInfo ──────────────────────────────────
+// dairy protocol = 5 days; evaluation on day 5 only.
+// The old REINTRO_4DAY clamped to index 3 (isEvaluationDay: true) for any day ≥ 4,
+// so day 4 of dairy would incorrectly return isEvaluationDay: true.
+
+const dairyReintroSchedule: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: '2026-05-01',
+  estimatedEndDate: '2026-07-01',
+  phases: [
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-31', categoryIds: ['dairy'] }),
+  ],
+};
+
+describe('getReintroductionDayInfo', () => {
+  it('day 4 of a 5-day dairy reintro is NOT the evaluation day', () => {
+    // Tracer bullet: dairy has 5 protocol days — only day 5 is evaluation.
+    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-30'); // day 4
+    expect(info).not.toBeNull();
+    expect(info!.isEvaluationDay).toBe(false);
+  });
+
+  it('day 5 of a 5-day dairy reintro IS the evaluation day', () => {
+    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-31'); // day 5
+    expect(info).not.toBeNull();
+    expect(info!.isEvaluationDay).toBe(true);
+  });
+
+  it('returns null outside a reintroduction phase', () => {
+    const eliminationSchedule: GeneratedSchedule = {
+      permanentMother: [], permanentBaby: [],
+      startDate: '2026-05-01',
+      estimatedEndDate: '2026-07-01',
+      phases: [
+        phase({ id: 'elimination', type: 'elimination', startDate: '2026-05-01', endDate: '2026-05-20', categoryIds: ['dairy'] }),
+      ],
+    };
+    const info = getReintroductionDayInfo(eliminationSchedule, '2026-05-10');
+    expect(info).toBeNull();
+  });
+
+  it('returned struct has no label or guidance fields', () => {
+    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-27'); // day 1
+    expect(info).not.toBeNull();
+    expect('label' in info!).toBe(false);
+    expect('guidance' in info!).toBe(false);
   });
 });
