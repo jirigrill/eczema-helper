@@ -14,6 +14,8 @@
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
+  import { actionStrings } from '$lib/strings/actions';
+  import { commonStrings, tyzdnyCs, mesiceCs, allergenWordCs } from '$lib/strings/common';
   import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { phaseStrings } from '$lib/strings/phases';
@@ -45,9 +47,9 @@
 
   // ── Severity options ──────────────────────────────────────
   const severityOptions: { value: EczemaSeverity; label: string; desc: string; border: string; bg: string }[] = [
-    { value: 'mild', label: 'Mírná', desc: 'Občasné suché fleky, minimální svědění', border: 'border-l-4 border-success', bg: 'bg-success/10' },
-    { value: 'moderate', label: 'Střední', desc: 'Časté zarudnutí, svědění narušuje spánek', border: 'border-l-4 border-warning', bg: 'bg-warning/10' },
-    { value: 'severe', label: 'Těžká', desc: 'Rozsáhlý ekzém, silné svědění, možné krvácení', border: 'border-l-4 border-danger', bg: 'bg-danger/10' },
+    { value: 'mild',     ...commonStrings.onboarding.severityOptions.mild,     border: 'border-l-4 border-success', bg: 'bg-success/10' },
+    { value: 'moderate', ...commonStrings.onboarding.severityOptions.moderate, border: 'border-l-4 border-warning', bg: 'bg-warning/10' },
+    { value: 'severe',   ...commonStrings.onboarding.severityOptions.severe,   border: 'border-l-4 border-danger',  bg: 'bg-danger/10'  },
   ];
 
   // ── Navigation ────────────────────────────────────────────
@@ -103,15 +105,9 @@
     const birth = new Date(babyBirthDate + 'T00:00:00');
     const now = new Date();
     const weeks = Math.floor((now.getTime() - birth.getTime()) / (7 * 86400000));
-    if (weeks < 8) {
-      if (weeks === 1) return '1 týden';
-      if (weeks <= 4) return `${weeks} týdny`;
-      return `${weeks} týdnů`;
-    }
+    if (weeks < 8) return tyzdnyCs(weeks);
     const months = Math.floor(weeks / 4.33);
-    if (months === 1) return '1 měsíc';
-    if (months <= 4) return `${months} měsíce`;
-    return `${months} měsíců`;
+    return mesiceCs(months);
   }
 
   // Count unique allergen categories (not individual sub-item slugs).
@@ -121,7 +117,7 @@
   }
 
   function slugsToNames(slugs: string[]): string {
-    if (slugs.length === 0) return 'žádné';
+    if (slugs.length === 0) return commonStrings.settings.noneLabel;
     return slugs.map(s => {
       if (s.startsWith('other:')) return s.slice(6);
       if (s.includes(':')) {
@@ -144,7 +140,7 @@
       class="self-start m-4 mb-0 body-muted flex items-center gap-1 hover:text-text"
       onclick={back}
     >
-      ← Zpět
+      {actionStrings.backArrow}
     </button>
   {/if}
 
@@ -155,42 +151,42 @@
       <div class="flex-1 flex flex-col items-center justify-center text-center gap-6">
         <div class="text-7xl">🌿</div>
         <div>
-          <h1 class="page-heading mb-3">Průvodce eliminační dietou při atopickém ekzému</h1>
+          <h1 class="page-heading mb-3">{commonStrings.onboarding.heading}</h1>
           <p class="text-text-muted leading-relaxed">
-            Pomůžeme vám sestavit osobní plán eliminační diety — co jíte vy jako kojící maminka ovlivňuje kůži miminka.
-            Budeme sledovat, co jíte, a porovnávat to s programem — abyste věděla, proč se kůže miminka mění.
+            {commonStrings.onboarding.introLine1}
+            {commonStrings.onboarding.introLine2}
           </p>
         </div>
         <div class="card-base w-full text-left space-y-2">
-          <p class="body-medium">Co vás čeká:</p>
-          {#each ['Krátký dotazník (4 otázky)', 'Osobní program vyloučení a znovuzavedení', 'Denní záznamy jídel s upozorněním na odchylky'] as item}
+          <p class="body-medium">{commonStrings.onboarding.whatsNext}</p>
+          {#each commonStrings.onboarding.steps as item}
             <div class="flex items-start gap-2 body-muted">
               <span class="text-success mt-0.5">✓</span>
               <span>{item}</span>
             </div>
           {/each}
         </div>
-        <Button onclick={next}>Začít</Button>
+        <Button onclick={next}>{actionStrings.start}</Button>
       </div>
 
     <!-- ═══ Step 2: Baby info ═══ -->
     {:else if step === 2}
       <div class="flex-1 flex flex-col justify-center gap-6">
         <div>
-          <h2 class="card-heading">Miminko</h2>
-          <p class="body-muted">Datum narození a závažnost ekzému</p>
+          <h2 class="card-heading">{commonStrings.onboarding.step2Heading}</h2>
+          <p class="body-muted">{commonStrings.onboarding.step2Subtitle}</p>
         </div>
 
         <FormInput
           id="birthdate"
-          label="Datum narození miminka"
+          label={commonStrings.onboarding.birthdateLabel}
           type="date"
           bind:value={babyBirthDate}
           max={new Date().toISOString().split('T')[0]}
         />
 
         <div>
-          <p class="body-medium mb-3">Jak závažný je ekzém miminka?</p>
+          <p class="body-medium mb-3">{commonStrings.onboarding.severityQuestion}</p>
           <div class="space-y-3">
             {#each severityOptions as opt}
               <button
@@ -217,9 +213,9 @@
 
         <div class="mt-auto">
           <p class="body-muted mb-1 text-center">
-            Závažnost ovlivní délku jednotlivých fází programu
+            {commonStrings.onboarding.severityHint}
           </p>
-          <Button onclick={next} disabled={!canAdvance()}>Pokračovat</Button>
+          <Button onclick={next} disabled={!canAdvance()}>{actionStrings.continue}</Button>
         </div>
       </div>
 
@@ -227,28 +223,25 @@
     {:else if step === 3}
       <div class="flex-1 flex flex-col gap-5">
         <div>
-          <h2 class="card-heading">Moje alergie</h2>
+          <h2 class="card-heading">{commonStrings.onboarding.step3Heading}</h2>
           <p class="body-muted">
-            Jsem alergická / mám intoleranci na:
+            {commonStrings.onboarding.step3Subtitle}
           </p>
         </div>
 
         <InfoBanner variant="info">
-          <p class="body">
-            Tyto potraviny budou <strong>trvale vyřazeny</strong> — neplánujeme je znovuzavodit, protože je samy nejíte.
-            Přesto je budeme sledovat, abyste věděly o náhodném kontaktu.
-          </p>
+          <p class="body">{@html commonStrings.onboarding.step3InfoHtml}</p>
         </InfoBanner>
 
         <CategoryGrid bind:selected={motherAllergies} variant="primary" expandable={true} />
 
         <div class="mt-auto space-y-2">
           <Button onclick={next}>
-            {motherAllergies.length > 0 ? `Pokračovat (${affectedCategoryCount(motherAllergies)} ${affectedCategoryCount(motherAllergies) === 1 ? 'alergen' : affectedCategoryCount(motherAllergies) <= 4 ? 'alergeny' : 'alergenů'})` : 'Pokračovat'}
+            {motherAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(motherAllergies)} ${allergenWordCs(affectedCategoryCount(motherAllergies))})` : actionStrings.continue}
           </Button>
           {#if motherAllergies.length === 0}
             <button class="w-full py-2 body-muted" onclick={next}>
-              Nemám žádnou alergii
+              {actionStrings.noAllergy}
             </button>
           {/if}
         </div>
@@ -258,17 +251,14 @@
     {:else if step === 4}
       <div class="flex-1 flex flex-col gap-5">
         <div>
-          <h2 class="card-heading">Potvrzené alergie miminka</h2>
+          <h2 class="card-heading">{commonStrings.onboarding.step4Heading}</h2>
           <p class="body-muted">
-            Má miminko potvrzenou alergii od lékaře?
+            {commonStrings.onboarding.step4Subtitle}
           </p>
         </div>
 
         <InfoBanner variant="danger">
-          <p class="body">
-            Potvrzené alergeny budou po dobu diety <strong>vyřazeny</strong>.
-            Jejich otestování a případné znovu zařazení by mělo proběhnout <strong>velmi opatrně</strong> či <strong>s lékařem</strong>.
-          </p>
+          <p class="body">{@html commonStrings.onboarding.step4InfoHtml}</p>
         </InfoBanner>
 
         <CategoryGrid
@@ -279,11 +269,11 @@
 
         <div class="mt-auto space-y-2">
           <Button onclick={next}>
-            {babyAllergies.length > 0 ? `Pokračovat (${affectedCategoryCount(babyAllergies)} ${affectedCategoryCount(babyAllergies) === 1 ? 'alergen' : affectedCategoryCount(babyAllergies) <= 4 ? 'alergeny' : 'alergenů'})` : 'Pokračovat'}
+            {babyAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(babyAllergies)} ${allergenWordCs(affectedCategoryCount(babyAllergies))})` : actionStrings.continue}
           </Button>
           {#if babyAllergies.length === 0}
             <button class="w-full py-2 body-muted" onclick={next}>
-              Žádné potvrzené alergie
+              {actionStrings.noConfirmedAllergy}
             </button>
           {/if}
         </div>
@@ -293,27 +283,24 @@
     {:else if step === 5}
       <div class="flex-1 flex flex-col justify-center gap-6">
         <div>
-          <h2 class="card-heading">Začátek programu</h2>
-          <p class="body-muted">Kdy chcete začít s eliminační dietou?</p>
+          <h2 class="card-heading">{commonStrings.onboarding.step5Heading}</h2>
+          <p class="body-muted">{commonStrings.onboarding.step5Subtitle}</p>
         </div>
 
         <FormInput
           id="startdate"
-          label="Datum začátku"
+          label={commonStrings.onboarding.startDateLabel}
           type="date"
           bind:value={programStartDate}
           min={new Date().toISOString().split('T')[0]}
         />
 
         <InfoBanner variant="info">
-          <p class="body leading-relaxed">
-            Program začne <strong>resetovací fází</strong> ({5} dní) — jezte normálně,
-            zaznamenáváme výchozí stav kůže miminka. Poté přejdeme k eliminaci.
-          </p>
+          <p class="body leading-relaxed">{@html commonStrings.onboarding.step5InfoHtml}</p>
         </InfoBanner>
 
         <div class="mt-auto">
-          <Button onclick={next}>Pokračovat</Button>
+          <Button onclick={next}>{actionStrings.continue}</Button>
         </div>
       </div>
 
@@ -321,42 +308,42 @@
     {:else if step === 6}
       <div class="flex-1 flex flex-col gap-5">
         <div>
-          <h2 class="card-heading">Shrnutí</h2>
-          <p class="body-muted">Zkontrolujte odpovědi před spuštěním programu</p>
+          <h2 class="card-heading">{commonStrings.onboarding.step6Heading}</h2>
+          <p class="body-muted">{commonStrings.onboarding.step6Subtitle}</p>
         </div>
 
         <!-- Summary cards -->
         <div class="space-y-3">
-          <SummaryCard label="Miminko" onEdit={() => editStep(2)}>
-            <p class="body">Věk: <strong>{formatBabyAge()}</strong></p>
+          <SummaryCard label={commonStrings.onboarding.summaryBabyLabel} onEdit={() => editStep(2)}>
+            <p class="body">{commonStrings.onboarding.summaryAge}: <strong>{formatBabyAge()}</strong></p>
             <p class="body mt-0.5">
-              Závažnost: <strong>{severityOptions.find(s => s.value === severity)?.label}</strong>
+              {commonStrings.onboarding.summarySeverity}: <strong>{severityOptions.find(s => s.value === severity)?.label}</strong>
             </p>
           </SummaryCard>
 
-          <SummaryCard label="Moje alergie" onEdit={() => editStep(3)}>
+          <SummaryCard label={commonStrings.onboarding.summaryMotherLabel} onEdit={() => editStep(3)}>
             <p class="body">{slugsToNames(motherAllergies)}</p>
           </SummaryCard>
 
-          <SummaryCard label="Potvrzené alergie miminka" onEdit={() => editStep(4)}>
+          <SummaryCard label={commonStrings.onboarding.summaryBabyAllergiesLabel} onEdit={() => editStep(4)}>
             <p class="body">{slugsToNames(babyAllergies)}</p>
           </SummaryCard>
 
           <InfoBanner variant="info">
             <div class="flex items-center justify-between mb-2">
               <p class="section-label text-primary mb-0">Program</p>
-              <button class="text-xs text-primary" onclick={() => editStep(5)}>Upravit</button>
+              <button class="text-xs text-primary" onclick={() => editStep(5)}>{commonStrings.onboarding.summaryEdit}</button>
             </div>
-            <p class="body mb-2">Začátek: <strong>{formatDateLongCs(programStartDate)}</strong></p>
+            <p class="body mb-2">{commonStrings.onboarding.summaryStart}: <strong>{formatDateLongCs(programStartDate)}</strong></p>
             <div class="body space-y-1">
               <p>✦ <strong>5 dní</strong> {phaseStrings.reset.label}</p>
               <p>✦ <strong>{elimDays} dní</strong> {phaseStrings.elimination.label}</p>
               {#if reintroQueue.length > 0}
-                <p>✦ Znovuzavedení (<strong>{reintroDays} dní</strong> každý):
+                <p>✦ {commonStrings.onboarding.summaryReintroPrefix} (<strong>{reintroDays} dní</strong> každý):
                   {reintroQueue.map(s => categoryStrings[s as ProtocolAllergenId]?.name ?? s).join(' → ')}
                 </p>
               {:else}
-                <p>✦ <em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny</p>
+                <p>✦ {@html commonStrings.onboarding.summaryNoReintroHtml}</p>
               {/if}
             </div>
           </InfoBanner>
@@ -366,7 +353,7 @@
           {#if saveError}
             <ErrorAlert message={saveError} />
           {/if}
-          <Button onclick={confirm}>Potvrdit a spustit program</Button>
+          <Button onclick={confirm}>{actionStrings.confirm}</Button>
         </div>
       </div>
     {/if}

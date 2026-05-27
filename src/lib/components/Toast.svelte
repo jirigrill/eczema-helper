@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { actionStrings } from '$lib/strings/actions';
 
   let {
     message,
@@ -74,7 +75,7 @@
           class="text-sm font-medium underline hover:no-underline"
           onclick={handleUndo}
         >
-          Zpět
+          {actionStrings.back}
         </button>
       {/if}
 
@@ -82,7 +83,7 @@
         type="button"
         class="text-lg leading-none opacity-60 hover:opacity-100"
         onclick={handleDismiss}
-        aria-label="Zavřít"
+        aria-label={actionStrings.close}
       >
         ×
       </button>

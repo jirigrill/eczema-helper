@@ -4,6 +4,8 @@
   // ═══════════════════════════════════════════════════════════
   import { goto } from '$app/navigation';
   import { categoryStrings } from '$lib/strings/categories';
+  import { actionStrings } from '$lib/strings/actions';
+  import { commonStrings } from '$lib/strings/common';
   import type { ProtocolAllergenId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
@@ -16,14 +18,10 @@
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const schedule = $derived(ctx.status === 'ready' ? ctx.schedule : null);
 
-  const severityLabel: Record<string, string> = {
-    mild: 'Mírná',
-    moderate: 'Střední',
-    severe: 'Těžká',
-  };
+  const severityLabel = commonStrings.settings.severityLabel;
 
   function slugsToNames(slugs: string[]): string {
-    if (slugs.length === 0) return 'žádné';
+    if (slugs.length === 0) return commonStrings.settings.noneLabel;
     return slugs.map(s => s.startsWith('other:') ? s.slice(6) : (categoryStrings[s as ProtocolAllergenId]?.name ?? s)).join(', ');
   }
 
@@ -34,34 +32,34 @@
 </script>
 
 <div class="max-w-lg mx-auto">
-  <PageHeader title="Nastavení" onBack={() => history.back()} />
+  <PageHeader title={commonStrings.settings.heading} onBack={() => history.back()} />
 
 <div class="px-4 pt-4 pb-10 space-y-5 flex flex-col">
 
   <div>
-    <h2 class="text-lg font-semibold text-text">Nastavení prototypu</h2>
-    <p class="body-muted">Souhrn aktuální konfigurace a možnost restartu</p>
+    <h2 class="text-lg font-semibold text-text">{commonStrings.settings.prototypeHeading}</h2>
+    <p class="body-muted">{commonStrings.settings.prototypeSubtitle}</p>
   </div>
 
   {#if answers}
     <!-- Current answers summary -->
     <div class="space-y-3">
-      <p class="section-label mb-0">Aktuální konfigurace</p>
+      <p class="section-label mb-0">{commonStrings.settings.currentConfig}</p>
 
-      <SummaryCard label="Miminko">
+      <SummaryCard label={commonStrings.onboarding.summaryBabyLabel}>
         <p class="body">
           Narozeno: <strong>{formatDateLongCs(answers.babyBirthDate)}</strong>
         </p>
         <p class="body mt-0.5">
-          Závažnost ekzému: <strong>{severityLabel[answers.eczemaSeverity]}</strong>
+          {commonStrings.onboarding.summarySeverity}: <strong>{severityLabel[answers.eczemaSeverity]}</strong>
         </p>
       </SummaryCard>
 
-      <SummaryCard label="Moje alergie">
+      <SummaryCard label={commonStrings.onboarding.summaryMotherLabel}>
         <p class="body">{slugsToNames(answers.motherAllergies)}</p>
       </SummaryCard>
 
-      <SummaryCard label="Potvrzené alergie miminka">
+      <SummaryCard label={commonStrings.onboarding.summaryBabyAllergiesLabel}>
         <p class="body">{slugsToNames(answers.babyConfirmedAllergies)}</p>
       </SummaryCard>
 
@@ -78,15 +76,15 @@
       {/if}
     </div>
   {:else}
-    <p class="body-muted">Dotazník ještě nebyl vyplněn.</p>
+    <p class="body-muted">{commonStrings.settings.noAnswers}</p>
   {/if}
 
   <!-- Reset -->
   <div class="pt-4 border-t border-surface-dark space-y-3">
     <p class="body-muted">
-      Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.
+      {commonStrings.settings.resetWarning}
     </p>
-    <Button color="danger" onclick={resetPrototype}>Restartovat dotazník</Button>
+    <Button color="danger" onclick={resetPrototype}>{actionStrings.restart}</Button>
   </div>
 </div>
 </div>

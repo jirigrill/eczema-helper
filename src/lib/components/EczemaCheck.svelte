@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { DailyAssessment, ProtocolAllergenId } from '$lib/domain/models';
   import { categoryConfig } from '$lib/config/categories';
+  import { actionStrings } from '$lib/strings/actions';
+  import { commonStrings } from '$lib/strings/common';
 
   let {
     date,
@@ -18,10 +20,10 @@
 
   type StateVariant = 'success' | 'neutral' | 'warning' | 'danger';
   const statusOptions: { value: Status; label: string; icon: string; state: StateVariant }[] = [
-    { value: 'improved',    label: 'Zlepšení',     icon: '✓',  state: 'success' },
-    { value: 'unchanged',   label: 'Beze změny',   icon: '—',  state: 'neutral' },
-    { value: 'worsened',    label: 'Zhoršení',     icon: '!',  state: 'warning' },
-    { value: 'new-lesions', label: 'Nová ložiska', icon: '!!', state: 'danger' },
+    { value: 'improved',    label: commonStrings.program.skinOutcomes.improved,      icon: '✓',  state: 'success' },
+    { value: 'unchanged',   label: commonStrings.program.skinOutcomes.unchanged,     icon: '—',  state: 'neutral' },
+    { value: 'worsened',    label: commonStrings.program.skinOutcomes.worsened,      icon: '!',  state: 'warning' },
+    { value: 'new-lesions', label: commonStrings.program.skinOutcomes['new-lesions'],icon: '!!', state: 'danger' },
   ];
 
   let selectedStatus = $state<Status | null>(assessment?.status ?? null);
@@ -40,9 +42,9 @@
 
 <div class="card-base space-y-4">
   <div class="flex items-center justify-between">
-    <p class="text-sm font-semibold text-text">Stav kůže miminka</p>
+    <p class="text-sm font-semibold text-text">{commonStrings.eczemaCheck.heading}</p>
     {#if saved}
-      <span class="text-xs text-success font-medium">✓ Uloženo</span>
+      <span class="text-xs text-success font-medium">{commonStrings.eczemaCheck.savedLabel}</span>
     {/if}
   </div>
 
@@ -52,7 +54,7 @@
         🔬 Sledujte reakci na {allergenCfg.icon} {allergenCfg.name}
       </p>
       <p class="text-xs text-text-muted mt-0.5">
-        Zaznamenejte jakékoliv změny kůže po zavedení tohoto alergenu.
+        {commonStrings.eczemaCheck.reactionInstruction}
       </p>
     </div>
   {/if}
@@ -79,7 +81,7 @@
     <!-- Notes -->
     <textarea
       bind:value={notes}
-      placeholder="Poznámka (volitelné) — např. zarudnutí na tváři…"
+      placeholder={commonStrings.eczemaCheck.notePlaceholder}
       rows="2"
       class="input-base w-full px-3 py-2 bg-surface resize-none"
       oninput={() => (saved = false)}
@@ -97,7 +99,7 @@
     >
       <span class="text-xl leading-none">{photoTaken ? '✅' : '📸'}</span>
       <span class="text-sm font-medium">
-        {photoTaken ? 'Fotka pořízena' : 'Označit jako vyfocenou'}
+        {photoTaken ? actionStrings.photoTaken : actionStrings.markAsPhotographed}
       </span>
     </button>
 
@@ -107,7 +109,7 @@
       onclick={save}
       disabled={saved}
     >
-      {saved ? '✓ Uloženo' : 'Uložit hodnocení'}
+      {saved ? actionStrings.savedAssessment : actionStrings.saveAssessment}
     </button>
   {/if}
 </div>

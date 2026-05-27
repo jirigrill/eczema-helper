@@ -8,6 +8,8 @@
   import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
   import { categoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
+  import { actionStrings } from '$lib/strings/actions';
+  import { commonStrings, polozkaWordCs } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
@@ -119,7 +121,7 @@
 
   <!-- Header -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <PageHeader title="Přidat jídlo" onBack={() => history.back()}>
+    <PageHeader title={commonStrings.meal.heading} onBack={() => history.back()}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(today)}</p>
       {/snippet}
@@ -143,7 +145,7 @@
     {#if eliminatedToday.length > 0}
       <div class="px-4 pt-2 pb-3">
         <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs font-medium text-warning">Dnes vyřazeno:</span>
+          <span class="text-xs font-medium text-warning">{commonStrings.meal.todayExcluded}</span>
           {#each eliminatedToday as allergenId}
             {@const cat = categoryConfig[allergenId as ProtocolAllergenId]}
             {#if cat}
@@ -163,7 +165,7 @@
 
     <!-- Meal type -->
     <div>
-      <p class="field-label">Typ jídla</p>
+      <p class="field-label">{commonStrings.meal.mealTypeLabel}</p>
       <div class="grid grid-cols-4 gap-2">
         {#each mealTypes as type}
           <button
@@ -180,7 +182,7 @@
 
     <!-- Amount selector -->
     <div>
-      <p class="field-label">Množství (vyberte před přidáním)</p>
+      <p class="field-label">{commonStrings.meal.amountLabel}</p>
       <div class="flex gap-1.5 overflow-x-auto pb-1">
         {#each amounts as [value, info]}
           <button
@@ -196,12 +198,12 @@
 
     <!-- Custom item input -->
     <div>
-      <p class="field-label">Přidat vlastní potravinu</p>
+      <p class="field-label">{commonStrings.meal.customFoodLabel}</p>
       <div class="flex gap-2">
         <input
           type="text"
           bind:value={customName}
-          placeholder="Název potraviny…"
+          placeholder={commonStrings.meal.customFoodPlaceholder}
           class="input-base flex-1 px-3 py-2.5 bg-white"
           onkeydown={(e) => e.key === 'Enter' && addCustom()}
         />
@@ -209,7 +211,7 @@
           class="px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium"
           onclick={addCustom}
         >
-          Přidat
+          {actionStrings.add}
         </button>
       </div>
     </div>
@@ -217,10 +219,10 @@
     <!-- Conflict warning -->
     {#if hasConflicts}
       <InfoBanner variant="warning">
-        <p class="text-sm font-medium text-warning mb-1">⚠ Odchylka od programu</p>
+        <p class="text-sm font-medium text-warning mb-1">{commonStrings.meal.conflictTitle}</p>
         <p class="body-muted">
-          {conflicts.map(i => `${i.name} (${categoryConfig[i.allergenId as ProtocolAllergenId]?.name})`).join(', ')} — tyto potraviny jsou dnes vyřazeny.
-          Jídlo bude uloženo a odchylka zaznamenána.
+          {conflicts.map(i => `${i.name} (${categoryConfig[i.allergenId as ProtocolAllergenId]?.name})`).join(', ')} — {commonStrings.meal.conflictNote}
+          {commonStrings.meal.conflictSaveNote}
         </p>
       </InfoBanner>
     {/if}
@@ -257,7 +259,7 @@
     {#if currentItems.length > 0}
       <div class="card-base">
         <p class="body-medium mb-2">
-          {mealConfig[selectedMealType].icon} {mealConfig[selectedMealType].label} — vybrané položky
+          {mealConfig[selectedMealType].icon} {mealConfig[selectedMealType].label} — {commonStrings.meal.selectedItemsSuffix}
         </p>
         <div class="space-y-1.5">
           {#each currentItems as item (item.id)}
@@ -291,7 +293,7 @@
     <!-- Today's saved meals -->
     {#if todayMeals.length > 0}
       <div>
-        <p class="field-label">Dnes uložená jídla</p>
+        <p class="field-label">{commonStrings.meal.todaySavedLabel}</p>
         <div class="space-y-2">
           {#each todayMeals as meal (meal.id)}
             <div class="card-base">
@@ -321,7 +323,7 @@
         <input
           type="text"
           bind:value={mealLabel}
-          placeholder="Poznámka (volitelné, např. u babičky)"
+          placeholder={commonStrings.meal.notePlaceholder}
           class="input-base w-full px-4 py-2.5 bg-white"
         />
       </div>
@@ -337,7 +339,7 @@
     <button
       class="fixed inset-0 z-40"
       onclick={() => (expandedCategory = null)}
-      aria-label="Zavřít"
+      aria-label={actionStrings.close}
     ></button>
     <div
       class="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-primary/30 shadow-lg px-4 pt-4 space-y-3"
@@ -345,7 +347,7 @@
     >
       <div class="flex items-center justify-between">
         <p class="body-medium">{cfg.icon} {cfg.name}</p>
-        <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>Hotovo</Button>
+        <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>{actionStrings.done}</Button>
       </div>
       <div class="flex flex-wrap gap-2 pb-1">
         {#each cat.subItems as sub}
@@ -374,8 +376,8 @@
   >
     <div class="max-w-lg mx-auto">
       <Button color={hasConflicts ? 'warning' : 'primary'} onclick={saveMeal}>
-        {hasConflicts ? '⚠ Uložit s odchylkou' : 'Uložit'} — {mealConfig[selectedMealType].label}
-        ({currentItems.length} {currentItems.length === 1 ? 'položka' : currentItems.length <= 4 ? 'položky' : 'položek'})
+        {hasConflicts ? actionStrings.saveWithConflict : actionStrings.save} — {mealConfig[selectedMealType].label}
+        ({currentItems.length} {polozkaWordCs(currentItems.length)})
       </Button>
     </div>
   </div>
@@ -383,10 +385,10 @@
 
 {#if showSuccess}
   <Toast
-    message="✓ Jídlo uloženo"
+    message={commonStrings.meal.mealSavedToast}
     type="success"
     href="/day"
-    linkLabel="Zobrazit přehled dne →"
+    linkLabel={actionStrings.showDayOverview}
     onClose={() => (showSuccess = false)}
   />
 {/if}
