@@ -1,0 +1,35 @@
+/**
+ * Protocol policy constants — tunable domain numbers for the elimination diet program.
+ *
+ * All numeric knobs that govern phase durations, evaluation windows, and thresholds
+ * live here. Tuning the protocol requires touching only this file.
+ */
+
+// ── Phase durations (in days) ────────────────────────────────
+
+/** Duration of the initial reset phase, during which the mother eats normally to establish a baseline. */
+export const RESET_PHASE_DAYS = 5;
+
+/** Duration of the full-elimination phase for non-severe eczema. */
+export const ELIMINATION_PHASE_DAYS_DEFAULT = 14;
+
+/** Duration of the full-elimination phase for severe eczema (longer window for clearer signal). */
+export const ELIMINATION_PHASE_DAYS_SEVERE = 21;
+
+/** Duration of each sequential reintroduction phase (3 escalating eating days + 1 evaluation day). */
+export const REINTRODUCTION_PHASE_DAYS = 4;
+
+// ── Training / tolerance-building thresholds ─────────────────
+
+/**
+ * Minimum number of days since the last training dose before a reminder fires.
+ * Mirrors the protocol guideline: training doses should appear at most every N days
+ * to avoid desensitisation.
+ */
+export const TRAINING_REMINDER_THRESHOLD_DAYS = 3;
+
+/**
+ * Sentinel value used when no training dose has ever been logged.
+ * Large enough to guarantee the reminder always fires on the first day of training.
+ */
+export const NEVER_DOSED_SENTINEL_DAYS = 999;
