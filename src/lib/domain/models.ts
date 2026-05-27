@@ -148,7 +148,7 @@ export type AppState = {
 export type ToleranceBuildingReminder = {
   allergenId: ProtocolAllergenId;
   daysSinceLastDose: number;
-  label: string;
+  // No display label — resolve via categoryConfig[allergenId] at render sites (ADR-0014).
 };
 
 export type Category = {
