@@ -15,7 +15,7 @@
   import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings, tyzdnyCs, mesiceCs, allergenWordCs } from '$lib/strings/common';
+  import { commonStrings, tyzdnyCs, mesiceCs, allergenWordCs, dnyCs } from '$lib/strings/common';
   import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { phaseStrings } from '$lib/strings/phases';
@@ -336,10 +336,10 @@
             </div>
             <p class="body mb-2">{commonStrings.onboarding.summaryStart}: <strong>{formatDateLongCs(programStartDate)}</strong></p>
             <div class="body space-y-1">
-              <p>✦ <strong>5 dní</strong> {phaseStrings.reset.label}</p>
-              <p>✦ <strong>{elimDays} dní</strong> {phaseStrings.elimination.label}</p>
+              <p>✦ <strong>{dnyCs(5)}</strong> {phaseStrings.reset.label}</p>
+              <p>✦ <strong>{dnyCs(elimDays)}</strong> {phaseStrings.elimination.label}</p>
               {#if reintroQueue.length > 0}
-                <p>✦ {commonStrings.onboarding.summaryReintroPrefix} (<strong>{reintroDays} dní</strong> každý):
+                <p>✦ {commonStrings.onboarding.summaryReintroPrefix} (<strong>{dnyCs(reintroDays)}</strong> {commonStrings.onboarding.everyLabel}):
                   {reintroQueue.map(s => categoryStrings[s as ProtocolAllergenId]?.name ?? s).join(' → ')}
                 </p>
               {:else}

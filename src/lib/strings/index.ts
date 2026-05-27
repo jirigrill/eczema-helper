@@ -15,4 +15,12 @@ export {
   toastRetestNotBabyConfirmed,
   toastRetestAlreadyCleared,
   toastRetestAlreadyScheduled,
+  dayProgress,
+  phaseProgressLabel,
+  schedulePhaseSummary,
+  phasesDoneAt,
+  phasesCompletedSummary,
+  deviationsCount,
+  deviationsMore,
+  reintroDayLabel,
 } from './common';

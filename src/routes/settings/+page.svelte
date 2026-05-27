@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { categoryStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings } from '$lib/strings/common';
+  import { commonStrings, schedulePhaseSummary } from '$lib/strings/common';
   import type { ProtocolAllergenId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { db } from '$lib/db/atopic-db';
@@ -64,13 +64,12 @@
       </SummaryCard>
 
       {#if schedule}
-        <SummaryCard label="Program">
+        <SummaryCard label={commonStrings.settings.programLabel}>
           <p class="body">
-            Celkem {schedule.phases.length} fází ·
-            do {formatDateLongCs(schedule.estimatedEndDate)}
+            {schedulePhaseSummary(schedule.phases.length, formatDateLongCs(schedule.estimatedEndDate))}
           </p>
           <p class="body mt-0.5">
-            Zapsáno jídel: <strong>0</strong>
+            {@html commonStrings.settings.mealsCountHtml}
           </p>
         </SummaryCard>
       {/if}

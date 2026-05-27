@@ -9,7 +9,7 @@
   import { categoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings, polozkaWordCs } from '$lib/strings/common';
+  import { commonStrings, polozkaWordCs, reintroDayLabel } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
@@ -134,7 +134,7 @@
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">
           <p class="text-xs font-medium text-success">
-            🔬 Den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}
+            {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
           </p>
           <p class="body-muted mt-0.5">{protocolDay?.instructionCs ?? ''} ({cat?.name})</p>
         </InfoBanner>

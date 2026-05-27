@@ -8,7 +8,7 @@
   import ProgressBar from "$lib/components/ProgressBar.svelte";
   import { categoryStrings } from "$lib/strings/categories";
   import { actionStrings } from "$lib/strings/actions";
-  import { commonStrings } from "$lib/strings/common";
+  import { commonStrings, dayProgress } from "$lib/strings/common";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { phaseConfig } from "$lib/config/phases";
 
@@ -50,7 +50,7 @@
       <div class="micro-label">
         {czechWeekday(today)} · {formatDateLongCs(today)}
       </div>
-      <h2 class="page-heading">Dnes</h2>
+      <h2 class="page-heading">{commonStrings.today.heading}</h2>
     </div>
     <a
       href="/settings"
@@ -131,7 +131,7 @@
               </div>
               {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
-                  Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
+                  {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                   {#if phase.endDate}
                     · do {formatDateLongCs(phase.endDate)}
                   {/if}
@@ -148,7 +148,7 @@
               <span class="body-bold">{commonStrings.today.programEnded}</span>
               {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
-                  Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
+                  {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                 </div>
               {/if}
             </div>
@@ -167,12 +167,12 @@
       </div>
 
       <!-- Stav ekzému — stub (slice 3) -->
-      <EmptyStateCard label={commonStrings.today.eczemaStatusLabel} status="neuložen">
+      <EmptyStateCard label={commonStrings.today.eczemaStatusLabel} status={commonStrings.today.eczemaStatusValue}>
         <div class="body-muted">{commonStrings.today.eczemaStatusEmpty}</div>
       </EmptyStateCard>
 
       <!-- Foto kůže — stub (slice 3) -->
-      <EmptyStateCard label={commonStrings.today.photoLabel} status="chybí">
+      <EmptyStateCard label={commonStrings.today.photoLabel} status={commonStrings.today.photoStatusValue}>
         <div class="body-muted">{commonStrings.today.photoEmpty}</div>
       </EmptyStateCard>
 
@@ -217,7 +217,7 @@
       </div>
 
       <!-- Dnešní jídla — stub (slice 2) -->
-      <EmptyStateCard label={commonStrings.today.mealsLabel} status="0 záznamů">
+      <EmptyStateCard label={commonStrings.today.mealsLabel} status={commonStrings.today.mealsStatusValue}>
         <div class="body-muted">{commonStrings.today.mealsEmpty}</div>
       </EmptyStateCard>
 

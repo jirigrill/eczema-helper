@@ -24,6 +24,11 @@
     toastRetestNotBabyConfirmed,
     toastRetestAlreadyCleared,
     toastRetestAlreadyScheduled,
+    phaseProgressLabel,
+    phasesDoneAt,
+    phasesCompletedSummary,
+    deviationsCount,
+    deviationsMore,
   } from '$lib/strings/common';
 
   const scheduleRepo = new DexieScheduleRepository(db);
@@ -293,11 +298,11 @@
             <p class="body-muted mt-0.5">{commonStrings.program.startingPrefix} {formatDateCs(schedule.startDate)}</p>
           {:else if isProgramDone}
             <p class="body-semibold">{commonStrings.program.completed}</p>
-            <p class="body-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
+            <p class="body-muted mt-0.5">{phasesDoneAt(schedule.phases.length, formatDateLongCs(today))}</p>
           {:else if currentPhase}
             <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.allergenIds[0] ? `: ${categoryConfig[currentPhase.allergenIds[0]]?.name ?? currentPhase.allergenIds[0]}` : ''}</p>
             <p class="body-muted mt-0.5">
-              den {currentDayInPhase(currentPhase)}{currentPhase.endDate ? ` z ${phaseDayCount(currentPhase)}` : ''} · {formatDateLongCs(today)}
+              {phaseProgressLabel(currentDayInPhase(currentPhase), currentPhase.endDate ? phaseDayCount(currentPhase) : null, formatDateLongCs(today))}
             </p>
           {/if}
         </div>
@@ -433,13 +438,13 @@
             {#if heroConflicts.count === 0}
               <p class="text-text-muted">{commonStrings.program.noDeviations}</p>
             {:else}
-              <p class="text-warning font-medium mb-1">{heroConflicts.count} odchylek</p>
+              <p class="text-warning font-medium mb-1">{deviationsCount(heroConflicts.count)}</p>
               <div class="muted-list">
                 {#each heroConflicts.items as c}
                   <p>{c.icon} {c.name} · {formatDateCs(c.date)}</p>
                 {/each}
                 {#if heroConflicts.count > 3}
-                  <p class="text-text-muted/60">…a dalších {heroConflicts.count - 3}</p>
+                  <p class="text-text-muted/60">{deviationsMore(heroConflicts.count - 3)}</p>
                 {/if}
               </div>
             {/if}
@@ -544,13 +549,13 @@
                   {#if conflicts.count === 0}
                     <p class="text-text-muted">{commonStrings.program.noDeviations}</p>
                   {:else}
-                    <p class="text-warning font-medium mb-1">{conflicts.count} odchylek</p>
+                    <p class="text-warning font-medium mb-1">{deviationsCount(conflicts.count)}</p>
                     <div class="muted-list">
                       {#each conflicts.items as c}
                         <p>{c.icon} {c.name} · {formatDateCs(c.date)}</p>
                       {/each}
                       {#if conflicts.count > 3}
-                        <p class="text-text-muted/60">…a dalších {conflicts.count - 3}</p>
+                        <p class="text-text-muted/60">{deviationsMore(conflicts.count - 3)}</p>
                       {/if}
                     </div>
                   {/if}
@@ -664,10 +669,10 @@
           <p class="text-2xl mb-1">🎉</p>
           <p class="text-base font-bold text-text">{commonStrings.program.completedBanner}</p>
           <p class="body-muted mt-1">
-            {schedule.phases.length} fází · celkem {Math.round(
+            {phasesCompletedSummary(schedule.phases.length, Math.round(
               (new Date(schedule.estimatedEndDate + 'T00:00:00').getTime() -
                new Date(schedule.startDate + 'T00:00:00').getTime()) / 86400000
-            ) + 1} dní
+            ) + 1)}
           </p>
         </div>
       </div>

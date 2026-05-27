@@ -33,6 +33,9 @@ export const commonStrings = {
     photoEmpty:        'Žádný snímek pro dnešek.',
     mealsLabel:        'Dnešní jídla',
     mealsEmpty:        'Zatím žádný záznam.',
+    eczemaStatusValue: 'neuložen',
+    photoStatusValue:  'chybí',
+    mealsStatusValue:  '0 záznamů',
     allowed:           '✓ Smím',
     avoid:             '✗ Vyhýbej se',
     noRestrictions:    'Žádná omezení',
@@ -54,6 +57,8 @@ export const commonStrings = {
     prototypeSubtitle:'Souhrn aktuální konfigurace a možnost restartu',
     currentConfig:    'Aktuální konfigurace',
     noAnswers:        'Dotazník ještě nebyl vyplněn.',
+    programLabel:     'Program',
+    mealsCountHtml:   'Zapsáno jídel: <strong>0</strong>',
     resetWarning:     'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
     noneLabel:        'žádné',
     severityLabel: {
@@ -124,6 +129,7 @@ export const commonStrings = {
     summaryNoReintroHtml:
       '<em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny',
     summaryReintroPrefix: 'Znovuzavedení',
+    everyLabel:           'každý',
   },
 
   // ── Meal logging page ─────────────────────────────────────
@@ -319,4 +325,46 @@ export function toastRetestAlreadyCleared(names: string): string {
 /** Toast: retest for allergen already scheduled */
 export function toastRetestAlreadyScheduled(names: string): string {
   return `Retest pro ${names} již je naplánován.`;
+}
+
+/** "Den {current} / {total}" — day progress counter in phase hero */
+export function dayProgress(current: number, total: number): string {
+  return `Den ${current} / ${total}`;
+}
+
+/** "den {current} z {total} · {date}" — compact phase progress with date */
+export function phaseProgressLabel(current: number, total: number | null, date: string): string {
+  return total != null
+    ? `den ${current} z ${total} · ${date}`
+    : `den ${current} · ${date}`;
+}
+
+/** "Celkem {count} fází · do {formattedDate}" — settings schedule summary */
+export function schedulePhaseSummary(count: number, formattedDate: string): string {
+  return `Celkem ${count} fází · do ${formattedDate}`;
+}
+
+/** "{count} fází · {formattedDate}" — program done-at line */
+export function phasesDoneAt(count: number, formattedDate: string): string {
+  return `${count} fází · ${formattedDate}`;
+}
+
+/** "{count} fází · celkem {days} dní" — end-of-program summary */
+export function phasesCompletedSummary(count: number, days: number): string {
+  return `${count} fází · celkem ${dnyCs(days)}`;
+}
+
+/** "{n} odchylek" — deviation count label */
+export function deviationsCount(n: number): string {
+  return `${n} odchylek`;
+}
+
+/** "…a dalších {n}" — truncated deviation list overflow */
+export function deviationsMore(n: number): string {
+  return `…a dalších ${n}`;
+}
+
+/** "🔬 Den {day} z {total}" — reintroduction day label in meal page */
+export function reintroDayLabel(day: number, total: number): string {
+  return `🔬 Den ${day} z ${total}`;
 }
