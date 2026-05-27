@@ -3,6 +3,14 @@ import type { Result } from '$lib/types/result';
 import { categoryConfig } from '$lib/config/categories';
 import { addDays } from '$lib/utils/date';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
+import {
+  RESET_PHASE_DAYS,
+  ELIMINATION_PHASE_DAYS_DEFAULT,
+  ELIMINATION_PHASE_DAYS_SEVERE,
+  REINTRODUCTION_PHASE_DAYS,
+  TRAINING_REMINDER_THRESHOLD_DAYS,
+  NEVER_DOSED_SENTINEL_DAYS,
+} from '$lib/domain/policy';
 
 // ── Re-test eligibility rejection ────────────────────────────
 
@@ -15,9 +23,9 @@ export type RetestRejection =
 
 function phaseDurations(severity: EczemaSeverity) {
   return {
-    reset: 5,
-    elimination: severity === 'severe' ? 21 : 14,
-    reintroduction: 4,
+    reset: RESET_PHASE_DAYS,
+    elimination: severity === 'severe' ? ELIMINATION_PHASE_DAYS_SEVERE : ELIMINATION_PHASE_DAYS_DEFAULT,
+    reintroduction: REINTRODUCTION_PHASE_DAYS,
   };
 }
 
@@ -233,12 +241,11 @@ export function appendReTestPhases(
   }
 
   // All ids valid — append phases
-  const reintroductionDays = 4;
   const newPhases = [...schedule.phases];
   let cursor = addDays(schedule.estimatedEndDate, 1);
 
   for (const allergenId of ids) {
-    const end = addDays(cursor, reintroductionDays - 1);
+    const end = addDays(cursor, REINTRODUCTION_PHASE_DAYS - 1);
     newPhases.push({
       id: `retest-${allergenId}-${cursor}`,
       type: 'reintroduction',
@@ -332,12 +339,12 @@ export function getToleranceBuildingRemindersForDate(
     const lastDate = relevantMeals[0]?.date;
     const daysSince = lastDate
       ? Math.round((new Date(date + 'T00:00:00').getTime() - new Date(lastDate + 'T00:00:00').getTime()) / 86400000)
-      : 999;
+      : NEVER_DOSED_SENTINEL_DAYS;
 
     return {
       allergenId,
       daysSinceLastDose: daysSince,
       label: `${cfg?.icon ?? ''} ${cfg?.name ?? allergenId}`,
     };
-  }).filter(r => r.daysSinceLastDose >= 3);
+  }).filter(r => r.daysSinceLastDose >= TRAINING_REMINDER_THRESHOLD_DAYS);
 }
