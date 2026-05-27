@@ -16,11 +16,25 @@
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
   import Button from '$lib/components/Button.svelte';
+  import { actionStrings } from '$lib/strings/actions';
+  import {
+    commonStrings,
+    dnyCs,
+    addRetestPhasesLabel,
+    toastRetestNotBabyConfirmed,
+    toastRetestAlreadyCleared,
+    toastRetestAlreadyScheduled,
+    phaseProgressLabel,
+    phasesDoneAt,
+    phasesCompletedSummary,
+    deviationsCount,
+    deviationsMore,
+  } from '$lib/strings/common';
 
   const scheduleRepo = new DexieScheduleRepository(db);
 
   let showToast = $state(false);
-  let toastMessage = $state('Tato funkce bude dostupná brzy');
+  let toastMessage = $state(commonStrings.program.toastComingSoon);
   let toastType = $state<'info' | 'success' | 'warning' | 'error'>('info');
   let toastUndo = $state<(() => void) | undefined>(undefined);
   let selectedRetestSlugs = $state<string[]>([]);
@@ -54,7 +68,7 @@
     return permanentSlugs.flatMap((s): DisplayAllergen[] => {
       const isMother = answers?.motherAllergies.some(a => normSlug(a) === s) ?? false;
       const isBaby = answers?.babyConfirmedAllergies.some(a => normSlug(a) === s) ?? false;
-      const reason = isMother && isBaby ? 'vaše + miminka' : isMother ? 'vaše alergie' : 'alergie miminka';
+      const reason = isMother && isBaby ? commonStrings.program.reasonMotherAndBaby : isMother ? commonStrings.program.reasonMother : commonStrings.program.reasonBaby;
       if (s.startsWith('other:')) return [{ slug: s, icon: '🌿', name: s.slice(6), reason }];
       const cfg = categoryConfig[s.split(':')[0] as ProtocolAllergenId];
       if (!cfg) return [];
@@ -64,15 +78,7 @@
 
   // ── Allergen status helpers ────────────────────────────────
   function allergenStatusLabel(status: AllergenStatusValue): string {
-    switch (status) {
-      case 'testing': return 'testuje se';
-      case 'passed': return '✓ znovuzavedena';
-      case 'reacted': return 'reagovalo';
-      case 'tolerance-building': return 'buduje toleranci';
-      case 'eliminated':
-      case 'not-yet-tested': return 'vyřazena';
-      default: return status;
-    }
+    return commonStrings.program.statusLabels[status] ?? status;
   }
 
   function allergenStatusColor(status: AllergenStatusValue): string {
@@ -118,13 +124,13 @@
       const { code, invalidIds } = retestResult.error;
       const names = invalidIds.map(id => categoryConfig[id as ProtocolAllergenId]?.name ?? id).join(', ');
       if (code === 'not-baby-confirmed') {
-        toastMessage = `Nelze přidat retest: ${names} není potvrzená alergie miminka.`;
+        toastMessage = toastRetestNotBabyConfirmed(names);
         toastType = 'error';
       } else if (code === 'already-cleared') {
-        toastMessage = `Nelze přidat retest: ${names} již bylo úspěšně otestováno.`;
+        toastMessage = toastRetestAlreadyCleared(names);
         toastType = 'error';
       } else if (code === 'retest-already-scheduled') {
-        toastMessage = `Retest pro ${names} již je naplánován.`;
+        toastMessage = toastRetestAlreadyScheduled(names);
         toastType = 'warning';
         toastUndo = () => {
           for (const id of invalidIds) cancelRetestPhase(id);
@@ -143,8 +149,8 @@
     const result = removeReTestPhase(schedule, allergenId, today);
     if (!result.ok) {
       toastMessage = result.error.code === 'protocol-phase'
-        ? 'Nelze zrušit: toto je protokolová fáze, ne přidaný retest.'
-        : 'Retest nenalezen — možná již proběhl.';
+        ? commonStrings.program.toastCannotCancelProtocol
+        : commonStrings.program.toastRetestNotFound;
       toastType = 'error';
       toastUndo = undefined;
       showToast = true;
@@ -152,7 +158,7 @@
     }
     const saveResult = await scheduleRepo.save(result.data);
     if (!saveResult.ok) { toastMessage = saveResult.error; toastType = 'error'; toastUndo = undefined; showToast = true; return; }
-    toastMessage = 'Retest zrušen.';
+    toastMessage = commonStrings.program.toastRetestCancelled;
     toastType = 'success';
     toastUndo = undefined;
     showToast = true;
@@ -171,11 +177,7 @@
     return phase.startDate <= today && phase.endDate >= today;
   }
 
-  function dnyCs(n: number): string {
-    if (n === 1) return '1 den';
-    if (n <= 4) return `${n} dny`;
-    return `${n} dní`;
-  }
+  // dnyCs imported from $lib/strings/common
 
   function phaseDayCount(phase: SchedulePhase): number {
     return Math.round((new Date(phase.endDate + 'T00:00:00').getTime() - new Date(phase.startDate + 'T00:00:00').getTime()) / 86400000) + 1;
@@ -189,9 +191,9 @@
 
   function evalLabel(ev: ReintroductionEvaluation): string {
     if (ev.phaseType === 'skin-status') {
-      return ev.outcome === 'improved' ? 'Zlepšení' : ev.outcome === 'unchanged' ? 'Beze změny' : ev.outcome === 'worsened' ? 'Zhoršení' : 'Nová ložiska';
+      return commonStrings.program.skinOutcomes[ev.outcome] ?? ev.outcome;
     }
-    return ev.outcome === 'tolerated' ? 'Toleruje' : ev.outcome === 'mild-reaction' ? 'Mírná reakce' : ev.outcome === 'clear-reaction' ? 'Jasná reakce' : 'Silná reakce';
+    return commonStrings.program.reintroOutcomes[ev.outcome] ?? ev.outcome;
   }
 
   function evalColor(ev: ReintroductionEvaluation): string {
@@ -256,7 +258,7 @@
   }
 
   function handleEditSchedule() {
-    toastMessage = 'Tato funkce bude dostupná brzy';
+    toastMessage = commonStrings.program.toastComingSoon;
     toastType = 'info';
     showToast = true;
   }
@@ -267,7 +269,7 @@
   {#if ctx.status === 'error'}
     <ErrorAlert message={ctx.message} />
   {:else if !schedule}
-    <p class="body-muted">Nejprve dokončete dotazník.</p>
+    <p class="body-muted">{commonStrings.program.noProgram}</p>
   {:else}
 
     <!-- ═══ Hero card: progress + current phase + CTA ═══ -->
@@ -292,15 +294,15 @@
         <!-- Phase info -->
         <div class="flex-1 min-w-0">
           {#if isBeforeSchedule}
-            <p class="body-semibold">Program ještě nezačal</p>
-            <p class="body-muted mt-0.5">Začíná {formatDateCs(schedule.startDate)}</p>
+            <p class="body-semibold">{commonStrings.program.notStarted}</p>
+            <p class="body-muted mt-0.5">{commonStrings.program.startingPrefix} {formatDateCs(schedule.startDate)}</p>
           {:else if isProgramDone}
-            <p class="body-semibold">Program dokončen 🎉</p>
-            <p class="body-muted mt-0.5">{schedule.phases.length} fází · {formatDateLongCs(today)}</p>
+            <p class="body-semibold">{commonStrings.program.completed}</p>
+            <p class="body-muted mt-0.5">{phasesDoneAt(schedule.phases.length, formatDateLongCs(today))}</p>
           {:else if currentPhase}
             <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.allergenIds[0] ? `: ${categoryConfig[currentPhase.allergenIds[0]]?.name ?? currentPhase.allergenIds[0]}` : ''}</p>
             <p class="body-muted mt-0.5">
-              den {currentDayInPhase(currentPhase)}{currentPhase.endDate ? ` z ${phaseDayCount(currentPhase)}` : ''} · {formatDateLongCs(today)}
+              {phaseProgressLabel(currentDayInPhase(currentPhase), currentPhase.endDate ? phaseDayCount(currentPhase) : null, formatDateLongCs(today))}
             </p>
           {/if}
         </div>
@@ -313,13 +315,13 @@
           {#if currentPhase.type === 'reset'}
 
             <div>
-              <p class="section-label">Co dělat</p>
-              <p class="body-muted">Jezte normálně — zaznamenáváme <strong>výchozí stav kůže</strong> miminka. Denně zaznamenejte stav kůže v přehledu dne.</p>
+              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="body-muted">{@html commonStrings.program.resetTodoHtml}</p>
             </div>
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="section-label">Trvalá omezení</p>
-                <p class="body-muted mb-2">Těmto potravinám se vyhněte i nyní.</p>
+                <p class="section-label">{commonStrings.program.sectionPermanent}</p>
+                <p class="body-muted mb-2">{commonStrings.program.sectionPermanentNote}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item (item.slug)}
                     <AllergenChip slug={item.slug} />
@@ -331,11 +333,11 @@
           {:else if currentPhase.type === 'elimination'}
 
             <div>
-              <p class="section-label">Co dělat</p>
-              <p class="body-muted">Vylučte všechny níže uvedené alergeny — <strong>i ve skryté podobě</strong> (etikety, omáčky, pečivo). Čekáme na ustálení kůže miminka.</p>
+              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="body-muted">{@html commonStrings.program.eliminationTodoHtml}</p>
             </div>
             <div>
-              <p class="section-label text-danger">Vyřazeno</p>
+              <p class="section-label text-danger">{commonStrings.program.sectionEliminated}</p>
               <div class="flex flex-wrap gap-1.5">
                 {#each protocolEliminated.filter(s => (s as ProtocolAllergenId) in categoryConfig) as slug (slug)}
                   <AllergenChip {slug} color="warning" />
@@ -344,8 +346,8 @@
             </div>
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="section-label">Trvalá omezení</p>
-                <p class="body-muted mb-2">Trvale vyřazeno z vašeho nebo miminkova důvodu.</p>
+                <p class="section-label">{commonStrings.program.sectionPermanent}</p>
+                <p class="body-muted mb-2">{commonStrings.program.sectionPermanentReasonNote}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item (item.slug)}
                     <AllergenChip slug={item.slug} />
@@ -358,20 +360,20 @@
             {@const testCat = categoryConfig[currentPhase.allergenIds[0]]}
 
             <div>
-              <p class="section-label">Co dělat</p>
+              <p class="section-label">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">
-                Zařaďte <strong>{testCat?.name?.toLowerCase() ?? ''}</strong> do jídelníčku.
+                {commonStrings.program.reintroAddPrefix} <strong>{testCat?.name?.toLowerCase() ?? ''}</strong> {commonStrings.program.reintroAddSuffix}
                 {#if reintroInfo?.isEvaluationDay}
-                  Dnes vyhodnoťte celkovou reakci miminka.
+                  {commonStrings.program.reintroTodayEval}
                 {:else}
-                  Sledujte kůži miminka každý den.
+                  {commonStrings.program.reintroMonitor}
                 {/if}
               </p>
             </div>
 
             {#if testCat}
               <div>
-                <p class="section-label text-success">Testujete</p>
+                <p class="section-label text-success">{commonStrings.program.sectionTesting}</p>
                 <div class="flex flex-wrap items-center gap-1.5">
                   <AllergenChip slug={currentPhase.allergenIds[0]} color="success" />
                   {#if reintroInfo}
@@ -385,7 +387,7 @@
 
             {#if protocolEliminated.length > 0}
               <div>
-                <p class="section-label">Stále vyřazeno</p>
+                <p class="section-label">{commonStrings.program.sectionStillEliminated}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each protocolEliminated.filter(s => (s as ProtocolAllergenId) in categoryConfig) as slug (slug)}
                     <AllergenChip {slug} />
@@ -396,7 +398,7 @@
 
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="section-label">Trvalá omezení</p>
+                <p class="section-label">{commonStrings.program.sectionPermanent}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item (item.slug)}
                     <AllergenChip slug={item.slug} />
@@ -408,7 +410,7 @@
           {:else if currentPhase.type === 'rest'}
 
             <div>
-              <p class="section-label">Co dělat</p>
+              <p class="section-label">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">{phaseConfig[currentPhase.type].description}</p>
             </div>
 
@@ -416,9 +418,9 @@
             {@const trainingCat = categoryConfig[currentPhase.allergenIds[0]]}
 
             <div>
-              <p class="section-label">Co dělat</p>
+              <p class="section-label">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">
-                Budování tolerance — občas zařaďte malou dávku <strong>{trainingCat?.name?.toLowerCase() ?? ''}</strong> (max 2× týdně, max 1 lžička). Budujete toleranci.
+                {commonStrings.program.toleranceBuildingPrefix} <strong>{trainingCat?.name?.toLowerCase() ?? ''}</strong> {commonStrings.program.toleranceBuildingSuffix}
               </p>
             </div>
 
@@ -432,36 +434,36 @@
 
         <div class="space-y-3 border-t border-surface-dark pt-3 text-xs">
           <div>
-            <p class="section-label">Odchylky v jídelníčku</p>
+            <p class="section-label">{commonStrings.program.sectionDeviations}</p>
             {#if heroConflicts.count === 0}
-              <p class="text-text-muted">Žádné odchylky — vše v souladu s programem.</p>
+              <p class="text-text-muted">{commonStrings.program.noDeviations}</p>
             {:else}
-              <p class="text-warning font-medium mb-1">{heroConflicts.count} odchylek</p>
+              <p class="text-warning font-medium mb-1">{deviationsCount(heroConflicts.count)}</p>
               <div class="muted-list">
                 {#each heroConflicts.items as c}
                   <p>{c.icon} {c.name} · {formatDateCs(c.date)}</p>
                 {/each}
                 {#if heroConflicts.count > 3}
-                  <p class="text-text-muted/60">…a dalších {heroConflicts.count - 3}</p>
+                  <p class="text-text-muted/60">{deviationsMore(heroConflicts.count - 3)}</p>
                 {/if}
               </div>
             {/if}
           </div>
 
           <div>
-            <p class="section-label">Reakce kůže</p>
+            <p class="section-label">{commonStrings.program.sectionSkinReaction}</p>
             {#if heroAssessments.length === 0}
-              <p class="text-text-muted">Žádné záznamy stavu kůže.</p>
+              <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
             {:else}
               {@const improved = heroAssessments.filter((a: { status: string }) => a.status === 'improved').length}
               {@const unchanged = heroAssessments.filter((a: { status: string }) => a.status === 'unchanged').length}
               {@const worsened = heroAssessments.filter((a: { status: string }) => a.status === 'worsened').length}
               {@const newLesions = heroAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length}
               <div class="flex flex-wrap gap-2 text-text-muted">
-                {#if improved > 0}<span class="text-success font-medium">✓ {improved}× zlepšení</span>{/if}
-                {#if unchanged > 0}<span>— {unchanged}× beze změny</span>{/if}
-                {#if worsened > 0}<span class="text-warning font-medium">! {worsened}× zhoršení</span>{/if}
-                {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}× nová ložiska</span>{/if}
+                {#if improved > 0}<span class="text-success font-medium">✓ {improved}{commonStrings.program.skinImprovedSuffix}</span>{/if}
+                {#if unchanged > 0}<span>— {unchanged}{commonStrings.program.skinUnchangedSuffix}</span>{/if}
+                {#if worsened > 0}<span class="text-warning font-medium">! {worsened}{commonStrings.program.skinWorsenedSuffix}</span>{/if}
+                {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}{commonStrings.program.skinNewLesionsSuffix}</span>{/if}
               </div>
             {/if}
           </div>
@@ -469,7 +471,7 @@
           {#if currentPhase.type === 'reintroduction'}
             {#if protocolAllergenStatuses.length > 1}
               <div>
-                <p class="section-label">Stav alergenů</p>
+                <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
                 <div class="muted-list">
                   {#each protocolAllergenStatuses as row}
                     {@const rowCat = categoryConfig[row.allergenId as ProtocolAllergenId]}
@@ -477,7 +479,7 @@
                       <span>{rowCat?.icon ?? ''}</span>
                       <span class="flex-1">{rowCat?.name ?? row.allergenId}</span>
                       {#if schedule?.permanentBaby.includes(row.allergenId)}
-                        <span class="text-text-muted/50 text-[10px]">z dotazníku</span>
+                        <span class="text-text-muted/50 text-[10px]">{commonStrings.program.fromQuestionnaire}</span>
                       {/if}
                       <span class="{allergenStatusColor(row.status)}">{allergenStatusLabel(row.status)}</span>
                     </div>
@@ -488,11 +490,11 @@
           {/if}
 
           <div>
-            <p class="section-label">Celkové hodnocení</p>
+            <p class="section-label">{commonStrings.program.sectionEvaluation}</p>
             {#if heroEval}
               <p class="font-medium {evalColor(heroEval)}">{evalLabel(heroEval)}{#if heroEval.notes} <span class="font-normal text-text-muted">— {heroEval.notes}</span>{/if}</p>
             {:else}
-              <p class="text-text-muted">Hodnocení proběhne na konci fáze.</p>
+              <p class="text-text-muted">{commonStrings.program.evaluationPending}</p>
             {/if}
           </div>
         </div>
@@ -516,7 +518,7 @@
             {@const bandCat = categoryConfig[trainingBand.slug as ProtocolAllergenId]}
             <div class="ml-11 -mb-1">
               <span class="text-[10px] text-primary/60 font-medium">
-                {bandCat?.icon ?? ''} Trénink: {trainingBand.label}
+                {bandCat?.icon ?? ''} {commonStrings.program.trainingLabel} {trainingBand.label}
               </span>
             </div>
           {/if}
@@ -543,17 +545,17 @@
 
                 <!-- Dietary deviations -->
                 <div>
-                  <p class="section-label">Odchylky v jídelníčku</p>
+                  <p class="section-label">{commonStrings.program.sectionDeviations}</p>
                   {#if conflicts.count === 0}
-                    <p class="text-text-muted">Žádné odchylky — vše v souladu s programem.</p>
+                    <p class="text-text-muted">{commonStrings.program.noDeviations}</p>
                   {:else}
-                    <p class="text-warning font-medium mb-1">{conflicts.count} odchylek</p>
+                    <p class="text-warning font-medium mb-1">{deviationsCount(conflicts.count)}</p>
                     <div class="muted-list">
                       {#each conflicts.items as c}
                         <p>{c.icon} {c.name} · {formatDateCs(c.date)}</p>
                       {/each}
                       {#if conflicts.count > 3}
-                        <p class="text-text-muted/60">…a dalších {conflicts.count - 3}</p>
+                        <p class="text-text-muted/60">{deviationsMore(conflicts.count - 3)}</p>
                       {/if}
                     </div>
                   {/if}
@@ -561,23 +563,23 @@
 
                 <!-- Skin reactions -->
                 <div>
-                  <p class="section-label">Reakce kůže</p>
+                  <p class="section-label">{commonStrings.program.sectionSkinReaction}</p>
                   {#if phaseAssessments.length === 0}
-                    <p class="text-text-muted">Žádné záznamy stavu kůže.</p>
+                    <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
                   {:else}
                     {@const improved = phaseAssessments.filter((a: { status: string }) => a.status === 'improved').length}
                     {@const unchanged = phaseAssessments.filter((a: { status: string }) => a.status === 'unchanged').length}
                     {@const worsened = phaseAssessments.filter((a: { status: string }) => a.status === 'worsened').length}
                     {@const newLesions = phaseAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length}
                     <div class="flex flex-wrap gap-2 text-text-muted">
-                      {#if improved > 0}<span class="text-success font-medium">✓ {improved}× zlepšení</span>{/if}
-                      {#if unchanged > 0}<span>— {unchanged}× beze změny</span>{/if}
-                      {#if worsened > 0}<span class="text-warning font-medium">! {worsened}× zhoršení</span>{/if}
-                      {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}× nová ložiska</span>{/if}
+                      {#if improved > 0}<span class="text-success font-medium">✓ {improved}{commonStrings.program.skinImprovedSuffix}</span>{/if}
+                      {#if unchanged > 0}<span>— {unchanged}{commonStrings.program.skinUnchangedSuffix}</span>{/if}
+                      {#if worsened > 0}<span class="text-warning font-medium">! {worsened}{commonStrings.program.skinWorsenedSuffix}</span>{/if}
+                      {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}{commonStrings.program.skinNewLesionsSuffix}</span>{/if}
                     </div>
                     {#if (worsened > 0 || newLesions > 0) && phase.type === 'reintroduction'}
                       {@const phaseCat = categoryConfig[phase.allergenIds[0]]}
-                      <p class="text-text-muted mt-1">Možná příčina: {phaseCat?.icon} {phaseCat?.name ?? phase.allergenIds[0]}</p>
+                      <p class="text-text-muted mt-1">{commonStrings.program.possibleCausePrefix} {phaseCat?.icon} {phaseCat?.name ?? phase.allergenIds[0]}</p>
                     {/if}
                   {/if}
                 </div>
@@ -589,7 +591,7 @@
                     .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))}
                   {#if phaseRows.length > 1}
                     <div>
-                      <p class="section-label">Stav alergenů</p>
+                      <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
                       <div class="muted-list">
                         {#each phaseRows as row}
                           {@const rowCat = categoryConfig[row.allergenId as ProtocolAllergenId]}
@@ -597,7 +599,7 @@
                             <span>{rowCat?.icon ?? ''}</span>
                             <span class="flex-1">{rowCat?.name ?? row.allergenId}</span>
                             {#if schedule.permanentBaby.includes(row.allergenId)}
-                              <span class="text-text-muted/50 text-[10px]">z dotazníku</span>
+                              <span class="text-text-muted/50 text-[10px]">{commonStrings.program.fromQuestionnaire}</span>
                             {/if}
                             <span class="{allergenStatusColor(row.status)}">{allergenStatusLabel(row.status)}</span>
                           </div>
@@ -609,14 +611,14 @@
 
                 <!-- Overall evaluation -->
                 <div>
-                  <p class="section-label">Celkové hodnocení</p>
+                  <p class="section-label">{commonStrings.program.sectionEvaluation}</p>
                   {#if phaseEval}
                     <p class="font-medium {evalColor(phaseEval)}">{evalLabel(phaseEval)}{#if phaseEval.notes} <span class="font-normal text-text-muted">— {phaseEval.notes}</span>{/if}</p>
                   {:else}
                     <a
                       href="/day?date={phase.endDate}"
                       class="inline-block text-primary font-medium no-underline"
-                    >Zhodnotit fázi →</a>
+                    >{actionStrings.evaluatePhase}</a>
                   {/if}
                 </div>
 
@@ -631,7 +633,7 @@
                 {phaseIcon(phase.type)}
               </div>
               <span class="text-sm font-semibold text-text flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${categoryConfig[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}` : ''}</span>
-              <span class="text-xs bg-primary text-white rounded-full px-2 py-0.5 font-medium shrink-0">Teď</span>
+              <span class="text-xs bg-primary text-white rounded-full px-2 py-0.5 font-medium shrink-0">{commonStrings.program.now}</span>
             </div>
 
           {:else}
@@ -648,10 +650,10 @@
                   class="text-xs text-danger/70 hover:text-danger font-medium shrink-0 px-2 py-1 rounded-lg hover:bg-danger/10 transition-colors"
                   onclick={() => cancelRetestPhase(phase.allergenIds[0])}
                 >
-                  Zrušit
+                  {actionStrings.cancel}
                 </button>
               {:else}
-                <span class="text-xs text-text-muted/60 shrink-0">{phase.endDate ? dnyCs(phaseDayCount(phase)) : 'průběžně'}</span>
+                <span class="text-xs text-text-muted/60 shrink-0">{phase.endDate ? dnyCs(phaseDayCount(phase)) : commonStrings.program.ongoing}</span>
               {/if}
             </div>
           {/if}
@@ -665,12 +667,12 @@
       <div data-state="success" class="border rounded-2xl p-5">
         <div class="text-center">
           <p class="text-2xl mb-1">🎉</p>
-          <p class="text-base font-bold text-text">Program dokončen!</p>
+          <p class="text-base font-bold text-text">{commonStrings.program.completedBanner}</p>
           <p class="body-muted mt-1">
-            {schedule.phases.length} fází · celkem {Math.round(
+            {phasesCompletedSummary(schedule.phases.length, Math.round(
               (new Date(schedule.estimatedEndDate + 'T00:00:00').getTime() -
                new Date(schedule.startDate + 'T00:00:00').getTime()) / 86400000
-            ) + 1} dní
+            ) + 1)}
           </p>
         </div>
       </div>
@@ -679,8 +681,8 @@
     <!-- ═══ Permanent allergen sections ═══ -->
     {#if motherAllergenStatuses.length > 0}
       <div class="card-base space-y-3">
-        <p class="section-label">Maminčiny alergeny</p>
-        <p class="body-muted text-xs">Trvale vyřazeno — vaše vlastní alergie.</p>
+        <p class="section-label">{commonStrings.program.motherAllergensSection}</p>
+        <p class="body-muted text-xs">{commonStrings.program.motherAllergensNote}</p>
         <div class="flex flex-wrap gap-1.5">
           {#each motherAllergenStatuses as s (s.allergenId)}
             <AllergenChip slug={s.allergenId} />
@@ -691,8 +693,8 @@
 
     {#if babyPermanentStatuses.length > 0}
       <div class="card-base space-y-3">
-        <p class="section-label">Potvrzené alergie miminka</p>
-        <p class="body-muted text-xs">Trvale vyřazeno. Testování doporučujeme konzultovat s lékařem.</p>
+        <p class="section-label">{commonStrings.program.babyAllergensSection}</p>
+        <p class="body-muted text-xs">{commonStrings.program.babyAllergensNote}</p>
         <div class="flex flex-wrap gap-2">
           {#each babyPermanentStatuses as allergenStatus}
             {@const cat = categoryConfig[allergenStatus.allergenId as ProtocolAllergenId]}
@@ -716,7 +718,7 @@
         </div>
         {#if selectedRetestSlugs.length > 0}
           <Button onclick={addRetestPhases}>
-            Přidat testovací fáze ({selectedRetestSlugs.length})
+            {addRetestPhasesLabel(selectedRetestSlugs.length)}
           </Button>
         {/if}
       </div>
@@ -724,7 +726,7 @@
 
     <!-- Edit notice -->
     <div class="text-center pt-2">
-      <Button variant="ghost-sm" onclick={handleEditSchedule}>Upravit program</Button>
+      <Button variant="ghost-sm" onclick={handleEditSchedule}>{actionStrings.editSchedule}</Button>
     </div>
   {/if}
 </div>

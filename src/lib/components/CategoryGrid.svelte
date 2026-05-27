@@ -2,6 +2,8 @@
   import { CATEGORIES } from '$lib/data/categories';
   import { categoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
+  import { actionStrings } from '$lib/strings/actions';
+  import { commonStrings } from '$lib/strings/common';
   import Button from '$lib/components/Button.svelte';
 
   let {
@@ -168,9 +170,9 @@
         <span class="text-2xl leading-none">{cfg.icon}</span>
         <span class="leading-tight text-center">{cfg.name}</span>
         {#if dis}
-          <span class="text-[10px] opacity-70">vaše alergie</span>
+          <span class="text-[10px] opacity-70">{commonStrings.categoryGrid.yourAllergyLabel}</span>
         {:else if partial}
-          <span class="text-[10px] font-semibold opacity-80">část</span>
+          <span class="text-[10px] font-semibold opacity-80">{commonStrings.categoryGrid.partialLabel}</span>
         {/if}
       </button>
     {/each}
@@ -185,7 +187,7 @@
         <div class="flex items-center justify-between">
           <p class="body-medium">{cfg.icon} {cfg.name}</p>
           <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>
-            {selectedSubItemCount(cat.allergenId) > 0 ? `Hotovo (${selectedSubItemCount(cat.allergenId)})` : 'Hotovo'}
+            {selectedSubItemCount(cat.allergenId) > 0 ? `${actionStrings.done} (${selectedSubItemCount(cat.allergenId)})` : actionStrings.done}
           </Button>
         </div>
         <!-- "Vše" chip -->
@@ -198,7 +200,7 @@
                 : 'bg-surface text-text border-surface-dark'}"
             onclick={() => toggleAllForCategory(cat.allergenId)}
           >
-            Vše
+            {actionStrings.all}
           </button>
           {#each cat.subItems as sub}
             {@const subSel = isSelected(sub.subitemId) || isSelected(cat.allergenId)}
@@ -219,7 +221,7 @@
 
   <!-- Custom allergen entry — always visible, no toggle -->
   <div class="rounded-xl border border-dashed border-surface-dark bg-white p-3 space-y-2">
-    <p class="text-xs font-medium text-text-muted">Vlastní alergen</p>
+    <p class="text-xs font-medium text-text-muted">{commonStrings.categoryGrid.customAllergenHeading}</p>
 
     {#if customItems.length > 0}
       <div class="flex flex-wrap gap-1.5">
@@ -234,7 +236,7 @@
               type="button"
               class="opacity-60 hover:opacity-100 ml-0.5"
               onclick={() => removeCustom(slug)}
-              aria-label="Odebrat"
+              aria-label={commonStrings.categoryGrid.removeAriaLabel}
             >×</button>
           </span>
         {/each}
@@ -245,7 +247,7 @@
       <input
         type="text"
         bind:value={customInput}
-        placeholder="Např. Cibule, Mrkev…"
+        placeholder={commonStrings.categoryGrid.customPlaceholder}
         class="input-base flex-1 px-3 py-2 bg-surface"
         onkeydown={(e) => e.key === 'Enter' && addCustom()}
       />
@@ -258,7 +260,7 @@
         onclick={addCustom}
         disabled={!customInput.trim()}
       >
-        Přidat
+        {actionStrings.add}
       </button>
     </div>
   </div>

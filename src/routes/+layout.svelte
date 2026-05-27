@@ -8,6 +8,7 @@
   import { scheduleContext } from '$lib/stores/schedule-context';
   import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
   import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
+  import { commonStrings } from '$lib/strings/common';
 
   let { children } = $props();
 
@@ -39,12 +40,12 @@
           class="flex flex-col items-center gap-0.5 {dnesActive ? 'text-primary' : 'text-text-muted'}"
         >
           <TodayIcon class="w-[22px] h-[22px]" />
-          <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}">Dnes</span>
+          <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}">{commonStrings.nav.today}</span>
         </a>
         <div class="flex justify-center">
           <button
             class="-mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
-            aria-label="Přidat záznam"
+            aria-label={commonStrings.nav.addRecordAria}
           >+</button>
         </div>
         <a
@@ -52,7 +53,7 @@
           class="flex flex-col items-center gap-0.5 {!dnesActive ? 'text-primary' : 'text-text-muted'}"
         >
           <CalendarIcon class="w-[22px] h-[22px]" />
-          <span class="text-[10px] {!dnesActive ? 'font-semibold' : ''}">Týden</span>
+          <span class="text-[10px] {!dnesActive ? 'font-semibold' : ''}">{commonStrings.nav.week}</span>
         </a>
       </div>
     </nav>

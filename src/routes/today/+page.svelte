@@ -7,6 +7,8 @@
   import PhaseBadge from "$lib/components/PhaseBadge.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
   import { categoryStrings } from "$lib/strings/categories";
+  import { actionStrings } from "$lib/strings/actions";
+  import { commonStrings, dayProgress } from "$lib/strings/common";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { phaseConfig } from "$lib/config/phases";
 
@@ -48,12 +50,12 @@
       <div class="micro-label">
         {czechWeekday(today)} · {formatDateLongCs(today)}
       </div>
-      <h2 class="page-heading">Dnes</h2>
+      <h2 class="page-heading">{commonStrings.today.heading}</h2>
     </div>
     <a
       href="/settings"
       class="text-text-muted p-1.5 -mr-1.5"
-      aria-label="Nastavení"
+      aria-label={commonStrings.today.settingsAria}
     >
       <svg
         width="20"
@@ -102,10 +104,10 @@
         class="bg-white rounded-2xl border border-surface-dark p-6 text-center"
       >
         <p class="body-muted">
-          Program není nastaven. Dokončete dotazník.
+          {commonStrings.today.noProgram}
         </p>
         <a href="/" class="text-primary text-sm font-medium mt-2 inline-block"
-          >Spustit dotazník →</a
+          >{actionStrings.startQuestionnaire}</a
         >
       </div>
     {:else}
@@ -129,7 +131,7 @@
               </div>
               {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
-                  Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
+                  {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                   {#if phase.endDate}
                     · do {formatDateLongCs(phase.endDate)}
                   {/if}
@@ -143,10 +145,10 @@
               📅
             </div>
             <div class="flex-1 min-w-0">
-              <span class="body-bold">Program skončil</span>
+              <span class="body-bold">{commonStrings.today.programEnded}</span>
               {#if ctx.progress}
                 <div class="text-[11px] text-text-muted mt-0.5">
-                  Den {ctx.progress.currentDay} / {ctx.progress.totalDays}
+                  {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                 </div>
               {/if}
             </div>
@@ -160,18 +162,18 @@
 
       <!-- Counter row -->
       <div class="bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between">
-        <div class="text-[12px] text-text">Dnes ti chybí stav, foto a jídla.</div>
+        <div class="text-[12px] text-text">{commonStrings.today.counterHint}</div>
         <div class="text-[10px] text-text-muted font-bold tracking-wide">0 / 3</div>
       </div>
 
       <!-- Stav ekzému — stub (slice 3) -->
-      <EmptyStateCard label="Stav ekzému" status="neuložen">
-        <div class="body-muted">Zatím není záznam pro dnešek.</div>
+      <EmptyStateCard label={commonStrings.today.eczemaStatusLabel} status={commonStrings.today.eczemaStatusValue}>
+        <div class="body-muted">{commonStrings.today.eczemaStatusEmpty}</div>
       </EmptyStateCard>
 
       <!-- Foto kůže — stub (slice 3) -->
-      <EmptyStateCard label="Foto kůže" status="chybí">
-        <div class="body-muted">Žádný snímek pro dnešek.</div>
+      <EmptyStateCard label={commonStrings.today.photoLabel} status={commonStrings.today.photoStatusValue}>
+        <div class="body-muted">{commonStrings.today.photoEmpty}</div>
       </EmptyStateCard>
 
       <!-- Smím / Vyhýbej se -->
@@ -183,7 +185,7 @@
             <div
               class="text-[9px] font-extrabold tracking-wider text-success uppercase mb-1.5"
             >
-              ✓ Smím
+              {commonStrings.today.allowed}
             </div>
             {#if allowedProtocol.length > 0}
               <div class="flex flex-wrap gap-1.5">
@@ -199,7 +201,7 @@
             <div
               class="text-[9px] font-extrabold tracking-wider text-danger uppercase mb-1.5"
             >
-              ✗ Vyhýbej se
+              {commonStrings.today.avoid}
             </div>
             {#if ctx.eliminatedToday.length > 0}
               <div class="flex flex-wrap gap-1.5">
@@ -208,15 +210,15 @@
                 {/each}
               </div>
             {:else}
-              <div class="text-[11px] text-success">Žádná omezení</div>
+              <div class="text-[11px] text-success">{commonStrings.today.noRestrictions}</div>
             {/if}
           </div>
         </div>
       </div>
 
       <!-- Dnešní jídla — stub (slice 2) -->
-      <EmptyStateCard label="Dnešní jídla" status="0 záznamů">
-        <div class="body-muted">Zatím žádný záznam.</div>
+      <EmptyStateCard label={commonStrings.today.mealsLabel} status={commonStrings.today.mealsStatusValue}>
+        <div class="body-muted">{commonStrings.today.mealsEmpty}</div>
       </EmptyStateCard>
 
       <!-- Bottom hint -->
@@ -224,7 +226,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rotate-180">
           <path d="M12 19V5M5 12l7-7 7 7"/>
         </svg>
-        <span>Vše zapisuj přes <strong>+</strong>: foto · jídlo · stav</span>
+        <span>{commonStrings.today.recordHint}</span>
       </div>
     {/if}
   </div>
