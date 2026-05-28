@@ -201,12 +201,32 @@ describe('meal/+page.svelte', () => {
     expect(queryAllByRole('status').length).toBe(0);
   });
 
-  // ── Basket item rendering ─────────────────────────────────
+  // ── Slice 2c: rich item cards + notes textarea ───────────
 
-  it('custom food item appears in basket with fallback icon, correct name, and default portion', async () => {
+  it('"V tomto jídle" section heading is always rendered, even with empty basket', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
-    const { getByPlaceholderText, getByRole, getByText } = render(MealPage);
+    const { getByText } = render(MealPage);
+    await tick();
+
+    expect(getByText('V tomto jídle')).toBeInTheDocument();
+  });
+
+  it('shows dashed empty-state card with hint text when basket is empty', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+
+    expect(getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeInTheDocument();
+  });
+
+  // ── Basket item rendering ─────────────────────────────────
+
+  it('custom food item appears in basket with fallback icon and name; no inline amount select', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText, queryByRole } = render(MealPage);
     await tick();
 
     // Type a custom food name and submit
@@ -222,9 +242,8 @@ describe('meal/+page.svelte', () => {
     // Fallback icon for allergenId=null
     expect(getByText('🍽️')).toBeInTheDocument();
 
-    // Default portion kind 'portion' → short label 'porce' in the inline select
-    const select = getByRole('combobox') as HTMLSelectElement;
-    expect(select.value).toBe('portion');
+    // No inline combobox/select for amount — removed in slice 2c
+    expect(queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('category sub-item appears in basket with category icon and correct name', async () => {
@@ -253,5 +272,160 @@ describe('meal/+page.svelte', () => {
 
     // Category icon for 'strawberries'
     expect(getByText('🍓')).toBeInTheDocument();
+  });
+
+  it('item card subtitle shows amount when preparationMethod is undefined', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // Subtitle must contain the portion short label; must NOT contain any prep method
+    const subtitle = getByText(/porce/i);
+    expect(subtitle).toBeInTheDocument();
+    expect(subtitle.textContent).not.toMatch(/vařen|dušen|pečen|smažen/i);
+  });
+
+  it('conflict item row uses warning styling', async () => {
+    setReady({ eliminatedToday: ['dairy'] });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, getByText } = render(MealPage);
+    await tick();
+
+    // Open category sheet, expand dairy (has sub-items), pick Jogurt
+    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Jogurt' }));
+    await tick();
+
+    // Conflict label "vyřazeno" appears in the basket row
+    expect(getByText('vyřazeno')).toBeInTheDocument();
+
+    // The row element should have data-state="warning"
+    const row = getByText('vyřazeno').closest('[data-state="warning"]');
+    expect(row).toBeInTheDocument();
+  });
+
+  it('✕ button removes item from basket; empty-state reappears', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText, queryByText } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    expect(getByText('Brambory')).toBeInTheDocument();
+
+    // Click the ✕ remove button
+    const removeBtn = getByRole('button', { name: '✕' });
+    await fireEvent.click(removeBtn);
+    await tick();
+
+    expect(queryByText('Brambory')).not.toBeInTheDocument();
+    // Empty state reappears
+    expect(getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeInTheDocument();
+  });
+
+  it('notes textarea is hidden when basket is empty, visible when item added', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, queryByRole } = render(MealPage);
+    await tick();
+
+    // No textarea when basket is empty
+    expect(queryByRole('textbox', { name: /Poznámka k/ })).not.toBeInTheDocument();
+
+    // Add an item
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // Textarea now visible with label "Poznámka k Oběd" (default is lunch)
+    expect(getByRole('textbox', { name: /Poznámka k Oběd/ })).toBeInTheDocument();
+  });
+
+  it('"Today\'s saved meals" section is hidden when no meals saved yet', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByText } = render(MealPage);
+    await tick();
+
+    expect(queryByText('Dnes uložená jídla')).not.toBeInTheDocument();
+  });
+
+  // ── Save flow ─────────────────────────────────────────────
+
+  it('Hotovo button is enabled and has primary style when basket has items', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    const hotovo = getByRole('button', { name: /Hotovo/ });
+    expect(hotovo).toHaveAttribute('aria-disabled', 'false');
+    expect(hotovo.className).toContain('bg-primary');
+  });
+
+  it('saving a meal shows success toast, clears basket, and displays saved meal below', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText, getAllByText } = render(MealPage);
+    await tick();
+
+    // Add two items
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await fireEvent.input(input, { target: { value: 'Mrkev' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // Click Hotovo
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    // Success toast visible
+    expect(getByRole('alert')).toBeInTheDocument();
+    expect(getByText('✓ Jídlo uloženo')).toBeInTheDocument();
+
+    // Basket cleared — empty state reappears
+    expect(getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeInTheDocument();
+
+    // Saved meal section appears with the items
+    expect(getByText('Dnes uložená jídla')).toBeInTheDocument();
+    expect(getAllByText('Brambory').length).toBeGreaterThan(0);
+    expect(getAllByText('Mrkev').length).toBeGreaterThan(0);
+  });
+
+  it('toast after save links to /today', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    const toastLink = getByRole('link', { name: /přehled dne/i });
+    expect(toastLink).toHaveAttribute('href', '/today');
   });
 });
