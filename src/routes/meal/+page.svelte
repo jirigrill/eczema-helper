@@ -151,7 +151,9 @@
       date: today,
       mealType: selectedMealType,
       actor: 'mother',
-      items: [...currentItems],
+      // $state.snapshot strips Svelte 5 Proxy wrappers → plain JS object
+      // that IndexedDB's Structured Clone Algorithm can serialize.
+      items: $state.snapshot(currentItems),
       notes: mealNotes.trim() || undefined,
       createdAt: new Date().toISOString(),
     };

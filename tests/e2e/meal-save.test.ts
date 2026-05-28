@@ -199,11 +199,10 @@ test('meal item remove and re-add: remove clears basket, re-adding restores it',
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByText('Brambory')).toBeVisible();
 
-  // Hotovo re-enabled; save works
+  // Hotovo re-enabled; save works — navigates to /today on success
   await expect(page.getByRole('button', { name: /Hotovo/ })).toHaveAttribute('aria-disabled', 'false');
   await page.getByRole('button', { name: /Hotovo/ }).click();
-  await expect(page.getByText('✓ Jídlo uloženo')).toBeVisible();
-  await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
+  await expect(page).toHaveURL('/today');
 });
 
 test('conflict toast: selecting a food with an eliminated allergen shows transient warning toast', async ({ page }) => {

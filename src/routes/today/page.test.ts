@@ -20,11 +20,12 @@ vi.mock('dexie', async (importOriginal) => {
   const actual = await importOriginal<typeof import('dexie')>();
   return {
     ...actual,
-    // $effect calls liveQuery(...).subscribe(fn) expecting an unsubscribe function back.
+    // onMount calls liveQuery(...).subscribe({ next, error }) — observer object form.
+    // Returns a subscription object with .unsubscribe(), mirroring real Dexie behaviour.
     liveQuery: vi.fn(() => ({
-      subscribe(callback: (v: Meal[]) => void) {
-        callback(liveMeals);
-        return () => {}; // unsubscribe no-op
+      subscribe(observer: { next: (v: Meal[]) => void; error?: (e: unknown) => void }) {
+        observer.next(liveMeals);
+        return { unsubscribe: () => {} };
       },
     })),
   };
