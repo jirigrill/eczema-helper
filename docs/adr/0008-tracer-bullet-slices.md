@@ -62,9 +62,14 @@ De-risks the binary path before more screens accumulate.
   capture via the camera API. Photos stored as Blobs in the `photos`
   table, plaintext per [ADR-0005](0005-photo-encryption-deferred.md).
 - Today screen surfaces today's assessment status.
+- Today screen wires `getToleranceBuildingRemindersForDate()` from
+  `src/lib/domain/schedule-builder.ts` — training reminders were in
+  the [v1 scope](0007-v1-scope.md) but not assigned to any earlier
+  slice.
 
 Done when: the developer can log a daily skin status with a photo on
-their phone, close the app, reopen, and see it persisted.
+their phone, close the app, reopen, and see it persisted — and any
+active training reminders are visible on the today screen.
 
 ## Why this order
 

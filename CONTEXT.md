@@ -142,6 +142,10 @@ after data exists is a migration.
 - **Meals are day-granular.** `Meal` carries `date` + `mealType` only.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
   for audit. See [ADR-0003](docs/adr/0003-day-granular-meals.md).
+- **One `Meal` per date+mealType slot.** A given `(date, mealType)` pair
+  maps to exactly one `Meal` record. The record is upserted (not appended)
+  when the user commits the basket. `Meal.id` is the deterministic
+  composite key `"${date}:${mealType}"` (e.g. `"2026-05-27:lunch"`).
 - **Causation is derived, not recorded.** The user logs only ground
   truth (meals, daily skin status, end-of-phase reintro verdict). The
   app derives suspected patterns via a pattern detector over those

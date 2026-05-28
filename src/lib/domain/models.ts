@@ -79,23 +79,30 @@ export function getPermanentEliminations(schedule: GeneratedSchedule): AllergenI
 
 export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
+export type PreparationMethod = 'boiled' | 'steamed' | 'baked' | 'fried';
+
 export type MealItem = {
   id: string;
   name: string; // Czech display name
   allergenId: AllergenId | null;
   subitemId?: string | null; // e.g. 'dairy:yogurt' — optional, narrows allergenId to a specific sub-item
   amount: PortionKind;
+  preparationMethod?: PreparationMethod; // optional observational field; no impact on conflict detection
 };
 
 export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 
+/** Composite key enforcing the one-meal-per-slot invariant: `"${date}:${mealType}"` */
+export type MealId = `${string}:${MealType}`;
+
 export type Meal = {
-  id: string;
+  id: MealId; // deterministic composite key — e.g. "2026-05-27:lunch"
   date: string; // ISO date
   mealType: MealType;
+  actor: 'mother' | 'baby'; // v1 hardcodes 'mother'; 'baby' reserved for v2
   items: MealItem[];
-  label?: string;
-  savedAt: string; // HH:MM
+  notes?: string; // optional free-text observation (renamed from label)
+  createdAt: string; // ISO datetime; render as Czech HH:MM at display sites (ADR-0014)
 };
 
 export type DailyAssessment = {

@@ -243,9 +243,19 @@ See ADR-0012.
 ### Meal
 *Czech: Jídlo*
 
-A record of the mother's food intake on a single date. Contains: `date`, `mealType`,
-`items` (list of `MealItem`), optional `label`, `actor` (always `'mother'` in v1),
-`savedAt`. Meals are day-granular — no user-facing time of day. → See ADR-0003.
+A record of the mother's food intake for one date+mealType slot. Fields: `id`
+(`MealId`), `date`, `mealType`, `items` (list of `MealItem`), `actor` (always
+`'mother'` in v1), optional `notes` (free-text observation), `createdAt` (ISO
+datetime string — rendered as Czech `HH:MM` at display sites, never stored
+formatted; see ADR-0014). Meals are day-granular — no user-facing time of day.
+→ See ADR-0003.
+
+### MealId
+*Czech: —* (internal key, not user-visible)
+
+Deterministic composite key for a `Meal`: `` `${date}:${mealType}` `` (e.g.
+`"2026-05-27:lunch"`). Enforces the one-meal-per-slot invariant at both the
+type level and the Dexie unique index (`&id`). Never a random UUID.
 
 ### MealType
 *Czech: Typ jídla*
@@ -259,7 +269,16 @@ See ADR-0014.
 *Czech: Položka jídla*
 
 A single food within a meal: `name`, `allergenId` (`AllergenId | null`),
-optional `subitemId`, `amount` (`PortionKind`).
+optional `subitemId`, `amount` (`PortionKind`), optional `preparationMethod`
+(`PreparationMethod`).
+
+### PreparationMethod
+*Czech: Způsob přípravy*
+
+One of: `'boiled'` (Vařené) · `'steamed'` (Dušené) · `'baked'` (Pečené) ·
+`'fried'` (Smažené). Optional observational field on `MealItem` — records how
+the food was prepared. Has no impact on allergen conflict detection; stored
+purely for the mother's reference.
 
 ### PortionKind
 *Czech: Velikost porce*

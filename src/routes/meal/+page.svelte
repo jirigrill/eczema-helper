@@ -95,9 +95,10 @@
       id: crypto.randomUUID(),
       date: today,
       mealType: selectedMealType,
+      actor: 'mother',
       items: [...currentItems],
       label: mealLabel.trim() || undefined,
-      savedAt: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toISOString(),
     };
     // TODO(slice-2): persist to Dexie meals table
     meals = [...meals, meal];
@@ -300,7 +301,7 @@
               <div class="flex items-center gap-2 mb-1.5">
                 <span>{mealConfig[meal.mealType].icon}</span>
                 <span class="body-medium">{mealConfig[meal.mealType].label}</span>
-                <span class="body-muted">{meal.savedAt}</span>
+                <span class="body-muted">{new Date(meal.createdAt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <div class="flex flex-wrap gap-1">
                 {#each meal.items as item}
