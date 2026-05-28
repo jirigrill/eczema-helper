@@ -139,6 +139,7 @@ export const commonStrings = {
     mealTypeLabel:        'Typ jídla',
     amountLabel:          'Množství (vyberte před přidáním)',
     allergenCategoryLabel:'Alergeny a kategorie',
+    allCategoriesLabel:   'Všechny kategorie',
     customFoodLabel:      'Přidat vlastní potravinu',
     customFoodPlaceholder:'Název potraviny…',
     selectedItemsSuffix:  'vybrané položky',

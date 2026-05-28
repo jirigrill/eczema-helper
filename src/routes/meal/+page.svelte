@@ -2,7 +2,7 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
-  import type { Meal, MealItem, PortionKind, ProtocolAllergenId, SubitemId } from '$lib/domain/models';
+  import type { Meal, MealItem, PortionKind, ProtocolAllergenId } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES } from '$lib/data/categories';
   import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
@@ -30,6 +30,7 @@
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
   let selectedAmount = $state<PortionKind>('portion');
   let expandedCategory = $state<string | null>(null);
+  let categorySheetOpen = $state(false);
   let currentItems = $state<MealItem[]>([]);
   let mealLabel = $state('');
   let showSuccess = $state(false);
@@ -47,6 +48,15 @@
   }
 
   // ── Category interactions ─────────────────────────────────
+  function openCategorySheet() {
+    categorySheetOpen = true;
+  }
+
+  function closeCategorySheet() {
+    categorySheetOpen = false;
+    expandedCategory = null;
+  }
+
   function toggleCategory(allergenId: string) {
     const cat = CATEGORIES.find(c => c.allergenId === allergenId);
     if (!cat) return;
@@ -60,7 +70,7 @@
 
   function selectSubItem(allergenId: string, subitemId: string, name: string) {
     addItem({ name, allergenId, subitemId });
-    expandedCategory = null;
+    closeCategorySheet();
   }
 
   function addItem(partial: { name: string; allergenId: string | null; subitemId?: string }) {
@@ -90,7 +100,7 @@
   }
 
   function saveMeal() {
-    if (currentItems.length === 0) return;
+    if (currentItems.length === 0) return; // guard for aria-disabled CTA
     const meal: Meal = {
       id: crypto.randomUUID(),
       date: today,
@@ -110,7 +120,6 @@
     setTimeout(() => (showSuccess = false), 5000);
   }
 
-  const canSave = $derived(currentItems.length > 0);
   const todayMeals = $derived(meals.filter(m => m.date === today));
 
   function isCategoryInMeal(allergenId: string): boolean {
@@ -118,15 +127,28 @@
   }
 </script>
 
-<div class="page-container pb-8">
+<div class="page-container pb-24">
 
-  <!-- Header -->
+  <!-- Sticky header: title row + meal type pills + banners -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
     <PageHeader title={commonStrings.meal.heading} onBack={() => history.back()}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(today)}</p>
       {/snippet}
     </PageHeader>
+
+    <!-- Meal type pills (text-only, rounded-full) -->
+    <div class="flex gap-1.5 px-4 pb-3">
+      {#each mealTypes as type}
+        <button
+          class="flex-1 py-1.5 rounded-full text-xs font-medium transition-all
+            {selectedMealType === type ? 'bg-primary text-white font-semibold' : 'bg-surface-dark text-text-muted'}"
+          onclick={() => (selectedMealType = type)}
+        >
+          {mealConfig[type].label}
+        </button>
+      {/each}
+    </div>
 
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
@@ -164,39 +186,6 @@
 
   <div class="px-4 pt-4 space-y-5">
 
-    <!-- Meal type -->
-    <div>
-      <p class="field-label">{commonStrings.meal.mealTypeLabel}</p>
-      <div class="grid grid-cols-4 gap-2">
-        {#each mealTypes as type}
-          <button
-            class="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-medium transition-all
-              {selectedMealType === type ? 'bg-primary text-white shadow-sm' : 'bg-white border border-surface-dark text-text'}"
-            onclick={() => (selectedMealType = type)}
-          >
-            <span class="text-xl">{mealConfig[type].icon}</span>
-            <span>{mealConfig[type].label}</span>
-          </button>
-        {/each}
-      </div>
-    </div>
-
-    <!-- Amount selector -->
-    <div>
-      <p class="field-label">{commonStrings.meal.amountLabel}</p>
-      <div class="flex gap-1.5 overflow-x-auto pb-1">
-        {#each amounts as [value, info]}
-          <button
-            class="shrink-0 py-2 px-3 rounded-xl text-sm font-medium transition-all
-              {selectedAmount === value ? 'bg-warning text-white' : 'bg-white border border-surface-dark text-text'}"
-            onclick={() => (selectedAmount = value)}
-          >
-            {info.label}
-          </button>
-        {/each}
-      </div>
-    </div>
-
     <!-- Custom item input -->
     <div>
       <p class="field-label">{commonStrings.meal.customFoodLabel}</p>
@@ -228,32 +217,16 @@
       </InfoBanner>
     {/if}
 
-    <!-- Category grid -->
+    <!-- Categories accordion (collapsed by default, opens bottom sheet) -->
     <div>
-      <p class="field-label">Alergeny a kategorie</p>
-      <div class="grid grid-cols-4 gap-2">
-        {#each CATEGORIES as cat (cat.allergenId)}
-          {@const cfg = categoryConfig[cat.allergenId]}
-          {@const inMeal = isCategoryInMeal(cat.allergenId)}
-          {@const isElim = eliminatedToday.includes(cat.allergenId)}
-          {@const isExpanded = expandedCategory === cat.allergenId}
-          <button
-            data-state={isExpanded ? 'info' : inMeal ? 'success' : isElim ? 'danger' : undefined}
-            class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
-              {!isExpanded && !inMeal && !isElim ? 'bg-white border-surface-dark' : ''}"
-            onclick={() => toggleCategory(cat.allergenId)}
-          >
-            <span class="text-2xl leading-none">{cfg.icon}</span>
-            <span class="leading-tight text-center">{cfg.name}</span>
-            {#if isElim && !inMeal}
-              <span class="absolute -top-1 -right-1 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center">!</span>
-            {/if}
-            {#if inMeal}
-              <span class="absolute -top-1 -right-1 text-[10px] bg-success text-white rounded-full w-4 h-4 flex items-center justify-center">✓</span>
-            {/if}
-          </button>
-        {/each}
-      </div>
+      <button
+        class="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white border border-surface-dark"
+        onclick={openCategorySheet}
+      >
+        <span class="text-text-muted text-xs">▸</span>
+        <span class="flex-1 text-sm font-medium text-text text-left">{commonStrings.meal.allCategoriesLabel}</span>
+        <span class="text-xs text-text-muted">{CATEGORIES.length}</span>
+      </button>
     </div>
 
     <!-- Current meal basket -->
@@ -332,57 +305,106 @@
   </div>
 </div>
 
-<!-- Sub-items floating panel -->
-{#if expandedCategory}
-  {@const cat = CATEGORIES.find(c => c.allergenId === expandedCategory)}
-  {#if cat && cat.subItems.length > 0}
-    {@const cfg = categoryConfig[cat.allergenId]}
-    <button
-      class="fixed inset-0 z-40"
-      onclick={() => (expandedCategory = null)}
-      aria-label={actionStrings.close}
-    ></button>
-    <div
-      class="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-primary/30 shadow-lg px-4 pt-4 space-y-3"
-      style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
-    >
-      <div class="flex items-center justify-between">
-        <p class="body-medium">{cfg.icon} {cfg.name}</p>
-        <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>{actionStrings.done}</Button>
-      </div>
-      <div class="flex flex-wrap gap-2 pb-1">
-        {#each cat.subItems as sub}
-          {@const subName = subitemStrings[sub.subitemId]}
+<!-- Category bottom sheet -->
+{#if categorySheetOpen}
+  <button
+    class="fixed inset-0 z-40"
+    onclick={closeCategorySheet}
+    aria-label={actionStrings.close}
+  ></button>
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-label={commonStrings.meal.allCategoriesLabel}
+    class="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-surface-dark shadow-lg px-4 pt-4 space-y-3"
+    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+  >
+    <div class="flex items-center justify-between mb-2">
+      <p class="body-medium">{commonStrings.meal.allCategoriesLabel}</p>
+      <Button variant="ghost-sm" onclick={closeCategorySheet}>{actionStrings.done}</Button>
+    </div>
+
+    <!-- Sub-items panel for an expanded category -->
+    {#if expandedCategory}
+      {@const cat = CATEGORIES.find(c => c.allergenId === expandedCategory)}
+      {#if cat && cat.subItems.length > 0}
+        {@const cfg = categoryConfig[cat.allergenId]}
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <p class="body-medium">{cfg.icon} {cfg.name}</p>
+            <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>{actionStrings.back}</Button>
+          </div>
+          <div class="flex flex-wrap gap-2 pb-1">
+            {#each cat.subItems as sub}
+              {@const subName = subitemStrings[sub.subitemId]}
+              <button
+                data-state={currentItems.some(i => i.name === subName) ? 'success' : undefined}
+                class="py-2 px-3 rounded-xl text-sm transition-all border
+                  {currentItems.some(i => i.name === subName)
+                    ? ''
+                    : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
+                onclick={() => selectSubItem(cat.allergenId, sub.subitemId, subName)}
+              >
+                {subName}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    {:else}
+      <!-- Full category list inside the sheet -->
+      <div class="grid grid-cols-4 gap-2">
+        {#each CATEGORIES as cat (cat.allergenId)}
+          {@const cfg = categoryConfig[cat.allergenId]}
+          {@const inMeal = isCategoryInMeal(cat.allergenId)}
+          {@const isElim = eliminatedToday.includes(cat.allergenId)}
           <button
-            data-state={currentItems.some(i => i.name === subName) ? 'success' : undefined}
-            class="py-2 px-3 rounded-xl text-sm transition-all border
-              {currentItems.some(i => i.name === subName)
-                ? ''
-                : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
-            onclick={() => selectSubItem(cat.allergenId, sub.subitemId, subName)}
+            data-state={inMeal ? 'success' : isElim ? 'danger' : undefined}
+            class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
+              {!inMeal && !isElim ? 'bg-white border-surface-dark' : ''}"
+            onclick={() => toggleCategory(cat.allergenId)}
           >
-            {subName}
+            <span class="text-2xl leading-none">{cfg.icon}</span>
+            <span class="leading-tight text-center">{cfg.name}</span>
+            {#if isElim && !inMeal}
+              <span class="absolute -top-1 -right-1 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center">!</span>
+            {/if}
+            {#if inMeal}
+              <span class="absolute -top-1 -right-1 text-[10px] bg-success text-white rounded-full w-4 h-4 flex items-center justify-center">✓</span>
+            {/if}
           </button>
         {/each}
       </div>
-    </div>
-  {/if}
-{/if}
-
-<!-- Fixed save bar -->
-{#if canSave}
-  <div
-    class="fixed left-0 right-0 bottom-0 bg-white border-t border-surface-dark px-4 pt-3 z-30"
-    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 0.75rem)"
-  >
-    <div class="max-w-lg mx-auto">
-      <Button color={hasConflicts ? 'warning' : 'primary'} onclick={saveMeal}>
-        {hasConflicts ? actionStrings.saveWithConflict : actionStrings.save} — {mealConfig[selectedMealType].label}
-        ({currentItems.length} {polozkaWordCs(currentItems.length)})
-      </Button>
-    </div>
+    {/if}
   </div>
 {/if}
+
+<!-- Sticky CTA — always rendered; aria-disabled when basket is empty -->
+<div
+  class="fixed left-0 right-0 bottom-0 z-30 px-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent"
+  style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+>
+  <div class="max-w-lg mx-auto">
+    <button
+      aria-disabled={currentItems.length === 0 ? 'true' : 'false'}
+      onclick={saveMeal}
+      class="w-full py-3 rounded-xl font-semibold text-sm transition-all
+        {currentItems.length === 0
+          ? 'bg-surface-dark text-text-muted cursor-default'
+          : hasConflicts
+            ? 'bg-warning text-white'
+            : 'bg-primary text-white'}"
+    >
+      {#if currentItems.length === 0}
+        {actionStrings.done}
+      {:else if hasConflicts}
+        {actionStrings.saveWithConflict} — {mealConfig[selectedMealType].label} ({currentItems.length} {polozkaWordCs(currentItems.length)})
+      {:else}
+        {actionStrings.done} — {mealConfig[selectedMealType].label} ({currentItems.length} {polozkaWordCs(currentItems.length)})
+      {/if}
+    </button>
+  </div>
+</div>
 
 {#if showSuccess}
   <Toast
