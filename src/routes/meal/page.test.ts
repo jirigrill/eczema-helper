@@ -428,4 +428,199 @@ describe('meal/+page.svelte', () => {
     const toastLink = getByRole('link', { name: /přehled dne/i });
     expect(toastLink).toHaveAttribute('href', '/today');
   });
+
+  // ── Slice 2d: inline item editing ────────────────────────
+
+  async function addCustomItem(
+    getByPlaceholderText: (text: string) => HTMLElement,
+    getByRole: (role: string, opts: { name: string | RegExp }) => HTMLElement,
+    name: string
+  ) {
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: name } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+  }
+
+  it('tapping a basket item row expands it with Množství and Příprava chip rows', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, queryByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+
+    // Chip rows not visible before tap
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+    expect(queryByText('Příprava')).not.toBeInTheDocument();
+
+    // Tap the item row
+    const itemRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+    await fireEvent.click(itemRow);
+    await tick();
+
+    // Chip section labels appear
+    expect(getByText('Množství')).toBeInTheDocument();
+    expect(getByText('Příprava')).toBeInTheDocument();
+
+    // Hint text appears under item name
+    expect(getByText('uprav množství a přípravu')).toBeInTheDocument();
+
+    // All 5 Množství chips visible
+    expect(getByRole('button', { name: 'Porce' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Špetka' })).toBeInTheDocument();
+
+    // All 4 Příprava chips visible
+    expect(getByRole('button', { name: 'Vařené' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Dušené' })).toBeInTheDocument();
+  });
+
+  it('tapping the expanded row header collapses it', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, queryByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+
+    const itemRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+
+    // Expand
+    await fireEvent.click(itemRow);
+    await tick();
+    expect(getByText('Množství')).toBeInTheDocument();
+
+    // Collapse by tapping again
+    await fireEvent.click(itemRow);
+    await tick();
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+    expect(queryByText('uprav množství a přípravu')).not.toBeInTheDocument();
+  });
+
+  it('only one basket item is expanded at a time', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+    await addCustomItem(getByPlaceholderText, getByRole, 'Mrkev');
+
+    const bramboRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+    const mrkevRow = getByText('Mrkev').closest('[data-testid="basket-item"]') as HTMLElement;
+
+    // Expand first item
+    await fireEvent.click(bramboRow);
+    await tick();
+    expect(getByText('uprav množství a přípravu')).toBeInTheDocument();
+
+    // Expand second item — first must collapse
+    await fireEvent.click(mrkevRow);
+    await tick();
+
+    // Hint text still present (now belongs to Mrkev)
+    expect(getByText('uprav množství a přípravu')).toBeInTheDocument();
+    // Brambory's row should not show the hint (collapsed)
+    const bramboHint = getByText('Brambory').closest('[data-testid="basket-item"]')?.querySelector('[data-testid="edit-hint"]');
+    expect(bramboHint).toBeNull();
+  });
+
+  it('tapping a Množství chip updates item amount; collapsed subtitle reflects new value', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+    const itemRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+
+    // Expand → tap 'Špetka' chip → collapse
+    await fireEvent.click(itemRow);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Špetka' }));
+    await tick();
+    await fireEvent.click(itemRow);
+    await tick();
+
+    // Subtitle now shows 'šp.' (short label for pinch)
+    expect(getByText(/šp\./)).toBeInTheDocument();
+  });
+
+  it('tapping the active Množství chip is a no-op; subtitle stays unchanged', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+    const itemRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+
+    // Expand → tap already-active 'Porce' → collapse
+    await fireEvent.click(itemRow);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Porce' }));
+    await tick();
+    await fireEvent.click(itemRow);
+    await tick();
+
+    // Amount unchanged — subtitle still shows 'porce'
+    expect(getByText(/porce/)).toBeInTheDocument();
+  });
+
+  it('tapping a Příprava chip sets preparationMethod; collapsed subtitle reflects it', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+    const itemRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+
+    // Verify initial subtitle has no prep label (expand → collapse to read it)
+    await fireEvent.click(itemRow);
+    await tick();
+    await fireEvent.click(itemRow);
+    await tick();
+    expect(getByText(/porce/).textContent).not.toMatch(/vařen|dušen|pečen|smažen/i);
+
+    // Expand → tap 'Vařené' → collapse
+    await fireEvent.click(itemRow);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Vařené' }));
+    await tick();
+    await fireEvent.click(itemRow);
+    await tick();
+
+    // Subtitle now contains prep label
+    expect(getByText(/vařené/i)).toBeInTheDocument();
+  });
+
+  it('tapping the active Příprava chip toggles it off; collapsed subtitle loses prep label', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText, getByRole, getByPlaceholderText } = render(MealPage);
+    await tick();
+
+    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
+    const itemRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
+
+    // Set Vařené, collapse, verify it appears
+    await fireEvent.click(itemRow);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Vařené' }));
+    await tick();
+    await fireEvent.click(itemRow);
+    await tick();
+    expect(getByText(/vařené/i)).toBeInTheDocument();
+
+    // Expand → tap 'Vařené' again → toggle off → collapse
+    await fireEvent.click(itemRow);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Vařené' }));
+    await tick();
+    await fireEvent.click(itemRow);
+    await tick();
+
+    // Subtitle no longer shows prep label
+    expect(getByText(/porce/).textContent).not.toMatch(/vařen/i);
+  });
 });

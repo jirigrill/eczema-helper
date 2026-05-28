@@ -13,6 +13,7 @@
 
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
+  import { preparationStrings } from '$lib/strings/preparations';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { scheduleContext } from '$lib/stores/schedule-context';
   import Toast from '$lib/components/Toast.svelte';
@@ -31,6 +32,7 @@
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
   let selectedAmount = $state<PortionKind>('portion');
   let expandedCategory = $state<string | null>(null);
+  let expandedItemId = $state<string | null>(null);
   let categorySheetOpen = $state(false);
   let currentItems = $state<MealItem[]>([]);
   let mealNotes = $state('');
@@ -95,20 +97,32 @@
     currentItems = currentItems.filter(i => i.id !== id);
   }
 
-  const preparationLabels: Record<PreparationMethod, string> = {
-    boiled:  'vařené',
-    steamed: 'dušené',
-    baked:   'pečené',
-    fried:   'smažené',
-  } as const;
+  const portionKinds = ['pinch', 'teaspoon', 'spoon', 'portion', 'package'] as const;
+  const preparationMethods = ['boiled', 'steamed', 'baked', 'fried'] as const;
 
   function itemSubtitle(item: MealItem): string {
     const parts: string[] = [];
     const catName = categoryConfig[item.allergenId as ProtocolAllergenId]?.name;
     if (catName) parts.push(catName);
     parts.push(portionStrings[item.amount].short);
-    if (item.preparationMethod) parts.push(preparationLabels[item.preparationMethod]);
+    if (item.preparationMethod) parts.push(preparationStrings[item.preparationMethod].label.toLowerCase());
     return parts.join(' · ');
+  }
+
+  function toggleExpandItem(id: string): void {
+    expandedItemId = expandedItemId === id ? null : id;
+  }
+
+  function updateAmount(id: string, amount: PortionKind): void {
+    // amount is required — no toggle-to-undefined; tapping active chip is a no-op
+    currentItems = currentItems.map(i => i.id === id ? { ...i, amount } : i);
+  }
+
+  function updatePreparation(id: string, method: PreparationMethod): void {
+    // toggle: tapping the active chip clears preparationMethod back to undefined
+    currentItems = currentItems.map(i =>
+      i.id === id ? { ...i, preparationMethod: i.preparationMethod === method ? undefined : method } : i
+    );
   }
 
   function saveMeal() {
@@ -256,34 +270,90 @@
         <div class="space-y-2">
           {#each currentItems as item (item.id)}
             {@const conflict = isConflictItem(item)}
+            {@const expanded = expandedItemId === item.id}
+            <!-- Outer div is the primary tap target for expand/collapse -->
             <div
-              class="flex items-center gap-3 py-2.5 px-3 rounded-xl
+              data-testid="basket-item"
+              data-state={conflict ? 'warning' : undefined}
+              role="button"
+              tabindex="0"
+              aria-expanded={expanded}
+              class="rounded-xl overflow-hidden cursor-pointer
                 {conflict
                   ? 'border border-warning/40 bg-warning/08'
-                  : 'bg-white border border-surface-dark'}"
-              data-state={conflict ? 'warning' : undefined}
+                  : expanded
+                    ? 'border-2 border-primary bg-white'
+                    : 'bg-white border border-surface-dark'}"
+              onclick={() => toggleExpandItem(item.id)}
+              onkeydown={(e) => e.key === 'Enter' && toggleExpandItem(item.id)}
             >
-              <!-- Icon -->
-              <span class="text-lg shrink-0">
-                {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? '🍽️'}
-              </span>
+              <!-- Header row (visual only — interaction is on outer div) -->
+              <div data-testid="basket-item-header" class="flex items-center gap-3 py-2.5 px-3">
+                <!-- Icon -->
+                <span class="text-lg shrink-0">
+                  {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? '🍽️'}
+                </span>
 
-              <!-- Name + subtitle -->
-              <div class="flex-1 min-w-0">
-                <p class="text-[12px] font-semibold leading-tight truncate">{item.name}</p>
-                {#if conflict}
-                  <p class="text-[10px] text-warning mt-0.5">{commonStrings.meal.conflictItemLabel}</p>
-                {:else}
-                  <p class="text-[10px] text-text-muted mt-0.5">{itemSubtitle(item)}</p>
-                {/if}
+                <!-- Name + subtitle / hint -->
+                <div class="flex-1 min-w-0">
+                  <p class="text-[12px] font-semibold leading-tight truncate">{item.name}</p>
+                  {#if conflict}
+                    <p class="text-[10px] text-warning mt-0.5">{commonStrings.meal.conflictItemLabel}</p>
+                  {:else if expanded}
+                    <p data-testid="edit-hint" class="text-[10px] text-primary mt-0.5">uprav množství a přípravu</p>
+                  {:else}
+                    <p class="text-[10px] text-text-muted mt-0.5">{itemSubtitle(item)}</p>
+                  {/if}
+                </div>
+
+                <!-- Remove — stops propagation so it doesn't toggle expand -->
+                <button
+                  class="text-text-muted text-sm shrink-0 px-1"
+                  aria-label="✕"
+                  onclick={(e) => { e.stopPropagation(); removeItem(item.id); }}
+                >✕</button>
               </div>
 
-              <!-- Remove -->
-              <button
-                class="text-text-muted text-sm shrink-0 px-1"
-                aria-label="✕"
-                onclick={() => removeItem(item.id)}
-              >✕</button>
+              <!-- Expanded chip panel -->
+              {#if expanded}
+                <div class="px-3 pb-3 space-y-2.5">
+                  <!-- Množství chips -->
+                  <div>
+                    <p class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Množství</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      {#each portionKinds as kind}
+                        <button
+                          class="px-3 py-1 rounded-full text-xs font-medium transition-all
+                            {item.amount === kind
+                              ? 'bg-primary text-white font-semibold'
+                              : 'bg-surface-dark text-text-muted'}"
+                          onclick={(e) => { e.stopPropagation(); updateAmount(item.id, kind); }}
+                        >
+                          {portionStrings[kind].label}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+
+                  <!-- Příprava chips -->
+                  <div>
+                    <p class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Příprava</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      {#each preparationMethods as method}
+                        <button
+                          class="px-3 py-1 rounded-full text-xs font-medium transition-all
+                            {item.preparationMethod === method
+                              ? 'bg-primary text-white font-semibold'
+                              : 'bg-surface-dark text-text-muted'}"
+                          onclick={(e) => { e.stopPropagation(); updatePreparation(item.id, method); }}
+                        >
+                          {preparationStrings[method].label}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+              {/if}
             </div>
           {/each}
         </div>
