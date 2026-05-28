@@ -21,12 +21,24 @@
   import InfoBanner from '$lib/components/InfoBanner.svelte';
   import Button from '$lib/components/Button.svelte';
 
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
+  import { db } from '$lib/db/atopic-db';
+  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+
+  const repo = new DexieMealRepository(db);
+
   let meals = $state<Meal[]>([]);
 
   const today = $derived(todayIso());
+  const returnTo = $derived(page.url.searchParams.get('returnTo') ?? '/today');
   const ctx = $derived($scheduleContext);
   const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
   const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
+
+  // ── Conflict toast (replaces always-visible conflict banner) ──
+  let conflictToastMessage = $state<string | null>(null);
+  let conflictToastTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Form state ────────────────────────────────────────────
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
@@ -85,6 +97,13 @@
       subitemId: partial.subitemId ?? null,
       amount: selectedAmount,
     }];
+    // Show transient conflict toast when the added item is eliminated today
+    if (partial.allergenId && eliminatedToday.includes(partial.allergenId)) {
+      const allergenName = categoryConfig[partial.allergenId as ProtocolAllergenId]?.name ?? partial.allergenId;
+      conflictToastMessage = `⚠ ${allergenName} vyřazeno — odchylka zaznamenána`;
+      if (conflictToastTimer) clearTimeout(conflictToastTimer);
+      conflictToastTimer = setTimeout(() => { conflictToastMessage = null; }, 3000);
+    }
   }
 
   function addCustom() {
@@ -125,10 +144,10 @@
     );
   }
 
-  function saveMeal() {
+  async function saveMeal() {
     if (currentItems.length === 0) return; // guard for aria-disabled CTA
     const meal: Meal = {
-      id: crypto.randomUUID(),
+      id: `${today}:${selectedMealType}`,
       date: today,
       mealType: selectedMealType,
       actor: 'mother',
@@ -136,14 +155,15 @@
       notes: mealNotes.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
-    // TODO(slice-2): persist to Dexie meals table
-    meals = [...meals, meal];
+    await repo.save(meal);
+    meals = [...meals, meal]; // keep in-page list live while still on this screen
 
     currentItems = [];
     mealNotes = '';
     expandedCategory = null;
     showSuccess = true;
     setTimeout(() => (showSuccess = false), 5000);
+    goto(returnTo);
   }
 
   const todayMeals = $derived(meals.filter(m => m.date === today));
@@ -157,7 +177,7 @@
 
   <!-- Sticky header: title row + meal type pills + banners -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <PageHeader title={commonStrings.meal.heading} onBack={() => history.back()}>
+    <PageHeader title={commonStrings.meal.heading} onBack={() => goto(returnTo)}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(today)}</p>
       {/snippet}
@@ -232,16 +252,7 @@
       </div>
     </div>
 
-    <!-- Conflict warning -->
-    {#if hasConflicts}
-      <InfoBanner variant="warning">
-        <p class="text-sm font-medium text-warning mb-1">{commonStrings.meal.conflictTitle}</p>
-        <p class="body-muted">
-          {conflicts.map(i => `${i.name} (${categoryConfig[i.allergenId as ProtocolAllergenId]?.name})`).join(', ')} — {commonStrings.meal.conflictNote}
-          {commonStrings.meal.conflictSaveNote}
-        </p>
-      </InfoBanner>
-    {/if}
+    <!-- Conflict warning is now a transient toast (shown via conflictToastMessage below) -->
 
     <!-- Categories accordion (collapsed by default, opens bottom sheet) -->
     <div>
@@ -505,6 +516,14 @@
     </button>
   </div>
 </div>
+
+{#if conflictToastMessage}
+  <Toast
+    message={conflictToastMessage}
+    type="warning"
+    onClose={() => { conflictToastMessage = null; if (conflictToastTimer) clearTimeout(conflictToastTimer); }}
+  />
+{/if}
 
 {#if showSuccess}
   <Toast

@@ -12,6 +12,22 @@ vi.mock('$lib/stores/schedule-context', () => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
+// ── Repository mock ──────────────────────────────────────────
+const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+vi.mock('$lib/adapters/dexie-meal-repository', () => ({
+  DexieMealRepository: vi.fn().mockImplementation(() => ({
+    save: mockSave,
+    loadBySlot: vi.fn().mockResolvedValue({ ok: true, data: null }),
+    listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+  })),
+}));
+// Prevent real IndexedDB from opening — the mock repo never calls db
+vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
+// Provide a default page URL (no returnTo param) — meal page reads returnTo from here
+vi.mock('$app/state', () => ({
+  page: { url: new URL('http://localhost/meal') },
+}));
+
 const today = new Date().toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
@@ -52,6 +68,7 @@ function setReady(overrides: Partial<Omit<Extract<ScheduleContext, { status: 're
 
 beforeEach(() => {
   mockScheduleContext.set({ status: 'loading' });
+  mockSave.mockClear();
 });
 
 describe('meal/+page.svelte', () => {
@@ -622,5 +639,57 @@ describe('meal/+page.svelte', () => {
 
     // Subtitle no longer shows prep label
     expect(getByText(/porce/).textContent).not.toMatch(/vařen/i);
+  });
+
+  // ── Slice 2e: meal commit + returnTo navigation ───────────
+
+  it('"Hotovo" with items calls MealRepository.save() with composite id', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.id).toBe(`${today}:lunch`); // default meal type is lunch
+    expect(saved.items).toHaveLength(1);
+    expect(saved.items[0].name).toBe('Brambory');
+    expect(saved.date).toBe(today);
+    expect(saved.actor).toBe('mother');
+  });
+
+  it('"Hotovo" with empty basket does not call MealRepository.save()', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: 'Hotovo' }));
+    await tick();
+
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('after save goto is called with /today when no returnTo param', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    expect(goto).toHaveBeenCalledWith('/today');
   });
 });
