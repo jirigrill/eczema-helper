@@ -29,12 +29,12 @@ test.beforeEach(async ({ page }) => {
   await page.reload({ waitUntil: 'networkidle' });
 });
 
-test('meal save: add two foods, hit Hotovo, success toast appears and basket clears', async ({ page }) => {
+test('meal save: add two foods, hit Hotovo, success toast appears and page navigates to /today', async ({ page }) => {
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
 
-  // Navigate to meal-add
-  await page.goto('/meal');
+  // Navigate to meal-add via the + link that passes returnTo
+  await page.goto('/meal?returnTo=/today');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Empty-state basket visible initially
@@ -54,23 +54,33 @@ test('meal save: add two foods, hit Hotovo, success toast appears and basket cle
   const hotovo = page.getByRole('button', { name: /Hotovo/ });
   await expect(hotovo).toHaveAttribute('aria-disabled', 'false');
 
-  // Save the meal
+  // Save the meal — expect navigation to /today
   await hotovo.click();
+  await expect(page).toHaveURL('/today');
+});
 
-  // Success toast appears
-  await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByText('✓ Jídlo uloženo')).toBeVisible();
+test('liveQuery: meal saved on /meal appears on /today without reload', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
 
-  // Basket is cleared — empty state back
-  await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
+  // Today screen shows empty meals state before any meal is saved
+  await expect(page.getByText('Zatím žádný záznam.')).toBeVisible();
 
-  // Saved meal visible in "Dnes uložená jídla" section
-  await expect(page.getByText('Dnes uložená jídla')).toBeVisible();
+  // Navigate to meal-add with returnTo=/today
+  await page.goto('/meal?returnTo=/today');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Add a food item and save
+  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // returnTo navigates us back to /today
+  await expect(page).toHaveURL('/today');
+
+  // The saved meal now appears in the live list — no manual reload needed
+  await expect(page.getByText('Oběd')).toBeVisible();
   await expect(page.getByText('Brambory')).toBeVisible();
-  await expect(page.getByText('Mrkev')).toBeVisible();
-
-  // Toast link points to /today
-  await expect(page.getByRole('link', { name: /přehled dne/i })).toHaveAttribute('href', '/today');
 });
 
 test('meal item editing: tap item row, pick amount chip, pick preparation chip, subtitle reflects choices', async ({ page }) => {

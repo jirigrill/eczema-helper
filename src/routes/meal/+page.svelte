@@ -9,7 +9,7 @@
   import { categoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings, polozkaWordCs, reintroDayLabel } from '$lib/strings/common';
+  import { commonStrings, polozkaWordCs, reintroDayLabel, conflictToastCs } from '$lib/strings/common';
 
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
@@ -100,7 +100,7 @@
     // Show transient conflict toast when the added item is eliminated today
     if (partial.allergenId && eliminatedToday.includes(partial.allergenId)) {
       const allergenName = categoryConfig[partial.allergenId as ProtocolAllergenId]?.name ?? partial.allergenId;
-      conflictToastMessage = `⚠ ${allergenName} vyřazeno — odchylka zaznamenána`;
+      conflictToastMessage = conflictToastCs(allergenName);
       if (conflictToastTimer) clearTimeout(conflictToastTimer);
       conflictToastTimer = setTimeout(() => { conflictToastMessage = null; }, 3000);
     }
