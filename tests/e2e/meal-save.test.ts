@@ -12,6 +12,42 @@ async function clearDb(page: Page) {
   });
 }
 
+/** Seed answers + schedule directly so dairy is in an active elimination phase today.
+ *  Used by tests that need eliminatedToday to include 'dairy' without going through onboarding. */
+async function seedDairyEliminationSchedule(page: Page) {
+  await page.evaluate(async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+    // Variable prevents TS from resolving the path (same pattern as clearDb above)
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.put({
+      id: 'singleton',
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate',
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: today,
+      completedAt: new Date().toISOString(),
+      testedAllergens: ['dairy'],
+    });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: today,
+      estimatedEndDate: future,
+      phases: [{
+        id: 'elim-dairy',
+        type: 'elimination',
+        allergenIds: ['dairy'],
+        startDate: today,
+        endDate: future,
+      }],
+    });
+  });
+}
+
 async function completeOnboarding(page: Page) {
   await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
   await page.getByRole('button', { name: 'Začít' }).click();
@@ -168,4 +204,42 @@ test('meal item remove and re-add: remove clears basket, re-adding restores it',
   await page.getByRole('button', { name: /Hotovo/ }).click();
   await expect(page.getByText('✓ Jídlo uloženo')).toBeVisible();
   await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
+});
+
+test('conflict toast: selecting a food with an eliminated allergen shows transient warning toast', async ({ page }) => {
+  // Seed a schedule where dairy is the active elimination allergen today
+  await seedDairyEliminationSchedule(page);
+
+  // Load /today so the schedule context initialises from the seeded DB
+  await page.goto('/today');
+  // "Vyhýbej se" column confirms the elimination phase is active in the UI
+  await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
+
+  // Navigate to meal-add
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // The eliminated-allergen banner confirms dairy is flagged for this session
+  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
+
+  // Open the category sheet
+  await page.getByRole('button', { name: /Všechny kategorie/ }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  // Tap "Mléčné výrobky" — it has sub-items, so this opens the sub-item panel
+  await page.getByRole('button', { name: /Mléčné/ }).click();
+
+  // Pick a specific dairy sub-item (Jogurt)
+  await page.getByRole('button', { name: 'Jogurt' }).click();
+
+  // Sheet closes and the conflict toast appears with the allergen name
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(
+    page.getByText('⚠ Mléčné výrobky vyřazeno — odchylka zaznamenána')
+  ).toBeVisible();
+
+  // Toast is transient — it disappears on its own after 3 s (the auto-dismiss timer)
+  await expect(
+    page.getByText('⚠ Mléčné výrobky vyřazeno — odchylka zaznamenána')
+  ).not.toBeVisible({ timeout: 5000 });
 });
