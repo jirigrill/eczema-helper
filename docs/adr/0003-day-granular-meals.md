@@ -31,6 +31,24 @@ user-facing timestamps. The system stamps `createdAt` and `updatedAt`
 automatically for export integrity and future "edited" badges, but the
 user never sees nor sets them.
 
+## Decision (amendment — 2026-05-27)
+
+**One `Meal` per `(date, mealType)` slot.** A given date + meal-type pair
+maps to exactly one `Meal` record, upserted on commit. `Meal.id` is a
+deterministic composite key `"${date}:${mealType}"` (e.g.
+`"2026-05-27:lunch"`) rather than a random UUID.
+
+The user assembles a basket of items in-memory; the basket commits to
+Dexie as a single `put()` when the user taps "Hotovo" or switches the
+meal-type pill (silent autosave). The pill-switch only commits if the
+current basket is non-empty.
+
+**Why one per slot, not multiple:** the elimination protocol reasons at
+meal-type granularity ("had dairy at lunch") — multiple records per slot
+would require the UI to merge or pick the "canonical" one when computing
+the today view and day detail. The composite ID eliminates the need for a
+compound unique index in Dexie and keeps query code simple.
+
 ## Consequences
 
 - Reaction-attribution operates at day granularity. The app cannot say
@@ -42,6 +60,9 @@ user never sees nor sets them.
   user can challenge with real protocol observations), upgrading is
   additive: add `eatenAt?: ISO datetime` as an optional field, keep the
   existing date-keyed code path working.
-- The current `savedAt: HH:MM` field is removed. Any prototype data that
-  uses it must be migrated or discarded — there is no production data
-  yet, so this is a code-only change.
+- The current `savedAt: HH:MM` field is removed and replaced with
+  `createdAt: ISO datetime`. Any prototype data that uses it must be
+  migrated or discarded — there is no production data yet, so this is a
+  code-only change.
+- Re-opening meal-add for an existing slot loads that slot's items into
+  the basket. "Hotovo" overwrites the record via `put()`.
