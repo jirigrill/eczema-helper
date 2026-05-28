@@ -1,5 +1,6 @@
 <script lang="ts">
   import { liveQuery } from "dexie";
+  import type { Meal } from "$lib/domain/models";
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
   import ErrorAlert from "$lib/components/error-alert.svelte";
@@ -19,10 +20,18 @@
   import { db } from "$lib/db/atopic-db";
 
   const today = todayIso();
-
-  // Live reactive query: auto-updates whenever a meal is saved/changed for today
-  const mealsQuery = liveQuery(() => db.meals.where('date').equals(today).toArray());
   const mealTypeOrder: MealType[] = ['breakfast', 'lunch', 'snack', 'dinner'];
+
+  // Runes-native liveQuery integration: $effect subscribes to Dexie's observable
+  // and writes into $state, which Svelte 5's reactivity graph tracks correctly.
+  // The cleanup return value unsubscribes when the component unmounts.
+  let todayMeals = $state<Meal[]>([]);
+  $effect(() => {
+    const unsubscribe = liveQuery(() =>
+      db.meals.where('date').equals(today).toArray()
+    ).subscribe((meals) => { todayMeals = meals ?? []; });
+    return () => unsubscribe();
+  });
 
   const ctx = $derived($scheduleContext);
   const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
@@ -227,7 +236,6 @@
       </div>
 
       <!-- Dnešní jídla — live list via liveQuery (slice 2e) -->
-      {@const todayMeals = ($mealsQuery ?? [])}
       {@const mealsSorted = mealTypeOrder
         .map(type => todayMeals.find(m => m.mealType === type))
         .filter(m => m !== undefined)}

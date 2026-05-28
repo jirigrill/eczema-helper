@@ -20,11 +20,11 @@ vi.mock('dexie', async (importOriginal) => {
   const actual = await importOriginal<typeof import('dexie')>();
   return {
     ...actual,
+    // $effect calls liveQuery(...).subscribe(fn) expecting an unsubscribe function back.
     liveQuery: vi.fn(() => ({
-      // Svelte's $store syntax calls subscribe(); we emit liveMeals synchronously.
       subscribe(callback: (v: Meal[]) => void) {
         callback(liveMeals);
-        return () => {};
+        return () => {}; // unsubscribe no-op
       },
     })),
   };
