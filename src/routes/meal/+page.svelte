@@ -2,7 +2,7 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
-  import type { Meal, MealItem, PortionKind, ProtocolAllergenId } from '$lib/domain/models';
+  import type { Meal, MealItem, PortionKind, PreparationMethod, ProtocolAllergenId } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES } from '$lib/data/categories';
   import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
@@ -10,6 +10,7 @@
   import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, polozkaWordCs, reintroDayLabel } from '$lib/strings/common';
+
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
@@ -32,12 +33,11 @@
   let expandedCategory = $state<string | null>(null);
   let categorySheetOpen = $state(false);
   let currentItems = $state<MealItem[]>([]);
-  let mealLabel = $state('');
+  let mealNotes = $state('');
   let showSuccess = $state(false);
   let customName = $state('');
 
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
-  const amounts = Object.entries(portionStrings) as [PortionKind, { label: string; short: string }][];
 
   // ── Conflict detection ────────────────────────────────────
   const conflicts = $derived(detectConflicts(currentItems, eliminatedToday));
@@ -95,8 +95,20 @@
     currentItems = currentItems.filter(i => i.id !== id);
   }
 
-  function updateAmount(id: string, amount: PortionKind) {
-    currentItems = currentItems.map(i => i.id === id ? { ...i, amount } : i);
+  const preparationLabels: Record<PreparationMethod, string> = {
+    boiled:  'vařené',
+    steamed: 'dušené',
+    baked:   'pečené',
+    fried:   'smažené',
+  } as const;
+
+  function itemSubtitle(item: MealItem): string {
+    const parts: string[] = [];
+    const catName = categoryConfig[item.allergenId as ProtocolAllergenId]?.name;
+    if (catName) parts.push(catName);
+    parts.push(portionStrings[item.amount].short);
+    if (item.preparationMethod) parts.push(preparationLabels[item.preparationMethod]);
+    return parts.join(' · ');
   }
 
   function saveMeal() {
@@ -107,14 +119,14 @@
       mealType: selectedMealType,
       actor: 'mother',
       items: [...currentItems],
-      label: mealLabel.trim() || undefined,
+      notes: mealNotes.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
     // TODO(slice-2): persist to Dexie meals table
     meals = [...meals, meal];
 
     currentItems = [];
-    mealLabel = '';
+    mealNotes = '';
     expandedCategory = null;
     showSuccess = true;
     setTimeout(() => (showSuccess = false), 5000);
@@ -229,40 +241,54 @@
       </button>
     </div>
 
-    <!-- Current meal basket -->
-    {#if currentItems.length > 0}
-      <div class="card-base">
-        <p class="body-medium mb-2">
-          {mealConfig[selectedMealType].icon} {mealConfig[selectedMealType].label} — {commonStrings.meal.selectedItemsSuffix}
-        </p>
-        <div class="space-y-1.5">
+    <!-- "V tomto jídle" basket — always rendered -->
+    <div>
+      <p class="text-[10px] text-text-muted uppercase tracking-wide mb-2">
+        {commonStrings.meal.inThisMealLabel}
+      </p>
+
+      {#if currentItems.length === 0}
+        <!-- Empty state -->
+        <div class="border border-dashed border-surface-dark rounded-xl px-4 py-5 text-center">
+          <p class="text-xs text-text-muted">{commonStrings.meal.basketEmptyHint}</p>
+        </div>
+      {:else}
+        <div class="space-y-2">
           {#each currentItems as item (item.id)}
-            <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg
-              {isConflictItem(item) ? 'border' : 'bg-surface'}"
-              data-state={isConflictItem(item) ? 'warning' : undefined}>
-              <span class="text-base shrink-0">
+            {@const conflict = isConflictItem(item)}
+            <div
+              class="flex items-center gap-3 py-2.5 px-3 rounded-xl
+                {conflict
+                  ? 'border border-warning/40 bg-warning/08'
+                  : 'bg-white border border-surface-dark'}"
+              data-state={conflict ? 'warning' : undefined}
+            >
+              <!-- Icon -->
+              <span class="text-lg shrink-0">
                 {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? '🍽️'}
               </span>
-              <span class="body flex-1 min-w-0 truncate">{item.name}</span>
-              {#if isConflictItem(item)}
-                <span class="text-xs text-warning shrink-0">⚠</span>
-              {/if}
-              <!-- Amount selector inline -->
-              <select
-                class="text-xs border border-surface-dark rounded px-1 py-0.5 bg-white shrink-0"
-                value={item.amount}
-                onchange={(e) => updateAmount(item.id, (e.target as HTMLSelectElement).value as PortionKind)}
-              >
-                {#each amounts as [val, info]}
-                  <option value={val}>{info.short}</option>
-                {/each}
-              </select>
-              <button class="text-text-muted hover:text-danger text-lg px-0.5 shrink-0" onclick={() => removeItem(item.id)}>×</button>
+
+              <!-- Name + subtitle -->
+              <div class="flex-1 min-w-0">
+                <p class="text-[12px] font-semibold leading-tight truncate">{item.name}</p>
+                {#if conflict}
+                  <p class="text-[10px] text-warning mt-0.5">{commonStrings.meal.conflictItemLabel}</p>
+                {:else}
+                  <p class="text-[10px] text-text-muted mt-0.5">{itemSubtitle(item)}</p>
+                {/if}
+              </div>
+
+              <!-- Remove -->
+              <button
+                class="text-text-muted text-sm shrink-0 px-1"
+                aria-label="✕"
+                onclick={() => removeItem(item.id)}
+              >✕</button>
             </div>
           {/each}
         </div>
-      </div>
-    {/if}
+      {/if}
+    </div>
 
     <!-- Today's saved meals -->
     {#if todayMeals.length > 0}
@@ -291,15 +317,19 @@
       </div>
     {/if}
 
-    <!-- Optional label -->
+    <!-- Notes textarea — progressive disclosure: only when basket non-empty -->
     {#if currentItems.length > 0}
       <div>
-        <input
-          type="text"
-          bind:value={mealLabel}
-          placeholder={commonStrings.meal.notePlaceholder}
-          class="input-base w-full px-4 py-2.5 bg-white"
-        />
+        <label class="field-label block mb-1" for="meal-notes">
+          {commonStrings.meal.notesLabelPrefix} {mealConfig[selectedMealType].label}
+        </label>
+        <textarea
+          id="meal-notes"
+          rows={2}
+          bind:value={mealNotes}
+          placeholder={commonStrings.meal.notesPlaceholder}
+          class="input-base w-full px-4 py-2.5 bg-white resize-none"
+        ></textarea>
       </div>
     {/if}
   </div>
@@ -410,7 +440,7 @@
   <Toast
     message={commonStrings.meal.mealSavedToast}
     type="success"
-    href="/day"
+    href="/today"
     linkLabel={actionStrings.showDayOverview}
     onClose={() => (showSuccess = false)}
   />
