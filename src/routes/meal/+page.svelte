@@ -481,6 +481,7 @@
       {@const cat = CATEGORIES.find(c => c.allergenId === expandedCategory)}
       {#if cat && cat.subItems.length > 0}
         {@const cfg = categoryConfig[cat.allergenId]}
+        {@const isCatElim = eliminatedToday.includes(cat.allergenId)}
         <div>
           <div class="flex items-center justify-between mb-2">
             <p class="body-medium">{cfg.icon} {cfg.name}</p>
@@ -489,15 +490,19 @@
           <div class="flex flex-wrap gap-2 pb-1">
             {#each cat.subItems as sub}
               {@const subName = subitemStrings[sub.subitemId]}
+              {@const inMeal = currentItems.some(i => i.name === subName)}
               <button
-                data-state={currentItems.some(i => i.name === subName) ? 'success' : undefined}
+                data-state={inMeal ? 'success' : isCatElim ? 'danger' : undefined}
                 class="py-2 px-3 rounded-xl text-sm transition-all border
-                  {currentItems.some(i => i.name === subName)
-                    ? ''
-                    : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
+                  {!inMeal && !isCatElim
+                    ? 'bg-surface text-text border-surface-dark hover:border-primary/30'
+                    : ''}"
                 onclick={() => selectSubItem(cat.allergenId, sub.subitemId, subName)}
               >
                 {subName}
+                {#if isCatElim && !inMeal}
+                  <span class="ml-1 text-[10px] font-semibold">{commonStrings.meal.eliminatedChipLabel}</span>
+                {/if}
               </button>
             {/each}
           </div>
