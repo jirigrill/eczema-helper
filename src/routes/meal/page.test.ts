@@ -116,9 +116,9 @@ describe('meal/+page.svelte', () => {
     const buttons = getAllByRole('button', { name: /Snídaně|Oběd|Svačina|Večeře/ });
     expect(buttons.length).toBeGreaterThanOrEqual(4);
 
-    // Pills must have rounded-full class (text-only pill shape)
+    // Pills use the chip component (text-only pill shape)
     const snidaneBtn = getByRole('button', { name: 'Snídaně' });
-    expect(snidaneBtn.className).toContain('rounded-full');
+    expect(snidaneBtn.className).toContain('chip');
 
     // Pill text must not contain emoji: no character in surrogate-pair / emoji range
     buttons.forEach(btn => {
@@ -135,10 +135,10 @@ describe('meal/+page.svelte', () => {
 
     // Default selected is lunch ('Oběd')
     const obedBtn = getByRole('button', { name: 'Oběd' });
-    expect(obedBtn.className).toContain('bg-primary');
+    expect(obedBtn.className).toContain('chip--active');
 
     const snidaneBtn = getByRole('button', { name: 'Snídaně' });
-    expect(snidaneBtn.className).toContain('bg-surface-dark');
+    expect(snidaneBtn.className).toContain('chip--muted');
   });
 
   it('does not render a global amount selector section', async () => {
