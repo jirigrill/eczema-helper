@@ -322,7 +322,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: 'Jogurt' }));
+    await fireEvent.click(getByRole('button', { name: /Jogurt/ }));
     await tick();
 
     // Conflict label "vyřazeno" appears in the basket row
@@ -738,11 +738,75 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: 'Jogurt' }));
+    await fireEvent.click(getByRole('button', { name: /Jogurt/ }));
     await tick();
 
     // Conflict toast should appear with the full allergen name from categoryConfig
     expect(getByText(/Mléčné výrobky vyřazeno — odchylka zaznamenána/)).toBeInTheDocument();
+  });
+
+  // ── Issue 136: allergen status on sub-item chips ──────────
+
+  it('sub-item chips in an eliminated category have data-state="danger"', async () => {
+    setReady({ eliminatedToday: ['dairy'] });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+
+    // Open category sheet, drill into Mléčné (dairy — eliminated)
+    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    await tick();
+
+    // Every sub-item chip must carry data-state="danger"
+    const jogurtBtn = getByRole('button', { name: /Jogurt/ });
+    expect(jogurtBtn).toHaveAttribute('data-state', 'danger');
+  });
+
+  it('sub-item chips in a non-eliminated category do NOT have data-state="danger"', async () => {
+    setReady({ eliminatedToday: ['dairy'] });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+
+    // Open category sheet, drill into Jahody (strawberries — not eliminated)
+    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Jahody/ }));
+    await tick();
+
+    const cerstvBtn = getByRole('button', { name: /Čerstvé jahody/ });
+    expect(cerstvBtn).not.toHaveAttribute('data-state', 'danger');
+  });
+
+  it('sub-item chips in an eliminated category show Czech "Vyloučeno" label', async () => {
+    setReady({ eliminatedToday: ['dairy'] });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, getAllByText } = render(MealPage);
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    await tick();
+
+    // At least one "Vyloučeno" label must be visible inside the sub-item panel
+    expect(getAllByText('Vyloučeno').length).toBeGreaterThan(0);
+  });
+
+  it('sub-item chips in a non-eliminated category do NOT show "Vyloučeno" label', async () => {
+    setReady({ eliminatedToday: ['dairy'] });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Jahody/ }));
+    await tick();
+
+    expect(queryByText('Vyloučeno')).not.toBeInTheDocument();
   });
 
   // ── Slice 2f: pill-switch autosave + slot re-open ──────────

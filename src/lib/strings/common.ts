@@ -150,6 +150,7 @@ export const commonStrings = {
     inThisMealLabel:      'V tomto jídle',
     basketEmptyHint:      'Zatím prázdné. Klepni na potravinu výše.',
     conflictItemLabel:    'vyřazeno',
+    eliminatedChipLabel:  'Vyloučeno',
     notesLabelPrefix:     'Poznámka k',
     notesPlaceholder:     'Poznámka (volitelné, např. u babičky)',
   },
