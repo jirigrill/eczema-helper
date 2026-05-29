@@ -40,7 +40,7 @@
   let selectedRetestSlugs = $state<string[]>([]);
   let expandedPhaseId = $state<string | null>(null);
   let meals = $state<import('$lib/domain/models').Meal[]>([]);
-  let assessments = $state<import('$lib/domain/models').DailyAssessment[]>([]);
+  let skinObservations = $state<import('$lib/domain/models').SkinObservation[]>([]);
   let evaluations = $state<import('$lib/domain/models').ReintroductionEvaluation[]>([]);
 
   const today = $derived(todayIso());
@@ -429,7 +429,7 @@
 
         <!-- ═══ Live phase details ═══ -->
         {@const heroConflicts = phaseConflictCount(currentPhase)}
-        {@const heroAssessments = (assessments ?? []).filter((a: { date: string }) => a.date >= currentPhase.startDate && a.date <= (currentPhase.endDate || today))}
+        {@const heroAssessments = (skinObservations ?? []).filter((a: { date: string }) => a.date >= currentPhase.startDate && a.date <= (currentPhase.endDate || today))}
         {@const heroEval = (evaluations ?? []).find((e: ReintroductionEvaluation) => e.phaseId === currentPhase.id)}
 
         <div class="space-y-3 border-t border-surface-dark pt-3 text-xs">
@@ -540,7 +540,7 @@
 
             {#if expandedPhaseId === phase.id}
               {@const conflicts = phaseConflictCount(phase)}
-              {#each [(assessments ?? []).filter((a: { date: string }) => a.date >= phase.startDate && a.date <= phase.endDate)] as phaseAssessments}
+              {#each [(skinObservations ?? []).filter((a: { date: string }) => a.date >= phase.startDate && a.date <= phase.endDate)] as phaseAssessments}
               <div class="ml-11 pb-2 space-y-3 text-xs">
 
                 <!-- Dietary deviations -->

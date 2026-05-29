@@ -6,6 +6,14 @@ Personal PWA for tracking a breastfed newborn's atopic eczema through eliminatio
 
 Prototype-first frontend. Backend, persistence, and AI features are not wired yet — will be re-authored against the prototype's domain when the UX stabilizes.
 
+### Tracer-bullet slice progress
+
+| Slice | Summary | Status |
+|-------|---------|--------|
+| 1 | Schedule persistence + today screen (Dexie v1–v3, `MealRepository`) | ✅ Done |
+| 2 | Meal logging — add/edit/commit flow, allergen chips, conflict detection | ✅ Done |
+| 3 | Daily skin assessment + photo (`SkinObservation`, `SkinPhotoStore`, `/skin` screen, today surface) | ✅ Done |
+
 ## Structure
 
 - `src/routes/*` — prototype UI (app pages: `/`, `/program`, `/day`, `/meal`, `/settings`)

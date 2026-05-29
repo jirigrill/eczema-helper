@@ -16,13 +16,22 @@ message from a failed repository load. This is an application-layer concept,
 not a domain concept — it is the authoritative name for what routes consume,
 as distinct from the raw `GeneratedSchedule` stored in the database.
 
-### DailyAssessment
-What the parent observed about the baby's skin on a given calendar day:
-status (`improved` / `unchanged` / `worsened` / `new-lesions`), optional
-free-text notes, optional photo. The form shape is identical on
-ordinary days and reintro-test days — a contextual pill in the UI is
-the only visual difference. There is no `suspectedCause` field;
-attribution is not recorded here. See ADR-0004.
+### SkinObservation
+A timestamped record of what the parent observed about the baby's skin
+at a point in time: status (`improved` / `unchanged` / `worsened` /
+`new-lesions`), optional free-text notes. Multiple `SkinObservation`
+records may exist for the same calendar day (e.g. a routine morning
+check and a later reaction log). The form shape is identical on ordinary
+days and reintro-test days — a contextual pill in the UI is the only
+visual difference. There is no `suspectedCause` field; attribution is
+not recorded here. See ADR-0004.
+
+### SkinPhoto
+A timestamped photo of the baby's skin, stored as a `Blob` in the
+`photos` table (plaintext per ADR-0005). Independent from
+`SkinObservation` — a photo does not require an accompanying observation
+and vice versa. Multiple `SkinPhoto` records may exist for the same
+calendar day. Linked to a day by `date` only; no FK to `SkinObservation`.
 
 ### ReintroductionEvaluation
 The allergen-attributed verdict at the end of a reintro phase, picked
@@ -32,9 +41,9 @@ phase's daily observations; the user confirms. This is the *only*
 place where the user explicitly attributes a reaction to an allergen.
 
 ### Insight
-A *derived* pattern card computed over `(Meal, DailyAssessment)` pairs
+A *derived* pattern card computed over `(Meal, SkinObservation)` pairs
 (and the schedule). Not a stored user input. The pattern detector is a
-pure function: `insights(meals, assessments, schedule) → Insight[]`.
+pure function: `insights(meals, skinObservations, schedule) → Insight[]`.
 Examples: "after dairy days, skin worsened in 3 of 4 cases — reaction
 within 24h." Insights surface counter-examples too. Dismissals/pins are
 UI state, not domain state.
@@ -147,9 +156,9 @@ after data exists is a migration.
   when the user commits the basket. `Meal.id` is the deterministic
   composite key `"${date}:${mealType}"` (e.g. `"2026-05-27:lunch"`).
 - **Causation is derived, not recorded.** The user logs only ground
-  truth (meals, daily skin status, end-of-phase reintro verdict). The
+  truth (meals, skin observations, end-of-phase reintro verdict). The
   app derives suspected patterns via a pattern detector over those
-  logs. No `suspectedCause` field on `DailyAssessment`.
+  logs. No `suspectedCause` field on `SkinObservation`.
   See [ADR-0004](docs/adr/0004-causation-derived-not-recorded.md).
 - **Photo encryption-at-rest deferred past v1** — with a shipping
   constraint: encryption must land before the app reaches any device

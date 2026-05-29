@@ -105,11 +105,19 @@ export type Meal = {
   createdAt: string; // ISO datetime; render as Czech HH:MM at display sites (ADR-0014)
 };
 
-export type DailyAssessment = {
+export type SkinObservation = {
+  id: string;
   date: string; // ISO date
+  createdAt: string; // ISO datetime
   status: 'improved' | 'unchanged' | 'worsened' | 'new-lesions';
   notes?: string;
-  photoTaken: boolean;
+};
+
+export type SkinPhoto = {
+  id: string;
+  date: string; // ISO date
+  capturedAt: string; // ISO datetime
+  blob: Blob;
 };
 
 export type ProtocolDay = {
@@ -148,7 +156,7 @@ export type AppState = {
   answers: QuestionnaireAnswers | null;
   schedule: GeneratedSchedule | null;
   meals: Meal[];
-  assessments: DailyAssessment[];
+  skinObservations: SkinObservation[];
   evaluations: ReintroductionEvaluation[];
 };
 

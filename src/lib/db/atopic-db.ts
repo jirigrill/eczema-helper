@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Meal, QuestionnaireAnswers, GeneratedSchedule } from '$lib/domain/models';
+import type { Meal, QuestionnaireAnswers, GeneratedSchedule, SkinObservation, SkinPhoto } from '$lib/domain/models';
 
 type AnswersRow = QuestionnaireAnswers & { id: string };
 type ScheduleRow = GeneratedSchedule & { id: string };
@@ -10,6 +10,8 @@ export class AtopicDb extends Dexie {
   answers!: EntityTable<AnswersRow, 'id'>;
   schedule!: EntityTable<ScheduleRow, 'id'>;
   meals!: EntityTable<Meal, 'id'>;
+  skin_observations!: EntityTable<SkinObservation, 'id'>;
+  photos!: EntityTable<SkinPhoto, 'id'>;
 
   constructor(options?: { indexedDB?: IDBFactory; IDBKeyRange?: typeof IDBKeyRange }) {
     super('atopic-helper', options);
@@ -29,6 +31,15 @@ export class AtopicDb extends Dexie {
       answers: '&id',
       schedule: '&id',
       meals: '&id, date',
+    });
+    // v4: adds skin_observations and photos tables. Both keyed by id with a date index
+    // for listByDate queries. Blob storage in photos is native to IndexedDB.
+    this.version(4).stores({
+      answers: '&id',
+      schedule: '&id',
+      meals: '&id, date',
+      skin_observations: '&id, date',
+      photos: '&id, date',
     });
   }
 }

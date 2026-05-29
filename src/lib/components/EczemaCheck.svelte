@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DailyAssessment, ProtocolAllergenId } from '$lib/domain/models';
+  import type { SkinObservation, ProtocolAllergenId } from '$lib/domain/models';
   import { categoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
@@ -11,12 +11,12 @@
     onSave,
   }: {
     date: string;
-    assessment?: DailyAssessment | undefined;
+    assessment?: SkinObservation | undefined;
     reintroductionAllergenId?: string | null;
-    onSave: (a: DailyAssessment) => void;
+    onSave: (a: SkinObservation) => void;
   } = $props();
 
-  type Status = DailyAssessment['status'];
+  type Status = SkinObservation['status'];
 
   type StateVariant = 'success' | 'neutral' | 'warning' | 'danger';
   const statusOptions: { value: Status; label: string; icon: string; state: StateVariant }[] = [
@@ -28,14 +28,21 @@
 
   let selectedStatus = $state<Status | null>(assessment?.status ?? null);
   let notes = $state(assessment?.notes ?? '');
-  let photoTaken = $state(assessment?.photoTaken ?? false);
+  let photoTaken = $state(false);
   let saved = $state(!!assessment);
 
   const allergenCfg = $derived(reintroductionAllergenId ? categoryConfig[reintroductionAllergenId as ProtocolAllergenId] ?? null : null);
 
   function save() {
     if (!selectedStatus) return;
-    onSave({ date, status: selectedStatus, notes: notes.trim() || undefined, photoTaken });
+    const obs: SkinObservation = {
+      id: assessment?.id ?? crypto.randomUUID(),
+      date,
+      createdAt: assessment?.createdAt ?? new Date().toISOString(),
+      status: selectedStatus,
+      notes: notes.trim() || undefined,
+    };
+    onSave(obs);
     saved = true;
   }
 </script>
