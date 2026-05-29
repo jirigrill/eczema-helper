@@ -20,6 +20,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
   import Button from '$lib/components/Button.svelte';
+  import Chip from '$lib/components/Chip.svelte';
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -236,13 +237,9 @@
     <!-- Meal type pills (text-only, rounded-full) -->
     <div class="flex gap-1.5 px-4 pb-3">
       {#each mealTypes as type}
-        <button
-          class="flex-1 py-1.5 rounded-full text-xs font-medium transition-all
-            {selectedMealType === type ? 'bg-primary text-white font-semibold' : 'bg-surface-dark text-text-muted'}"
-          onclick={() => selectMealType(type)}
-        >
+        <Chip active={selectedMealType === type} onclick={() => selectMealType(type)} class="flex-1">
           {mealConfig[type].label}
-        </button>
+        </Chip>
       {/each}
     </div>
 
@@ -318,7 +315,7 @@
 
     <!-- "V tomto jídle" basket — always rendered -->
     <div>
-      <p class="text-[10px] text-text-muted uppercase tracking-wide mb-2">
+      <p class="micro-label mb-2">
         {commonStrings.meal.inThisMealLabel}
       </p>
 
@@ -380,36 +377,30 @@
                 <div class="px-3 pb-3 space-y-2.5">
                   <!-- Množství chips -->
                   <div>
-                    <p class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Množství</p>
+                    <p class="micro-label mb-1.5">Množství</p>
                     <div class="flex flex-wrap gap-1.5">
                       {#each portionKinds as kind}
-                        <button
-                          class="px-3 py-1 rounded-full text-xs font-medium transition-all
-                            {item.amount === kind
-                              ? 'bg-primary text-white font-semibold'
-                              : 'bg-surface-dark text-text-muted'}"
+                        <Chip
+                          active={item.amount === kind}
                           onclick={(e) => { e.stopPropagation(); updateAmount(item.id, kind); }}
                         >
                           {portionStrings[kind].label}
-                        </button>
+                        </Chip>
                       {/each}
                     </div>
                   </div>
 
                   <!-- Příprava chips -->
                   <div>
-                    <p class="text-[10px] text-text-muted uppercase tracking-wide mb-1.5">Příprava</p>
+                    <p class="micro-label mb-1.5">Příprava</p>
                     <div class="flex flex-wrap gap-1.5">
                       {#each preparationMethods as method}
-                        <button
-                          class="px-3 py-1 rounded-full text-xs font-medium transition-all
-                            {item.preparationMethod === method
-                              ? 'bg-primary text-white font-semibold'
-                              : 'bg-surface-dark text-text-muted'}"
+                        <Chip
+                          active={item.preparationMethod === method}
                           onclick={(e) => { e.stopPropagation(); updatePreparation(item.id, method); }}
                         >
                           {preparationStrings[method].label}
-                        </button>
+                        </Chip>
                       {/each}
                     </div>
                   </div>

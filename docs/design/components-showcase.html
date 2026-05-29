@@ -76,6 +76,7 @@
 <nav class="toc">
   <div class="toc-title">Components</div>
   <a href="#button">Button</a>
+  <a href="#chip">Chip</a>
   <a href="#allergen-chip">AllergenChip</a>
 
   <a href="#category-grid">CategoryGrid</a>
@@ -159,6 +160,31 @@
   </div>
 
   <hr class="section-hr">
+
+  <!-- ─── Chip ────────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/Chip.svelte -->
+  <div class="component-section" id="chip">
+    <p class="component-label">▸ <span>Chip</span> — active: boolean, onclick?: (e: MouseEvent) => void, class?: string</p>
+    <div class="variant-row">
+      <div class="variant-tile">
+        <button type="button" data-active="false" class="chip chip--muted px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#EDE8E9] text-[#7A6468]">Snídaně</button>
+        <p class="variant-name">active=false (muted)</p>
+      </div>
+      <div class="variant-tile">
+        <button type="button" data-active="true" class="chip chip--active px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#8B4557] text-white font-semibold">Oběd</button>
+        <p class="variant-name">active=true (active)</p>
+      </div>
+      <div class="variant-tile">
+        <div class="flex gap-1.5">
+          <button type="button" data-active="false" class="flex-1 chip chip--muted px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#EDE8E9] text-[#7A6468]">Sn</button>
+          <button type="button" data-active="true" class="flex-1 chip chip--active px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#8B4557] text-white font-semibold">Ob</button>
+          <button type="button" data-active="false" class="flex-1 chip chip--muted px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#EDE8E9] text-[#7A6468]">Sv</button>
+          <button type="button" data-active="false" class="flex-1 chip chip--muted px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#EDE8E9] text-[#7A6468]">Ve</button>
+        </div>
+        <p class="variant-name">class="flex-1" group (meal type pills)</p>
+      </div>
+    </div>
+  </div>
 
   <!-- ─── AllergenChip ─────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/AllergenChip.svelte -->

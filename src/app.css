@@ -89,6 +89,20 @@
     @apply text-sm font-medium text-text-muted mb-2;
   }
 
+  /* ── Chip atoms ──────────────────────────────────────────────────── */
+
+  .chip {
+    @apply px-3 py-1 rounded-full text-xs font-medium transition-all;
+  }
+
+  .chip--active {
+    @apply bg-primary text-white font-semibold;
+  }
+
+  .chip--muted {
+    @apply bg-surface-dark text-text-muted;
+  }
+
   /* ── Form atoms ──────────────────────────────────────────────────── */
 
   .input-base {
