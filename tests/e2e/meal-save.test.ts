@@ -242,3 +242,61 @@ test('conflict toast: selecting a food with an eliminated allergen shows transie
     page.getByText('⚠ Mléčné výrobky vyřazeno — odchylka zaznamenána')
   ).not.toBeVisible({ timeout: 5000 });
 });
+
+// ── Slice 2f: pill-switch autosave + slot re-open ──────────
+
+test('slot re-open: navigating back to /meal after saving a slot pre-loads its items', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
+
+  // Save a lunch slot with one item
+  await page.goto('/meal');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await expect(page.getByText('Brambory')).toBeVisible();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await expect(page).toHaveURL('/today');
+
+  // Navigate back to /meal — the lunch slot should be pre-loaded
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
+test('pill-switch autosave: switching meal type with non-empty basket saves silently and shows toast', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Add a food to the lunch basket
+  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  // Switch to Snídaně — should trigger silent autosave of lunch
+  await page.getByRole('button', { name: 'Snídaně' }).click();
+
+  // Autosave toast appears referencing "Oběd" (the slot that was just saved)
+  await expect(page.getByText(/Oběd.*uložen/)).toBeVisible();
+
+  // After switching, basket is empty (no saved snídaně yet)
+  await expect(page.getByText(/Zatím prázdné/)).toBeVisible();
+
+  // Switch back to Oběd — the previously saved item should re-appear
+  await page.getByRole('button', { name: 'Oběd' }).click();
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
+test('pill-switch with empty basket: no autosave call and no toast', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Basket is empty — switch should not produce a toast
+  await page.getByRole('button', { name: 'Snídaně' }).click();
+
+  await expect(page.getByText(/uložen/)).not.toBeVisible();
+  await expect(page.getByText(/Zatím prázdné/)).toBeVisible();
+});
