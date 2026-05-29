@@ -297,9 +297,16 @@ reintroduction. See ADR-0014.
 
 ## Assessment & Observation
 
-### DailyAssessment
+### SkinObservation
 → Defined in `CONTEXT.md`. The parent's observation of the baby's skin on a calendar
-day: `AssessmentStatus`, optional notes, optional photo.
+day: `id`, `date`, `createdAt`, `AssessmentStatus`, optional notes. Multiple
+`SkinObservation` records may exist for the same day. No FK to `SkinPhoto`.
+
+### SkinPhoto
+→ Defined in `CONTEXT.md`. A photo of the baby's skin captured on a calendar day:
+`id`, `date`, `capturedAt`, `blob` (Blob stored in IndexedDB). Independent of
+`SkinObservation` — a photo does not require an accompanying observation and vice
+versa. Multiple `SkinPhoto` records may exist for the same day.
 
 ### AssessmentStatus
 *Czech: Stav kůže*
@@ -318,7 +325,7 @@ The four possible verdicts in a `ReintroductionEvaluation`:
 `'clear-reaction'` (Jasná reakce) · `'severe-reaction'` (Silná reakce).
 
 ### Insight
-→ Defined in `CONTEXT.md`. A derived pattern card computed over `(Meal, DailyAssessment)`
+→ Defined in `CONTEXT.md`. A derived pattern card computed over `(Meal, SkinObservation)`
 pairs. Not user input. Deferred to v1.1.
 
 ---

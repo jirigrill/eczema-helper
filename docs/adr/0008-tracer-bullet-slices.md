@@ -56,12 +56,14 @@ it appear on today, with allergen conflicts flagged.
 
 De-risks the binary path before more screens accumulate.
 
-- Add `assessments` and `photos` tables to Dexie schema.
-- Assessment repository, photo store.
-- "Eczema check" screen: status picker, optional notes, optional photo
-  capture via the camera API. Photos stored as Blobs in the `photos`
-  table, plaintext per [ADR-0005](0005-photo-encryption-deferred.md).
-- Today screen surfaces today's assessment status.
+- Add `skin_observations` and `photos` tables to Dexie schema.
+- `SkinObservation` repository, `SkinPhoto` store.
+- `/skin` screen: status picker, optional notes. Photos captured
+  independently via FAB → "Přidat fotku" and stored as Blobs in the
+  `photos` table, plaintext per [ADR-0005](0005-photo-encryption-deferred.md).
+  Both are independent records linked by `date` only — no FK between them.
+  Multiple `SkinObservation` and `SkinPhoto` records may exist per day.
+- Today screen surfaces today's skin observations (list) and photos (thumbnail grid) in two separate cards.
 - Today screen wires `getToleranceBuildingRemindersForDate()` from
   `src/lib/domain/schedule-builder.ts` — training reminders were in
   the [v1 scope](0007-v1-scope.md) but not assigned to any earlier
