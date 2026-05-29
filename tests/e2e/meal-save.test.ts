@@ -265,6 +265,7 @@ test('slot re-open: navigating back to /meal after saving a slot pre-loads its i
 
 test('pill-switch autosave: switching meal type with non-empty basket saves silently and shows toast', async ({ page }) => {
   await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
@@ -289,6 +290,7 @@ test('pill-switch autosave: switching meal type with non-empty basket saves sile
 
 test('pill-switch with empty basket: no autosave call and no toast', async ({ page }) => {
   await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
