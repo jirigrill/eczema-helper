@@ -99,6 +99,21 @@ pattern:
 Each is its own slice. None of them introduce new architectural
 patterns — they reuse slices 1–3's shapes.
 
+### Deferred from slice 2 (pick up post-slice-3)
+
+Items explicitly out of scope for slice 2 (#121) that belong in the
+post-alpha backlog:
+
+- **Recents strip** ("Naposledy") on the meal-add screen — requires
+  querying meal history across dates; deferred until the Dexie `meals`
+  table has enough data to be useful.
+- **Sub-item search** — full text search across the sub-item catalogue
+  with status pills and a custom-item fallback; deferred to avoid
+  complexity before the catalogue shape is stable.
+
+Both are self-contained UI additions with no new persistence patterns;
+they drop into the meal-add screen without touching other layers.
+
 ## Consequences
 
 - Issues for slices 1–3 can be authored with the `to-issues` skill
