@@ -23,6 +23,7 @@
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import { onMount } from 'svelte';
   import { db } from '$lib/db/atopic-db';
   import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 
@@ -40,6 +41,10 @@
   let conflictToastMessage = $state<string | null>(null);
   let conflictToastTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Autosave toast (shown after silent pill-switch save) ───
+  let autosaveToastMessage = $state<string | null>(null);
+  let autosaveToastTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+
   // ── Form state ────────────────────────────────────────────
   let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
   let selectedAmount = $state<PortionKind>('portion');
@@ -52,6 +57,49 @@
   let customName = $state('');
 
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
+
+  // ── Slot loading ──────────────────────────────────────────
+  async function loadSlot(mealType: typeof selectedMealType): Promise<void> {
+    const result = await repo.loadBySlot(today, mealType);
+    if (result.ok && result.data) {
+      currentItems = result.data.items;
+      mealNotes = result.data.notes ?? '';
+    } else {
+      currentItems = [];
+      mealNotes = '';
+    }
+  }
+
+  onMount(() => { loadSlot(selectedMealType); });
+
+  // ── Pill-switch: autosave current slot, then load new slot ─
+  async function selectMealType(newType: typeof selectedMealType): Promise<void> {
+    if (newType === selectedMealType) return;
+
+    const previousType = selectedMealType;
+    const snapshotItems = $state.snapshot(currentItems);
+
+    if (snapshotItems.length > 0) {
+      const meal: Meal = {
+        id: `${today}:${previousType}`,
+        date: today,
+        mealType: previousType,
+        actor: 'mother',
+        items: snapshotItems,
+        notes: mealNotes.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      };
+      await repo.save(meal);
+      const n = snapshotItems.length;
+      autosaveToastMessage = `✓ ${mealConfig[previousType].label} uložen · ${n} ${polozkaWordCs(n)}`;
+      if (autosaveToastTimer) clearTimeout(autosaveToastTimer);
+      autosaveToastTimer = setTimeout(() => { autosaveToastMessage = null; }, 2000);
+    }
+
+    selectedMealType = newType;
+    expandedItemId = null;
+    await loadSlot(newType);
+  }
 
   // ── Conflict detection ────────────────────────────────────
   const conflicts = $derived(detectConflicts(currentItems, eliminatedToday));
@@ -191,7 +239,7 @@
         <button
           class="flex-1 py-1.5 rounded-full text-xs font-medium transition-all
             {selectedMealType === type ? 'bg-primary text-white font-semibold' : 'bg-surface-dark text-text-muted'}"
-          onclick={() => (selectedMealType = type)}
+          onclick={() => selectMealType(type)}
         >
           {mealConfig[type].label}
         </button>
@@ -518,6 +566,14 @@
     </button>
   </div>
 </div>
+
+{#if autosaveToastMessage}
+  <Toast
+    message={autosaveToastMessage}
+    type="success"
+    onClose={() => { autosaveToastMessage = null; if (autosaveToastTimer) clearTimeout(autosaveToastTimer); }}
+  />
+{/if}
 
 {#if conflictToastMessage}
   <Toast

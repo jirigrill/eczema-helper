@@ -3,7 +3,7 @@ import { render, fireEvent } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type { GeneratedSchedule, QuestionnaireAnswers, MealItem } from '$lib/domain/models';
 
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 
@@ -14,10 +14,11 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 // ── Repository mock ──────────────────────────────────────────
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+const mockLoadBySlot = vi.fn().mockResolvedValue({ ok: true, data: null });
 vi.mock('$lib/adapters/dexie-meal-repository', () => ({
   DexieMealRepository: vi.fn().mockImplementation(() => ({
     save: mockSave,
-    loadBySlot: vi.fn().mockResolvedValue({ ok: true, data: null }),
+    loadBySlot: mockLoadBySlot,
     listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
   })),
 }));
@@ -68,6 +69,8 @@ function setReady(overrides: Partial<Omit<Extract<ScheduleContext, { status: 're
 beforeEach(() => {
   mockScheduleContext.set({ status: 'loading' });
   mockSave.mockClear();
+  mockLoadBySlot.mockClear();
+  mockLoadBySlot.mockResolvedValue({ ok: true, data: null }); // default: no saved slot
   mockPage.url = new URL('http://localhost/meal'); // reset returnTo to default
 });
 
@@ -740,5 +743,161 @@ describe('meal/+page.svelte', () => {
 
     // Conflict toast should appear with the full allergen name from categoryConfig
     expect(getByText(/Mléčné výrobky vyřazeno — odchylka zaznamenána/)).toBeInTheDocument();
+  });
+
+  // ── Slice 2f: pill-switch autosave + slot re-open ──────────
+
+  it('on mount, loadBySlot is called for the default meal slot (lunch)', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    render(MealPage);
+    await tick();
+    await tick();
+
+    expect(mockLoadBySlot).toHaveBeenCalledWith(today, 'lunch');
+  });
+
+  it('on mount with a saved slot, basket is pre-populated with its items', async () => {
+    const savedItems: MealItem[] = [
+      { id: 'item-1', name: 'Brambory', allergenId: null, subitemId: null, amount: 'portion' },
+    ];
+    mockLoadBySlot.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: `${today}:lunch`, date: today, mealType: 'lunch', actor: 'mother' as const,
+        items: savedItems, createdAt: new Date().toISOString(),
+      },
+    });
+
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+    await tick();
+
+    expect(getByText('Brambory')).toBeInTheDocument();
+  });
+
+  it('on mount with no saved slot, basket shows empty state', async () => {
+    // mockLoadBySlot already returns { ok: true, data: null } by default
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+    await tick();
+
+    expect(getByText(/Zatím prázdné/)).toBeInTheDocument();
+  });
+
+  it('switching meal pill with non-empty basket calls save() for the previous slot', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    mockSave.mockClear();
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.id).toBe(`${today}:lunch`); // saved the PREVIOUS slot
+    expect(saved.items[0].name).toBe('Brambory');
+  });
+
+  it('switching meal pill with empty basket does NOT call save()', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await tick();
+
+    mockSave.mockClear();
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+    await tick();
+
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('after pill switch, loadBySlot is called for the new slot', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await tick(); // consume initial mount load
+
+    mockLoadBySlot.mockClear();
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+    await tick();
+
+    expect(mockLoadBySlot).toHaveBeenCalledWith(today, 'breakfast');
+  });
+
+  it('after pill switch, basket shows items from the new slot if it was previously saved', async () => {
+    const snidaneItems: MealItem[] = [
+      { id: 'item-2', name: 'Jogurt', allergenId: 'dairy', subitemId: 'dairy:yogurt', amount: 'portion' },
+    ];
+    mockLoadBySlot
+      .mockResolvedValueOnce({ ok: true, data: null }) // initial mount: lunch empty
+      .mockResolvedValueOnce({                         // after switch: snídaně has items
+        ok: true,
+        data: {
+          id: `${today}:breakfast`, date: today, mealType: 'breakfast', actor: 'mother' as const,
+          items: snidaneItems, createdAt: new Date().toISOString(),
+        },
+      });
+
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+    await tick();
+
+    expect(queryByText('Jogurt')).toBeInTheDocument();
+  });
+
+  it('switching pill with non-empty basket shows an autosave toast with the previous meal type label', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText } = render(MealPage);
+    await tick();
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+    await tick();
+
+    // Toast references the label of the slot that was just saved ("Oběd")
+    expect(getByText(/Oběd.*uložen/)).toBeInTheDocument();
+  });
+
+  it('switching pill with empty basket does NOT show an autosave toast', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await tick();
+
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+    await tick();
+
+    expect(queryByText(/uložen/)).not.toBeInTheDocument();
   });
 });
