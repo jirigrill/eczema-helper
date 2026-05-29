@@ -12,6 +12,42 @@ async function clearDb(page: Page) {
   });
 }
 
+/** Seed answers + schedule directly so dairy is in an active elimination phase today.
+ *  Used by tests that need eliminatedToday to include 'dairy' without going through onboarding. */
+async function seedDairyEliminationSchedule(page: Page) {
+  await page.evaluate(async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+    // Variable prevents TS from resolving the path (same pattern as clearDb above)
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.put({
+      id: 'singleton',
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate',
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: today,
+      completedAt: new Date().toISOString(),
+      testedAllergens: ['dairy'],
+    });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: today,
+      estimatedEndDate: future,
+      phases: [{
+        id: 'elim-dairy',
+        type: 'elimination',
+        allergenIds: ['dairy'],
+        startDate: today,
+        endDate: future,
+      }],
+    });
+  });
+}
+
 async function completeOnboarding(page: Page) {
   await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
   await page.getByRole('button', { name: 'Začít' }).click();
@@ -29,12 +65,12 @@ test.beforeEach(async ({ page }) => {
   await page.reload({ waitUntil: 'networkidle' });
 });
 
-test('meal save: add two foods, hit Hotovo, success toast appears and basket clears', async ({ page }) => {
+test('meal save: add two foods, hit Hotovo, success toast appears and page navigates to /today', async ({ page }) => {
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
 
-  // Navigate to meal-add
-  await page.goto('/meal');
+  // Navigate to meal-add via the + link that passes returnTo
+  await page.goto('/meal?returnTo=/today');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Empty-state basket visible initially
@@ -54,23 +90,33 @@ test('meal save: add two foods, hit Hotovo, success toast appears and basket cle
   const hotovo = page.getByRole('button', { name: /Hotovo/ });
   await expect(hotovo).toHaveAttribute('aria-disabled', 'false');
 
-  // Save the meal
+  // Save the meal — expect navigation to /today
   await hotovo.click();
+  await expect(page).toHaveURL('/today');
+});
 
-  // Success toast appears
-  await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByText('✓ Jídlo uloženo')).toBeVisible();
+test('liveQuery: meal saved on /meal appears on /today without reload', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
 
-  // Basket is cleared — empty state back
-  await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
+  // Today screen shows empty meals state before any meal is saved
+  await expect(page.getByText('Zatím žádný záznam.')).toBeVisible();
 
-  // Saved meal visible in "Dnes uložená jídla" section
-  await expect(page.getByText('Dnes uložená jídla')).toBeVisible();
+  // Navigate to meal-add with returnTo=/today
+  await page.goto('/meal?returnTo=/today');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Add a food item and save
+  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // returnTo navigates us back to /today
+  await expect(page).toHaveURL('/today');
+
+  // The saved meal now appears in the live list — no manual reload needed
+  await expect(page.getByText('Oběd')).toBeVisible();
   await expect(page.getByText('Brambory')).toBeVisible();
-  await expect(page.getByText('Mrkev')).toBeVisible();
-
-  // Toast link points to /today
-  await expect(page.getByRole('link', { name: /přehled dne/i })).toHaveAttribute('href', '/today');
 });
 
 test('meal item editing: tap item row, pick amount chip, pick preparation chip, subtitle reflects choices', async ({ page }) => {
@@ -153,9 +199,46 @@ test('meal item remove and re-add: remove clears basket, re-adding restores it',
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByText('Brambory')).toBeVisible();
 
-  // Hotovo re-enabled; save works
+  // Hotovo re-enabled; save works — navigates to /today on success
   await expect(page.getByRole('button', { name: /Hotovo/ })).toHaveAttribute('aria-disabled', 'false');
   await page.getByRole('button', { name: /Hotovo/ }).click();
-  await expect(page.getByText('✓ Jídlo uloženo')).toBeVisible();
-  await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
+  await expect(page).toHaveURL('/today');
+});
+
+test('conflict toast: selecting a food with an eliminated allergen shows transient warning toast', async ({ page }) => {
+  // Seed a schedule where dairy is the active elimination allergen today
+  await seedDairyEliminationSchedule(page);
+
+  // Load /today so the schedule context initialises from the seeded DB
+  await page.goto('/today');
+  // "Vyhýbej se" column confirms the elimination phase is active in the UI
+  await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
+
+  // Navigate to meal-add
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // The eliminated-allergen banner confirms dairy is flagged for this session
+  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
+
+  // Open the category sheet
+  await page.getByRole('button', { name: /Všechny kategorie/ }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  // Tap "Mléčné výrobky" — it has sub-items, so this opens the sub-item panel
+  await page.getByRole('button', { name: /Mléčné/ }).click();
+
+  // Pick a specific dairy sub-item (Jogurt)
+  await page.getByRole('button', { name: 'Jogurt' }).click();
+
+  // Sheet closes and the conflict toast appears with the allergen name
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(
+    page.getByText('⚠ Mléčné výrobky vyřazeno — odchylka zaznamenána')
+  ).toBeVisible();
+
+  // Toast is transient — it disappears on its own after 3 s (the auto-dismiss timer)
+  await expect(
+    page.getByText('⚠ Mléčné výrobky vyřazeno — odchylka zaznamenána')
+  ).not.toBeVisible({ timeout: 5000 });
 });

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { liveQuery } from "dexie";
+  import { onMount } from "svelte";
+  import type { Meal } from "$lib/domain/models";
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
   import ErrorAlert from "$lib/components/error-alert.svelte";
@@ -11,8 +14,28 @@
   import { commonStrings, dayProgress } from "$lib/strings/common";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { phaseConfig } from "$lib/config/phases";
+  import { mealConfig } from "$lib/config/meals";
+  import { portionStrings } from "$lib/strings/portions";
+  import { categoryConfig } from "$lib/config/categories";
+  import type { MealType, ProtocolAllergenId } from "$lib/domain/models";
+  import { db } from "$lib/db/atopic-db";
 
   const today = todayIso();
+  const mealTypeOrder: MealType[] = ['breakfast', 'lunch', 'snack', 'dinner'];
+
+  // Mirror the schedule-context.ts pattern exactly:
+  // onMount (browser-only, after DOM ready) + observer object form + .unsubscribe() cleanup.
+  // $effect has subtle timing issues with SvelteKit navigation; onMount is explicit.
+  let todayMeals = $state<Meal[]>([]);
+  onMount(() => {
+    const subscription = liveQuery(() =>
+      db.meals.where('date').equals(today).toArray()
+    ).subscribe({
+      next: (meals) => { todayMeals = meals ?? []; },
+      error: () => { todayMeals = []; },
+    });
+    return () => subscription.unsubscribe();
+  });
 
   const ctx = $derived($scheduleContext);
   const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
@@ -216,10 +239,39 @@
         </div>
       </div>
 
-      <!-- Dnešní jídla — stub (slice 2) -->
-      <EmptyStateCard label={commonStrings.today.mealsLabel} status={commonStrings.today.mealsStatusValue}>
-        <div class="body-muted">{commonStrings.today.mealsEmpty}</div>
-      </EmptyStateCard>
+      <!-- Dnešní jídla — live list via liveQuery (slice 2e) -->
+      {@const mealsSorted = mealTypeOrder
+        .map(type => todayMeals.find(m => m.mealType === type))
+        .filter(m => m !== undefined)}
+      <div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
+        <div class="px-3.5 pt-3 pb-1 flex items-center justify-between">
+          <span class="section-label">{commonStrings.today.mealsLabel}</span>
+          <a href="/meal?returnTo=/today" class="text-primary text-xs font-medium">+ {actionStrings.add}</a>
+        </div>
+        {#if mealsSorted.length === 0}
+          <div class="px-3.5 pb-3 body-muted">{commonStrings.today.mealsEmpty}</div>
+        {:else}
+          <div class="px-3.5 pb-3 space-y-3">
+            {#each mealsSorted as meal (meal.id)}
+              {@const cfg = mealConfig[meal.mealType]}
+              <div>
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="text-base leading-none">{cfg.icon}</span>
+                  <span class="text-[12px] font-semibold text-text">{cfg.label}</span>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  {#each meal.items as item}
+                    <span class="text-xs bg-surface rounded-full px-2 py-0.5 text-text">
+                      {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? ''}{item.name}
+                      <span class="text-text-muted"> {portionStrings[item.amount].short}</span>
+                    </span>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
       <!-- Bottom hint -->
       <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">

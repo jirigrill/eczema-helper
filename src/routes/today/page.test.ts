@@ -3,13 +3,35 @@ import { render } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type { GeneratedSchedule, QuestionnaireAnswers, Meal } from '$lib/domain/models';
 
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 
 vi.mock('$lib/stores/schedule-context', () => ({
   scheduleContext: { subscribe: mockScheduleContext.subscribe },
 }));
+
+// ── liveQuery mock ────────────────────────────────────────────
+// liveQuery is Dexie's reactive query primitive. We mock it here so the
+// today page's meal list can be driven by test data without a real IndexedDB.
+// Each test sets liveMeals to control what the query "emits".
+let liveMeals: Meal[] = [];
+vi.mock('dexie', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('dexie')>();
+  return {
+    ...actual,
+    // onMount calls liveQuery(...).subscribe({ next, error }) — observer object form.
+    // Returns a subscription object with .unsubscribe(), mirroring real Dexie behaviour.
+    liveQuery: vi.fn(() => ({
+      subscribe(observer: { next: (v: Meal[]) => void; error?: (e: unknown) => void }) {
+        observer.next(liveMeals);
+        return { unsubscribe: () => {} };
+      },
+    })),
+  };
+});
+// Prevent real IndexedDB from opening — liveQuery mock never calls db methods
+vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
 const today = new Date().toISOString().split('T')[0];
 const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
@@ -51,6 +73,7 @@ const readyContext: ScheduleContext = {
 
 beforeEach(() => {
   mockScheduleContext.set({ status: 'loading' });
+  liveMeals = [];
 });
 
 describe('today/+page.svelte', () => {
@@ -178,5 +201,42 @@ describe('today/+page.svelte', () => {
     const { getByText } = render(TodayPage);
     await tick();
     expect(getByText('Program skončil')).toBeInTheDocument();
+  });
+
+  // ── Slice 2e: live meal list ──────────────────────────────
+
+  it('renders a committed meal returned by the live query', async () => {
+    const testMeal: Meal = {
+      id: `${today}:lunch`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [
+        { id: 'item-1', name: 'Brambory', allergenId: null, amount: 'portion' },
+      ],
+      createdAt: `${today}T12:00:00.000Z`,
+    };
+    liveMeals = [testMeal];
+
+    mockScheduleContext.set(readyContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getByText } = render(TodayPage);
+    await tick();
+
+    // Meal type label visible
+    expect(getByText('Oběd')).toBeInTheDocument();
+    // Item chip visible
+    expect(getByText('Brambory')).toBeInTheDocument();
+  });
+
+  it('shows empty-state for meals when live query returns no meals', async () => {
+    liveMeals = [];
+
+    mockScheduleContext.set(readyContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getByText } = render(TodayPage);
+    await tick();
+
+    expect(getByText('Zatím žádný záznam.')).toBeInTheDocument();
   });
 });

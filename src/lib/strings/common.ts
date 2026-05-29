@@ -316,6 +316,11 @@ export function continueWithCount(n: number): string {
   return `Pokračovat (${n} ${allergenWordCs(n)})`;
 }
 
+/** Conflict toast: shown briefly when a food item with an eliminated allergen is added to the basket */
+export function conflictToastCs(allergenName: string): string {
+  return `⚠ ${allergenName} vyřazeno — odchylka zaznamenána`;
+}
+
 /** Toast: cannot add retest — allergen not a confirmed baby allergy */
 export function toastRetestNotBabyConfirmed(names: string): string {
   return `Nelze přidat retest: ${names} není potvrzená alergie miminka.`;
