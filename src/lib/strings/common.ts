@@ -383,3 +383,8 @@ export function deviationsMore(n: number): string {
 export function reintroDayLabel(day: number, total: number): string {
   return `🔬 Den ${day} z ${total}`;
 }
+
+/** "🔬 Sledujte reakci na {icon} {name}" — EczemaCheck reintro allergen banner */
+export function reactionBannerLabel(icon: string, name: string): string {
+  return `🔬 Sledujte reakci na ${icon} ${name}`;
+}

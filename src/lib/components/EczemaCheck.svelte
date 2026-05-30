@@ -2,7 +2,7 @@
   import type { SkinObservation, ProtocolAllergenId } from '$lib/domain/models';
   import { categoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings } from '$lib/strings/common';
+  import { commonStrings, reactionBannerLabel } from '$lib/strings/common';
 
   let {
     date,
@@ -68,7 +68,7 @@
   {#if allergenCfg}
     <div data-state="success" class="border rounded-xl px-3 py-2">
       <p class="text-xs text-success font-medium">
-        🔬 Sledujte reakci na {allergenCfg.icon} {allergenCfg.name}
+        {reactionBannerLabel(allergenCfg.icon, allergenCfg.name)}
       </p>
       <p class="text-xs text-text-muted mt-0.5">
         {commonStrings.eczemaCheck.reactionInstruction}
