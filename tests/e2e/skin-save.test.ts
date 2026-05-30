@@ -81,7 +81,8 @@ test('skin save: button disabled after save, only one observation written', asyn
   await expect(saveBtn).toBeDisabled();
 
   const count = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     return db.skin_observations.count();
   });
   expect(count).toBe(1);
@@ -123,7 +124,8 @@ test('skin date param: observation and photo persisted with explicit ?date=', as
   await expect(page).toHaveURL('/today');
 
   const result = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     const obs = await db.skin_observations.toArray();
     const photos = await db.photos.toArray();
     return {
@@ -146,7 +148,8 @@ test('skin save: notes text persists trimmed in IndexedDB', async ({ page }) => 
   await expect(page).toHaveURL('/today');
 
   const notes = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     const rows = await db.skin_observations.toArray();
     return rows[0]?.notes;
   });
@@ -164,7 +167,8 @@ test('skin save: whitespace-only notes persisted as undefined', async ({ page })
   await expect(page).toHaveURL('/today');
 
   const notes = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     const rows = await db.skin_observations.toArray();
     return rows[0]?.notes;
   });
@@ -182,7 +186,8 @@ test('skin save: observation persists to IndexedDB with correct shape', async ({
   await expect(page).toHaveURL('/today');
 
   const record = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     const rows = await db.skin_observations.toArray();
     if (rows.length !== 1) return null;
     const r = rows[0];
@@ -229,7 +234,8 @@ test('skin back chevron: does not persist observation when status was selected',
   await expect(page).toHaveURL('/today');
 
   const count = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     return db.skin_observations.count();
   });
   expect(count).toBe(0);
@@ -312,7 +318,8 @@ test('skin photo: two captures produce distinct records with matching date', asy
   await expect(page.getByText('Fotka pořízena (2)')).toBeVisible();
 
   const records = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     const photos = await db.photos.toArray();
     return photos.map((p: { id: string; date: string; blob?: { size: number } }) => ({ id: p.id, date: p.date, blobSize: p.blob?.size ?? 0 }));
   });
@@ -346,7 +353,8 @@ test('skin photo: captured photo persists in IndexedDB after capture', async ({ 
   await expect(page.getByText('Fotka pořízena (1)')).toBeVisible();
 
   const record = await page.evaluate(async () => {
-    const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
     const photos = await db.photos.toArray();
     if (photos.length !== 1) return null;
     const p = photos[0];
