@@ -314,7 +314,7 @@ test('skin photo: two captures produce distinct records with matching date', asy
   const records = await page.evaluate(async () => {
     const { db } = await import(/* @vite-ignore */ '/src/lib/db/atopic-db.ts');
     const photos = await db.photos.toArray();
-    return photos.map(p => ({ id: p.id, date: p.date, blobSize: p.blob?.size ?? 0 }));
+    return photos.map((p: { id: string; date: string; blob?: { size: number } }) => ({ id: p.id, date: p.date, blobSize: p.blob?.size ?? 0 }));
   });
 
   expect(records).toHaveLength(2);
