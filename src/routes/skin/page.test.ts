@@ -22,11 +22,25 @@ vi.mock('$lib/adapters/dexie-skin-observation-repository', () => ({
     listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
   })),
 }));
+
+// ── SkinPhotoStore mock ──────────────────────────────────────
+const mockPhotoSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+vi.mock('$lib/adapters/dexie-skin-photo-store', () => ({
+  DexieSkinPhotoStore: vi.fn().mockImplementation(() => ({
+    save: mockPhotoSave,
+    listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+  })),
+}));
+
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
 // ── Mutable page mock — lets tests control ?date= and ?returnTo= ──
 const mockPage = { url: new URL('http://localhost/skin') };
 vi.mock('$app/state', () => ({ page: mockPage }));
+
+function makeFile(name = 'photo.jpg'): File {
+  return new File(['image-data'], name, { type: 'image/jpeg' });
+}
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -69,6 +83,7 @@ function setReady(overrides: Partial<Omit<Extract<ScheduleContext, { status: 're
 beforeEach(() => {
   mockScheduleContext.set({ status: 'loading' });
   mockSave.mockClear();
+  mockPhotoSave.mockClear();
   mockPage.url = new URL('http://localhost/skin');
 });
 
@@ -165,5 +180,42 @@ describe('skin/+page.svelte', () => {
 
     const saved = mockSave.mock.calls[0][0];
     expect(saved.date).toBe(today);
+  });
+
+  // ── Photo capture (Slice 3c) ──────────────────────────────
+
+  it('capturing a file calls SkinPhotoStore.save with a non-null Blob', async () => {
+    setReady();
+    const { default: SkinPage } = await import('./+page.svelte');
+    const { getByLabelText } = render(SkinPage);
+    await tick();
+
+    const input = getByLabelText('Přidat fotku') as HTMLInputElement;
+    const file = makeFile();
+    await fireEvent.change(input, { target: { files: [file] } });
+    await tick();
+
+    expect(mockPhotoSave).toHaveBeenCalledOnce();
+    const saved = mockPhotoSave.mock.calls[0][0];
+    expect(saved.blob).not.toBeNull();
+    expect(saved.blob).toBeInstanceOf(Blob);
+  });
+
+  it('two captures in one session both persist', async () => {
+    setReady();
+    const { default: SkinPage } = await import('./+page.svelte');
+    const { getByLabelText } = render(SkinPage);
+    await tick();
+
+    const input = getByLabelText('Přidat fotku') as HTMLInputElement;
+
+    await fireEvent.change(input, { target: { files: [makeFile('a.jpg')] } });
+    await tick();
+    await fireEvent.change(input, { target: { files: [makeFile('b.jpg')] } });
+    await tick();
+
+    expect(mockPhotoSave).toHaveBeenCalledTimes(2);
+    expect(mockPhotoSave.mock.calls[0][0].blob).toBeInstanceOf(Blob);
+    expect(mockPhotoSave.mock.calls[1][0].blob).toBeInstanceOf(Blob);
   });
 });
