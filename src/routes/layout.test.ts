@@ -121,6 +121,15 @@ describe('+layout.svelte — bottom nav visibility', () => {
     expect(queryByText('Týden')).not.toBeInTheDocument();
   });
 
+  it('hides nav on /skin route', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/skin'), params: {}, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { queryByText } = await renderLayout();
+    await tick();
+    expect(queryByText('Dnes')).not.toBeInTheDocument();
+    expect(queryByText('Týden')).not.toBeInTheDocument();
+  });
+
   it('renders FAB when nav is visible', async () => {
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();

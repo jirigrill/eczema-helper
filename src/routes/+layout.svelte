@@ -16,7 +16,7 @@
   const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
   const isDetailScreen = $derived(
-    currentPath.startsWith('/meal') || currentPath.startsWith('/settings')
+    currentPath.startsWith('/meal') || currentPath.startsWith('/settings') || currentPath.startsWith('/skin')
   );
   const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
   const dnesActive = $derived(currentPath.startsWith('/today'));

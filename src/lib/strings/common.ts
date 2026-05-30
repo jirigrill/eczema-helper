@@ -250,6 +250,11 @@ export const commonStrings = {
     reasonBaby:          'alergie miminka',
   },
 
+  // ── Skin observation page ─────────────────────────────────
+  skin: {
+    heading: 'Záznam stavu kůže',
+  },
+
   // ── EczemaCheck component ──────────────────────────────────
   eczemaCheck: {
     heading:             'Stav kůže miminka',
