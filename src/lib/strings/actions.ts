@@ -38,6 +38,7 @@ export const actionStrings = {
   /** EczemaCheck / assessment flow */
   saveAssessment:     'Uložit hodnocení',
   savedAssessment:    '✓ Uloženo',
+  addPhoto:           'Přidat fotku',
   photoTaken:         'Fotka pořízena',
   markAsPhotographed: 'Označit jako vyfocenou',
 } as const;

@@ -9,11 +9,13 @@
     assessment = undefined,
     reintroductionAllergenId = null,
     onSave,
+    onPhotoCapture = undefined,
   }: {
     date: string;
     assessment?: SkinObservation | undefined;
     reintroductionAllergenId?: string | null;
     onSave: (a: SkinObservation) => void;
+    onPhotoCapture?: (blob: Blob) => void;
   } = $props();
 
   type Status = SkinObservation['status'];
@@ -28,7 +30,7 @@
 
   let selectedStatus = $state<Status | null>(assessment?.status ?? null);
   let notes = $state(assessment?.notes ?? '');
-  let photoTaken = $state(false);
+  let photoCount = $state(0);
   let saved = $state(!!assessment);
 
   const allergenCfg = $derived(reintroductionAllergenId ? categoryConfig[reintroductionAllergenId as ProtocolAllergenId] ?? null : null);
@@ -44,6 +46,14 @@
     };
     onSave(obs);
     saved = true;
+  }
+
+  function handleFileChange(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    onPhotoCapture?.(file);
+    photoCount += 1;
+    (e.target as HTMLInputElement).value = '';
   }
 </script>
 
@@ -84,6 +94,28 @@
     {/each}
   </div>
 
+  <!-- Photo capture — independent of status selection -->
+  <label
+    class="w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 cursor-pointer transition-all
+      {photoCount > 0
+        ? 'border-success/50 bg-success/5 text-success'
+        : 'bg-white border-surface-dark text-text-muted hover:border-primary/30'}"
+    data-state={photoCount > 0 ? 'success' : undefined}
+  >
+    <span class="text-xl leading-none">{photoCount > 0 ? '✅' : '📸'}</span>
+    <span class="text-sm font-medium">
+      {photoCount > 0 ? `${actionStrings.photoTaken} (${photoCount})` : actionStrings.addPhoto}
+    </span>
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      aria-label={actionStrings.addPhoto}
+      class="sr-only"
+      onchange={handleFileChange}
+    />
+  </label>
+
   {#if selectedStatus}
     <!-- Notes -->
     <textarea
@@ -93,22 +125,6 @@
       class="input-base w-full px-3 py-2 bg-surface resize-none"
       oninput={() => (saved = false)}
     ></textarea>
-
-    <!-- Photo toggle -->
-    <button
-      type="button"
-      data-state={photoTaken ? 'success' : undefined}
-      class="w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 transition-all
-        {photoTaken
-          ? ''
-          : 'bg-white border-surface-dark text-text-muted hover:border-primary/30'}"
-      onclick={() => { photoTaken = !photoTaken; saved = false; }}
-    >
-      <span class="text-xl leading-none">{photoTaken ? '✅' : '📸'}</span>
-      <span class="text-sm font-medium">
-        {photoTaken ? actionStrings.photoTaken : actionStrings.markAsPhotographed}
-      </span>
-    </button>
 
     <button
       class="w-full py-3 rounded-xl font-semibold text-sm transition-all
