@@ -26,6 +26,8 @@ export type ScheduleContext =
 	  };
 
 export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, (set) => {
+	let currentStatus: ScheduleContext['status'] = 'loading';
+
 	const subscription = liveQuery(async () => {
 		const [scheduleRow, answersRow] = await Promise.all([
 			db.schedule.get(SINGLETON_ID),
@@ -35,7 +37,23 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 	}).subscribe({
 		next: ({ scheduleRow, answersRow }) => {
 			if (!scheduleRow || !answersRow) {
-				set({ status: 'empty' });
+				if (currentStatus === 'ready') {
+					// liveQuery can fire transiently empty when an unrelated table (e.g. photos)
+					// is written. Re-query once to confirm the data is truly gone before
+					// transitioning away from 'ready' and triggering navigation.
+					void Promise.all([
+						db.schedule.get(SINGLETON_ID),
+						db.answers.get(SINGLETON_ID),
+					]).then(([s, a]) => {
+						if (!s || !a) {
+							currentStatus = 'empty';
+							set({ status: 'empty' });
+						}
+					});
+				} else {
+					currentStatus = 'empty';
+					set({ status: 'empty' });
+				}
 				return;
 			}
 
@@ -44,6 +62,7 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 			const today = todayIso();
 			const typedSchedule = schedule as GeneratedSchedule;
 
+			currentStatus = 'ready';
 			set({
 				status: 'ready',
 				schedule: typedSchedule,

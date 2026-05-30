@@ -95,25 +95,27 @@
   </div>
 
   <!-- Photo capture — independent of status selection -->
+  <input
+    id="photo-capture-input"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    aria-label={actionStrings.addPhoto}
+    class="sr-only"
+    onchange={handleFileChange}
+  />
   <label
+    for="photo-capture-input"
     class="w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 cursor-pointer transition-all
       {photoCount > 0
         ? 'border-success/50 bg-success/5 text-success'
         : 'bg-white border-surface-dark text-text-muted hover:border-primary/30'}"
-    data-state={photoCount > 0 ? 'success' : undefined}
+    data-photo-taken={photoCount > 0 ? 'true' : 'false'}
   >
     <span class="text-xl leading-none">{photoCount > 0 ? '✅' : '📸'}</span>
     <span class="text-sm font-medium">
       {photoCount > 0 ? `${actionStrings.photoTaken} (${photoCount})` : actionStrings.addPhoto}
     </span>
-    <input
-      type="file"
-      accept="image/*"
-      capture="environment"
-      aria-label={actionStrings.addPhoto}
-      class="sr-only"
-      onchange={handleFileChange}
-    />
   </label>
 
   {#if selectedStatus}
