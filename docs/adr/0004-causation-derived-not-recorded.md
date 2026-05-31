@@ -18,7 +18,7 @@ Causal reasoning lives in two other places:
   reakce, Jasná reakce, Silná reakce). The app may pre-suggest one based
   on the daily observations during the phase; it does not auto-select.
 - **Derived insight cards** — the "Souvislosti" panel surfaces computed
-  patterns across `(Meal, DailyAssessment)` pairs, e.g. "After dairy
+  patterns across `(Meal, SkinObservation)` pairs, e.g. "After dairy
   days, skin was worsened in 3 of 4 cases, reaction within 24 hours,"
   including counter-examples.
 
@@ -34,7 +34,7 @@ Three shapes were considered:
 **(c).** The user records only what they observe:
 
 - What was eaten (`Meal`).
-- What the skin looks like today (`DailyAssessment`: status, optional
+- What the skin looks like today (`SkinObservation`: status, optional
   notes, optional photo).
 - The allergen verdict at the end of a reintro phase
   (`ReintroductionEvaluation`).
@@ -45,7 +45,7 @@ query result and may be regenerated on demand.
 
 ## Consequences
 
-- `DailyAssessment` does not gain a `suspectedCause` field. Bad-day
+- `SkinObservation` does not gain a `suspectedCause` field. Bad-day
   logging stays low-friction: pick status, optionally jot a note,
   optionally take a photo. The same form on every day.
 - A new domain concept `Insight` is introduced as **derived data**: a
