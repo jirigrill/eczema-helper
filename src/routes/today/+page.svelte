@@ -13,7 +13,7 @@
   import ProgressBar from "$lib/components/ProgressBar.svelte";
   import { categoryStrings } from "$lib/strings/categories";
   import { actionStrings } from "$lib/strings/actions";
-  import { commonStrings, dayProgress } from "$lib/strings/common";
+  import { commonStrings, dayProgress, dnyCs } from "$lib/strings/common";
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { phaseConfig } from "$lib/config/phases";
   import { mealConfig } from "$lib/config/meals";
@@ -215,7 +215,7 @@
               {#if reminder.daysSinceLastDose >= 999}
                 — {commonStrings.today.reminderNeverDosed}
               {:else}
-                — {commonStrings.today.reminderOverdue} {reminder.daysSinceLastDose} dny
+                — {commonStrings.today.reminderOverdue} {dnyCs(reminder.daysSinceLastDose)}
               {/if}
             </div>
           </div>
