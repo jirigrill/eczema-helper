@@ -73,3 +73,26 @@ sourcing earns its keep against those problems; we do not have them.
   ID coordination.
 - The insight engine never touches Dexie. It receives plain arrays and
   returns `Insight[]`. This keeps it trivial to test.
+
+## Known gotcha — liveQuery transient-empty on unrelated writes
+
+`Dexie.liveQuery()` tracks which tables a query touches during its first
+run. A write to a *previously-unread* table (e.g. `photos`) can bump the
+internal version counter and cause a re-run that briefly returns stale or
+empty results.
+
+**Pattern:** any store that is backed by a `liveQuery` and has a meaningful
+`ready` state must guard against this. When the query fires empty while the
+store is already `ready`, re-query Dexie once before transitioning away:
+
+```ts
+if (!row && currentStatus === 'ready') {
+  void db.myTable.get(id).then((r) => {
+    if (!r) { currentStatus = 'empty'; set({ status: 'empty' }); }
+  });
+  return; // don't transition yet
+}
+```
+
+This guard is implemented in `src/lib/stores/schedule-context.ts` and
+covered by the `transient-empty` test in the colocated `.test.ts` file.
