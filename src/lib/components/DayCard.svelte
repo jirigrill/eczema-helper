@@ -14,7 +14,7 @@
 
 <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
   <div class="flex items-center justify-between mb-2">
-    <span class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">{label}</span>
+    <span class="section-label mb-0">{label}</span>
     {#if right}
       <span data-testid="day-card-right">{@render right()}</span>
     {/if}

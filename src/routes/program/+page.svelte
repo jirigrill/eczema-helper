@@ -255,6 +255,19 @@
   }
 </script>
 
+{#snippet skinOutcomes(assessments: { status: string }[])}
+  {@const improved   = assessments.filter(a => a.status === 'improved').length}
+  {@const unchanged  = assessments.filter(a => a.status === 'unchanged').length}
+  {@const worsened   = assessments.filter(a => a.status === 'worsened').length}
+  {@const newLesions = assessments.filter(a => a.status === 'new-lesions').length}
+  <div class="flex flex-wrap gap-2 text-text-muted">
+    {#if improved > 0}<span class="text-success font-medium">✓ {improved}{commonStrings.program.skinImprovedSuffix}</span>{/if}
+    {#if unchanged > 0}<span>— {unchanged}{commonStrings.program.skinUnchangedSuffix}</span>{/if}
+    {#if worsened > 0}<span class="text-warning font-medium">! {worsened}{commonStrings.program.skinWorsenedSuffix}</span>{/if}
+    {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}{commonStrings.program.skinNewLesionsSuffix}</span>{/if}
+  </div>
+{/snippet}
+
 <div class="page-container pb-24 space-y-4">
 
   {#if ctx.status === 'error'}
@@ -446,16 +459,7 @@
             {#if heroAssessments.length === 0}
               <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
             {:else}
-              {@const improved = heroAssessments.filter((a: { status: string }) => a.status === 'improved').length}
-              {@const unchanged = heroAssessments.filter((a: { status: string }) => a.status === 'unchanged').length}
-              {@const worsened = heroAssessments.filter((a: { status: string }) => a.status === 'worsened').length}
-              {@const newLesions = heroAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length}
-              <div class="flex flex-wrap gap-2 text-text-muted">
-                {#if improved > 0}<span class="text-success font-medium">✓ {improved}{commonStrings.program.skinImprovedSuffix}</span>{/if}
-                {#if unchanged > 0}<span>— {unchanged}{commonStrings.program.skinUnchangedSuffix}</span>{/if}
-                {#if worsened > 0}<span class="text-warning font-medium">! {worsened}{commonStrings.program.skinWorsenedSuffix}</span>{/if}
-                {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}{commonStrings.program.skinNewLesionsSuffix}</span>{/if}
-              </div>
+              {@render skinOutcomes(heroAssessments)}
             {/if}
           </div>
 
@@ -558,17 +562,8 @@
                   {#if phaseAssessments.length === 0}
                     <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
                   {:else}
-                    {@const improved = phaseAssessments.filter((a: { status: string }) => a.status === 'improved').length}
-                    {@const unchanged = phaseAssessments.filter((a: { status: string }) => a.status === 'unchanged').length}
-                    {@const worsened = phaseAssessments.filter((a: { status: string }) => a.status === 'worsened').length}
-                    {@const newLesions = phaseAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length}
-                    <div class="flex flex-wrap gap-2 text-text-muted">
-                      {#if improved > 0}<span class="text-success font-medium">✓ {improved}{commonStrings.program.skinImprovedSuffix}</span>{/if}
-                      {#if unchanged > 0}<span>— {unchanged}{commonStrings.program.skinUnchangedSuffix}</span>{/if}
-                      {#if worsened > 0}<span class="text-warning font-medium">! {worsened}{commonStrings.program.skinWorsenedSuffix}</span>{/if}
-                      {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}{commonStrings.program.skinNewLesionsSuffix}</span>{/if}
-                    </div>
-                    {#if (worsened > 0 || newLesions > 0) && phase.type === 'reintroduction'}
+                    {@render skinOutcomes(phaseAssessments)}
+                    {#if (phaseAssessments.filter((a: { status: string }) => a.status === 'worsened').length > 0 || phaseAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length > 0) && phase.type === 'reintroduction'}
                       {@const phaseCat = categoryConfig[phase.allergenIds[0]]}
                       <p class="text-text-muted mt-1">{commonStrings.program.possibleCausePrefix} {phaseCat?.icon} {phaseCat?.name ?? phase.allergenIds[0]}</p>
                     {/if}

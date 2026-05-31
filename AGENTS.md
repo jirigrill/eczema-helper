@@ -125,6 +125,7 @@ Before implementing any new UI element in a route:
 - `$props()`, `$state()`, `$derived()` runes. No legacy `$:` reactive statements.
 - Callback props (`onclick`, `onsubmit`), not `createEventDispatcher`.
 - Tailwind utility classes. Scoped `<style>` only when Tailwind can't express it.
+- **Snippets:** Use a file-local `{#snippet}` when the same template block appears more than once in the same file and extracting it as a component would be overkill (no reuse outside the file, no independent test value). Use a snippet prop (`children`, `right`, `action`, etc.) on a component when callers need to inject varying markup into a fixed shell. Extract a full component when the pattern appears across multiple files or carries its own logic worth testing in isolation.
 
 ### Testing
 

@@ -3,6 +3,7 @@
   import { commonStrings } from '$lib/strings/common';
   import type { SkinPhoto } from '$lib/domain/models';
   import type { SkinPhotoStore } from '$lib/domain/ports/skin-photo-store';
+  import DayCard from './DayCard.svelte';
 
   let { date, photoStore }: { date: string; photoStore: SkinPhotoStore } = $props();
 
@@ -28,21 +29,18 @@
   });
 </script>
 
-<div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
-  <div class="px-3.5 pt-3 pb-1 flex items-center justify-between">
-    <span class="section-label">{commonStrings.today.photoLabel}</span>
-  </div>
+<DayCard label={commonStrings.today.photoLabel}>
   {#if photos.length === 0}
-    <div class="px-3.5 pb-3 body-muted">{commonStrings.today.photoEmpty}</div>
+    <p class="body-muted">{commonStrings.today.photoEmpty}</p>
   {:else}
-    <div class="px-3.5 pb-3 grid grid-cols-3 gap-2">
+    <div class="grid grid-cols-3 gap-2">
       {#each photos as photo, i (photo.id)}
         <img
           src={objectUrls[i]}
           alt="Snímek kůže"
-          class="w-full aspect-square object-cover rounded-lg"
+          class="w-full aspect-square object-cover rounded-xl"
         />
       {/each}
     </div>
   {/if}
-</div>
+</DayCard>
