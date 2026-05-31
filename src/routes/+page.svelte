@@ -10,7 +10,6 @@
   import SummaryCard from '$lib/components/SummaryCard.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { generateSchedule } from '$lib/domain/schedule-builder';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
@@ -19,12 +18,7 @@
   import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
   import { phaseStrings } from '$lib/strings/phases';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-
-  const questionnaireRepo = new DexieQuestionnaireRepository(db);
-  const scheduleRepo = new DexieScheduleRepository(db);
+  import { protocolSession } from '$lib/stores/protocol-session';
 
   // ── Form state ────────────────────────────────────────────
   let step = $state(1);
@@ -91,11 +85,8 @@
       completedAt: new Date().toISOString(),
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
     });
-    const schedule = generateSchedule(answers);
-    const saveAnswers = await questionnaireRepo.save(answers);
-    if (!saveAnswers.ok) { saveError = saveAnswers.error; return; }
-    const saveSchedule = await scheduleRepo.save(schedule);
-    if (!saveSchedule.ok) { saveError = saveSchedule.error; return; }
+    const result = await protocolSession.startProtocol(answers);
+    if (!result.ok) { saveError = result.error; return; }
     goto('/today');
   }
 

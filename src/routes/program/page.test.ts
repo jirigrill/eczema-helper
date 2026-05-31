@@ -9,8 +9,14 @@ import { getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain
 
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 
-vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleContext: { subscribe: mockScheduleContext.subscribe },
+vi.mock('$lib/stores/protocol-session', () => ({
+  protocolSession: {
+    subscribe: mockScheduleContext.subscribe,
+    startProtocol: vi.fn(),
+    appendReTests: vi.fn(),
+    removeReTest: vi.fn(),
+    reset: vi.fn(),
+  },
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
