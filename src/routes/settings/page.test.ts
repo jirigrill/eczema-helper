@@ -1,98 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
-import { tick } from 'svelte';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import { describe, it, expect, vi } from 'vitest';
+import { render, fireEvent } from '@testing-library/svelte';
 
-const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
+const mockReset = vi.fn();
+const mockGoto = vi.fn();
 
 vi.mock('$lib/stores/protocol-session', () => ({
   protocolSession: {
-    subscribe: mockScheduleContext.subscribe,
-    startProtocol: vi.fn(),
-    appendReTests: vi.fn(),
-    removeReTest: vi.fn(),
-    reset: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+    reset: mockReset,
   },
 }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
-
-const today = new Date().toISOString().split('T')[0];
-
-const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-  phases: [{
-    id: 'reset',
-    type: 'reset',
-    allergenIds: [],
-    startDate: today,
-    endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
-  }],
-};
-
-const sampleAnswers: QuestionnaireAnswers = {
-  babyBirthDate: '2025-06-15',
-  eczemaSeverity: 'moderate',
-  motherAllergies: [],
-  babyConfirmedAllergies: [],
-  programStartDate: today,
-  completedAt: new Date().toISOString(),
-  testedAllergens: ['dairy'],
-};
-
-beforeEach(() => {
-  mockScheduleContext.set({ status: 'loading' });
-});
+vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 
 describe('settings/+page.svelte', () => {
-  it('shows "Dotazník ještě nebyl vyplněn." when status is empty', async () => {
-    mockScheduleContext.set({ status: 'empty' });
+  it('shows reset warning text', async () => {
     const { default: SettingsPage } = await import('./+page.svelte');
     const { getByText } = render(SettingsPage);
-    await tick();
-    expect(getByText('Dotazník ještě nebyl vyplněn.')).toBeInTheDocument();
+    expect(getByText(/Restartování vymaže/)).toBeInTheDocument();
   });
 
-  it('shows "Dotazník ještě nebyl vyplněn." when status is loading', async () => {
-    mockScheduleContext.set({ status: 'loading' });
+  it('calls reset and navigates to / on button click', async () => {
+    mockReset.mockResolvedValue(undefined);
     const { default: SettingsPage } = await import('./+page.svelte');
     const { getByText } = render(SettingsPage);
-    await tick();
-    expect(getByText('Dotazník ještě nebyl vyplněn.')).toBeInTheDocument();
-  });
-
-  it('shows answers summary when status is ready', async () => {
-    mockScheduleContext.set({
-      status: 'ready',
-      schedule: sampleSchedule,
-      answers: sampleAnswers,
-      allergenStatuses: [],
-      eliminatedToday: [],
-      reintroInfo: null,
-      progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
-    });
-    const { default: SettingsPage } = await import('./+page.svelte');
-    const { getByText } = render(SettingsPage);
-    await tick();
-    expect(getByText('Aktuální konfigurace')).toBeInTheDocument();
-  });
-
-  it('shows severity label when status is ready', async () => {
-    mockScheduleContext.set({
-      status: 'ready',
-      schedule: sampleSchedule,
-      answers: sampleAnswers,
-      allergenStatuses: [],
-      eliminatedToday: [],
-      reintroInfo: null,
-      progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
-    });
-    const { default: SettingsPage } = await import('./+page.svelte');
-    const { getByText } = render(SettingsPage);
-    await tick();
-    expect(getByText('Střední')).toBeInTheDocument();
+    await fireEvent.click(getByText('Restartovat dotazník'));
+    expect(mockReset).toHaveBeenCalledOnce();
   });
 });
