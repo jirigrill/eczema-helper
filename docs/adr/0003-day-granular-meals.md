@@ -13,7 +13,7 @@ the model conflates "when I ate this" with "when I tapped save."
 A real elimination-diet protocol could in principle care about
 hour-level timing — breastmilk allergen transit is roughly 2–6 hours.
 But the rest of the codebase already operates at day granularity:
-`SchedulePhase`, `DailyAssessment`, and `ReintroductionEvaluation` are
+`SchedulePhase`, `SkinObservation`, and `ReintroductionEvaluation` are
 all date-keyed.
 
 Three shapes considered:
