@@ -5,7 +5,8 @@
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
   import ErrorAlert from "$lib/components/error-alert.svelte";
-  import EmptyStateCard from "$lib/components/EmptyStateCard.svelte";
+  import SkinObservationCard from "$lib/components/SkinObservationCard.svelte";
+  import SkinPhotoCard from "$lib/components/SkinPhotoCard.svelte";
   import AllergenChip from "$lib/components/AllergenChip.svelte";
   import PhaseBadge from "$lib/components/PhaseBadge.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
@@ -189,15 +190,11 @@
         <div class="text-[10px] text-text-muted font-bold tracking-wide">0 / 3</div>
       </div>
 
-      <!-- Stav ekzému — stub (slice 3) -->
-      <EmptyStateCard label={commonStrings.today.eczemaStatusLabel} status={commonStrings.today.eczemaStatusValue}>
-        <div class="body-muted">{commonStrings.today.eczemaStatusEmpty}</div>
-      </EmptyStateCard>
+      <!-- Stav ekzému — live card (slice 3d) -->
+      <SkinObservationCard date={today} />
 
-      <!-- Foto kůže — stub (slice 3) -->
-      <EmptyStateCard label={commonStrings.today.photoLabel} status={commonStrings.today.photoStatusValue}>
-        <div class="body-muted">{commonStrings.today.photoEmpty}</div>
-      </EmptyStateCard>
+      <!-- Foto kůže — live card (slice 3d) -->
+      <SkinPhotoCard date={today} />
 
       <!-- Smím / Vyhýbej se -->
       <div

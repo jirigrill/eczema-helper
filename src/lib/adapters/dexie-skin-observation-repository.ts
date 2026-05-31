@@ -1,3 +1,5 @@
+import { liveQuery } from 'dexie';
+import type { Observable } from 'dexie';
 import type { SkinObservation } from '$lib/domain/models';
 import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
 import type { Result } from '$lib/types/result';
@@ -22,5 +24,9 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
+  }
+
+  liveQueryByDate(date: string): Observable<SkinObservation[]> {
+    return liveQuery(() => this.db.skin_observations.where('date').equals(date).toArray());
   }
 }

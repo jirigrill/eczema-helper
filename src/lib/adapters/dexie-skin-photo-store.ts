@@ -1,3 +1,5 @@
+import { liveQuery } from 'dexie';
+import type { Observable } from 'dexie';
 import type { SkinPhoto } from '$lib/domain/models';
 import type { SkinPhotoStore } from '$lib/domain/ports/skin-photo-store';
 import type { Result } from '$lib/types/result';
@@ -22,5 +24,9 @@ export class DexieSkinPhotoStore implements SkinPhotoStore {
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
+  }
+
+  liveQueryByDate(date: string): Observable<SkinPhoto[]> {
+    return liveQuery(() => this.db.photos.where('date').equals(date).toArray());
   }
 }

@@ -344,6 +344,17 @@ test('skin photo: two captures increment counter to (2)', async ({ page }) => {
   await expect(page.getByText('Fotka pořízena (2)')).toBeVisible();
 });
 
+test('skin save: observation appears in SkinObservationCard on /today after saving', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+
+  await page.getByRole('button', { name: 'Zlepšení' }).click();
+  await page.getByRole('button', { name: 'Uložit hodnocení' }).click();
+
+  await expect(page).toHaveURL('/today');
+  await expect(page.getByText('Zlepšení')).toBeVisible();
+});
+
 test('skin photo: captured photo persists in IndexedDB after capture', async ({ page }) => {
   await completeOnboarding(page);
   const today = new Date().toISOString().split('T')[0];
