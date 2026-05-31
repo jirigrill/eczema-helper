@@ -210,6 +210,15 @@ a stored field.
 `QuestionnaireAnswers` + derived protocol values consumed by all routes. Discriminated
 union: `loading | empty | ready | error`.
 
+### protocolSession
+
+The unified module (`src/lib/stores/protocol-session.ts`) that owns **both** reads and
+writes for the protocol seam. Exposes a `subscribe` function (delegating to
+`scheduleContext`) plus four write operations: `startProtocol(answers)`,
+`appendReTests(slugs, today)`, `removeReTest(allergenId, today)`, `reset()`. Routes that
+mutate protocol state import `protocolSession` instead of instantiating adapters
+directly. Routes that only read may still import `scheduleContext`.
+
 ### EczemaSeverity
 *Czech: Závažnost ekzému*
 

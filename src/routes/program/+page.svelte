@@ -5,13 +5,10 @@
   import type { AllergenStatusValue, ProtocolAllergenId, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
   import { getAllergenStatuses } from '$lib/domain/allergen-status';
-  import { appendReTestPhases, removeReTestPhase } from '$lib/domain/schedule-builder';
   import { categoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
   import { addDays, formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-  import { scheduleContext } from '$lib/stores/schedule-context';
+  import { protocolSession } from '$lib/stores/protocol-session';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
@@ -31,8 +28,6 @@
     deviationsMore,
   } from '$lib/strings/common';
 
-  const scheduleRepo = new DexieScheduleRepository(db);
-
   let showToast = $state(false);
   let toastMessage = $state(commonStrings.program.toastComingSoon);
   let toastType = $state<'info' | 'success' | 'warning' | 'error'>('info');
@@ -44,7 +39,7 @@
   let evaluations = $state<import('$lib/domain/models').ReintroductionEvaluation[]>([]);
 
   const today = $derived(todayIso());
-  const ctx = $derived($scheduleContext);
+  const ctx = $derived($protocolSession);
   const schedule = $derived(ctx.status === 'ready' ? ctx.schedule : null);
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const currentPhase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
@@ -119,7 +114,7 @@
 
   async function addRetestPhases() {
     if (!schedule || selectedRetestSlugs.length === 0) return;
-    const retestResult = appendReTestPhases(schedule, selectedRetestSlugs, today);
+    const retestResult = await protocolSession.appendReTests(selectedRetestSlugs, today);
     if (!retestResult.ok) {
       const { code, invalidIds } = retestResult.error;
       const names = invalidIds.map(id => categoryConfig[id as ProtocolAllergenId]?.name ?? id).join(', ');
@@ -139,16 +134,14 @@
       showToast = true;
       return;
     }
-    const saveResult = await scheduleRepo.save(retestResult.data);
-    if (!saveResult.ok) { toastMessage = saveResult.error; toastType = 'error'; showToast = true; return; }
     selectedRetestSlugs = [];
   }
 
   async function cancelRetestPhase(allergenId: string) {
     if (!schedule) return;
-    const result = removeReTestPhase(schedule, allergenId, today);
+    const result = await protocolSession.removeReTest(allergenId, today);
     if (!result.ok) {
-      toastMessage = result.error.code === 'protocol-phase'
+      toastMessage = result.error === 'protocol-phase'
         ? commonStrings.program.toastCannotCancelProtocol
         : commonStrings.program.toastRetestNotFound;
       toastType = 'error';
@@ -156,8 +149,6 @@
       showToast = true;
       return;
     }
-    const saveResult = await scheduleRepo.save(result.data);
-    if (!saveResult.ok) { toastMessage = saveResult.error; toastType = 'error'; toastUndo = undefined; showToast = true; return; }
     toastMessage = commonStrings.program.toastRetestCancelled;
     toastType = 'success';
     toastUndo = undefined;

@@ -8,13 +8,12 @@
   import { commonStrings, schedulePhaseSummary } from '$lib/strings/common';
   import type { ProtocolAllergenId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
-  import { db } from '$lib/db/atopic-db';
-  import { scheduleContext } from '$lib/stores/schedule-context';
+  import { protocolSession } from '$lib/stores/protocol-session';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SummaryCard from '$lib/components/SummaryCard.svelte';
   import Button from '$lib/components/Button.svelte';
 
-  const ctx = $derived($scheduleContext);
+  const ctx = $derived($protocolSession);
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const schedule = $derived(ctx.status === 'ready' ? ctx.schedule : null);
 
@@ -26,7 +25,7 @@
   }
 
   async function resetPrototype() {
-    await Promise.all([db.answers.clear(), db.schedule.clear()]);
+    await protocolSession.reset();
     goto('/');
   }
 </script>
