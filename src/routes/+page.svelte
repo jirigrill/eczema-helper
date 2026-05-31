@@ -108,7 +108,7 @@
   }
 
   function slugsToNames(slugs: string[]): string {
-    if (slugs.length === 0) return commonStrings.settings.noneLabel;
+    if (slugs.length === 0) return commonStrings.onboarding.noneLabel;
     return slugs.map(s => {
       if (s.startsWith('other:')) return s.slice(6);
       if (s.includes(':')) {

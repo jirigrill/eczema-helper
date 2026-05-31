@@ -17,7 +17,6 @@ export {
   toastRetestAlreadyScheduled,
   dayProgress,
   phaseProgressLabel,
-  schedulePhaseSummary,
   phasesDoneAt,
   phasesCompletedSummary,
   deviationsCount,

@@ -55,20 +55,8 @@ export const commonStrings = {
 
   // ── Settings page ─────────────────────────────────────────
   settings: {
-    heading:          'Nastavení',
-    prototypeHeading: 'Nastavení prototypu',
-    prototypeSubtitle:'Souhrn aktuální konfigurace a možnost restartu',
-    currentConfig:    'Aktuální konfigurace',
-    noAnswers:        'Dotazník ještě nebyl vyplněn.',
-    programLabel:     'Program',
-    mealsCountHtml:   'Zapsáno jídel: <strong>0</strong>',
-    resetWarning:     'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
-    noneLabel:        'žádné',
-    severityLabel: {
-      mild:     'Mírná',
-      moderate: 'Střední',
-      severe:   'Těžká',
-    } as Record<string, string>,
+    heading:      'Nastavení',
+    resetWarning: 'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
   },
 
   // ── Onboarding questionnaire ───────────────────────────────
@@ -122,7 +110,6 @@ export const commonStrings = {
     // Step 6 — Summary
     step6Heading:      'Shrnutí',
     step6Subtitle:     'Zkontrolujte odpovědi před spuštěním programu',
-    summaryBabyLabel:         'Miminko',
     summaryMotherLabel:       'Moje alergie',
     summaryBabyAllergiesLabel:'Potvrzené alergie miminka',
     summaryBirthLabel:        'Narození',
@@ -136,6 +123,7 @@ export const commonStrings = {
       '<em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny',
     summaryReintroPrefix: 'Znovuzavedení',
     everyLabel:           'každý',
+    noneLabel:            'žádné',
   },
 
   // ── Meal logging page ─────────────────────────────────────
@@ -372,11 +360,6 @@ export function phaseProgressLabel(current: number, total: number | null, date: 
   return total != null
     ? `den ${current} z ${total} · ${date}`
     : `den ${current} · ${date}`;
-}
-
-/** "Celkem {count} fází · do {formattedDate}" — settings schedule summary */
-export function schedulePhaseSummary(count: number, formattedDate: string): string {
-  return `Celkem ${count} fází · do ${formattedDate}`;
 }
 
 /** "{count} fází · {formattedDate}" — program done-at line */
