@@ -265,7 +265,7 @@ describe('today/+page.svelte', () => {
     expect(getByText('Brambory')).toBeInTheDocument();
   });
 
-  it('shows empty-state for meals when live query returns no meals', async () => {
+  it('shows "Zatím žádný záznam." when live query returns no meals', async () => {
     liveMeals = [];
 
     mockScheduleContext.set(readyContext);
@@ -274,5 +274,79 @@ describe('today/+page.svelte', () => {
     await tick();
 
     expect(getByText('Zatím žádný záznam.')).toBeInTheDocument();
+  });
+
+  // ── Slice 3e: tolerance-building reminders ────────────────
+
+  const trainingPhase = {
+    id: 'training-dairy',
+    type: 'tolerance-building' as const,
+    allergenIds: ['dairy' as const],
+    startDate: today,
+    endDate: '',
+  };
+
+  const trainingSchedule: GeneratedSchedule = {
+    permanentMother: [], permanentBaby: [],
+    startDate: today,
+    estimatedEndDate: futureDate,
+    phases: [trainingPhase],
+  };
+
+  const trainingContext: ScheduleContext = {
+    ...readyContext,
+    schedule: trainingSchedule,
+  };
+
+  it('shows tolerance reminder when training phase is active and allergen never dosed', async () => {
+    liveMeals = [];
+    mockScheduleContext.set(trainingContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { container } = render(TodayPage);
+    await tick();
+
+    const reminders = container.querySelectorAll('[data-testid="tolerance-reminder"]');
+    expect(reminders).toHaveLength(1);
+  });
+
+  it('shows reminder label "Trénink tolerance" when reminder is active', async () => {
+    liveMeals = [];
+    mockScheduleContext.set(trainingContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { getAllByText } = render(TodayPage);
+    await tick();
+
+    expect(getAllByText('Trénink tolerance').length).toBeGreaterThan(0);
+  });
+
+  it('shows no reminder when training phase is active but allergen was dosed today', async () => {
+    liveMeals = [
+      {
+        id: `${today}:lunch`,
+        date: today,
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Mléko', allergenId: 'dairy', amount: 'portion' }],
+        createdAt: `${today}T12:00:00.000Z`,
+      } satisfies Meal,
+    ];
+    mockScheduleContext.set(trainingContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { container } = render(TodayPage);
+    await tick();
+
+    const reminders = container.querySelectorAll('[data-testid="tolerance-reminder"]');
+    expect(reminders).toHaveLength(0);
+  });
+
+  it('shows no tolerance reminder when no training phase is active', async () => {
+    liveMeals = [];
+    mockScheduleContext.set(readyContext); // sampleSchedule only has a reset phase
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { container } = render(TodayPage);
+    await tick();
+
+    const reminders = container.querySelectorAll('[data-testid="tolerance-reminder"]');
+    expect(reminders).toHaveLength(0);
   });
 });
