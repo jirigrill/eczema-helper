@@ -11,6 +11,10 @@ vi.mock('$lib/stores/schedule-context', () => ({
   scheduleContext: { subscribe: mockScheduleContext.subscribe },
 }));
 
+// jsdom doesn't implement URL.createObjectURL — stub for SkinPhotoCard
+global.URL.createObjectURL = vi.fn(() => 'blob:mock');
+global.URL.revokeObjectURL = vi.fn();
+
 // ── liveQuery mock ────────────────────────────────────────────
 // liveQuery is Dexie's reactive query primitive. We mock it here so the
 // today page's meal list can be driven by test data without a real IndexedDB.
@@ -144,7 +148,7 @@ describe('today/+page.svelte', () => {
     expect(getByText('0 / 3')).toBeInTheDocument();
   });
 
-  it('shows all three stub cards when status is ready', async () => {
+  it('shows skin and meal section labels when status is ready', async () => {
     mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
     const { getByText } = render(TodayPage);
@@ -152,6 +156,38 @@ describe('today/+page.svelte', () => {
     expect(getByText('Stav ekzému')).toBeInTheDocument();
     expect(getByText('Foto kůže')).toBeInTheDocument();
     expect(getByText('Dnešní jídla')).toBeInTheDocument();
+  });
+
+  // ── Slice 3d: SkinObservationCard + SkinPhotoCard replace stubs ──
+
+  it('does not render dashed-border EmptyStateCard stubs for skin sections', async () => {
+    mockScheduleContext.set(readyContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { container } = render(TodayPage);
+    await tick();
+    // EmptyStateCard uses a dashed border; after slice 3d, the skin cards must not use it
+    const dashedCards = Array.from(
+      container.querySelectorAll('.border-dashed')
+    );
+    // None of the dashed-border elements should carry a skin section label
+    const skinLabels = ['Stav ekzému', 'Foto kůže'];
+    for (const card of dashedCards) {
+      for (const label of skinLabels) {
+        expect(card.textContent).not.toContain(label);
+      }
+    }
+  });
+
+  it('SkinObservationCard and SkinPhotoCard are rendered on the today page', async () => {
+    mockScheduleContext.set(readyContext);
+    const { default: TodayPage } = await import('./+page.svelte');
+    const { container } = render(TodayPage);
+    await tick();
+    // Both cards use a solid (not dashed) border and carry their section label
+    const allLabels = Array.from(container.querySelectorAll('.section-label'))
+      .map((el) => el.textContent?.trim());
+    expect(allLabels).toContain('Stav ekzému');
+    expect(allLabels).toContain('Foto kůže');
   });
 
   it('shows bottom hint when status is ready', async () => {
