@@ -44,7 +44,6 @@ export const commonStrings = {
     reminderLabel:     'Trénink tolerance',
     reminderNeverDosed:'Ještě jsi nezkoušela.',
     reminderOverdue:   'Naposledy před',
-    reminderDays:      'dny/dní',
   },
 
   // ── Week page ─────────────────────────────────────────────
@@ -284,7 +283,7 @@ export const commonStrings = {
 /** Czech pluralisation: days */
 export function dnyCs(n: number): string {
   if (n === 1) return '1 den';
-  if (n <= 4) return `${n} dny`;
+  if (n >= 2 && n <= 4) return `${n} dny`;
   return `${n} dní`;
 }
 
