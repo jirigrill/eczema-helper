@@ -4,6 +4,7 @@
   import type { Meal } from "$lib/domain/models";
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
+  import { getToleranceBuildingRemindersForDate } from "$lib/domain/schedule-builder";
   import ErrorAlert from "$lib/components/error-alert.svelte";
   import SkinObservationCard from "$lib/components/SkinObservationCard.svelte";
   import SkinPhotoCard from "$lib/components/SkinPhotoCard.svelte";
@@ -40,6 +41,11 @@
 
   const ctx = $derived($scheduleContext);
   const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
+  const toleranceReminders = $derived(
+    ctx.status === 'ready'
+      ? getToleranceBuildingRemindersForDate(ctx.schedule, today, todayMeals)
+      : []
+  );
   const protocolSlugs = $derived(
     ctx.status === 'ready'
       ? (ctx.schedule.phases.find((p) => p.type === "elimination")?.allergenIds ?? [])
@@ -189,6 +195,27 @@
         <div class="text-[12px] text-text">{commonStrings.today.counterHint}</div>
         <div class="text-[10px] text-text-muted font-bold tracking-wide">0 / 3</div>
       </div>
+
+      <!-- Tolerance-building reminders (slice 3e) -->
+      {#each toleranceReminders as reminder (reminder.allergenId)}
+        {@const cat = categoryConfig[reminder.allergenId]}
+        <div class="bg-white border border-warning/40 rounded-2xl px-3.5 py-3 flex items-center gap-3" data-testid="tolerance-reminder">
+          <span class="text-xl shrink-0">{cat?.icon ?? '🍽'}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[10px] font-extrabold tracking-wider text-warning uppercase mb-0.5">
+              {commonStrings.today.reminderLabel}
+            </div>
+            <div class="text-[12px] text-text">
+              {cat?.name ?? reminder.allergenId}
+              {#if reminder.daysSinceLastDose >= 999}
+                — {commonStrings.today.reminderNeverDosed}
+              {:else}
+                — {commonStrings.today.reminderOverdue} {reminder.daysSinceLastDose} dny
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/each}
 
       <!-- Stav ekzému — live card (slice 3d) -->
       <SkinObservationCard date={today} />
