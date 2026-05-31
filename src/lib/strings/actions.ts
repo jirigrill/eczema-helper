@@ -40,5 +40,4 @@ export const actionStrings = {
   savedAssessment:    '✓ Uloženo',
   addPhoto:           'Přidat fotku',
   photoTaken:         'Fotka pořízena',
-  markAsPhotographed: 'Označit jako vyfocenou',
 } as const;
