@@ -21,6 +21,11 @@
   import { categoryConfig } from "$lib/config/categories";
   import type { MealType, ProtocolAllergenId } from "$lib/domain/models";
   import { db } from "$lib/db/atopic-db";
+  import { DexieSkinObservationRepository } from "$lib/adapters/dexie-skin-observation-repository";
+  import { DexieSkinPhotoStore } from "$lib/adapters/dexie-skin-photo-store";
+
+  const repo = new DexieSkinObservationRepository(db);
+  const photoStore = new DexieSkinPhotoStore(db);
 
   const today = todayIso();
   const mealTypeOrder: MealType[] = ['breakfast', 'lunch', 'snack', 'dinner'];
@@ -218,10 +223,10 @@
       {/each}
 
       <!-- Stav ekzému — live card (slice 3d) -->
-      <SkinObservationCard date={today} />
+      <SkinObservationCard date={today} {repo} />
 
       <!-- Foto kůže — live card (slice 3d) -->
-      <SkinPhotoCard date={today} />
+      <SkinPhotoCard date={today} {photoStore} />
 
       <!-- Smím / Vyhýbej se -->
       <div

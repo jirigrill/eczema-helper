@@ -1,21 +1,17 @@
 <script lang="ts">
-  import { liveQuery } from 'dexie';
   import { onMount } from 'svelte';
-  import { db } from '$lib/db/atopic-db';
   import { commonStrings } from '$lib/strings/common';
   import type { SkinPhoto } from '$lib/domain/models';
+  import type { SkinPhotoStore } from '$lib/domain/ports/skin-photo-store';
 
-  let { date }: { date: string } = $props();
+  let { date, photoStore }: { date: string; photoStore: SkinPhotoStore } = $props();
 
   let photos = $state<SkinPhoto[]>([]);
   let objectUrls = $state<string[]>([]);
 
   onMount(() => {
-    const subscription = liveQuery(() =>
-      db.photos.where('date').equals(date).toArray()
-    ).subscribe({
+    const subscription = photoStore.liveQueryByDate(date).subscribe({
       next: (rows) => {
-        // Revoke previous URLs before creating new ones
         for (const url of objectUrls) URL.revokeObjectURL(url);
         photos = rows ?? [];
         objectUrls = photos.map((p) => URL.createObjectURL(p.blob));

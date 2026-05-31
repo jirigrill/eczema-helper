@@ -1,29 +1,35 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
+import type { Observable } from 'dexie';
 import type { SkinObservation } from '$lib/domain/models';
+import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
+import SkinObservationCard from './SkinObservationCard.svelte';
 
-// ── liveQuery mock ────────────────────────────────────────────
-// SkinObservationCard drives its list via liveQuery. We intercept it here
-// so tests can push data without a real IndexedDB.
-let liveObservations: SkinObservation[] = [];
+// jsdom doesn't implement URL.createObjectURL
+global.URL.createObjectURL = vi.fn(() => 'blob:mock');
+global.URL.revokeObjectURL = vi.fn();
 
-vi.mock('dexie', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('dexie')>();
+// ── Fake repo ─────────────────────────────────────────────────
+// Returns a SkinObservationRepository whose liveQueryByDate emits
+// `rows` synchronously — no real IndexedDB needed.
+function makeObservable<T>(rows: T): Observable<T> {
   return {
-    ...actual,
-    liveQuery: vi.fn(() => ({
-      subscribe(observer: { next: (v: SkinObservation[]) => void; error?: (e: unknown) => void }) {
-        observer.next(liveObservations);
-        return { unsubscribe: () => {} };
-      },
-    })),
+    subscribe(observer: unknown) {
+      const obs = observer as { next: (v: T) => void };
+      obs.next(rows);
+      return { unsubscribe: () => {}, closed: false };
+    },
+  } as unknown as Observable<T>;
+}
+
+function makeFakeRepo(rows: SkinObservation[]): SkinObservationRepository {
+  return {
+    save: vi.fn(async () => ({ ok: true as const, data: undefined })),
+    listByDate: vi.fn(async () => ({ ok: true as const, data: rows })),
+    liveQueryByDate: () => makeObservable(rows),
   };
-});
-
-vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
-
-// ─────────────────────────────────────────────────────────────
+}
 
 function makeObservation(overrides?: Partial<SkinObservation>): SkinObservation {
   return {
@@ -35,51 +41,44 @@ function makeObservation(overrides?: Partial<SkinObservation>): SkinObservation 
   };
 }
 
-beforeEach(() => {
-  liveObservations = [];
-});
+// ─────────────────────────────────────────────────────────────
 
 describe('SkinObservationCard', () => {
   it('shows empty-state text when no observations for the date', async () => {
-    liveObservations = [];
-    const { default: SkinObservationCard } = await import('./SkinObservationCard.svelte');
-    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31' } });
+    const repo = makeFakeRepo([]);
+    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31', repo } });
     await tick();
     expect(getByText('Zatím není záznam pro dnešek.')).toBeInTheDocument();
   });
 
   it('renders a saved observation status label', async () => {
-    liveObservations = [makeObservation({ status: 'improved' })];
-    const { default: SkinObservationCard } = await import('./SkinObservationCard.svelte');
-    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31' } });
+    const repo = makeFakeRepo([makeObservation({ status: 'improved' })]);
+    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31', repo } });
     await tick();
     expect(getByText('Zlepšení')).toBeInTheDocument();
   });
 
   it('renders observation notes when present', async () => {
-    liveObservations = [makeObservation({ notes: 'rash on left arm' })];
-    const { default: SkinObservationCard } = await import('./SkinObservationCard.svelte');
-    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31' } });
+    const repo = makeFakeRepo([makeObservation({ notes: 'rash on left arm' })]);
+    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31', repo } });
     await tick();
     expect(getByText('rash on left arm')).toBeInTheDocument();
   });
 
   it('renders multiple observations for the same date', async () => {
-    liveObservations = [
-      makeObservation({ id: 'obs-1', status: 'improved', createdAt: '2026-05-31T08:00:00.000Z' }),
-      makeObservation({ id: 'obs-2', status: 'worsened', createdAt: '2026-05-31T18:00:00.000Z' }),
-    ];
-    const { default: SkinObservationCard } = await import('./SkinObservationCard.svelte');
-    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31' } });
+    const repo = makeFakeRepo([
+      makeObservation({ id: 'obs-1', status: 'improved' }),
+      makeObservation({ id: 'obs-2', status: 'worsened' }),
+    ]);
+    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31', repo } });
     await tick();
     expect(getByText('Zlepšení')).toBeInTheDocument();
     expect(getByText('Zhoršení')).toBeInTheDocument();
   });
 
   it('shows the section label "Stav ekzému"', async () => {
-    liveObservations = [];
-    const { default: SkinObservationCard } = await import('./SkinObservationCard.svelte');
-    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31' } });
+    const repo = makeFakeRepo([]);
+    const { getByText } = render(SkinObservationCard, { props: { date: '2026-05-31', repo } });
     await tick();
     expect(getByText('Stav ekzému')).toBeInTheDocument();
   });

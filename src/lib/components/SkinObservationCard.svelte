@@ -1,20 +1,17 @@
 <script lang="ts">
-  import { liveQuery } from 'dexie';
   import { onMount } from 'svelte';
-  import { db } from '$lib/db/atopic-db';
   import { commonStrings } from '$lib/strings/common';
   import type { SkinObservation } from '$lib/domain/models';
+  import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
 
-  let { date }: { date: string } = $props();
+  let { date, repo }: { date: string; repo: SkinObservationRepository } = $props();
 
   const statusLabels: Record<SkinObservation['status'], string> = commonStrings.program.skinOutcomes;
 
   let observations = $state<SkinObservation[]>([]);
 
   onMount(() => {
-    const subscription = liveQuery(() =>
-      db.skin_observations.where('date').equals(date).toArray()
-    ).subscribe({
+    const subscription = repo.liveQueryByDate(date).subscribe({
       next: (rows) => { observations = rows ?? []; },
       error: () => { observations = []; },
     });
