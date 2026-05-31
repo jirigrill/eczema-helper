@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 
 import { db, SINGLETON_ID } from '$lib/db/atopic-db';
 import type { QuestionnaireAnswers, GeneratedSchedule, SkinPhoto } from '$lib/domain/models';
@@ -30,6 +30,10 @@ async function tick(ms = 80): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
 }
 
+async function clearDb(): Promise<void> {
+  await Promise.all([db.schedule.clear(), db.answers.clear(), db.photos.clear()]);
+}
+
 async function waitForStatus(
   store: { subscribe: (cb: (v: { status: string }) => void) => () => void },
   status: string,
@@ -59,6 +63,9 @@ async function seedDb(): Promise<void> {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('scheduleContext', () => {
+  afterEach(async () => {
+    await clearDb();
+  });
   it('transitions to ready when schedule and answers exist', async () => {
     await seedDb();
     const { scheduleContext } = await import('./schedule-context');
