@@ -125,6 +125,9 @@ export const commonStrings = {
     summaryBabyLabel:         'Miminko',
     summaryMotherLabel:       'Moje alergie',
     summaryBabyAllergiesLabel:'Potvrzené alergie miminka',
+    summaryBirthLabel:        'Narození',
+    summarySeverityLabel:     'Závažnost',
+    summaryStartEndLabel:     'Start · konec',
     summaryAge:        'Věk',
     summarySeverity:   'Závažnost',
     summaryStart:      'Začátek',
@@ -318,6 +321,20 @@ export function polozkaWordCs(n: number): string {
 /** "Přidat testovací fáze (n)" */
 export function addRetestPhasesLabel(n: number): string {
   return `Přidat testovací fáze (${n})`;
+}
+
+/** Czech pluralisation: skin observation count — "1 záznam", "2 záznamy", "5 záznamů" */
+export function zaznamyCs(n: number): string {
+  if (n === 1) return '1 záznam';
+  if (n >= 2 && n <= 4) return `${n} záznamy`;
+  return `${n} záznamů`;
+}
+
+/** Czech pluralisation: photo count — "1 snímek", "2 snímky", "5 snímků" */
+export function snimkyCs(n: number): string {
+  if (n === 1) return '1 snímek';
+  if (n >= 2 && n <= 4) return `${n} snímky`;
+  return `${n} snímků`;
 }
 
 /** "Pokračovat (n alergenů)" — onboarding continue with selection count */

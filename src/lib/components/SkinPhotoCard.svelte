@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { commonStrings } from '$lib/strings/common';
+  import { createRawSnippet } from 'svelte';
+  import { commonStrings, snimkyCs } from '$lib/strings/common';
   import type { SkinPhoto } from '$lib/domain/models';
   import type { SkinPhotoStore } from '$lib/domain/ports/skin-photo-store';
   import DayCard from './DayCard.svelte';
@@ -27,9 +28,17 @@
       for (const url of objectUrls) URL.revokeObjectURL(url);
     };
   });
+
+  const countSnippet = $derived(
+    photos.length > 0
+      ? createRawSnippet(() => ({
+          render: () => `<span class="text-[10px] text-text-muted">${snimkyCs(photos.length)}</span>`,
+        }))
+      : undefined
+  );
 </script>
 
-<DayCard label={commonStrings.today.photoLabel}>
+<DayCard label={commonStrings.today.photoLabel} right={countSnippet}>
   {#if photos.length === 0}
     <p class="body-muted">{commonStrings.today.photoEmpty}</p>
   {:else}

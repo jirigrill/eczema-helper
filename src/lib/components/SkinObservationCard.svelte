@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { commonStrings } from '$lib/strings/common';
+  import { createRawSnippet } from 'svelte';
+  import { commonStrings, zaznamyCs } from '$lib/strings/common';
   import type { SkinObservation } from '$lib/domain/models';
   import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
   import DayCard from './DayCard.svelte';
@@ -18,9 +19,17 @@
     });
     return () => subscription.unsubscribe();
   });
+
+  const countSnippet = $derived(
+    observations.length > 0
+      ? createRawSnippet(() => ({
+          render: () => `<span class="text-[10px] text-text-muted">${zaznamyCs(observations.length)}</span>`,
+        }))
+      : undefined
+  );
 </script>
 
-<DayCard label={commonStrings.today.eczemaStatusLabel}>
+<DayCard label={commonStrings.today.eczemaStatusLabel} right={countSnippet}>
   {#if observations.length === 0}
     <p class="body-muted">{commonStrings.today.eczemaStatusEmpty}</p>
   {:else}

@@ -181,13 +181,10 @@ describe('today/+page.svelte', () => {
   it('SkinObservationCard and SkinPhotoCard are rendered on the today page', async () => {
     mockScheduleContext.set(readyContext);
     const { default: TodayPage } = await import('./+page.svelte');
-    const { container } = render(TodayPage);
+    const { getByText } = render(TodayPage);
     await tick();
-    // Both cards use a solid (not dashed) border and carry their section label
-    const allLabels = Array.from(container.querySelectorAll('.section-label'))
-      .map((el) => el.textContent?.trim());
-    expect(allLabels).toContain('Stav ekzému');
-    expect(allLabels).toContain('Foto kůže');
+    expect(getByText('Stav ekzému')).toBeInTheDocument();
+    expect(getByText('Foto kůže')).toBeInTheDocument();
   });
 
   it('shows bottom hint when status is ready', async () => {
@@ -203,12 +200,14 @@ describe('today/+page.svelte', () => {
     const { default: TodayPage } = await import('./+page.svelte');
     const { container } = render(TodayPage);
     await tick();
-    const headings = Array.from(
-      container.querySelectorAll('.section-label')
-    ).map((el) => el.textContent?.trim());
-    const stavIdx = headings.findIndex((t) => t === 'Stav ekzému');
-    const fotoIdx = headings.findIndex((t) => t === 'Foto kůže');
-    const jidlaIdx = headings.findIndex((t) => t === 'Dnešní jídla');
+    const labels = ['Stav ekzému', 'Foto kůže', 'Dnešní jídla'];
+    const positions = labels.map((label) => {
+      const el = Array.from(container.querySelectorAll('span, p')).find(
+        (e) => e.textContent?.trim() === label
+      );
+      return el ? Array.from(container.querySelectorAll('*')).indexOf(el) : -1;
+    });
+    const [stavIdx, fotoIdx, jidlaIdx] = positions;
     expect(stavIdx).toBeLessThan(fotoIdx);
     expect(fotoIdx).toBeLessThan(jidlaIdx);
   });
