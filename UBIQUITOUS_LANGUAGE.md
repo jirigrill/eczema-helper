@@ -428,6 +428,16 @@ assessment recorded). Signals actionable absence, not an error.
 
 ---
 
+### QuestionnaireSummaryRow
+
+A single-field read/edit row used in the onboarding summary step (ONB 6). Displays
+one `label` (uppercase, small) and one `value` (bold). Renders as a tappable `button`
+with an inline "Upravit ›" affordance when `onEdit` is provided; as a plain `div`
+when read-only. Distinct from `DayCard` (today-screen data cards) and distinct from
+`SummaryCard` (deleted — replaced by this component).
+
+---
+
 ## Architecture Terms
 
 ### Ports & Adapters
