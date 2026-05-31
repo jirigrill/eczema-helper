@@ -90,7 +90,7 @@
   <a href="#progress-bar">ProgressBar</a>
   <a href="#skin-observation-card">SkinObservationCard</a>
   <a href="#skin-photo-card">SkinPhotoCard</a>
-  <a href="#summary-card">SummaryCard</a>
+  <a href="#questionnaire-summary-row">QuestionnaireSummaryRow</a>
   <a href="#toast">Toast</a>
 </nav>
 
@@ -804,35 +804,31 @@
 
   <hr class="section-hr">
 
-  <!-- ─── SummaryCard ──────────────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/SummaryCard.svelte -->
-  <div class="component-section" id="summary-card">
-    <p class="component-label">▸ <span>SummaryCard</span> — label, onEdit?, children?</p>
+  <!-- ─── QuestionnaireSummaryRow ──────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/QuestionnaireSummaryRow.svelte -->
+  <div class="component-section" id="questionnaire-summary-row">
+    <p class="component-label">▸ <span>QuestionnaireSummaryRow</span> — label, value, onEdit?</p>
     <div class="variant-row">
 
       <div class="variant-tile w-card">
-        <div class="bg-white rounded-xl border border-surface-dark p-4">
-          <div class="flex items-center justify-between mb-1">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Alergie matky</p>
+        <div class="bg-white border border-surface-dark rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <p class="text-[10px] text-text-muted uppercase tracking-wide">Moje alergie</p>
+            <p class="text-sm font-semibold text-text">žádné</p>
           </div>
-          <p class="text-sm text-text">Laktóza, Vlašské ořechy</p>
         </div>
         <p class="variant-name">read-only (no onEdit)</p>
       </div>
 
       <div class="variant-tile w-card">
-        <div class="bg-white rounded-xl border border-surface-dark p-4">
-          <div class="flex items-center justify-between mb-1">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Protokolární alergeny</p>
-            <button class="text-xs text-primary">Upravit</button>
+        <button class="bg-white border border-surface-dark rounded-xl p-3 flex items-center justify-between w-full text-left">
+          <div>
+            <p class="text-[10px] text-text-muted uppercase tracking-wide">Narození</p>
+            <p class="text-sm font-semibold text-text">12. 9. 2025</p>
           </div>
-          <div class="flex flex-wrap gap-1.5 mt-1">
-            <span class="text-[11px] leading-snug text-text">🥛 Mléčné výrobky</span>
-            <span class="text-[11px] leading-snug text-text">🥚 Vejce</span>
-            <span class="text-[11px] leading-snug text-text">🌾 Pšenice</span>
-          </div>
-        </div>
-        <p class="variant-name">with onEdit, AllergenChips as children</p>
+          <span class="text-primary text-xs font-semibold">Upravit ›</span>
+        </button>
+        <p class="variant-name">editable (with onEdit)</p>
       </div>
 
     </div>

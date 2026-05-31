@@ -744,3 +744,5 @@ When pulling a new screen into this system, verify:
 A screen is "in-system" when **all thirteen** are satisfied.
 
 **Before implementing any new UI element**, also apply the Component Reuse & Extraction Rule in `AGENTS.md → Design System`: check `src/lib/components/` first; extract to a named component before use if the element is not a one-off singleton.
+
+**Snippet before component:** If a repeated template block is file-local (used only within one `.svelte` file), prefer a `{#snippet}` over a new component. Only extract a component when the pattern appears in more than one file or has independent test value.

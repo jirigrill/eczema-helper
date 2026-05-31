@@ -111,6 +111,11 @@ setup-hooks:
 dev:
     bun run dev -- --host 0.0.0.0
 
+# Run all tests (unit + e2e)
+test:
+    just test-unit
+    just test-e2e
+
 # Run Vitest unit + component tests
 test-unit:
     bun run test

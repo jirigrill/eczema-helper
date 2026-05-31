@@ -7,17 +7,17 @@
   import FormInput from '$lib/components/form-input.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
-  import SummaryCard from '$lib/components/SummaryCard.svelte';
+  import QuestionnaireSummaryRow from '$lib/components/QuestionnaireSummaryRow.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import Button from '$lib/components/Button.svelte';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings, tyzdnyCs, mesiceCs, allergenWordCs, dnyCs } from '$lib/strings/common';
+  import { commonStrings, allergenWordCs } from '$lib/strings/common';
   import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
   import { formatDateLongCs } from '$lib/utils/date';
-  import { phaseStrings } from '$lib/strings/phases';
+  import { generateSchedule } from '$lib/domain/schedule-builder';
   import { protocolSession } from '$lib/stores/protocol-session';
 
   // ── Form state ────────────────────────────────────────────
@@ -35,9 +35,20 @@
   const permanentSlugs = $derived(
     [...new Set([...motherAllergies.map(s => s.split(':')[0]), ...babyAllergies.map(s => s.split(':')[0])])]
   );
-  const reintroQueue = $derived(DEFAULT_TESTED_ALLERGENS.filter(s => !permanentSlugs.includes(s)));
-  const elimDays = $derived(severity === 'severe' ? 21 : 14);
-  const reintroDays = 4;
+
+  const summaryEndDate = $derived.by(() => {
+    if (!babyBirthDate || !programStartDate) return '—';
+    const schedule = generateSchedule({
+      babyBirthDate,
+      eczemaSeverity: severity,
+      motherAllergies,
+      babyConfirmedAllergies: babyAllergies,
+      programStartDate,
+      completedAt: new Date().toISOString(),
+      testedAllergens: DEFAULT_TESTED_ALLERGENS,
+    });
+    return formatDateLongCs(schedule.estimatedEndDate);
+  });
 
   // ── Severity options ──────────────────────────────────────
   const severityOptions: { value: EczemaSeverity; label: string; desc: string; border: string; bg: string }[] = [
@@ -88,17 +99,6 @@
     const result = await protocolSession.startProtocol(answers);
     if (!result.ok) { saveError = result.error; return; }
     goto('/today');
-  }
-
-  // ── Summary helpers ───────────────────────────────────────
-  function formatBabyAge(): string {
-    if (!babyBirthDate) return '—';
-    const birth = new Date(babyBirthDate + 'T00:00:00');
-    const now = new Date();
-    const weeks = Math.floor((now.getTime() - birth.getTime()) / (7 * 86400000));
-    if (weeks < 8) return tyzdnyCs(weeks);
-    const months = Math.floor(weeks / 4.33);
-    return mesiceCs(months);
   }
 
   // Count unique allergen categories (not individual sub-item slugs).
@@ -303,41 +303,33 @@
           <p class="body-muted">{commonStrings.onboarding.step6Subtitle}</p>
         </div>
 
-        <!-- Summary cards -->
+        <!-- Summary rows -->
         <div class="space-y-3">
-          <SummaryCard label={commonStrings.onboarding.summaryBabyLabel} onEdit={() => editStep(2)}>
-            <p class="body">{commonStrings.onboarding.summaryAge}: <strong>{formatBabyAge()}</strong></p>
-            <p class="body mt-0.5">
-              {commonStrings.onboarding.summarySeverity}: <strong>{severityOptions.find(s => s.value === severity)?.label}</strong>
-            </p>
-          </SummaryCard>
-
-          <SummaryCard label={commonStrings.onboarding.summaryMotherLabel} onEdit={() => editStep(3)}>
-            <p class="body">{slugsToNames(motherAllergies)}</p>
-          </SummaryCard>
-
-          <SummaryCard label={commonStrings.onboarding.summaryBabyAllergiesLabel} onEdit={() => editStep(4)}>
-            <p class="body">{slugsToNames(babyAllergies)}</p>
-          </SummaryCard>
-
-          <InfoBanner variant="info">
-            <div class="flex items-center justify-between mb-2">
-              <p class="section-label text-primary mb-0">Program</p>
-              <button class="text-xs text-primary" onclick={() => editStep(5)}>{commonStrings.onboarding.summaryEdit}</button>
-            </div>
-            <p class="body mb-2">{commonStrings.onboarding.summaryStart}: <strong>{formatDateLongCs(programStartDate)}</strong></p>
-            <div class="body space-y-1">
-              <p>✦ <strong>{dnyCs(5)}</strong> {phaseStrings.reset.label}</p>
-              <p>✦ <strong>{dnyCs(elimDays)}</strong> {phaseStrings.elimination.label}</p>
-              {#if reintroQueue.length > 0}
-                <p>✦ {commonStrings.onboarding.summaryReintroPrefix} (<strong>{dnyCs(reintroDays)}</strong> {commonStrings.onboarding.everyLabel}):
-                  {reintroQueue.map(s => categoryStrings[s as ProtocolAllergenId]?.name ?? s).join(' → ')}
-                </p>
-              {:else}
-                <p>✦ {@html commonStrings.onboarding.summaryNoReintroHtml}</p>
-              {/if}
-            </div>
-          </InfoBanner>
+          <QuestionnaireSummaryRow
+            label={commonStrings.onboarding.summaryBirthLabel}
+            value={formatDateLongCs(babyBirthDate)}
+            onEdit={() => editStep(2)}
+          />
+          <QuestionnaireSummaryRow
+            label={commonStrings.onboarding.summarySeverityLabel}
+            value={severityOptions.find(s => s.value === severity)?.label ?? ''}
+            onEdit={() => editStep(2)}
+          />
+          <QuestionnaireSummaryRow
+            label={commonStrings.onboarding.summaryMotherLabel}
+            value={slugsToNames(motherAllergies)}
+            onEdit={() => editStep(3)}
+          />
+          <QuestionnaireSummaryRow
+            label={commonStrings.onboarding.summaryBabyAllergiesLabel}
+            value={slugsToNames(babyAllergies)}
+            onEdit={() => editStep(4)}
+          />
+          <QuestionnaireSummaryRow
+            label={commonStrings.onboarding.summaryStartEndLabel}
+            value="{formatDateLongCs(programStartDate)} – {summaryEndDate}"
+            onEdit={() => editStep(5)}
+          />
         </div>
 
         <div class="mt-auto">

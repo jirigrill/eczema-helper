@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { commonStrings } from '$lib/strings/common';
+  import { createRawSnippet } from 'svelte';
+  import { commonStrings, zaznamyCs } from '$lib/strings/common';
   import type { SkinObservation } from '$lib/domain/models';
   import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
+  import DayCard from './DayCard.svelte';
 
   let { date, repo }: { date: string; repo: SkinObservationRepository } = $props();
 
@@ -17,16 +19,21 @@
     });
     return () => subscription.unsubscribe();
   });
+
+  const countSnippet = $derived(
+    observations.length > 0
+      ? createRawSnippet(() => ({
+          render: () => `<span class="text-[10px] text-text-muted">${zaznamyCs(observations.length)}</span>`,
+        }))
+      : undefined
+  );
 </script>
 
-<div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
-  <div class="px-3.5 pt-3 pb-1 flex items-center justify-between">
-    <span class="section-label">{commonStrings.today.eczemaStatusLabel}</span>
-  </div>
+<DayCard label={commonStrings.today.eczemaStatusLabel} right={countSnippet}>
   {#if observations.length === 0}
-    <div class="px-3.5 pb-3 body-muted">{commonStrings.today.eczemaStatusEmpty}</div>
+    <p class="body-muted">{commonStrings.today.eczemaStatusEmpty}</p>
   {:else}
-    <div class="px-3.5 pb-3 space-y-2">
+    <div class="space-y-2">
       {#each observations as obs (obs.id)}
         <div class="flex flex-col gap-0.5">
           <span class="text-[12px] font-semibold text-text">{statusLabels[obs.status]}</span>
@@ -37,4 +44,4 @@
       {/each}
     </div>
   {/if}
-</div>
+</DayCard>

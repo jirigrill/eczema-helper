@@ -374,6 +374,10 @@ Read-only timeline of all protocol phases. Shows phase dates, current position,
 
 ## UI Patterns & Components
 
+### Snippet
+
+A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup scoped to a single file. Distinct from a *component* (its own `.svelte` file, importable, independently testable). Snippet props (`children`, `right`, `action`) are the mechanism for injecting varying markup into a component shell from the outside.
+
 ### WeekStrip
 *Czech: 7-denní páska*
 
@@ -421,6 +425,16 @@ container with `{#each}` — there is no separate group component.
 
 Dashed-border card shown when data for a section is missing (no meal logged, no
 assessment recorded). Signals actionable absence, not an error.
+
+---
+
+### QuestionnaireSummaryRow
+
+A single-field read/edit row used in the onboarding summary step (ONB 6). Displays
+one `label` (uppercase, small) and one `value` (bold). Renders as a tappable `button`
+with an inline "Upravit ›" affordance when `onEdit` is provided; as a plain `div`
+when read-only. Distinct from `DayCard` (today-screen data cards) and distinct from
+`SummaryCard` (deleted — replaced by this component).
 
 ---
 
