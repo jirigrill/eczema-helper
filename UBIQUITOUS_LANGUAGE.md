@@ -444,13 +444,17 @@ when read-only. Distinct from `DayCard` (today-screen data cards).
 The architectural pattern used for persistence. **Ports** are TypeScript interfaces in
 `src/lib/domain/ports/` (e.g. `ScheduleRepository`, `QuestionnaireRepository`). **Adapters**
 are concrete implementations in `src/lib/adapters/` (e.g. `DexieScheduleRepository`,
-`InMemoryScheduleRepository`). Domain logic depends only on the port interfaces.
+`DexieMealRepository`). Each port has a single `Dexie*` implementation; adapters are
+tested against `fake-indexeddb`. Hand-written `InMemory*` fakes were removed per
+[ADR-0013](docs/adr/0013-drop-unused-in-memory-adapters.md). Domain logic depends only
+on the port interfaces.
 
 ### ScheduleRepository / QuestionnaireRepository
 
-Ports (interfaces) for persisting and loading the two core data objects. Implementations:
-`Dexie*` (production) and `InMemory*` (tests). Both follow the `Result<T, E>` return
-convention for `save` / `load` operations.
+Ports (interfaces) for persisting and loading the two core data objects. Single
+implementation each: `Dexie*` (production), tested against `fake-indexeddb`
+([ADR-0013](docs/adr/0013-drop-unused-in-memory-adapters.md)). Both follow the
+`Result<T, E>` return convention for `save` / `load` operations.
 
 ### Result\<T, E\>
 
