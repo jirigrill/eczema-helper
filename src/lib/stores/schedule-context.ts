@@ -2,28 +2,16 @@ import { readable } from 'svelte/store';
 import { liveQuery } from 'dexie';
 
 import { db, SINGLETON_ID } from '$lib/db/atopic-db';
-import {
-	getEliminatedSlugsForDate,
-	getReintroductionDayInfo,
-	getScheduleProgress,
-} from '$lib/domain/schedule-queries';
-import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import type { AllergenId, AllergenStatus, GeneratedSchedule, QuestionnaireAnswers, ReintroductionDayInfo } from '$lib/domain/models';
+import { buildScheduleContext } from '$lib/domain/schedule-queries';
+import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type { ReadyContext } from '$lib/domain/schedule-queries';
 import { todayIso } from '$lib/utils/date';
 
 export type ScheduleContext =
 	| { status: 'loading' }
 	| { status: 'empty' }
 	| { status: 'error'; message: string }
-	| {
-			status: 'ready';
-			schedule: GeneratedSchedule;
-			answers: QuestionnaireAnswers;
-			allergenStatuses: AllergenStatus[];
-			eliminatedToday: AllergenId[];
-			reintroInfo: ReintroductionDayInfo | null;
-			progress: { currentDay: number; totalDays: number; percentComplete: number };
-	  };
+	| ({ status: 'ready' } & ReadyContext);
 
 export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, (set) => {
 	let currentStatus: ScheduleContext['status'] = 'loading';
@@ -59,18 +47,14 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 
 			const { id: _sid, ...schedule } = scheduleRow;
 			const { id: _aid, ...answers } = answersRow;
-			const today = todayIso();
-			const typedSchedule = schedule as GeneratedSchedule;
 
 			currentStatus = 'ready';
 			set({
 				status: 'ready',
-				schedule: typedSchedule,
-				answers: answers as QuestionnaireAnswers,
-				allergenStatuses: getAllergenStatuses(typedSchedule, today),
-				eliminatedToday: getEliminatedSlugsForDate(typedSchedule, today),
-				reintroInfo: getReintroductionDayInfo(typedSchedule, today),
-				progress: getScheduleProgress(typedSchedule, today),
+				...buildScheduleContext(
+					{ schedule: schedule as GeneratedSchedule, answers: answers as QuestionnaireAnswers },
+					todayIso(),
+				),
 			});
 		},
 		error: (e: unknown) => set({ status: 'error', message: e instanceof Error ? e.message : String(e) }),

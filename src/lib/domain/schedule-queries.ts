@@ -1,4 +1,4 @@
-import type { GeneratedSchedule, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenId } from '$lib/domain/models';
+import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenStatus, AllergenId } from '$lib/domain/models';
 import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
@@ -127,4 +127,32 @@ export function getScheduleProgress(
   const percentComplete = Math.round((currentDay / totalDays) * 100);
 
   return { currentDay, totalDays, percentComplete };
+}
+
+// ── ReadyContext + buildScheduleContext ───────────────────────
+// Pure projection: (schedule, answers, today) → snapshot of "where is the mother today".
+// Consumed by the scheduleContext store shell, which owns DB plumbing and lifecycle states.
+
+export type ReadyContext = {
+  schedule: GeneratedSchedule;
+  answers: QuestionnaireAnswers;
+  allergenStatuses: AllergenStatus[];
+  eliminatedToday: AllergenId[];
+  reintroInfo: ReintroductionDayInfo | null;
+  progress: { currentDay: number; totalDays: number; percentComplete: number };
+};
+
+export function buildScheduleContext(
+  raw: { schedule: GeneratedSchedule; answers: QuestionnaireAnswers },
+  today: string,
+): ReadyContext {
+  const { schedule, answers } = raw;
+  return {
+    schedule,
+    answers,
+    allergenStatuses: getAllergenStatuses(schedule, today),
+    eliminatedToday: getEliminatedSlugsForDate(schedule, today),
+    reintroInfo: getReintroductionDayInfo(schedule, today),
+    progress: getScheduleProgress(schedule, today),
+  };
 }

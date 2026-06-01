@@ -69,3 +69,7 @@ the complexity cost.
   the `schedule-context` module rather than injecting repositories directly.
   True DI via adapter injection is deferred — the real gain here was
   consolidation, not inversion of control.
+- The `ready`-variant derivations were later extracted to a pure
+  `buildScheduleContext()` in `schedule-queries.ts` (#166); the store became
+  a thin shell over it. External interface unchanged. See
+  [ADR-0015](0015-stores-as-imperative-shells.md).
