@@ -25,10 +25,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-
-  const repo = new DexieMealRepository(db);
+  import { mealSession } from '$lib/stores/meal-session';
 
   let meals = $state<Meal[]>([]);
 
@@ -61,7 +58,7 @@
 
   // ── Slot loading ──────────────────────────────────────────
   async function loadSlot(mealType: typeof selectedMealType): Promise<void> {
-    const result = await repo.loadBySlot(today, mealType);
+    const result = await mealSession.loadBySlot(today, mealType);
     if (result.ok && result.data) {
       currentItems = result.data.items;
       mealNotes = result.data.notes ?? '';
@@ -90,7 +87,7 @@
         notes: mealNotes.trim() || undefined,
         createdAt: new Date().toISOString(),
       };
-      await repo.save(meal);
+      await mealSession.save(meal);
       const n = snapshotItems.length;
       autosaveToastMessage = `✓ ${mealConfig[previousType].label} uložen · ${n} ${polozkaWordCs(n)}`;
       if (autosaveToastTimer) clearTimeout(autosaveToastTimer);
@@ -206,7 +203,7 @@
       notes: mealNotes.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
-    await repo.save(meal);
+    await mealSession.save(meal);
     meals = [...meals, meal]; // keep in-page list live while still on this screen
 
     currentItems = [];

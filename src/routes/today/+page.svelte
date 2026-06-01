@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { liveQuery } from "dexie";
-  import { onMount } from "svelte";
   import type { Meal } from "$lib/domain/models";
   import { scheduleContext } from "$lib/stores/schedule-context";
+  import { mealSession } from "$lib/stores/meal-session";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
   import { getToleranceBuildingRemindersForDate } from "$lib/domain/schedule-builder";
   import ErrorAlert from "$lib/components/error-alert.svelte";
@@ -27,19 +26,7 @@
 
   const today = todayIso();
 
-  // Mirror the schedule-context.ts pattern exactly:
-  // onMount (browser-only, after DOM ready) + observer object form + .unsubscribe() cleanup.
-  // $effect has subtle timing issues with SvelteKit navigation; onMount is explicit.
-  let todayMeals = $state<Meal[]>([]);
-  onMount(() => {
-    const subscription = liveQuery(() =>
-      db.meals.where('date').equals(today).toArray()
-    ).subscribe({
-      next: (meals) => { todayMeals = meals ?? []; },
-      error: () => { todayMeals = []; },
-    });
-    return () => subscription.unsubscribe();
-  });
+  const todayMeals = $derived($mealSession);
 
   const ctx = $derived($scheduleContext);
   const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
