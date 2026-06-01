@@ -12,17 +12,18 @@ vi.mock('$lib/stores/schedule-context', () => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
-// ── Repository mock ──────────────────────────────────────────
+// ── Session mock (per ADR-0013: route tests mock the session, not the adapter) ──
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockLoadBySlot = vi.fn().mockResolvedValue({ ok: true, data: null });
-vi.mock('$lib/adapters/dexie-meal-repository', () => ({
-  DexieMealRepository: vi.fn().mockImplementation(() => ({
-    save: mockSave,
-    loadBySlot: mockLoadBySlot,
-    listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-  })),
+const mockMealSessionStore = writable<import('$lib/domain/models').Meal[]>([]);
+vi.mock('$lib/stores/meal-session', () => ({
+  mealSession: {
+    subscribe: mockMealSessionStore.subscribe,
+    save: (...args: unknown[]) => mockSave(...args),
+    loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
+  },
 }));
-// Prevent real IndexedDB from opening — the mock repo never calls db
+// Prevent real IndexedDB from opening
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 // Mutable page mock — tests can change mockPage.url before render to control returnTo
 const mockPage = { url: new URL('http://localhost/meal') };
