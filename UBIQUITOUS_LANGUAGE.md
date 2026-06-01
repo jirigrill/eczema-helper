@@ -208,7 +208,14 @@ a stored field.
 ### ScheduleContext
 → Defined in `CONTEXT.md`. The reactive bundle of `GeneratedSchedule` +
 `QuestionnaireAnswers` + derived protocol values consumed by all routes. Discriminated
-union: `loading | empty | ready | error`.
+union: `loading | empty | ready | error`. Its `ready` payload is `ReadyContext`,
+produced by the pure `buildScheduleContext()` in `schedule-queries.ts`.
+
+### ReadyContext
+The six-field payload carried by the `ready` arm of `ScheduleContext`: `schedule`,
+`answers`, `allergenStatuses`, `eliminatedToday`, `reintroInfo`, `progress`. Produced
+by `buildScheduleContext(raw, today)` in `src/lib/domain/schedule-queries.ts` — a pure
+projection with no DB dependency. See [ADR-0015](docs/adr/0015-stores-as-imperative-shells.md).
 
 ### protocolSession
 

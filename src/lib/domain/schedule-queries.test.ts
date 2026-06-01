@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress, getReintroductionDayInfo } from './schedule-queries';
-import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
+import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress, getReintroductionDayInfo, buildScheduleContext } from './schedule-queries';
+import { getAllergenStatuses } from './allergen-status';
+import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
   return { allergenIds: [], ...overrides };
@@ -305,5 +306,72 @@ describe('getReintroductionDayInfo', () => {
     expect(info).not.toBeNull();
     expect('label' in info!).toBe(false);
     expect('guidance' in info!).toBe(false);
+  });
+});
+
+// ── buildScheduleContext ──────────────────────────────────────
+
+const sampleAnswers: QuestionnaireAnswers = {
+  babyBirthDate: '2025-01-01',
+  eczemaSeverity: 'moderate',
+  motherAllergies: [],
+  babyConfirmedAllergies: [],
+  programStartDate: '2026-05-01',
+  completedAt: '2026-05-01T10:00:00.000Z',
+  testedAllergens: ['dairy', 'eggs'],
+};
+
+// reintro schedule: dairy reintro 2026-05-27→05-31
+const reintroSchedule: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: '2026-05-01',
+  estimatedEndDate: '2026-07-01',
+  phases: [
+    phase({ id: 'elimination', type: 'elimination', startDate: '2026-05-01', endDate: '2026-05-26', allergenIds: ['dairy', 'eggs'] }),
+    phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-31', allergenIds: ['dairy'] }),
+  ],
+};
+
+describe('buildScheduleContext', () => {
+  it('passes schedule and answers through by identity', () => {
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, '2026-05-28');
+    expect(ctx.schedule).toBe(reintroSchedule);
+    expect(ctx.answers).toBe(sampleAnswers);
+  });
+
+  it('allergenStatuses equals getAllergenStatuses(schedule, today)', () => {
+    const today = '2026-05-28';
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, today);
+    expect(ctx.allergenStatuses).toEqual(getAllergenStatuses(reintroSchedule, today));
+  });
+
+  it('eliminatedToday equals getEliminatedSlugsForDate(schedule, today)', () => {
+    const today = '2026-05-28';
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, today);
+    expect(ctx.eliminatedToday).toEqual(getEliminatedSlugsForDate(reintroSchedule, today));
+  });
+
+  it('reintroInfo equals getReintroductionDayInfo(schedule, today)', () => {
+    const today = '2026-05-28';
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, today);
+    expect(ctx.reintroInfo).toEqual(getReintroductionDayInfo(reintroSchedule, today));
+  });
+
+  it('progress equals getScheduleProgress(schedule, today)', () => {
+    const today = '2026-05-28';
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, today);
+    expect(ctx.progress).toEqual(getScheduleProgress(reintroSchedule, today));
+  });
+
+  it('single-today coherence: tested allergen appears in reintroInfo but not eliminatedToday', () => {
+    // 2026-05-28 is day 2 of dairy reintroduction — dairy is being tested, so not forbidden
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, '2026-05-28');
+    expect(ctx.reintroInfo?.allergenId).toBe('dairy');
+    expect(ctx.eliminatedToday).not.toContain('dairy');
+  });
+
+  it('result has no status key', () => {
+    const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, '2026-05-28');
+    expect(ctx).not.toHaveProperty('status');
   });
 });
