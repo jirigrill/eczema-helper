@@ -167,6 +167,7 @@ test('meal item editing: tap item row, pick amount chip, pick preparation chip, 
 });
 
 test('meal item remove and re-add: remove clears basket, re-adding restores it', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
   await page.goto('/meal');
@@ -199,10 +200,10 @@ test('meal item remove and re-add: remove clears basket, re-adding restores it',
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByText('Brambory')).toBeVisible();
 
-  // Hotovo re-enabled; save works — navigates to /today on success
+  // Hotovo re-enabled; save works — navigates to /day/<today> (default returnTo) on success
   await expect(page.getByRole('button', { name: /Hotovo/ })).toHaveAttribute('aria-disabled', 'false');
   await page.getByRole('button', { name: /Hotovo/ }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('conflict toast: selecting a food with an eliminated allergen shows transient warning toast', async ({ page }) => {
@@ -246,6 +247,7 @@ test('conflict toast: selecting a food with an eliminated allergen shows transie
 // ── Slice 2f: pill-switch autosave + slot re-open ──────────
 
 test('slot re-open: navigating back to /meal after saving a slot pre-loads its items', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   await expect(page).toHaveURL('/today');
 
@@ -255,7 +257,7 @@ test('slot re-open: navigating back to /meal after saving a slot pre-loads its i
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByText('Brambory')).toBeVisible();
   await page.getByRole('button', { name: /Hotovo/ }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   // Navigate back to /meal — the lunch slot should be pre-loaded
   await page.goto('/meal');
@@ -299,4 +301,55 @@ test('pill-switch with empty basket: no autosave call and no toast', async ({ pa
 
   await expect(page.getByText(/uložen/)).not.toBeVisible();
   await expect(page.getByText(/Zatím prázdné/)).toBeVisible();
+});
+
+// ── Slice 4c: ?date= query parameter ─────────────────────────────
+
+test('?date= param: loads slot for specified date, saves to that date, navigates to /day/<date>', async ({ page }) => {
+  // Seed a schedule starting 2025-01-01 so 2025-01-15 is a valid past date within the program
+  await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.put({
+      id: 'singleton',
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate',
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: '2025-01-01',
+      completedAt: '2025-01-01T00:00:00.000Z',
+      testedAllergens: [],
+    });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: '2025-01-01',
+      estimatedEndDate: '2027-01-01',
+      phases: [{
+        id: 'elim',
+        type: 'elimination',
+        allergenIds: [],
+        startDate: '2025-01-01',
+        endDate: '2027-01-01',
+      }],
+    });
+  });
+
+  // Navigate to meal page with a past date within the program
+  await page.goto('/meal?type=breakfast&date=2025-01-15');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Add a food and save
+  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // returnTo should default to /day/2025-01-15 (not /today)
+  await expect(page).toHaveURL('/day/2025-01-15');
+
+  // The saved meal should appear on the day screen
+  await expect(page.getByText('Brambory')).toBeVisible();
 });

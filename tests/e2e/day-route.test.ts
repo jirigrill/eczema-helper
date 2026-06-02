@@ -152,9 +152,10 @@ test('clicking Dnes pill navigates back to /day/<today>', async ({ page }) => {
 
 // ── No-program state ──────────────────────────────────────────────────────
 
-test('/day/<date> shows no-program message when DB is empty', async ({ page }) => {
+test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   // DB already cleared by beforeEach
   await page.goto(`/day/${today}`);
-  await expect(page.getByText('Program není nastaven. Dokončete dotazník.')).toBeVisible();
+  // Layout redirects to / (onboarding) when schedule DB is empty
+  await expect(page).toHaveURL('/');
 });
