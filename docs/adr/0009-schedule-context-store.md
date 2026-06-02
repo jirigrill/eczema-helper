@@ -58,6 +58,14 @@ object. A unified store shape means one interface to understand and one
 import per route. The theoretical savings of split stores do not outweigh
 the complexity cost.
 
+## Boundary rule: liveQuery belongs only in stores
+
+`liveQuery` must **never** appear in `lib/domain/ports/` or in adapter implementations. Ports expose point reads (`load()`, `listByDate()`) only. Moving `liveQuery` into a port couples the domain layer to Dexie and forces any test adapter to supply a fake reactive primitive — the exact cost that motivated this ADR. Reactive subscriptions are a UI concern and belong in `src/lib/stores/`.
+
+This rule applies to every domain entity, not only `schedule` and `questionnaire`. All session stores (`mealSession`, `skinObservationSession`, `skinPhotoSession`, and any future stores) own their own `liveQuery` subscription; their ports remain plain async point reads.
+
+See `docs/architecture/ports-and-adapters.md` §"Reactivity boundary" for the canonical statement.
+
 ## Consequences
 
 - `$lib/stores/schedule.ts` and `$lib/stores/questionnaire.ts` are deleted.
