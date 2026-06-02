@@ -7,7 +7,7 @@
   import { getAllergenStatuses } from '$lib/domain/allergen-status';
   import { categoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
-  import { addDays, formatDateCs, formatDateLongCs, todayIso } from '$lib/utils/date';
+  import { addDays, formatDateCs, formatDateLongCs, todayIso, daysBetween } from '$lib/utils/date';
   import { protocolSession } from '$lib/stores/protocol-session';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -171,11 +171,11 @@
   // dnyCs imported from $lib/strings/common
 
   function phaseDayCount(phase: SchedulePhase): number {
-    return Math.round((new Date(phase.endDate + 'T00:00:00').getTime() - new Date(phase.startDate + 'T00:00:00').getTime()) / 86400000) + 1;
+    return daysBetween(phase.startDate, phase.endDate);
   }
 
   function currentDayInPhase(phase: SchedulePhase): number {
-    return Math.round((new Date(today + 'T00:00:00').getTime() - new Date(phase.startDate + 'T00:00:00').getTime()) / 86400000) + 1;
+    return daysBetween(phase.startDate, today);
   }
 
   import type { ReintroductionEvaluation } from '$lib/domain/models';
@@ -655,10 +655,7 @@
           <p class="text-2xl mb-1">🎉</p>
           <p class="text-base font-bold text-text">{commonStrings.program.completedBanner}</p>
           <p class="body-muted mt-1">
-            {phasesCompletedSummary(schedule.phases.length, Math.round(
-              (new Date(schedule.estimatedEndDate + 'T00:00:00').getTime() -
-               new Date(schedule.startDate + 'T00:00:00').getTime()) / 86400000
-            ) + 1)}
+            {phasesCompletedSummary(schedule.phases.length, daysBetween(schedule.startDate, schedule.estimatedEndDate))}
           </p>
         </div>
       </div>

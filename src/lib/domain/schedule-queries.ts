@@ -2,7 +2,7 @@ import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, 
 import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import { isDateInRange } from '$lib/utils/date';
+import { isDateInRange, daysBetween } from '$lib/utils/date';
 
 // ── Current phase ─────────────────────────────────────────────
 
@@ -96,13 +96,8 @@ export function getReintroductionDayInfo(
   const allergenId = phase.allergenIds[0];
   if (!allergenId) return null;
 
-  const phaseStart = new Date(phase.startDate + 'T00:00:00');
-  const target = new Date(date + 'T00:00:00');
-  const dayInPhase = Math.round((target.getTime() - phaseStart.getTime()) / 86400000) + 1;
-
-  const totalDays = Math.round(
-    (new Date(phase.endDate + 'T00:00:00').getTime() - phaseStart.getTime()) / 86400000
-  ) + 1;
+  const dayInPhase = daysBetween(phase.startDate, date);
+  const totalDays = daysBetween(phase.startDate, phase.endDate);
 
   const protocol = getProtocolForAllergen(allergenId);
   const protocolDay = protocol?.days[dayInPhase - 1];
@@ -118,12 +113,8 @@ export function getScheduleProgress(
   schedule: GeneratedSchedule,
   today: string
 ): { currentDay: number; totalDays: number; percentComplete: number } {
-  const start = new Date(schedule.startDate + 'T00:00:00');
-  const end = new Date(schedule.estimatedEndDate + 'T00:00:00');
-  const now = new Date(today + 'T00:00:00');
-
-  const totalDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
-  const currentDay = Math.max(1, Math.min(totalDays, Math.round((now.getTime() - start.getTime()) / 86400000) + 1));
+  const totalDays = daysBetween(schedule.startDate, schedule.estimatedEndDate);
+  const currentDay = Math.max(1, Math.min(totalDays, daysBetween(schedule.startDate, today)));
   const percentComplete = Math.round((currentDay / totalDays) * 100);
 
   return { currentDay, totalDays, percentComplete };

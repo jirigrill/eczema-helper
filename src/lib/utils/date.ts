@@ -1,3 +1,9 @@
+export function daysBetween(from: string, to: string): number {
+  const a = new Date(from + 'T00:00:00');
+  const b = new Date(to + 'T00:00:00');
+  return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
+}
+
 export function todayIso(): string {
   return new Date().toISOString().split('T')[0];
 }
