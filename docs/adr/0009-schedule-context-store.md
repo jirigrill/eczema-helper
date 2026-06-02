@@ -66,6 +66,30 @@ This rule applies to every domain entity, not only `schedule` and `questionnaire
 
 See `docs/architecture/ports-and-adapters.md` §"Reactivity boundary" for the canonical statement.
 
+## Amendment (Slice 4): derived projection is parameterized by viewed date
+
+The original decision bundled all derived protocol state **for today**
+inside the store. [Slice 4](0008-tracer-bullet-slices.md) unifies "today"
+and "any past day" into one `/day/[date]` view, where the viewed date is
+no longer always today. This requires one narrowing:
+
+- The store keeps its **singleton `liveQuery`** over the raw `schedule` +
+  `answers` (those do not vary by viewed date) and continues to expose the
+  `loading | empty | ready` union.
+- The **date-dependent projection moves out of the store** to a page-side
+  `$derived` that calls the pure `buildScheduleContext(raw, selectedDate)`.
+  For `selectedDate === todayIso()` the result is identical to before, so
+  existing today callers are unaffected.
+- The **boundary rule above still holds**: per-date reactive reads of
+  meals/observations/photos do not move into the page. The session stores
+  become **factories** (`createMealSession(date)` etc.) that each own a
+  date-scoped `liveQuery`, so `liveQuery` stays in `src/lib/stores/`.
+
+This trades a little of the "all derived state bundled" convenience for the
+ability to render any date through one code path. The trade is contained:
+the projection is a pure, cheap function call, already extracted per
+[ADR-0015](0015-stores-as-imperative-shells.md).
+
 ## Consequences
 
 - `$lib/stores/schedule.ts` and `$lib/stores/questionnaire.ts` are deleted.

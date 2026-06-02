@@ -2,7 +2,7 @@
 
 **Status:** Accepted — slices 1–3 landed (onboarding, today, meal,
 skin+photo) plus the program timeline; v1-alpha is on the phone.
-Slices 4–6 (day-detail, reintro verdict, encrypted export/import) remain
+Slices 4–6 (unified day view, reintro verdict, encrypted export/import) remain
 to close out the [v1 scope](0007-v1-scope.md). Completed slices are
 recorded at the bottom of this file.
 **Date:** 2026-05-11
@@ -20,30 +20,68 @@ phone, (c) proves a pattern the next slice can copy?
 
 Slices 1–3 took the app to alpha (recorded under **Completed slices**
 at the bottom). Three slices remain to close out the
-[v1 scope](0007-v1-scope.md), ordered **risk-first** — a safe read-only
-copy-slice, then the one new persistence pattern, then the
-broadest-blast-radius slice last once the schema is stable.
+[v1 scope](0007-v1-scope.md), ordered **risk-first** — a slice that reuses the existing repositories
+at an arbitrary date (no new table, no new persistence pattern), then
+the one new persistence pattern, then the broadest-blast-radius slice
+last once the schema is stable.
 
-### Slice 4 — Day detail (read-only past day)
+### Slice 4 — Unified day view (any date, editable)
 
-The lowest-risk remaining slice. Introduces **no new persistence** — it
+Introduces **no new tables and no new persistence pattern** — it
 composes existing repositories at an arbitrary date, proving the
 "parameterized-by-date read" shape (vs. the today-bound `liveQuery`
-of slices 1–3).
+of slices 1–3). It is not strictly read-only: the breastfeeding mother
+regularly remembers a meal or a skin status only the next day, so any
+day in range must be **backfill- and edit-able to today's parity**.
 
-- New route `/day/[date]` reading that date's meals, skin observations,
-  and photos through the existing meal / skin-observation / photo
-  repositories (query by the `date` index already present in schema v4).
-- Compute the date's phase + eliminated set by calling the pure
-  `buildScheduleContext()` (extracted in #170) with the route's date,
-  rather than the today-bound `scheduleContext` store.
-- Navigation in: the today-screen 7-day strip and the program timeline
-  link to `/day/[date]`. The page is strictly read-only — no edit
-  affordances (honours the locked day-page design).
+The prototype has exactly one day layout — the `DNES` screen — and no
+separate past-day design. "Today" is therefore just the instance of
+that layout where `date === todayIso()`. This slice unifies the two:
 
-Done when: the developer taps a past day from the 7-day strip and sees
-that day's phase, eliminated set, meals, skin observations, and photos,
-read-only.
+- **One route `/day/[date]`** renders the day layout for any date and
+  **replaces `/today`** (which is deleted, not redirected — nothing
+  external depends on it: the PWA `start_url` is `/`, and every internal
+  link computes `todayIso()` at render time). Reads that date's meals,
+  skin observations, and photos through the existing repositories (the
+  `date` index is already in the schema). The three things that pointed
+  at `/today` are retargeted: the root post-onboarding redirect
+  (`+page.svelte`), the nav "Dnes" tab, and the `returnTo` defaults —
+  all to `/day/<todayIso>`.
+- **Reactive, not a snapshot.** Edits to the viewed day must appear
+  live, so the day's records are read through date-scoped `liveQuery`
+  subscriptions — the session stores become **factories**
+  (`createMealSession(date)` etc.) so `liveQuery` stays in the stores
+  layer per [ADR-0009](0009-schedulecontext-store.md)'s boundary rule.
+  `scheduleContext` keeps its singleton `liveQuery` over the raw
+  `schedule` + `answers`; the date-dependent projection moves to a
+  page-side `$derived` calling the pure `buildScheduleContext(raw,
+  selectedDate)` (extracted in #166).
+- **Navigation:** a **sliding-window** 7-day strip — the selected day
+  at the right edge plus the six prior days; tapping the left day pages
+  further back; a "Dnes" pill returns to today when off-today. Clamped
+  to **[protocol start, today]** (no future days; nothing before the
+  contextless pre-start range). Out-of-range or malformed `[date]`
+  redirects to today.
+- **Edit scope = parity-with-today.** Meals are editable on any day via
+  slot-overwrite (the meal screen, parameterized by `?date=`). Skin
+  observations and photos are **add-only** — no per-entry delete, since
+  delete exists nowhere yet (not even for today); a cross-cutting
+  delete-for-all-days feature is deferred to its own slice.
+- **Action-prompt chrome is today-only.** Tolerance-building reminders
+  and the task counter are gated on `selectedDate === today`; past days
+  show only historical facts (phase hero, eliminated set, the three
+  record cards) plus the add affordance.
+- **FAB wiring (currently a dead placeholder).** The `+` FAB is wired to
+  open the skin/meal/photo action sheet; each action routes to its add
+  screen with `?date=<selected>&returnTo=/day/<selected>`. The layout
+  reads the selected date from `$page.params.date` (today when off a day
+  route). The meal screen gains the `?date=` parameter the skin screen
+  already has.
+
+Done when: the developer pages back to a past day from the strip, sees
+that day's phase, eliminated set, meals, skin observations and photos,
+backfills a forgotten meal and skin status onto that day via the FAB,
+and sees them persisted on that day.
 
 ### Slice 5 — End-of-reintro allergen verdict
 
@@ -101,10 +139,11 @@ restored.
 
 ## Why this order
 
-- **(4) first** because it introduces no new persistence pattern — it
-  is a safe copy of slices 1–3's repository reads, parameterized by
-  date, leaning on the already-extracted pure `buildScheduleContext()`.
-  Lowest risk, and immediately useful for reviewing the dogfood run.
+- **(4) first** because it introduces no new table and no new
+  persistence pattern — it reuses slices 1–3's repository reads and
+  write screens, parameterized by date, leaning on the already-extracted
+  pure `buildScheduleContext()`. Lowest risk, and immediately useful:
+  the dogfooding mother can backfill the days she forgot to log.
 - **(5) second** because it is the one slice that adds a new
   persistence pattern (event-written, phase-keyed record) and it
   completes the elimination protocol's core question. It builds on the

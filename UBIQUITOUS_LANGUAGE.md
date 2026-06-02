@@ -236,6 +236,12 @@ method delegating to `DexieSkinObservationRepository`. It is the only place that
 `$skinObservationSession` for reactive reads and call `skinObservationSession.save()`
 for writes; they do not instantiate adapters directly.
 
+[Slice 4](docs/adr/0008-tracer-bullet-slices.md) converts this (and `mealSession` /
+`skinPhotoSession`) into a **date factory** — `createSkinObservationSession(date)` returns
+a `readable` scoped to that date — so the unified Day View can read any selected date while
+`liveQuery` stays in the stores layer ([ADR-0009](docs/adr/0009-schedule-context-store.md)
+boundary rule). A `todayIso()`-bound instance remains the default for today-only callers.
+
 ### skinPhotoSession
 
 The store module (`src/lib/stores/skin-photo-session.ts`) that is the **sole seam** for
@@ -373,7 +379,7 @@ Route names and their Czech display labels:
 | Route | Czech label | Purpose |
 |-------|-------------|---------|
 | `/` | Průvodce / Nastavení | Onboarding questionnaire (6 steps) |
-| `/today` | Dnes | Daily hub: week strip, skin status, meal log |
+| `/day/[date]` | Den / Dnes | Day View: the one day layout for any date (see below). Replaces the former `/today` route |
 | `/week` | Týden | Weekly overview: insights, photo gallery |
 | `/program` | Postup | Full protocol timeline with phase details |
 | `/meal` | Přidat jídlo | Meal logging form |
@@ -386,11 +392,19 @@ The 6-step questionnaire that collects `QuestionnaireAnswers` and generates the 
 `GeneratedSchedule`. Steps: baby birth date → eczema severity → mother allergies →
 baby confirmed allergies → program start date → summary.
 
-### Today Screen (Dnes)
+### Day View (Den / Dnes)
 
-Primary daily action screen. Contains: `WeekStrip`, program `ProgressStrip`, skin
-status card (`EczemaCheck`), meal log section, task checklist. The main screen a user
-opens each day.
+The single day layout, rendered for any date by `/day/[date]`. **Today** is just the
+instance where the selected date equals `todayIso()`; there is no separate past-day
+design. Contains: `WeekStrip`, phase hero, the allowed/avoid reference, the three record
+cards (skin status, photos, meals), and an add affordance (the FAB). The mother reaches
+past days by paging the `WeekStrip` back; she can backfill or edit those days to the same
+parity as today (meals overwrite per slot; skin observations and photos add-only — no
+delete yet). **Action-prompt chrome** — tolerance-building reminders and the task counter
+— renders only when the selected date is today; past days show historical facts only.
+The data path is reactive per selected date (`buildScheduleContext(raw, selectedDate)` +
+date-scoped session-store factories), see [ADR-0009](docs/adr/0009-schedule-context-store.md)'s
+Slice-4 amendment. The main screen a user opens each day.
 
 ### Program Screen (Postup)
 
@@ -408,8 +422,12 @@ A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup sco
 ### WeekStrip
 *Czech: 7-denní páska*
 
-A 7-column grid showing the past 6 days + today. Each cell shows: uppercase 2-char
-day abbreviation (`Po`, `Út` …), day number, and a `SeverityDot`. Today's cell is
+A 7-column **sliding-window** strip: the selected day sits at the right edge with the six
+prior days to its left; tapping the left-most cell pages the window further back. Clamped
+to **[protocol start, today]** — no future days, nothing before the contextless pre-start
+range. A "Dnes" pill returns to today when the selected day is not today. Each cell shows:
+uppercase 2-char day abbreviation (`Po`, `Út` …), day number, and a `SeverityDot`. The
+selected cell is
 highlighted in the primary color.
 
 ### SeverityDot
