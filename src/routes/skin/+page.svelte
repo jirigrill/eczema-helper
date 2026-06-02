@@ -2,17 +2,13 @@
   import type { SkinObservation } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import { skinObservationSession } from '$lib/stores/skin-observation-session';
+  import { skinPhotoSession } from '$lib/stores/skin-photo-session';
   import EczemaCheck from '$lib/components/EczemaCheck.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieSkinObservationRepository } from '$lib/adapters/dexie-skin-observation-repository';
-  import { DexieSkinPhotoStore } from '$lib/adapters/dexie-skin-photo-store';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { todayIso } from '$lib/utils/date';
-
-  const repo = new DexieSkinObservationRepository(db);
-  const photoStore = new DexieSkinPhotoStore(db);
 
   const date = $derived(page.url.searchParams.get('date') ?? todayIso());
   const returnTo = $derived(page.url.searchParams.get('returnTo') ?? '/today');
@@ -22,12 +18,12 @@
   );
 
   async function handleSave(obs: SkinObservation): Promise<void> {
-    await repo.save(obs);
+    await skinObservationSession.save(obs);
     goto(returnTo);
   }
 
   async function handlePhotoCapture(blob: Blob): Promise<void> {
-    await photoStore.save({
+    await skinPhotoSession.save({
       id: crypto.randomUUID(),
       date: date,
       capturedAt: new Date().toISOString(),

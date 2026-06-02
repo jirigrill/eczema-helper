@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { Meal } from "$lib/domain/models";
   import { scheduleContext } from "$lib/stores/schedule-context";
   import { mealSession } from "$lib/stores/meal-session";
   import { getPhaseForDate } from "$lib/domain/schedule-queries";
@@ -17,16 +16,14 @@
   import { todayIso, addDays, formatDateLongCs } from "$lib/utils/date";
   import { phaseConfig } from "$lib/config/phases";
   import { categoryConfig } from "$lib/config/categories";
-  import { db } from "$lib/db/atopic-db";
-  import { DexieSkinObservationRepository } from "$lib/adapters/dexie-skin-observation-repository";
-  import { DexieSkinPhotoStore } from "$lib/adapters/dexie-skin-photo-store";
-
-  const repo = new DexieSkinObservationRepository(db);
-  const photoStore = new DexieSkinPhotoStore(db);
+  import { skinObservationSession } from "$lib/stores/skin-observation-session";
+  import { skinPhotoSession } from "$lib/stores/skin-photo-session";
 
   const today = todayIso();
 
   const todayMeals = $derived($mealSession);
+  const todaySkinObservations = $derived($skinObservationSession);
+  const todayPhotos = $derived($skinPhotoSession);
 
   const ctx = $derived($scheduleContext);
   const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, today) : null);
@@ -207,10 +204,10 @@
       {/each}
 
       <!-- Stav ekzému — live card (slice 3d) -->
-      <SkinObservationCard date={today} {repo} />
+      <SkinObservationCard observations={todaySkinObservations} />
 
       <!-- Foto kůže — live card (slice 3d) -->
-      <SkinPhotoCard date={today} {photoStore} />
+      <SkinPhotoCard photos={todayPhotos} />
 
       <!-- Smím / Vyhýbej se -->
       <div

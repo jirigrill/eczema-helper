@@ -1,31 +1,18 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { createRawSnippet } from 'svelte';
   import { commonStrings, snimkyCs } from '$lib/strings/common';
   import type { SkinPhoto } from '$lib/domain/models';
-  import type { SkinPhotoStore } from '$lib/domain/ports/skin-photo-store';
   import DayCard from './DayCard.svelte';
 
-  let { date, photoStore }: { date: string; photoStore: SkinPhotoStore } = $props();
+  let { photos }: { photos: SkinPhoto[] } = $props();
 
-  let photos = $state<SkinPhoto[]>([]);
   let objectUrls = $state<string[]>([]);
 
-  onMount(() => {
-    const subscription = photoStore.liveQueryByDate(date).subscribe({
-      next: (rows) => {
-        for (const url of objectUrls) URL.revokeObjectURL(url);
-        photos = rows ?? [];
-        objectUrls = photos.map((p) => URL.createObjectURL(p.blob));
-      },
-      error: () => {
-        photos = [];
-        objectUrls = [];
-      },
-    });
+  $effect(() => {
+    const urls = photos.map((p) => URL.createObjectURL(p.blob));
+    objectUrls = urls;
     return () => {
-      subscription.unsubscribe();
-      for (const url of objectUrls) URL.revokeObjectURL(url);
+      for (const url of urls) URL.revokeObjectURL(url);
     };
   });
 
