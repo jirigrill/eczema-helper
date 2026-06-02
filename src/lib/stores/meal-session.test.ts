@@ -45,7 +45,7 @@ function makeMeal(overrides: Partial<Meal> = {}): Meal {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('mealSession', () => {
+describe('mealSession (default export — today singleton)', () => {
   it('exports subscribe, save, loadBySlot', async () => {
     const mod = await import('./meal-session');
     expect(mod.mealSession).toBeDefined();
@@ -58,8 +58,6 @@ describe('mealSession', () => {
     const { mealSession } = await import('./meal-session');
     const meals = get(mealSession);
     expect(Array.isArray(meals)).toBe(true);
-    // may have leftover rows from other tests in the shared singleton db,
-    // but the store should at minimum be an array
     expect(meals).toBeDefined();
   });
 
@@ -90,5 +88,58 @@ describe('mealSession', () => {
     const { mealSession } = await import('./meal-session');
     const result = await mealSession.loadBySlot('1999-01-01', 'snack');
     expect(result).toMatchObject({ ok: true, data: null });
+  });
+});
+
+describe('createMealSession (factory)', () => {
+  it('exports createMealSession function', async () => {
+    const mod = await import('./meal-session');
+    expect(typeof mod.createMealSession).toBe('function');
+  });
+
+  it('factory returns a store with subscribe, save, loadBySlot', async () => {
+    const { createMealSession } = await import('./meal-session');
+    const session = createMealSession('2024-01-15');
+    expect(typeof session.subscribe).toBe('function');
+    expect(typeof session.save).toBe('function');
+    expect(typeof session.loadBySlot).toBe('function');
+  });
+
+  it('factory store is scoped to the given date', async () => {
+    const { createMealSession } = await import('./meal-session');
+    const date = '2024-03-10';
+    const session = createMealSession(date);
+    const meal: Meal = {
+      id: `${date}:snack`,
+      date,
+      mealType: 'snack',
+      actor: 'mother',
+      items: [],
+      createdAt: new Date().toISOString(),
+    };
+    await session.save(meal);
+    const meals = await waitForMeals(session, (ms) => ms.some((m) => m.id === meal.id));
+    expect(meals.some((m) => m.id === meal.id)).toBe(true);
+  });
+
+  it('factory store for one date does not show meals from a different date', async () => {
+    const { createMealSession } = await import('./meal-session');
+    const dateA = '2024-04-01';
+    const dateB = '2024-04-02';
+    const sessionA = createMealSession(dateA);
+    const mealA: Meal = {
+      id: `${dateA}:lunch`,
+      date: dateA,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [],
+      createdAt: new Date().toISOString(),
+    };
+    await sessionA.save(mealA);
+    const sessionB = createMealSession(dateB);
+    // Give liveQuery time to settle
+    await new Promise((r) => setTimeout(r, 100));
+    const mealsB = get(sessionB);
+    expect(mealsB.some((m) => m.id === mealA.id)).toBe(false);
   });
 });

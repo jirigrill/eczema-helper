@@ -8,28 +8,27 @@ import type { Meal, MealType } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 
 const repo = new DexieMealRepository(db);
-const today = todayIso();
 
-const todayMeals = readable<Meal[]>([], (set) => {
-	const subscription = liveQuery(() =>
-		db.meals.where('date').equals(today).toArray(),
-	).subscribe({
-		next: (meals) => { set(meals ?? []); },
-		error: () => { set([]); },
+export function createMealSession(date: string) {
+	const meals = readable<Meal[]>([], (set) => {
+		const subscription = liveQuery(() =>
+			db.meals.where('date').equals(date).toArray(),
+		).subscribe({
+			next: (rows) => { set(rows ?? []); },
+			error: () => { set([]); },
+		});
+		return () => subscription.unsubscribe();
 	});
-	return () => subscription.unsubscribe();
-});
 
-async function save(meal: Meal): Promise<Result<void, string>> {
-	return repo.save(meal);
+	async function save(meal: Meal): Promise<Result<void, string>> {
+		return repo.save(meal);
+	}
+
+	async function loadBySlot(d: string, mealType: MealType): Promise<Result<Meal | null, string>> {
+		return repo.loadBySlot(d, mealType);
+	}
+
+	return { subscribe: meals.subscribe, save, loadBySlot };
 }
 
-async function loadBySlot(date: string, mealType: MealType): Promise<Result<Meal | null, string>> {
-	return repo.loadBySlot(date, mealType);
-}
-
-export const mealSession = {
-	subscribe: todayMeals.subscribe,
-	save,
-	loadBySlot,
-};
+export const mealSession = createMealSession(todayIso());

@@ -8,23 +8,23 @@ import type { SkinPhoto } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 
 const store = new DexieSkinPhotoStore(db);
-const today = todayIso();
 
-const todayPhotos = readable<SkinPhoto[]>([], (set) => {
-	const subscription = liveQuery(() =>
-		db.photos.where('date').equals(today).toArray(),
-	).subscribe({
-		next: (rows) => { set(rows ?? []); },
-		error: () => { set([]); },
+export function createSkinPhotoSession(date: string) {
+	const photos = readable<SkinPhoto[]>([], (set) => {
+		const subscription = liveQuery(() =>
+			db.photos.where('date').equals(date).toArray(),
+		).subscribe({
+			next: (rows) => { set(rows ?? []); },
+			error: () => { set([]); },
+		});
+		return () => subscription.unsubscribe();
 	});
-	return () => subscription.unsubscribe();
-});
 
-async function save(photo: SkinPhoto): Promise<Result<void, string>> {
-	return store.save(photo);
+	async function save(photo: SkinPhoto): Promise<Result<void, string>> {
+		return store.save(photo);
+	}
+
+	return { subscribe: photos.subscribe, save };
 }
 
-export const skinPhotoSession = {
-	subscribe: todayPhotos.subscribe,
-	save,
-};
+export const skinPhotoSession = createSkinPhotoSession(todayIso());
