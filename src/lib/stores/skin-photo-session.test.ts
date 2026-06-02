@@ -43,7 +43,7 @@ function makePhoto(overrides: Partial<SkinPhoto> = {}): SkinPhoto {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('skinPhotoSession', () => {
+describe('skinPhotoSession (default export — today singleton)', () => {
   it('exports subscribe and save', async () => {
     const mod = await import('./skin-photo-session');
     expect(mod.skinPhotoSession).toBeDefined();
@@ -80,5 +80,52 @@ describe('skinPhotoSession', () => {
     await skinPhotoSession.save(pastPhoto);
     const rows = await waitForPhotos(skinPhotoSession, () => true);
     expect(rows.some((r) => r.id === 'photo-past')).toBe(false);
+  });
+});
+
+describe('createSkinPhotoSession (factory)', () => {
+  it('exports createSkinPhotoSession function', async () => {
+    const mod = await import('./skin-photo-session');
+    expect(typeof mod.createSkinPhotoSession).toBe('function');
+  });
+
+  it('factory returns a store with subscribe and save', async () => {
+    const { createSkinPhotoSession } = await import('./skin-photo-session');
+    const session = createSkinPhotoSession('2024-01-15');
+    expect(typeof session.subscribe).toBe('function');
+    expect(typeof session.save).toBe('function');
+  });
+
+  it('factory store is scoped to the given date', async () => {
+    const { createSkinPhotoSession } = await import('./skin-photo-session');
+    const date = '2024-07-04';
+    const session = createSkinPhotoSession(date);
+    const photo: SkinPhoto = {
+      id: `photo-factory-${date}`,
+      date,
+      capturedAt: new Date().toISOString(),
+      blob: new Blob(['img'], { type: 'image/jpeg' }),
+    };
+    await session.save(photo);
+    const rows = await waitForPhotos(session, (rs) => rs.some((r) => r.id === photo.id));
+    expect(rows.some((r) => r.id === photo.id)).toBe(true);
+  });
+
+  it('factory store for one date does not show photos from a different date', async () => {
+    const { createSkinPhotoSession } = await import('./skin-photo-session');
+    const dateA = '2024-08-01';
+    const dateB = '2024-08-02';
+    const sessionA = createSkinPhotoSession(dateA);
+    const photo: SkinPhoto = {
+      id: `photo-factory-${dateA}`,
+      date: dateA,
+      capturedAt: new Date().toISOString(),
+      blob: new Blob(['img'], { type: 'image/jpeg' }),
+    };
+    await sessionA.save(photo);
+    const sessionB = createSkinPhotoSession(dateB);
+    await new Promise((r) => setTimeout(r, 100));
+    const rowsB = get(sessionB);
+    expect(rowsB.some((r) => r.id === photo.id)).toBe(false);
   });
 });

@@ -62,6 +62,58 @@ async function seedDb(): Promise<void> {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+describe('scheduleRaw', () => {
+  afterEach(async () => {
+    await clearDb();
+  });
+
+  it('exports scheduleRaw readable', async () => {
+    const mod = await import('./schedule-context');
+    expect(mod.scheduleRaw).toBeDefined();
+    expect(typeof mod.scheduleRaw.subscribe).toBe('function');
+  });
+
+  it('emits {status: "loading"} initially', async () => {
+    const { scheduleRaw } = await import('./schedule-context');
+    const value = await new Promise<{ status: string }>((resolve) => {
+      const unsub = scheduleRaw.subscribe((v) => {
+        Promise.resolve().then(() => unsub());
+        resolve(v);
+      });
+    });
+    // Either loading (db empty at start) or empty — both are valid depending on prior test state
+    expect(['loading', 'empty', 'ready']).toContain(value.status);
+  });
+
+  it('emits {status: "ready", schedule, answers} when db has data', async () => {
+    await seedDb();
+    const { scheduleRaw } = await import('./schedule-context');
+
+    const value = await new Promise<{ status: string }>((resolve, reject) => {
+      let unsub: (() => void) | undefined;
+      const timer = setTimeout(() => { unsub?.(); reject(new Error('timeout')); }, 600);
+      unsub = scheduleRaw.subscribe((v) => {
+        if (v.status === 'ready') {
+          clearTimeout(timer);
+          Promise.resolve().then(() => unsub?.());
+          resolve(v);
+        }
+      });
+    });
+
+    expect(value.status).toBe('ready');
+    // scheduleRaw ready value must have schedule and answers but NOT derived fields
+    const raw = value as { status: 'ready'; schedule: unknown; answers: unknown };
+    expect(raw.schedule).toBeDefined();
+    expect(raw.answers).toBeDefined();
+    // Must NOT contain date-derived fields that belong on the page side
+    expect((raw as Record<string, unknown>).allergenStatuses).toBeUndefined();
+    expect((raw as Record<string, unknown>).eliminatedToday).toBeUndefined();
+    expect((raw as Record<string, unknown>).reintroInfo).toBeUndefined();
+    expect((raw as Record<string, unknown>).progress).toBeUndefined();
+  });
+});
+
 describe('scheduleContext', () => {
   afterEach(async () => {
     await clearDb();

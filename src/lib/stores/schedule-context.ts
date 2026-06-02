@@ -13,8 +13,14 @@ export type ScheduleContext =
 	| { status: 'error'; message: string }
 	| ({ status: 'ready' } & ReadyContext);
 
-export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, (set) => {
-	let currentStatus: ScheduleContext['status'] = 'loading';
+export type ScheduleRaw =
+	| { status: 'loading' }
+	| { status: 'empty' }
+	| { status: 'error'; message: string }
+	| { status: 'ready'; schedule: GeneratedSchedule; answers: QuestionnaireAnswers };
+
+function createLiveRawSubscription(set: (value: ScheduleRaw) => void): () => void {
+	let currentStatus: ScheduleRaw['status'] = 'loading';
 
 	const subscription = liveQuery(async () => {
 		const [scheduleRow, answersRow] = await Promise.all([
@@ -26,9 +32,6 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 		next: ({ scheduleRow, answersRow }) => {
 			if (!scheduleRow || !answersRow) {
 				if (currentStatus === 'ready') {
-					// liveQuery can fire transiently empty when an unrelated table (e.g. photos)
-					// is written. Re-query once to confirm the data is truly gone before
-					// transitioning away from 'ready' and triggering navigation.
 					void Promise.all([
 						db.schedule.get(SINGLETON_ID),
 						db.answers.get(SINGLETON_ID),
@@ -51,14 +54,32 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 			currentStatus = 'ready';
 			set({
 				status: 'ready',
-				...buildScheduleContext(
-					{ schedule: schedule as GeneratedSchedule, answers: answers as QuestionnaireAnswers },
-					todayIso(),
-				),
+				schedule: schedule as GeneratedSchedule,
+				answers: answers as QuestionnaireAnswers,
 			});
 		},
 		error: (e: unknown) => set({ status: 'error', message: e instanceof Error ? e.message : String(e) }),
 	});
 
 	return () => subscription.unsubscribe();
+}
+
+export const scheduleRaw = readable<ScheduleRaw>({ status: 'loading' }, (set) => {
+	return createLiveRawSubscription(set);
+});
+
+export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, (set) => {
+	return createLiveRawSubscription((raw) => {
+		if (raw.status !== 'ready') {
+			set(raw);
+			return;
+		}
+		set({
+			status: 'ready',
+			...buildScheduleContext(
+				{ schedule: raw.schedule, answers: raw.answers },
+				todayIso(),
+			),
+		});
+	});
 });
