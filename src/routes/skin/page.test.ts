@@ -17,19 +17,23 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 // ── SkinObservationRepository mock ───────────────────────────
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 vi.mock('$lib/adapters/dexie-skin-observation-repository', () => ({
-  DexieSkinObservationRepository: vi.fn().mockImplementation(() => ({
-    save: mockSave,
-    listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-  })),
+  DexieSkinObservationRepository: vi.fn().mockImplementation(function () {
+    return {
+      save: mockSave,
+      listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+    };
+  }),
 }));
 
 // ── SkinPhotoStore mock ──────────────────────────────────────
 const mockPhotoSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 vi.mock('$lib/adapters/dexie-skin-photo-store', () => ({
-  DexieSkinPhotoStore: vi.fn().mockImplementation(() => ({
-    save: mockPhotoSave,
-    listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-  })),
+  DexieSkinPhotoStore: vi.fn().mockImplementation(function () {
+    return {
+      save: mockPhotoSave,
+      listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+    };
+  }),
 }));
 
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
