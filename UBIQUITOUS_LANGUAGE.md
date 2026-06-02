@@ -226,6 +226,26 @@ writes for the protocol seam. Exposes a `subscribe` function (delegating to
 mutate protocol state import `protocolSession` instead of instantiating adapters
 directly. Routes that only read may still import `scheduleContext`.
 
+### skinObservationSession
+
+The store module (`src/lib/stores/skin-observation-session.ts`) that is the **sole seam**
+for reading and writing today's `SkinObservation` records. Shaped like `mealSession`:
+a `readable<SkinObservation[]>` backed by `liveQuery` over today's rows, plus a `save`
+method delegating to `DexieSkinObservationRepository`. It is the only place that imports
+`db` and constructs the adapter for skin observations. Routes subscribe to
+`$skinObservationSession` for reactive reads and call `skinObservationSession.save()`
+for writes; they do not instantiate adapters directly.
+
+### skinPhotoSession
+
+The store module (`src/lib/stores/skin-photo-session.ts`) that is the **sole seam** for
+reading and writing today's `SkinPhoto` records. Shaped like `mealSession`: a
+`readable<SkinPhoto[]>` backed by `liveQuery` over today's rows, plus a `save` method
+delegating to `DexieSkinPhotoStore`. It is the only place that imports `db` and
+constructs the adapter for skin photos. Routes subscribe to `$skinPhotoSession` for
+reactive reads and call `skinPhotoSession.save()` for writes; they do not instantiate
+adapters directly.
+
 ### EczemaSeverity
 *Czech: Závažnost ekzému*
 
