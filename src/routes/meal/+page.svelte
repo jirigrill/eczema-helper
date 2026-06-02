@@ -30,7 +30,8 @@
   let meals = $state<Meal[]>([]);
 
   const today = $derived(todayIso());
-  const returnTo = $derived(page.url.searchParams.get('returnTo') ?? '/today');
+  const targetDate = $derived(page.url.searchParams.get('date') ?? today);
+  const returnTo = $derived(page.url.searchParams.get('returnTo') ?? `/day/${targetDate}`);
   const ctx = $derived($scheduleContext);
   const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
   const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
@@ -44,7 +45,12 @@
   let autosaveToastTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Form state ────────────────────────────────────────────
-  let selectedMealType = $state<'breakfast' | 'lunch' | 'snack' | 'dinner'>('lunch');
+  const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
+  type MealTypeKind = typeof mealTypes[number];
+  function parseMealType(raw: string | null): MealTypeKind {
+    return mealTypes.includes(raw as MealTypeKind) ? (raw as MealTypeKind) : 'lunch';
+  }
+  let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
   let selectedAmount = $state<PortionKind>('portion');
   let expandedCategory = $state<string | null>(null);
   let expandedItemId = $state<string | null>(null);
@@ -54,11 +60,9 @@
   let showSuccess = $state(false);
   let customName = $state('');
 
-  const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
-
   // ── Slot loading ──────────────────────────────────────────
   async function loadSlot(mealType: typeof selectedMealType): Promise<void> {
-    const result = await mealSession.loadBySlot(today, mealType);
+    const result = await mealSession.loadBySlot(targetDate, mealType);
     if (result.ok && result.data) {
       currentItems = result.data.items;
       mealNotes = result.data.notes ?? '';
@@ -79,8 +83,8 @@
 
     if (snapshotItems.length > 0) {
       const meal: Meal = {
-        id: `${today}:${previousType}`,
-        date: today,
+        id: `${targetDate}:${previousType}`,
+        date: targetDate,
         mealType: previousType,
         actor: 'mother',
         items: snapshotItems,
@@ -193,8 +197,8 @@
   async function saveMeal() {
     if (currentItems.length === 0) return; // guard for aria-disabled CTA
     const meal: Meal = {
-      id: `${today}:${selectedMealType}`,
-      date: today,
+      id: `${targetDate}:${selectedMealType}`,
+      date: targetDate,
       mealType: selectedMealType,
       actor: 'mother',
       // $state.snapshot strips Svelte 5 Proxy wrappers → plain JS object
@@ -214,7 +218,7 @@
     goto(returnTo);
   }
 
-  const todayMeals = $derived(meals.filter(m => m.date === today));
+  const todayMeals = $derived(meals.filter(m => m.date === targetDate));
 
   function isCategoryInMeal(allergenId: string): boolean {
     return currentItems.some(i => i.allergenId === allergenId);
@@ -227,7 +231,7 @@
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
     <PageHeader title={commonStrings.meal.heading} onBack={() => goto(returnTo)}>
       {#snippet right()}
-        <p class="body-muted">{formatDateLongCs(today)}</p>
+        <p class="body-muted">{formatDateLongCs(targetDate)}</p>
       {/snippet}
     </PageHeader>
 

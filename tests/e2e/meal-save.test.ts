@@ -300,3 +300,27 @@ test('pill-switch with empty basket: no autosave call and no toast', async ({ pa
   await expect(page.getByText(/uložen/)).not.toBeVisible();
   await expect(page.getByText(/Zatím prázdné/)).toBeVisible();
 });
+
+// ── Slice 4c: ?date= query parameter ─────────────────────────────
+
+test('?date= param: loads slot for specified date, saves to that date, navigates to /day/<date>', async ({ page }) => {
+  await completeOnboarding(page);
+  await expect(page).toHaveURL('/today');
+
+  // Navigate to meal page with a past date
+  await page.goto('/meal?type=breakfast&date=2025-01-15');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Add a food and save
+  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // returnTo should default to /day/2025-01-15 (not /today)
+  await expect(page).toHaveURL('/day/2025-01-15');
+
+  // The saved meal should appear on the day screen
+  await expect(page.getByText('Brambory')).toBeVisible();
+});

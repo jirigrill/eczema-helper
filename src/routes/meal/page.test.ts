@@ -681,7 +681,7 @@ describe('meal/+page.svelte', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('after save goto is called with /today when no returnTo param', async () => {
+  it('after save goto is called with /day/<today> when no returnTo or date param', async () => {
     setReady();
     const { goto } = await import('$app/navigation');
     const { default: MealPage } = await import('./+page.svelte');
@@ -694,7 +694,7 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
     await tick();
 
-    expect(goto).toHaveBeenCalledWith('/today');
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
   it('after save goto is called with custom returnTo when param is present', async () => {
@@ -714,7 +714,7 @@ describe('meal/+page.svelte', () => {
     expect(goto).toHaveBeenCalledWith('/program');
   });
 
-  it('back chevron calls goto with returnTo (defaults to /today)', async () => {
+  it('back chevron calls goto with returnTo (defaults to /day/<today>)', async () => {
     setReady();
     const { goto } = await import('$app/navigation');
     const { default: MealPage } = await import('./+page.svelte');
@@ -725,7 +725,7 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: '‹' }));
     await tick();
 
-    expect(goto).toHaveBeenCalledWith('/today');
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
   it('adding an eliminated item shows conflict toast', async () => {
@@ -964,5 +964,78 @@ describe('meal/+page.svelte', () => {
     await tick();
 
     expect(queryByText(/uložen/)).not.toBeInTheDocument();
+  });
+
+  // ── Slice 4c: ?date= query parameter ─────────────────────
+
+  it('on mount with ?date=, loadBySlot is called with the URL date, not today', async () => {
+    mockPage.url = new URL('http://localhost/meal?date=2025-01-15&type=breakfast');
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    render(MealPage);
+    await tick();
+    await tick();
+
+    expect(mockLoadBySlot).toHaveBeenCalledWith('2025-01-15', 'breakfast');
+  });
+
+  it('saving a meal with ?date= uses the URL date in meal.id and meal.date', async () => {
+    mockPage.url = new URL('http://localhost/meal?date=2025-01-15');
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.date).toBe('2025-01-15');
+    expect(saved.id).toBe('2025-01-15:lunch');
+  });
+
+  it('returnTo defaults to /day/<date> when ?date= is present and no explicit returnTo', async () => {
+    mockPage.url = new URL('http://localhost/meal?date=2025-01-15');
+    setReady();
+    const { goto } = await import('$app/navigation');
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+    await tick();
+
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    expect(goto).toHaveBeenCalledWith('/day/2025-01-15');
+  });
+
+  it('absent ?date= falls back to todayIso() for loadBySlot and save', async () => {
+    // mockPage.url already reset to /meal (no date param) in beforeEach
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+    await tick();
+
+    // Mount: loads today's slot
+    expect(mockLoadBySlot).toHaveBeenCalledWith(today, 'lunch');
+
+    mockSave.mockClear();
+    await fireEvent.input(getByPlaceholderText('Název potraviny…'), { target: { value: 'Brambory' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.date).toBe(today);
   });
 });
