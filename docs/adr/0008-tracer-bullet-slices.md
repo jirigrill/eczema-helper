@@ -1,6 +1,10 @@
 # 0008 — v1 tracer-bullet slice order
 
-**Status:** Accepted — slice 1 landed (onboarding + today on Dexie `answers`/`schedule`); slices 2–3 still ahead.
+**Status:** Accepted — slices 1–3 landed (onboarding, today, meal,
+skin+photo) plus the program timeline; v1-alpha is on the phone.
+Slices 4–6 (day-detail, reintro verdict, encrypted export/import) remain
+to close out the [v1 scope](0007-v1-scope.md). Completed slices are
+recorded at the bottom of this file.
 **Date:** 2026-05-11
 
 ## Context
@@ -14,94 +18,108 @@ phone, (c) proves a pattern the next slice can copy?
 
 ## Decision
 
-Three slices to alpha, in order:
+Slices 1–3 took the app to alpha (recorded under **Completed slices**
+at the bottom). Three slices remain to close out the
+[v1 scope](0007-v1-scope.md), ordered **risk-first** — a safe read-only
+copy-slice, then the one new persistence pattern, then the
+broadest-blast-radius slice last once the schema is stable.
 
-### Slice 1 — Onboarding + Today (read-only)
+### Slice 4 — Day detail (read-only past day)
 
-The smallest slice that exercises every layer once. Singleton-only
-persistence, no list queries yet.
+The lowest-risk remaining slice. Introduces **no new persistence** — it
+composes existing repositories at an arbitrary date, proving the
+"parameterized-by-date read" shape (vs. the today-bound `liveQuery`
+of slices 1–3).
 
-- Dexie schema v1 with `answers` and `schedule` singletons (other
-  tables added in later slices).
-- Domain ports for onboarding and schedule retrieval; Dexie adapters
-  implementing them.
-- Onboarding screen writes `answers`, invokes the existing
-  `generateSchedule()` from `src/lib/domain/schedule.ts`, persists
-  `schedule`.
-- Today screen reads `schedule` via `Dexie.liveQuery()`, computes
-  "what's eliminated today" via the existing
-  `getEliminatedSlugsForDate()`, renders.
-- Installable as a PWA on the developer's phone over LAN
-  (`bun run dev --host`).
+- New route `/day/[date]` reading that date's meals, skin observations,
+  and photos through the existing meal / skin-observation / photo
+  repositories (query by the `date` index already present in schema v4).
+- Compute the date's phase + eliminated set by calling the pure
+  `buildScheduleContext()` (extracted in #170) with the route's date,
+  rather than the today-bound `scheduleContext` store.
+- Navigation in: the today-screen 7-day strip and the program timeline
+  link to `/day/[date]`. The page is strictly read-only — no edit
+  affordances (honours the locked day-page design).
 
-Done when: the developer can open the installed PWA on their phone,
-complete onboarding, and see today's phase + eliminated allergens.
+Done when: the developer taps a past day from the 7-day strip and sees
+that day's phase, eliminated set, meals, skin observations, and photos,
+read-only.
 
-### Slice 2 — Log a meal → see it on today
+### Slice 5 — End-of-reintro allergen verdict
 
-The canonical CRUD loop. Proves reactive list queries and conflict
-detection in the UI.
+The first new persistence pattern since slice 3: a **record keyed by
+phase**, written on an event (the evaluation day) rather than free-form
+CRUD. Completes the protocol's reason for existing — recording whether
+each reintroduced allergen was tolerated or provoked a reaction.
 
-- Add `meals` table to Dexie schema (version bump with upgrade).
-- Meal repository port + Dexie adapter.
-- Meal-add screen with mealType pills, item selection from categories,
-  conflict flagging against today's elimination set.
-- Today screen now also reads today's meals via `liveQuery` and renders
-  the meal list.
+- Dexie schema **v5**: add an `evaluations` table (version bump with
+  upgrade). The `ReintroductionEvaluation` model already exists in
+  `src/lib/domain/models.ts`.
+- New `ReintroductionEvaluationRepository` port (`save`,
+  `loadByPhase`, `listAll`) + Dexie adapter, following the slice-2/3
+  repository shape.
+- Surface evaluations to the program screen through a store (extend
+  `scheduleContext` or add a small evaluations store) so the program
+  timeline reads **real** data — today it renders a permanently-empty
+  `$state([])`, which this slice removes.
+- Write UI: when `reintroInfo.isEvaluationDay` is true, the program
+  screen shows a verdict picker per reintroduced allergen and persists
+  the choice. The recorded verdict feeds allergen status (tolerated /
+  reactive), which already drives retest eligibility and permanent
+  elimination.
+- The verdict ships **without** the "DOPORUČENO" auto-suggestion —
+  that depends on the v1.1 pattern-detector per
+  [ADR-0007](0007-v1-scope.md).
 
-Done when: the developer can log a breakfast on their phone and watch
-it appear on today, with allergen conflicts flagged.
+Done when: the developer reaches an evaluation day, records a verdict
+for the allergen, closes and reopens the app, and sees the verdict
+reflected on the program timeline.
 
-### Slice 3 — Daily skin assessment + photo
+### Slice 6 — Encrypted export / import
 
-De-risks the binary path before more screens accumulate.
+Last because it touches **every** table and adds the crypto round-trip
+— the broadest blast radius. Deferred until the schema is stable (i.e.
+after `evaluations` lands in slice 5) so the export format needs no
+follow-up migration.
 
-- Add `skin_observations` and `photos` tables to Dexie schema.
-- `SkinObservation` repository, `SkinPhoto` store.
-- `/skin` screen: status picker, optional notes. Photos captured
-  independently via FAB → "Přidat fotku" and stored as Blobs in the
-  `photos` table, plaintext per [ADR-0005](0005-photo-encryption-deferred.md).
-  Both are independent records linked by `date` only — no FK between them.
-  Multiple `SkinObservation` and `SkinPhoto` records may exist per day.
-- Today screen surfaces today's skin observations (list) and photos (thumbnail grid) in two separate cards.
-- Today screen wires `getToleranceBuildingRemindersForDate()` from
-  `src/lib/domain/schedule-builder.ts` — training reminders were in
-  the [v1 scope](0007-v1-scope.md) but not assigned to any earlier
-  slice.
+- New serialization service: read all tables (`answers`, `schedule`,
+  `meals`, `skin_observations`, `photos`, `evaluations`) into one
+  snapshot object; photo Blobs base64-encoded into the snapshot.
+- Encrypt the snapshot with the existing `encrypt()` helper in
+  `src/lib/crypto/` (AES-256-GCM + PBKDF2-derived key from a passphrase)
+  and offer it as a downloadable backup file
+  ([ADR-0002](0002-backup-floor.md)). No new crypto primitives — the
+  helpers are already written and tested, just unconsumed.
+- Import: file picker → passphrase → `decrypt()` → validate the
+  snapshot shape → bulk-write into Dexie (clear-then-restore).
+- Settings UI gains a passphrase prompt, an export (download) button,
+  and an import (file + passphrase) button alongside the existing reset.
 
-Done when: the developer can log a daily skin status with a photo on
-their phone, close the app, reopen, and see it persisted — and any
-active training reminders are visible on the today screen.
+Done when: the developer exports an encrypted backup, resets the app,
+imports the file with the passphrase, and sees the full protocol state
+restored.
 
 ## Why this order
 
-- **(1) first** because every other slice depends on a `schedule`
-  being present. Stubbing the schedule in code would leak through
-  conflict detection and the today view, then get torn out.
-- **(2) second** because list-shaped CRUD is where 80% of the daily
-  loop lives. Proving the reactive `liveQuery` → Svelte store → screen
-  pattern on a real list query makes every subsequent screen a copy.
-- **(3) third** because the photo path has its own risk surface (Blob
-  in IndexedDB, camera on iOS Safari PWA, future encryption hook). It
-  belongs in v1 but should not be where the architecture is first
-  proven.
+- **(4) first** because it introduces no new persistence pattern — it
+  is a safe copy of slices 1–3's repository reads, parameterized by
+  date, leaning on the already-extracted pure `buildScheduleContext()`.
+  Lowest risk, and immediately useful for reviewing the dogfood run.
+- **(5) second** because it is the one slice that adds a new
+  persistence pattern (event-written, phase-keyed record) and it
+  completes the elimination protocol's core question. It builds on the
+  port/adapter shape the earlier slices proved.
+- **(6) last** because it reads and writes every table and carries the
+  crypto round-trip — the widest surface to get wrong. Running it after
+  `evaluations` exists means the backup format is authored once against
+  the final schema, with no migration to chase.
 
-## After slice 3 — v1-alpha
+These three reuse slices 1–3's shapes; only slice 5 adds a genuinely
+new pattern, and it is a small one (a keyed record + its repository).
 
-The app is usable on the phone for daily logging through the
-elimination protocol. The remaining v1 work follows the same slice
-pattern:
+## Backlog (post-v1)
 
-- Day-detail screen (read-only review of a past day).
-- Program timeline screen.
-- End-of-reintro allergen verdict flow.
-- Encrypted export/import per
-  [ADR-0002](0002-backup-floor.md).
-
-Each is its own slice. None of them introduce new architectural
-patterns — they reuse slices 1–3's shapes.
-
-### Deferred from slice 2 (pick up post-slice-3)
+### Deferred from slice 2
 
 Items explicitly out of scope for slice 2 (#121) that belong in the
 post-alpha backlog:
@@ -118,12 +136,81 @@ they drop into the meal-add screen without touching other layers.
 
 ## Consequences
 
-- Issues for slices 1–3 can be authored with the `to-issues` skill
-  using this ADR as the brief.
+- Issues for the remaining slices 4–6 can be authored with the
+  `to-issues` skill using this ADR as the brief.
 - The domain layer in `src/lib/domain/` is consumed but not redesigned
   during these slices — the existing pure functions (`generateSchedule`,
   `getEliminatedSlugsForDate`, `detectConflicts`,
-  `getReintroductionDayInfo`) are the v1 domain. Cleanups (e.g.
-  removing the `dateOffset` / `activeScenario` developer affordances
-  from `AppState`, replacing `photoTaken: boolean` with a real photo
-  reference) happen *during* the slice that touches them.
+  `getReintroductionDayInfo`, `buildScheduleContext`) are the v1 domain.
+  Slice 5 adds the one new persistence pattern (the `evaluations` table
+  + its repository); slices 4 and 6 add no new tables.
+- The `photoTaken: boolean` / `dateOffset` / `activeScenario` cleanups
+  noted for slices 1–3 have already landed (real `photos` table; no
+  developer affordances on `AppState`).
+
+## Completed slices
+
+Recorded here after shipping; each went end-to-end through every layer
+and is installed on the developer's phone.
+
+### Slice 1 — Onboarding + Today (read-only) ✅
+
+The smallest slice that exercises every layer once. Singleton-only
+persistence, no list queries yet.
+
+- Dexie schema v1 with `answers` and `schedule` singletons.
+- Domain ports for onboarding and schedule retrieval; Dexie adapters.
+- Onboarding screen writes `answers`, invokes `generateSchedule()`,
+  persists `schedule`.
+- Today screen reads `schedule` via `Dexie.liveQuery()`, computes
+  "what's eliminated today" via `getEliminatedSlugsForDate()`, renders.
+- Installable as a PWA over LAN (`bun run dev --host`).
+
+### Slice 2 — Log a meal → see it on today ✅
+
+The canonical CRUD loop. Proved reactive list queries and conflict
+detection in the UI.
+
+- Added `meals` table to Dexie schema (version bump with upgrade).
+- Meal repository port + Dexie adapter.
+- Meal-add screen with mealType pills, item selection from categories,
+  conflict flagging against today's elimination set.
+- Today screen reads today's meals via `liveQuery` and renders the list.
+
+(Recents strip + sub-item search were carved out of this slice — see
+**Backlog** above.)
+
+### Slice 3 — Daily skin assessment + photo ✅
+
+De-risked the binary path before more screens accumulated.
+
+- Added `skin_observations` and `photos` tables to Dexie schema.
+- `SkinObservation` repository, `SkinPhoto` store.
+- `/skin` screen: status picker, optional notes. Photos captured
+  independently and stored as Blobs in the `photos` table, plaintext
+  per [ADR-0005](0005-photo-encryption-deferred.md). Both records are
+  linked by `date` only — no FK; multiple of each may exist per day.
+- Today screen surfaces today's skin observations (list) and photos
+  (thumbnail grid) in two separate cards.
+- Today screen wires `getToleranceBuildingRemindersForDate()` from
+  `src/lib/domain/schedule-builder.ts`.
+
+### Program timeline ✅
+
+Shipped alongside the slices above (not numbered separately): the
+`/program` phase timeline with progress, permanent eliminations, and
+retest add/cancel (`appendReTestPhases()` / `removeReTestPhase()`). It
+renders an `evaluations` array that slice 5 will populate.
+
+### Original slice order rationale (slices 1–3)
+
+- **(1) first** because every other slice depends on a `schedule`
+  being present. Stubbing it in code would leak through conflict
+  detection and the today view, then get torn out.
+- **(2) second** because list-shaped CRUD is where 80% of the daily
+  loop lives. Proving the reactive `liveQuery` → store → screen pattern
+  on a real list query makes every subsequent screen a copy.
+- **(3) third** because the photo path has its own risk surface (Blob
+  in IndexedDB, camera on iOS Safari PWA, future encryption hook). It
+  belongs in v1 but should not be where the architecture is first
+  proven.
