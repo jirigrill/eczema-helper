@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { WeekStripCell } from './week-strip';
+  import { formatWeekdayShortCs } from '$lib/utils/date';
+  import { commonStrings } from '$lib/strings/common';
 
   type Props = {
     cells: WeekStripCell[];
@@ -11,10 +13,6 @@
   };
 
   const { cells, showDnesPill, today, onselectdate, canPageBack = false, onpageback }: Props = $props();
-
-  function weekdayShort(iso: string): string {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { weekday: 'short' });
-  }
 </script>
 
 <!-- sync with: src/lib/components/WeekStrip/WeekStrip.svelte -->
@@ -34,7 +32,7 @@
         aria-current={cell.isSelected ? 'date' : undefined}
         aria-disabled={cell.isBeforeStart ? 'true' : undefined}
       >
-        <span class="text-[10px] uppercase {cell.isSelected ? 'opacity-80' : ''}">{weekdayShort(cell.date)}</span>
+        <span class="text-[10px] uppercase {cell.isSelected ? 'opacity-80' : ''}">{formatWeekdayShortCs(cell.date)}</span>
         <span class="text-sm font-semibold">{new Date(cell.date + 'T00:00:00').getDate()}</span>
         <span
           class="w-1.5 h-1.5 rounded-full
@@ -51,7 +49,7 @@
         onclick={() => onselectdate(today)}
         data-testid="dnes-pill"
       >
-        Dnes
+        {commonStrings.nav.today}
       </button>
     </div>
   {/if}

@@ -7,7 +7,7 @@
   import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
   import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
-  import { resolveRouteDate, todayIso, formatDateLongCs, addDays } from '$lib/utils/date';
+  import { resolveRouteDate, todayIso, formatDateLongCs, formatWeekdayLongCs, addDays } from '$lib/utils/date';
   import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
   import WeekStrip from '$lib/components/WeekStrip/WeekStrip.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -30,7 +30,7 @@
   const param = $derived(page.params.date);
 
   // selectedDate: valid resolved date, or today as fallback while schedule loads.
-  const selectedDate = $derived((): string => {
+  const selectedDate = $derived.by((): string => {
     if (raw.status !== 'ready') return today;
     const result = resolveRouteDate(param, raw.schedule.startDate, today);
     return result.type === 'date' ? result.date : today;
@@ -46,9 +46,9 @@
   });
 
   // Date-scoped session stores — recreated when selectedDate changes.
-  const mealSession = $derived(createMealSession(selectedDate()));
-  const skinObservationSession = $derived(createSkinObservationSession(selectedDate()));
-  const skinPhotoSession = $derived(createSkinPhotoSession(selectedDate()));
+  const mealSession = $derived(createMealSession(selectedDate));
+  const skinObservationSession = $derived(createSkinObservationSession(selectedDate));
+  const skinPhotoSession = $derived(createSkinPhotoSession(selectedDate));
 
   const meals = $derived($mealSession);
   const skinObservations = $derived($skinObservationSession);
@@ -57,15 +57,15 @@
   // Date-projected schedule context.
   const ctx = $derived(
     raw.status === 'ready'
-      ? { status: 'ready' as const, ...buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, selectedDate()) }
+      ? { status: 'ready' as const, ...buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, selectedDate) }
       : raw
   );
 
-  const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, selectedDate()) : null);
+  const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, selectedDate) : null);
 
   const toleranceReminders = $derived(
     ctx.status === 'ready'
-      ? getToleranceBuildingRemindersForDate(ctx.schedule, selectedDate(), meals)
+      ? getToleranceBuildingRemindersForDate(ctx.schedule, selectedDate, meals)
       : []
   );
 
@@ -81,25 +81,21 @@
       : []
   );
 
-  const isToday = $derived(selectedDate() === today);
+  const isToday = $derived(selectedDate === today);
 
   // WeekStrip data — needs protocolStart from schedule.
   const weekStrip = $derived(
     ctx.status === 'ready'
-      ? computeWeekStrip(selectedDate(), ctx.schedule.startDate, today)
-      : computeWeekStrip(selectedDate(), today, today)
+      ? computeWeekStrip(selectedDate, ctx.schedule.startDate, today)
+      : computeWeekStrip(selectedDate, today, today)
   );
-
-  function czechWeekday(iso: string): string {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { weekday: 'long' });
-  }
 
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
   }
 
   function handlePageBack(): void {
-    goto(`/day/${addDays(selectedDate(), -6)}`);
+    goto(`/day/${addDays(selectedDate, -6)}`);
   }
 </script>
 
@@ -108,9 +104,9 @@
   <div class="px-4 pt-4 pb-2 flex items-end justify-between">
     <div>
       <div class="micro-label">
-        {czechWeekday(selectedDate())} · {formatDateLongCs(selectedDate())}
+        {formatWeekdayLongCs(selectedDate)} · {formatDateLongCs(selectedDate)}
       </div>
-      <h2 class="page-heading">{isToday ? commonStrings.today.heading : formatDateLongCs(selectedDate())}</h2>
+      <h2 class="page-heading">{isToday ? commonStrings.today.heading : formatDateLongCs(selectedDate)}</h2>
     </div>
     <a
       href="/settings"
@@ -163,7 +159,7 @@
                 <div class="text-[11px] text-text-muted mt-0.5">
                   {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                   {#if phase.endDate}
-                    · do {formatDateLongCs(phase.endDate)}
+                    · {commonStrings.today.phaseUntilPrefix} {formatDateLongCs(phase.endDate)}
                   {/if}
                 </div>
               {/if}
@@ -255,7 +251,7 @@
       </div>
 
       <!-- Meal card -->
-      <MealCard date={selectedDate()} meals={meals} eliminatedToday={ctx.eliminatedToday} />
+      <MealCard date={selectedDate} meals={meals} eliminatedToday={ctx.eliminatedToday} />
 
       <!-- Bottom hint -->
       <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">

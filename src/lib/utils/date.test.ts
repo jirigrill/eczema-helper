@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { daysBetween, resolveRouteDate } from './date';
+import { daysBetween, resolveRouteDate, formatWeekdayShortCs, formatWeekdayLongCs } from './date';
 
 describe('daysBetween', () => {
   it('same day returns 1 (inclusive convention)', () => {
@@ -68,5 +68,34 @@ describe('resolveRouteDate', () => {
   it('rejects date with wrong format (missing day)', () => {
     const result = resolveRouteDate('2025-06', protocolStart, today);
     expect(result).toEqual({ type: 'redirect', to: today });
+  });
+});
+
+describe('formatWeekdayShortCs', () => {
+  // 2025-06-02 is a Monday; 2025-06-07 is a Saturday; 2025-06-08 is a Sunday
+  it('returns Czech abbreviated weekday for Monday', () => {
+    expect(formatWeekdayShortCs('2025-06-02')).toBe('po');
+  });
+
+  it('returns Czech abbreviated weekday for Saturday', () => {
+    expect(formatWeekdayShortCs('2025-06-07')).toBe('so');
+  });
+
+  it('returns Czech abbreviated weekday for Sunday', () => {
+    expect(formatWeekdayShortCs('2025-06-08')).toBe('ne');
+  });
+});
+
+describe('formatWeekdayLongCs', () => {
+  it('returns Czech full weekday name for Monday', () => {
+    expect(formatWeekdayLongCs('2025-06-02')).toBe('pondělí');
+  });
+
+  it('returns Czech full weekday name for Saturday', () => {
+    expect(formatWeekdayLongCs('2025-06-07')).toBe('sobota');
+  });
+
+  it('returns Czech full weekday name for Sunday', () => {
+    expect(formatWeekdayLongCs('2025-06-08')).toBe('neděle');
   });
 });
