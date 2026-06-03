@@ -21,7 +21,7 @@
     currentPath.startsWith('/meal') || currentPath.startsWith('/settings') || currentPath.startsWith('/skin')
   );
   const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
-  const dnesActive = $derived(currentPath.startsWith('/today'));
+  const dnesActive = $derived($page.params.date === todayIso());
 
   const selectedDate = $derived($page.params.date ?? todayIso());
 
@@ -42,7 +42,7 @@
     <nav class="bg-white border-t border-surface-dark pt-2 pb-5 shrink-0">
       <div class="grid grid-cols-3 items-end max-w-lg mx-auto">
         <a
-          href="/today"
+          href="/day/{todayIso()}"
           class="flex flex-col items-center gap-0.5 {dnesActive ? 'text-primary' : 'text-text-muted'}"
         >
           <TodayIcon class="w-[22px] h-[22px]" />

@@ -8,7 +8,7 @@ import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
-const mockPageStore = writable({ url: new URL('http://localhost/today'), params: {}, data: {} });
+const mockPageStore = writable({ url: new URL(`http://localhost/day/${new Date().toISOString().split('T')[0]}`), params: { date: new Date().toISOString().split('T')[0] }, data: {} });
 
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }));
@@ -59,7 +59,7 @@ async function renderLayout() {
 beforeEach(() => {
   mockGoto.mockReset();
   mockScheduleContext.set({ status: 'loading' });
-  mockPageStore.set({ url: new URL('http://localhost/today'), params: {}, data: {} });
+  mockPageStore.set({ url: new URL(`http://localhost/day/${today}`), params: { date: today }, data: {} });
 });
 
 describe('+layout.svelte — redirect', () => {
@@ -71,7 +71,7 @@ describe('+layout.svelte — redirect', () => {
   });
 
   it('does not call goto when already on onboarding route', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/'), params: {}, data: {} });
+    mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
     mockScheduleContext.set({ status: 'empty' });
     await renderLayout();
     await tick();
@@ -88,7 +88,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('hides nav on onboarding route even when answers are present', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/'), params: {}, data: {} });
+    mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
     mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
@@ -104,7 +104,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('hides nav on /meal route', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/meal'), params: {}, data: {} });
+    mockPageStore.set({ url: new URL('http://localhost/meal'), params: { date: '' }, data: {} });
     mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
@@ -113,7 +113,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('hides nav on /settings route', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/settings'), params: {}, data: {} });
+    mockPageStore.set({ url: new URL('http://localhost/settings'), params: { date: '' }, data: {} });
     mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
@@ -122,7 +122,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('hides nav on /skin route', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/skin'), params: {}, data: {} });
+    mockPageStore.set({ url: new URL('http://localhost/skin'), params: { date: '' }, data: {} });
     mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
@@ -163,30 +163,49 @@ describe('+layout.svelte — bottom nav visibility', () => {
 });
 
 describe('+layout.svelte — active tab state', () => {
-  it('marks Dnes tab active on /today', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/today'), params: {}, data: {} });
+  it('Dnes tab links to /day/<today>', async () => {
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
-    const dnesLink = container.querySelector('a[href="/today"]');
+    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
+    expect(dnesLink).toBeInTheDocument();
+    expect(dnesLink?.textContent).toContain('Dnes');
+  });
+
+  it('marks Dnes tab active when viewing today', async () => {
+    mockPageStore.set({ url: new URL(`http://localhost/day/${today}`), params: { date: today }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
     const tydenLink = container.querySelector('a[href="/week"]');
     expect(dnesLink?.classList).toContain('text-primary');
     expect(tydenLink?.classList).toContain('text-text-muted');
   });
 
-  it('marks Týden tab active on /week', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/week'), params: {}, data: {} });
+  it('marks Dnes tab inactive when viewing a past date', async () => {
+    const pastDate = '2025-01-01';
+    mockPageStore.set({ url: new URL(`http://localhost/day/${pastDate}`), params: { date: pastDate }, data: {} });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
-    const dnesLink = container.querySelector('a[href="/today"]');
+    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
+    expect(dnesLink?.classList).toContain('text-text-muted');
+  });
+
+  it('marks Týden tab active on /week', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
     const tydenLink = container.querySelector('a[href="/week"]');
     expect(tydenLink?.classList).toContain('text-primary');
     expect(dnesLink?.classList).toContain('text-text-muted');
   });
 
   it('marks Týden tab active on /program', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/program'), params: {}, data: {} });
+    mockPageStore.set({ url: new URL('http://localhost/program'), params: { date: '' }, data: {} });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();

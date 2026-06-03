@@ -138,7 +138,7 @@ describe('skin/+page.svelte', () => {
 
   // ── Navigation: returnTo ──────────────────────────────────
 
-  it('after save, goto is called with /today when no returnTo param', async () => {
+  it('after save, goto is called with /day/<today> when no returnTo param', async () => {
     setReady();
     const { goto } = await import('$app/navigation');
     const { default: SkinPage } = await import('./+page.svelte');
@@ -150,7 +150,7 @@ describe('skin/+page.svelte', () => {
     await fireEvent.click(getByText('Uložit hodnocení'));
     await tick();
 
-    expect(goto).toHaveBeenCalledWith('/today');
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
   it('after save, goto is called with custom returnTo when param is present', async () => {

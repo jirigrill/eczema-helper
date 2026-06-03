@@ -24,7 +24,7 @@ async function completeOnboarding(page: Page) {
   // Wait for the app to finish saving to IndexedDB and navigate. Without this,
   // page.goto('/skin') can hard-reload before the DB writes commit, causing
   // the scheduleContext liveQuery to fire empty on the next page load.
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(/\/day\//);
 }
 
 /** Seed a reintroduction schedule so reintroInfo is non-null for today. */
@@ -88,11 +88,12 @@ test('skin save: button disabled after save, only one observation written', asyn
   expect(count).toBe(1);
 });
 
-test('skin save: select status, hit Uložit, navigates to /today', async ({ page }) => {
+test('skin save: select status, hit Uložit, navigates to /day/<today>', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
-  await page.goto('/skin?returnTo=/today');
+  await page.goto(`/skin?returnTo=/day/${today}`);
   await expect(page.getByText('Záznam stavu kůže')).toBeVisible();
   await expect(page.getByText(/Sledujte reakci na/)).not.toBeVisible();
 
@@ -107,12 +108,13 @@ test('skin save: select status, hit Uložit, navigates to /today', async ({ page
   await expect(saveBtn).toBeVisible();
   await expect(saveBtn).not.toBeDisabled();
 
-  // Save — expect navigation back to /today
+  // Save — expect navigation back to /day/<today>
   await saveBtn.click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('skin date param: observation and photo persisted with explicit ?date=', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   const pastDate = '2025-01-15';
   await page.goto(`/skin?date=${pastDate}`);
@@ -121,7 +123,7 @@ test('skin date param: observation and photo persisted with explicit ?date=', as
   await uploadPhoto(page, 'old.jpg');
   await expect(page.getByText('Fotka pořízena (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Uložit hodnocení' }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   const result = await page.evaluate(async () => {
     const path = '/src/lib/db/atopic-db.ts';
@@ -139,13 +141,14 @@ test('skin date param: observation and photo persisted with explicit ?date=', as
 });
 
 test('skin save: notes text persists trimmed in IndexedDB', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   await page.goto('/skin');
 
   await page.getByRole('button', { name: 'Beze změny' }).click();
   await page.getByPlaceholder('Poznámka (volitelné) — např. zarudnutí na tváři…').fill('  zarudnutí na tváři  ');
   await page.getByRole('button', { name: 'Uložit hodnocení' }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   const notes = await page.evaluate(async () => {
     const path = '/src/lib/db/atopic-db.ts';
@@ -158,13 +161,14 @@ test('skin save: notes text persists trimmed in IndexedDB', async ({ page }) => 
 });
 
 test('skin save: whitespace-only notes persisted as undefined', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   await page.goto('/skin');
 
   await page.getByRole('button', { name: 'Beze změny' }).click();
   await page.getByPlaceholder('Poznámka (volitelné) — např. zarudnutí na tváři…').fill('   ');
   await page.getByRole('button', { name: 'Uložit hodnocení' }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   const notes = await page.evaluate(async () => {
     const path = '/src/lib/db/atopic-db.ts';
@@ -183,7 +187,7 @@ test('skin save: observation persists to IndexedDB with correct shape', async ({
 
   await page.getByRole('button', { name: 'Zhoršení' }).click();
   await page.getByRole('button', { name: 'Uložit hodnocení' }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   const record = await page.evaluate(async () => {
     const path = '/src/lib/db/atopic-db.ts';
@@ -203,8 +207,9 @@ test('skin save: observation persists to IndexedDB with correct shape', async ({
 });
 
 test('skin returnTo: save navigates to custom returnTo param', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   await page.goto('/skin?returnTo=/program');
   await page.getByRole('button', { name: 'Zhoršení' }).click();
@@ -214,24 +219,26 @@ test('skin returnTo: save navigates to custom returnTo param', async ({ page }) 
 });
 
 test('skin back chevron: navigates to returnTo without saving', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
-  await page.goto('/skin?returnTo=/today');
+  await page.goto(`/skin?returnTo=/day/${today}`);
   await expect(page.getByText('Záznam stavu kůže')).toBeVisible();
 
   // Back without selecting anything
   await page.getByRole('button', { name: '‹' }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('skin back chevron: does not persist observation when status was selected', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await page.goto('/skin?returnTo=/today');
+  await page.goto(`/skin?returnTo=/day/${today}`);
 
   await page.getByRole('button', { name: 'Zlepšení' }).click();
   await page.getByRole('button', { name: '‹' }).click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   const count = await page.evaluate(async () => {
     const path = '/src/lib/db/atopic-db.ts';
@@ -242,10 +249,11 @@ test('skin back chevron: does not persist observation when status was selected',
 });
 
 test('skin: bottom nav is hidden on /skin route', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
-  // Confirm nav is visible on /today
+  // Confirm nav is visible on /day/<today>
   await expect(page.getByRole('navigation')).toBeVisible();
 
   await page.goto('/skin');
@@ -256,8 +264,9 @@ test('skin: bottom nav is hidden on /skin route', async ({ page }) => {
 });
 
 test('skin reintro pill: visible when active reintroduction phase', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await seedReintroductionSchedule(page);
-  await page.goto('/today');
+  await page.goto(`/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Dnes' })).toBeVisible();
 
   await page.goto('/skin');
@@ -344,14 +353,15 @@ test('skin photo: two captures increment counter to (2)', async ({ page }) => {
   await expect(page.getByText('Fotka pořízena (2)')).toBeVisible();
 });
 
-test('skin save: observation appears in SkinObservationCard on /today after saving', async ({ page }) => {
+test('skin save: observation appears in SkinObservationCard on /day/<today> after saving', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   await page.goto('/skin');
 
   await page.getByRole('button', { name: 'Zlepšení' }).click();
   await page.getByRole('button', { name: 'Uložit hodnocení' }).click();
 
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await expect(page.getByText('Zlepšení')).toBeVisible();
 });
 

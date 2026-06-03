@@ -434,7 +434,7 @@ describe('meal/+page.svelte', () => {
     expect(getAllByText('Mrkev').length).toBeGreaterThan(0);
   });
 
-  it('toast after save links to /today', async () => {
+  it('toast after save links to /day/<today>', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByPlaceholderText, getByRole } = render(MealPage);
@@ -447,7 +447,7 @@ describe('meal/+page.svelte', () => {
     await tick();
 
     const toastLink = getByRole('link', { name: /přehled dne/i });
-    expect(toastLink).toHaveAttribute('href', '/today');
+    expect(toastLink).toHaveAttribute('href', `/day/${today}`);
   });
 
   // ── Slice 2d: inline item editing ────────────────────────
