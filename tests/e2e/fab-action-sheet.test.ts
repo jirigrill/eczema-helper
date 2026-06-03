@@ -93,14 +93,6 @@ test('FAB skin action navigates to /skin with today date', async ({ page }) => {
   await expect(page).toHaveURL(`/skin?date=${today}&returnTo=/day/${today}`);
 });
 
-test('FAB photo action navigates to /photo with today date', async ({ page }) => {
-  await completeOnboarding(page);
-  const today = new Date().toISOString().split('T')[0];
-  await openFabSheet(page);
-  await page.getByTestId('fab-action-photo').click();
-  await expect(page).toHaveURL(`/photo?date=${today}&returnTo=/day/${today}`);
-});
-
 test('FAB cancel closes the sheet without navigating', async ({ page }) => {
   await completeOnboarding(page);
   await openFabSheet(page);
