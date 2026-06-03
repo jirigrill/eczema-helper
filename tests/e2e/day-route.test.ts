@@ -159,3 +159,26 @@ test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) =>
   // Layout redirects to / (onboarding) when schedule DB is empty
   await expect(page).toHaveURL('/');
 });
+
+// ── Allergen columns reflect the phase active on the selected date ─────────
+
+test('/day/<past-reset> shows "Žádná omezení" — dairy not yet eliminated', async ({ page }) => {
+  // seedSchedule puts dairy elimination starting today; the reset phase covers
+  // startDate through startDate+4. A date 2 days after start is in reset → no eliminations.
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const resetDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
+  await seedSchedule(page, startDate);
+  await page.goto(`/day/${resetDate}`);
+  await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
+  await expect(page.getByText('Žádná omezení')).toBeVisible();
+});
+
+test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  await seedSchedule(page, startDate);
+  await page.goto(`/day/${today}`);
+  await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
+  // AllergenChip renders the dairy category name
+  await expect(page.getByText('Mléčné výrobky')).toBeVisible();
+});
