@@ -94,21 +94,23 @@ test('FAB skin action opens skin observation page', async ({ page }) => {
 });
 
 test('FAB cancel closes the sheet and stays on current page', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await openFabSheet(page);
   await page.getByTestId('fab-action-close').click();
   await expect(page.getByText('Co chceš přidat?')).not.toBeVisible();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('FAB backdrop click closes the sheet and stays on current page', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await openFabSheet(page);
   await page.mouse.click(10, 10);
   await expect(page.getByText('Co chceš přidat?')).not.toBeVisible();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('FAB on /day/[date] opens meal page for that date', async ({ page }) => {

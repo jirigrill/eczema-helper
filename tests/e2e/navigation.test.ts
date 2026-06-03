@@ -48,37 +48,42 @@ test.beforeEach(async ({ page }) => {
   await page.reload({ waitUntil: 'networkidle' });
 });
 
-test('redirect to / from /today when IndexedDB is empty', async ({ page }) => {
-  await page.goto('/today');
+test('redirect to / from /day/<today> when IndexedDB is empty', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/day/${today}`);
   await expect(page).toHaveURL('/');
 });
 
-test('full onboarding → /today with bottom nav visible', async ({ page }) => {
+test('full onboarding → /day/<today> with bottom nav visible', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await expect(page.getByRole('navigation').getByRole('link', { name: /Dnes/ })).toBeVisible();
   await expect(page.getByRole('navigation').getByRole('link', { name: /Týden/ })).toBeVisible();
 });
 
 test('reactive redirect: clearing DB mid-session redirects to /', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   await clearDb(page);
   await expect(page).toHaveURL('/', { timeout: 5000 });
 });
 
-test('hard reload on /today after onboarding stays on /today', async ({ page }) => {
+test('hard reload on /day/<today> after onboarding stays on /day/<today>', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   await page.reload({ waitUntil: 'networkidle' });
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('onboarding → /today shows phase and allergen columns', async ({ page }) => {
+test('onboarding → /day/<today> shows phase and allergen columns', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   // Phase hero is present
   await expect(page.locator('a[href="/program"]').first()).toBeVisible();

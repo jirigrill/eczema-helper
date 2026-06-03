@@ -3,7 +3,7 @@ import { render } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type { GeneratedSchedule, QuestionnaireAnswers, Meal } from '$lib/domain/models';
 
 // ── Navigation mock ───────────────────────────────────────────
 const mockGoto = vi.fn();
@@ -20,21 +20,17 @@ vi.mock('$lib/stores/schedule-context', () => ({
 }));
 
 // ── liveQuery mock ────────────────────────────────────────────
-// Kept for beforeEach reset; drives mock liveQuery responses indirectly.
+// liveMeals is set per-test to control what liveQuery emits for meal queries.
+let liveMeals: Meal[] = [];
 
 vi.mock('dexie', async (importOriginal) => {
   const actual = await importOriginal<typeof import('dexie')>();
   return {
     ...actual,
     liveQuery: vi.fn((_queryFn: () => unknown) => {
-      // Determine which table is being queried by inspecting the mock calls.
-      // We return a subscription that immediately emits the matching live data.
       return {
         subscribe(observer: { next: (v: unknown[]) => void; error?: (e: unknown) => void }) {
-          // Each session store passes a different query to liveQuery; we can't
-          // easily inspect which table at mock time, so we push all three arrays.
-          // Real isolation is tested at integration/e2e level.
-          observer.next([]);
+          observer.next(liveMeals);
           return { unsubscribe: () => {} };
         },
       };
@@ -90,6 +86,38 @@ const readyRaw: ScheduleRaw = {
   answers: sampleAnswers,
 };
 
+// Schedule that covers today — needed for content tests that assert today-specific UI.
+const todaySchedule: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: futureDate,
+  phases: [
+    {
+      id: 'reset',
+      type: 'reset',
+      allergenIds: [],
+      startDate: today,
+      endDate: futureDate,
+    },
+  ],
+};
+
+const todayAnswers: QuestionnaireAnswers = {
+  babyBirthDate: '2025-01-01',
+  eczemaSeverity: 'moderate',
+  motherAllergies: [],
+  babyConfirmedAllergies: [],
+  programStartDate: today,
+  completedAt: new Date().toISOString(),
+  testedAllergens: ['dairy'],
+};
+
+const readyRawToday: ScheduleRaw = {
+  status: 'ready',
+  schedule: todaySchedule,
+  answers: todayAnswers,
+};
+
 const trainingSchedule: GeneratedSchedule = {
   ...sampleSchedule,
   phases: [
@@ -104,10 +132,27 @@ const trainingSchedule: GeneratedSchedule = {
   ],
 };
 
+// Training schedule rooted at today so tolerance reminders fire.
+const trainingScheduleToday: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: futureDate,
+  phases: [
+    {
+      id: 'training-dairy',
+      type: 'tolerance-building',
+      allergenIds: ['dairy' as const],
+      startDate: today,
+      endDate: futureDate,
+    },
+  ],
+};
+
 beforeEach(() => {
   mockGoto.mockReset();
   mockScheduleRaw.set({ status: 'loading' });
   mockPage.params.date = pastDate;
+  liveMeals = [];
 });
 
 describe('/day/[date] page', () => {
@@ -236,5 +281,209 @@ describe('/day/[date] page', () => {
       await tick();
       expect(getByText('Program není nastaven. Dokončete dotazník.')).toBeInTheDocument();
     });
+  });
+});
+
+describe('/day/[date] page — content (ported from today/page.test.ts)', () => {
+  it('shows phase hero when schedule is ready', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Resetovací fáze')).toBeInTheDocument();
+  });
+
+  it('shows allergen columns (Smím / Vyhýbej se) when schedule is ready', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('✓ Smím')).toBeInTheDocument();
+    expect(getByText('✗ Vyhýbej se')).toBeInTheDocument();
+  });
+
+  it('shows "Žádná omezení" in elimination column when nothing is eliminated', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Žádná omezení')).toBeInTheDocument();
+  });
+
+  it('shows progress bar when schedule is ready', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { container } = render(DayPage);
+    await tick();
+    expect(container.querySelector('.bg-primary.rounded-full')).toBeInTheDocument();
+  });
+
+  it('shows counter row when viewing today', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Dnes ti chybí stav, foto a jídla.')).toBeInTheDocument();
+    expect(getByText('0 / 3')).toBeInTheDocument();
+  });
+
+  it('shows skin and meal section labels when schedule is ready', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Stav ekzému')).toBeInTheDocument();
+    expect(getByText('Foto kůže')).toBeInTheDocument();
+    expect(getByText('Dnešní jídla')).toBeInTheDocument();
+  });
+
+  it('does not render dashed-border stubs for skin sections', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { container } = render(DayPage);
+    await tick();
+    const dashedCards = Array.from(container.querySelectorAll('.border-dashed'));
+    for (const card of dashedCards) {
+      expect(card.textContent).not.toContain('Stav ekzému');
+      expect(card.textContent).not.toContain('Foto kůže');
+    }
+  });
+
+  it('SkinObservationCard and SkinPhotoCard are rendered', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Stav ekzému')).toBeInTheDocument();
+    expect(getByText('Foto kůže')).toBeInTheDocument();
+  });
+
+  it('shows bottom hint when schedule is ready', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText(/Vše zapisuj přes/)).toBeInTheDocument();
+  });
+
+  it('section cards appear in order: Stav ekzému → Foto kůže → Dnešní jídla', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { container } = render(DayPage);
+    await tick();
+    const allEls = Array.from(container.querySelectorAll('*'));
+    const idx = (label: string) => {
+      const el = allEls.find(e => e.textContent?.trim() === label);
+      return el ? allEls.indexOf(el) : -1;
+    };
+    expect(idx('Stav ekzému')).toBeLessThan(idx('Foto kůže'));
+    expect(idx('Foto kůže')).toBeLessThan(idx('Dnešní jídla'));
+  });
+
+  it('shows "Program skončil" when no phase matches the selected date', async () => {
+    mockPage.params.date = today;
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const pastOnlySchedule: GeneratedSchedule = {
+      permanentMother: [], permanentBaby: [],
+      startDate: yesterday,
+      estimatedEndDate: yesterday,
+      phases: [
+        { id: 'reset', type: 'reset', allergenIds: [], startDate: yesterday, endDate: yesterday },
+      ],
+    };
+    mockScheduleRaw.set({ status: 'ready', schedule: pastOnlySchedule, answers: { ...todayAnswers, programStartDate: yesterday } });
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Program skončil')).toBeInTheDocument();
+  });
+
+  it('renders a committed meal returned by liveQuery', async () => {
+    mockPage.params.date = today;
+    liveMeals = [
+      {
+        id: `${today}:lunch`,
+        date: today,
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'item-1', name: 'Brambory', allergenId: null, amount: 'portion' }],
+        createdAt: `${today}T12:00:00.000Z`,
+      } satisfies Meal,
+    ];
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Oběd')).toBeInTheDocument();
+    expect(getByText('Brambory')).toBeInTheDocument();
+  });
+
+  it('shows "Zatím žádný záznam." when liveQuery returns no meals', async () => {
+    mockPage.params.date = today;
+    liveMeals = [];
+    mockScheduleRaw.set(readyRawToday);
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('Zatím žádný záznam.')).toBeInTheDocument();
+  });
+
+  it('shows tolerance reminder when training phase is active and allergen never dosed', async () => {
+    mockPage.params.date = today;
+    liveMeals = [];
+    mockScheduleRaw.set({ status: 'ready', schedule: trainingScheduleToday, answers: todayAnswers });
+    const { default: DayPage } = await import('./+page.svelte');
+    const { container } = render(DayPage);
+    await tick();
+    expect(container.querySelectorAll('[data-testid="tolerance-reminder"]')).toHaveLength(1);
+  });
+
+  it('shows reminder label "Trénink tolerance" when reminder is active', async () => {
+    mockPage.params.date = today;
+    liveMeals = [];
+    mockScheduleRaw.set({ status: 'ready', schedule: trainingScheduleToday, answers: todayAnswers });
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getAllByText } = render(DayPage);
+    await tick();
+    expect(getAllByText('Trénink tolerance').length).toBeGreaterThan(0);
+  });
+
+  it('shows no reminder when training allergen was dosed today', async () => {
+    mockPage.params.date = today;
+    liveMeals = [
+      {
+        id: `${today}:lunch`,
+        date: today,
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Mléko', allergenId: 'dairy', amount: 'portion' }],
+        createdAt: `${today}T12:00:00.000Z`,
+      } satisfies Meal,
+    ];
+    mockScheduleRaw.set({ status: 'ready', schedule: trainingScheduleToday, answers: todayAnswers });
+    const { default: DayPage } = await import('./+page.svelte');
+    const { container } = render(DayPage);
+    await tick();
+    expect(container.querySelectorAll('[data-testid="tolerance-reminder"]')).toHaveLength(0);
+  });
+
+  it('shows no tolerance reminder when no training phase is active', async () => {
+    mockPage.params.date = today;
+    liveMeals = [];
+    mockScheduleRaw.set(readyRawToday); // reset phase only, no tolerance-building
+    const { default: DayPage } = await import('./+page.svelte');
+    const { container } = render(DayPage);
+    await tick();
+    expect(container.querySelectorAll('[data-testid="tolerance-reminder"]')).toHaveLength(0);
   });
 });

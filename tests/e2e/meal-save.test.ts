@@ -65,12 +65,13 @@ test.beforeEach(async ({ page }) => {
   await page.reload({ waitUntil: 'networkidle' });
 });
 
-test('meal save: add two foods, hit Hotovo, success toast appears and page navigates to /today', async ({ page }) => {
+test('meal save: add two foods, hit Hotovo, success toast appears and page navigates to /day/<today>', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   // Navigate to meal-add via the + link that passes returnTo
-  await page.goto('/meal?returnTo=/today');
+  await page.goto(`/meal?returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Empty-state basket visible initially
@@ -90,20 +91,21 @@ test('meal save: add two foods, hit Hotovo, success toast appears and page navig
   const hotovo = page.getByRole('button', { name: /Hotovo/ });
   await expect(hotovo).toHaveAttribute('aria-disabled', 'false');
 
-  // Save the meal — expect navigation to /today
+  // Save the meal — expect navigation to /day/<today>
   await hotovo.click();
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('liveQuery: meal saved on /meal appears on /today without reload', async ({ page }) => {
+test('liveQuery: meal saved on /meal appears on /day/<today> without reload', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   // Today screen shows empty meals state before any meal is saved
   await expect(page.getByText('Zatím žádný záznam.')).toBeVisible();
 
-  // Navigate to meal-add with returnTo=/today
-  await page.goto('/meal?returnTo=/today');
+  // Navigate to meal-add with returnTo=/day/<today>
+  await page.goto(`/meal?returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Add a food item and save
@@ -111,8 +113,8 @@ test('liveQuery: meal saved on /meal appears on /today without reload', async ({
   await page.getByRole('button', { name: 'Přidat' }).click();
   await page.getByRole('button', { name: /Hotovo/ }).click();
 
-  // returnTo navigates us back to /today
-  await expect(page).toHaveURL('/today');
+  // returnTo navigates us back to /day/<today>
+  await expect(page).toHaveURL(`/day/${today}`);
 
   // The saved meal now appears in the live list — no manual reload needed
   await expect(page.getByText('Oběd')).toBeVisible();
@@ -120,8 +122,9 @@ test('liveQuery: meal saved on /meal appears on /today without reload', async ({
 });
 
 test('meal item editing: tap item row, pick amount chip, pick preparation chip, subtitle reflects choices', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await page.goto('/meal');
 
   // Add a custom food
@@ -169,7 +172,7 @@ test('meal item editing: tap item row, pick amount chip, pick preparation chip, 
 test('meal item remove and re-add: remove clears basket, re-adding restores it', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await page.goto('/meal');
 
   // Add two foods
@@ -207,11 +210,12 @@ test('meal item remove and re-add: remove clears basket, re-adding restores it',
 });
 
 test('conflict toast: selecting a food with an eliminated allergen shows transient warning toast', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   // Seed a schedule where dairy is the active elimination allergen today
   await seedDairyEliminationSchedule(page);
 
-  // Load /today so the schedule context initialises from the seeded DB
-  await page.goto('/today');
+  // Load /day/<today> so the schedule context initialises from the seeded DB
+  await page.goto(`/day/${today}`);
   // "Vyhýbej se" column confirms the elimination phase is active in the UI
   await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
 
@@ -249,7 +253,7 @@ test('conflict toast: selecting a food with an eliminated allergen shows transie
 test('slot re-open: navigating back to /meal after saving a slot pre-loads its items', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
 
   // Save a lunch slot with one item
   await page.goto('/meal');
@@ -266,8 +270,9 @@ test('slot re-open: navigating back to /meal after saving a slot pre-loads its i
 });
 
 test('pill-switch autosave: switching meal type with non-empty basket saves silently and shows toast', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
@@ -291,8 +296,9 @@ test('pill-switch autosave: switching meal type with non-empty basket saves sile
 });
 
 test('pill-switch with empty basket: no autosave call and no toast', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
-  await expect(page).toHaveURL('/today');
+  await expect(page).toHaveURL(`/day/${today}`);
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
