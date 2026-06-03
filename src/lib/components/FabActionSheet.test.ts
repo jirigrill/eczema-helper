@@ -45,15 +45,23 @@ describe('FabActionSheet', () => {
     );
   });
 
-  it('photo action navigates to /skin (photo-capture screen) with correct date and returnTo', async () => {
-    const { getByTestId } = render(FabActionSheet, {
-      props: { date, onclose: vi.fn() },
+  it('photo button triggers file input; oncapturephoto called with selected file; onclose called', async () => {
+    const onCapture = vi.fn();
+    const onclose = vi.fn();
+    const { container } = render(FabActionSheet, {
+      props: { date, onclose, oncapturephoto: onCapture },
     });
-    await fireEvent.click(getByTestId('fab-action-photo'));
     await tick();
-    expect(gotoMock).toHaveBeenCalledWith(
-      `/skin?date=${date}&returnTo=/day/${date}`,
-    );
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
+    await fireEvent.change(fileInput, { target: { files: [file] } });
+    await tick();
+
+    expect(onCapture).toHaveBeenCalledOnce();
+    expect(onCapture.mock.calls[0][0]).toBeInstanceOf(File);
+    expect(onclose).toHaveBeenCalledOnce();
+    expect(gotoMock).not.toHaveBeenCalled();
   });
 
   it('each action calls onclose after navigating', async () => {

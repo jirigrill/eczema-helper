@@ -8,13 +8,24 @@
   type Props = {
     date: string;
     onclose: () => void;
+    oncapturephoto?: (blob: Blob) => void;
   };
 
-  let { date, onclose }: Props = $props();
+  let { date, onclose, oncapturephoto }: Props = $props();
+
+  let photoInput: HTMLInputElement | undefined = $state();
 
   function navigate(path: string) {
     goto(`${path}?date=${date}&returnTo=/day/${date}`);
     onclose();
+  }
+
+  function handleFileChange(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    oncapturephoto?.(file);
+    onclose();
+    (e.target as HTMLInputElement).value = '';
   }
 </script>
 
@@ -52,10 +63,18 @@
     <span class="text-text-muted text-sm">›</span>
   </button>
 
+  <input
+    bind:this={photoInput}
+    type="file"
+    accept="image/*"
+    capture="environment"
+    class="sr-only"
+    onchange={handleFileChange}
+  />
   <button
     data-testid="fab-action-photo"
     class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
-    onclick={() => navigate('/skin')}
+    onclick={() => photoInput?.click()}
   >
     <span class="w-10 h-10 rounded-full bg-text-muted/8 flex items-center justify-center shrink-0 text-text-muted">
       <CameraIcon class="w-[22px] h-[22px]" />

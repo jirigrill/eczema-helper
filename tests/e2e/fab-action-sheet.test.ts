@@ -113,13 +113,18 @@ test('FAB backdrop click closes the sheet and stays on current page', async ({ p
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('FAB photo action opens skin screen (no 404)', async ({ page }) => {
+test('FAB photo action opens file chooser without navigating away', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
   await openFabSheet(page);
   await page.getByTestId('fab-action-photo').click();
-  // Must land on the skin observation page — if /photo 404ed, this heading would not appear
-  await expect(page.getByText('Záznam stavu kůže')).toBeVisible();
-  await expect(page).not.toHaveURL(/\/photo/);
+  const fileChooser = await fileChooserPromise;
+  expect(fileChooser).toBeTruthy();
+  // URL must not change — no navigation to /photo or /skin
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('FAB on /day/[date] opens meal page for that date', async ({ page }) => {
