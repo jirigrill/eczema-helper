@@ -6,9 +6,11 @@
     showDnesPill: boolean;
     today: string;
     onselectdate: (date: string) => void;
+    canPageBack?: boolean;
+    onpageback?: () => void;
   };
 
-  const { cells, showDnesPill, today, onselectdate }: Props = $props();
+  const { cells, showDnesPill, today, onselectdate, canPageBack = false, onpageback }: Props = $props();
 
   function weekdayShort(iso: string): string {
     return new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { weekday: 'short' });
@@ -18,7 +20,7 @@
 <!-- sync with: src/lib/components/WeekStrip/WeekStrip.svelte -->
 <div class="px-3 pb-3" data-testid="week-strip">
   <div class="grid grid-cols-7 gap-1">
-    {#each cells as cell (cell.date)}
+    {#each cells as cell, i (cell.date)}
       <button
         class="flex flex-col items-center gap-1 py-2 rounded-lg
           {cell.isSelected
@@ -26,7 +28,7 @@
             : cell.isBeforeStart
               ? 'text-text-muted/40'
               : 'text-text-muted'}"
-        onclick={() => onselectdate(cell.date)}
+        onclick={() => (i === 0 && canPageBack && onpageback) ? onpageback() : onselectdate(cell.date)}
         data-testid="week-strip-cell"
         data-date={cell.date}
         aria-current={cell.isSelected ? 'date' : undefined}

@@ -45,14 +45,14 @@ describe('FabActionSheet', () => {
     );
   });
 
-  it('photo action navigates to /photo with correct date and returnTo', async () => {
+  it('photo action navigates to /skin (photo-capture screen) with correct date and returnTo', async () => {
     const { getByTestId } = render(FabActionSheet, {
       props: { date, onclose: vi.fn() },
     });
     await fireEvent.click(getByTestId('fab-action-photo'));
     await tick();
     expect(gotoMock).toHaveBeenCalledWith(
-      `/photo?date=${date}&returnTo=/day/${date}`,
+      `/skin?date=${date}&returnTo=/day/${date}`,
     );
   });
 

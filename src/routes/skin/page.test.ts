@@ -138,7 +138,7 @@ describe('skin/+page.svelte', () => {
 
   // ── Navigation: returnTo ──────────────────────────────────
 
-  it('after save, goto is called with /day/<today> when no returnTo param', async () => {
+  it('after save, goto is called with /day/<today> when no returnTo param and no date param', async () => {
     setReady();
     const { goto } = await import('$app/navigation');
     const { default: SkinPage } = await import('./+page.svelte');
@@ -151,6 +151,22 @@ describe('skin/+page.svelte', () => {
     await tick();
 
     expect(goto).toHaveBeenCalledWith(`/day/${today}`);
+  });
+
+  it('returnTo defaults to /day/<date> when ?date= is set but ?returnTo= is absent', async () => {
+    mockPage.url = new URL('http://localhost/skin?date=2025-01-10');
+    setReady();
+    const { goto } = await import('$app/navigation');
+    const { default: SkinPage } = await import('./+page.svelte');
+    const { getByText } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByText('Zlepšení'));
+    await tick();
+    await fireEvent.click(getByText('Uložit hodnocení'));
+    await tick();
+
+    expect(goto).toHaveBeenCalledWith('/day/2025-01-10');
   });
 
   it('after save, goto is called with custom returnTo when param is present', async () => {

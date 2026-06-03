@@ -55,7 +55,7 @@
   <button
     data-testid="fab-action-photo"
     class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
-    onclick={() => navigate('/photo')}
+    onclick={() => navigate('/skin')}
   >
     <span class="w-10 h-10 rounded-full bg-text-muted/8 flex items-center justify-center shrink-0 text-text-muted">
       <CameraIcon class="w-[22px] h-[22px]" />

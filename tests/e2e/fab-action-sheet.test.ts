@@ -113,6 +113,15 @@ test('FAB backdrop click closes the sheet and stays on current page', async ({ p
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
+test('FAB photo action opens skin screen (no 404)', async ({ page }) => {
+  await completeOnboarding(page);
+  await openFabSheet(page);
+  await page.getByTestId('fab-action-photo').click();
+  // Must land on the skin observation page — if /photo 404ed, this heading would not appear
+  await expect(page.getByText('Záznam stavu kůže')).toBeVisible();
+  await expect(page).not.toHaveURL(/\/photo/);
+});
+
 test('FAB on /day/[date] opens meal page for that date', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await seedSchedule(page);

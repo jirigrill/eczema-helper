@@ -73,4 +73,32 @@ describe('WeekStrip', () => {
     getByTestId('dnes-pill').click();
     expect(fn).toHaveBeenCalledWith(today);
   });
+
+  it('left cell calls onpageback (not onselectdate) when canPageBack is true', async () => {
+    const selectFn = vi.fn();
+    const pageBackFn = vi.fn();
+    const cells = makeCells(today);
+    const { getAllByTestId } = render(WeekStrip, {
+      props: { cells, showDnesPill: false, today, onselectdate: selectFn, canPageBack: true, onpageback: pageBackFn },
+    });
+    await tick();
+    const cellButtons = getAllByTestId('week-strip-cell');
+    cellButtons[0].click();
+    expect(pageBackFn).toHaveBeenCalledOnce();
+    expect(selectFn).not.toHaveBeenCalled();
+  });
+
+  it('left cell calls onselectdate normally when canPageBack is false', async () => {
+    const selectFn = vi.fn();
+    const pageBackFn = vi.fn();
+    const cells = makeCells(today);
+    const { getAllByTestId } = render(WeekStrip, {
+      props: { cells, showDnesPill: false, today, onselectdate: selectFn, canPageBack: false, onpageback: pageBackFn },
+    });
+    await tick();
+    const cellButtons = getAllByTestId('week-strip-cell');
+    cellButtons[0].click();
+    expect(selectFn).toHaveBeenCalledWith(cells[0].date);
+    expect(pageBackFn).not.toHaveBeenCalled();
+  });
 });
