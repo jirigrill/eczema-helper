@@ -11,7 +11,7 @@
   import { todayIso } from '$lib/utils/date';
 
   const date = $derived(page.url.searchParams.get('date') ?? todayIso());
-  const returnTo = $derived(page.url.searchParams.get('returnTo') ?? '/today');
+  const returnTo = $derived(page.url.searchParams.get('returnTo') ?? `/day/${todayIso()}`);
   const ctx = $derived($scheduleContext);
   const reintroductionAllergenId = $derived(
     ctx.status === 'ready' ? (ctx.reintroInfo?.allergenId ?? null) : null

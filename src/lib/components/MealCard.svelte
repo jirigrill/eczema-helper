@@ -26,10 +26,10 @@
       .filter((m): m is Meal => m !== undefined)
   );
 
-  const rightSnippet = createRawSnippet(() => ({
+  const rightSnippet = $derived(createRawSnippet(() => ({
     render: () =>
-      `<a href="/meal?returnTo=/today" class="text-primary text-xs font-medium">+ ${actionStrings.add}</a>`,
-  }));
+      `<a href="/meal?date=${date}&returnTo=/day/${date}" class="text-primary text-xs font-medium">+ ${actionStrings.add}</a>`,
+  })));
 </script>
 
 <DayCard label={commonStrings.today.mealsLabel} right={rightSnippet}>

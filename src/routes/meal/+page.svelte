@@ -584,7 +584,7 @@
   <Toast
     message={commonStrings.meal.mealSavedToast}
     type="success"
-    href="/today"
+    href={returnTo}
     linkLabel={actionStrings.showDayOverview}
     onClose={() => (showSuccess = false)}
   />

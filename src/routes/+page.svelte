@@ -16,7 +16,7 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, allergenWordCs } from '$lib/strings/common';
   import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
-  import { formatDateLongCs } from '$lib/utils/date';
+  import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import { protocolSession } from '$lib/stores/protocol-session';
 
@@ -98,7 +98,7 @@
     });
     const result = await protocolSession.startProtocol(answers);
     if (!result.ok) { saveError = result.error; return; }
-    goto('/today');
+    goto(`/day/${todayIso()}`);
   }
 
   // Count unique allergen categories (not individual sub-item slugs).
