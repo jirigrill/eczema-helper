@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import { createRawSnippet } from 'svelte';
@@ -136,6 +136,29 @@ describe('+layout.svelte — bottom nav visibility', () => {
     await tick();
     const fab = container.querySelector('button[aria-label="Přidat záznam"]');
     expect(fab).toBeInTheDocument();
+  });
+
+  it('clicking FAB opens action sheet', async () => {
+    mockScheduleContext.set(readyContext);
+    const { container, getByText } = await renderLayout();
+    await tick();
+    const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
+    fab.click();
+    await tick();
+    expect(getByText('Co chceš přidat?')).toBeInTheDocument();
+  });
+
+  it('action sheet uses page date param when on /day/[date]', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/day/2025-01-15'), params: { date: '2025-01-15' }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container, getByTestId } = await renderLayout();
+    await tick();
+    const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
+    fab.click();
+    await tick();
+    await fireEvent.click(getByTestId('fab-action-meal'));
+    await tick();
+    expect(mockGoto).toHaveBeenCalledWith('/meal?date=2025-01-15&returnTo=/day/2025-01-15');
   });
 });
 

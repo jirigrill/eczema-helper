@@ -8,7 +8,9 @@
   import { scheduleContext } from '$lib/stores/schedule-context';
   import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
   import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
+  import FabActionSheet from '$lib/components/FabActionSheet.svelte';
   import { commonStrings } from '$lib/strings/common';
+  import { todayIso } from '$lib/utils/date';
 
   let { children } = $props();
 
@@ -20,6 +22,10 @@
   );
   const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
   const dnesActive = $derived(currentPath.startsWith('/today'));
+
+  const selectedDate = $derived($page.params.date ?? todayIso());
+
+  let fabOpen = $state(false);
 
   $effect(() => {
     if (ctx.status === 'loading') return;
@@ -46,6 +52,7 @@
           <button
             class="-mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
             aria-label={commonStrings.nav.addRecordAria}
+            onclick={() => (fabOpen = true)}
           >+</button>
         </div>
         <a
@@ -59,3 +66,7 @@
     </nav>
   {/if}
 </div>
+
+{#if fabOpen}
+  <FabActionSheet date={selectedDate} onclose={() => (fabOpen = false)} />
+{/if}

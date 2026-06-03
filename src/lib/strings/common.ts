@@ -20,6 +20,15 @@ export const commonStrings = {
     week:          'Týden',
   },
 
+  // ── FAB action sheet ──────────────────────────────────────
+  fabSheet: {
+    heading:    'Co chceš přidat?',
+    addMeal:    'Přidat jídlo',
+    addPhoto:   'Přidat fotku',
+    addSkin:    'Zaznamenat stav kůže',
+    cancel:     'Zrušit',
+  },
+
   // ── Today page ────────────────────────────────────────────
   today: {
     heading:           'Dnes',
