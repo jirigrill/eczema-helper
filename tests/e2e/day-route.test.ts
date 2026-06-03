@@ -179,6 +179,6 @@ test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
-  // AllergenChip renders the dairy category name
-  await expect(page.getByText('Mléčné výrobky')).toBeVisible();
+  // AllergenChip renders the dairy category name with emoji
+  await expect(page.getByText('🥛 Mléčné výrobky')).toBeVisible();
 });
