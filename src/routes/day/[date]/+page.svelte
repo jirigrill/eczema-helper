@@ -7,7 +7,7 @@
   import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
   import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
-  import { resolveRouteDate, todayIso, formatDateLongCs } from '$lib/utils/date';
+  import { resolveRouteDate, todayIso, formatDateLongCs, addDays } from '$lib/utils/date';
   import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
   import WeekStrip from '$lib/components/WeekStrip/WeekStrip.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -97,6 +97,10 @@
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
   }
+
+  function handlePageBack(): void {
+    goto(`/day/${addDays(selectedDate(), -6)}`);
+  }
 </script>
 
 <div class="max-w-lg mx-auto">
@@ -124,8 +128,10 @@
   <WeekStrip
     cells={weekStrip.cells}
     showDnesPill={weekStrip.showDnesPill}
+    canPageBack={weekStrip.canPageBack}
     {today}
     onselectdate={handleSelectDate}
+    onpageback={handlePageBack}
   />
 
   <div class="px-4 pb-24 space-y-3">

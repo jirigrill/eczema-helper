@@ -11,6 +11,8 @@
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
   import { commonStrings } from '$lib/strings/common';
   import { todayIso } from '$lib/utils/date';
+  import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
+  import type { SkinPhoto } from '$lib/domain/models';
 
   let { children } = $props();
 
@@ -26,6 +28,17 @@
   const selectedDate = $derived($page.params.date ?? todayIso());
 
   let fabOpen = $state(false);
+
+  async function handleFabPhotoCapture(blob: Blob): Promise<void> {
+    const session = createSkinPhotoSession(selectedDate);
+    const photo: SkinPhoto = {
+      id: crypto.randomUUID(),
+      date: selectedDate,
+      capturedAt: new Date().toISOString(),
+      blob,
+    };
+    await session.save(photo);
+  }
 
   $effect(() => {
     if (ctx.status === 'loading') return;
@@ -68,5 +81,5 @@
 </div>
 
 {#if fabOpen}
-  <FabActionSheet date={selectedDate} onclose={() => (fabOpen = false)} />
+  <FabActionSheet date={selectedDate} onclose={() => (fabOpen = false)} oncapturephoto={handleFabPhotoCapture} />
 {/if}
