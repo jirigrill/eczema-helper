@@ -36,6 +36,7 @@ export const commonStrings = {
     noProgram:         'Program není nastaven. Dokončete dotazník.',
     programEnded:      'Program skončil',
     counterHint:       'Dnes ti chybí stav, foto a jídla.',
+    phaseUntilPrefix:  'do',
     eczemaStatusLabel: 'Stav ekzému',
     eczemaStatusEmpty: 'Zatím není záznam pro dnešek.',
     photoLabel:        'Foto kůže',

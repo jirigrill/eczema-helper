@@ -30,6 +30,14 @@ export function formatDateCs(iso: string): string {
   return `${d.getDate()}. ${d.getMonth() + 1}.`;
 }
 
+export function formatWeekdayShortCs(iso: string): string {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { weekday: 'short' });
+}
+
+export function formatWeekdayLongCs(iso: string): string {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('cs-CZ', { weekday: 'long' });
+}
+
 export function formatDateLongCs(iso: string): string {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' });
