@@ -4,10 +4,10 @@
   // ═══════════════════════════════════════════════════════════
   import type { AllergenStatusValue, ProtocolAllergenId, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
-  import { getAllergenStatuses } from '$lib/domain/allergen-status';
+  import { getPhaseVerdictStatuses, filterProtocolStatuses } from '$lib/domain/allergen-status';
   import { categoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
-  import { addDays, formatDateCs, formatDateLongCs, todayIso, daysBetween } from '$lib/utils/date';
+  import { formatDateCs, formatDateLongCs, todayIso, daysBetween } from '$lib/utils/date';
   import { protocolSession } from '$lib/stores/protocol-session';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -86,22 +86,9 @@
     }
   }
 
-  function statusOrder(status: AllergenStatusValue): number {
-    const order: Partial<Record<AllergenStatusValue, number>> = {
-      'testing': 0, 'passed': 1, 'tolerance-building': 2,
-      'reacted': 3, 'eliminated': 4, 'not-yet-tested': 4,
-    };
-    return order[status] ?? 5;
-  }
-
   // Protocol + retest allergens (excludes permanent-mother / permanent-baby).
-  // Used in hero card; for historical phases, call getAllergenStatuses directly with addDays(endDate, 1).
   const protocolAllergenStatuses = $derived(
-    ctx.status === 'ready'
-      ? ctx.allergenStatuses
-          .filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby')
-          .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))
-      : []
+    ctx.status === 'ready' ? filterProtocolStatuses(ctx.allergenStatuses) : []
   );
 
   const motherAllergenStatuses = $derived(
@@ -572,9 +559,7 @@
 
                 <!-- Per-allergen status for reintroduction -->
                 {#if phase.type === 'reintroduction' && schedule}
-                  {@const phaseRows = getAllergenStatuses(schedule, addDays(phase.endDate, 1))
-                    .filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby')
-                    .sort((a, b) => statusOrder(a.status) - statusOrder(b.status))}
+                  {@const phaseRows = getPhaseVerdictStatuses(schedule, phase)}
                   {#if phaseRows.length > 1}
                     <div>
                       <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
