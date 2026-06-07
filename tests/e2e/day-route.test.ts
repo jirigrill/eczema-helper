@@ -182,3 +182,43 @@ test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
   // AllergenChip renders the dairy category name with emoji
   await expect(page.getByText('🥛 Mléčné výrobky')).toBeVisible();
 });
+
+// ── WeekStrip back-paging past protocol start ─────────────────────────────
+
+test('WeekStrip page-back from start+6 overshoots start → redirects to today', async ({ page }) => {
+  // Protocol starts 6 days ago. User navigates to startDate (the first valid day).
+  // Paging back 6 days lands on startDate-6, which is before the protocol start.
+  // The redirect guard must catch this and send the user to today.
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
+  await seedSchedule(page, startDate);
+
+  // Navigate to startDate — first day of the protocol (leftmost valid day in strip).
+  await page.goto(`/day/${startDate}`);
+  await expect(page.getByTestId('week-strip')).toBeVisible();
+
+  // The leftmost cell (index 0) in the strip is the page-back trigger when canPageBack is true.
+  // Clicking it calls handlePageBack → goto(/day/<startDate - 6>) which is before protocolStart.
+  const firstCell = page.getByTestId('week-strip-cell').nth(0);
+  await firstCell.click();
+
+  // Must redirect to today, not stay on the pre-start date.
+  await expect(page).toHaveURL(`/day/${today}`);
+});
+
+test('WeekStrip page-back within range stays on the back-paged date', async ({ page }) => {
+  // Protocol starts 14 days ago. Paging back 6 from today lands on today-6, still valid.
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+  const sixDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
+  await seedSchedule(page, startDate);
+
+  await page.goto(`/day/${today}`);
+  await expect(page.getByTestId('week-strip')).toBeVisible();
+
+  const firstCell = page.getByTestId('week-strip-cell').nth(0);
+  await firstCell.click();
+
+  // Should land on today-6, not redirect away.
+  await expect(page).toHaveURL(`/day/${sixDaysAgo}`);
+});

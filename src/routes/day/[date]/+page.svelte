@@ -1,13 +1,9 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
-  import { scheduleRaw } from '$lib/stores/schedule-context';
-  import { createMealSession } from '$lib/stores/meal-session';
-  import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
-  import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
-  import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
+  import { createDayView } from '$lib/stores/day-view.svelte';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
-  import { resolveRouteDate, todayIso, formatDateLongCs, formatWeekdayLongCs, addDays } from '$lib/utils/date';
+  import { todayIso, formatDateLongCs, formatWeekdayLongCs, addDays } from '$lib/utils/date';
   import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
   import WeekStrip from '$lib/components/WeekStrip/WeekStrip.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -24,44 +20,18 @@
   import { categoryConfig } from '$lib/config/categories';
 
   const today = todayIso();
-  const raw = $derived($scheduleRaw);
+  const view = createDayView(() => page.params.date, today);
 
-  // Resolve the route param to a valid date or redirect sentinel.
-  const param = $derived(page.params.date);
-
-  // selectedDate: valid resolved date, or today as fallback while schedule loads.
-  const selectedDate = $derived.by((): string => {
-    if (raw.status !== 'ready') return today;
-    const result = resolveRouteDate(param, raw.schedule.startDate, today);
-    return result.type === 'date' ? result.date : today;
-  });
-
-  // Redirect on invalid/future/pre-start param once schedule is ready.
   $effect(() => {
-    if (raw.status !== 'ready') return;
-    const result = resolveRouteDate(param, raw.schedule.startDate, today);
-    if (result.type === 'redirect') {
-      goto(`/day/${result.to}`, { replaceState: true });
-    }
+    if (view.redirectTo) goto(`/day/${view.redirectTo}`, { replaceState: true });
   });
 
-  // Date-scoped session stores — recreated when selectedDate changes.
-  const mealSession = $derived(createMealSession(selectedDate));
-  const skinObservationSession = $derived(createSkinObservationSession(selectedDate));
-  const skinPhotoSession = $derived(createSkinPhotoSession(selectedDate));
-
-  const meals = $derived($mealSession);
-  const skinObservations = $derived($skinObservationSession);
-  const photos = $derived($skinPhotoSession);
-
-  // Date-projected schedule context.
-  const ctx = $derived(
-    raw.status === 'ready'
-      ? { status: 'ready' as const, ...buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, selectedDate) }
-      : raw
-  );
-
-  const phase = $derived(ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, selectedDate) : null);
+  const meals = $derived(view.meals);
+  const skinObservations = $derived(view.observations);
+  const photos = $derived(view.photos);
+  const ctx = $derived(view.ctx);
+  const selectedDate = $derived(view.selectedDate);
+  const phase = $derived(view.phase);
 
   const toleranceReminders = $derived(
     ctx.status === 'ready'
@@ -83,7 +53,6 @@
 
   const isToday = $derived(selectedDate === today);
 
-  // WeekStrip data — needs protocolStart from schedule.
   const weekStrip = $derived(
     ctx.status === 'ready'
       ? computeWeekStrip(selectedDate, ctx.schedule.startDate, today)
