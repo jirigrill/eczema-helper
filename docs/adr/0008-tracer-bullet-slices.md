@@ -1,8 +1,8 @@
 # 0008 — v1 tracer-bullet slice order
 
-**Status:** Accepted — slices 1–3 landed (onboarding, today, meal,
-skin+photo) plus the program timeline; v1-alpha is on the phone.
-Slices 4–6 (unified day view, reintro verdict, encrypted export/import) remain
+**Status:** Accepted — slices 1–4 landed (onboarding, today, meal,
+skin+photo, unified day view) plus the program timeline; v1-alpha is on
+the phone. Slices 5–6 (reintro verdict, encrypted export/import) remain
 to close out the [v1 scope](0007-v1-scope.md). Completed slices are
 recorded at the bottom of this file.
 **Date:** 2026-05-11
@@ -18,70 +18,11 @@ phone, (c) proves a pattern the next slice can copy?
 
 ## Decision
 
-Slices 1–3 took the app to alpha (recorded under **Completed slices**
-at the bottom). Three slices remain to close out the
-[v1 scope](0007-v1-scope.md), ordered **risk-first** — a slice that reuses the existing repositories
-at an arbitrary date (no new table, no new persistence pattern), then
-the one new persistence pattern, then the broadest-blast-radius slice
-last once the schema is stable.
-
-### Slice 4 — Unified day view (any date, editable)
-
-Introduces **no new tables and no new persistence pattern** — it
-composes existing repositories at an arbitrary date, proving the
-"parameterized-by-date read" shape (vs. the today-bound `liveQuery`
-of slices 1–3). It is not strictly read-only: the breastfeeding mother
-regularly remembers a meal or a skin status only the next day, so any
-day in range must be **backfill- and edit-able to today's parity**.
-
-The prototype has exactly one day layout — the `DNES` screen — and no
-separate past-day design. "Today" is therefore just the instance of
-that layout where `date === todayIso()`. This slice unifies the two:
-
-- **One route `/day/[date]`** renders the day layout for any date and
-  **replaces `/today`** (which is deleted, not redirected — nothing
-  external depends on it: the PWA `start_url` is `/`, and every internal
-  link computes `todayIso()` at render time). Reads that date's meals,
-  skin observations, and photos through the existing repositories (the
-  `date` index is already in the schema). The three things that pointed
-  at `/today` are retargeted: the root post-onboarding redirect
-  (`+page.svelte`), the nav "Dnes" tab, and the `returnTo` defaults —
-  all to `/day/<todayIso>`.
-- **Reactive, not a snapshot.** Edits to the viewed day must appear
-  live, so the day's records are read through date-scoped `liveQuery`
-  subscriptions — the session stores become **factories**
-  (`createMealSession(date)` etc.) so `liveQuery` stays in the stores
-  layer per [ADR-0009](0009-schedulecontext-store.md)'s boundary rule.
-  `scheduleContext` keeps its singleton `liveQuery` over the raw
-  `schedule` + `answers`; the date-dependent projection moves to a
-  page-side `$derived` calling the pure `buildScheduleContext(raw,
-  selectedDate)` (extracted in #166).
-- **Navigation:** a **sliding-window** 7-day strip — the selected day
-  at the right edge plus the six prior days; tapping the left day pages
-  further back; a "Dnes" pill returns to today when off-today. Clamped
-  to **[protocol start, today]** (no future days; nothing before the
-  contextless pre-start range). Out-of-range or malformed `[date]`
-  redirects to today.
-- **Edit scope = parity-with-today.** Meals are editable on any day via
-  slot-overwrite (the meal screen, parameterized by `?date=`). Skin
-  observations and photos are **add-only** — no per-entry delete, since
-  delete exists nowhere yet (not even for today); a cross-cutting
-  delete-for-all-days feature is deferred to its own slice.
-- **Action-prompt chrome is today-only.** Tolerance-building reminders
-  and the task counter are gated on `selectedDate === today`; past days
-  show only historical facts (phase hero, eliminated set, the three
-  record cards) plus the add affordance.
-- **FAB wiring (currently a dead placeholder).** The `+` FAB is wired to
-  open the skin/meal/photo action sheet; each action routes to its add
-  screen with `?date=<selected>&returnTo=/day/<selected>`. The layout
-  reads the selected date from `$page.params.date` (today when off a day
-  route). The meal screen gains the `?date=` parameter the skin screen
-  already has.
-
-Done when: the developer pages back to a past day from the strip, sees
-that day's phase, eliminated set, meals, skin observations and photos,
-backfills a forgotten meal and skin status onto that day via the FAB,
-and sees them persisted on that day.
+Slices 1–4 took the app to alpha (recorded under **Completed slices**
+at the bottom). Two slices remain to close out the
+[v1 scope](0007-v1-scope.md), ordered **risk-first** — the one new
+persistence pattern first, then the broadest-blast-radius slice last
+once the schema is stable.
 
 ### Slice 5 — End-of-reintro allergen verdict
 
@@ -139,12 +80,12 @@ restored.
 
 ## Why this order
 
-- **(4) first** because it introduces no new table and no new
-  persistence pattern — it reuses slices 1–3's repository reads and
+- **(4) first** (now shipped) because it introduced no new table and no
+  new persistence pattern — it reused slices 1–3's repository reads and
   write screens, parameterized by date, leaning on the already-extracted
   pure `buildScheduleContext()`. Lowest risk, and immediately useful:
   the dogfooding mother can backfill the days she forgot to log.
-- **(5) second** because it is the one slice that adds a new
+- **(5) next** because it is the one remaining slice that adds a new
   persistence pattern (event-written, phase-keyed record) and it
   completes the elimination protocol's core question. It builds on the
   port/adapter shape the earlier slices proved.
@@ -153,7 +94,7 @@ restored.
   `evaluations` exists means the backup format is authored once against
   the final schema, with no migration to chase.
 
-These three reuse slices 1–3's shapes; only slice 5 adds a genuinely
+These slices reuse slices 1–3's shapes; only slice 5 adds a genuinely
 new pattern, and it is a small one (a keyed record + its repository).
 
 ## Backlog (post-v1)
@@ -182,7 +123,7 @@ they drop into the meal-add screen without touching other layers.
   `getEliminatedSlugsForDate`, `detectConflicts`,
   `getReintroductionDayInfo`, `buildScheduleContext`) are the v1 domain.
   Slice 5 adds the one new persistence pattern (the `evaluations` table
-  + its repository); slices 4 and 6 add no new tables.
+  + its repository); slices 4 (shipped) and 6 add no new tables.
 - The `photoTaken: boolean` / `dateOffset` / `activeScenario` cleanups
   noted for slices 1–3 have already landed (real `photos` table; no
   developer affordances on `AppState`).
@@ -233,6 +174,40 @@ De-risked the binary path before more screens accumulated.
   (thumbnail grid) in two separate cards.
 - Today screen wires `getToleranceBuildingRemindersForDate()` from
   `src/lib/domain/schedule-builder.ts`.
+
+### Slice 4 — Unified day view (any date, editable) ✅
+
+Introduced **no new tables and no new persistence pattern** — it
+composes existing repositories at an arbitrary date, proving the
+"parameterized-by-date read" shape (vs. the today-bound `liveQuery`
+of slices 1–3). Not read-only: any day in range is backfill- and
+edit-able to today's parity, since the breastfeeding mother often
+remembers a meal or skin status only the next day.
+
+- **One route `/day/[date]`** renders the day layout for any date and
+  **replaced `/today`** (deleted, not redirected). The root
+  post-onboarding redirect, the nav "Dnes" tab, and the `returnTo`
+  defaults all retarget to `/day/<todayIso>`. Reads that date's meals,
+  skin observations, and photos through the existing repositories.
+- **Reactive, not a snapshot.** The day's records read through
+  date-scoped `liveQuery` subscriptions — the session stores became
+  **factories** (`createMealSession(date)` etc.) so `liveQuery` stays in
+  the stores layer per [ADR-0009](0009-schedulecontext-store.md).
+  `scheduleContext` keeps its singleton `liveQuery`; the date-dependent
+  projection is a page-side `$derived` over the pure
+  `buildScheduleContext(raw, selectedDate)`. The day composition lives
+  in the `createDayView` deep module (`day-view.svelte.ts`, #200).
+- **Navigation:** a sliding-window 7-day strip clamped to
+  **[protocol start, today]**; out-of-range or malformed `[date]`
+  redirects to today.
+- **Edit scope = parity-with-today.** Meals editable on any day via
+  slot-overwrite (meal screen parameterized by `?date=`). Skin
+  observations and photos add-only.
+- **Action-prompt chrome is today-only** — tolerance reminders and the
+  task counter gated on `selectedDate === today`; past days show only
+  historical facts plus the add affordance.
+- **FAB wired** to the skin/meal/photo action sheet, each routing to its
+  add screen with `?date=<selected>&returnTo=/day/<selected>`.
 
 ### Program timeline ✅
 
