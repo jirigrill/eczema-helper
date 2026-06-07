@@ -102,15 +102,13 @@ describe('resolveDay', () => {
 		});
 	});
 
-	describe('WeekStrip back-paging — overshooting the protocol start', () => {
-		it('redirects to today when paging back 6 days overshoots startDate', () => {
-			// User is on protocolStart (2025-05-01), pages back → 2025-04-25
+	describe('pre-start dates (guard against any path landing before protocolStart)', () => {
+		it('redirects to today for a date before protocolStart', () => {
 			const result = resolveDay('2025-04-25', readyRaw, today);
 			expect(result).toEqual({ selectedDate: today, redirectTo: today });
 		});
 
-		it('does not redirect when paging back stays within range', () => {
-			// User is on 2025-06-07, pages back 6 days → 2025-06-01 (still valid)
+		it('does not redirect when date is within range', () => {
 			const result = resolveDay('2025-06-01', readyRaw, today);
 			expect(result).toEqual({ selectedDate: '2025-06-01', redirectTo: null });
 		});
