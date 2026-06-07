@@ -122,6 +122,12 @@ Status is a discriminated string union:
   exactly `|permanentMother ∪ permanentBaby ∪ protocolMembers|` entries.
   No more, no fewer. The three sets are disjoint by construction
   (the protocol generator excludes permanents from `protocolMembers`).
+- *Verdict resolves the morning after.* A reintroduction phase's `endDate`
+  is its last dosing/observation day, so on `endDate` the allergen still
+  reads `testing`. The verdict (`passed` / `reacted`) is therefore read at
+  `endDate + 1` — "egg's result is known the next morning, not on the last
+  dose day." Any consumer that wants a phase's final verdict must query
+  `getAllergenStatuses(schedule, endDate + 1)`, never `endDate`.
 
 See [ADR-0012](docs/adr/0012-allergen-status-lifecycle.md).
 

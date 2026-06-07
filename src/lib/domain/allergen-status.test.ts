@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAllergenStatuses } from './allergen-status';
+import { getAllergenStatuses, getPhaseVerdictStatuses } from './allergen-status';
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -223,5 +223,52 @@ describe('getAllergenStatuses — closed universe', () => {
     const statuses = getAllergenStatuses(base, '2026-05-01');
     const ids = statuses.map(s => s.allergenId).sort();
     expect(ids).toEqual(['dairy', 'eggs', 'fish', 'nuts'].sort());
+  });
+});
+
+// ── getPhaseVerdictStatuses ───────────────────────────────────
+
+describe('getPhaseVerdictStatuses — verdict-date boundary', () => {
+  // dairy reintro ends 2026-06-08; eggs reintro follows immediately
+  // On endDate (2026-06-08): dairy is still 'testing'
+  // On endDate + 1 (2026-06-09): dairy is 'passed' (no rest follows)
+  const reintroPhase = base.phases.find(p => p.id === 'reintro-dairy')!;
+
+  it('allergen reads testing on phase endDate', () => {
+    const onEndDate = getAllergenStatuses(base, '2026-06-08').find(x => x.allergenId === 'dairy');
+    expect(onEndDate?.status).toBe('testing');
+  });
+
+  it('allergen reads passed on endDate + 1', () => {
+    const rows = getPhaseVerdictStatuses(base, reintroPhase);
+    const dairy = rows.find(r => r.allergenId === 'dairy');
+    expect(dairy?.status).toBe('passed');
+  });
+
+  it('reacted allergen reads reacted on endDate + 1', () => {
+    const withRest: GeneratedSchedule = {
+      ...base,
+      phases: [
+        ...base.phases.slice(0, 3), // reset + elimination + reintro-dairy
+        phase({ id: 'rest-1', type: 'rest', startDate: '2026-06-09', endDate: '2026-06-11' }),
+      ],
+    };
+    const rows = getPhaseVerdictStatuses(withRest, withRest.phases[2]);
+    const dairy = rows.find(r => r.allergenId === 'dairy');
+    expect(dairy?.status).toBe('reacted');
+  });
+});
+
+describe('getPhaseVerdictStatuses — permanent exclusion', () => {
+  const reintroPhase = base.phases.find(p => p.id === 'reintro-dairy')!;
+
+  it('excludes permanent-mother allergens', () => {
+    const rows = getPhaseVerdictStatuses(base, reintroPhase);
+    expect(rows.find(r => r.allergenId === 'fish')).toBeUndefined();
+  });
+
+  it('excludes permanent-baby allergens', () => {
+    const rows = getPhaseVerdictStatuses(base, reintroPhase);
+    expect(rows.find(r => r.allergenId === 'nuts')).toBeUndefined();
   });
 });

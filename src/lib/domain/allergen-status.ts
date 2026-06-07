@@ -1,4 +1,5 @@
-import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue, AllergenId, ProtocolAllergenId } from '$lib/domain/models';
+import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue, AllergenId, ProtocolAllergenId, SchedulePhase } from '$lib/domain/models';
+import { addDays } from '$lib/utils/date';
 
 function getProtocolIds(schedule: GeneratedSchedule): ProtocolAllergenId[] {
   return schedule.phases.find(p => p.type === 'elimination')?.allergenIds ?? [];
@@ -99,4 +100,25 @@ export function getAllergenStatuses(
   }
 
   return results;
+}
+
+/**
+ * Filters out permanent-mother / permanent-baby entries.
+ */
+export function filterProtocolStatuses(statuses: AllergenStatus[]): AllergenStatus[] {
+  return statuses.filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby');
+}
+
+/**
+ * Returns the allergen verdict list for a completed reintroduction phase.
+ *
+ * Owns the "verdict resolves the morning after" invariant: queries
+ * getAllergenStatuses at endDate + 1. Excludes permanent-mother and
+ * permanent-baby entries. Results are sorted by status priority order.
+ */
+export function getPhaseVerdictStatuses(
+  schedule: GeneratedSchedule,
+  phase: SchedulePhase
+): AllergenStatus[] {
+  return filterProtocolStatuses(getAllergenStatuses(schedule, addDays(phase.endDate, 1)));
 }
