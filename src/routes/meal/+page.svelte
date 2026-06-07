@@ -14,8 +14,10 @@
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
   import { preparationStrings } from '$lib/strings/preparations';
-  import { todayIso, formatDateLongCs } from '$lib/utils/date';
-  import { scheduleContext } from '$lib/stores/schedule-context';
+  import { formatDateLongCs } from '$lib/utils/date';
+  import { scheduleRaw } from '$lib/stores/schedule-context';
+  import { buildScheduleContext } from '$lib/domain/schedule-queries';
+  import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
@@ -29,12 +31,15 @@
 
   let meals = $state<Meal[]>([]);
 
-  const today = $derived(todayIso());
-  const targetDate = $derived(page.url.searchParams.get('date') ?? today);
-  const returnTo = $derived(page.url.searchParams.get('returnTo') ?? `/day/${targetDate}`);
-  const ctx = $derived($scheduleContext);
-  const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
-  const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
+  const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
+  const raw = $derived($scheduleRaw);
+  const ctx = $derived(
+    raw.status === 'ready'
+      ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, targetDate)
+      : null
+  );
+  const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
+  const reintroInfo = $derived(ctx?.reintroInfo ?? null);
 
   // ── Conflict toast (replaces always-visible conflict banner) ──
   let conflictToastMessage = $state<string | null>(null);

@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
+import type { ScheduleRaw } from '$lib/stores/schedule-context';
 import type { GeneratedSchedule, QuestionnaireAnswers, MealItem } from '$lib/domain/models';
 
-const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
+const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 
 vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleContext: { subscribe: mockScheduleContext.subscribe },
+  scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
@@ -30,19 +30,7 @@ const mockPage = { url: new URL('http://localhost/meal') };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
 const today = new Date().toISOString().split('T')[0];
-
-const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-  phases: [{
-    id: 'elim',
-    type: 'elimination',
-    allergenIds: ['dairy'],
-    startDate: today,
-    endDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-  }],
-};
+const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
 
 const sampleAnswers: QuestionnaireAnswers = {
   babyBirthDate: '2025-01-01',
@@ -54,21 +42,65 @@ const sampleAnswers: QuestionnaireAnswers = {
   testedAllergens: ['dairy'],
 };
 
-function setReady(overrides: Partial<Omit<Extract<ScheduleContext, { status: 'ready' }>, 'status'>> = {}) {
-  mockScheduleContext.set({
-    status: 'ready',
-    schedule: sampleSchedule,
-    answers: sampleAnswers,
-    allergenStatuses: [],
-    eliminatedToday: [],
-    reintroInfo: null,
-    progress: { currentDay: 1, totalDays: 14, percentComplete: 7 },
-    ...overrides,
-  });
+/** Schedule where dairy is in an active elimination phase today */
+const dairyEliminationSchedule: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: future,
+  phases: [{
+    id: 'elim',
+    type: 'elimination',
+    allergenIds: ['dairy'],
+    startDate: today,
+    endDate: future,
+  }],
+};
+
+/** Schedule with no allergens eliminated (empty elimination phase) */
+const emptySchedule: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: future,
+  phases: [{
+    id: 'elim',
+    type: 'elimination',
+    allergenIds: [],
+    startDate: today,
+    endDate: future,
+  }],
+};
+
+/** Provide schedule with dairy eliminated today */
+function setReadyWithElim() {
+  mockScheduleRaw.set({ status: 'ready', schedule: dairyEliminationSchedule, answers: sampleAnswers });
+}
+
+/** Provide an empty schedule (no allergen eliminations today) */
+function setReady() {
+  mockScheduleRaw.set({ status: 'ready', schedule: emptySchedule, answers: sampleAnswers });
+}
+
+/** Provide schedule where today is day 2 of a 4-day dairy reintroduction */
+function setReadyWithReintro() {
+  const d1 = new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0]; // yesterday
+  const d4 = new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]; // +2 days
+  const reintroSchedule: GeneratedSchedule = {
+    permanentMother: [], permanentBaby: [],
+    startDate: d1,
+    estimatedEndDate: future,
+    phases: [{
+      id: 'reintro-dairy',
+      type: 'reintroduction',
+      allergenIds: ['dairy'],
+      startDate: d1,
+      endDate: d4,
+    }],
+  };
+  mockScheduleRaw.set({ status: 'ready', schedule: reintroSchedule, answers: sampleAnswers });
 }
 
 beforeEach(() => {
-  mockScheduleContext.set({ status: 'loading' });
+  mockScheduleRaw.set({ status: 'loading' });
   mockSave.mockClear();
   mockLoadBySlot.mockClear();
   mockLoadBySlot.mockResolvedValue({ ok: true, data: null }); // default: no saved slot
@@ -80,7 +112,7 @@ describe('meal/+page.svelte', () => {
   // ── Existing banner tests (preserved) ────────────────────
 
   it('does not show eliminated banner when eliminatedToday is empty', async () => {
-    setReady({ eliminatedToday: [] });
+    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByText } = render(MealPage);
     await tick();
@@ -88,7 +120,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('shows eliminated banner when eliminatedToday is non-empty', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByText } = render(MealPage);
     await tick();
@@ -96,9 +128,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('shows reintroInfo banner when reintroInfo is present', async () => {
-    setReady({
-      reintroInfo: { allergenId: 'dairy', dayInPhase: 2, totalDays: 4, isEvaluationDay: false },
-    });
+    setReadyWithReintro();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByText } = render(MealPage);
     await tick();
@@ -313,7 +343,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('conflict item row uses warning styling', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText } = render(MealPage);
     await tick();
@@ -729,7 +759,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('adding an eliminated item shows conflict toast', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText } = render(MealPage);
     await tick();
@@ -749,7 +779,7 @@ describe('meal/+page.svelte', () => {
   // ── Issue 136: allergen status on sub-item chips ──────────
 
   it('sub-item chips in an eliminated category have data-state="danger"', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -766,7 +796,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('sub-item chips in a non-eliminated category do NOT have data-state="danger"', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -782,7 +812,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('sub-item chips in an eliminated category show Czech "Vyloučeno" label', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getAllByText } = render(MealPage);
     await tick();
@@ -797,7 +827,7 @@ describe('meal/+page.svelte', () => {
   });
 
   it('sub-item chips in a non-eliminated category do NOT show "Vyloučeno" label', async () => {
-    setReady({ eliminatedToday: ['dairy'] });
+    setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
     await tick();
@@ -1037,5 +1067,40 @@ describe('meal/+page.svelte', () => {
 
     const saved = mockSave.mock.calls[0][0];
     expect(saved.date).toBe(today);
+  });
+
+  // ── Issue #198: date-scoped schedule context ──────────────
+
+  it('back-dated /meal shows eliminated banner for the past date\'s allergen set, not today\'s', async () => {
+    // Schedule: past date is in dairy elimination; today is in rest (no eliminations)
+    const pastDate = '2025-06-01';
+    const scheduleWithPhases: GeneratedSchedule = {
+      permanentMother: [], permanentBaby: [],
+      startDate: '2025-06-01',
+      estimatedEndDate: future,
+      phases: [
+        { id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: '2025-06-01', endDate: '2025-06-14' },
+        { id: 'rest', type: 'rest', allergenIds: [], startDate: '2025-06-15', endDate: future },
+      ],
+    };
+    mockScheduleRaw.set({ status: 'ready', schedule: scheduleWithPhases, answers: sampleAnswers });
+    mockPage.url = new URL(`http://localhost/meal?date=${pastDate}`);
+
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+
+    // Past date (2025-06-01) is in the dairy elimination phase → banner shown
+    expect(getByText('Dnes vyřazeno:')).toBeInTheDocument();
+  });
+
+  it('today\'s /meal shows no eliminated banner when schedule has no allergens', async () => {
+    // emptySchedule has no allergens in any phase → no eliminations
+    setReady(); // emptySchedule
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByText } = render(MealPage);
+    await tick();
+
+    expect(queryByText('Dnes vyřazeno:')).not.toBeInTheDocument();
   });
 });

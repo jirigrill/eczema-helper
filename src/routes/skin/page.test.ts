@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
+import type { ScheduleRaw } from '$lib/stores/schedule-context';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
 
-// ── Schedule context mock ─────────────────────────────────────
-const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
+// ── Schedule raw mock ─────────────────────────────────────────
+const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 
 vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleContext: { subscribe: mockScheduleContext.subscribe },
+  scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
 }));
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
@@ -47,19 +47,7 @@ function makeFile(name = 'photo.jpg'): File {
 }
 
 const today = new Date().toISOString().split('T')[0];
-
-const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-  phases: [{
-    id: 'elim',
-    type: 'elimination',
-    allergenIds: ['dairy'],
-    startDate: today,
-    endDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-  }],
-};
+const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
 
 const sampleAnswers: QuestionnaireAnswers = {
   babyBirthDate: '2025-01-01',
@@ -71,21 +59,32 @@ const sampleAnswers: QuestionnaireAnswers = {
   testedAllergens: ['dairy'],
 };
 
-function setReady(overrides: Partial<Omit<Extract<ScheduleContext, { status: 'ready' }>, 'status'>> = {}) {
-  mockScheduleContext.set({
-    status: 'ready',
-    schedule: sampleSchedule,
-    answers: sampleAnswers,
-    allergenStatuses: [],
-    eliminatedToday: [],
-    reintroInfo: null,
-    progress: { currentDay: 1, totalDays: 14, percentComplete: 7 },
-    ...overrides,
-  });
+const emptySchedule: GeneratedSchedule = {
+  permanentMother: [], permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: future,
+  phases: [{ id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future }],
+};
+
+function setReady() {
+  mockScheduleRaw.set({ status: 'ready', schedule: emptySchedule, answers: sampleAnswers });
+}
+
+/** Day 2 of a 4-day dairy reintroduction starting yesterday */
+function setReadyWithReintro() {
+  const d1 = new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0];
+  const d4 = new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0];
+  const reintroSchedule: GeneratedSchedule = {
+    permanentMother: [], permanentBaby: [],
+    startDate: d1,
+    estimatedEndDate: future,
+    phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: d1, endDate: d4 }],
+  };
+  mockScheduleRaw.set({ status: 'ready', schedule: reintroSchedule, answers: sampleAnswers });
 }
 
 beforeEach(() => {
-  mockScheduleContext.set({ status: 'loading' });
+  mockScheduleRaw.set({ status: 'loading' });
   mockSave.mockClear();
   mockPhotoSave.mockClear();
   mockPage.url = new URL('http://localhost/skin');
@@ -125,9 +124,7 @@ describe('skin/+page.svelte', () => {
   });
 
   it('reintro context pill renders when reintroductionAllergenId is set', async () => {
-    setReady({
-      reintroInfo: { allergenId: 'dairy', dayInPhase: 2, totalDays: 4, isEvaluationDay: false },
-    });
+    setReadyWithReintro();
     const { default: SkinPage } = await import('./+page.svelte');
     const { getByText } = render(SkinPage);
     await tick();

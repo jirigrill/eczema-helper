@@ -359,3 +359,55 @@ test('?date= param: loads slot for specified date, saves to that date, navigates
   // The saved meal should appear on the day screen
   await expect(page.getByText('Brambory')).toBeVisible();
 });
+
+// ── Issue #198: date-scoped schedule context ──────────────────────────────────
+
+test('back-dated /meal shows past date\'s elimination set, not today\'s', async ({ page }) => {
+  // Seed: pastDate is in dairy elimination; today is in dairy reintroduction (different phase)
+  await page.evaluate(async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0];
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.put({
+      id: 'singleton',
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate',
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: pastDate,
+      completedAt: new Date().toISOString(),
+      testedAllergens: ['dairy'],
+    });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: pastDate,
+      estimatedEndDate: future,
+      phases: [
+        // pastDate and the days before yesterday: dairy is eliminated
+        { id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: pastDate, endDate: yesterday },
+        // today: dairy reintroduction (no elimination banner)
+        { id: 'reintro', type: 'reintroduction', allergenIds: ['dairy'], startDate: today, endDate: future },
+      ],
+    });
+  });
+
+  // Navigate to the back-dated meal page (pastDate = dairy elimination phase)
+  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
+  await page.goto(`/meal?date=${pastDate}`);
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Back-dated page must show the eliminated dairy banner
+  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
+
+  // Navigate to today's /meal — today is in reintroduction, not elimination
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Today's page must NOT show the elimination banner
+  await expect(page.getByText('Dnes vyřazeno:')).not.toBeVisible();
+});
