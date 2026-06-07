@@ -272,26 +272,3 @@ describe('getPhaseVerdictStatuses — permanent exclusion', () => {
     expect(rows.find(r => r.allergenId === 'nuts')).toBeUndefined();
   });
 });
-
-describe('getPhaseVerdictStatuses — status-order sort', () => {
-  // Build a schedule where dairy passed and eggs has not yet been tested after dairy reintro
-  // → passed before not-yet-tested
-  const sortSchedule: GeneratedSchedule = {
-    permanentMother: [],
-    permanentBaby: [],
-    startDate: '2026-05-01',
-    estimatedEndDate: '2026-09-01',
-    phases: [
-      phase({ id: 'elimination', type: 'elimination', startDate: '2026-05-01', endDate: '2026-06-04', allergenIds: ['dairy', 'eggs'] }),
-      phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-06-05', endDate: '2026-06-08', allergenIds: ['dairy'] }),
-    ],
-  };
-  const reintroPhase = sortSchedule.phases[1];
-
-  it('sorts passed before not-yet-tested', () => {
-    const rows = getPhaseVerdictStatuses(sortSchedule, reintroPhase);
-    const dairyIdx = rows.findIndex(r => r.allergenId === 'dairy');
-    const eggsIdx = rows.findIndex(r => r.allergenId === 'eggs');
-    expect(dairyIdx).toBeLessThan(eggsIdx);
-  });
-});

@@ -88,7 +88,9 @@
 
   // Protocol + retest allergens (excludes permanent-mother / permanent-baby).
   const protocolAllergenStatuses = $derived(
-    ctx.status === 'ready' ? filterProtocolStatuses(ctx.allergenStatuses) : []
+    ctx.status === 'ready'
+      ? filterProtocolStatuses(ctx.allergenStatuses).sort((a, b) => a.status.localeCompare(b.status))
+      : []
   );
 
   const motherAllergenStatuses = $derived(
@@ -559,7 +561,7 @@
 
                 <!-- Per-allergen status for reintroduction -->
                 {#if phase.type === 'reintroduction' && schedule}
-                  {@const phaseRows = getPhaseVerdictStatuses(schedule, phase)}
+                  {@const phaseRows = getPhaseVerdictStatuses(schedule, phase).sort((a, b) => a.status.localeCompare(b.status))}
                   {#if phaseRows.length > 1}
                     <div>
                       <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>

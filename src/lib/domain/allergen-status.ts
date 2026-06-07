@@ -102,22 +102,11 @@ export function getAllergenStatuses(
   return results;
 }
 
-function verdictStatusOrder(status: AllergenStatusValue): number {
-  const order: Partial<Record<AllergenStatusValue, number>> = {
-    testing: 0, passed: 1, 'tolerance-building': 2,
-    reacted: 3, eliminated: 4, 'not-yet-tested': 4,
-  };
-  return order[status] ?? 5;
-}
-
 /**
- * Filters out permanent-mother / permanent-baby entries and sorts by status
- * priority order. Used by both the today-hero projection and getPhaseVerdictStatuses.
+ * Filters out permanent-mother / permanent-baby entries.
  */
 export function filterProtocolStatuses(statuses: AllergenStatus[]): AllergenStatus[] {
-  return statuses
-    .filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby')
-    .sort((a, b) => verdictStatusOrder(a.status) - verdictStatusOrder(b.status));
+  return statuses.filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby');
 }
 
 /**
