@@ -92,19 +92,24 @@ The display name and icon are resolved from the slug at render time. The slug ty
 
 ### AllergenId / ProtocolAllergenId / CustomAllergenId
 
-The typed shape of an allergen slug. Defined in `src/lib/domain/models.ts`:
+The typed shape of an allergen slug. Per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
+these become **derived** from the data-first catalog rather than hand-written
+unions:
 
-- `ProtocolAllergenId` — string-literal union of the 13 protocol-defined slugs
-  (`'dairy' | 'eggs' | 'wheat' | 'soy' | 'nuts' | 'fish' | 'shellfish' | 'citrus'
-  | 'chocolate' | 'tomatoes' | 'strawberries' | 'corn' | 'sesame'`). These are the
-  only allergens that can have a reintroduction protocol.
-- `CustomAllergenId = \`other:${string}\`` — user-defined custom allergens (e.g.
-  `'other:Paprika'`). Stored when the mother adds an "other" item in the meal log.
-  Participate in elimination logs but **never** enter a protocol phase.
-- `AllergenId = ProtocolAllergenId | CustomAllergenId` — the unified type. Used at
-  fields whose value can legitimately come from either tier
-  (`MealItem.allergenId`, `motherAllergies`, `babyConfirmedAllergies`,
-  `AllergenStatus.allergenId`).
+- `AllergenId = typeof CATALOG[number]['id']` — every canonical allergen slug.
+- `ProtocolAllergenId = Extract<typeof CATALOG[number], { protocol: object }>['id']`
+  — the subset of canonical allergens whose record carries a reintroduction
+  `protocol`. These are the only allergens that can enter a reintroduction
+  phase. (Today these happen to be the 13 originals; the catalog grows past them
+  with most additions carrying *no* protocol.)
+- `CustomAllergenId = \`other:${string}\`` — the legacy free-text custom-allergen
+  tier (e.g. `'other:Paprika'`). Participates in elimination logs, never enters a
+  protocol phase. Unknown free-text input is also captured as a `HarvestCandidate`
+  for eventual promotion into a `CanonicalAllergen`.
+
+`AllergenId` is the unified type used at fields whose value can come from either
+tier (`MealItem.allergenId`, `motherAllergies`, `babyConfirmedAllergies`,
+`AllergenStatus.allergenId`).
 
 Fields known by construction to be protocol-only are typed `ProtocolAllergenId`
 directly (`SchedulePhase.allergenIds`, `testedAllergens`,
@@ -168,6 +173,33 @@ derived by `getEliminatedSlugsForDate(schedule, date)`.
 Identifying `MealItem`s in a logged meal that violate the current `EliminationWindow`.
 Performed by `detectConflicts(meal, eliminatedSlugs)`. Surfaces a warning before the
 user saves a meal.
+
+### CanonicalAllergen / Canonical Catalog
+→ Defined in `CONTEXT.md`. The curated, data-first catalog record for one
+allergen (`id`, `origin`, `icon`, `subitems`, `aliases`, optional `source`,
+optional `protocol`). The `CATALOG` array of these records is the source of
+truth from which `AllergenId` / `ProtocolAllergenId` are derived. Bundled,
+build-time, JSON-serializable, read through `CanonicalCatalogPort`. See ADR-0017.
+
+### HarvestCandidate
+→ Defined in `CONTEXT.md`. A runtime Dexie record for an unknown food the
+mother typed: `normalizedKey`, `raw[]` surface forms, `count`/`firstSeen`/
+`lastSeen`, and `status` (`observed | promoted | rejected`). The harvest feed
+and eventual sync payload; graduates into a `CanonicalAllergen` by curation. See
+ADR-0017.
+
+### CanonicalCatalogPort
+The port (hexagonal seam) through which the domain reads the allergen catalog.
+The only adapter today returns the bundled `CATALOG`; a remote, server-pushed
+adapter is deferred behind it (ADR-0017). Keeps the catalog source swappable
+without touching domain or UI.
+
+### Normalized Key
+The deterministic lowercase/trimmed/whitespace-collapsed form of a food name
+used to dedupe `HarvestCandidate` rows and to match free-text input against a
+`CanonicalAllergen`'s `aliases`. Precision-biased: diacritics are **kept** and
+no stemming is applied on-device — authoritative clustering is a deferred
+server job. See ADR-0017.
 
 ### Category / SubItem / SubitemId
 

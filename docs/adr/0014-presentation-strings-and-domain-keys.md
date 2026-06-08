@@ -1,7 +1,14 @@
 # 0014 — Presentation Strings and Domain Keys
 
-**Status:** Accepted
+**Status:** Accepted (amended by [ADR-0017](0017-allergen-catalog-storage-and-harvest.md))
 **Date:** 2026-05-25
+
+> **Amendment (ADR-0017):** the allergen catalog structure inverts from
+> union-first (hand-written `ProtocolAllergenId` + four `satisfies Record<>`
+> files) to **data-first** (one `CanonicalAllergen` record per allergen; the
+> id unions are *derived* from the records). `icon`, `subitems`, `protocol`,
+> and `aliases` co-locate onto the record; the `strings/` Czech-text
+> separation described below is **preserved**.
 
 ## Context
 
