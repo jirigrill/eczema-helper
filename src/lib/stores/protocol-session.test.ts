@@ -11,7 +11,7 @@ import { get } from 'svelte/store';
 // observing what it persists and reads back through the store.
 
 import type { QuestionnaireAnswers } from '$lib/domain/models';
-import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+import { DEFAULT_TESTED_ALLERGENS } from '$lib/domain/policy';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 

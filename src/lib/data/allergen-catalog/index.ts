@@ -12,6 +12,8 @@ import { strawberries } from './strawberries';
 import { corn } from './corn';
 import { sesame } from './sesame';
 
+import type { AllergenProtocol, CanonicalAllergen } from '$lib/domain/canonical-allergen';
+
 export type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const ALLERGEN_CATALOG = [
@@ -21,8 +23,11 @@ export const ALLERGEN_CATALOG = [
 
 type CatalogRecord = typeof ALLERGEN_CATALOG[number];
 
-/** All catalog allergen ids, plus open-ended `other:${string}` custom tier. */
-export type AllergenId = CatalogRecord['id'] | `other:${string}`;
+/** User-defined custom allergens (e.g. `'other:Paprika'`); never enter a protocol phase. */
+export type CustomAllergenId = `other:${string}`;
+
+/** All catalog allergen ids, plus the open-ended custom tier. */
+export type AllergenId = CatalogRecord['id'] | CustomAllergenId;
 
 /** Allergen ids that carry a reintroduction protocol — derived from the records. */
 export type ProtocolAllergenId = Extract<CatalogRecord, { protocol: object }>['id'];
@@ -38,9 +43,6 @@ export type SubitemId = CatalogRecord extends infer R
     : never
   : never;
 
-/** Standard protocol order: least → most common trigger. */
-export const DEFAULT_TESTED_ALLERGENS: ProtocolAllergenId[] = ['soy', 'wheat', 'eggs', 'dairy'];
-
 /**
  * Structural category list derived from ALLERGEN_CATALOG.
  * Consumers that previously imported CATEGORIES from `$lib/data/categories` can
@@ -53,3 +55,13 @@ export const CATEGORIES = ALLERGEN_CATALOG.map((r) => ({
     allergenId: r.id as ProtocolAllergenId,
   })),
 }));
+
+/**
+ * The reintroduction protocol for an allergen, or undefined if it has none.
+ * Reads straight from the catalog record — the single source of truth for
+ * clinical dosing (ADR-0017). Custom and protocol-less allergens return undefined.
+ */
+export function getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined {
+  const record = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === id);
+  return record?.protocol;
+}

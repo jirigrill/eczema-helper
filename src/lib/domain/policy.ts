@@ -5,6 +5,17 @@
  * live here. Tuning the protocol requires touching only this file.
  */
 
+import type { ProtocolAllergenId } from '$lib/data/allergen-catalog';
+
+// ── Default tested allergens ─────────────────────────────────
+
+/**
+ * Default order in which allergens are eliminated and reintroduced: least → most
+ * common trigger. A protocol policy choice, not catalog reference data — which
+ * allergens *exist* is the catalog's job; which we *test by default* is this file's.
+ */
+export const DEFAULT_TESTED_ALLERGENS: ProtocolAllergenId[] = ['soy', 'wheat', 'eggs', 'dairy'];
+
 // ── Phase durations (in days) ────────────────────────────────
 
 /** Duration of the initial reset phase, during which the mother eats normally to establish a baseline. */

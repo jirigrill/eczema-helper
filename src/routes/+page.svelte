@@ -11,7 +11,7 @@
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import Button from '$lib/components/Button.svelte';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
-  import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+  import { DEFAULT_TESTED_ALLERGENS } from '$lib/domain/policy';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, allergenWordCs } from '$lib/strings/common';
