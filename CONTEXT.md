@@ -34,11 +34,29 @@ and vice versa. Multiple `SkinPhoto` records may exist for the same
 calendar day. Linked to a day by `date` only; no FK to `SkinObservation`.
 
 ### ReintroductionEvaluation
-The allergen-attributed verdict at the end of a reintro phase, picked
-from four outcomes (`tolerated` / `mild-reaction` / `clear-reaction` /
-`severe-reaction`). The app may suggest one as recommended from the
-phase's daily observations; the user confirms. This is the *only*
-place where the user explicitly attributes a reaction to an allergen.
+The verdict recorded at the end of a phase, keyed by `phaseId` (one
+immutable row per phase / reintroduction attempt). Two kinds, by
+`phaseType`:
+
+- `allergen-test` — at the end of a `reintroduction` phase, picked from
+  four outcomes (`tolerated` / `mild-reaction` / `clear-reaction` /
+  `severe-reaction`). This is the *only* place where the user explicitly
+  attributes a reaction to an allergen.
+- `skin-status` — at the end of a `reset` or `elimination` phase, a
+  reflective record of how the skin fared (`improved` / `unchanged` /
+  `worsened` / `new-lesions`). A pure record; it changes no schedule and
+  no status.
+
+The verdict is an **audit fact**, not the source of truth for status.
+Recording an `allergen-test` *reaction* drives a schedule mutation (a
+`rest` phase is inserted; its length is severity-keyed), and
+`AllergenStatus` is then derived from the resulting topology — the
+evaluations table is never read by `getAllergenStatuses`. A reaction is
+**never permanent** for a protocol allergen: a reacted allergen is
+eligible for a later manual retest. The app may later suggest a
+recommended outcome from the phase's daily observations (deferred to
+v1.1); the user always confirms. See
+[ADR-0016](docs/adr/0016-verdict-drives-schedule-not-status.md).
 
 ### Insight
 A *derived* pattern card computed over `(Meal, SkinObservation)` pairs
