@@ -5,7 +5,7 @@ export const strawberries = {
   origin: 'core',
   icon: '🍓',
   aliases: ['strawberries', 'jahody', 'jahoda'],
-  subitems: ['strawberries:fresh-strawberries', 'strawberries:strawberry-jam'],
+  subitems: ['fresh-strawberries', 'strawberry-jam'],
   protocol: {
     days: [
       { day: 1, instructionCs: 'Hrst jahod (cca 100 g)', isEvaluationDay: false },

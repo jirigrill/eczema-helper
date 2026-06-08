@@ -5,7 +5,7 @@ export const citrus = {
   origin: 'core',
   icon: '🍋',
   aliases: ['citrus', 'citrony', 'pomeranče', 'mandarinky', 'grapefruit'],
-  subitems: ['citrus:oranges', 'citrus:lemons', 'citrus:grapefruit', 'citrus:mandarins'],
+  subitems: ['oranges', 'lemons', 'grapefruit', 'mandarins'],
   protocol: {
     days: [
       { day: 1, instructionCs: '1 mandarinka nebo sklenice džusu (150 ml)', isEvaluationDay: false },

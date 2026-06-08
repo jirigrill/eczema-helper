@@ -5,7 +5,7 @@ export const chocolate = {
   origin: 'core',
   icon: '🍫',
   aliases: ['chocolate', 'čokoláda', 'kakao', 'cocoa'],
-  subitems: ['chocolate:dark-choc', 'chocolate:milk-choc', 'chocolate:cocoa'],
+  subitems: ['dark-choc', 'milk-choc', 'cocoa'],
   protocol: {
     days: [
       { day: 1, instructionCs: '2–3 kostičky hořké čokolády (min. 70 % kakaa)', isEvaluationDay: false },

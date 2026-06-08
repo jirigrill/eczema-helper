@@ -5,7 +5,7 @@ export const wheat = {
   origin: 'core',
   icon: '🌾',
   aliases: ['wheat', 'pšenice', 'lepek', 'gluten'],
-  subitems: ['wheat:bread', 'wheat:pasta', 'wheat:flour', 'wheat:gluten'],
+  subitems: ['bread', 'pasta', 'flour', 'gluten'],
   protocol: {
     days: [
       { day: 1, instructionCs: '1 krajíc chleba nebo malá porce těstovin', isEvaluationDay: false },

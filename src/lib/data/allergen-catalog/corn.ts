@@ -5,7 +5,7 @@ export const corn = {
   origin: 'core',
   icon: '🌽',
   aliases: ['corn', 'kukuřice', 'kukuřičný'],
-  subitems: ['corn:corn-flour', 'corn:sweet-corn'],
+  subitems: ['corn-flour', 'sweet-corn'],
   protocol: {
     days: [
       { day: 1, instructionCs: 'Malá porce kukuřice (cca 50 g kukuřičné mouky nebo 1 klas)', isEvaluationDay: false },

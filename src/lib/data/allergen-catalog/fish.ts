@@ -5,7 +5,7 @@ export const fish = {
   origin: 'core',
   icon: '🐟',
   aliases: ['fish', 'ryba', 'ryby'],
-  subitems: ['fish:freshwater-fish', 'fish:saltwater-fish', 'fish:fish-oil'],
+  subitems: ['freshwater-fish', 'saltwater-fish', 'fish-oil'],
   protocol: {
     days: [
       { day: 1, instructionCs: '1 malá porce ryby (cca 50 g)', isEvaluationDay: false },

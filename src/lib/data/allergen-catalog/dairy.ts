@@ -5,7 +5,7 @@ export const dairy = {
   origin: 'core',
   icon: '🥛',
   aliases: ['dairy', 'milk', 'mleko', 'mléčné výrobky'],
-  subitems: ['dairy:milk', 'dairy:butter', 'dairy:cheese', 'dairy:yogurt', 'dairy:cream', 'dairy:cottage'],
+  subitems: ['milk', 'butter', 'cheese', 'yogurt', 'cream', 'cottage'],
   protocol: {
     days: [
       { day: 1, instructionCs: '100 ml kravského mléka nebo 1 jogurt', isEvaluationDay: false },

@@ -5,7 +5,7 @@ export const sesame = {
   origin: 'core',
   icon: '🌰',
   aliases: ['sesame', 'sezam', 'tahini', 'sezamová semínka'],
-  subitems: ['sesame:sesame-seeds', 'sesame:tahini'],
+  subitems: ['sesame-seeds', 'tahini'],
   protocol: {
     days: [
       { day: 1, instructionCs: '1 lžička sezamových semínek nebo tahini', isEvaluationDay: false },

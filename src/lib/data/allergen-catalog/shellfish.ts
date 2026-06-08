@@ -5,7 +5,7 @@ export const shellfish = {
   origin: 'core',
   icon: '🦐',
   aliases: ['shellfish', 'korýši', 'měkkýši', 'krevety', 'krab', 'mušle'],
-  subitems: ['shellfish:shrimp', 'shellfish:crab', 'shellfish:mussels'],
+  subitems: ['shrimp', 'crab', 'mussels'],
   protocol: {
     days: [
       { day: 1, instructionCs: 'Malá porce korýšů nebo měkkýšů (cca 50 g)', isEvaluationDay: false },

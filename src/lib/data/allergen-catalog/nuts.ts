@@ -5,7 +5,7 @@ export const nuts = {
   origin: 'core',
   icon: '🥜',
   aliases: ['nuts', 'ořechy', 'arašídy', 'mandle', 'vlašské ořechy'],
-  subitems: ['nuts:peanuts', 'nuts:walnuts', 'nuts:hazelnuts', 'nuts:almonds', 'nuts:cashews'],
+  subitems: ['peanuts', 'walnuts', 'hazelnuts', 'almonds', 'cashews'],
   protocol: {
     days: [
       { day: 1, instructionCs: '5–6 ořechů (např. vlašských nebo mandlí)', isEvaluationDay: false },

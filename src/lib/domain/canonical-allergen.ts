@@ -14,7 +14,7 @@ export type CanonicalAllergen = {
   origin: 'core' | 'regional';
   icon: string;
   aliases: string[];
-  /** Full `allergenId:subitem` keys, e.g. `'dairy:milk'`. */
+  /** Bare subitem keys, e.g. `'milk'`. The full `allergenId:subitem` key is constructed on the way out. */
   subitems: readonly string[];
   source?: string;
   protocol?: AllergenProtocol;

@@ -5,7 +5,7 @@ export const eggs = {
   origin: 'core',
   icon: '🥚',
   aliases: ['eggs', 'vejce', 'egg'],
-  subitems: ['eggs:egg-white', 'eggs:egg-yolk'],
+  subitems: ['egg-white', 'egg-yolk'],
   protocol: {
     days: [
       { day: 1, instructionCs: '1 vařené vejce (celé)', isEvaluationDay: false },

@@ -12,13 +12,10 @@ describe('each ALLERGEN_CATALOG record', () => {
     expect(Array.isArray(record.subitems)).toBe(true);
   });
 
-  it.each(ALLERGEN_CATALOG)('$id subitems are prefixed with allergenId', (record) => {
-    for (const subitemId of record.subitems) {
-      expect(subitemId).toMatch(/^[a-z]+:[a-z-]+$/);
-      expect(
-        subitemId.startsWith(`${record.id}:`),
-        `subitem '${subitemId}' does not start with allergenId '${record.id}:'`,
-      ).toBe(true);
+  it.each(ALLERGEN_CATALOG)('$id subitems are bare keys (no allergenId: prefix)', (record) => {
+    for (const bare of record.subitems) {
+      expect(bare).toMatch(/^[a-z][a-z0-9-]*$/);
+      expect(bare).not.toContain(':');
     }
   });
 

@@ -5,7 +5,7 @@ export const soy = {
   origin: 'core',
   icon: '🫘',
   aliases: ['soy', 'soja', 'sója'],
-  subitems: ['soy:soy-milk', 'soy:tofu', 'soy:soy-sauce', 'soy:soy-lecithin'],
+  subitems: ['soy-milk', 'tofu', 'soy-sauce', 'soy-lecithin'],
   protocol: {
     days: [
       { day: 1, instructionCs: '100 ml sójového mléka nebo malá porce tofu', isEvaluationDay: false },
