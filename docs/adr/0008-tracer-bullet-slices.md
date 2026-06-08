@@ -31,21 +31,37 @@ phase**, written on an event (the evaluation day) rather than free-form
 CRUD. Completes the protocol's reason for existing — recording whether
 each reintroduced allergen was tolerated or provoked a reaction.
 
-- Dexie schema **v5**: add an `evaluations` table (version bump with
-  upgrade). The `ReintroductionEvaluation` model already exists in
-  `src/lib/domain/models.ts`.
+This slice is larger than "a keyed record + its repository": recording a
+*reaction* mutates the schedule, which pulls in the previously-unwired
+`insertRestDays`, a widening of `appendReTestPhases`, new `policy.ts`
+constants, and a new route. The verdict/status relationship is decided in
+[ADR-0016](0016-verdict-drives-schedule-not-status.md): the verdict is an
+**audit record** and, on a reaction, drives a schedule mutation; allergen
+status stays **topology-derived** (the `evaluations` table does *not* feed
+`getAllergenStatuses`).
+
+- Dexie schema **v5**: add an `evaluations` table, keyed
+  `'&phaseId, date'` (one immutable row per reintroduction attempt). The
+  `ReintroductionEvaluation` model already exists in
+  `src/lib/domain/models.ts` and carries no surrogate `id`.
 - New `ReintroductionEvaluationRepository` port (`save`,
   `loadByPhase`, `listAll`) + Dexie adapter, following the slice-2/3
   repository shape.
-- Surface evaluations to the program screen through a store (extend
-  `scheduleContext` or add a small evaluations store) so the program
-  timeline reads **real** data — today it renders a permanently-empty
-  `$state([])`, which this slice removes.
-- Write UI: when `reintroInfo.isEvaluationDay` is true, the program
-  screen shows a verdict picker per reintroduced allergen and persists
-  the choice. The recorded verdict feeds allergen status (tolerated /
-  reactive), which already drives retest eligibility and permanent
-  elimination.
+- A **separate, display-only evaluations store** (not folded into
+  `scheduleContext`) so the program timeline reads **real** data — today
+  it renders a permanently-empty `$state([])`, which this slice removes.
+- Write UI on a new **`/evaluation?phase=…&date=…&returnTo=…`** route
+  (the `/meal` + `/skin` pattern), reachable from the `/day` phase-hero
+  tap and a contextual FAB action gated on `isPhaseEndForEvaluation`.
+  Covers both `allergen-test` verdicts (end of reintroduction) and
+  `skin-status` verdicts (end of reset/elimination, a pure record). The
+  screen renders the "Průběh testu" recap (per-day dose + skin status).
+- A reaction inserts a `rest` whose length is severity-keyed
+  (`REST_PHASE_DAYS_MILD/_CLEAR/_SEVERE` in `policy.ts`). Protocol
+  allergens are **never permanently eliminated**; a reacted allergen is
+  eligible for a later **manual** retest via `appendReTestPhases`, widened
+  to accept `reacted` protocol allergens (not only `permanent-baby`).
+  Verdicts are write-once in v1.
 - The verdict ships **without** the "DOPORUČENO" auto-suggestion —
   that depends on the v1.1 pattern-detector per
   [ADR-0007](0007-v1-scope.md).
