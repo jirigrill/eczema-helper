@@ -5,7 +5,7 @@
   import type { Meal, MealItem, PortionKind, PreparationMethod, ProtocolAllergenId } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES } from '$lib/data/categories';
-  import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
+  import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { categoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';

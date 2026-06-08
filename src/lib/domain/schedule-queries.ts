@@ -1,5 +1,5 @@
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenStatus, AllergenId } from '$lib/domain/models';
-import { getProtocolForAllergen } from '$lib/data/reintroduction-protocols';
+import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange, daysBetween } from '$lib/utils/date';
@@ -83,7 +83,7 @@ export function detectConflicts(
 }
 
 // ── Reintroduction day info ───────────────────────────────────
-// Dosing instructions are per-allergen; see src/lib/data/reintroduction-protocols.ts.
+// Dosing instructions are per-allergen; see the catalog records' protocol field (ADR-0017).
 // isEvaluationDay is derived from the protocol config for the current allergen + day.
 
 export function getReintroductionDayInfo(

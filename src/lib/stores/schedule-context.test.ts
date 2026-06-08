@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 
 import { db, SINGLETON_ID } from '$lib/db/atopic-db';
 import type { QuestionnaireAnswers, GeneratedSchedule, SkinPhoto } from '$lib/domain/models';
-import { DEFAULT_TESTED_ALLERGENS } from '$lib/data/categories';
+import { DEFAULT_TESTED_ALLERGENS } from '$lib/domain/policy';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
