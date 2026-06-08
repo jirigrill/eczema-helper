@@ -149,6 +149,32 @@ Status is a discriminated string union:
 
 See [ADR-0012](docs/adr/0012-allergen-status-lifecycle.md).
 
+### CanonicalAllergen
+A curated catalog record describing one allergen — its stable `id`, `origin`
+(`'core' | 'regional'`), `icon`, `subitems`, `aliases` (normalized surface
+forms), optional `source` provenance, and an **optional** reintroduction
+`protocol`. The records are the data-first source of truth: `AllergenId` is
+derived as `typeof CATALOG[number]['id']`, and `ProtocolAllergenId` as the
+subset of records that carry a `protocol`. A record without a protocol is
+canonical and loggable but **not reintroducible** — the honest state of most
+long-tail foods. Czech display `name` is not on the record; it lives in
+`strings/` (ADR-0014). Records are bundled, build-time, and JSON-serializable,
+read through `CanonicalCatalogPort`. See
+[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+
+### HarvestCandidate
+A runtime record of a food the mother typed that is **not** in the canonical
+catalog: a `normalizedKey`, every `raw` surface form seen, occurrence stats
+(`count`, `firstSeen`, `lastSeen`), and a `status` (`observed | promoted |
+rejected`). Stored in a dedicated Dexie table, reactive via `liveQuery`. The
+candidate is the harvest feed and the eventual cross-user sync payload; it
+*graduates* when a curation act mints a `CanonicalAllergen` whose `aliases`
+cover its key. Harvest stats live only here, never on a `CanonicalAllergen`.
+On-device normalization is deliberately minimal and precision-biased
+(lowercase + trim + collapse whitespace, **keep** diacritics, **no** stemming);
+authoritative clustering is a deferred server-side job. See
+[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+
 ### Actor
 The person whose food intake a `Meal` describes. In v1 always `'mother'`
 (the breastfeeding mother — allergens transit to the baby via breastmilk).
@@ -207,3 +233,11 @@ after data exists is a migration.
   (text + visual tokens combined), resolved at render time. Baking
   a display string onto a domain record violates this invariant.
   See [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md).
+- **Allergen catalog is data-first, bundled, and port-fronted.** Each allergen
+  is one curated JSON-serializable `CanonicalAllergen` record; `AllergenId` and
+  `ProtocolAllergenId` are *derived* from the records, not hand-written unions.
+  Reintroduction capability is the optional `protocol` field — canonical does
+  not imply reintroducible. Unknown user input becomes a runtime
+  `HarvestCandidate` in Dexie, never mutates the bundled catalog. Cross-user
+  aggregation and server-push are deferred behind `CanonicalCatalogPort`.
+  See [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
