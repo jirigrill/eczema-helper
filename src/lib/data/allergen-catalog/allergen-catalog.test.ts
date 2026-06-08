@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ALLERGEN_CATALOG } from '$lib/data/allergen-catalog/index';
+import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 // ── Record shape ──────────────────────────────────────────────
 
@@ -19,9 +20,16 @@ describe('each ALLERGEN_CATALOG record', () => {
     }
   });
 
-  it.each(ALLERGEN_CATALOG)('$id has no duplicate subitem ids', (record) => {
-    const ids = [...record.subitems];
-    expect(new Set(ids).size).toBe(ids.length);
+  it.each(ALLERGEN_CATALOG)('$id CATEGORIES derivation produces compound allergenId:subitem keys', (record) => {
+    for (const bare of record.subitems) {
+      const compound = `${record.id}:${bare}`;
+      expect(compound).toMatch(/^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/);
+    }
+  });
+
+  it.each(ALLERGEN_CATALOG)('$id has no duplicate subitem keys', (record) => {
+    const keys = [...record.subitems];
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });
 
@@ -66,20 +74,26 @@ describe('ALLERGEN_CATALOG integrity', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('all subitem ids across the whole catalog are unique', () => {
+  it('all bare subitem keys are unique across the whole catalog', () => {
     const all = ALLERGEN_CATALOG.flatMap((r) => [...r.subitems]);
     expect(new Set(all).size).toBe(all.length);
   });
 
-  it('known allergens are present', () => {
-    const ids = ALLERGEN_CATALOG.map((r) => r.id);
-    const expected = [
-      'dairy', 'eggs', 'wheat', 'soy', 'nuts', 'fish', 'shellfish',
-      'citrus', 'chocolate', 'tomatoes', 'strawberries', 'corn', 'sesame',
-    ];
-    for (const id of expected) {
-      expect(ids).toContain(id);
+  // Glob over every *.ts file in this directory (excluding index and test).
+  // Verifies that every record file is actually registered in ALLERGEN_CATALOG —
+  // adding a file without wiring it into index.ts is caught here.
+  it('every record file in this directory is registered in ALLERGEN_CATALOG', async () => {
+    const modules = import.meta.glob('./*.ts', { eager: true });
+    const fileExports = Object.entries(modules)
+      .filter(([path]) => !path.includes('index') && !path.includes('.test.'))
+      .flatMap(([, mod]) => Object.values(mod as Record<string, unknown>))
+      .filter((v): v is CanonicalAllergen => typeof v === 'object' && v !== null && 'id' in v);
+
+    const catalogIds = new Set(ALLERGEN_CATALOG.map((r) => r.id));
+    for (const record of fileExports) {
+      expect(catalogIds).toContain(record.id);
     }
+    expect(fileExports.length).toBe(ALLERGEN_CATALOG.length);
   });
 });
 
@@ -97,3 +111,4 @@ describe('protocol content', () => {
     expect(soy.protocol!.days).toHaveLength(3);
   });
 });
+
