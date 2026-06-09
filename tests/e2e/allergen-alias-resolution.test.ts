@@ -41,7 +41,7 @@ test('alias resolution: typing a Czech alias in custom input adds canonical item
   await page.getByRole('button', { name: 'Přidat' }).click();
 
   // The basket item should display the canonical Czech name, not the raw alias
-  await expect(page.getByText('Pšenice / lepek')).toBeVisible();
+  await expect(page.getByText('Pšenice / lepek').first()).toBeVisible();
 
   // The wheat category icon should appear (not the generic fallback 🍽️)
   await expect(page.getByText('🌾').first()).toBeVisible();
