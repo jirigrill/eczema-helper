@@ -17,7 +17,7 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, dayProgress, dnyCs } from '$lib/strings/common';
   import { phaseConfig } from '$lib/config/phases';
-  import { categoryConfig } from '$lib/config/categories';
+  import { getCategoryConfig } from '$lib/config/categories';
 
   const today = todayIso();
   const view = createDayView(() => page.params.date, today);
@@ -159,7 +159,7 @@
         </div>
 
         {#each toleranceReminders as reminder (reminder.allergenId)}
-          {@const cat = categoryConfig[reminder.allergenId]}
+          {@const cat = getCategoryConfig(reminder.allergenId)}
           <div class="bg-white border border-warning/40 rounded-2xl px-3.5 py-3 flex items-center gap-3" data-testid="tolerance-reminder">
             <span class="text-xl shrink-0">{cat?.icon ?? '🍽'}</span>
             <div class="flex-1 min-w-0">

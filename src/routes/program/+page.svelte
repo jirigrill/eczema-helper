@@ -5,7 +5,7 @@
   import type { AllergenStatusValue, ProtocolAllergenId, SchedulePhase } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
   import { getPhaseVerdictStatuses, filterProtocolStatuses } from '$lib/domain/allergen-status';
-  import { categoryConfig } from '$lib/config/categories';
+  import { getCategoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
   import { formatDateCs, formatDateLongCs, todayIso, daysBetween } from '$lib/utils/date';
   import { protocolSession } from '$lib/stores/protocol-session';
@@ -65,7 +65,7 @@
       const isBaby = answers?.babyConfirmedAllergies.some(a => normSlug(a) === s) ?? false;
       const reason = isMother && isBaby ? commonStrings.program.reasonMotherAndBaby : isMother ? commonStrings.program.reasonMother : commonStrings.program.reasonBaby;
       if (s.startsWith('other:')) return [{ slug: s, icon: '🌿', name: s.slice(6), reason }];
-      const cfg = categoryConfig[s.split(':')[0] as ProtocolAllergenId];
+      const cfg = getCategoryConfig(s.split(':')[0]);
       if (!cfg) return [];
       return [{ slug: s, icon: cfg.icon, name: cfg.name, reason }];
     });
@@ -106,7 +106,7 @@
     const retestResult = await protocolSession.appendReTests(selectedRetestSlugs, today);
     if (!retestResult.ok) {
       const { code, invalidIds } = retestResult.error;
-      const names = invalidIds.map(id => categoryConfig[id as ProtocolAllergenId]?.name ?? id).join(', ');
+      const names = invalidIds.map(id => getCategoryConfig(id)?.name ?? id).join(', ');
       if (code === 'not-baby-confirmed') {
         toastMessage = toastRetestNotBabyConfirmed(names);
         toastType = 'error';
@@ -202,7 +202,7 @@
       .filter((p: SchedulePhase) => p.type === 'tolerance-building' && p.startDate <= today)
       .map((tp: SchedulePhase) => {
         const slug = tp.allergenIds[0];
-        const cfg = categoryConfig[slug];
+        const cfg = getCategoryConfig(slug);
         let startIdx = nonTrainingPhases.findIndex((p: SchedulePhase) =>
           p.endDate ? p.endDate >= tp.startDate : p.startDate <= today
         );
@@ -229,7 +229,7 @@
     for (const meal of meals.filter((m: { date: string }) => m.date >= phase.startDate && m.date <= phaseEnd)) {
       for (const conflict of detectConflicts(meal.items, eliminated)) {
         if (!conflicts.some(c => c.name === conflict.name && c.date === meal.date)) {
-          const cfg = categoryConfig[conflict.allergenId as ProtocolAllergenId];
+          const cfg = getCategoryConfig(conflict.allergenId);
           conflicts.push({ name: conflict.name, icon: cfg?.icon ?? '🍽️', date: meal.date });
         }
       }
@@ -293,7 +293,7 @@
             <p class="body-semibold">{commonStrings.program.completed}</p>
             <p class="body-muted mt-0.5">{phasesDoneAt(schedule.phases.length, formatDateLongCs(today))}</p>
           {:else if currentPhase}
-            <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.allergenIds[0] ? `: ${categoryConfig[currentPhase.allergenIds[0]]?.name ?? currentPhase.allergenIds[0]}` : ''}</p>
+            <p class="body-semibold leading-snug">{phaseConfig[currentPhase.type].label}{currentPhase.allergenIds[0] ? `: ${getCategoryConfig(currentPhase.allergenIds[0])?.name ?? currentPhase.allergenIds[0]}` : ''}</p>
             <p class="body-muted mt-0.5">
               {phaseProgressLabel(currentDayInPhase(currentPhase), currentPhase.endDate ? phaseDayCount(currentPhase) : null, formatDateLongCs(today))}
             </p>
@@ -332,7 +332,7 @@
             <div>
               <p class="section-label text-danger">{commonStrings.program.sectionEliminated}</p>
               <div class="flex flex-wrap gap-1.5">
-                {#each protocolEliminated.filter(s => (s as ProtocolAllergenId) in categoryConfig) as slug (slug)}
+                {#each protocolEliminated.filter(s => getCategoryConfig(s) !== undefined) as slug (slug)}
                   <AllergenChip {slug} color="warning" />
                 {/each}
               </div>
@@ -350,7 +350,7 @@
             {/if}
 
           {:else if currentPhase.type === 'reintroduction'}
-            {@const testCat = categoryConfig[currentPhase.allergenIds[0]]}
+          {@const testCat = getCategoryConfig(currentPhase.allergenIds[0])}
 
             <div>
               <p class="section-label">{commonStrings.program.sectionTodo}</p>
@@ -382,7 +382,7 @@
               <div>
                 <p class="section-label">{commonStrings.program.sectionStillEliminated}</p>
                 <div class="flex flex-wrap gap-1.5">
-                  {#each protocolEliminated.filter(s => (s as ProtocolAllergenId) in categoryConfig) as slug (slug)}
+                  {#each protocolEliminated.filter(s => getCategoryConfig(s) !== undefined) as slug (slug)}
                     <AllergenChip {slug} />
                   {/each}
                 </div>
@@ -408,7 +408,7 @@
             </div>
 
           {:else if currentPhase.type === 'tolerance-building'}
-            {@const trainingCat = categoryConfig[currentPhase.allergenIds[0]]}
+          {@const trainingCat = getCategoryConfig(currentPhase.allergenIds[0])}
 
             <div>
               <p class="section-label">{commonStrings.program.sectionTodo}</p>
@@ -458,7 +458,7 @@
                 <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
                 <div class="muted-list">
                   {#each protocolAllergenStatuses as row}
-                    {@const rowCat = categoryConfig[row.allergenId as ProtocolAllergenId]}
+                    {@const rowCat = getCategoryConfig(row.allergenId)}
                     <div class="flex items-center gap-2">
                       <span>{rowCat?.icon ?? ''}</span>
                       <span class="flex-1">{rowCat?.name ?? row.allergenId}</span>
@@ -499,7 +499,7 @@
 
           <!-- Training band label on first row -->
           {#if trainingBand && phaseIndex === trainingBand.startIndex}
-            {@const bandCat = categoryConfig[trainingBand.slug as ProtocolAllergenId]}
+            {@const bandCat = getCategoryConfig(trainingBand.slug)}
             <div class="ml-11 -mb-1">
               <span class="text-[10px] text-primary/60 font-medium">
                 {bandCat?.icon ?? ''} {commonStrings.program.trainingLabel} {trainingBand.label}
@@ -517,7 +517,7 @@
               onclick={() => (expandedPhaseId = expandedPhaseId === phase.id ? null : phase.id)}
             >
               <div class="shrink-0 w-8 h-8 rounded-full {nodeColor(phaseEval)} flex items-center justify-center z-10"></div>
-              <span class="body-muted flex-1 truncate">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${categoryConfig[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}` : ''}</span>
+              <span class="body-muted flex-1 truncate">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${getCategoryConfig(phase.allergenIds[0])?.name ?? phase.allergenIds[0]}` : ''}</span>
               <span class="text-xs text-text-muted/50 shrink-0">{formatDateCs(phase.startDate)}{phase.endDate ? `–${formatDateCs(phase.endDate)}` : '–…'}</span>
               <span class="body-muted shrink-0">{expandedPhaseId === phase.id ? '▾' : '▸'}</span>
             </button>
@@ -553,7 +553,7 @@
                   {:else}
                     {@render skinOutcomes(phaseAssessments)}
                     {#if (phaseAssessments.filter((a: { status: string }) => a.status === 'worsened').length > 0 || phaseAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length > 0) && phase.type === 'reintroduction'}
-                      {@const phaseCat = categoryConfig[phase.allergenIds[0]]}
+                      {@const phaseCat = getCategoryConfig(phase.allergenIds[0])}
                       <p class="text-text-muted mt-1">{commonStrings.program.possibleCausePrefix} {phaseCat?.icon} {phaseCat?.name ?? phase.allergenIds[0]}</p>
                     {/if}
                   {/if}
@@ -567,7 +567,7 @@
                       <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
                       <div class="muted-list">
                         {#each phaseRows as row}
-                          {@const rowCat = categoryConfig[row.allergenId as ProtocolAllergenId]}
+                          {@const rowCat = getCategoryConfig(row.allergenId)}
                           <div class="flex items-center gap-2">
                             <span>{rowCat?.icon ?? ''}</span>
                             <span class="flex-1">{rowCat?.name ?? row.allergenId}</span>
@@ -605,7 +605,7 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm z-10 ring-4 ring-primary/20">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="text-sm font-semibold text-text flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${categoryConfig[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}` : ''}</span>
+              <span class="text-sm font-semibold text-text flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${getCategoryConfig(phase.allergenIds[0])?.name ?? phase.allergenIds[0]}` : ''}</span>
               <span class="text-xs bg-primary text-white rounded-full px-2 py-0.5 font-medium shrink-0">{commonStrings.program.now}</span>
             </div>
 
@@ -616,7 +616,7 @@
               <div class="shrink-0 w-8 h-8 rounded-full bg-white border-2 border-surface-dark flex items-center justify-center text-sm z-10">
                 {phaseIcon(phase.type)}
               </div>
-              <span class="body-muted flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${categoryConfig[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}` : ''}</span>
+              <span class="body-muted flex-1">{phaseConfig[phase.type].label}{phase.allergenIds[0] ? `: ${getCategoryConfig(phase.allergenIds[0])?.name ?? phase.allergenIds[0]}` : ''}</span>
               {#if isRetestPhase}
                 <button
                   type="button"
@@ -667,7 +667,7 @@
         <p class="body-muted text-xs">{commonStrings.program.babyAllergensNote}</p>
         <div class="flex flex-wrap gap-2">
           {#each babyPermanentStatuses as allergenStatus}
-            {@const cat = categoryConfig[allergenStatus.allergenId as ProtocolAllergenId]}
+            {@const cat = getCategoryConfig(allergenStatus.allergenId)}
             {#if cat}
               {@const isChosen = selectedRetestSlugs.includes(allergenStatus.allergenId)}
               <button

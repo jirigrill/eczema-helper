@@ -2,11 +2,11 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Meal Logging with conflict detection
   // ═══════════════════════════════════════════════════════════
-  import type { Meal, MealItem, PortionKind, PreparationMethod, ProtocolAllergenId } from '$lib/domain/models';
+  import type { Meal, MealItem, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES } from '$lib/data/categories';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
-  import { categoryConfig, getCategoryConfig } from '$lib/config/categories';
+  import { getCategoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, polozkaWordCs, reintroDayLabel, conflictToastCs } from '$lib/strings/common';
@@ -258,7 +258,7 @@
 
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
-      {@const cat = categoryConfig[reintroInfo.allergenId as ProtocolAllergenId]}
+      {@const cat = getCategoryConfig(reintroInfo.allergenId)}
       {@const protocolDay = getProtocolForAllergen(reintroInfo.allergenId)?.days[reintroInfo.dayInPhase - 1]}
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">

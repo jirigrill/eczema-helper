@@ -61,6 +61,25 @@ export const CATEGORIES = ALLERGEN_CATALOG.map((r) => ({
   })),
 }));
 
+import { categoryStrings } from '$lib/strings/categories';
+
+export type CategoryConfig = {
+  name: string;
+  icon: string;
+};
+
+/**
+ * Returns the display config (name + icon) for any catalog allergen.
+ * Returns undefined for custom other: items.
+ */
+export function getCategoryConfig(id: string): CategoryConfig | undefined {
+  const record = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === id);
+  if (!record) return undefined;
+  const strings = (categoryStrings as Record<string, { name: string }>)[id];
+  if (!strings) return undefined;
+  return { name: strings.name, icon: record.icon };
+}
+
 /**
  * The reintroduction protocol for an allergen, or undefined if it has none.
  * Thin accessor backed by CanonicalCatalogPort (ADR-0017). Custom and
