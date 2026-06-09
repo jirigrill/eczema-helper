@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Meal, QuestionnaireAnswers, GeneratedSchedule, SkinObservation, SkinPhoto } from '$lib/domain/models';
+import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 
 type AnswersRow = QuestionnaireAnswers & { id: string };
 type ScheduleRow = GeneratedSchedule & { id: string };
@@ -12,6 +13,7 @@ export class AtopicDb extends Dexie {
   meals!: EntityTable<Meal, 'id'>;
   skin_observations!: EntityTable<SkinObservation, 'id'>;
   photos!: EntityTable<SkinPhoto, 'id'>;
+  harvest_candidates!: EntityTable<HarvestCandidate, 'normalizedKey'>;
 
   constructor(options?: { indexedDB?: IDBFactory; IDBKeyRange?: typeof IDBKeyRange }) {
     super('atopic-helper', options);
@@ -40,6 +42,16 @@ export class AtopicDb extends Dexie {
       meals: '&id, date',
       skin_observations: '&id, date',
       photos: '&id, date',
+    });
+    // v5: adds harvest_candidates table. Primary key = normalizedKey (unique); status index
+    // for listByStatus queries. No data migration needed — table is new.
+    this.version(5).stores({
+      answers: '&id',
+      schedule: '&id',
+      meals: '&id, date',
+      skin_observations: '&id, date',
+      photos: '&id, date',
+      harvest_candidates: '&normalizedKey, status',
     });
   }
 }

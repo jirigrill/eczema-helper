@@ -7,7 +7,7 @@ const defaultCatalog: CanonicalCatalogPort = new BundledCatalogAdapter();
 // Precision-biased normalization (ADR-0017): lowercase + trim + collapse whitespace
 // + strip surrounding non-letters. Diacritics preserved; no stemming.
 // A false merge is worse than a missed merge.
-function normalize(raw: string): string {
+export function normalizeKey(raw: string): string {
   return raw
     .trim()
     .toLocaleLowerCase('cs')
@@ -21,12 +21,12 @@ function normalize(raw: string): string {
  * Returns null for unknown or empty input — never creates an other: entry.
  */
 export function matchAllergen(raw: string, catalog: CanonicalCatalogPort = defaultCatalog): CanonicalAllergen | null {
-  const normalized = normalize(raw);
+  const normalized = normalizeKey(raw);
   if (!normalized) return null;
 
   for (const record of catalog.list()) {
     if (record.id === normalized) return record;
-    if (record.aliases.map(normalize).includes(normalized)) return record;
+    if (record.aliases.map(normalizeKey).includes(normalized)) return record;
   }
 
   return null;

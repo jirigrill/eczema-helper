@@ -1,20 +1,36 @@
 import { db } from '$lib/db/atopic-db';
 import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
 import { generateSchedule, appendReTestPhases, removeReTestPhase } from '$lib/domain/schedule-builder';
 import { scheduleContext } from '$lib/stores/schedule-context';
+import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
 import type { ProtocolAllergenId, QuestionnaireAnswers } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import type { RetestRejection } from '$lib/domain/schedule-builder';
 
 const questionnaireRepo = new DexieQuestionnaireRepository(db);
 const scheduleRepo = new DexieScheduleRepository(db);
+const harvestRepo = new DexieHarvestCandidateRepository(db);
 
 async function startProtocol(answers: QuestionnaireAnswers): Promise<Result<void, string>> {
 	const schedule = generateSchedule(answers);
 	const saveAnswers = await questionnaireRepo.save(answers);
 	if (!saveAnswers.ok) return saveAnswers;
-	return scheduleRepo.save(schedule);
+	const saveSchedule = await scheduleRepo.save(schedule);
+	if (!saveSchedule.ok) return saveSchedule;
+
+	const now = new Date().toISOString();
+	const names = extractOtherSlugs(answers);
+	for (const raw of names) {
+		const normalized = normalizeKey(raw);
+		if (!normalized) continue;
+		const existing = await harvestRepo.readByKey(normalized);
+		const prior = existing.ok ? existing.data : null;
+		await harvestRepo.upsert(mergeCandidate(prior, raw, normalized, now));
+	}
+
+	return { ok: true, data: undefined };
 }
 
 async function appendReTests(
