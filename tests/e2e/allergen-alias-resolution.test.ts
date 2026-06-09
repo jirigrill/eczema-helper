@@ -47,7 +47,7 @@ test('alias resolution: typing a Czech alias in custom input adds canonical item
   await expect(page.getByText('🌾').first()).toBeVisible();
 
   // No basket item named 'pšenice' (the raw alias) should exist
-  await expect(page.getByText('pšenice')).not.toBeVisible();
+  await expect(page.getByText('pšenice', { exact: true })).not.toBeVisible();
 
   // Save succeeds — navigates to /day/<today>
   await page.getByRole('button', { name: /Hotovo/ }).click();
