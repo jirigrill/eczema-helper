@@ -61,9 +61,27 @@ test('alias resolution: unknown food creates custom item with fallback icon', as
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
+  // 'Paprika' is now a canonical regional allergen — resolves to canonical record
   await page.fill('input[placeholder="Název potraviny…"]', 'Paprika');
   await page.getByRole('button', { name: 'Přidat' }).click();
 
-  await expect(page.getByText('Paprika')).toBeVisible();
+  // Should show canonical Czech name
+  await expect(page.getByText('Paprika / chilli').first()).toBeVisible();
+  // Should show canonical icon, not the generic fallback 🍽️
+  await expect(page.getByText('🌶️').first()).toBeVisible();
+  await expect(page.getByText('🍽️')).not.toBeVisible();
+});
+
+test('alias resolution: truly unknown food still creates custom item with fallback icon', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+  await expect(page).toHaveURL(`/day/${today}`);
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  await page.fill('input[placeholder="Název potraviny…"]', 'Špenát');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+
+  await expect(page.getByText('Špenát')).toBeVisible();
   await expect(page.getByText('🍽️')).toBeVisible();
 });

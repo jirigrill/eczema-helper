@@ -1,4 +1,4 @@
-import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
+import type { CatalogAllergenId, SubitemId } from '$lib/domain/models';
 
 export type CategoryStrings = {
   name: string; // full Czech category name shown in grids and lists
@@ -18,7 +18,8 @@ export const categoryStrings = {
   strawberries: { name: 'Jahody'           },
   corn:         { name: 'Kukuřice'         },
   sesame:       { name: 'Sezamové výrobky' },
-} as const satisfies Record<ProtocolAllergenId, CategoryStrings>;
+  paprika:      { name: 'Paprika / chilli' },
+} as const satisfies Record<CatalogAllergenId, CategoryStrings>;
 
 export const subitemStrings = {
   'dairy:milk':                      'Kravské mléko',
@@ -64,4 +65,7 @@ export const subitemStrings = {
   'corn:sweet-corn':                 'Kukuřice (sladká)',
   'sesame:sesame-seeds':             'Sezamová semínka',
   'sesame:tahini':                   'Tahini',
+  'paprika:sweet-pepper':            'Sladká paprika',
+  'paprika:chilli-pepper':           'Chilli paprika',
+  'paprika:paprika-powder':          'Mletá paprika',
 } as const satisfies Record<SubitemId, string>;

@@ -56,10 +56,10 @@ describe('CategoryGrid', () => {
       props: { selected: [] },
     });
     const input = getByPlaceholderText('Např. Cibule, Mrkev…');
-    await fireEvent.input(input, { target: { value: 'Paprika' } });
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
     await fireEvent.click(getByText('Přidat'));
     await tick();
-    expect(getByText('Paprika')).toBeInTheDocument();
+    expect(getByText('Špenát')).toBeInTheDocument();
   });
 
   it('custom allergen input uses input-base atom', () => {
@@ -98,10 +98,10 @@ describe('CategoryGrid', () => {
       props: { selected: [] },
     });
     const input = getByPlaceholderText('Např. Cibule, Mrkev…');
-    await fireEvent.input(input, { target: { value: 'Paprika' } });
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
     await fireEvent.click(getByText('Přidat'));
     await tick();
-    expect(getByText('Paprika')).toBeInTheDocument();
+    expect(getByText('Špenát')).toBeInTheDocument();
   });
 
   it('comma-separated input resolves known alias and creates other: for unknown', async () => {

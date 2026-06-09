@@ -11,6 +11,7 @@ import { tomatoes } from './tomatoes';
 import { strawberries } from './strawberries';
 import { corn } from './corn';
 import { sesame } from './sesame';
+import { paprika } from './paprika';
 
 import type { AllergenProtocol, CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
@@ -19,9 +20,13 @@ export type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 export const ALLERGEN_CATALOG = [
   dairy, eggs, wheat, soy, nuts, fish, shellfish,
   citrus, chocolate, tomatoes, strawberries, corn, sesame,
+  paprika,
 ] as const;
 
 type CatalogRecord = typeof ALLERGEN_CATALOG[number];
+
+/** All catalog allergen ids (no custom tier) — use for exhaustive display-config records. */
+export type CatalogAllergenId = CatalogRecord['id'];
 
 /** User-defined custom allergens (e.g. `'other:Paprika'`); never enter a protocol phase. */
 export type CustomAllergenId = `other:${string}`;
@@ -49,12 +54,31 @@ export type SubitemId = CatalogRecord extends infer R
  * switch to this; the legacy file re-exports it for backwards compat.
  */
 export const CATEGORIES = ALLERGEN_CATALOG.map((r) => ({
-  allergenId: r.id as ProtocolAllergenId,
+  allergenId: r.id as AllergenId,
   subItems: r.subitems.map((bare) => ({
     subitemId: `${r.id}:${bare}` as SubitemId,
-    allergenId: r.id as ProtocolAllergenId,
+    allergenId: r.id as AllergenId,
   })),
 }));
+
+import { categoryStrings } from '$lib/strings/categories';
+
+export type CategoryConfig = {
+  name: string;
+  icon: string;
+};
+
+/**
+ * Returns the display config (name + icon) for any catalog allergen.
+ * Returns undefined for custom other: items.
+ */
+export function getCategoryConfig(id: string): CategoryConfig | undefined {
+  const record = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === id);
+  if (!record) return undefined;
+  const strings = (categoryStrings as Record<string, { name: string }>)[id];
+  if (!strings) return undefined;
+  return { name: strings.name, icon: record.icon };
+}
 
 /**
  * The reintroduction protocol for an allergen, or undefined if it has none.

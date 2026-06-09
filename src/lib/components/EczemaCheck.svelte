@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { SkinObservation, ProtocolAllergenId } from '$lib/domain/models';
-  import { categoryConfig } from '$lib/config/categories';
+  import type { SkinObservation } from '$lib/domain/models';
+  import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, reactionBannerLabel } from '$lib/strings/common';
 
@@ -33,7 +33,7 @@
   let photoCount = $state(0);
   let saved = $state(!!assessment);
 
-  const allergenCfg = $derived(reintroductionAllergenId ? categoryConfig[reintroductionAllergenId as ProtocolAllergenId] ?? null : null);
+  const allergenCfg = $derived(reintroductionAllergenId ? getCategoryConfig(reintroductionAllergenId) ?? null : null);
 
   function save() {
     if (!selectedStatus) return;

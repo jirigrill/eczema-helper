@@ -1,11 +1,11 @@
 <script lang="ts">
   import { createRawSnippet } from 'svelte';
-  import type { Meal, ProtocolAllergenId } from '$lib/domain/models';
+  import type { Meal } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
   import { actionStrings } from '$lib/strings/actions';
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
-  import { categoryConfig } from '$lib/config/categories';
+  import { getCategoryConfig } from '$lib/config/categories';
   import DayCard from './DayCard.svelte';
 
   let {
@@ -54,7 +54,7 @@
                   ? 'bg-warning/10 text-warning'
                   : 'bg-surface text-text'}"
               >
-                {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? ''}{item.name}
+                {getCategoryConfig(item.allergenId ?? '')?.icon ?? ''}{item.name}
                 <span class="text-text-muted"> {portionStrings[item.amount].short}</span>
               </span>
             {/each}

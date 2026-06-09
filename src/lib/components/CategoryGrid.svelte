@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CATEGORIES } from '$lib/data/categories';
-  import { categoryConfig } from '$lib/config/categories';
+  import { getCategoryConfig } from '$lib/config/categories';
   import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
@@ -138,7 +138,7 @@
       {@const partial = isPartiallySelected(cat.allergenId)}
       {@const dis = isDisabled(cat.allergenId)}
       {@const isExpanded = expandable && expandedCategory === cat.allergenId}
-      {@const cfg = categoryConfig[cat.allergenId]}
+      {@const cfg = getCategoryConfig(cat.allergenId)}
       <button
         type="button"
         data-state={dis
@@ -183,7 +183,7 @@
   {#if expandable && expandedCategory}
     {@const cat = regularCategories.find(c => c.allergenId === expandedCategory)}
     {#if cat && cat.subItems.length > 0}
-      {@const cfg = categoryConfig[cat.allergenId]}
+      {@const cfg = getCategoryConfig(cat.allergenId)}
       <div class="rounded-xl border border-primary/30 bg-white p-3 space-y-2">
         <div class="flex items-center justify-between">
           <p class="body-medium">{cfg.icon} {cfg.name}</p>
@@ -212,7 +212,7 @@
                 {subSel ? '' : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
               onclick={() => toggleSubItem(cat.allergenId, sub.subitemId)}
             >
-              {subitemStrings[sub.subitemId]}
+              {subitemStrings[sub.subitemId as keyof typeof subitemStrings]}
             </button>
           {/each}
         </div>
