@@ -95,6 +95,12 @@ describe('ALLERGEN_CATALOG integrity', () => {
     }
     expect(fileExports.length).toBe(ALLERGEN_CATALOG.length);
   });
+
+  it('CATALOG records are JSON-serializable (round-trip through JSON.parse/stringify is identity)', () => {
+    const serialized = JSON.stringify(ALLERGEN_CATALOG);
+    const restored = JSON.parse(serialized);
+    expect(restored).toEqual(ALLERGEN_CATALOG);
+  });
 });
 
 // ── Specific protocol content spot checks ────────────────────
