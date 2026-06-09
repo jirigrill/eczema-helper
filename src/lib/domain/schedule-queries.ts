@@ -1,8 +1,10 @@
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenStatus, AllergenId } from '$lib/domain/models';
-import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange, daysBetween } from '$lib/utils/date';
+
+const catalog = new BundledCatalogAdapter();
 
 // ── Current phase ─────────────────────────────────────────────
 
@@ -99,7 +101,7 @@ export function getReintroductionDayInfo(
   const dayInPhase = daysBetween(phase.startDate, date);
   const totalDays = daysBetween(phase.startDate, phase.endDate);
 
-  const protocol = getProtocolForAllergen(allergenId);
+  const protocol = catalog.get(allergenId)?.protocol;
   const protocolDay = protocol?.days[dayInPhase - 1];
   const isEvaluationDay = protocolDay?.isEvaluationDay ?? (dayInPhase === totalDays);
 

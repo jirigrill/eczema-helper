@@ -58,8 +58,8 @@ export const CATEGORIES = ALLERGEN_CATALOG.map((r) => ({
 
 /**
  * The reintroduction protocol for an allergen, or undefined if it has none.
- * Reads straight from the catalog record — the single source of truth for
- * clinical dosing (ADR-0017). Custom and protocol-less allergens return undefined.
+ * Thin accessor backed by CanonicalCatalogPort (ADR-0017). Custom and
+ * protocol-less allergens return undefined.
  */
 export function getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined {
   const record = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === id);
