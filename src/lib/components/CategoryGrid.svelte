@@ -5,6 +5,7 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
   import Button from '$lib/components/Button.svelte';
+  import { matchAllergen } from '$lib/domain/allergen-matcher';
 
   let {
     selected = $bindable<string[]>([]),
@@ -102,7 +103,7 @@
       .filter(s => s.length > 0);
     if (names.length === 0) return;
     const newSlugs = names
-      .map(n => `other:${n}`)
+      .map(n => matchAllergen(n)?.id ?? `other:${n}`)
       .filter(slug => !selected.includes(slug));
     if (newSlugs.length > 0) selected = [...selected, ...newSlugs];
     customInput = '';

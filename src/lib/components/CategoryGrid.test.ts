@@ -76,4 +76,48 @@ describe('CategoryGrid', () => {
     await tick();
     expect(getByText('Kravské mléko')).toBeInTheDocument();
   });
+
+  it('typing a known Czech alias resolves to canonical allergen id, not other:', async () => {
+    const { getByPlaceholderText, getByText, queryByText } = render(CategoryGrid, {
+      props: { selected: [] },
+    });
+    const input = getByPlaceholderText('Např. Cibule, Mrkev…');
+    // 'pšenice' is an alias for 'wheat'
+    await fireEvent.input(input, { target: { value: 'pšenice' } });
+    await fireEvent.click(getByText('Přidat'));
+    await tick();
+    // The wheat category button should now appear selected
+    const btn = getByText('Pšenice / lepek').closest('button');
+    expect(btn?.className).toMatch(/bg-primary|bg-danger/);
+    // No custom chip labelled 'pšenice' should appear
+    expect(queryByText('pšenice')).toBeNull();
+  });
+
+  it('typing an unknown food still creates an other: custom chip', async () => {
+    const { getByPlaceholderText, getByText } = render(CategoryGrid, {
+      props: { selected: [] },
+    });
+    const input = getByPlaceholderText('Např. Cibule, Mrkev…');
+    await fireEvent.input(input, { target: { value: 'Paprika' } });
+    await fireEvent.click(getByText('Přidat'));
+    await tick();
+    expect(getByText('Paprika')).toBeInTheDocument();
+  });
+
+  it('comma-separated input resolves known alias and creates other: for unknown', async () => {
+    const { getByPlaceholderText, getByText, queryByText } = render(CategoryGrid, {
+      props: { selected: [] },
+    });
+    const input = getByPlaceholderText('Např. Cibule, Mrkev…');
+    await fireEvent.input(input, { target: { value: 'ořechy, cibule' } });
+    await fireEvent.click(getByText('Přidat'));
+    await tick();
+    // 'ořechy' is an alias for nuts — nuts category button selected
+    const nutsBtn = getByText('Ořechy').closest('button');
+    expect(nutsBtn?.className).toMatch(/bg-primary|bg-danger/);
+    // 'cibule' is unknown — custom chip appears
+    expect(getByText('cibule')).toBeInTheDocument();
+    // No custom chip for the canonical one
+    expect(queryByText('ořechy')).toBeNull();
+  });
 });

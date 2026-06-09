@@ -28,6 +28,7 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { mealSession } from '$lib/stores/meal-session';
+  import { matchAllergen } from '$lib/domain/allergen-matcher';
 
   let meals = $state<Meal[]>([]);
 
@@ -163,7 +164,13 @@
 
   function addCustom() {
     if (!customName.trim()) return;
-    addItem({ name: customName.trim(), allergenId: null });
+    const matched = matchAllergen(customName.trim());
+    if (matched) {
+      const name = categoryConfig[matched.id as ProtocolAllergenId]?.name ?? matched.id;
+      addItem({ name, allergenId: matched.id });
+    } else {
+      addItem({ name: customName.trim(), allergenId: null });
+    }
     customName = '';
   }
 
