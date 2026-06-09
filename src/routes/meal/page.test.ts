@@ -1103,4 +1103,39 @@ describe('meal/+page.svelte', () => {
 
     expect(queryByText('Dnes vyřazeno:')).not.toBeInTheDocument();
   });
+
+  // ── Alias resolution (ADR-0017 slice 4) ────────────────────────
+
+  it('typing a known Czech alias in the custom input adds it with the canonical allergenId', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    // 'pšenice' is an alias for 'wheat'
+    await fireEvent.input(input, { target: { value: 'pšenice' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // The item should show the canonical display name (Pšenice / lepek), not the raw alias
+    expect(getByText('Pšenice / lepek')).toBeInTheDocument();
+    // Basket item should show the wheat category icon, not the generic fallback
+    expect(getByText('🌾')).toBeInTheDocument();
+  });
+
+  it('typing an unknown food still creates it with allergenId=null and fallback icon', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, getByText } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Paprika' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    expect(getByText('Paprika')).toBeInTheDocument();
+    expect(getByText('🍽️')).toBeInTheDocument();
+  });
 });
