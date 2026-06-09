@@ -11,6 +11,7 @@ import { tomatoes } from './tomatoes';
 import { strawberries } from './strawberries';
 import { corn } from './corn';
 import { sesame } from './sesame';
+import { paprika } from './paprika';
 
 import type { AllergenProtocol, CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
@@ -19,6 +20,7 @@ export type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 export const ALLERGEN_CATALOG = [
   dairy, eggs, wheat, soy, nuts, fish, shellfish,
   citrus, chocolate, tomatoes, strawberries, corn, sesame,
+  paprika,
 ] as const;
 
 type CatalogRecord = typeof ALLERGEN_CATALOG[number];
@@ -31,6 +33,16 @@ export type AllergenId = CatalogRecord['id'] | CustomAllergenId;
 
 /** Allergen ids that carry a reintroduction protocol — derived from the records. */
 export type ProtocolAllergenId = Extract<CatalogRecord, { protocol: object }>['id'];
+
+/**
+ * Compound subitem ids for protocol-only allergens (those with a reintroduction schedule).
+ * Use this for the `subitemStrings` satisfies clause — regional subitems are in `regionalSubitemStrings`.
+ */
+export type ProtocolSubitemId = Extract<CatalogRecord, { protocol: object }> extends infer R
+  ? R extends { id: string; subitems: readonly string[] }
+    ? `${R['id']}:${R['subitems'][number]}`
+    : never
+  : never;
 
 /**
  * Full compound subitem ids, e.g. `'sesame:sesame-seeds'`.
@@ -49,10 +61,10 @@ export type SubitemId = CatalogRecord extends infer R
  * switch to this; the legacy file re-exports it for backwards compat.
  */
 export const CATEGORIES = ALLERGEN_CATALOG.map((r) => ({
-  allergenId: r.id as ProtocolAllergenId,
+  allergenId: r.id as AllergenId,
   subItems: r.subitems.map((bare) => ({
     subitemId: `${r.id}:${bare}` as SubitemId,
-    allergenId: r.id as ProtocolAllergenId,
+    allergenId: r.id as AllergenId,
   })),
 }));
 

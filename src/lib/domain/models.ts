@@ -9,6 +9,7 @@ import type {
   ProtocolAllergenId,
   CustomAllergenId,
   SubitemId,
+  ProtocolSubitemId,
 } from '$lib/data/allergen-catalog';
 import type { ProtocolDay, AllergenProtocol } from '$lib/domain/canonical-allergen';
 
@@ -17,6 +18,7 @@ export type {
   ProtocolAllergenId,
   CustomAllergenId,
   SubitemId,
+  ProtocolSubitemId,
   ProtocolDay,
   AllergenProtocol,
 };

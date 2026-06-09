@@ -61,4 +61,24 @@ describe('matchAllergen', () => {
     expect(result).not.toBeNull();
     expect((result as CanonicalAllergen).id).toBe('citrus');
   });
+
+  it('resolves paprika to canonical regional record', () => {
+    const result = matchAllergen('paprika');
+    expect(result).not.toBeNull();
+    expect((result as CanonicalAllergen).id).toBe('paprika');
+    expect((result as CanonicalAllergen).origin).toBe('regional');
+    expect((result as CanonicalAllergen).protocol).toBeUndefined();
+  });
+
+  it('resolves Czech alias chilli to paprika record', () => {
+    const result = matchAllergen('chilli');
+    expect(result).not.toBeNull();
+    expect((result as CanonicalAllergen).id).toBe('paprika');
+  });
+
+  it('resolves Paprika (capital) to canonical record — never creates other: entry', () => {
+    const result = matchAllergen('Paprika');
+    expect(result).not.toBeNull();
+    expect((result as CanonicalAllergen).id).toBe('paprika');
+  });
 });

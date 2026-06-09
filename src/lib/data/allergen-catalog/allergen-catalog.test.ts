@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ALLERGEN_CATALOG } from '$lib/data/allergen-catalog/index';
+import { ALLERGEN_CATALOG, getProtocolForAllergen } from '$lib/data/allergen-catalog/index';
 import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 // ── Record shape ──────────────────────────────────────────────
@@ -36,7 +36,9 @@ describe('each ALLERGEN_CATALOG record', () => {
 // ── Protocol shape ────────────────────────────────────────────
 
 describe('protocol records', () => {
-  const withProtocol = ALLERGEN_CATALOG.filter((r) => r.protocol !== undefined);
+  const withProtocol = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).filter(
+    (r): r is CanonicalAllergen & Required<Pick<CanonicalAllergen, 'protocol'>> => r.protocol !== undefined
+  );
 
   it('at least one allergen has a protocol', () => {
     expect(withProtocol.length).toBeGreaterThan(0);
@@ -107,14 +109,52 @@ describe('ALLERGEN_CATALOG integrity', () => {
 
 describe('protocol content', () => {
   it('dairy protocol escalates over 5 days', () => {
-    const dairy = ALLERGEN_CATALOG.find((r) => r.id === 'dairy')!;
+    const dairy = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === 'dairy')!;
     expect(dairy.protocol!.days).toHaveLength(5);
     expect(dairy.protocol!.days[0].instructionCs).toContain('mléka');
   });
 
   it('soy protocol is 3 days', () => {
-    const soy = ALLERGEN_CATALOG.find((r) => r.id === 'soy')!;
+    const soy = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === 'soy')!;
     expect(soy.protocol!.days).toHaveLength(3);
   });
 });
 
+// ── Not-reintroducible tier (paprika / regional) ──────────────
+
+describe('regional protocol-less allergen (paprika)', () => {
+  const paprika = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === 'paprika');
+
+  it('paprika record exists in catalog', () => {
+    expect(paprika).toBeDefined();
+  });
+
+  it('paprika has origin: regional', () => {
+    expect(paprika!.origin).toBe('regional');
+  });
+
+  it('paprika has no protocol — excluded from reintroduction', () => {
+    expect(paprika!.protocol).toBeUndefined();
+    expect(getProtocolForAllergen('paprika')).toBeUndefined();
+  });
+
+  it('paprika has Czech name aliases covering common variants', () => {
+    expect(paprika!.aliases).toContain('paprika');
+    expect(paprika!.aliases).toContain('chilli');
+  });
+
+  it('paprika has at least one subitem', () => {
+    expect(paprika!.subitems.length).toBeGreaterThan(0);
+  });
+});
+
+// ── Protocol-only allergens do not include paprika ────────────
+
+describe('ProtocolAllergenId does not include paprika', () => {
+  it('the set of protocol allergens excludes paprika', () => {
+    const protocolIds = (ALLERGEN_CATALOG as readonly CanonicalAllergen[])
+      .filter((r) => r.protocol !== undefined)
+      .map((r) => r.id);
+    expect(protocolIds).not.toContain('paprika');
+  });
+});

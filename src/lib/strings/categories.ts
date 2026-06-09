@@ -1,7 +1,19 @@
-import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
+import type { ProtocolAllergenId, ProtocolSubitemId } from '$lib/domain/models';
 
 export type CategoryStrings = {
   name: string; // full Czech category name shown in grids and lists
+};
+
+/** Regional (protocol-less) allergen names — kept separate so the ProtocolAllergenId satisfies clause on categoryStrings stays intact. */
+export const regionalCategoryStrings: Record<string, CategoryStrings> = {
+  paprika: { name: 'Paprika / chilli' },
+};
+
+/** Regional subitem Czech names — keyed by `allergenId:bare` compound key. */
+export const regionalSubitemStrings: Record<string, string> = {
+  'paprika:sweet-pepper':    'Sladká paprika',
+  'paprika:chilli-pepper':   'Chilli paprika',
+  'paprika:paprika-powder':  'Mletá paprika',
 };
 
 export const categoryStrings = {
@@ -64,4 +76,4 @@ export const subitemStrings = {
   'corn:sweet-corn':                 'Kukuřice (sladká)',
   'sesame:sesame-seeds':             'Sezamová semínka',
   'sesame:tahini':                   'Tahini',
-} as const satisfies Record<SubitemId, string>;
+} as const satisfies Record<ProtocolSubitemId, string>;

@@ -6,8 +6,8 @@
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { CATEGORIES } from '$lib/data/categories';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
-  import { categoryConfig } from '$lib/config/categories';
-  import { subitemStrings } from '$lib/strings/categories';
+  import { categoryConfig, getCategoryConfig } from '$lib/config/categories';
+  import { subitemStrings, regionalSubitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, polozkaWordCs, reintroDayLabel, conflictToastCs } from '$lib/strings/common';
 
@@ -131,7 +131,7 @@
     const cat = CATEGORIES.find(c => c.allergenId === allergenId);
     if (!cat) return;
     if (cat.subItems.length === 0) {
-      addItem({ name: categoryConfig[cat.allergenId].name, allergenId });
+      addItem({ name: getCategoryConfig(cat.allergenId)?.name ?? cat.allergenId, allergenId });
       expandedCategory = null;
     } else {
       expandedCategory = expandedCategory === allergenId ? null : allergenId;
@@ -155,7 +155,7 @@
     }];
     // Show transient conflict toast when the added item is eliminated today
     if (partial.allergenId && eliminatedToday.includes(partial.allergenId)) {
-      const allergenName = categoryConfig[partial.allergenId as ProtocolAllergenId]?.name ?? partial.allergenId;
+      const allergenName = getCategoryConfig(partial.allergenId)?.name ?? partial.allergenId;
       conflictToastMessage = conflictToastCs(allergenName);
       if (conflictToastTimer) clearTimeout(conflictToastTimer);
       conflictToastTimer = setTimeout(() => { conflictToastMessage = null; }, 3000);
@@ -166,7 +166,7 @@
     if (!customName.trim()) return;
     const matched = matchAllergen(customName.trim());
     if (matched) {
-      const name = categoryConfig[matched.id as ProtocolAllergenId]?.name ?? matched.id;
+      const name = getCategoryConfig(matched.id)?.name ?? matched.id;
       addItem({ name, allergenId: matched.id });
     } else {
       addItem({ name: customName.trim(), allergenId: null });
@@ -183,7 +183,7 @@
 
   function itemSubtitle(item: MealItem): string {
     const parts: string[] = [];
-    const catName = categoryConfig[item.allergenId as ProtocolAllergenId]?.name;
+    const catName = getCategoryConfig(item.allergenId ?? '')?.name;
     if (catName) parts.push(catName);
     parts.push(portionStrings[item.amount].short);
     if (item.preparationMethod) parts.push(preparationStrings[item.preparationMethod].label.toLowerCase());
@@ -276,13 +276,13 @@
         <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
           <span class="text-xs font-medium text-warning">{commonStrings.meal.todayExcluded}</span>
           {#each eliminatedToday as allergenId}
-            {@const cat = categoryConfig[allergenId as ProtocolAllergenId]}
+            {@const cat = getCategoryConfig(allergenId)}
             {#if cat}
               <span class="text-sm">{cat.icon}</span>
             {/if}
           {/each}
           <span class="text-xs text-warning">
-            {eliminatedToday.map(s => categoryConfig[s as ProtocolAllergenId]?.name).filter(Boolean).join(', ')}
+            {eliminatedToday.map(s => getCategoryConfig(s)?.name).filter(Boolean).join(', ')}
           </span>
           <span class="ml-auto text-xs text-warning/70">Program →</span>
         </InfoBanner>
@@ -362,7 +362,7 @@
               <div data-testid="basket-item-header" class="flex items-center gap-3 py-2.5 px-3">
                 <!-- Icon -->
                 <span class="text-lg shrink-0">
-                  {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? '🍽️'}
+                  {getCategoryConfig(item.allergenId ?? '')?.icon ?? '🍽️'}
                 </span>
 
                 <!-- Name + subtitle / hint -->
@@ -441,7 +441,7 @@
                 {#each meal.items as item}
                   <span class="text-xs bg-surface rounded-full px-2 py-0.5 text-text
                     {item.allergenId && eliminatedToday.includes(item.allergenId) ? 'bg-warning/10 text-warning' : ''}">
-                    {categoryConfig[item.allergenId as ProtocolAllergenId]?.icon ?? ''} {item.name}
+                    {getCategoryConfig(item.allergenId ?? '')?.icon ?? ''} {item.name}
                     <span class="text-text-muted">{portionStrings[item.amount].short}</span>
                   </span>
                 {/each}
@@ -493,7 +493,7 @@
     {#if expandedCategory}
       {@const cat = CATEGORIES.find(c => c.allergenId === expandedCategory)}
       {#if cat && cat.subItems.length > 0}
-        {@const cfg = categoryConfig[cat.allergenId]}
+        {@const cfg = getCategoryConfig(cat.allergenId)}
         {@const isCatElim = eliminatedToday.includes(cat.allergenId)}
         <div>
           <div class="flex items-center justify-between mb-2">
@@ -502,7 +502,7 @@
           </div>
           <div class="flex flex-wrap gap-2 pb-1">
             {#each cat.subItems as sub}
-              {@const subName = subitemStrings[sub.subitemId]}
+              {@const subName = (subitemStrings as Record<string, string>)[sub.subitemId] ?? regionalSubitemStrings[sub.subitemId] ?? sub.subitemId}
               {@const inMeal = currentItems.some(i => i.name === subName)}
               <button
                 data-state={inMeal ? 'success' : isCatElim ? 'danger' : undefined}
@@ -525,7 +525,7 @@
       <!-- Full category list inside the sheet -->
       <div class="grid grid-cols-4 gap-2">
         {#each CATEGORIES as cat (cat.allergenId)}
-          {@const cfg = categoryConfig[cat.allergenId]}
+          {@const cfg = getCategoryConfig(cat.allergenId)}
           {@const inMeal = isCategoryInMeal(cat.allergenId)}
           {@const isElim = eliminatedToday.includes(cat.allergenId)}
           <button
