@@ -29,6 +29,8 @@
   import { onMount } from 'svelte';
   import { mealSession } from '$lib/stores/meal-session';
   import { matchAllergen } from '$lib/domain/allergen-matcher';
+  import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
+  import { mergeCandidate } from '$lib/domain/harvest-candidate';
 
   let meals = $state<Meal[]>([]);
 
@@ -170,8 +172,18 @@
       addItem({ name, allergenId: matched.id });
     } else {
       addItem({ name: customName.trim(), allergenId: null });
+      captureHarvestCandidate(customName.trim());
     }
     customName = '';
+  }
+
+  async function captureHarvestCandidate(raw: string): Promise<void> {
+    const normalized = raw.trim().toLocaleLowerCase('cs').replace(/\s+/g, ' ').replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+    if (!normalized) return;
+    const existing = await harvestCandidateSession.readByKey(normalized);
+    const prior = existing.ok ? existing.data : null;
+    const candidate = mergeCandidate(prior, raw, normalized, new Date().toISOString());
+    await harvestCandidateSession.upsert(candidate);
   }
 
   function removeItem(id: string) {
