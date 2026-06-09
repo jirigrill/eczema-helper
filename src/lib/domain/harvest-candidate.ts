@@ -12,9 +12,7 @@ export type HarvestCandidate = {
 };
 
 /** Normalizes a raw food string to a stable lookup key. */
-export function normalizeKey(raw: string): string {
-  return raw.trim().toLocaleLowerCase('cs').replace(/\s+/g, ' ').replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
-}
+export { normalizeKey } from '$lib/domain/allergen-matcher';
 
 /**
  * Extracts raw names from `other:${name}` slugs in questionnaire answers.
