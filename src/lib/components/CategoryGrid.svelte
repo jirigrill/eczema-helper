@@ -1,7 +1,7 @@
 <script lang="ts">
   import { CATEGORIES } from '$lib/data/categories';
   import { getCategoryConfig } from '$lib/config/categories';
-  import { subitemStrings, regionalSubitemStrings } from '$lib/strings/categories';
+  import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
   import Button from '$lib/components/Button.svelte';
@@ -212,7 +212,7 @@
                 {subSel ? '' : 'bg-surface text-text border-surface-dark hover:border-primary/30'}"
               onclick={() => toggleSubItem(cat.allergenId, sub.subitemId)}
             >
-              {(subitemStrings as Record<string, string>)[sub.subitemId] ?? regionalSubitemStrings[sub.subitemId] ?? sub.subitemId}
+              {subitemStrings[sub.subitemId as keyof typeof subitemStrings]}
             </button>
           {/each}
         </div>

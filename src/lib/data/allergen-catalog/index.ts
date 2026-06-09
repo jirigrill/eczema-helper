@@ -25,6 +25,9 @@ export const ALLERGEN_CATALOG = [
 
 type CatalogRecord = typeof ALLERGEN_CATALOG[number];
 
+/** All catalog allergen ids (no custom tier) — use for exhaustive display-config records. */
+export type CatalogAllergenId = CatalogRecord['id'];
+
 /** User-defined custom allergens (e.g. `'other:Paprika'`); never enter a protocol phase. */
 export type CustomAllergenId = `other:${string}`;
 
@@ -33,16 +36,6 @@ export type AllergenId = CatalogRecord['id'] | CustomAllergenId;
 
 /** Allergen ids that carry a reintroduction protocol — derived from the records. */
 export type ProtocolAllergenId = Extract<CatalogRecord, { protocol: object }>['id'];
-
-/**
- * Compound subitem ids for protocol-only allergens (those with a reintroduction schedule).
- * Use this for the `subitemStrings` satisfies clause — regional subitems are in `regionalSubitemStrings`.
- */
-export type ProtocolSubitemId = Extract<CatalogRecord, { protocol: object }> extends infer R
-  ? R extends { id: string; subitems: readonly string[] }
-    ? `${R['id']}:${R['subitems'][number]}`
-    : never
-  : never;
 
 /**
  * Full compound subitem ids, e.g. `'sesame:sesame-seeds'`.

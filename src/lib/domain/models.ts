@@ -6,19 +6,19 @@
 // single source of truth — these are no longer hand-written unions.
 import type {
   AllergenId,
+  CatalogAllergenId,
   ProtocolAllergenId,
   CustomAllergenId,
   SubitemId,
-  ProtocolSubitemId,
 } from '$lib/data/allergen-catalog';
 import type { ProtocolDay, AllergenProtocol } from '$lib/domain/canonical-allergen';
 
 export type {
   AllergenId,
+  CatalogAllergenId,
   ProtocolAllergenId,
   CustomAllergenId,
   SubitemId,
-  ProtocolSubitemId,
   ProtocolDay,
   AllergenProtocol,
 };

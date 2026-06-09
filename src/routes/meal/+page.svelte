@@ -7,7 +7,7 @@
   import { CATEGORIES } from '$lib/data/categories';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { categoryConfig, getCategoryConfig } from '$lib/config/categories';
-  import { subitemStrings, regionalSubitemStrings } from '$lib/strings/categories';
+  import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, polozkaWordCs, reintroDayLabel, conflictToastCs } from '$lib/strings/common';
 
@@ -502,7 +502,7 @@
           </div>
           <div class="flex flex-wrap gap-2 pb-1">
             {#each cat.subItems as sub}
-              {@const subName = (subitemStrings as Record<string, string>)[sub.subitemId] ?? regionalSubitemStrings[sub.subitemId] ?? sub.subitemId}
+              {@const subName = subitemStrings[sub.subitemId as keyof typeof subitemStrings]}
               {@const inMeal = currentItems.some(i => i.name === subName)}
               <button
                 data-state={inMeal ? 'success' : isCatElim ? 'danger' : undefined}
