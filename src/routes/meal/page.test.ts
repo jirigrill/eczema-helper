@@ -1131,11 +1131,11 @@ describe('meal/+page.svelte', () => {
     await tick();
 
     const input = getByPlaceholderText('Název potraviny…');
-    await fireEvent.input(input, { target: { value: 'Paprika' } });
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
     await fireEvent.click(getByRole('button', { name: 'Přidat' }));
     await tick();
 
-    expect(getByText('Paprika')).toBeInTheDocument();
+    expect(getByText('Špenát')).toBeInTheDocument();
     expect(getByText('🍽️')).toBeInTheDocument();
   });
 });
