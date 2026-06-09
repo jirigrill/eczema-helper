@@ -30,7 +30,7 @@
   import { mealSession } from '$lib/stores/meal-session';
   import { matchAllergen } from '$lib/domain/allergen-matcher';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
-  import { mergeCandidate } from '$lib/domain/harvest-candidate';
+  import { mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
 
   let meals = $state<Meal[]>([]);
 
@@ -178,7 +178,7 @@
   }
 
   async function captureHarvestCandidate(raw: string): Promise<void> {
-    const normalized = raw.trim().toLocaleLowerCase('cs').replace(/\s+/g, ' ').replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+    const normalized = normalizeKey(raw);
     if (!normalized) return;
     const existing = await harvestCandidateSession.readByKey(normalized);
     const prior = existing.ok ? existing.data : null;

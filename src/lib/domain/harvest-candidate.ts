@@ -1,3 +1,5 @@
+import type { QuestionnaireAnswers } from '$lib/domain/models';
+
 export type HarvestCandidateStatus = 'pending' | 'ingested';
 
 export type HarvestCandidate = {
@@ -8,6 +10,27 @@ export type HarvestCandidate = {
   lastSeen: string;   // ISO datetime
   rawForms: string[];
 };
+
+/** Normalizes a raw food string to a stable lookup key. */
+export function normalizeKey(raw: string): string {
+  return raw.trim().toLocaleLowerCase('cs').replace(/\s+/g, ' ').replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+}
+
+/**
+ * Extracts raw names from `other:${name}` slugs in questionnaire answers.
+ * Called once at protocol-start time to seed harvest candidates from user-entered
+ * allergen names that didn't match any canonical catalog entry.
+ */
+export function extractOtherSlugs(answers: QuestionnaireAnswers): string[] {
+  const slugs = [
+    ...answers.motherAllergies,
+    ...answers.babyConfirmedAllergies,
+  ];
+  return slugs
+    .filter(s => s.startsWith('other:'))
+    .map(s => s.slice(6))
+    .filter(s => s.length > 0);
+}
 
 /**
  * Pure upsert: returns a new candidate for the given observation.
