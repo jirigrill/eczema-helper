@@ -66,7 +66,7 @@ test('alias resolution: unknown food creates custom item with fallback icon', as
   await page.getByRole('button', { name: 'Přidat' }).click();
 
   // Should show canonical Czech name
-  await expect(page.getByText('Paprika / chilli')).toBeVisible();
+  await expect(page.getByText('Paprika / chilli').first()).toBeVisible();
   // Should show canonical icon, not the generic fallback 🍽️
   await expect(page.getByText('🌶️').first()).toBeVisible();
   await expect(page.getByText('🍽️')).not.toBeVisible();
