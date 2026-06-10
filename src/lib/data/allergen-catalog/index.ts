@@ -11,7 +11,25 @@ import { tomatoes } from './tomatoes';
 import { strawberries } from './strawberries';
 import { corn } from './corn';
 import { sesame } from './sesame';
-import { paprika } from './paprika';
+import { grains } from './grains';
+import { seeds } from './seeds';
+import { legumes } from './legumes';
+import { fruit } from './fruit';
+import { exoticFruit } from './exotic-fruit';
+import { carrotRootVeg } from './carrot-root-veg';
+import { cabbageBrassica } from './cabbage-brassica';
+import { onionGarlic } from './onion-garlic';
+import { potato } from './potato';
+import { mushroom } from './mushroom';
+import { otherVegetables } from './other-vegetables';
+import { meat } from './meat';
+import { mustard } from './mustard';
+import { sulphitesAdditives } from './sulphites-additives';
+import { vinegarFermented } from './vinegar-fermented';
+import { yeast } from './yeast';
+import { sweeteners } from './sweeteners';
+import { spicesHerbs } from './spices-herbs';
+import { coffeeTea } from './coffee-tea';
 
 import type { AllergenProtocol, CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
@@ -20,7 +38,11 @@ export type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 export const ALLERGEN_CATALOG = [
   dairy, eggs, wheat, soy, nuts, fish, shellfish,
   citrus, chocolate, tomatoes, strawberries, corn, sesame,
-  paprika,
+  // ADR-0017 slice 6 — regional expansion (log-only, no protocol)
+  grains, seeds, legumes, fruit, exoticFruit,
+  carrotRootVeg, cabbageBrassica, onionGarlic, potato, mushroom, otherVegetables,
+  meat,
+  mustard, sulphitesAdditives, vinegarFermented, yeast, sweeteners, spicesHerbs, coffeeTea,
 ] as const;
 
 type CatalogRecord = typeof ALLERGEN_CATALOG[number];

@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const fish = {
   id: 'fish',
-  origin: 'core',
   icon: '🐟',
   aliases: ['fish', 'ryba', 'ryby'],
   subitems: ['freshwater-fish', 'saltwater-fish', 'fish-oil'],

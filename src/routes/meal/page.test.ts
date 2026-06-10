@@ -282,13 +282,13 @@ describe('meal/+page.svelte', () => {
 
     // Type a custom food name and submit
     const input = getByPlaceholderText('Název potraviny…');
-    await fireEvent.input(input, { target: { value: 'Brambory' } });
+    await fireEvent.input(input, { target: { value: 'Kokos' } });
     const addBtn = getByRole('button', { name: 'Přidat' });
     await fireEvent.click(addBtn);
     await tick();
 
     // Item name visible in basket
-    expect(getByText('Brambory')).toBeInTheDocument();
+    expect(getByText('Kokos')).toBeInTheDocument();
 
     // Fallback icon for allergenId=null
     expect(getByText('🍽️')).toBeInTheDocument();
@@ -440,10 +440,10 @@ describe('meal/+page.svelte', () => {
 
     // Add two items
     const input = getByPlaceholderText('Název potraviny…');
-    await fireEvent.input(input, { target: { value: 'Brambory' } });
+    await fireEvent.input(input, { target: { value: 'Kokos' } });
     await fireEvent.click(getByRole('button', { name: 'Přidat' }));
     await tick();
-    await fireEvent.input(input, { target: { value: 'Mrkev' } });
+    await fireEvent.input(input, { target: { value: 'Datle' } });
     await fireEvent.click(getByRole('button', { name: 'Přidat' }));
     await tick();
 
@@ -460,8 +460,8 @@ describe('meal/+page.svelte', () => {
 
     // Saved meal section appears with the items
     expect(getByText('Dnes uložená jídla')).toBeInTheDocument();
-    expect(getAllByText('Brambory').length).toBeGreaterThan(0);
-    expect(getAllByText('Mrkev').length).toBeGreaterThan(0);
+    expect(getAllByText('Kokos').length).toBeGreaterThan(0);
+    expect(getAllByText('Datle').length).toBeGreaterThan(0);
   });
 
   it('toast after save links to /day/<today>', async () => {
@@ -553,11 +553,11 @@ describe('meal/+page.svelte', () => {
     const { getByText, getByRole, getByPlaceholderText } = render(MealPage);
     await tick();
 
-    await addCustomItem(getByPlaceholderText, getByRole, 'Brambory');
-    await addCustomItem(getByPlaceholderText, getByRole, 'Mrkev');
+    await addCustomItem(getByPlaceholderText, getByRole, 'Kokos');
+    await addCustomItem(getByPlaceholderText, getByRole, 'Datle');
 
-    const bramboRow = getByText('Brambory').closest('[data-testid="basket-item"]') as HTMLElement;
-    const mrkevRow = getByText('Mrkev').closest('[data-testid="basket-item"]') as HTMLElement;
+    const bramboRow = getByText('Kokos').closest('[data-testid="basket-item"]') as HTMLElement;
+    const mrkevRow = getByText('Datle').closest('[data-testid="basket-item"]') as HTMLElement;
 
     // Expand first item
     await fireEvent.click(bramboRow);
@@ -570,8 +570,8 @@ describe('meal/+page.svelte', () => {
 
     // Hint text still present (now belongs to Mrkev)
     expect(getByText('uprav množství a přípravu')).toBeInTheDocument();
-    // Brambory's row should not show the hint (collapsed)
-    const bramboHint = getByText('Brambory').closest('[data-testid="basket-item"]')?.querySelector('[data-testid="edit-hint"]');
+    // Kokos's row should not show the hint (collapsed)
+    const bramboHint = getByText('Kokos').closest('[data-testid="basket-item"]')?.querySelector('[data-testid="edit-hint"]');
     expect(bramboHint).toBeNull();
   });
 
@@ -1131,11 +1131,11 @@ describe('meal/+page.svelte', () => {
     await tick();
 
     const input = getByPlaceholderText('Název potraviny…');
-    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    await fireEvent.input(input, { target: { value: 'Kokos' } });
     await fireEvent.click(getByRole('button', { name: 'Přidat' }));
     await tick();
 
-    expect(getByText('Špenát')).toBeInTheDocument();
+    expect(getByText('Kokos')).toBeInTheDocument();
     expect(getByText('🍽️')).toBeInTheDocument();
   });
 });

@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const nuts = {
   id: 'nuts',
-  origin: 'core',
   icon: '🥜',
   aliases: ['nuts', 'ořechy', 'arašídy', 'mandle', 'vlašské ořechy'],
   subitems: ['peanuts', 'walnuts', 'hazelnuts', 'almonds', 'cashews'],

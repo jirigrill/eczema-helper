@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const sesame = {
   id: 'sesame',
-  origin: 'core',
   icon: '🌰',
   aliases: ['sesame', 'sezam', 'tahini', 'sezamová semínka'],
   subitems: ['sesame-seeds', 'tahini'],

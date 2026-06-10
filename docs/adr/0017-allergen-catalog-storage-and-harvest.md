@@ -59,7 +59,7 @@ units for clinical content), aggregated by an index:
 src/lib/data/catalog/
   dairy.ts        // export const dairy = { … } as const satisfies CanonicalAllergen
   eggs.ts
-  paprika.ts      // origin:'regional', no protocol  ← not-reintroducible tier
+  meat.ts         // no protocol  ← not-reintroducible tier
   …
   index.ts        // export const CATALOG = [dairy, eggs, …] as const
                   // derives + exports AllergenId / ProtocolAllergenId
@@ -144,15 +144,24 @@ Canonical records carry `aliases: string[]` (normalized forms) so free-text
 input matching a known food logs against it and produces **no** spurious
 candidate. The alias list also backs meal-log autocomplete.
 
-### 6. Classification and provenance on the record
+### 6. Provenance on the record
 
-Each record carries `origin: 'core' | 'regional'` and an optional free-text
-`source` (clinical citation, or promotion provenance like `'harvested:2026-06'`).
-There is **no `'harvested'` origin**: a harvested item is promoted *into* a real
-`core`/`regional` record by a curation act; `origin` means "clinical class of
-the food," not "how it arrived." Czech `name` stays in `strings/` (ADR-0014
-i18n separation); `icon`, `subitems`, `protocol`, `aliases`, `origin`, `source`
-are locale-independent and co-located on the record.
+Each record carries an optional free-text `source` (clinical citation, or
+promotion provenance like `'harvested:2026-06'`). A harvested item is promoted
+*into* a real record by a curation act; provenance is recorded in `source`, not
+as a separate origin flag. Czech `name` stays in `strings/` (ADR-0014 i18n
+separation); `icon`, `subitems`, `protocol`, `aliases`, `source` are
+locale-independent and co-located on the record.
+
+**Superseded sub-decision (2026-06-09):** an earlier draft of this section gave
+each record an `origin: 'core' | 'regional'` "clinical class" flag. It was
+dropped: no code ever read it, the only behavioral question it gestured at
+(reintroducibility) is already *derived* from `protocol` presence (§2), and
+"regional" mislabelled the everyday staple foods the catalog now carries
+(potato, pork, onion). Provenance lives in `source`; tier is derived from
+`protocol`. If a non-derived classifier is ever needed (e.g. UI grouping
+"major allergens" vs "everyday foods"), add a purpose-named field with a real
+consumer at that point.
 
 ## Alternatives Considered
 

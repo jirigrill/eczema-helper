@@ -7,7 +7,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 describe('each ALLERGEN_CATALOG record', () => {
   it.each(ALLERGEN_CATALOG)('$id has required fields', (record) => {
     expect(typeof record.id).toBe('string');
-    expect(record.origin === 'core' || record.origin === 'regional').toBe(true);
     expect(typeof record.icon).toBe('string');
     expect(Array.isArray(record.aliases)).toBe(true);
     expect(Array.isArray(record.subitems)).toBe(true);
@@ -120,41 +119,34 @@ describe('protocol content', () => {
   });
 });
 
-// ── Not-reintroducible tier (paprika / regional) ──────────────
+// ── Not-reintroducible tier (log-only regional foods) ─────────
 
-describe('regional protocol-less allergen (paprika)', () => {
-  const paprika = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === 'paprika');
+describe('protocol-less allergen (meat)', () => {
+  const meat = (ALLERGEN_CATALOG as readonly CanonicalAllergen[]).find((r) => r.id === 'meat');
 
-  it('paprika record exists in catalog', () => {
-    expect(paprika).toBeDefined();
+  it('meat record exists in catalog', () => {
+    expect(meat).toBeDefined();
   });
 
-  it('paprika has origin: regional', () => {
-    expect(paprika!.origin).toBe('regional');
+  it('meat has no protocol — excluded from reintroduction', () => {
+    expect(meat!.protocol).toBeUndefined();
+    expect(getProtocolForAllergen('meat')).toBeUndefined();
   });
 
-  it('paprika has no protocol — excluded from reintroduction', () => {
-    expect(paprika!.protocol).toBeUndefined();
-    expect(getProtocolForAllergen('paprika')).toBeUndefined();
-  });
-
-  it('paprika has Czech name aliases covering common variants', () => {
-    expect(paprika!.aliases).toContain('paprika');
-    expect(paprika!.aliases).toContain('chilli');
-  });
-
-  it('paprika has at least one subitem', () => {
-    expect(paprika!.subitems.length).toBeGreaterThan(0);
+  it('meat has at least one subitem', () => {
+    expect(meat!.subitems.length).toBeGreaterThan(0);
   });
 });
 
-// ── Protocol-only allergens do not include paprika ────────────
+// ── Protocol-only allergens exclude log-only regional foods ───
 
-describe('ProtocolAllergenId does not include paprika', () => {
-  it('the set of protocol allergens excludes paprika', () => {
+describe('ProtocolAllergenId excludes log-only regional foods', () => {
+  it('the set of protocol allergens excludes meat/fruit/grains', () => {
     const protocolIds = (ALLERGEN_CATALOG as readonly CanonicalAllergen[])
       .filter((r) => r.protocol !== undefined)
       .map((r) => r.id);
-    expect(protocolIds).not.toContain('paprika');
+    expect(protocolIds).not.toContain('meat');
+    expect(protocolIds).not.toContain('fruit');
+    expect(protocolIds).not.toContain('grains');
   });
 });

@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const strawberries = {
   id: 'strawberries',
-  origin: 'core',
   icon: '🍓',
   aliases: ['strawberries', 'jahody', 'jahoda'],
   subitems: ['fresh-strawberries', 'strawberry-jam'],

@@ -176,7 +176,7 @@ user saves a meal.
 
 ### CanonicalAllergen / Canonical Catalog
 → Defined in `CONTEXT.md`. The curated, data-first catalog record for one
-allergen (`id`, `origin`, `icon`, `subitems`, `aliases`, optional `source`,
+allergen (`id`, `icon`, `subitems`, `aliases`, optional `source`,
 optional `protocol`). The `CATALOG` array of these records is the source of
 truth from which `AllergenId` / `ProtocolAllergenId` are derived. Bundled,
 build-time, JSON-serializable, read through `CanonicalCatalogPort`. See ADR-0017.
