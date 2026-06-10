@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const soy = {
   id: 'soy',
-  origin: 'core',
   icon: '🫘',
   aliases: ['soy', 'soja', 'sója'],
   subitems: ['soy-milk', 'tofu', 'soy-sauce', 'soy-lecithin'],

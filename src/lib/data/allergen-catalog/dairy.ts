@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const dairy = {
   id: 'dairy',
-  origin: 'core',
   icon: '🥛',
   aliases: ['dairy', 'milk', 'mleko', 'mléčné výrobky'],
   subitems: ['milk', 'butter', 'cheese', 'yogurt', 'cream', 'cottage'],

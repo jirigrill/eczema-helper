@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const eggs = {
   id: 'eggs',
-  origin: 'core',
   icon: '🥚',
   aliases: ['eggs', 'vejce', 'egg'],
   subitems: ['egg-white', 'egg-yolk'],

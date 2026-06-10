@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const corn = {
   id: 'corn',
-  origin: 'core',
   icon: '🌽',
   aliases: ['corn', 'kukuřice', 'kukuřičný'],
   subitems: ['corn-flour', 'sweet-corn'],

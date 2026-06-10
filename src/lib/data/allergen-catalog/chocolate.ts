@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const chocolate = {
   id: 'chocolate',
-  origin: 'core',
   icon: '🍫',
   aliases: ['chocolate', 'čokoláda', 'kakao', 'cocoa'],
   subitems: ['dark-choc', 'milk-choc', 'cocoa'],

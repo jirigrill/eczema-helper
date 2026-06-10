@@ -78,14 +78,14 @@ test('meal save: add two foods, hit Hotovo, success toast appears and page navig
   await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
 
   // Add first custom food
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 
   // Add second custom food
-  await page.fill('input[placeholder="Název potraviny…"]', 'Mrkev');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Datle');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Mrkev')).toBeVisible();
+  await expect(page.getByText('Datle')).toBeVisible();
 
   // Hotovo button is active (not disabled)
   const hotovo = page.getByRole('button', { name: /Hotovo/ });
@@ -109,7 +109,7 @@ test('liveQuery: meal saved on /meal appears on /day/<today> without reload', as
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Add a food item and save
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
   await page.getByRole('button', { name: /Hotovo/ }).click();
 
@@ -118,7 +118,7 @@ test('liveQuery: meal saved on /meal appears on /day/<today> without reload', as
 
   // The saved meal now appears in the live list — no manual reload needed
   await expect(page.getByText('Oběd')).toBeVisible();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 });
 
 test('meal item editing: tap item row, pick amount chip, pick preparation chip, subtitle reflects choices', async ({ page }) => {
@@ -128,9 +128,9 @@ test('meal item editing: tap item row, pick amount chip, pick preparation chip, 
   await page.goto('/meal');
 
   // Add a custom food
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 
   // Collapsed row shows default subtitle (no chip panel)
   await expect(page.getByText('Množství')).not.toBeVisible();
@@ -176,32 +176,32 @@ test('meal item remove and re-add: remove clears basket, re-adding restores it',
   await page.goto('/meal');
 
   // Add two foods
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 
-  await page.fill('input[placeholder="Název potraviny…"]', 'Mrkev');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Datle');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Mrkev')).toBeVisible();
+  await expect(page.getByText('Datle')).toBeVisible();
 
-  // Remove Brambory — ✕ button is inside its basket item row
-  const bramboRow = page.locator('[data-testid="basket-item"]').filter({ hasText: 'Brambory' });
+  // Remove Kokos — ✕ button is inside its basket item row
+  const bramboRow = page.locator('[data-testid="basket-item"]').filter({ hasText: 'Kokos' });
   await bramboRow.getByRole('button', { name: '✕' }).click();
-  await expect(page.getByText('Brambory')).not.toBeVisible();
+  await expect(page.getByText('Kokos')).not.toBeVisible();
 
-  // Mrkev still present; Hotovo still enabled
-  await expect(page.getByText('Mrkev')).toBeVisible();
+  // Datle still present; Hotovo still enabled
+  await expect(page.getByText('Datle')).toBeVisible();
   await expect(page.getByRole('button', { name: /Hotovo/ })).toHaveAttribute('aria-disabled', 'false');
 
-  // Remove Mrkev — basket goes empty
+  // Remove Datle — basket goes empty
   await page.locator('[data-testid="basket-item"]').getByRole('button', { name: '✕' }).click();
   await expect(page.getByText('Zatím prázdné. Klepni na potravinu výše.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Hotovo' })).toHaveAttribute('aria-disabled', 'true');
 
-  // Re-add Brambory
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  // Re-add Kokos
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 
   // Hotovo re-enabled; save works — navigates to /day/<today> (default returnTo) on success
   await expect(page.getByRole('button', { name: /Hotovo/ })).toHaveAttribute('aria-disabled', 'false');
@@ -257,16 +257,16 @@ test('slot re-open: navigating back to /meal after saving a slot pre-loads its i
 
   // Save a lunch slot with one item
   await page.goto('/meal');
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
   await page.getByRole('button', { name: /Hotovo/ }).click();
   await expect(page).toHaveURL(`/day/${today}`);
 
   // Navigate back to /meal — the lunch slot should be pre-loaded
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 });
 
 test('pill-switch autosave: switching meal type with non-empty basket saves silently and shows toast', async ({ page }) => {
@@ -277,9 +277,9 @@ test('pill-switch autosave: switching meal type with non-empty basket saves sile
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Add a food to the lunch basket
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 
   // Switch to Snídaně — should trigger silent autosave of lunch
   await page.getByRole('button', { name: 'Snídaně' }).click();
@@ -292,7 +292,7 @@ test('pill-switch autosave: switching meal type with non-empty basket saves sile
 
   // Switch back to Oběd — the previously saved item should re-appear
   await page.getByRole('button', { name: 'Oběd' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 });
 
 test('pill-switch with empty basket: no autosave call and no toast', async ({ page }) => {
@@ -347,9 +347,9 @@ test('?date= param: loads slot for specified date, saves to that date, navigates
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Add a food and save
-  await page.fill('input[placeholder="Název potraviny…"]', 'Brambory');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 
   await page.getByRole('button', { name: /Hotovo/ }).click();
 
@@ -357,7 +357,7 @@ test('?date= param: loads slot for specified date, saves to that date, navigates
   await expect(page).toHaveURL('/day/2025-01-15');
 
   // The saved meal should appear on the day screen
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
 });
 
 // ── Issue #198: date-scoped schedule context ──────────────────────────────────

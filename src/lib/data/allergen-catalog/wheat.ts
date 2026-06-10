@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const wheat = {
   id: 'wheat',
-  origin: 'core',
   icon: '🌾',
   aliases: ['wheat', 'pšenice', 'lepek', 'gluten'],
   subitems: ['bread', 'pasta', 'flour', 'gluten'],

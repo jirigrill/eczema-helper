@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const citrus = {
   id: 'citrus',
-  origin: 'core',
   icon: '🍋',
   aliases: ['citrus', 'citrony', 'pomeranče', 'mandarinky', 'grapefruit'],
   subitems: ['oranges', 'lemons', 'grapefruit', 'mandarins'],

@@ -73,16 +73,16 @@ test('unknown free-text food creates exactly one harvest candidate', async ({ pa
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
-  await page.fill('input[placeholder="Název potraviny…"]', 'Špenát');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
   // Wait for basket item to confirm sync path completed, then wait for async DB write.
   await expect(page.getByTestId('basket-item')).toBeVisible();
   await waitForCandidateCount(page, 1);
 
-  const candidate = await readCandidate(page, 'špenát');
+  const candidate = await readCandidate(page, 'kokos');
   expect(candidate).not.toBeNull();
   expect(candidate.count).toBe(1);
-  expect(candidate.rawForms).toContain('Špenát');
+  expect(candidate.rawForms).toContain('Kokos');
   expect(candidate.status).toBe('pending');
 });
 
@@ -91,20 +91,20 @@ test('adding the same unknown food twice bumps count but creates only one candid
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
-  await page.fill('input[placeholder="Název potraviny…"]', 'Špenát');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByTestId('basket-item')).toBeVisible();
   await waitForCandidateCount(page, 1);
 
-  await page.fill('input[placeholder="Název potraviny…"]', 'špenát');
+  await page.fill('input[placeholder="Název potraviny…"]', 'kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByTestId('basket-item')).toHaveCount(2);
   await waitForCandidateCount(page, 1);
 
-  const candidate = await readCandidate(page, 'špenát');
+  const candidate = await readCandidate(page, 'kokos');
   expect(candidate.count).toBe(2);
-  expect(candidate.rawForms).toContain('Špenát');
-  expect(candidate.rawForms).toContain('špenát');
+  expect(candidate.rawForms).toContain('Kokos');
+  expect(candidate.rawForms).toContain('kokos');
 });
 
 // ── Known food creates NO candidate ──────────────────────────────────────────
@@ -134,11 +134,11 @@ test('mixed session: unknown food captured, known food not captured', async ({ p
   await expect(page.getByTestId('basket-item')).toBeVisible();
 
   // Unknown food — SHOULD create candidate
-  await page.fill('input[placeholder="Název potraviny…"]', 'Špenát');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
   await expect(page.getByTestId('basket-item')).toHaveCount(2);
   await waitForCandidateCount(page, 1);
 
-  const candidate = await readCandidate(page, 'špenát');
+  const candidate = await readCandidate(page, 'kokos');
   expect(candidate).not.toBeNull();
 });

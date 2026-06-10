@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const tomatoes = {
   id: 'tomatoes',
-  origin: 'core',
   icon: '🍅',
   aliases: ['tomatoes', 'rajčata', 'rajče', 'rajský'],
   subitems: ['fresh-tomatoes', 'tomato-sauce', 'ketchup'],

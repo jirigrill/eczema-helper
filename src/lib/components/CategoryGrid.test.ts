@@ -5,9 +5,10 @@ import CategoryGrid from './CategoryGrid.svelte';
 
 describe('CategoryGrid', () => {
   it('renders category buttons', () => {
-    const { getByText } = render(CategoryGrid, { props: { selected: [] } });
-    expect(getByText('Mléčné výrobky')).toBeInTheDocument();
-    expect(getByText('Vejce')).toBeInTheDocument();
+    const { getByRole } = render(CategoryGrid, { props: { selected: [] } });
+    // Tile labels also appear as family section headers, so scope to the button role.
+    expect(getByRole('button', { name: /Mléčné výrobky/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Vejce/ })).toBeInTheDocument();
   });
 
   it('shows custom allergen input', () => {
@@ -17,21 +18,21 @@ describe('CategoryGrid', () => {
 
   it('selecting a non-expandable category adds it to selected', async () => {
     let selected: string[] = [];
-    const { getByText } = render(CategoryGrid, {
+    const { getByRole } = render(CategoryGrid, {
       props: { selected, expandable: false },
     });
-    await fireEvent.click(getByText('Vejce'));
+    const btn = getByRole('button', { name: /Vejce/ });
+    await fireEvent.click(btn);
     await tick();
     // CategoryGrid uses $bindable — we verify the button reflects selection via class
-    const btn = getByText('Vejce').closest('button');
-    expect(btn?.className).toMatch(/bg-primary|bg-danger/);
+    expect(btn.className).toMatch(/bg-primary|bg-danger/);
   });
 
   it('marks disabled categories as non-interactive', () => {
-    const { getByText } = render(CategoryGrid, {
+    const { getByRole } = render(CategoryGrid, {
       props: { selected: [], disabledSlugs: ['dairy'] },
     });
-    const btn = getByText('Mléčné výrobky').closest('button');
+    const btn = getByRole('button', { name: /Mléčné výrobky/ });
     expect(btn).toBeDisabled();
   });
 
@@ -44,11 +45,11 @@ describe('CategoryGrid', () => {
 
   it('applies danger variant styling when variant="danger"', async () => {
     let selected = ['eggs'];
-    const { getByText } = render(CategoryGrid, {
+    const { getByRole } = render(CategoryGrid, {
       props: { selected, variant: 'danger' },
     });
-    const btn = getByText('Vejce').closest('button');
-    expect(btn?.className).toMatch(/bg-danger/);
+    const btn = getByRole('button', { name: /Vejce/ });
+    expect(btn.className).toMatch(/bg-danger/);
   });
 
   it('adds a custom allergen on button click', async () => {
@@ -56,10 +57,11 @@ describe('CategoryGrid', () => {
       props: { selected: [] },
     });
     const input = getByPlaceholderText('Např. Cibule, Mrkev…');
-    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    // 'Kokos' is not in the catalog → stays a custom other: chip
+    await fireEvent.input(input, { target: { value: 'Kokos' } });
     await fireEvent.click(getByText('Přidat'));
     await tick();
-    expect(getByText('Špenát')).toBeInTheDocument();
+    expect(getByText('Kokos')).toBeInTheDocument();
   });
 
   it('custom allergen input uses input-base atom', () => {
@@ -69,10 +71,10 @@ describe('CategoryGrid', () => {
   });
 
   it('expandable mode opens sub-item panel on category click', async () => {
-    const { getByText } = render(CategoryGrid, {
+    const { getByText, getByRole } = render(CategoryGrid, {
       props: { selected: [], expandable: true },
     });
-    await fireEvent.click(getByText('Mléčné výrobky'));
+    await fireEvent.click(getByRole('button', { name: /Mléčné výrobky/ }));
     await tick();
     expect(getByText('Kravské mléko')).toBeInTheDocument();
   });
@@ -98,25 +100,25 @@ describe('CategoryGrid', () => {
       props: { selected: [] },
     });
     const input = getByPlaceholderText('Např. Cibule, Mrkev…');
-    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    await fireEvent.input(input, { target: { value: 'Datle' } });
     await fireEvent.click(getByText('Přidat'));
     await tick();
-    expect(getByText('Špenát')).toBeInTheDocument();
+    expect(getByText('Datle')).toBeInTheDocument();
   });
 
   it('comma-separated input resolves known alias and creates other: for unknown', async () => {
-    const { getByPlaceholderText, getByText, queryByText } = render(CategoryGrid, {
+    const { getByPlaceholderText, getByText, getByRole, queryByText } = render(CategoryGrid, {
       props: { selected: [] },
     });
     const input = getByPlaceholderText('Např. Cibule, Mrkev…');
-    await fireEvent.input(input, { target: { value: 'ořechy, cibule' } });
+    await fireEvent.input(input, { target: { value: 'ořechy, kokos' } });
     await fireEvent.click(getByText('Přidat'));
     await tick();
     // 'ořechy' is an alias for nuts — nuts category button selected
-    const nutsBtn = getByText('Ořechy').closest('button');
-    expect(nutsBtn?.className).toMatch(/bg-primary|bg-danger/);
-    // 'cibule' is unknown — custom chip appears
-    expect(getByText('cibule')).toBeInTheDocument();
+    const nutsBtn = getByRole('button', { name: /Ořechy/ });
+    expect(nutsBtn.className).toMatch(/bg-primary|bg-danger/);
+    // 'kokos' is unknown — custom chip appears
+    expect(getByText('kokos')).toBeInTheDocument();
     // No custom chip for the canonical one
     expect(queryByText('ořechy')).toBeNull();
   });

@@ -61,14 +61,15 @@ test('alias resolution: unknown food creates custom item with fallback icon', as
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
-  // 'Paprika' is now a canonical regional allergen — resolves to canonical record
+  // 'Paprika' was dissolved in slice 6 — its alias now resolves to the
+  // canonical 'other-vegetables' record (the sweet-pepper subitem lives there)
   await page.fill('input[placeholder="Název potraviny…"]', 'Paprika');
   await page.getByRole('button', { name: 'Přidat' }).click();
 
   // Should show canonical Czech name
-  await expect(page.getByText('Paprika / chilli').first()).toBeVisible();
+  await expect(page.getByText('Ostatní zelenina').first()).toBeVisible();
   // Should show canonical icon, not the generic fallback 🍽️
-  await expect(page.getByText('🌶️').first()).toBeVisible();
+  await expect(page.getByText('🥒').first()).toBeVisible();
   await expect(page.getByText('🍽️')).not.toBeVisible();
 });
 
@@ -79,9 +80,9 @@ test('alias resolution: truly unknown food still creates custom item with fallba
   await page.goto('/meal');
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
-  await page.fill('input[placeholder="Název potraviny…"]', 'Špenát');
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
   await page.getByRole('button', { name: 'Přidat' }).click();
 
-  await expect(page.getByText('Špenát')).toBeVisible();
+  await expect(page.getByText('Kokos')).toBeVisible();
   await expect(page.getByText('🍽️')).toBeVisible();
 });

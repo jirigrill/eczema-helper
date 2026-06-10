@@ -2,7 +2,6 @@ import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 export const shellfish = {
   id: 'shellfish',
-  origin: 'core',
   icon: '🦐',
   aliases: ['shellfish', 'korýši', 'měkkýši', 'krevety', 'krab', 'mušle'],
   subitems: ['shrimp', 'crab', 'mussels'],

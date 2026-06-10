@@ -150,9 +150,9 @@ Status is a discriminated string union:
 See [ADR-0012](docs/adr/0012-allergen-status-lifecycle.md).
 
 ### CanonicalAllergen
-A curated catalog record describing one allergen — its stable `id`, `origin`
-(`'core' | 'regional'`), `icon`, `subitems`, `aliases` (normalized surface
-forms), optional `source` provenance, and an **optional** reintroduction
+A curated catalog record describing one allergen — its stable `id`, `icon`,
+`subitems`, `aliases` (normalized surface forms), optional `source` provenance,
+and an **optional** reintroduction
 `protocol`. The records are the data-first source of truth: `AllergenId` is
 derived as `typeof CATALOG[number]['id']`, and `ProtocolAllergenId` as the
 subset of records that carry a `protocol`. A record without a protocol is
