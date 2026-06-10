@@ -121,6 +121,31 @@ directly (`SchedulePhase.allergenIds`, `testedAllergens`,
 `getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined`. See ADR-0014
 "Domain-key shapes" section.
 
+### Family / Allergen / Food — three-level catalog (agreed target)
+*Czech: Rodina / Alergen / Potravina. Refactor pending — see the
+[ADR-0017 revision (2026-06-10)](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
+and the CONTEXT.md "Family / Allergen / Food" entry for full definitions and
+invariants.*
+
+The catalog splits from one collection into three levels, each with a derived id:
+
+- **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`,
+  `Vlastní`). Presentation only; no protocol, no clinical meaning.
+- **Allergen** (`AllergenId`, with `ProtocolAllergenId` its protocol-bearing
+  subset) — the reintroduction unit. This is today's `CanonicalAllergen` record
+  minus its inlined subitems; `protocol` stays here, so the engine is unchanged.
+- **Food** (`FoodId`, with `CustomFoodId = other:${string}` its free-text tier) —
+  first-class loggable entity carrying `familyId` (presentation) and
+  `allergenIds` (its trigger set, many-to-many). Replaces the retired
+  `SubitemId`/`allergenId:bare` scheme with a **flat** id.
+
+Two invariants (full text in CONTEXT.md): a food's **family is presentation, its
+allergen is domain** (they may diverge — `sójové mléko` → family `Mléko`, allergen
+`soy`); and the **questionnaire selects allergens, the meal log selects foods**.
+Triggers are **resolved live** from the catalog, never snapshotted onto a
+`MealItem`. Supersedes the **Category / SubItem / SubitemId** and the
+`CustomAllergenId` entries below once the refactor lands.
+
 ### Tested Allergens
 *Czech: Sledované alergeny*
 

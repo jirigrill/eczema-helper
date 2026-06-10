@@ -1,8 +1,23 @@
 # 0017 — Allergen Catalog Storage and Harvest Pipeline
 
 **Status:** Accepted
-**Date:** 2026-06-08
+**Date:** 2026-06-08 (revised 2026-06-10)
 **Amends:** [ADR-0014](0014-presentation-strings-and-domain-keys.md) (data-first inversion of the catalog structure)
+
+> **Revision (2026-06-10) — three-level restructure (family / allergen / food).**
+> The catalog originally shipped as a single collection of allergen records whose
+> `subitems` were bare strings owned by one record. Two pressures broke that
+> shape: (a) the meal-log grid showed overlapping sibling tiles at mixed
+> granularity (`citrus` / `strawberries` / `fruit` / `exotic-fruit` as siblings),
+> and (b) composite foods (`hummus` → chickpea + sesame) cannot be parented to a
+> single allergen. The catalog is now **three collections — families, allergens,
+> foods**: a presentation grouping *above* the clinical allergen layer, and
+> first-class foods *below* it. Crucially, **`protocol` stays on the allergen** —
+> it is *not* pushed down to foods — so the reintroduction engine is unchanged;
+> the family layer is inserted above it and the food layer below it. §1, §2, §4
+> and the file layout are revised accordingly. The data-first, port-fronted, and
+> deliberately-dumb-normalization decisions (§3, §5) are unchanged. The
+> family/allergen/food vocabulary and its two invariants live in `CONTEXT.md`.
 
 ## Context
 
@@ -37,53 +52,96 @@ clinical few have the latter; the type forces all 13 to have it.
 time, and read through a port. A separate runtime Dexie store collects harvest
 candidates. Reintroduction capability is decoupled from category membership.**
 
-### 1. Data-first catalog; derive types from data
+### 1. Three collections — family, allergen, food — each data-first
 
-Each allergen is one self-contained, JSON-serializable record. The records are
-the source of truth; the identifier types are *derived* from them:
+The catalog is three authored, JSON-serializable collections, each the source of
+truth for its level; the identifier types are *derived* from the data, never
+hand-written:
 
 ```ts
-export const ALLERGEN_CATALOG = [dairy, eggs, /* … */] as const;
-type AllergenId         = typeof ALLERGEN_CATALOG[number]['id'];
-type ProtocolAllergenId = Extract<typeof ALLERGEN_CATALOG[number], { protocol: object }>['id'];
+export const FAMILIES   = [obiloviny, ovoce, mleko, /* … */]      as const;
+export const ALLERGENS  = [dairy, eggs, citrus, /* … */]          as const;
+export const FOODS      = [sojoveMleko, pomeranc, hummus, /* … */] as const;
+
+type FamilyId           = typeof FAMILIES[number]['id'];
+type AllergenId         = typeof ALLERGENS[number]['id'];
+type ProtocolAllergenId = Extract<typeof ALLERGENS[number], { protocol: object }>['id'];
+type FoodId             = typeof FOODS[number]['id'] | CustomFoodId;
 ```
 
-Adding an allergen is **one record** with all its fields co-located; a missing
-field is a structural error on that one object. Edit surface drops from four
-files to two (catalog record + Czech name in `strings/`, see §5).
+The three levels (vocabulary + invariants in `CONTEXT.md`):
 
-**File layout** — one record per allergen (clean diffs, reviewable curation
-units for clinical content), aggregated by an index:
+- **Family** — presentation bucket / grid tile, `{ id, icon }`. One
+  non-overlapping tile per food family. No protocol, no clinical meaning.
+- **Allergen** — the reintroduction unit, `{ id, familyId, protocol? }`. Carries
+  the optional `protocol`, owns `AllergenStatus`, is what `ProtocolAllergenId`,
+  `SchedulePhase.allergenIds`, and the engine refer to. Belongs to exactly one
+  family. This is the original allergen record **minus** its inlined `subitems`.
+- **Food** — first-class loggable entity, `{ id, familyId, allergenIds, aliases }`.
+  `allergenIds` is its trigger set: zero (`rýže`), one (`pomeranč` → `[citrus]`),
+  or several (`hummus` → `[chickpea, sesame]`). Its `familyId` is presentation and
+  may differ from any trigger's family (`sójové mléko` → family `Mléko`,
+  `allergenIds [soy]`). `FoodId` is **flat** — the old `allergenId:bare`
+  `SubitemId` scheme is retired, because a food with several triggers has no
+  single parent to name it.
+
+Adding an item is **one record** in the right collection with its fields
+co-located; a missing field is a structural error on that one object.
+
+**File layout** — one file per record (clean diffs, reviewable curation units for
+clinical content), aggregated per collection by the index:
 
 ```
 src/lib/data/allergen-catalog/
-  dairy.ts        // export const dairy = { … } as const satisfies CanonicalAllergen
-  eggs.ts
-  meat.ts         // no protocol  ← not-reintroducible tier
-  …
-  index.ts        // export const ALLERGEN_CATALOG = [dairy, eggs, …] as const
-                  // derives + exports AllergenId / ProtocolAllergenId
+  families/    obiloviny.ts  ovoce.ts  mleko.ts  …
+  allergens/   dairy.ts  citrus.ts  meat.ts (no protocol)  …
+  foods/       sojove-mleko.ts  pomeranc.ts  hummus.ts  …
+  index.ts     // FAMILIES / ALLERGENS / FOODS, each `as const`
+               // derives + exports FamilyId / AllergenId / ProtocolAllergenId / FoodId
 ```
 
-Each record is `… as const satisfies CanonicalAllergen` **and** the array is
-`[…] as const` — both are load-bearing: `satisfies` checks the shape, `as const`
-preserves the literals the union derivation needs (otherwise `id` widens to
-`string` and the union collapses). The id types are derived in
-`allergen-catalog/index.ts` (next to the data, since data-first inverts the
-dependency) and **re-exported through `models.ts`** so existing
-`$lib/domain/models` import sites do not churn. The legacy `data/categories.ts`
-is reduced to a re-export of the derived `CATEGORIES`,
-`data/reintroduction-protocols.ts` is deleted, and the
-`ProtocolAllergenId`/`SubitemId` unions in `models.ts` are subsumed by this
-directory.
+Each record is `… as const satisfies Family | Allergen | Food` **and** each array
+is `[…] as const` — both load-bearing: `satisfies` checks the shape, `as const`
+preserves the literals the union derivation needs (otherwise ids widen to
+`string` and the unions collapse). The id types are derived in `index.ts` (next
+to the data) and **re-exported through `models.ts`** so existing
+`$lib/domain/models` import sites do not churn.
 
-### 2. Protocol decoupled — the third tier
+### 2. Protocol stays on the allergen; foods reference allergens
 
-`protocol` is **optional** on a catalog record. Its *presence* is what derives
-`ProtocolAllergenId`. This introduces the missing tier — **canonical, loggable,
-not reintroducible** — which is the honest state of most long-tail foods and the
-landing tier for a harvested item. `ProtocolAllergenId` shrinks to the derived
-subset that carries a protocol; only those enter reintroduction phases.
+`protocol` is **optional** on an *allergen* record and stays there — it is **not**
+pushed down to foods. Its presence derives `ProtocolAllergenId`; only those
+allergens enter reintroduction phases. The reintroduction engine
+(`ProtocolAllergenId`, `SchedulePhase.allergenIds`, the `reintro-` / `retest-`
+phase-id scheme) is therefore **unchanged** by this restructure — the family
+layer is inserted *above* it, the food layer *below* it.
+
+The food↔allergen relation is **many-to-many**: one allergen is expressed by many
+foods; one food may trigger several allergens. **Conflict detection resolves only
+through a food's `allergenIds`** — a food conflicts if *any* of its allergens is
+eliminated — never through its family.
+
+A logged `MealItem` stores only its **`foodId`**; its `allergenIds` are
+**resolved live from the catalog, never snapshotted** onto the meal. This is
+safe because conflicts are already a derived, recomputed view (never a stored
+audit fact — only `Meal` / `SkinObservation` / the verdict are), and it is the
+*intended* behaviour: allergies are discovered, not acquired, so a food's
+allergen content is a fact we *learn* by curation. When the catalog improves —
+by curation or by a `HarvestCandidate` graduating into a food — every past meal
+of that food retroactively gains its triggers, surfacing a trigger eaten
+unknowingly. A snapshot would freeze stale knowledge and hide exactly the
+pattern a diagnostic elimination diet exists to find. (`MealItem.id` is the
+deterministic composite `${date}:${mealType}:${foodId}`, mirroring the
+one-meal-per-slot key.)
+
+**The meal log records foods, never allergens directly.** A directly-eaten
+allergen gets a *food twin*: food `vejce` → `allergenIds [eggs]`; the allergen
+`eggs` itself is never logged. The small redundancy keeps the rule uniform
+("logging = foods") and mirrors the single-allergen-family UI collapse.
+
+This still expresses the tier the original union lacked — **canonical, loggable,
+not reintroducible** — now as a food whose `allergenIds` is empty or points only
+at protocol-less allergens.
 
 ### 3. TS now, JSON-serializable shape, port-fronted
 
@@ -124,8 +182,17 @@ fires, the catalog stays TS. We do **not** fund the server-push pipeline early.
   `DexieMealRepository`, so routes never touch `db` directly.
 
 The **normalized key is the join** between the two worlds. A candidate
-graduates when a curation act mints a canonical record whose `aliases` cover its
-key.
+graduates when a curation act mints a **food** record (with its `familyId` and
+`allergenIds`) whose `aliases` cover its key — not a new allergen, since most
+harvested items are foods expressing already-known allergens, not new clinical
+units.
+
+Until it graduates, a typed-but-unmatched food is a `CustomFoodId`
+(`other:${normalizedKey}`) parked in the **`Vlastní`** family with **empty**
+`allergenIds`, and the mother is **never** prompted to categorise it or tag its
+triggers — on-device tagging is the same false-merge hazard §5 pushes to the
+server. The empty trigger set is safe precisely because triggers resolve live
+(§2): graduation retroactively enriches every past `other:…` log.
 
 ### 5. Client normalization is deliberately dumb; smart merging is server-side
 
@@ -183,6 +250,17 @@ consumer at that point.
   to hundreds without parallel-file drift. Compile-time safety is retained for
   free today. The reintroducible/loggable distinction becomes expressible. The
   harvest destiny is unblocked behind a port without being funded early.
+- **Positive (2026-06-10 restructure):** The grid shows one non-overlapping tile
+  per family; composite foods with multiple triggers become expressible; and the
+  reintroduction engine is untouched because `protocol` stays on the allergen.
+  The presentation/domain split (`familyId` vs `allergenIds`) keeps grid
+  placement from leaking into conflict detection.
+- **Negative (2026-06-10 restructure):** The single allergen collection splits
+  into three (`families/`, `allergens/`, `foods/`); the `allergenId:bare`
+  `SubitemId` scheme is retired for flat `FoodId`s; directly-eaten allergens need
+  a food twin (`vejce` → `[eggs]`); and `strings/` gains a family-name key set
+  alongside the existing allergen/food names. No Dexie migration — foundation
+  build, no production data (the cheap window).
 - **Negative:** Amends ADR-0014 — the catalog structure inverts from
   union-first (four `satisfies Record<>` files) to data-first (records derive
   the union), and `icon`/`protocol`/`aliases` co-locate onto the record rather

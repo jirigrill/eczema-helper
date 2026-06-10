@@ -162,6 +162,78 @@ long-tail foods. Czech display `name` is not on the record; it lives in
 read through `CanonicalCatalogPort`. See
 [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
 
+### Family / Allergen / Food — the three-level catalog
+*Agreed target model (refactor pending — ADR forthcoming). Today's
+`CanonicalAllergen` record is the **allergen** layer below; this entry inserts a
+`family` parent above it and names the `food` leaf below it.*
+
+The catalog is three levels, each a distinct concept that earlier shared the
+word "allergen":
+
+- **Family** — the broad grid bucket / log tile (`Ovoce`, `Obiloviny`,
+  `Mléko`, `Nuts-seeds`). One non-overlapping tile per food family. Pure
+  organisation; carries no protocol and no clinical meaning.
+- **Allergen** — the reintroduction unit. Carries the optional `protocol`,
+  owns `AllergenStatus`, is what `ProtocolAllergenId` and
+  `SchedulePhase.allergenIds` refer to. This is today's `CanonicalAllergen`
+  record, unchanged — the refactor does **not** push `protocol` down to the
+  food. An allergen belongs to exactly **one** family (its clinical home).
+- **Food / item** — the concrete loggable thing (`sójové mléko`, `pomeranč`,
+  `jogurt`, `hummus`). A **first-class catalog entity**, not a bare string
+  parented to one allergen. Each food carries its own `familyId` (presentation)
+  and a set `allergenIds: AllergenId[]` (its triggers): zero for a neutral food
+  (`rýže`, `jablko`), one for the common case (`pomeranč` → `[citrus]`),
+  **several** for a composite (`hummus` → `[chickpea, sesame]`). This is what
+  the meal log records.
+
+**Principle — a food's family is presentation; its allergen is domain.** The
+`family` decides where a food appears in the grid; the `allergen` decides what
+it conflicts with. They are assigned independently and may **diverge**: `sójové
+mléko` has family `Mléko` (where a parent looks for a milk substitute) but
+allergen `soy` (its trigger, whose own family is `Luštěniny`). A food's
+`familyId` is assigned per food and may differ from any of its allergens'
+families; the override exists only on foods, never on allergens. **Conflict
+detection resolves only through a food's `allergenIds`, never its family** — a
+food conflicts if **any** of its allergens is eliminated. The family is absent
+from the trigger path. A food shown under `Mléko` is therefore never treated as
+a dairy allergen; `sójové mléko` conflicts during a `soy` elimination and is
+allowed during a `dairy` one. The food↔allergen relation is **many-to-many**:
+one allergen is expressed by many foods, one food may trigger several allergens.
+
+**A logged `MealItem` stores only its `foodId`; its triggers are resolved live
+from the catalog, never snapshotted onto the meal.** Conflict detection is
+already a derived, recomputed view (it was never a stored audit fact — only
+`Meal` / `SkinObservation` / the verdict are), so resolving triggers live is
+consistent with how conflicts already work. It is also the *intended* behaviour:
+allergies here are **discovered, not acquired**, and a food's allergen content is
+a fact we *learn* by curation. When the catalog improves — by curation or by a
+`HarvestCandidate` graduating into a food — every past meal of that food
+retroactively gains its triggers, surfacing a trigger eaten unknowingly. That
+retroactive enrichment is a feature in a diagnostic elimination diet; a snapshot
+would freeze stale knowledge and hide exactly the pattern the app exists to find.
+(A food's *response* may also change — e.g. outgrowing milk — but that lives in
+the schedule/verdict layer, which conflict detection already reads live.)
+
+**Principle — the questionnaire selects allergens; the meal log selects
+foods.** Both surfaces render through the same family-grid shell but bottom out
+one level apart: the questionnaire stops at the **allergen** (drill into a
+family, pick the allergen — `motherAllergies` / `babyConfirmedAllergies` /
+`testedAllergens` are all allergen ids), while the meal log descends to the
+**food**. The presentation `familyId` override lives only on foods, so the
+questionnaire is unambiguous — `soy` always appears under `Luštěniny` there,
+never under `Mléko`. Both surfaces resolve to the same allergen identity, which
+is what links a declared allergy to a later logged food.
+
+**Custom foods are the honest "unknown" state.** A free-text food with no
+catalog match becomes a `CustomFoodId` (`other:${normalizedKey}`) with family
+`Vlastní` and **empty** `allergenIds` — and the mother is **never** asked to
+categorise it or tag its allergens (on-device curation is exactly the false-merge
+risk ADR-0017 §5 pushed to the server). It asserts no trigger it isn't sure of.
+The empty triggers are safe under live resolution: when the matching
+`HarvestCandidate` graduates into a real food, past `other:…` logs retroactively
+gain triggers and migrate out of `Vlastní`. The `Vlastní` tile surfaces
+previously-typed customs for re-logging plus the free-text entry point.
+
 ### HarvestCandidate
 A runtime record of a food the mother typed that is **not** in the canonical
 catalog: a `normalizedKey`, every deduped `rawForms` surface form seen,
