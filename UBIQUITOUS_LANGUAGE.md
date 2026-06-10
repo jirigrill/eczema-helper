@@ -62,14 +62,17 @@ Day-within-phase record returned by `getReintroductionDayInfo(schedule, date)` f
 the active reintroduction phase. Contains: `dayInPhase`, `totalDays`, `allergenId`,
 and `isEvaluationDay` (true on the last day, triggers verdict UI). Carries **no Czech
 strings** — the render site resolves the day's dosing instruction from
-`REINTRODUCTION_PROTOCOLS[allergenId].days[dayInPhase - 1].instructionCs`.
+`getProtocolForAllergen(allergenId)?.days[dayInPhase - 1].instructionCs`.
 
 ### AllergenProtocol
 
 The static dosing config for one allergen's reintroduction phase. Shape:
-`{ days: ProtocolDay[] }`. Stored in `src/lib/data/reintroduction-protocols.ts` as
-`REINTRODUCTION_PROTOCOLS: Record<string, AllergenProtocol>`. v1 ships baseline
-clinical guidelines only; dynamic adjustment per baby profile is deferred.
+`{ days: ProtocolDay[] }`. Per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
+it lives as the **optional `protocol` field on the `CanonicalAllergen` record**
+(in `src/lib/data/allergen-catalog/`), no longer in a standalone
+`REINTRODUCTION_PROTOCOLS` map; only records that carry it are reintroducible.
+Accessed via `getProtocolForAllergen(id): AllergenProtocol | undefined`. v1 ships
+baseline clinical guidelines only; dynamic adjustment per baby profile is deferred.
 
 ### ProtocolDay
 
@@ -96,12 +99,12 @@ The typed shape of an allergen slug. Per [ADR-0017](docs/adr/0017-allergen-catal
 these become **derived** from the data-first catalog rather than hand-written
 unions:
 
-- `AllergenId = typeof CATALOG[number]['id']` — every canonical allergen slug.
-- `ProtocolAllergenId = Extract<typeof CATALOG[number], { protocol: object }>['id']`
+- `AllergenId = typeof ALLERGEN_CATALOG[number]['id']` — every canonical allergen slug.
+- `ProtocolAllergenId = Extract<typeof ALLERGEN_CATALOG[number], { protocol: object }>['id']`
   — the subset of canonical allergens whose record carries a reintroduction
   `protocol`. These are the only allergens that can enter a reintroduction
-  phase. (Today these happen to be the 13 originals; the catalog grows past them
-  with most additions carrying *no* protocol.)
+  phase. (These are the 13 protocol-bearing records; the catalog now holds 32,
+  the other 19 regional/everyday foods carrying *no* protocol.)
 - `CustomAllergenId = \`other:${string}\`` — the legacy free-text custom-allergen
   tier (e.g. `'other:Paprika'`). Participates in elimination logs, never enters a
   protocol phase. Unknown free-text input is also captured as a `HarvestCandidate`
@@ -177,20 +180,21 @@ user saves a meal.
 ### CanonicalAllergen / Canonical Catalog
 → Defined in `CONTEXT.md`. The curated, data-first catalog record for one
 allergen (`id`, `icon`, `subitems`, `aliases`, optional `source`,
-optional `protocol`). The `CATALOG` array of these records is the source of
-truth from which `AllergenId` / `ProtocolAllergenId` are derived. Bundled,
-build-time, JSON-serializable, read through `CanonicalCatalogPort`. See ADR-0017.
+optional `protocol`). The `ALLERGEN_CATALOG` array of these records (in
+`src/lib/data/allergen-catalog/`) is the source of truth from which `AllergenId`
+/ `ProtocolAllergenId` are derived. Bundled, build-time, JSON-serializable, read
+through `CanonicalCatalogPort`. See ADR-0017.
 
 ### HarvestCandidate
 → Defined in `CONTEXT.md`. A runtime Dexie record for an unknown food the
-mother typed: `normalizedKey`, `raw[]` surface forms, `count`/`firstSeen`/
-`lastSeen`, and `status` (`observed | promoted | rejected`). The harvest feed
-and eventual sync payload; graduates into a `CanonicalAllergen` by curation. See
-ADR-0017.
+mother typed: `normalizedKey`, `rawForms` (deduped surface forms),
+`count`/`firstSeen`/`lastSeen`, and `status` (`pending | ingested`). The harvest
+feed and eventual sync payload; graduates into a `CanonicalAllergen` by
+curation. See ADR-0017.
 
 ### CanonicalCatalogPort
 The port (hexagonal seam) through which the domain reads the allergen catalog.
-The only adapter today returns the bundled `CATALOG`; a remote, server-pushed
+The only adapter today returns the bundled `ALLERGEN_CATALOG`; a remote, server-pushed
 adapter is deferred behind it (ADR-0017). Keeps the catalog source swappable
 without touching domain or UI.
 
@@ -203,14 +207,18 @@ server job. See ADR-0017.
 
 ### Category / SubItem / SubitemId
 
-`Category` and `SubItem` are the seed-data shape for food selection. `Category` carries
-only structural fields (`allergenId: ProtocolAllergenId`, `subItems`); `SubItem` carries
+`Category` and `SubItem` are the structural shape for food selection. Per
+[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md) the `CATEGORIES`
+array is *derived* from `ALLERGEN_CATALOG` (in `src/lib/data/allergen-catalog/index.ts`),
+not hand-authored seed data; the legacy `$lib/data/categories` re-exports it. `Category`
+carries only structural fields (`allergenId: AllergenId`, `subItems`) and now covers
+every catalog record, not only the protocol-bearing tier; `SubItem` carries
 `subitemId: SubitemId` and its parent `allergenId`. No Czech display text on either —
 names live in `$lib/strings/categories` (`categoryStrings[allergenId].name`,
-`subitemStrings[subitemId]`) and icons in `$lib/config/categories`
-(`categoryConfig[allergenId].icon`). `SubitemId` is a closed string-literal union
-defined in `models.ts` mirroring the two-tier shape of `ProtocolAllergenId`. See
-ADR-0014.
+`subitemStrings[subitemId]`) and icons co-locate on the catalog record (`record.icon`,
+surfaced via `getCategoryConfig`). `SubitemId` is derived from the catalog records as
+the union of `` `${id}:${subitem}` `` pairs and re-exported through `models.ts`. See
+ADR-0017 and ADR-0014.
 
 ---
 

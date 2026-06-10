@@ -157,13 +157,13 @@ Two tiers — see `docs/architecture/testing-strategy.md` for full rationale.
   - **Strings layer** (`src/lib/strings/`) — pure Czech text keyed by domain identifier or ergonomic name, `satisfies Record<DomainKind, ...>` where applicable:
     - `phases.ts` — `{ label, badgeLabel, description }` keyed by `PhaseType`
     - `portions.ts` — `{ label, short }` keyed by `PortionKind`
-    - `categories.ts` — `categoryStrings` (`{ name }` keyed by `ProtocolAllergenId`) + `subitemStrings` (keyed by `SubitemId`)
+    - `categories.ts` — `categoryStrings` (`{ name }` keyed by `CatalogAllergenId`) + `subitemStrings` (keyed by `SubitemId`)
     - `meals.ts` — `{ label }` keyed by `MealType`
     - `actions.ts` (buttons/verbs), `common.ts` (toasts, headers, empty states) — UI chrome
-  - **Config layer** (`src/lib/config/`) — spreads from `strings/` and adds visual tokens (icon, Tailwind badge/background classes); single lookup point for consumers:
+  - **Config layer** (`src/lib/config/`) — merges `strings/` text with visual tokens (icon, Tailwind badge/background classes); single lookup point for consumers:
     - `phases.ts` — spreads `phaseStrings` + adds `{ icon, badge, iconBg }`
     - `meals.ts` — spreads `mealStrings` + adds `{ icon }`
-    - `categories.ts` — spreads `categoryStrings` + adds `{ icon }`
+    - `categories.ts` — re-exports `getCategoryConfig` from `$lib/data/allergen-catalog`, which merges `categoryStrings[id].name` with the catalog record's `icon` (the icon co-locates on the `CanonicalAllergen` record per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md), not in `config/`)
   - Rule of placement: pure Czech text → `strings/`; visual tokens alongside text → `config/` (which imports from `strings/`)
   - All entries `as const`; both layers require the `satisfies Record<>` clause — missing keys must fail `bunx tsc --noEmit`
 - Dates formatted Czech-style: `5. 3.` (non-breaking space between day and month)

@@ -43,9 +43,9 @@ Each allergen is one self-contained, JSON-serializable record. The records are
 the source of truth; the identifier types are *derived* from them:
 
 ```ts
-export const CATALOG = [dairy, eggs, /* … */] as const;
-type AllergenId         = typeof CATALOG[number]['id'];
-type ProtocolAllergenId = Extract<typeof CATALOG[number], { protocol: object }>['id'];
+export const ALLERGEN_CATALOG = [dairy, eggs, /* … */] as const;
+type AllergenId         = typeof ALLERGEN_CATALOG[number]['id'];
+type ProtocolAllergenId = Extract<typeof ALLERGEN_CATALOG[number], { protocol: object }>['id'];
 ```
 
 Adding an allergen is **one record** with all its fields co-located; a missing
@@ -56,12 +56,12 @@ files to two (catalog record + Czech name in `strings/`, see §5).
 units for clinical content), aggregated by an index:
 
 ```
-src/lib/data/catalog/
+src/lib/data/allergen-catalog/
   dairy.ts        // export const dairy = { … } as const satisfies CanonicalAllergen
   eggs.ts
   meat.ts         // no protocol  ← not-reintroducible tier
   …
-  index.ts        // export const CATALOG = [dairy, eggs, …] as const
+  index.ts        // export const ALLERGEN_CATALOG = [dairy, eggs, …] as const
                   // derives + exports AllergenId / ProtocolAllergenId
 ```
 
@@ -69,11 +69,13 @@ Each record is `… as const satisfies CanonicalAllergen` **and** the array is
 `[…] as const` — both are load-bearing: `satisfies` checks the shape, `as const`
 preserves the literals the union derivation needs (otherwise `id` widens to
 `string` and the union collapses). The id types are derived in
-`catalog/index.ts` (next to the data, since data-first inverts the dependency)
-and **re-exported through `models.ts`** so existing `$lib/domain/models` import
-sites do not churn. The legacy `data/categories.ts`, `data/reintroduction-protocols.ts`,
-and the `ProtocolAllergenId`/`SubitemId` unions in `models.ts` are subsumed by
-this directory.
+`allergen-catalog/index.ts` (next to the data, since data-first inverts the
+dependency) and **re-exported through `models.ts`** so existing
+`$lib/domain/models` import sites do not churn. The legacy `data/categories.ts`
+is reduced to a re-export of the derived `CATEGORIES`,
+`data/reintroduction-protocols.ts` is deleted, and the
+`ProtocolAllergenId`/`SubitemId` unions in `models.ts` are subsumed by this
+directory.
 
 ### 2. Protocol decoupled — the third tier
 
@@ -100,7 +102,7 @@ contained change, not a rewrite.
 (runtime data will carry ids the bundle never saw). At that point — and not
 before — add a runtime schema validator (validating server-pushed catalog as
 external input per the security rule in `CLAUDE.md`), emit a snapshot via
-`JSON.stringify(CATALOG)`, swap in the remote adapter, and widen `AllergenId` to
+`JSON.stringify(ALLERGEN_CATALOG)`, swap in the remote adapter, and widen `AllergenId` to
 a branded `string`. The port isolates the blast radius. Until that trigger
 fires, the catalog stays TS. We do **not** fund the server-push pipeline early.
 
@@ -108,10 +110,12 @@ fires, the catalog stays TS. We do **not** fund the server-push pipeline early.
 
 - **Canonical catalog** — curated, mostly-immutable, bundled TS (above).
 - **`HarvestCandidate`** — runtime, mutable, a new Dexie table
-  ([ADR-0006](0006-dexie-persistence.md)), reactive via `liveQuery`. Carries the
-  raw user input, a normalized key, and occurrence stats
-  (`count`, `firstSeen`, `lastSeen`, `status`). This is the harvest feed and the
-  eventual sync payload. Harvest stats live **here**, never on a catalog record.
+  ([ADR-0006](0006-dexie-persistence.md)), reactive via `liveQuery`. Shape:
+  `{ normalizedKey, status, count, firstSeen, lastSeen, rawForms }` — the deduped
+  raw user input (`rawForms`), the normalized key, occurrence stats, and a
+  `status` of `'pending' | 'ingested'` (`ingested` is reserved for the
+  not-yet-built curation pass). This is the harvest feed and the eventual sync
+  payload. Harvest stats live **here**, never on a catalog record.
 
   Concretely a `version(5)` table in `src/lib/db/atopic-db.ts` (current head is
   `version(4)`), keyed by the normalized key with a `status` index:
@@ -129,11 +133,11 @@ On-device normalization is precision-biased and minimal:
 
 ```
 normalize(s) = s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '')
-// KEEP diacritics. NO stemming. NO synonym resolution. Store every raw form in raw[].
+// KEEP diacritics. NO stemming. NO synonym resolution. Store every raw form in rawForms.
 ```
 
 The client's only jobs are deduping one mother's repeated typing and emitting a
-clean `raw[]` payload. Czech lemmatization, declension folding, and synonym
+clean `rawForms` payload. Czech lemmatization, declension folding, and synonym
 clustering are an authoritative **server-side** job over the full corpus —
 deferred with the rest of the backend. In an elimination diet a **false merge
 is worse than a missed merge** (a wrongly-folded food could mask a real
