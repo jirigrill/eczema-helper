@@ -133,7 +133,7 @@ describe('DexieMealRepository', () => {
     const item = makeItem('item-1', {
       name: 'Jogurt',
       allergenId: 'dairy',
-      subitemId: 'dairy:yogurt',
+      foodId: 'kravske-mleko',
       amount: 'portion',
       preparationMethod: 'boiled',
     });
@@ -161,26 +161,26 @@ describe('DexieMealRepository', () => {
     if (result.ok) expect(result.data?.items[0].allergenId).toBeNull();
   });
 
-  it('MealItem with subitemId: null persists correctly', async () => {
-    const item = makeItem('item-1', { allergenId: 'dairy', subitemId: null });
+  it('MealItem with foodId: null persists correctly', async () => {
+    const item = makeItem('item-1', { allergenId: 'dairy', foodId: null });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].subitemId).toBeNull();
+    if (result.ok) expect(result.data?.items[0].foodId).toBeNull();
   });
 
-  it('MealItem without subitemId loads with subitemId absent', async () => {
-    const item = makeItem('item-1'); // subitemId not set
+  it('MealItem without foodId loads with foodId absent', async () => {
+    const item = makeItem('item-1'); // foodId not set
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].subitemId).toBeUndefined();
+    if (result.ok) expect(result.data?.items[0].foodId).toBeUndefined();
   });
 
   it('multiple items in a meal all persist', async () => {
     const items = [
       makeItem('item-1', { name: 'Chléb', allergenId: 'wheat', amount: 'portion' }),
-      makeItem('item-2', { name: 'Máslo', allergenId: 'dairy', subitemId: 'dairy:butter', amount: 'teaspoon' }),
+      makeItem('item-2', { name: 'Máslo', allergenId: 'dairy', foodId: 'kravske-mleko', amount: 'teaspoon' }),
       makeItem('item-3', { name: 'Rajče', allergenId: 'tomatoes', amount: 'spoon', preparationMethod: 'baked' }),
     ];
     await repo.save(makeMeal('2026-05-27', 'breakfast', { items }));

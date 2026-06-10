@@ -371,7 +371,7 @@
                   <AllergenChip slug={currentPhase.allergenIds[0]} color="success" />
                   {#if reintroInfo}
                     <span class="body-muted">
-                      den {reintroInfo.dayInPhase} z {reintroInfo.totalDays} · {reintroInfo.label}
+                      den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}
                     </span>
                   {/if}
                 </div>

@@ -9,16 +9,18 @@ import type {
   CatalogAllergenId,
   ProtocolAllergenId,
   CustomAllergenId,
-  SubitemId,
 } from '$lib/data/allergen-catalog';
 import type { ProtocolDay, AllergenProtocol } from '$lib/domain/canonical-allergen';
+import type { FamilyId, FoodId, CatalogFoodId } from '$lib/data/allergen-catalog/three-collections';
 
 export type {
   AllergenId,
   CatalogAllergenId,
   ProtocolAllergenId,
   CustomAllergenId,
-  SubitemId,
+  FamilyId,
+  FoodId,
+  CatalogFoodId,
   ProtocolDay,
   AllergenProtocol,
 };
@@ -86,7 +88,7 @@ export type MealItem = {
   id: string;
   name: string; // Czech display name
   allergenId: AllergenId | null;
-  subitemId?: string | null; // e.g. 'dairy:yogurt' — optional, narrows allergenId to a specific sub-item
+  foodId?: FoodId | null; // optional — identifies the specific food from the catalog (replaces subitemId)
   amount: PortionKind;
   preparationMethod?: PreparationMethod; // optional observational field; no impact on conflict detection
 };
@@ -156,16 +158,3 @@ export type ToleranceBuildingReminder = {
   daysSinceLastDose: number;
   // No display label — resolve via categoryConfig[allergenId] at render sites (ADR-0014).
 };
-
-export type Category = {
-  allergenId: ProtocolAllergenId;
-  subItems: SubItem[];
-};
-
-export type SubItem = {
-  subitemId: SubitemId;
-  allergenId: ProtocolAllergenId;
-};
-
-// Subitem identifiers (`allergenId:bare`, e.g. 'dairy:milk') are derived from
-// the catalog records and re-exported above — see ADR-0017.

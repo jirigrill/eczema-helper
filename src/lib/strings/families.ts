@@ -1,0 +1,103 @@
+import type { FamilyId, CatalogFoodId } from '$lib/data/allergen-catalog/three-collections';
+
+export type FamilyStrings = {
+  name: string;
+};
+
+export const familyStrings = {
+  grains:             { name: 'Obiloviny'               },
+  vegetables:         { name: 'Zelenina'                },
+  fruit:              { name: 'Ovoce'                   },
+  meat:               { name: 'Maso'                    },
+  'fish-seafood':     { name: 'Ryby a plody moře'       },
+  dairy:              { name: 'Mléko'                   },
+  eggs:               { name: 'Vejce'                   },
+  legumes:            { name: 'Luštěniny'               },
+  'nuts-seeds':       { name: 'Ořechy a semínka'        },
+  sweet:              { name: 'Sladké'                  },
+  'spices-condiments':{ name: 'Koření, omáčky a droždí' },
+  drinks:             { name: 'Nápoje a čaje'           },
+  custom:             { name: 'Vlastní'                 },
+} as const satisfies Record<FamilyId, FamilyStrings>;
+
+export type FoodStrings = {
+  name: string;
+};
+
+export const foodStrings = {
+  // Food twins (§3a)
+  vejce:               { name: 'Vejce'                  },
+  'kravske-mleko':     { name: 'Kravské mléko'          },
+  'psenicny-chleb':    { name: 'Pšeničný chléb'         },
+  tofu:                { name: 'Tofu'                   },
+  'arasisove-maslo':   { name: 'Arašídové máslo'        },
+  sezam:               { name: 'Sezamová semínka'       },
+  tahini:              { name: 'Tahini'                 },
+  jahody:              { name: 'Jahody'                 },
+  rajce:               { name: 'Rajče'                  },
+  kukurice:            { name: 'Kukuřice'               },
+  pomeranc:            { name: 'Pomeranč'               },
+  cokolada:            { name: 'Hořká čokoláda'         },
+  losos:               { name: 'Losos'                  },
+  krevetky:            { name: 'Krevety'                },
+  // Divergent placements (§3b)
+  'sojove-mleko':      { name: 'Sójové mléko'           },
+  'ryzove-mleko':      { name: 'Rýžové mléko'           },
+  // Composite (§3c)
+  hummus:              { name: 'Hummus'                 },
+  // Loose everyday foods (§3d)
+  ryze:                { name: 'Rýže'                   },
+  pohanka:             { name: 'Pohanka'                },
+  'ovesne-vlocky':     { name: 'Ovesné vločky'          },
+  'proso-jahly':       { name: 'Proso / jáhly'          },
+  okurka:              { name: 'Okurka'                 },
+  cuketa:              { name: 'Cuketa'                 },
+  spenat:              { name: 'Špenát'                 },
+  paprika:             { name: 'Paprika'                },
+  brokolice:           { name: 'Brokolice'              },
+  mrkev:               { name: 'Mrkev'                  },
+  brambory:            { name: 'Brambory'               },
+  cesnek:              { name: 'Česnek'                 },
+  cibule:              { name: 'Cibule'                 },
+  jablko:              { name: 'Jablko'                 },
+  hruska:              { name: 'Hruška'                 },
+  merunka:             { name: 'Meruňka'                },
+  broskev:             { name: 'Broskev'                },
+  hrozny:              { name: 'Hrozny'                 },
+  boruvky:             { name: 'Borůvky'                },
+  banan:               { name: 'Banán'                  },
+  kiwi:                { name: 'Kiwi'                   },
+  mango:               { name: 'Mango'                  },
+  'kureci-prsa':       { name: 'Kuřecí prsa'            },
+  hovezi:              { name: 'Hovězí'                 },
+  veprovka:            { name: 'Vepřová panenka'        },
+  kruti:               { name: 'Krůtí'                  },
+  jehnneci:            { name: 'Jehněčí'                },
+  treska:              { name: 'Treska'                 },
+  pstruh:              { name: 'Pstruh'                 },
+  tunak:               { name: 'Tuňák'                  },
+  sardinky:            { name: 'Sardinky'               },
+  cocka:               { name: 'Čočka'                  },
+  fazole:              { name: 'Fazole'                 },
+  hrac:                { name: 'Hrách'                  },
+  cizrna:              { name: 'Cizrna'                 },
+  'vlassky-orech':     { name: 'Vlašský ořech'          },
+  mandle:              { name: 'Mandle'                 },
+  'dynova-seminka':    { name: 'Dýňová semínka'         },
+  'lnene-semenko':     { name: 'Lněné semínko'          },
+  'slunecnicova-seminka': { name: 'Slunečnicová semínka' },
+  med:                 { name: 'Med'                    },
+  'javorovy-sirup':    { name: 'Javorový sirup'         },
+  'trtinovy-cukr':     { name: 'Třtinový cukr'         },
+  sul:                 { name: 'Sůl'                    },
+  kmin:                { name: 'Kmín'                   },
+  skorice:             { name: 'Skořice'                },
+  pepr:                { name: 'Pepř'                   },
+  kecup:               { name: 'Kečup'                  },
+  horcice:             { name: 'Hořčice'                },
+  ocet:                { name: 'Ocet'                   },
+  voda:                { name: 'Voda'                   },
+  'bylinny-caj':       { name: 'Bylinkový čaj'          },
+  kava:                { name: 'Káva'                   },
+  'cerny-caj':         { name: 'Černý čaj'              },
+} as const satisfies Record<CatalogFoodId, FoodStrings>;

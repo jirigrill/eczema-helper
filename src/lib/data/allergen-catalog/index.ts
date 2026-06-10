@@ -59,30 +59,6 @@ export type AllergenId = CatalogRecord['id'] | CustomAllergenId;
 /** Allergen ids that carry a reintroduction protocol — derived from the records. */
 export type ProtocolAllergenId = Extract<CatalogRecord, { protocol: object }>['id'];
 
-/**
- * Full compound subitem ids, e.g. `'sesame:sesame-seeds'`.
- * Derived per-record via conditional distribution — only valid allergenId:bare pairings exist.
- * Records store bare keys; this type constructs `allergenId:bare` for each record in the union.
- */
-export type SubitemId = CatalogRecord extends infer R
-  ? R extends { id: string; subitems: readonly string[] }
-    ? `${R['id']}:${R['subitems'][number]}`
-    : never
-  : never;
-
-/**
- * Structural category list derived from ALLERGEN_CATALOG.
- * Consumers that previously imported CATEGORIES from `$lib/data/categories` can
- * switch to this; the legacy file re-exports it for backwards compat.
- */
-export const CATEGORIES = ALLERGEN_CATALOG.map((r) => ({
-  allergenId: r.id as AllergenId,
-  subItems: r.subitems.map((bare) => ({
-    subitemId: `${r.id}:${bare}` as SubitemId,
-    allergenId: r.id as AllergenId,
-  })),
-}));
-
 import { categoryStrings } from '$lib/strings/categories';
 
 export type CategoryConfig = {
