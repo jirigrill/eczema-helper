@@ -268,15 +268,6 @@ export const commonStrings = {
     notePlaceholder:     'Poznámka (volitelné) — např. zarudnutí na tváři…',
   },
 
-  // ── CategoryGrid component ─────────────────────────────────
-  categoryGrid: {
-    yourAllergyLabel:     'vaše alergie',
-    partialLabel:         'část',
-    customAllergenHeading:'Vlastní alergen',
-    customPlaceholder:    'Např. Cibule, Mrkev…',
-    removeAriaLabel:      'Odebrat',
-  },
-
 } as const;
 
 // ── Dynamic string builders ────────────────────────────────────────────────

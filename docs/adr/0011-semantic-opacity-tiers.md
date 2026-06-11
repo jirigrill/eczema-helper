@@ -11,7 +11,7 @@ The `[data-state]` CSS block in `app.css` standardises **banner-strength** tints
 | Tier | Tailwind suffix | Affected sites |
 |------|----------------|----------------|
 | **Subtle tint** | `/5` | Severity-choice cards (not-selected), training-band background (`program/+page.svelte:437`), non-selected meal item (`meal/+page.svelte:239`), `card-empty-cta` background, `task-tile-done` surface |
-| **Icon/selection background** | `/15` | Phase step-number circles (`phase-display.ts:7–10`), meal-type avatars, selected chips (`CategoryGrid.svelte:198`), insight tag pills (per DESIGN.md §Insight Cards) |
+| **Icon/selection background** | `/15` | Phase step-number circles (`phase-display.ts:7–10`), meal-type avatars, selected chips (`AllergenDrillIn.svelte`), insight tag pills (per DESIGN.md §Insight Cards) |
 
 Note: `EczemaCheck.svelte:104` uses `bg-success/20` for the saved-button state — this is slightly above the `/15` icon tier; it is canonically `/20` (part of the `[data-state]` banner scale) and should not be migrated.
 

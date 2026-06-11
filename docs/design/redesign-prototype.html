@@ -314,7 +314,7 @@
       <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Vybrána <strong>Střední</strong>. Eliminace = 14 dní. Pro <em>Těžkou</em> by šlo o 21 dní.</div>
     </div>
 
-    <!-- ONB 3 — Alergeny matky -->
+    <!-- ONB 3 — Alergeny matky · family grid -->
     <div>
       <div class="phase-label">▸ ONBOARDING · 3 / 6 · Alergeny matky</div>
       <div class="phone"><div class="phone-screen">
@@ -337,89 +337,65 @@
             <h2 class="text-xl font-bold text-text leading-tight">Známé alergeny u matky</h2>
             <p class="text-[12px] text-text-muted mt-1.5 leading-relaxed">Tyto vyloučíme natrvalo. Ostatní budeme testovat.</p>
           </div>
-          <div class="px-5 mt-4 grid grid-cols-3 gap-2">
-            <button class="bg-primary/10 border-2 border-primary rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🥜</span><span class="text-[10px] font-semibold text-primary">Ořechy</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🥛</span><span class="text-[10px] text-text-muted">Mléčné</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🌾</span><span class="text-[10px] text-text-muted">Pšenice</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🥚</span><span class="text-[10px] text-text-muted">Vejce</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🫘</span><span class="text-[10px] text-text-muted">Sója</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🐟</span><span class="text-[10px] text-text-muted">Ryby</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🍋</span><span class="text-[10px] text-text-muted">Citrusy</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🍫</span><span class="text-[10px] text-text-muted">Čokol.</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🍓</span><span class="text-[10px] text-text-muted">Jahody</span></button>
+          <!-- family grid 4-col — same shell as meal log -->
+          <div class="px-5 mt-4 grid grid-cols-4 gap-2">
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🌾</span><span class="leading-tight text-center">Obiloviny</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥦</span><span class="leading-tight text-center">Zelenina</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🍎</span><span class="leading-tight text-center">Ovoce</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥩</span><span class="leading-tight text-center">Maso</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🐟</span><span class="leading-tight text-center">Ryby</span></button>
+            <!-- dairy: single-allergen family, selected = active tint -->
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-primary/10 border-primary text-primary"><span class="text-2xl leading-none">🥛</span><span class="leading-tight text-center">Mléko</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥚</span><span class="leading-tight text-center">Vejce</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🫘</span><span class="leading-tight text-center">Luštěniny</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥜</span><span class="leading-tight text-center">Ořechy</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🍯</span><span class="leading-tight text-center">Sladké</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🌿</span><span class="leading-tight text-center">Koření</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">☕</span><span class="leading-tight text-center">Nápoje</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">➕</span><span class="leading-tight text-center">Vlastní</span></button>
           </div>
-          <div class="px-5 mt-4 text-[11px] text-text-muted">Vybráno: <strong class="text-text">1</strong> · trvale vyloučeno</div>
+          <div class="px-5 mt-3 text-[11px] text-text-muted">Vybráno: <strong class="text-text">1 alergen</strong> · trvale vyloučeno</div>
         </div>
         <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
           <div class="flex gap-2">
             <button class="flex-1 py-3 rounded-2xl bg-white border border-surface-dark text-text-muted font-semibold text-sm">Zpět</button>
-            <button class="flex-[2] py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Další</button>
+            <button class="flex-[2] py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Pokračovat (1 alergen)</button>
           </div>
         </nav>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Multi-select grid. Vybraný alergen má primary border + tint.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Family-grid shell (4-col, same as meal log). Klepnutí na <em>jednoalergenovou rodinu</em> (Mléko, Vejce, Maso) přímo přepne výběr — bez drill-in. Multi-alergenová rodina (Luštěniny) otevře drill-in s alergenickými čipy.</div>
     </div>
 
-    <!-- ONB 3.5 — Subitemy kategorie (drill-down) -->
+    <!-- ONB 3a — Alergeny matky · drill-in (multi-allergen family: Luštěniny) -->
     <div>
-      <div class="phase-label">▸ ONBOARDING · 3a · Mléčné výrobky · subitemy</div>
+      <div class="phase-label">▸ ONBOARDING · 3a · Alergeny matky · Luštěniny drill-in</div>
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
         <div class="screen-content pb-20">
-          <div class="px-5 pt-3 pb-3 flex items-center gap-3">
-            <button class="text-text-muted text-lg leading-none">‹</button>
-            <div class="flex-1 min-w-0">
-              <div class="text-[11px] uppercase tracking-wide text-text-muted">Alergeny matky · drill-down</div>
-              <h2 class="text-lg font-bold text-text leading-tight">🥛 Mléčné výrobky</h2>
+          <div class="flex items-center gap-3 px-4 pt-3">
+            <button class="text-text-muted text-sm px-1 py-1">←</button>
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="text-xl">🫘</span>
+              <span class="text-sm font-semibold text-text">Luštěniny</span>
             </div>
           </div>
-          <div class="px-5 mt-2">
-            <p class="text-[12px] text-text-muted leading-relaxed mb-3">Označ konkrétní položky, které matka nesnáší. Pokud nevíš, vyber celou kategorii.</p>
-            <div class="bg-white border border-surface-dark rounded-2xl divide-y divide-surface-dark overflow-hidden">
-              <button class="w-full p-3 flex items-center gap-3 text-left">
-                <div class="w-5 h-5 rounded-md bg-primary text-white flex items-center justify-center text-[11px] font-bold">✓</div>
-                <span class="text-sm text-text font-medium flex-1">Kravské mléko</span>
-                <span class="text-[10px] text-text-muted">vč. UHT</span>
-              </button>
-              <button class="w-full p-3 flex items-center gap-3 text-left">
-                <div class="w-5 h-5 rounded-md bg-primary text-white flex items-center justify-center text-[11px] font-bold">✓</div>
-                <span class="text-sm text-text font-medium flex-1">Jogurt</span>
-              </button>
-              <button class="w-full p-3 flex items-center gap-3 text-left">
-                <div class="w-5 h-5 rounded-md border-2 border-surface-dark"></div>
-                <span class="text-sm text-text-muted flex-1">Sýr</span>
-                <span class="text-[10px] text-text-muted">tvrdý / měkký</span>
-              </button>
-              <button class="w-full p-3 flex items-center gap-3 text-left">
-                <div class="w-5 h-5 rounded-md bg-primary text-white flex items-center justify-center text-[11px] font-bold">✓</div>
-                <span class="text-sm text-text font-medium flex-1">Smetana</span>
-              </button>
-              <button class="w-full p-3 flex items-center gap-3 text-left">
-                <div class="w-5 h-5 rounded-md border-2 border-surface-dark"></div>
-                <span class="text-sm text-text-muted flex-1">Máslo</span>
-              </button>
-              <button class="w-full p-3 flex items-center gap-3 text-left">
-                <div class="w-5 h-5 rounded-md border-2 border-surface-dark"></div>
-                <span class="text-sm text-text-muted flex-1">Tvaroh</span>
-              </button>
-            </div>
-            <div class="mt-3 flex items-center justify-between text-[11px] px-1">
-              <button class="text-primary font-semibold">Vybrat vše</button>
-              <span class="text-text-muted">3 / 6 vybráno</span>
+          <div class="px-4 mt-4">
+            <div class="flex flex-wrap gap-2">
+              <!-- soy selected -->
+              <button class="py-2 px-3 rounded-xl text-sm border flex items-center gap-1.5 bg-primary/10 border-primary text-primary font-semibold"><span class="text-base leading-none">🫘</span>Sója</button>
+              <!-- legumes not selected -->
+              <button class="py-2 px-3 rounded-xl text-sm border flex items-center gap-1.5 bg-white border-surface-dark text-text"><span class="text-base leading-none">🫘</span>Luštěniny</button>
             </div>
           </div>
         </div>
         <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
-          <div class="flex gap-2">
-            <button class="flex-1 py-3 rounded-2xl bg-white border border-surface-dark text-text-muted font-semibold text-sm">Zrušit</button>
-            <button class="flex-[2] py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Hotovo · 3 položky</button>
-          </div>
+          <button class="w-full py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Hotovo</button>
         </nav>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Tap na kategorii v gridu otevře drill-down. Kategorie se v gridu označí počtem vybraných položek (např. <em>Mléčné · 3</em>).</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">AllergenDrillIn: klepnutí na rodinu s více alergeny zobrazí čipy alergenů. Výběr funguje jako toggle — stejný vzor jako jídlo ve FamilyDrillIn. <em>Hotovo</em> vrátí zpět na family grid.</div>
     </div>
 
     <!-- ONB 4 — Alergeny dítěte -->
@@ -445,16 +421,23 @@
             <h2 class="text-xl font-bold text-text leading-tight">Známé alergeny u miminka</h2>
             <p class="text-[12px] text-text-muted mt-1.5 leading-relaxed">Pokud už víte o nějaké reakci, vyberte ji.</p>
           </div>
-          <div class="px-5 mt-4 grid grid-cols-3 gap-2">
-            <button class="bg-primary/10 border-2 border-primary rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🥜</span><span class="text-[10px] font-semibold text-primary">Ořechy</span></button>
-            <button class="bg-primary/10 border-2 border-primary rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🥚</span><span class="text-[10px] font-semibold text-primary">Vejce</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🥛</span><span class="text-[10px] text-text-muted">Mléčné</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🌾</span><span class="text-[10px] text-text-muted">Pšenice</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🫘</span><span class="text-[10px] text-text-muted">Sója</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🐟</span><span class="text-[10px] text-text-muted">Ryby</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🍋</span><span class="text-[10px] text-text-muted">Citrusy</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🍫</span><span class="text-[10px] text-text-muted">Čokol.</span></button>
-            <button class="bg-white border border-surface-dark rounded-xl p-2.5 flex flex-col items-center gap-1"><span class="text-2xl">🍓</span><span class="text-[10px] text-text-muted">Jahody</span></button>
+          <!-- family grid 4-col, danger variant (eggs + nuts selected) -->
+          <div class="px-5 mt-4 grid grid-cols-4 gap-2">
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🌾</span><span class="leading-tight text-center">Obiloviny</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥦</span><span class="leading-tight text-center">Zelenina</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🍎</span><span class="leading-tight text-center">Ovoce</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥩</span><span class="leading-tight text-center">Maso</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🐟</span><span class="leading-tight text-center">Ryby</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🥛</span><span class="leading-tight text-center">Mléko</span></button>
+            <!-- eggs: selected danger -->
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-danger/10 border-danger text-danger"><span class="text-2xl leading-none">🥚</span><span class="leading-tight text-center">Vejce</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🫘</span><span class="leading-tight text-center">Luštěniny</span></button>
+            <!-- nuts: selected danger -->
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-danger/10 border-danger text-danger relative"><span class="text-2xl leading-none">🥜</span><span class="leading-tight text-center">Ořechy</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🍯</span><span class="leading-tight text-center">Sladké</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">🌿</span><span class="leading-tight text-center">Koření</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">☕</span><span class="leading-tight text-center">Nápoje</span></button>
+            <button class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium border bg-white border-surface-dark text-text"><span class="text-2xl leading-none">➕</span><span class="leading-tight text-center">Vlastní</span></button>
           </div>
           <div class="mx-5 mt-4 bg-warning/10 border border-warning/30 rounded-xl p-3 text-[11px] text-text leading-relaxed">
             <strong class="text-warning">⚠ Vejce + ořechy</strong> · trvale vyloučeno spolu s alergeny matky.
@@ -463,12 +446,12 @@
         <nav class="absolute bottom-0 left-0 right-0 z-30 pb-5 px-5">
           <div class="flex gap-2">
             <button class="flex-1 py-3 rounded-2xl bg-white border border-surface-dark text-text-muted font-semibold text-sm">Zpět</button>
-            <button class="flex-[2] py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Další</button>
+            <button class="flex-[2] py-3 rounded-2xl bg-primary text-white font-semibold text-sm">Pokračovat (2 alergeny)</button>
           </div>
         </nav>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Více vybráno. Žlutá karta varuje před překryvem s krokem 3.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Stejná family-grid shell jako krok 3, tentokrát danger variant. Jednoalergenové rodiny (Vejce) se přímo togglem. Žlutá karta varuje před překryvem s krokem 3.</div>
     </div>
 
     <!-- ONB 5 — Datum startu · prázdný stav (před výběrem) -->
