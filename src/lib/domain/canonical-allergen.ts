@@ -12,9 +12,7 @@ export type AllergenProtocol = {
 export type CanonicalAllergen = {
   id: string;
   icon: string;
-  aliases: string[];
-  /** Bare subitem keys, e.g. `'milk'`. The full `allergenId:subitem` key is constructed on the way out. */
-  subitems: readonly string[];
+  aliases: readonly string[];
   source?: string;
   protocol?: AllergenProtocol;
 };

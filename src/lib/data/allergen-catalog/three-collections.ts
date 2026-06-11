@@ -225,14 +225,14 @@ export const ALLERGENS = [
   { id: 'onion-garlic',       familyId: 'vegetables' as FamilyId,        icon: '🧅', aliases: ['onion', 'garlic', 'cibule', 'česnek'] },
   { id: 'potato',             familyId: 'vegetables' as FamilyId,        icon: '🥔', aliases: ['potato', 'brambory'] },
   { id: 'mushroom',           familyId: 'vegetables' as FamilyId,        icon: '🍄', aliases: ['mushroom', 'houby'] },
-  { id: 'other-vegetables',   familyId: 'vegetables' as FamilyId,        icon: '🥦', aliases: ['vegetables', 'zelenina'] },
+  { id: 'other-vegetables',   familyId: 'vegetables' as FamilyId,        icon: '🥦', aliases: ['vegetables', 'zelenina', 'paprika', 'cucumber', 'okurka', 'cuketa', 'zucchini'] },
   { id: 'meat',               familyId: 'meat' as FamilyId,              icon: '🥩', aliases: ['meat', 'maso'] },
   { id: 'mustard',            familyId: 'spices-condiments' as FamilyId, icon: '🌿', aliases: ['mustard', 'hořčice'] },
   { id: 'sulphites-additives',familyId: 'spices-condiments' as FamilyId, icon: '⚗️', aliases: ['sulphites', 'additives', 'siřičitany', 'aditiva'] },
   { id: 'vinegar-fermented',  familyId: 'spices-condiments' as FamilyId, icon: '🫙', aliases: ['vinegar', 'fermented', 'ocet', 'kvašené'] },
   { id: 'yeast',              familyId: 'spices-condiments' as FamilyId, icon: '🍞', aliases: ['yeast', 'droždí', 'kvasnice'] },
   { id: 'sweeteners',         familyId: 'sweet' as FamilyId,             icon: '🍬', aliases: ['sweeteners', 'sladidla', 'med', 'cukr'] },
-  { id: 'spices-herbs',       familyId: 'spices-condiments' as FamilyId, icon: '🌿', aliases: ['spices', 'herbs', 'koření', 'bylinky'] },
+  { id: 'spices-herbs',       familyId: 'spices-condiments' as FamilyId, icon: '🌿', aliases: ['spices', 'herbs', 'koření', 'bylinky', 'chilli', 'pepper', 'paprika-powder', 'kmín', 'caraway'] },
   { id: 'coffee-tea',         familyId: 'drinks' as FamilyId,            icon: '☕', aliases: ['coffee', 'tea', 'káva', 'čaj'] },
 ] as const satisfies readonly AllergenRecord[];
 
@@ -343,3 +343,6 @@ export type CatalogFoodId = typeof FOODS[number]['id'];
 /** CustomFoodId = `other:${string}` — user-typed foods, never a protocol phase */
 export type CustomFoodId = `other:${string}`;
 export type FoodId = CatalogFoodId | CustomFoodId;
+
+/** User-defined custom allergens (e.g. `'other:Paprika'`); never enter a protocol phase. */
+export type CustomAllergenId = `other:${string}`;
