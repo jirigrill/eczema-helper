@@ -50,8 +50,8 @@ The display layer is split into two locations by concern:
   applicable so missing keys fail `tsc`:
   - `phases.ts` — keyed by `PhaseType`; fields: `label`, `badgeLabel`, `description`
   - `portions.ts` — keyed by `PortionKind`
-  - `categories.ts` — `categoryStrings` keyed by `ProtocolAllergenId` (custom
-    allergens have no category metadata) + `subitemStrings` keyed by `SubitemId`
+  - `categories.ts` — `categoryStrings` keyed by `CatalogAllergenId` + `subitemStrings`
+    keyed by `FoodId`-shaped strings
   - `actions.ts` — common verbs (`save`, `edit`, `cancel`, `confirm`, …)
   - `common.ts` — toasts, empty states, form errors, headers, page titles
 - **`src/lib/config/`** — config files that spread from `strings/` and add
