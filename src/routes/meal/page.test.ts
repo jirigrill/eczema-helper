@@ -297,7 +297,7 @@ describe('meal/+page.svelte', () => {
     expect(queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('category sub-item appears in basket with category icon and correct name', async () => {
+  it('category food appears in basket with category icon and correct name', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText } = render(MealPage);
@@ -308,18 +308,18 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(accordionBtn);
     await tick();
 
-    // Click the Jahody category — has sub-items, opens sub-item panel
+    // Click the Jahody allergen — has food twins, opens food panel
     const jahodyCat = getByRole('button', { name: /Jahody/ });
     await fireEvent.click(jahodyCat);
     await tick();
 
-    // Click first sub-item: Čerstvé jahody
-    const subItem = getByRole('button', { name: 'Čerstvé jahody' });
-    await fireEvent.click(subItem);
+    // Click the food: Jahody
+    const foodItem = getByRole('button', { name: 'Jahody' });
+    await fireEvent.click(foodItem);
     await tick();
 
     // Sheet closes, item appears in basket
-    expect(getByText('Čerstvé jahody')).toBeInTheDocument();
+    expect(getByText('Jahody')).toBeInTheDocument();
 
     // Category icon for 'strawberries'
     expect(getByText('🍓')).toBeInTheDocument();
@@ -348,12 +348,12 @@ describe('meal/+page.svelte', () => {
     const { getByRole, getByText } = render(MealPage);
     await tick();
 
-    // Open category sheet, expand dairy (has sub-items), pick Jogurt
+    // Open category sheet, expand dairy (has food twins), pick Kravské mléko
     await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: /Jogurt/ }));
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
     await tick();
 
     // Conflict label "vyřazeno" appears in the basket row
@@ -764,21 +764,21 @@ describe('meal/+page.svelte', () => {
     const { getByRole, getByText } = render(MealPage);
     await tick();
 
-    // Open category sheet, expand dairy, pick Jogurt
+    // Open category sheet, expand dairy, pick Kravské mléko
     await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: /Jogurt/ }));
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
     await tick();
 
     // Conflict toast should appear with the full allergen name from categoryConfig
     expect(getByText(/Mléčné výrobky vyřazeno — odchylka zaznamenána/)).toBeInTheDocument();
   });
 
-  // ── Issue 136: allergen status on sub-item chips ──────────
+  // ── Issue 136: allergen status on food chips ──────────
 
-  it('sub-item chips in an eliminated category have data-state="danger"', async () => {
+  it('food chips in an eliminated allergen have data-state="danger"', async () => {
     setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
@@ -790,12 +790,12 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
     await tick();
 
-    // Every sub-item chip must carry data-state="danger"
-    const jogurtBtn = getByRole('button', { name: /Jogurt/ });
-    expect(jogurtBtn).toHaveAttribute('data-state', 'danger');
+    // Every food chip must carry data-state="danger"
+    const krMlekoBtn = getByRole('button', { name: /Kravské mléko/ });
+    expect(krMlekoBtn).toHaveAttribute('data-state', 'danger');
   });
 
-  it('sub-item chips in a non-eliminated category do NOT have data-state="danger"', async () => {
+  it('food chips in a non-eliminated allergen do NOT have data-state="danger"', async () => {
     setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
@@ -807,11 +807,11 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Jahody/ }));
     await tick();
 
-    const cerstvBtn = getByRole('button', { name: /Čerstvé jahody/ });
-    expect(cerstvBtn).not.toHaveAttribute('data-state', 'danger');
+    const jahodaBtn = getByRole('button', { name: /^Jahody$/ });
+    expect(jahodaBtn).not.toHaveAttribute('data-state', 'danger');
   });
 
-  it('sub-item chips in an eliminated category show Czech "Vyloučeno" label', async () => {
+  it('food chips in an eliminated allergen show Czech "Vyloučeno" label', async () => {
     setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getAllByText } = render(MealPage);
@@ -822,11 +822,11 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
     await tick();
 
-    // At least one "Vyloučeno" label must be visible inside the sub-item panel
+    // At least one "Vyloučeno" label must be visible inside the food panel
     expect(getAllByText('Vyloučeno').length).toBeGreaterThan(0);
   });
 
-  it('sub-item chips in a non-eliminated category do NOT show "Vyloučeno" label', async () => {
+  it('food chips in a non-eliminated allergen do NOT show "Vyloučeno" label', async () => {
     setReadyWithElim();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
@@ -854,7 +854,7 @@ describe('meal/+page.svelte', () => {
 
   it('on mount with a saved slot, basket is pre-populated with its items', async () => {
     const savedItems: MealItem[] = [
-      { id: 'item-1', name: 'Brambory', allergenId: null, subitemId: null, amount: 'portion' },
+      { id: 'item-1', name: 'Brambory', allergenId: null, foodId: null, amount: 'portion' },
     ];
     mockLoadBySlot.mockResolvedValueOnce({
       ok: true,
@@ -938,7 +938,7 @@ describe('meal/+page.svelte', () => {
 
   it('after pill switch, basket shows items from the new slot if it was previously saved', async () => {
     const snidaneItems: MealItem[] = [
-      { id: 'item-2', name: 'Jogurt', allergenId: 'dairy', subitemId: 'dairy:yogurt', amount: 'portion' },
+      { id: 'item-2', name: 'Jogurt', allergenId: 'dairy', foodId: 'kravske-mleko', amount: 'portion' },
     ];
     mockLoadBySlot
       .mockResolvedValueOnce({ ok: true, data: null }) // initial mount: lunch empty

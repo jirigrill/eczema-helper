@@ -15,7 +15,7 @@
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, allergenWordCs } from '$lib/strings/common';
-  import type { ProtocolAllergenId, SubitemId } from '$lib/domain/models';
+  import type { ProtocolAllergenId } from '$lib/domain/models';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import { protocolSession } from '$lib/stores/protocol-session';
@@ -112,7 +112,7 @@
     return slugs.map(s => {
       if (s.startsWith('other:')) return s.slice(6);
       if (s.includes(':')) {
-        return subitemStrings[s as SubitemId] ?? s.split(':')[1];
+        return (subitemStrings as Record<string, string>)[s] ?? s.split(':')[1];
       }
       return categoryStrings[s as ProtocolAllergenId]?.name ?? s;
     }).join(', ');

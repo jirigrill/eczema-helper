@@ -4,10 +4,10 @@
   // ═══════════════════════════════════════════════════════════
   import type { Meal, MealItem, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
-  import { CATEGORIES } from '$lib/data/categories';
+  import { ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { foodStrings } from '$lib/strings/families';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
-  import { subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, polozkaWordCs, reintroDayLabel, conflictToastCs } from '$lib/strings/common';
 
@@ -130,29 +130,30 @@
   }
 
   function toggleCategory(allergenId: string) {
-    const cat = CATEGORIES.find(c => c.allergenId === allergenId);
-    if (!cat) return;
-    if (cat.subItems.length === 0) {
-      addItem({ name: getCategoryConfig(cat.allergenId)?.name ?? cat.allergenId, allergenId });
+    const allergen = ALLERGENS.find(a => a.id === allergenId);
+    if (!allergen) return;
+    const foods = FOODS.filter(f => (f.allergenIds as readonly string[]).includes(allergenId));
+    if (foods.length === 0) {
+      addItem({ name: getCategoryConfig(allergenId)?.name ?? allergenId, allergenId });
       expandedCategory = null;
     } else {
       expandedCategory = expandedCategory === allergenId ? null : allergenId;
     }
   }
 
-  function selectSubItem(allergenId: string, subitemId: string, name: string) {
-    addItem({ name, allergenId, subitemId });
+  function selectFood(allergenId: string, foodId: string, name: string) {
+    addItem({ name, allergenId, foodId });
     closeCategorySheet();
   }
 
-  function addItem(partial: { name: string; allergenId: string | null; subitemId?: string }) {
+  function addItem(partial: { name: string; allergenId: string | null; foodId?: string }) {
     const exists = currentItems.some(i => i.name === partial.name && i.allergenId === partial.allergenId);
     if (exists) return;
     currentItems = [...currentItems, {
       id: crypto.randomUUID(),
       name: partial.name,
       allergenId: partial.allergenId,
-      subitemId: partial.subitemId ?? null,
+      foodId: partial.foodId ?? null,
       amount: selectedAmount,
     }];
     // Show transient conflict toast when the added item is eliminated today
@@ -334,7 +335,7 @@
       >
         <span class="text-text-muted text-xs">▸</span>
         <span class="flex-1 text-sm font-medium text-text text-left">{commonStrings.meal.allCategoriesLabel}</span>
-        <span class="text-xs text-text-muted">{CATEGORIES.length}</span>
+        <span class="text-xs text-text-muted">{ALLERGENS.length}</span>
       </button>
     </div>
 
@@ -501,53 +502,51 @@
       <Button variant="ghost-sm" onclick={closeCategorySheet}>{actionStrings.done}</Button>
     </div>
 
-    <!-- Sub-items panel for an expanded category -->
+    <!-- Foods panel for an expanded allergen -->
     {#if expandedCategory}
-      {@const cat = CATEGORIES.find(c => c.allergenId === expandedCategory)}
-      {#if cat && cat.subItems.length > 0}
-        {@const cfg = getCategoryConfig(cat.allergenId)}
-        {@const isCatElim = eliminatedToday.includes(cat.allergenId)}
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <p class="body-medium">{cfg.icon} {cfg.name}</p>
-            <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>{actionStrings.back}</Button>
-          </div>
-          <div class="flex flex-wrap gap-2 pb-1">
-            {#each cat.subItems as sub}
-              {@const subName = subitemStrings[sub.subitemId as keyof typeof subitemStrings]}
-              {@const inMeal = currentItems.some(i => i.name === subName)}
-              <button
-                data-state={inMeal ? 'success' : isCatElim ? 'danger' : undefined}
-                class="py-2 px-3 rounded-xl text-sm transition-all border
-                  {!inMeal && !isCatElim
-                    ? 'bg-surface text-text border-surface-dark hover:border-primary/30'
-                    : ''}"
-                onclick={() => selectSubItem(cat.allergenId, sub.subitemId, subName)}
-              >
-                {subName}
-                {#if isCatElim && !inMeal}
-                  <span class="ml-1 text-[10px] font-semibold">{commonStrings.meal.eliminatedChipLabel}</span>
-                {/if}
-              </button>
-            {/each}
-          </div>
+      {@const allergenFoods = FOODS.filter(f => (f.allergenIds as readonly string[]).includes(expandedCategory))}
+      {@const cfg = getCategoryConfig(expandedCategory)}
+      {@const isCatElim = eliminatedToday.includes(expandedCategory)}
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <p class="body-medium">{cfg?.icon ?? ''} {cfg?.name ?? expandedCategory}</p>
+          <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>{actionStrings.back}</Button>
         </div>
-      {/if}
+        <div class="flex flex-wrap gap-2 pb-1">
+          {#each allergenFoods as food}
+            {@const foodName = (foodStrings as Record<string, { name: string }>)[food.id]?.name ?? food.id}
+            {@const inMeal = currentItems.some(i => i.name === foodName)}
+            <button
+              data-state={inMeal ? 'success' : isCatElim ? 'danger' : undefined}
+              class="py-2 px-3 rounded-xl text-sm transition-all border
+                {!inMeal && !isCatElim
+                  ? 'bg-surface text-text border-surface-dark hover:border-primary/30'
+                  : ''}"
+              onclick={() => selectFood(expandedCategory, food.id, foodName)}
+            >
+              {foodName}
+              {#if isCatElim && !inMeal}
+                <span class="ml-1 text-[10px] font-semibold">{commonStrings.meal.eliminatedChipLabel}</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      </div>
     {:else}
-      <!-- Full category list inside the sheet -->
+      <!-- Full allergen grid inside the sheet -->
       <div class="grid grid-cols-4 gap-2">
-        {#each CATEGORIES as cat (cat.allergenId)}
-          {@const cfg = getCategoryConfig(cat.allergenId)}
-          {@const inMeal = isCategoryInMeal(cat.allergenId)}
-          {@const isElim = eliminatedToday.includes(cat.allergenId)}
+        {#each ALLERGENS as allergen (allergen.id)}
+          {@const cfg = getCategoryConfig(allergen.id)}
+          {@const inMeal = isCategoryInMeal(allergen.id)}
+          {@const isElim = eliminatedToday.includes(allergen.id)}
           <button
             data-state={inMeal ? 'success' : isElim ? 'danger' : undefined}
             class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
               {!inMeal && !isElim ? 'bg-white border-surface-dark' : ''}"
-            onclick={() => toggleCategory(cat.allergenId)}
+            onclick={() => toggleCategory(allergen.id)}
           >
-            <span class="text-2xl leading-none">{cfg.icon}</span>
-            <span class="leading-tight text-center">{cfg.name}</span>
+            <span class="text-2xl leading-none">{cfg?.icon ?? allergen.icon}</span>
+            <span class="leading-tight text-center">{cfg?.name ?? allergen.id}</span>
             {#if isElim && !inMeal}
               <span class="absolute -top-1 -right-1 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center">!</span>
             {/if}

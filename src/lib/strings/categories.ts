@@ -1,4 +1,4 @@
-import type { CatalogAllergenId, SubitemId } from '$lib/domain/models';
+import type { CatalogAllergenId } from '$lib/domain/models';
 
 export type CategoryStrings = {
   name: string; // full Czech category name shown in grids and lists
@@ -179,4 +179,4 @@ export const subitemStrings = {
   'coffee-tea:coffee':               'Káva',
   'coffee-tea:black-tea':            'Černý čaj',
   'coffee-tea:herbal-tea':           'Bylinkový čaj',
-} as const satisfies Record<SubitemId, string>;
+} as const;

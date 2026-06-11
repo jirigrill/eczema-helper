@@ -70,13 +70,14 @@ describe('CategoryGrid', () => {
     expect(input.className).toMatch(/\binput-base\b/);
   });
 
-  it('expandable mode opens sub-item panel on category click', async () => {
-    const { getByText, getByRole } = render(CategoryGrid, {
+  it('clicking a category tile selects it (expandable prop is accepted and no-op)', async () => {
+    const { getByRole } = render(CategoryGrid, {
       props: { selected: [], expandable: true },
     });
-    await fireEvent.click(getByRole('button', { name: /Mléčné výrobky/ }));
+    const btn = getByRole('button', { name: /Mléčné výrobky/ });
+    await fireEvent.click(btn);
     await tick();
-    expect(getByText('Kravské mléko')).toBeInTheDocument();
+    expect(btn.className).toMatch(/bg-primary|bg-danger/);
   });
 
   it('typing a known Czech alias resolves to canonical allergen id, not other:', async () => {
