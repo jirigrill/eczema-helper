@@ -21,7 +21,7 @@ Prototype-first frontend. Backend, persistence, and AI features are not wired ye
 - `src/lib/domain/` — domain model (`models.ts`) and pure business logic (`schedule.ts`)
 - `src/lib/data/` — seed data (food categories, reintroduction order)
 - `src/lib/utils/` — generic utilities (date, uuid, error)
-- `src/lib/components/` — UI components (prototype's CategoryGrid/EczemaCheck + kept generics)
+- `src/lib/components/` — UI components (FamilyGrid/AllergenDrillIn/EczemaCheck + kept generics)
 - `src/lib/server/` — server-side infra kept for future backend (logger, env, postgres pool, bcrypt, rate-limit, validation, shutdown)
 - `src/lib/crypto/` — AES-256-GCM encryption helpers (Web Crypto)
 - `src/lib/types/` — shared type helpers (`Result<T, E>`)

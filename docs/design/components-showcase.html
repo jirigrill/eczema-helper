@@ -79,7 +79,6 @@
   <a href="#chip">Chip</a>
   <a href="#allergen-chip">AllergenChip</a>
 
-  <a href="#category-grid">CategoryGrid</a>
   <a href="#eczema-check">EczemaCheck</a>
   <a href="#empty-state-card">EmptyStateCard</a>
   <a href="#error-alert">ErrorAlert</a>
@@ -216,87 +215,6 @@
   </div>
 
   <hr class="section-hr">
-
-  <!-- ─── CategoryGrid ─────────────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/CategoryGrid.svelte -->
-  <div class="component-section" id="category-grid">
-    <p class="component-label">▸ <span>CategoryGrid</span> — selected?, disabledSlugs?, variant?, expandable?</p>
-    <div class="variant-row">
-
-      <!-- variant=primary, no selection -->
-      <div class="variant-tile w-phone">
-        <div class="space-y-2">
-          <div class="grid grid-cols-3 gap-2">
-            <!-- unselected -->
-            <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-white border-surface-dark text-text">
-              <span class="text-2xl leading-none">🥛</span><span class="leading-tight text-center">Mléčné výrobky</span>
-            </button>
-            <!-- selected primary -->
-            <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-primary border-primary text-white shadow-sm">
-              <span class="text-2xl leading-none">🥚</span><span class="leading-tight text-center">Vejce</span>
-            </button>
-            <!-- partial primary -->
-            <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-primary/12 border-primary/50 text-primary">
-              <span class="text-2xl leading-none">🌾</span><span class="leading-tight text-center">Pšenice / lepek</span>
-              <span class="text-[10px] font-semibold opacity-80">část</span>
-            </button>
-            <!-- disabled -->
-            <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-surface border-surface-dark text-text-muted opacity-50 cursor-not-allowed" disabled>
-              <span class="text-2xl leading-none">🥜</span><span class="leading-tight text-center">Ořechy</span>
-              <span class="text-[10px] opacity-70">vaše alergie</span>
-            </button>
-            <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-white border-surface-dark text-text">
-              <span class="text-2xl leading-none">🐟</span><span class="leading-tight text-center">Ryby</span>
-            </button>
-            <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-white border-surface-dark text-text">
-              <span class="text-2xl leading-none">🍋</span><span class="leading-tight text-center">Citrusy</span>
-            </button>
-          </div>
-        </div>
-        <p class="variant-name">variant=primary · unselected / selected / partial / disabled</p>
-      </div>
-
-      <!-- variant=danger -->
-      <div class="variant-tile w-phone">
-        <div class="grid grid-cols-3 gap-2">
-          <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-white border-surface-dark text-text">
-            <span class="text-2xl leading-none">🥛</span><span class="leading-tight text-center">Mléčné výrobky</span>
-          </button>
-          <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-danger border-danger text-white shadow-sm">
-            <span class="text-2xl leading-none">🥚</span><span class="leading-tight text-center">Vejce</span>
-          </button>
-          <button class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium min-h-[72px] border bg-danger/12 border-danger/50 text-danger">
-            <span class="text-2xl leading-none">🌾</span><span class="leading-tight text-center">Pšenice / lepek</span>
-            <span class="text-[10px] font-semibold opacity-80">část</span>
-          </button>
-        </div>
-        <p class="variant-name">variant=danger · unselected / selected / partial</p>
-      </div>
-
-      <!-- custom allergen section -->
-      <div class="variant-tile w-card">
-        <div class="rounded-xl border border-dashed border-surface-dark bg-white p-3 space-y-2">
-          <p class="text-xs font-medium text-text-muted">Vlastní alergen</p>
-          <div class="flex flex-wrap gap-1.5">
-            <span class="inline-flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 font-medium bg-primary/10 text-primary">
-              <span class="text-sm leading-none">🧄</span>Česnek
-              <button class="opacity-60 ml-0.5">×</button>
-            </span>
-            <span class="inline-flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 font-medium bg-primary/10 text-primary">
-              <span class="text-sm leading-none">🌿</span>Petržel
-              <button class="opacity-60 ml-0.5">×</button>
-            </span>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" placeholder="Např. Cibule, Mrkev…" class="flex-1 rounded-xl border border-surface-dark px-3 py-2 text-sm text-text focus:outline-none bg-surface">
-            <button class="px-4 py-2 rounded-xl text-sm font-medium bg-surface-dark text-text-muted opacity-50 cursor-not-allowed">Přidat</button>
-          </div>
-        </div>
-        <p class="variant-name">custom allergen section</p>
-      </div>
-
-    </div>
-  </div>
 
   <hr class="section-hr">
 
