@@ -1,11 +1,11 @@
 <script lang="ts">
   // ═══════════════════════════════════════════════════════════
-  // V2 Prototype — Meal Logging with conflict detection
+  // Variant A — family grid → drill-in → in-meal list
   // ═══════════════════════════════════════════════════════════
   import type { Meal, MealItem, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
-  import { foodStrings } from '$lib/strings/families';
+  import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
@@ -21,8 +21,9 @@
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
-  import Button from '$lib/components/Button.svelte';
   import Chip from '$lib/components/Chip.svelte';
+  import FamilyGrid from '$lib/components/FamilyGrid.svelte';
+  import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -30,10 +31,10 @@
   import { mealSession } from '$lib/stores/meal-session';
   import { matchAllergen } from '$lib/domain/allergen-matcher';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-
-  const mealCatalog = new BundledCatalogAdapter();
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
+
+  const mealCatalog = new BundledCatalogAdapter();
 
   let meals = $state<Meal[]>([]);
 
@@ -47,11 +48,11 @@
   const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
   const reintroInfo = $derived(ctx?.reintroInfo ?? null);
 
-  // ── Conflict toast (replaces always-visible conflict banner) ──
+  // ── Conflict toast ─────────────────────────────────────────
   let conflictToastMessage = $state<string | null>(null);
   let conflictToastTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Autosave toast (shown after silent pill-switch save) ───
+  // ── Autosave toast ─────────────────────────────────────────
   let autosaveToastMessage = $state<string | null>(null);
   let autosaveToastTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
@@ -63,13 +64,14 @@
   }
   let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
   let selectedAmount = $state<PortionKind>('portion');
-  let expandedCategory = $state<string | null>(null);
   let expandedItemId = $state<string | null>(null);
-  let categorySheetOpen = $state(false);
   let currentItems = $state<MealItem[]>([]);
   let mealNotes = $state('');
   let showSuccess = $state(false);
   let customName = $state('');
+
+  // ── View state: null = family grid, FamilyId = drill-in ───
+  let drilledFamily = $state<FamilyId | null>(null);
 
   // ── Slot loading ──────────────────────────────────────────
   async function loadSlot(mealType: typeof selectedMealType): Promise<void> {
@@ -122,32 +124,28 @@
     return mealCatalog.allergensForFood(item.foodId).some(t => eliminatedToday.includes(t));
   }
 
-  // ── Category interactions ─────────────────────────────────
-  function openCategorySheet() {
-    categorySheetOpen = true;
-  }
+  // ── Family grid helpers ───────────────────────────────────
+  /** FamilyIds that have at least one item currently in the meal */
+  const activeFamilyIds = $derived(
+    currentItems.flatMap(item => {
+      const food = FOODS.find(f => f.id === item.foodId);
+      return food ? [food.familyId as FamilyId] : [];
+    }).filter((v, i, a) => a.indexOf(v) === i)
+  );
 
-  function closeCategorySheet() {
-    categorySheetOpen = false;
-    expandedCategory = null;
-  }
+  /** FamilyIds that contain at least one eliminated allergen */
+  const eliminatedFamilyIds = $derived(
+    eliminatedToday.flatMap(allergenId => {
+      const allergen = ALLERGENS.find(a => a.id === allergenId);
+      return allergen ? [allergen.familyId as FamilyId] : [];
+    }).filter((v, i, a) => a.indexOf(v) === i)
+  );
 
-  function toggleCategory(allergenId: string) {
-    const allergen = ALLERGENS.find(a => a.id === allergenId);
-    if (!allergen) return;
-    const foods = FOODS.filter(f => (f.allergenIds as readonly string[]).includes(allergenId));
-    if (foods.length === 0) {
-      addItem({ name: getCategoryConfig(allergenId)?.name ?? allergenId, foodId: `other:${allergenId}` });
-      expandedCategory = null;
-    } else {
-      expandedCategory = expandedCategory === allergenId ? null : allergenId;
-    }
-  }
+  /** AllergenIds eliminated today, for passing down to drill-in */
+  const eliminatedAllergenIdStrings = $derived(eliminatedToday.map(String));
 
-  function selectFood(allergenId: string, foodId: string, name: string) {
-    addItem({ name, foodId });
-    closeCategorySheet();
-  }
+  /** FoodIds currently in the meal, for passing down to drill-in */
+  const inMealFoodIds = $derived(currentItems.map(i => i.foodId));
 
   function addItem(partial: { name: string; foodId: string }) {
     const exists = currentItems.some(i => i.name === partial.name && i.foodId === partial.foodId);
@@ -158,7 +156,6 @@
       foodId: partial.foodId as MealItem['foodId'],
       amount: selectedAmount,
     }];
-    // Show transient conflict toast when the added item is eliminated today
     const triggers = mealCatalog.allergensForFood(partial.foodId);
     const conflictTrigger = triggers.find(t => eliminatedToday.includes(t));
     if (conflictTrigger) {
@@ -167,6 +164,19 @@
       if (conflictToastTimer) clearTimeout(conflictToastTimer);
       conflictToastTimer = setTimeout(() => { conflictToastMessage = null; }, 3000);
     }
+  }
+
+  function handleFamilySelect(familyId: FamilyId) {
+    drilledFamily = familyId;
+  }
+
+  function handleDrillBack() {
+    drilledFamily = null;
+  }
+
+  function handleAddFood(foodId: string, name: string) {
+    addItem({ name, foodId });
+    // Don't auto-close drill-in — let user keep adding from same family
   }
 
   function addCustom() {
@@ -215,59 +225,51 @@
   }
 
   function updateAmount(id: string, amount: PortionKind): void {
-    // amount is required — no toggle-to-undefined; tapping active chip is a no-op
     currentItems = currentItems.map(i => i.id === id ? { ...i, amount } : i);
   }
 
   function updatePreparation(id: string, method: PreparationMethod): void {
-    // toggle: tapping the active chip clears preparationMethod back to undefined
     currentItems = currentItems.map(i =>
       i.id === id ? { ...i, preparationMethod: i.preparationMethod === method ? undefined : method } : i
     );
   }
 
   async function saveMeal() {
-    if (currentItems.length === 0) return; // guard for aria-disabled CTA
+    if (currentItems.length === 0) return;
     const meal: Meal = {
       id: `${targetDate}:${selectedMealType}`,
       date: targetDate,
       mealType: selectedMealType,
       actor: 'mother',
-      // $state.snapshot strips Svelte 5 Proxy wrappers → plain JS object
-      // that IndexedDB's Structured Clone Algorithm can serialize.
       items: $state.snapshot(currentItems),
       notes: mealNotes.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
     await mealSession.save(meal);
-    meals = [...meals, meal]; // keep in-page list live while still on this screen
+    meals = [...meals, meal];
 
     currentItems = [];
     mealNotes = '';
-    expandedCategory = null;
+    drilledFamily = null;
     showSuccess = true;
     setTimeout(() => (showSuccess = false), 5000);
     goto(returnTo);
   }
 
   const todayMeals = $derived(meals.filter(m => m.date === targetDate));
-
-  function isCategoryInMeal(allergenId: string): boolean {
-    return currentItems.some(i => mealCatalog.allergensForFood(i.foodId).includes(allergenId));
-  }
 </script>
 
 <div class="page-container pb-24">
 
-  <!-- Sticky header: title row + meal type pills + banners -->
+  <!-- Sticky header -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <PageHeader title={commonStrings.meal.heading} onBack={() => goto(returnTo)}>
+    <PageHeader title={commonStrings.meal.heading} onBack={() => drilledFamily ? handleDrillBack() : goto(returnTo)}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(targetDate)}</p>
       {/snippet}
     </PageHeader>
 
-    <!-- Meal type pills (text-only, rounded-full) -->
+    <!-- Meal type pills -->
     <div class="flex gap-1.5 px-4 pb-3">
       {#each mealTypes as type}
         <Chip active={selectedMealType === type} onclick={() => selectMealType(type)} class="flex-1">
@@ -290,7 +292,7 @@
       </div>
     {/if}
 
-    <!-- Schedule context banner (tappable → schedule) -->
+    <!-- Schedule context banner -->
     {#if eliminatedToday.length > 0}
       <div class="px-4 pt-2 pb-3">
         <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
@@ -332,28 +334,44 @@
       </div>
     </div>
 
-    <!-- Conflict warning is now a transient toast (shown via conflictToastMessage below) -->
-
-    <!-- Categories accordion (collapsed by default, opens bottom sheet) -->
+    <!-- A1/A2: Family grid or drill-in -->
     <div>
-      <button
-        class="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white border border-surface-dark"
-        onclick={openCategorySheet}
-      >
-        <span class="text-text-muted text-xs">▸</span>
-        <span class="flex-1 text-sm font-medium text-text text-left">{commonStrings.meal.allCategoriesLabel}</span>
-        <span class="text-xs text-text-muted">{ALLERGENS.length}</span>
-      </button>
+      {#if drilledFamily}
+        <!-- A2 — drill-in view -->
+        <FamilyDrillIn
+          familyId={drilledFamily}
+          {inMealFoodIds}
+          eliminatedAllergenIds={eliminatedAllergenIdStrings}
+          onAddFood={handleAddFood}
+          onBack={handleDrillBack}
+        />
+        <div class="mt-3">
+          <button
+            type="button"
+            class="text-sm text-primary font-medium"
+            onclick={handleDrillBack}
+          >
+            ← {actionStrings.browseFamilies}
+          </button>
+        </div>
+      {:else}
+        <!-- A1 — family grid -->
+        <p class="micro-label mb-2">{commonStrings.meal.allCategoriesLabel}</p>
+        <FamilyGrid
+          onSelect={handleFamilySelect}
+          {activeFamilyIds}
+          {eliminatedFamilyIds}
+        />
+      {/if}
     </div>
 
-    <!-- "V tomto jídle" basket — always rendered -->
+    <!-- A3: "V tomto jídle" running list -->
     <div>
       <p class="micro-label mb-2">
         {commonStrings.meal.inThisMealLabel}
       </p>
 
       {#if currentItems.length === 0}
-        <!-- Empty state -->
         <div class="border border-dashed border-surface-dark rounded-xl px-4 py-5 text-center">
           <p class="text-xs text-text-muted">{commonStrings.meal.basketEmptyHint}</p>
         </div>
@@ -362,7 +380,6 @@
           {#each currentItems as item (item.id)}
             {@const conflict = isConflictItem(item)}
             {@const expanded = expandedItemId === item.id}
-            <!-- Outer div is the primary tap target for expand/collapse -->
             <div
               data-testid="basket-item"
               data-state={conflict ? 'warning' : undefined}
@@ -378,9 +395,7 @@
               onclick={() => toggleExpandItem(item.id)}
               onkeydown={(e) => e.key === 'Enter' && toggleExpandItem(item.id)}
             >
-              <!-- Header row (visual only — interaction is on outer div) -->
               <div data-testid="basket-item-header" class="flex items-center gap-3 py-2.5 px-3">
-                <!-- Icon -->
                 <span class="text-lg shrink-0">
                   {#if mealCatalog.allergensForFood(item.foodId)[0]}
                     {getCategoryConfig(mealCatalog.allergensForFood(item.foodId)[0])?.icon ?? '🍽️'}
@@ -389,7 +404,6 @@
                   {/if}
                 </span>
 
-                <!-- Name + subtitle / hint -->
                 <div class="flex-1 min-w-0">
                   <p class="text-[12px] font-semibold leading-tight truncate">{item.name}</p>
                   {#if conflict}
@@ -401,7 +415,6 @@
                   {/if}
                 </div>
 
-                <!-- Remove — stops propagation so it doesn't toggle expand -->
                 <button
                   class="text-text-muted text-sm shrink-0 px-1"
                   aria-label="✕"
@@ -409,10 +422,8 @@
                 >✕</button>
               </div>
 
-              <!-- Expanded chip panel -->
               {#if expanded}
                 <div class="px-3 pb-3 space-y-2.5">
-                  <!-- Množství chips -->
                   <div>
                     <p class="micro-label mb-1.5">Množství</p>
                     <div class="flex flex-wrap gap-1.5">
@@ -427,7 +438,6 @@
                     </div>
                   </div>
 
-                  <!-- Příprava chips -->
                   <div>
                     <p class="micro-label mb-1.5">Příprava</p>
                     <div class="flex flex-wrap gap-1.5">
@@ -478,7 +488,7 @@
       </div>
     {/if}
 
-    <!-- Notes textarea — progressive disclosure: only when basket non-empty -->
+    <!-- Notes (progressive disclosure) -->
     {#if currentItems.length > 0}
       <div>
         <label class="field-label block mb-1" for="meal-notes">
@@ -496,84 +506,7 @@
   </div>
 </div>
 
-<!-- Category bottom sheet -->
-{#if categorySheetOpen}
-  <button
-    class="fixed inset-0 z-40"
-    onclick={closeCategorySheet}
-    aria-label={actionStrings.close}
-  ></button>
-  <div
-    role="dialog"
-    aria-modal="true"
-    aria-label={commonStrings.meal.allCategoriesLabel}
-    class="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-surface-dark shadow-lg px-4 pt-4 space-y-3"
-    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
-  >
-    <div class="flex items-center justify-between mb-2">
-      <p class="body-medium">{commonStrings.meal.allCategoriesLabel}</p>
-      <Button variant="ghost-sm" onclick={closeCategorySheet}>{actionStrings.done}</Button>
-    </div>
-
-    <!-- Foods panel for an expanded allergen -->
-    {#if expandedCategory}
-      {@const allergenFoods = FOODS.filter(f => (f.allergenIds as readonly string[]).includes(expandedCategory))}
-      {@const cfg = getCategoryConfig(expandedCategory)}
-      {@const isCatElim = eliminatedToday.includes(expandedCategory)}
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <p class="body-medium">{cfg?.icon ?? ''} {cfg?.name ?? expandedCategory}</p>
-          <Button variant="ghost-sm" onclick={() => (expandedCategory = null)}>{actionStrings.back}</Button>
-        </div>
-        <div class="flex flex-wrap gap-2 pb-1">
-          {#each allergenFoods as food}
-            {@const foodName = (foodStrings as Record<string, { name: string }>)[food.id]?.name ?? food.id}
-            {@const inMeal = currentItems.some(i => i.name === foodName)}
-            <button
-              data-state={inMeal ? 'success' : isCatElim ? 'danger' : undefined}
-              class="py-2 px-3 rounded-xl text-sm transition-all border
-                {!inMeal && !isCatElim
-                  ? 'bg-surface text-text border-surface-dark hover:border-primary/30'
-                  : ''}"
-              onclick={() => selectFood(expandedCategory, food.id, foodName)}
-            >
-              {foodName}
-              {#if isCatElim && !inMeal}
-                <span class="ml-1 text-[10px] font-semibold">{commonStrings.meal.eliminatedChipLabel}</span>
-              {/if}
-            </button>
-          {/each}
-        </div>
-      </div>
-    {:else}
-      <!-- Full allergen grid inside the sheet -->
-      <div class="grid grid-cols-4 gap-2">
-        {#each ALLERGENS as allergen (allergen.id)}
-          {@const cfg = getCategoryConfig(allergen.id)}
-          {@const inMeal = isCategoryInMeal(allergen.id)}
-          {@const isElim = eliminatedToday.includes(allergen.id)}
-          <button
-            data-state={inMeal ? 'success' : isElim ? 'danger' : undefined}
-            class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
-              {!inMeal && !isElim ? 'bg-white border-surface-dark' : ''}"
-            onclick={() => toggleCategory(allergen.id)}
-          >
-            <span class="text-2xl leading-none">{cfg?.icon ?? allergen.icon}</span>
-            <span class="leading-tight text-center">{cfg?.name ?? allergen.id}</span>
-            {#if isElim && !inMeal}
-              <span class="absolute -top-1 -right-1 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center">!</span>
-            {/if}
-            {#if inMeal}
-              <span class="absolute -top-1 -right-1 text-[10px] bg-success text-white rounded-full w-4 h-4 flex items-center justify-center">✓</span>
-            {/if}
-          </button>
-        {/each}
-      </div>
-    {/if}
-  </div>
-{/if}
-
-<!-- Sticky CTA — always rendered; aria-disabled when basket is empty -->
+<!-- Sticky CTA -->
 <div
   class="fixed left-0 right-0 bottom-0 z-30 px-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent"
   style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"

@@ -25,6 +25,7 @@ export const actionStrings = {
   restart:            'Restartovat dotazník',
   saveWithConflict:   '⚠ Uložit s odchylkou',
   editSchedule:       'Upravit program',
+  browseFamilies:     'Procházet rodiny',
 
   /** Onboarding skip / no-selection buttons */
   noAllergy:          'Nemám žádnou alergii',
