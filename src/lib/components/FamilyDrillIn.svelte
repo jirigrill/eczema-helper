@@ -12,12 +12,15 @@
     familyId,
     inMealFoodIds = [],
     eliminatedAllergenIds = [],
+    customFoods = [],
     onAddFood,
     onBack,
   }: {
     familyId: FamilyId;
     inMealFoodIds?: string[];
     eliminatedAllergenIds?: string[];
+    /** Previously-typed custom foods to surface for re-logging (Vlastní family). */
+    customFoods?: { foodId: string; name: string }[];
     onAddFood: (foodId: string, name: string) => void;
     onBack: () => void;
   } = $props();
@@ -32,6 +35,10 @@
 
   // Loose foods: no allergenId
   const looseFoods = $derived(familyFoods.filter(f => f.allergenIds.length === 0));
+
+  // Nothing to show at all — only happens for the custom (Vlastní) family
+  // before any custom food has been typed.
+  const isEmpty = $derived(familyFoods.length === 0 && customFoods.length === 0);
 
   function nameFor(foodId: string): string {
     return (foodStrings as Record<string, { name: string }>)[foodId]?.name ?? foodId;
@@ -120,6 +127,40 @@
             {name}
           </button>
         {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Previously-typed custom foods (Vlastní family) -->
+  {#if customFoods.length > 0}
+    <div class="px-4 space-y-2">
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{commonStrings.meal.customFoodsLabel}</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {#each customFoods as food (food.foodId)}
+          {@const state = stateFor(food.foodId)}
+          <button
+            type="button"
+            data-state={state}
+            class="py-2 px-3 rounded-xl text-sm transition-all border
+              {state === 'success'
+                ? 'bg-success/10 border-success/30 text-success'
+                : 'bg-surface border-surface-dark text-text'}"
+            onclick={() => onAddFood(food.foodId, food.name)}
+          >
+            {food.name}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Empty state — custom family with nothing typed yet -->
+  {#if isEmpty}
+    <div class="px-4">
+      <div class="border border-dashed border-surface-dark rounded-xl px-4 py-5 text-center">
+        <p class="text-xs text-text-muted">{commonStrings.meal.customFamilyEmptyHint}</p>
       </div>
     </div>
   {/if}

@@ -158,6 +158,8 @@ export const commonStrings = {
     notesLabelPrefix:     'Poznámka k',
     notesPlaceholder:     'Poznámka (volitelné, např. u babičky)',
     browseFamiliesLabel:  'Procházet rodiny',
+    customFoodsLabel:     'Dříve zadané',
+    customFamilyEmptyHint:'Zatím žádné vlastní potraviny. Napište potravinu výše.',
   },
 
   // ── Program page ──────────────────────────────────────────
