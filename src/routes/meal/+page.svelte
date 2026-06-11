@@ -148,6 +148,20 @@
   /** FoodIds currently in the meal, for passing down to drill-in */
   const inMealFoodIds = $derived(currentItems.map(i => i.foodId));
 
+  /**
+   * Previously-typed custom foods, surfaced under the Vlastní tile for quick
+   * re-logging. Sourced from the harvest-candidate store (deduped by normalized
+   * key); the re-log FoodId is the same `other:${normalizedKey}` addCustom mints.
+   */
+  const customFoods = $derived(
+    [...$harvestCandidateSession]
+      .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+      .map(c => ({
+        foodId: `other:${c.normalizedKey}`,
+        name: c.rawForms[c.rawForms.length - 1] ?? c.normalizedKey,
+      }))
+  );
+
   function addItem(partial: { name: string; foodId: string }) {
     const exists = currentItems.some(i => i.name === partial.name && i.foodId === partial.foodId);
     if (exists) return;
@@ -344,6 +358,7 @@
           familyId={drilledFamily}
           {inMealFoodIds}
           eliminatedAllergenIds={eliminatedAllergenIdStrings}
+          customFoods={drilledFamily === 'custom' ? customFoods : []}
           onAddFood={handleAddFood}
           onBack={handleDrillBack}
         />

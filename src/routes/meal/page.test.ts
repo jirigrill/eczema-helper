@@ -32,9 +32,10 @@ vi.mock('$app/state', () => ({ page: mockPage }));
 // ── Harvest candidate session mock (issue #229) ───────────────────────────────
 const mockHarvestReadByKey = vi.fn().mockResolvedValue({ ok: true, data: null });
 const mockHarvestUpsert = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+const mockHarvestStore = writable<import('$lib/domain/harvest-candidate').HarvestCandidate[]>([]);
 vi.mock('$lib/stores/harvest-candidate-session', () => ({
   harvestCandidateSession: {
-    subscribe: writable([]).subscribe,
+    subscribe: mockHarvestStore.subscribe,
     readByKey: (...args: unknown[]) => mockHarvestReadByKey(...args),
     upsert: (...args: unknown[]) => mockHarvestUpsert(...args),
   },
@@ -119,6 +120,7 @@ beforeEach(() => {
   mockHarvestReadByKey.mockClear();
   mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
   mockHarvestUpsert.mockClear();
+  mockHarvestStore.set([]);
 });
 
 describe('meal/+page.svelte', () => {
@@ -226,6 +228,39 @@ describe('meal/+page.svelte', () => {
 
     // Drill-in back button now visible (inline, not a dialog)
     expect(queryByRole('button', { name: 'Zpět' })).toBeInTheDocument();
+  });
+
+  it('Vlastní family drill-in lists previously-typed custom foods for re-logging (issue #229)', async () => {
+    setReady();
+    mockHarvestStore.set([
+      {
+        normalizedKey: 'kokos',
+        status: 'pending',
+        count: 1,
+        firstSeen: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        rawForms: ['Kokos'],
+      },
+    ]);
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByRole } = render(MealPage);
+    await tick();
+
+    // Kokos is not on screen until we drill into Vlastní
+    expect(queryByRole('button', { name: /^Kokos$/ })).not.toBeInTheDocument();
+
+    // Tap the Vlastní family tile
+    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
+    await tick();
+
+    // The previously-typed custom food is offered for re-logging
+    const kokos = getByRole('button', { name: /^Kokos$/ });
+    expect(kokos).toBeInTheDocument();
+
+    // Re-logging it adds an in-meal row (its other: foodId, no harvest re-capture)
+    await fireEvent.click(kokos);
+    await tick();
+    expect(mockHarvestUpsert).not.toHaveBeenCalled();
   });
 
   it('renders Hotovo button even when no items are in the meal', async () => {

@@ -80,3 +80,51 @@ describe('FamilyDrillIn — fruit family', () => {
     expect(btn.dataset.state).toBe('success');
   });
 });
+
+// The custom (Vlastní) family has no catalog foods — it surfaces
+// previously-typed custom foods passed via the customFoods prop.
+describe('FamilyDrillIn — custom (Vlastní) family', () => {
+  const baseProps = {
+    familyId: 'custom' as const,
+    inMealFoodIds: [] as string[],
+    eliminatedAllergenIds: [] as string[],
+    onAddFood: vi.fn(),
+    onBack: vi.fn(),
+  };
+
+  it('lists previously-typed custom foods for re-logging', () => {
+    const { getByRole } = render(FamilyDrillIn, {
+      props: {
+        ...baseProps,
+        customFoods: [
+          { foodId: 'other:kokos', name: 'Kokos' },
+          { foodId: 'other:quinoa', name: 'Quinoa' },
+        ],
+      },
+    });
+    expect(getByRole('button', { name: /Kokos/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Quinoa/ })).toBeInTheDocument();
+  });
+
+  it('re-logs a custom food with its other: foodId and name', async () => {
+    const onAddFood = vi.fn();
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...baseProps, onAddFood, customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
+    });
+    await fireEvent.click(getByRole('button', { name: /Kokos/ }));
+    await tick();
+    expect(onAddFood).toHaveBeenCalledWith('other:kokos', 'Kokos');
+  });
+
+  it('marks an in-meal custom food with data-state="success"', () => {
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...baseProps, inMealFoodIds: ['other:kokos'], customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
+    });
+    expect(getByRole('button', { name: /Kokos/ }).dataset.state).toBe('success');
+  });
+
+  it('shows the empty hint when no custom foods exist yet', () => {
+    const { getByText } = render(FamilyDrillIn, { props: { ...baseProps, customFoods: [] } });
+    expect(getByText(/Zatím žádné vlastní potraviny/)).toBeInTheDocument();
+  });
+});

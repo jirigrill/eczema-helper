@@ -973,8 +973,8 @@
   <!-- ─── FamilyDrillIn ───────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
   <div class="component-section" id="family-drill-in">
-    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, inMealFoodIds?: string[], eliminatedAllergenIds?: string[], onAddFood: (foodId, name) => void, onBack: () => void</p>
-    <p class="component-desc">Drill-in view for a single family. Foods grouped by allergenId (allergen header + food chips). Loose foods (allergenIds=[]) shown under "bez alergenu". States: neutral, success (in meal), danger (allergen eliminated). onBack returns to FamilyGrid.</p>
+    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, inMealFoodIds?: string[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onAddFood: (foodId, name) => void, onBack: () => void</p>
+    <p class="component-desc">Drill-in view for a single family. Foods grouped by allergenId (allergen header + food chips). Loose foods (allergenIds=[]) shown under "bez alergenu". States: neutral, success (in meal), danger (allergen eliminated). The Vlastní (custom) family lists previously-typed custom foods passed via customFoods under "Dříve zadané", or an empty hint when none exist. onBack returns to FamilyGrid.</p>
     <div class="variant-grid">
 
       <!-- Fruit family: allergen groups + loose foods -->
@@ -1034,6 +1034,42 @@
           <button style="font-size:13px;color:#8B4557;font-weight:500">← Procházet rodiny</button>
         </div>
         <p class="variant-name">familyId='dairy', eliminatedAllergenIds=['dairy']</p>
+      </div>
+
+      <!-- Custom (Vlastní) family: previously-typed customs -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">➕ Vlastní</span>
+          </div>
+          <!-- Previously-typed customs -->
+          <div>
+            <div style="margin-bottom:8px">
+              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Dříve zadané</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Kokos</button>
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Quinoa</button>
+            </div>
+          </div>
+          <button style="font-size:13px;color:#8B4557;font-weight:500;margin-top:12px">← Procházet rodiny</button>
+        </div>
+        <p class="variant-name">familyId='custom', customFoods=[…]</p>
+      </div>
+
+      <!-- Custom (Vlastní) family: empty -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">➕ Vlastní</span>
+          </div>
+          <div style="border:1px dashed #EDE8E9;border-radius:12px;padding:20px 16px;text-align:center">
+            <p style="font-size:12px;color:#7A6468">Zatím žádné vlastní potraviny. Napište potravinu výše.</p>
+          </div>
+        </div>
+        <p class="variant-name">familyId='custom', customFoods=[]</p>
       </div>
 
     </div>
