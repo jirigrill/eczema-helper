@@ -301,8 +301,8 @@ export const FOODS = [
   { id: 'kiwi',              familyId: 'fruit' as FamilyId,       allergenIds: []                },
   { id: 'mango',             familyId: 'fruit' as FamilyId,       allergenIds: []                },
   // Meat
-  { id: 'kureci-prsa',       familyId: 'meat' as FamilyId,        allergenIds: []                },
-  { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: []                },
+  { id: 'kureci',            familyId: 'meat' as FamilyId,        allergenIds: ['eggs']                },
+  { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy']                },
   { id: 'veprovka',          familyId: 'meat' as FamilyId,        allergenIds: []                },
   { id: 'kruti',             familyId: 'meat' as FamilyId,        allergenIds: []                },
   { id: 'jehnneci',          familyId: 'meat' as FamilyId,        allergenIds: []                },

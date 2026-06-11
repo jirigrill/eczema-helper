@@ -70,7 +70,7 @@ export const foodStrings = {
   banan:               { name: 'Banán'                  },
   kiwi:                { name: 'Kiwi'                   },
   mango:               { name: 'Mango'                  },
-  'kureci-prsa':       { name: 'Kuřecí prsa'            },
+  'kureci':            { name: 'Kuřecí'            },
   hovezi:              { name: 'Hovězí'                 },
   veprovka:            { name: 'Vepřová panenka'        },
   kruti:               { name: 'Krůtí'                  },

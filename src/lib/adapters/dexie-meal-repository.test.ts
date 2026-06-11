@@ -213,7 +213,7 @@ describe('DexieMealRepository', () => {
   });
 
   it('re-saving with changed preparationMethod reflects new value', async () => {
-    const base = { id: 'item-1', name: 'Kuře', foodId: 'kureci-prsa', amount: 'portion' } as const;
+    const base = { id: 'item-1', name: 'Kuře', foodId: 'kureci', amount: 'portion' } as const;
     await repo.save(makeMeal('2026-05-27', 'lunch', {
       items: [{ ...base, preparationMethod: 'boiled' }],
     }));
