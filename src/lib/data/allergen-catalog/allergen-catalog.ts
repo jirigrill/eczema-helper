@@ -269,13 +269,13 @@ export const FOODS = [
   { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
   { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish']     },
   // ── Divergent placements (§3b) ───────────────────────────
-  { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy']           },
+  { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          aliases: ['sójové mléko', 'sojove mleko', 'soya milk'] },
   { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: []                },
   // ── Composite food (§3c) ─────────────────────────────────
-  { id: 'hummus',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes', 'sesame'] },
+  { id: 'hummus',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes', 'sesame'], aliases: ['hummus', 'homus'] },
   // ── Loose everyday foods (§3d) ───────────────────────────
   // Grains
-  { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: []                },
+  { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               aliases: ['rýže', 'ryze', 'rice'] },
   { id: 'pohanka',           familyId: 'grains' as FamilyId,      allergenIds: []                },
   { id: 'ovesne-vlocky',     familyId: 'grains' as FamilyId,      allergenIds: []                },
   { id: 'proso-jahly',       familyId: 'grains' as FamilyId,      allergenIds: []                },

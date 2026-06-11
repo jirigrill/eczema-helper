@@ -79,9 +79,11 @@ export function detectConflicts(
   items: MealItem[],
   eliminatedSlugs: AllergenId[]
 ): MealItem[] {
-  return items.filter(
-    item => item.allergenId !== null && eliminatedSlugs.includes(item.allergenId)
-  );
+  if (eliminatedSlugs.length === 0) return [];
+  return items.filter(item => {
+    const triggers = catalog.allergensForFood(item.foodId);
+    return triggers.some(t => eliminatedSlugs.includes(t as AllergenId));
+  });
 }
 
 // ── Reintroduction day info ───────────────────────────────────

@@ -5,7 +5,7 @@
   import { actionStrings } from '$lib/strings/actions';
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
-  import { getCategoryConfig } from '$lib/config/categories';
+  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import DayCard from './DayCard.svelte';
 
   let {
@@ -18,6 +18,7 @@
     eliminatedToday: string[];
   } = $props();
 
+  const catalog = new BundledCatalogAdapter();
   const mealTypeOrder = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
 
   const mealsSorted = $derived(
@@ -46,15 +47,15 @@
           </div>
           <div class="flex flex-wrap gap-1">
             {#each meal.items as item}
-              {@const isConflict =
-                item.allergenId !== null && eliminatedToday.includes(item.allergenId)}
+              {@const triggers = catalog.allergensForFood(item.foodId)}
+              {@const isConflict = triggers.some(t => eliminatedToday.includes(t))}
               <span
                 data-conflict={isConflict ? 'true' : undefined}
                 class="text-xs rounded-full px-2 py-0.5 {isConflict
                   ? 'bg-warning/10 text-warning'
                   : 'bg-surface text-text'}"
               >
-                {getCategoryConfig(item.allergenId ?? '')?.icon ?? ''}{item.name}
+                {item.name}
                 <span class="text-text-muted"> {portionStrings[item.amount].short}</span>
               </span>
             {/each}

@@ -411,13 +411,13 @@ function trainingSchedule(startDate: string): GeneratedSchedule {
   };
 }
 
-function meal(date: string, allergenId: string | null = 'dairy'): Meal {
+function meal(date: string, foodId: string = 'kravske-mleko'): Meal {
   return {
     id: `${date}:lunch`,
     date,
     mealType: 'lunch',
     actor: 'mother',
-    items: [{ id: 'item-1', name: 'Mléko', allergenId: allergenId as never, amount: 'portion' }],
+    items: [{ id: 'item-1', name: 'Mléko', foodId: foodId as never, amount: 'portion' }],
     createdAt: `${date}T12:00:00.000Z`,
   };
 }
@@ -490,8 +490,8 @@ describe('getToleranceBuildingRemindersForDate', () => {
 
   it('only counts meals whose items contain the training allergenId', () => {
     const schedule = trainingSchedule('2026-05-20');
-    // Meal with eggs, not dairy — should not count as a dairy dose
-    const meals = [meal('2026-05-20', 'eggs')];
+    // Meal with vejce (eggs food twin), not dairy — should not count as a dairy dose
+    const meals = [meal('2026-05-20', 'vejce')];
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals);
     expect(reminders[0].daysSinceLastDose).toBe(999);
   });

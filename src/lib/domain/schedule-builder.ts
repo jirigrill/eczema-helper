@@ -10,6 +10,9 @@ import {
   TRAINING_REMINDER_THRESHOLD_DAYS,
   NEVER_DOSED_SENTINEL_DAYS,
 } from '$lib/domain/policy';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+
+const builderCatalog = new BundledCatalogAdapter();
 
 // ── Re-test eligibility rejection ────────────────────────────
 
@@ -331,7 +334,7 @@ export function getToleranceBuildingRemindersForDate(
     const allergenId = phase.allergenIds[0];
 
     const relevantMeals = meals
-      .filter(m => m.date <= date && m.items.some(i => i.allergenId === allergenId))
+      .filter(m => m.date <= date && m.items.some(i => builderCatalog.allergensForFood(i.foodId).includes(allergenId)))
       .sort((a, b) => b.date.localeCompare(a.date));
 
     const lastDate = relevantMeals[0]?.date;

@@ -29,6 +29,9 @@
   import { onMount } from 'svelte';
   import { mealSession } from '$lib/stores/meal-session';
   import { matchAllergen } from '$lib/domain/allergen-matcher';
+  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+
+  const mealCatalog = new BundledCatalogAdapter();
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
 
@@ -116,7 +119,7 @@
   const hasConflicts = $derived(conflicts.length > 0);
 
   function isConflictItem(item: MealItem): boolean {
-    return item.allergenId !== null && eliminatedToday.includes(item.allergenId);
+    return mealCatalog.allergensForFood(item.foodId).some(t => eliminatedToday.includes(t));
   }
 
   // ── Category interactions ─────────────────────────────────
@@ -134,7 +137,7 @@
     if (!allergen) return;
     const foods = FOODS.filter(f => (f.allergenIds as readonly string[]).includes(allergenId));
     if (foods.length === 0) {
-      addItem({ name: getCategoryConfig(allergenId)?.name ?? allergenId, allergenId });
+      addItem({ name: getCategoryConfig(allergenId)?.name ?? allergenId, foodId: `other:${allergenId}` });
       expandedCategory = null;
     } else {
       expandedCategory = expandedCategory === allergenId ? null : allergenId;
@@ -142,23 +145,24 @@
   }
 
   function selectFood(allergenId: string, foodId: string, name: string) {
-    addItem({ name, allergenId, foodId });
+    addItem({ name, foodId });
     closeCategorySheet();
   }
 
-  function addItem(partial: { name: string; allergenId: string | null; foodId?: string }) {
-    const exists = currentItems.some(i => i.name === partial.name && i.allergenId === partial.allergenId);
+  function addItem(partial: { name: string; foodId: string }) {
+    const exists = currentItems.some(i => i.name === partial.name && i.foodId === partial.foodId);
     if (exists) return;
     currentItems = [...currentItems, {
       id: crypto.randomUUID(),
       name: partial.name,
-      allergenId: partial.allergenId,
-      foodId: partial.foodId ?? null,
+      foodId: partial.foodId as MealItem['foodId'],
       amount: selectedAmount,
     }];
     // Show transient conflict toast when the added item is eliminated today
-    if (partial.allergenId && eliminatedToday.includes(partial.allergenId)) {
-      const allergenName = getCategoryConfig(partial.allergenId)?.name ?? partial.allergenId;
+    const triggers = mealCatalog.allergensForFood(partial.foodId);
+    const conflictTrigger = triggers.find(t => eliminatedToday.includes(t));
+    if (conflictTrigger) {
+      const allergenName = getCategoryConfig(conflictTrigger)?.name ?? conflictTrigger;
       conflictToastMessage = conflictToastCs(allergenName);
       if (conflictToastTimer) clearTimeout(conflictToastTimer);
       conflictToastTimer = setTimeout(() => { conflictToastMessage = null; }, 3000);
@@ -170,9 +174,9 @@
     const matched = matchAllergen(customName.trim());
     if (matched) {
       const name = getCategoryConfig(matched.id)?.name ?? matched.id;
-      addItem({ name, allergenId: matched.id });
+      addItem({ name, foodId: `other:${matched.id}` });
     } else {
-      addItem({ name: customName.trim(), allergenId: null });
+      addItem({ name: customName.trim(), foodId: `other:${customName.trim()}` });
       captureHarvestCandidate(customName.trim());
     }
     customName = '';
@@ -196,8 +200,11 @@
 
   function itemSubtitle(item: MealItem): string {
     const parts: string[] = [];
-    const catName = getCategoryConfig(item.allergenId ?? '')?.name;
-    if (catName) parts.push(catName);
+    const triggers = mealCatalog.allergensForFood(item.foodId);
+    if (triggers.length > 0) {
+      const catName = getCategoryConfig(triggers[0])?.name;
+      if (catName) parts.push(catName);
+    }
     parts.push(portionStrings[item.amount].short);
     if (item.preparationMethod) parts.push(preparationStrings[item.preparationMethod].label.toLowerCase());
     return parts.join(' · ');
@@ -246,7 +253,7 @@
   const todayMeals = $derived(meals.filter(m => m.date === targetDate));
 
   function isCategoryInMeal(allergenId: string): boolean {
-    return currentItems.some(i => i.allergenId === allergenId);
+    return currentItems.some(i => mealCatalog.allergensForFood(i.foodId).includes(allergenId));
   }
 </script>
 
@@ -375,7 +382,11 @@
               <div data-testid="basket-item-header" class="flex items-center gap-3 py-2.5 px-3">
                 <!-- Icon -->
                 <span class="text-lg shrink-0">
-                  {getCategoryConfig(item.allergenId ?? '')?.icon ?? '🍽️'}
+                  {#if mealCatalog.allergensForFood(item.foodId)[0]}
+                    {getCategoryConfig(mealCatalog.allergensForFood(item.foodId)[0])?.icon ?? '🍽️'}
+                  {:else}
+                    🍽️
+                  {/if}
                 </span>
 
                 <!-- Name + subtitle / hint -->
@@ -452,9 +463,11 @@
               </div>
               <div class="flex flex-wrap gap-1">
                 {#each meal.items as item}
+                  {@const itemTriggers = mealCatalog.allergensForFood(item.foodId)}
+                  {@const itemConflict = itemTriggers.some(t => eliminatedToday.includes(t))}
                   <span class="text-xs bg-surface rounded-full px-2 py-0.5 text-text
-                    {item.allergenId && eliminatedToday.includes(item.allergenId) ? 'bg-warning/10 text-warning' : ''}">
-                    {getCategoryConfig(item.allergenId ?? '')?.icon ?? ''} {item.name}
+                    {itemConflict ? 'bg-warning/10 text-warning' : ''}">
+                    {item.name}
                     <span class="text-text-muted">{portionStrings[item.amount].short}</span>
                   </span>
                 {/each}
