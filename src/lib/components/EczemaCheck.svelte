@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SkinObservation } from '$lib/domain/models';
+  import { randomUUID } from '$lib/utils/uuid';
   import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, reactionBannerLabel } from '$lib/strings/common';
@@ -38,7 +39,7 @@
   function save() {
     if (!selectedStatus) return;
     const obs: SkinObservation = {
-      id: assessment?.id ?? crypto.randomUUID(),
+      id: assessment?.id ?? randomUUID(),
       date,
       createdAt: assessment?.createdAt ?? new Date().toISOString(),
       status: selectedStatus,

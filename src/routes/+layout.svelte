@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../app.css';
+  import { randomUUID } from '$lib/utils/uuid';
   import { page } from '$app/stores';
   import { useRegisterSW } from 'virtual:pwa-register/svelte';
 
@@ -32,7 +33,7 @@
   async function handleFabPhotoCapture(blob: Blob): Promise<void> {
     const session = createSkinPhotoSession(selectedDate);
     const photo: SkinPhoto = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       date: selectedDate,
       capturedAt: new Date().toISOString(),
       blob,

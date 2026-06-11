@@ -92,6 +92,8 @@
   <a href="#skin-photo-card">SkinPhotoCard</a>
   <a href="#questionnaire-summary-row">QuestionnaireSummaryRow</a>
   <a href="#toast">Toast</a>
+  <a href="#family-grid">FamilyGrid</a>
+  <a href="#family-drill-in">FamilyDrillIn</a>
 </nav>
 
 <div class="canvas">
@@ -1001,6 +1003,118 @@
             <div style="height:20px"></div>
           </div>
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── FamilyGrid ─────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/FamilyGrid.svelte -->
+  <div class="component-section" id="family-grid">
+    <p class="component-label">▸ <span>FamilyGrid</span> — onSelect: (familyId) => void, activeFamilyIds?: FamilyId[], eliminatedFamilyIds?: FamilyId[]</p>
+    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (13 total). Visual states: neutral (white, default), active (white, no badge — family has items in meal), danger (danger tint + ! badge — family contains an eliminated allergen). Active takes precedence over danger.</p>
+    <div class="variant-grid">
+
+      <!-- Neutral grid -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🌾</span><span>Obiloviny</span></button>
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥦</span><span>Zelenina</span></button>
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🍎</span><span>Ovoce</span></button>
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥩</span><span>Maso</span></button>
+        </div>
+        <p class="variant-name">neutral (default)</p>
+      </div>
+
+      <!-- Active tile — white, no badge -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🍎</span><span>Ovoce</span></button>
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥛</span><span>Mléko</span></button>
+        </div>
+        <p class="variant-name">activeFamilyIds=['fruit'] (white tile, no badge)</p>
+      </div>
+
+      <!-- Danger tile -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);font-size:10px;font-weight:500;color:#B84444;position:relative"><span style="font-size:22px;line-height:1">🥛</span><span>Mléko</span><span style="position:absolute;top:-4px;right:-4px;font-size:10px;background:#B84444;color:white;border-radius:99px;width:16px;height:16px;display:flex;align-items:center;justify-content:center">!</span></button>
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥚</span><span>Vejce</span></button>
+        </div>
+        <p class="variant-name">eliminatedFamilyIds=['dairy'] (danger tint + !)</p>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── FamilyDrillIn ───────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
+  <div class="component-section" id="family-drill-in">
+    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, inMealFoodIds?: string[], eliminatedAllergenIds?: string[], onAddFood: (foodId, name) => void, onBack: () => void</p>
+    <p class="component-desc">Drill-in view for a single family. Foods grouped by allergenId (allergen header + food chips). Loose foods (allergenIds=[]) shown under "bez alergenu". States: neutral, success (in meal), danger (allergen eliminated). onBack returns to FamilyGrid.</p>
+    <div class="variant-grid">
+
+      <!-- Fruit family: allergen groups + loose foods -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="space-y:16px;padding:16px;background:#FAF8F8;border-radius:16px">
+          <!-- Header row -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">🍎 Ovoce</span>
+          </div>
+          <!-- Allergen group: Citrusy -->
+          <div style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+              <span style="font-size:16px">🍋</span>
+              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Citrusy</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Pomeranč</button>
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Citron</button>
+            </div>
+          </div>
+          <!-- Loose foods -->
+          <div>
+            <div style="margin-bottom:8px">
+              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">bez alergenu</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <!-- Jablko in meal → success -->
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid rgba(90,139,90,0.3);background:rgba(90,139,90,0.1);font-size:13px;color:#5A8B5A">Jablko</button>
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Hruška</button>
+            </div>
+          </div>
+          <button style="font-size:13px;color:#8B4557;font-weight:500;margin-top:12px">← Procházet rodiny</button>
+        </div>
+        <p class="variant-name">familyId='fruit', inMealFoodIds=['jablko']</p>
+      </div>
+
+      <!-- Dairy family: eliminated allergen -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">🥛 Mléko</span>
+          </div>
+          <!-- Allergen group: Mléčné výrobky (eliminated) -->
+          <div style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+              <span style="font-size:16px">🥛</span>
+              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Mléčné výrobky</span>
+              <span style="font-size:10px;background:#B84444;color:white;border-radius:99px;padding:1px 6px">!</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);font-size:13px;color:#B84444">Kravské mléko</button>
+              <button style="padding:8px 12px;border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);font-size:13px;color:#B84444">Jogurt</button>
+            </div>
+          </div>
+          <button style="font-size:13px;color:#8B4557;font-weight:500">← Procházet rodiny</button>
+        </div>
+        <p class="variant-name">familyId='dairy', eliminatedAllergenIds=['dairy']</p>
       </div>
 
     </div>

@@ -31,6 +31,11 @@
   --color-sync-offline: #7A6468;
 }
 
+/* Prevent iOS WebKit from swallowing taps inside scroll containers */
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
 @layer components {
   /* ── Layout atoms ─────────────────────────────────────────────────── */
 

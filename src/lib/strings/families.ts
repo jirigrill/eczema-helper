@@ -38,7 +38,8 @@ export const foodStrings = {
   rajce:               { name: 'Rajče'                  },
   kukurice:            { name: 'Kukuřice'               },
   pomeranc:            { name: 'Pomeranč'               },
-  cokolada:            { name: 'Hořká čokoláda'         },
+  'horka-cokolada':    { name: 'Hořká čokoláda'         },
+  'mlecna-cokolada':   { name: 'Mléčná čokoláda'        },
   losos:               { name: 'Losos'                  },
   krevetky:            { name: 'Krevety'                },
   // Divergent placements (§3b)
@@ -69,7 +70,7 @@ export const foodStrings = {
   banan:               { name: 'Banán'                  },
   kiwi:                { name: 'Kiwi'                   },
   mango:               { name: 'Mango'                  },
-  'kureci-prsa':       { name: 'Kuřecí prsa'            },
+  'kureci':            { name: 'Kuřecí'            },
   hovezi:              { name: 'Hovězí'                 },
   veprovka:            { name: 'Vepřová panenka'        },
   kruti:               { name: 'Krůtí'                  },

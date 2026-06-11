@@ -198,36 +198,34 @@ describe('meal/+page.svelte', () => {
     expect(queryByText('Porce')).not.toBeInTheDocument();
   });
 
-  it('renders a single collapsed "Všechny kategorie" accordion row instead of a category grid', async () => {
+  it('renders "Všechny kategorie" label and a 4-column family grid', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, queryByTestId } = render(MealPage);
+    const { getByText, queryByTestId } = render(MealPage);
     await tick();
 
-    // Accordion row must be present
-    const accordionBtn = getByRole('button', { name: /Všechny kategorie/ });
-    expect(accordionBtn).toBeInTheDocument();
+    // Label must be present
+    expect(getByText('Všechny kategorie')).toBeInTheDocument();
 
     // The old 4-col emoji grid should not be rendered (no category grid container)
     expect(queryByTestId('category-grid')).not.toBeInTheDocument();
   });
 
-  it('tapping the accordion row opens the sub-items bottom sheet', async () => {
+  it('tapping a family tile shows inline drill-in view', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByRole } = render(MealPage);
     await tick();
 
-    // Bottom sheet not visible initially
-    expect(queryByRole('dialog')).not.toBeInTheDocument();
+    // Drill-in not visible initially
+    expect(queryByRole('button', { name: 'Zpět' })).not.toBeInTheDocument();
 
-    // Tap accordion
-    const accordionBtn = getByRole('button', { name: /Všechny kategorie/ });
-    await fireEvent.click(accordionBtn);
+    // Tap the Mléko family tile
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
 
-    // Bottom sheet / category panel now visible
-    expect(queryByRole('dialog')).toBeInTheDocument();
+    // Drill-in back button now visible (inline, not a dialog)
+    expect(queryByRole('button', { name: 'Zpět' })).toBeInTheDocument();
   });
 
   it('renders Hotovo button even when no items are in the meal', async () => {
@@ -314,29 +312,24 @@ describe('meal/+page.svelte', () => {
   it('category food appears in basket with category icon and correct name', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, getByText } = render(MealPage);
+    const { getByRole, getAllByText } = render(MealPage);
     await tick();
 
-    // Open category sheet
-    const accordionBtn = getByRole('button', { name: /Všechny kategorie/ });
-    await fireEvent.click(accordionBtn);
-    await tick();
-
-    // Click the Jahody allergen — has food twins, opens food panel
-    const jahodyCat = getByRole('button', { name: /Jahody/ });
-    await fireEvent.click(jahodyCat);
+    // Tap the Ovoce (fruit) family tile — jahody lives there
+    await fireEvent.click(getByRole('button', { name: /Ovoce/ }));
     await tick();
 
     // Click the food: Jahody
-    const foodItem = getByRole('button', { name: 'Jahody' });
+    const foodItem = getByRole('button', { name: /^Jahody$/ });
     await fireEvent.click(foodItem);
     await tick();
 
-    // Sheet closes, item appears in basket
-    expect(getByText('Jahody')).toBeInTheDocument();
+    // Item appears in basket
+    const jahodaTexts = getAllByText('Jahody');
+    expect(jahodaTexts.length).toBeGreaterThanOrEqual(1);
 
     // Category icon for 'strawberries'
-    expect(getByText('🍓')).toBeInTheDocument();
+    expect(getAllByText('🍓').length).toBeGreaterThanOrEqual(1);
   });
 
   it('item card subtitle shows amount when preparationMethod is undefined', async () => {
@@ -362,10 +355,8 @@ describe('meal/+page.svelte', () => {
     const { getByRole, getByText } = render(MealPage);
     await tick();
 
-    // Open category sheet, expand dairy (has food twins), pick Kravské mléko
-    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    // Tap the Mléko (dairy) family tile, pick Kravské mléko
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
     await tick();
@@ -778,10 +769,8 @@ describe('meal/+page.svelte', () => {
     const { getByRole, getByText } = render(MealPage);
     await tick();
 
-    // Open category sheet, expand dairy, pick Kravské mléko
-    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    // Tap the Mléko (dairy) family tile, pick Kravské mléko
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
     await tick();
@@ -798,10 +787,8 @@ describe('meal/+page.svelte', () => {
     const { getByRole } = render(MealPage);
     await tick();
 
-    // Open category sheet, drill into Mléčné (dairy — eliminated)
-    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    // Tap the Mléko (dairy — eliminated) family tile
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
 
     // Every food chip must carry data-state="danger"
@@ -815,10 +802,8 @@ describe('meal/+page.svelte', () => {
     const { getByRole } = render(MealPage);
     await tick();
 
-    // Open category sheet, drill into Jahody (strawberries — not eliminated)
-    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Jahody/ }));
+    // Tap the Ovoce (fruit — not eliminated) family tile
+    await fireEvent.click(getByRole('button', { name: /Ovoce/ }));
     await tick();
 
     const jahodaBtn = getByRole('button', { name: /^Jahody$/ });
@@ -831,9 +816,8 @@ describe('meal/+page.svelte', () => {
     const { getByRole, getAllByText } = render(MealPage);
     await tick();
 
-    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléčné/ }));
+    // Tap the Mléko (dairy — eliminated) family tile
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
 
     // At least one "Vyloučeno" label must be visible inside the food panel
@@ -846,9 +830,8 @@ describe('meal/+page.svelte', () => {
     const { getByRole, queryByText } = render(MealPage);
     await tick();
 
-    await fireEvent.click(getByRole('button', { name: /Všechny kategorie/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Jahody/ }));
+    // Tap the Ovoce (fruit — not eliminated) family tile
+    await fireEvent.click(getByRole('button', { name: /Ovoce/ }));
     await tick();
 
     expect(queryByText('Vyloučeno')).not.toBeInTheDocument();
@@ -1123,7 +1106,7 @@ describe('meal/+page.svelte', () => {
   it('typing a known Czech alias in the custom input adds it with the canonical allergenId', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
-    const { getByPlaceholderText, getByRole, getByText } = render(MealPage);
+    const { getByPlaceholderText, getByRole, getByText, getAllByText } = render(MealPage);
     await tick();
 
     const input = getByPlaceholderText('Název potraviny…');
@@ -1135,7 +1118,7 @@ describe('meal/+page.svelte', () => {
     // The item should show the canonical display name (Pšenice / lepek), not the raw alias
     expect(getByText('Pšenice / lepek')).toBeInTheDocument();
     // Basket item should show the wheat category icon, not the generic fallback
-    expect(getByText('🌾')).toBeInTheDocument();
+    expect(getAllByText('🌾').length).toBeGreaterThanOrEqual(1);
   });
 
   it('typing an unknown food still creates it with allergenId=null and fallback icon', async () => {

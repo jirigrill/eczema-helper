@@ -157,6 +157,7 @@ export const commonStrings = {
     eliminatedChipLabel:  'Vyloučeno',
     notesLabelPrefix:     'Poznámka k',
     notesPlaceholder:     'Poznámka (volitelné, např. u babičky)',
+    browseFamiliesLabel:  'Procházet rodiny',
   },
 
   // ── Program page ──────────────────────────────────────────
