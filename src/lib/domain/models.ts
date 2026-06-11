@@ -87,10 +87,9 @@ export type PreparationMethod = 'boiled' | 'steamed' | 'baked' | 'fried';
 export type MealItem = {
   id: string;
   name: string; // Czech display name
-  allergenId: AllergenId | null;
-  foodId?: FoodId | null; // optional — identifies the specific food from the catalog (replaces subitemId)
+  foodId: FoodId; // identifies the specific food; custom foods use `other:${string}`
   amount: PortionKind;
-  preparationMethod?: PreparationMethod; // optional observational field; no impact on conflict detection
+  preparationMethod?: PreparationMethod;
 };
 
 export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';

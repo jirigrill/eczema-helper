@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchAllergen } from './allergen-matcher';
+import { matchAllergen, matchFood } from './allergen-matcher';
 import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
 
 describe('matchAllergen', () => {
@@ -79,5 +79,52 @@ describe('matchAllergen', () => {
     const result = matchAllergen('Paprika');
     expect(result).not.toBeNull();
     expect((result as CanonicalAllergen).id).toBe('other-vegetables');
+  });
+});
+
+describe('matchFood', () => {
+  it('returns record on exact id hit', () => {
+    const result = matchFood('hummus');
+    expect(result).not.toBeNull();
+    expect(result!.foodId).toBe('hummus');
+  });
+
+  it('returns all allergenIds for composite food', () => {
+    const result = matchFood('hummus');
+    expect(result!.allergenIds).toContain('legumes');
+    expect(result!.allergenIds).toContain('sesame');
+  });
+
+  it('resolves Czech alias for sojove-mleko', () => {
+    const result = matchFood('sójové mléko');
+    expect(result).not.toBeNull();
+    expect(result!.foodId).toBe('sojove-mleko');
+    expect(result!.allergenIds).toContain('soy');
+  });
+
+  it('sójové mléko trigger is soy, not dairy (family divergence)', () => {
+    const result = matchFood('sójové mléko');
+    expect(result!.allergenIds).not.toContain('dairy');
+  });
+
+  it('resolves Czech alias for rýže — neutral food', () => {
+    const result = matchFood('rýže');
+    expect(result).not.toBeNull();
+    expect(result!.foodId).toBe('ryze');
+    expect(result!.allergenIds).toHaveLength(0);
+  });
+
+  it('returns null for empty input', () => {
+    expect(matchFood('')).toBeNull();
+  });
+
+  it('returns null for unknown food', () => {
+    expect(matchFood('xyzzy-unknown-dish')).toBeNull();
+  });
+
+  it('id match is case-insensitive', () => {
+    const result = matchFood('Hummus');
+    expect(result).not.toBeNull();
+    expect(result!.foodId).toBe('hummus');
   });
 });

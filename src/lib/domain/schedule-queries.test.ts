@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress, getReintroductionDayInfo, buildScheduleContext } from './schedule-queries';
+import { getPhaseForDate, getEliminatedSlugsForDate, getScheduleProgress, getReintroductionDayInfo, buildScheduleContext, detectConflicts } from './schedule-queries';
 import { getAllergenStatuses } from './allergen-status';
-import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase } from '$lib/domain/models';
+import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem } from '$lib/domain/models';
 
 function phase(overrides: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
   return { allergenIds: [], ...overrides };
@@ -373,5 +373,84 @@ describe('buildScheduleContext', () => {
   it('result has no status key', () => {
     const ctx = buildScheduleContext({ schedule: reintroSchedule, answers: sampleAnswers }, '2026-05-28');
     expect(ctx).not.toHaveProperty('status');
+  });
+});
+
+// ── detectConflicts — live trigger resolution ─────────────────
+
+function item(id: string, foodId: string): MealItem {
+  return { id, name: id, foodId: foodId as MealItem['foodId'], amount: 'portion' };
+}
+
+describe('detectConflicts', () => {
+  it('returns empty array when no items conflict', () => {
+    // ryzove-mleko has no allergenIds — neutral food never conflicts
+    const result = detectConflicts([item('a', 'ryzove-mleko')], ['dairy', 'soy']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('flags an item whose single trigger is eliminated', () => {
+    // kravske-mleko → ['dairy']
+    const result = detectConflicts([item('a', 'kravske-mleko')], ['dairy']);
+    expect(result).toHaveLength(1);
+    expect(result[0].foodId).toBe('kravske-mleko');
+  });
+
+  it('sójové mléko conflicts under soy elimination (family divergence)', () => {
+    // sojove-mleko is in family 'dairy' but its trigger is 'soy', not 'dairy'
+    const result = detectConflicts([item('a', 'sojove-mleko')], ['soy']);
+    expect(result).toHaveLength(1);
+  });
+
+  it('sójové mléko does NOT conflict under dairy-only elimination', () => {
+    // family is dairy but allergenId is soy — conflict resolves via allergenIds, not family
+    const result = detectConflicts([item('a', 'sojove-mleko')], ['dairy']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('hummus conflicts when chickpea (legumes) is eliminated', () => {
+    const result = detectConflicts([item('a', 'hummus')], ['legumes']);
+    expect(result).toHaveLength(1);
+  });
+
+  it('hummus conflicts when sesame is eliminated', () => {
+    const result = detectConflicts([item('a', 'hummus')], ['sesame']);
+    expect(result).toHaveLength(1);
+  });
+
+  it('hummus conflicts when either trigger is eliminated', () => {
+    const result = detectConflicts([item('a', 'hummus')], ['legumes', 'sesame']);
+    expect(result).toHaveLength(1);
+    expect(result[0].foodId).toBe('hummus');
+  });
+
+  it('neutral food never conflicts even when elimination list is non-empty', () => {
+    // ryze has allergenIds: [] — always safe
+    const result = detectConflicts([item('a', 'ryze')], ['dairy', 'eggs', 'wheat']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('returns empty array for empty items list', () => {
+    expect(detectConflicts([], ['dairy'])).toHaveLength(0);
+  });
+
+  it('returns empty array when eliminated list is empty', () => {
+    const result = detectConflicts([item('a', 'hummus')], []);
+    expect(result).toHaveLength(0);
+  });
+
+  it('unknown foodId (other: custom) resolves to no triggers — never conflicts', () => {
+    const result = detectConflicts([item('a', 'other:custom-cake')], ['dairy', 'eggs']);
+    expect(result).toHaveLength(0);
+  });
+
+  it('only returns the conflicting items, not all items', () => {
+    const items: MealItem[] = [
+      item('safe', 'ryze'),
+      item('conflict', 'kravske-mleko'),
+    ];
+    const result = detectConflicts(items, ['dairy']);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('conflict');
   });
 });

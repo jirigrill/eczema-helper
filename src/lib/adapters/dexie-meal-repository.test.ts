@@ -22,7 +22,7 @@ function makeItem(id: string, overrides?: Partial<MealItem>): MealItem {
   return {
     id,
     name: 'Testovací položka',
-    allergenId: null,
+    foodId: 'ryze',
     amount: 'portion',
     ...overrides,
   };
@@ -132,7 +132,6 @@ describe('DexieMealRepository', () => {
   it('persists a MealItem with all fields set', async () => {
     const item = makeItem('item-1', {
       name: 'Jogurt',
-      allergenId: 'dairy',
       foodId: 'kravske-mleko',
       amount: 'portion',
       preparationMethod: 'boiled',
@@ -145,7 +144,7 @@ describe('DexieMealRepository', () => {
   });
 
   it('MealItem without preparationMethod loads with preparationMethod absent', async () => {
-    const item = makeItem('item-1', { name: 'Rýže', allergenId: null, amount: 'spoon' });
+    const item = makeItem('item-1', { name: 'Rýže', foodId: 'ryze', amount: 'spoon' });
     // no preparationMethod
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
@@ -153,35 +152,27 @@ describe('DexieMealRepository', () => {
     if (result.ok) expect(result.data?.items[0].preparationMethod).toBeUndefined();
   });
 
-  it('MealItem with allergenId: null persists correctly', async () => {
-    const item = makeItem('item-1', { allergenId: null });
+  it('MealItem with catalog foodId persists correctly', async () => {
+    const item = makeItem('item-1', { foodId: 'kravske-mleko' });
     await repo.save(makeMeal('2026-05-27', 'snack', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'snack');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].allergenId).toBeNull();
+    if (result.ok) expect(result.data?.items[0].foodId).toBe('kravske-mleko');
   });
 
-  it('MealItem with foodId: null persists correctly', async () => {
-    const item = makeItem('item-1', { allergenId: 'dairy', foodId: null });
+  it('MealItem with custom foodId persists correctly', async () => {
+    const item = makeItem('item-1', { foodId: 'other:vlastni-jidlo' });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].foodId).toBeNull();
-  });
-
-  it('MealItem without foodId loads with foodId absent', async () => {
-    const item = makeItem('item-1'); // foodId not set
-    await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
-    expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].foodId).toBeUndefined();
+    if (result.ok) expect(result.data?.items[0].foodId).toBe('other:vlastni-jidlo');
   });
 
   it('multiple items in a meal all persist', async () => {
     const items = [
-      makeItem('item-1', { name: 'Chléb', allergenId: 'wheat', amount: 'portion' }),
-      makeItem('item-2', { name: 'Máslo', allergenId: 'dairy', foodId: 'kravske-mleko', amount: 'teaspoon' }),
-      makeItem('item-3', { name: 'Rajče', allergenId: 'tomatoes', amount: 'spoon', preparationMethod: 'baked' }),
+      makeItem('item-1', { name: 'Chléb', foodId: 'psenicny-chleb', amount: 'portion' }),
+      makeItem('item-2', { name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }),
+      makeItem('item-3', { name: 'Rajče', foodId: 'rajce', amount: 'spoon', preparationMethod: 'baked' }),
     ];
     await repo.save(makeMeal('2026-05-27', 'breakfast', { items }));
     const result = await repo.loadBySlot('2026-05-27', 'breakfast');
@@ -222,7 +213,7 @@ describe('DexieMealRepository', () => {
   });
 
   it('re-saving with changed preparationMethod reflects new value', async () => {
-    const base = { id: 'item-1', name: 'Kuře', allergenId: null, amount: 'portion' } as const;
+    const base = { id: 'item-1', name: 'Kuře', foodId: 'kureci-prsa', amount: 'portion' } as const;
     await repo.save(makeMeal('2026-05-27', 'lunch', {
       items: [{ ...base, preparationMethod: 'boiled' }],
     }));

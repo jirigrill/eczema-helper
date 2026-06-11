@@ -854,7 +854,7 @@ describe('meal/+page.svelte', () => {
 
   it('on mount with a saved slot, basket is pre-populated with its items', async () => {
     const savedItems: MealItem[] = [
-      { id: 'item-1', name: 'Brambory', allergenId: null, foodId: null, amount: 'portion' },
+      { id: 'item-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' },
     ];
     mockLoadBySlot.mockResolvedValueOnce({
       ok: true,
@@ -938,7 +938,7 @@ describe('meal/+page.svelte', () => {
 
   it('after pill switch, basket shows items from the new slot if it was previously saved', async () => {
     const snidaneItems: MealItem[] = [
-      { id: 'item-2', name: 'Jogurt', allergenId: 'dairy', foodId: 'kravske-mleko', amount: 'portion' },
+      { id: 'item-2', name: 'Jogurt', foodId: 'kravske-mleko', amount: 'portion' },
     ];
     mockLoadBySlot
       .mockResolvedValueOnce({ ok: true, data: null }) // initial mount: lunch empty

@@ -36,8 +36,8 @@ describe('MealCard', () => {
   it('renders each meal item name', async () => {
     const meal = makeMeal({
       items: [
-        { id: 'i1', name: 'Jogurt', allergenId: 'dairy', amount: 'portion' },
-        { id: 'i2', name: 'Ovesné vločky', allergenId: 'wheat', amount: 'spoon' },
+        { id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'portion' },
+        { id: 'i2', name: 'Ovesné vločky', foodId: 'ovesne-vlocky', amount: 'spoon' },
       ],
     });
     const { getByText } = render(MealCard, {
@@ -58,9 +58,9 @@ describe('MealCard', () => {
     expect(getByText('Večeře')).toBeInTheDocument();
   });
 
-  it('applies warning styling to items whose allergenId is in eliminatedToday', async () => {
+  it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {
     const meal = makeMeal({
-      items: [{ id: 'i1', name: 'Máslo', allergenId: 'dairy', amount: 'teaspoon' }],
+      items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
     });
     const { container } = render(MealCard, {
       props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy'] },

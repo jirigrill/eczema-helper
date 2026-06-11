@@ -416,7 +416,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
         date: today,
         mealType: 'lunch',
         actor: 'mother',
-        items: [{ id: 'item-1', name: 'Brambory', allergenId: null, amount: 'portion' }],
+        items: [{ id: 'item-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
         createdAt: `${today}T12:00:00.000Z`,
       } satisfies Meal,
     ];
@@ -466,7 +466,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
         date: today,
         mealType: 'lunch',
         actor: 'mother',
-        items: [{ id: 'i1', name: 'Mléko', allergenId: 'dairy', amount: 'portion' }],
+        items: [{ id: 'i1', name: 'Mléko', foodId: 'kravske-mleko', amount: 'portion' }],
         createdAt: `${today}T12:00:00.000Z`,
       } satisfies Meal,
     ];
