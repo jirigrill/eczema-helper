@@ -1,5 +1,5 @@
 import type { AllergenProtocol } from '$lib/domain/canonical-allergen';
-import type { CatalogFamily } from '$lib/data/allergen-catalog/three-collections';
+import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
 
 type CatalogAllergen = {
   id: string;

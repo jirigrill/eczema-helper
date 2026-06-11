@@ -1,11 +1,11 @@
-// Single source of truth is three-collections.ts — all allergen data lives there.
+// Single source of truth is allergen-catalog.ts — all allergen data lives there.
 // This barrel re-exports catalog types and provides helpers that need the strings layer.
 
 export {
   FAMILIES,
   ALLERGENS,
   FOODS,
-} from './three-collections';
+} from './allergen-catalog';
 
 export type {
   FamilyId,
@@ -16,9 +16,9 @@ export type {
   ProtocolAllergenId3 as ProtocolAllergenId,
   CatalogFoodId,
   FoodId,
-} from './three-collections';
+} from './allergen-catalog';
 
-import { ALLERGENS } from './three-collections';
+import { ALLERGENS } from './allergen-catalog';
 import { categoryStrings } from '$lib/strings/categories';
 import type { AllergenProtocol } from '$lib/domain/canonical-allergen';
 

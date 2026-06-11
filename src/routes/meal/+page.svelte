@@ -4,7 +4,7 @@
   // ═══════════════════════════════════════════════════════════
   import type { Meal, MealItem, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
-  import { ALLERGENS, FOODS } from '$lib/data/allergen-catalog/three-collections';
+  import { ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
   import { foodStrings } from '$lib/strings/families';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';

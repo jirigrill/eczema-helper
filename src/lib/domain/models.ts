@@ -11,7 +11,7 @@ import type {
   CustomAllergenId,
 } from '$lib/data/allergen-catalog';
 import type { ProtocolDay, AllergenProtocol } from '$lib/domain/canonical-allergen';
-import type { FamilyId, FoodId, CatalogFoodId } from '$lib/data/allergen-catalog/three-collections';
+import type { FamilyId, FoodId, CatalogFoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 
 export type {
   AllergenId,

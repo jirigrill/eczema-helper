@@ -1,7 +1,7 @@
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import type { AllergenProtocol } from '$lib/domain/canonical-allergen';
-import type { CatalogFamily } from '$lib/data/allergen-catalog/three-collections';
-import { FAMILIES, ALLERGENS, FOODS } from '$lib/data/allergen-catalog/three-collections';
+import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
+import { FAMILIES, ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 
 type CatalogAllergen = {
   id: string;

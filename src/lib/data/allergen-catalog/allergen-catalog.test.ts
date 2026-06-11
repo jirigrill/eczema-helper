@@ -3,7 +3,7 @@ import {
   FAMILIES,
   ALLERGENS,
   FOODS,
-} from './three-collections';
+} from './allergen-catalog';
 
 // ── Id uniqueness ─────────────────────────────────────────────
 
