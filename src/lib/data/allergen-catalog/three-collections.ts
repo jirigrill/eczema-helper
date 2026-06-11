@@ -225,7 +225,7 @@ export const ALLERGENS = [
   { id: 'onion-garlic',       familyId: 'vegetables' as FamilyId,        icon: '🧅', aliases: ['onion', 'garlic', 'cibule', 'česnek'] },
   { id: 'potato',             familyId: 'vegetables' as FamilyId,        icon: '🥔', aliases: ['potato', 'brambory'] },
   { id: 'mushroom',           familyId: 'vegetables' as FamilyId,        icon: '🍄', aliases: ['mushroom', 'houby'] },
-  { id: 'other-vegetables',   familyId: 'vegetables' as FamilyId,        icon: '🥦', aliases: ['vegetables', 'zelenina', 'paprika', 'cucumber', 'okurka', 'cuketa', 'zucchini'] },
+  { id: 'other-vegetables',   familyId: 'vegetables' as FamilyId,        icon: '🥒', aliases: ['vegetables', 'zelenina', 'paprika', 'cucumber', 'okurka', 'cuketa', 'zucchini'] },
   { id: 'meat',               familyId: 'meat' as FamilyId,              icon: '🥩', aliases: ['meat', 'maso'] },
   { id: 'mustard',            familyId: 'spices-condiments' as FamilyId, icon: '🌿', aliases: ['mustard', 'hořčice'] },
   { id: 'sulphites-additives',familyId: 'spices-condiments' as FamilyId, icon: '⚗️', aliases: ['sulphites', 'additives', 'siřičitany', 'aditiva'] },
@@ -255,6 +255,7 @@ export const FOODS = [
   // ── Food twins (§3a) ─────────────────────────────────────
   { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs']          },
   { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy']         },
+  { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy']         },
   { id: 'psenicny-chleb',    familyId: 'grains' as FamilyId,      allergenIds: ['wheat']         },
   { id: 'tofu',              familyId: 'legumes' as FamilyId,     allergenIds: ['soy']           },
   { id: 'arasisove-maslo',   familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts']          },

@@ -28,6 +28,7 @@ export const foodStrings = {
   // Food twins (§3a)
   vejce:               { name: 'Vejce'                  },
   'kravske-mleko':     { name: 'Kravské mléko'          },
+  jogurt:              { name: 'Jogurt'                 },
   'psenicny-chleb':    { name: 'Pšeničný chléb'         },
   tofu:                { name: 'Tofu'                   },
   'arasisove-maslo':   { name: 'Arašídové máslo'        },
