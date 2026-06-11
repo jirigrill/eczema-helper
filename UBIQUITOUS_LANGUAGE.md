@@ -96,22 +96,21 @@ The display name and icon are resolved from the slug at render time. The slug ty
 ### AllergenId / ProtocolAllergenId / CustomAllergenId
 
 The typed shape of an allergen slug. Per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
-these become **derived** from the data-first catalog rather than hand-written
-unions:
+these are **derived** from the data-first catalog rather than hand-written unions:
 
-- `AllergenId = typeof ALLERGEN_CATALOG[number]['id']` — every canonical allergen slug.
-- `ProtocolAllergenId = Extract<typeof ALLERGEN_CATALOG[number], { protocol: object }>['id']`
-  — the subset of canonical allergens whose record carries a reintroduction
-  `protocol`. These are the only allergens that can enter a reintroduction
-  phase. (These are the 13 protocol-bearing records; the catalog now holds 32,
-  the other 19 regional/everyday foods carrying *no* protocol.)
-- `CustomAllergenId = \`other:${string}\`` — the legacy free-text custom-allergen
-  tier (e.g. `'other:Paprika'`). Participates in elimination logs, never enters a
-  protocol phase. Unknown free-text input is also captured as a `HarvestCandidate`
-  for eventual promotion into a `CanonicalAllergen`.
+- `CatalogAllergenId = typeof ALLERGENS[number]['id']` — every canonical allergen slug
+  in the bundled catalog (32 records as of ADR-0017 slice 6).
+- `ProtocolAllergenId = Extract<typeof ALLERGENS[number], { protocol: object }>['id']`
+  — the 13-record subset whose record carries a reintroduction `protocol`. Only
+  allergens in this set can enter a reintroduction phase.
+- `CustomAllergenId = \`other:${string}\`` — free-text allergen slugs the mother
+  defines herself (e.g. `'other:Paprika'`). Participates in elimination logs, never
+  enters a protocol phase. Unknown free-text input is also captured as a
+  `HarvestCandidate` for eventual promotion into a `CanonicalAllergen`.
+- `AllergenId = CatalogAllergenId | CustomAllergenId` — the union.
 
 `AllergenId` is the unified type used at fields whose value can come from either
-tier (`MealItem.allergenId`, `motherAllergies`, `babyConfirmedAllergies`,
+tier (`motherAllergies`, `babyConfirmedAllergies`,
 `AllergenStatus.allergenId`).
 
 Fields known by construction to be protocol-only are typed `ProtocolAllergenId`
@@ -121,30 +120,27 @@ directly (`SchedulePhase.allergenIds`, `testedAllergens`,
 `getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined`. See ADR-0014
 "Domain-key shapes" section.
 
-### Family / Allergen / Food — three-level catalog (agreed target)
-*Czech: Rodina / Alergen / Potravina. Refactor pending — see the
-[ADR-0017 revision (2026-06-10)](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
+### Family / Allergen / Food — three-level catalog
+*Czech: Rodina / Alergen / Potravina. See
+[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
 and the CONTEXT.md "Family / Allergen / Food" entry for full definitions and
 invariants.*
 
-The catalog splits from one collection into three levels, each with a derived id:
+The catalog has three levels, each with a derived id:
 
 - **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`,
   `Vlastní`). Presentation only; no protocol, no clinical meaning.
 - **Allergen** (`AllergenId`, with `ProtocolAllergenId` its protocol-bearing
-  subset) — the reintroduction unit. This is today's `CanonicalAllergen` record
-  minus its inlined subitems; `protocol` stays here, so the engine is unchanged.
+  subset) — the reintroduction unit. Carries `protocol`; engine unchanged.
 - **Food** (`FoodId`, with `CustomFoodId = other:${string}` its free-text tier) —
   first-class loggable entity carrying `familyId` (presentation) and
-  `allergenIds` (its trigger set, many-to-many). Replaces the retired
-  `SubitemId`/`allergenId:bare` scheme with a **flat** id.
+  `allergenIds` (its trigger set, many-to-many).
 
 Two invariants (full text in CONTEXT.md): a food's **family is presentation, its
 allergen is domain** (they may diverge — `sójové mléko` → family `Mléko`, allergen
 `soy`); and the **questionnaire selects allergens, the meal log selects foods**.
 Triggers are **resolved live** from the catalog, never snapshotted onto a
-`MealItem`. Supersedes the **Category / SubItem / SubitemId** and the
-`CustomAllergenId` entries below once the refactor lands.
+`MealItem`.
 
 ### Tested Allergens
 *Czech: Sledované alergeny*
@@ -232,18 +228,13 @@ server job. See ADR-0017.
 
 ### Category / SubItem / SubitemId
 
-`Category` and `SubItem` are the structural shape for food selection. Per
-[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md) the `CATEGORIES`
-array is *derived* from `ALLERGEN_CATALOG` (in `src/lib/data/allergen-catalog/index.ts`),
-not hand-authored seed data; the legacy `$lib/data/categories` re-exports it. `Category`
-carries only structural fields (`allergenId: AllergenId`, `subItems`) and now covers
-every catalog record, not only the protocol-bearing tier; `SubItem` carries
-`subitemId: SubitemId` and its parent `allergenId`. No Czech display text on either —
-names live in `$lib/strings/categories` (`categoryStrings[allergenId].name`,
-`subitemStrings[subitemId]`) and icons co-locate on the catalog record (`record.icon`,
-surfaced via `getCategoryConfig`). `SubitemId` is derived from the catalog records as
-the union of `` `${id}:${subitem}` `` pairs and re-exported through `models.ts`. See
-ADR-0017 and ADR-0014.
+*Retired. These types (`Category`, `SubItem`, `SubitemId`, `CATEGORIES`) were the
+pre-ADR-0017 structural shape for food selection and are no longer in the codebase.*
+The three-level catalog (Family / Allergen / Food) shipped and supersedes them; see
+that entry above. `subitemStrings` in `$lib/strings/categories` remains as a
+display-name lookup keyed by `FoodId`-shaped strings (`allergenId:subitem`) for
+the catalog's food records — it is a strings table, not a type. See ADR-0017 and
+ADR-0014.
 
 ---
 

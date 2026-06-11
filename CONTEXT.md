@@ -163,9 +163,6 @@ read through `CanonicalCatalogPort`. See
 [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
 
 ### Family / Allergen / Food — the three-level catalog
-*Agreed target model (refactor pending — ADR forthcoming). Today's
-`CanonicalAllergen` record is the **allergen** layer below; this entry inserts a
-`family` parent above it and names the `food` leaf below it.*
 
 The catalog is three levels, each a distinct concept that earlier shared the
 word "allergen":
