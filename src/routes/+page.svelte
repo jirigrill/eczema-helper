@@ -82,7 +82,9 @@
   }
 
   const motherActiveFamilies = $derived(familiesForAllergens(motherAllergies));
-  const babyActiveFamilies = $derived(familiesForAllergens(babyAllergies)); = $derived.by(() => {
+  const babyActiveFamilies = $derived(familiesForAllergens(babyAllergies));
+
+  const summaryEndDate = $derived.by(() => {
     if (!babyBirthDate || !programStartDate) return '—';
     const schedule = generateSchedule({
       babyBirthDate,

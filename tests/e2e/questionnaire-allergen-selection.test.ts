@@ -39,8 +39,8 @@ test('step 3: single-allergen family (Vejce) selects directly without drill', as
   await page.getByRole('button', { name: /Vejce/ }).click();
   // Button count label should appear on Pokračovat (1 alergen)
   await expect(page.getByRole('button', { name: /Pokračovat.*1/ })).toBeVisible();
-  // No drill-in header visible
-  await expect(page.getByRole('button', { name: /Zpět/ })).not.toBeVisible();
+  // Drill-in: Sója chip should NOT be visible (no drill opened)
+  await expect(page.getByRole('button', { name: /Sója/ })).not.toBeVisible();
 });
 
 test('step 3: multi-allergen family (Luštěniny) opens drill-in', async ({ page }) => {
@@ -48,7 +48,8 @@ test('step 3: multi-allergen family (Luštěniny) opens drill-in', async ({ page
   await page.getByRole('button', { name: /Luštěniny/ }).click();
   // AllergenDrillIn should now be visible with Sója chip
   await expect(page.getByRole('button', { name: /Sója/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Zpět/ })).toBeVisible();
+  // Drill-in back button (aria-label="Zpět", exact)
+  await expect(page.getByRole('button', { name: 'Zpět', exact: true })).toBeVisible();
 });
 
 test('step 3 drill-in: selecting Sója and returning shows family as active', async ({ page }) => {
