@@ -21,6 +21,8 @@ async function completeOnboarding(page: Page) {
   await page.getByRole('button', { name: 'Pokračovat' }).click();
   await page.getByRole('button', { name: 'Pokračovat' }).click();
   await page.getByRole('button', { name: 'Potvrdit a spustit program' }).click();
+  // Wait until the app navigates to /day/ after saving the schedule
+  await page.waitForURL(/\/day\//);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -58,7 +60,7 @@ test('family grid → drill-in → add food → back to grid', async ({ page }) 
   await page.getByRole('button', { name: /Jablko/ }).click();
 
   // A3: in-meal list should contain Jablko
-  await expect(page.getByText('Jablko')).toBeVisible();
+  await expect(page.getByTestId('basket-item').filter({ hasText: 'Jablko' })).toBeVisible();
 
   // Return to grid via "Procházet rodiny" link
   await page.getByRole('button', { name: /Procházet rodiny/ }).click();
@@ -163,6 +165,6 @@ test('conflict toast shown when eliminated food added from drill-in', async ({ p
   await page.getByRole('button', { name: /Mléko/ }).first().click();
   await page.getByRole('button', { name: /Kravské mléko/ }).click();
 
-  // Conflict toast should appear
-  await expect(page.getByText(/odchylka/i).or(page.getByText(/Mléčné/i))).toBeVisible();
+  // Conflict toast should appear (the toast has a specific class/role)
+  await expect(page.getByText(/⚠ Mléčné výrobky vyřazeno/)).toBeVisible();
 });

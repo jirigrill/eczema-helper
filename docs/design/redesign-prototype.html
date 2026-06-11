@@ -3495,8 +3495,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
               <div class="grid grid-cols-4 gap-2">
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🌾</span><span class="leading-tight text-center text-[10px]">Obiloviny</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥦</span><span class="leading-tight text-center text-[10px]">Zelenina</span></div>
-                <!-- Ovoce: active (item was added) -->
-                <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-success/10 border-success/40 text-success relative" style="border: 1px solid"><span class="text-2xl">🍎</span><span class="leading-tight text-center text-[10px]">Ovoce</span><span class="absolute -top-1 -right-1 text-[10px] bg-success text-white rounded-full w-4 h-4 flex items-center justify-center">✓</span></div>
+                <!-- Ovoce: active (item was added) — white tile, no badge -->
+                <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🍎</span><span class="leading-tight text-center text-[10px]">Ovoce</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥩</span><span class="leading-tight text-center text-[10px]">Maso</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🐟</span><span class="leading-tight text-center text-[10px]">Ryby</span></div>
                 <!-- Mléko: danger (dairy eliminated) -->
@@ -3529,7 +3529,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Ovoce = aktivní (✓ badge, success tint). Mléko = nebezpečné (! badge, danger tint). In-meal: 1 položka. CTA aktivní.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Ovoce = aktivní (bílý tile, bez badge). Mléko = nebezpečné (! badge, danger tint). In-meal: 1 položka. CTA aktivní.</div>
     </div>
 
     <!-- A2 — Drill-in: fruit family (allergen-grouped + loose) -->

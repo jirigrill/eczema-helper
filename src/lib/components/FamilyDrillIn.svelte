@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { FOODS, ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import { foodStrings } from '$lib/strings/families';
   import { getCategoryConfig } from '$lib/config/categories';
   import { familyStrings } from '$lib/strings/families';
   import { actionStrings } from '$lib/strings/actions';
+  import { commonStrings } from '$lib/strings/common';
   import type { FamilyId, CatalogFoodId } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { AllergenId } from '$lib/domain/models';
 
@@ -53,7 +54,7 @@
       onclick={onBack}
     >←</button>
     <div class="flex items-center gap-2 flex-1 min-w-0">
-      <span class="text-xl">{FOODS.find(f => f.familyId === familyId)?.allergenIds ?? ''}</span>
+      <span class="text-xl">{FAMILIES.find(f => f.id === familyId)?.icon ?? ''}</span>
       <span class="text-sm font-semibold text-text">{familyStrings[familyId].name}</span>
     </div>
   </div>
@@ -88,6 +89,9 @@
             onclick={() => onAddFood(food.id, name)}
           >
             {name}
+            {#if state === 'danger'}
+              <span class="ml-1 text-[10px] opacity-70">{commonStrings.meal.eliminatedChipLabel}</span>
+            {/if}
           </button>
         {/each}
       </div>

@@ -26,19 +26,12 @@
     <button
       type="button"
       data-state={state}
-      class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium transition-all relative border
-        {state === 'active'
-          ? 'bg-success/10 border-success/40 text-success'
-          : state === 'danger'
-            ? 'bg-danger/08 border-danger/30 text-danger'
-            : 'bg-white border-surface-dark text-text'}"
+      class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium transition-all relative border bg-white border-surface-dark text-text"
       onclick={() => onSelect(family.id)}
     >
       <span class="text-2xl leading-none">{family.icon}</span>
       <span class="leading-tight text-center">{familyStrings[family.id].name}</span>
-      {#if state === 'active'}
-        <span class="absolute -top-1 -right-1 text-[10px] bg-success text-white rounded-full w-4 h-4 flex items-center justify-center">✓</span>
-      {:else if state === 'danger'}
+      {#if state === 'danger'}
         <span class="absolute -top-1 -right-1 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center">!</span>
       {/if}
     </button>

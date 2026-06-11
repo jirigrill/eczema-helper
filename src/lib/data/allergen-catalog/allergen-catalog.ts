@@ -265,14 +265,15 @@ export const FOODS = [
   { id: 'rajce',             familyId: 'vegetables' as FamilyId,  allergenIds: ['tomatoes']      },
   { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn']          },
   { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus']        },
-  { id: 'cokolada',          familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate']     },
+  { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    aliases: ['hořká čokoláda', 'dark chocolate'] },
   { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
   { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish']     },
   // ── Divergent placements (§3b) ───────────────────────────
   { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          aliases: ['sójové mléko', 'sojove mleko', 'soya milk'] },
   { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: []                },
   // ── Composite food (§3c) ─────────────────────────────────
-  { id: 'hummus',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes', 'sesame'], aliases: ['hummus', 'homus'] },
+  { id: 'hummus', familyId: 'legumes' as FamilyId, allergenIds: ['legumes', 'sesame'], aliases: ['hummus', 'homus'] },
+   { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'],    aliases: ['mléčná čokoláda', 'milk chocolate'] },
   // ── Loose everyday foods (§3d) ───────────────────────────
   // Grains
   { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               aliases: ['rýže', 'ryze', 'rice'] },

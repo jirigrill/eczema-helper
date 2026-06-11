@@ -345,14 +345,12 @@
           onAddFood={handleAddFood}
           onBack={handleDrillBack}
         />
-        <div class="mt-3">
+        <div class="px-4 pt-3">
           <button
             type="button"
-            class="text-sm text-primary font-medium"
+            class="text-xs text-text-muted underline"
             onclick={handleDrillBack}
-          >
-            ← {actionStrings.browseFamilies}
-          </button>
+          >{commonStrings.meal.browseFamiliesLabel}</button>
         </div>
       {:else}
         <!-- A1 — family grid -->
