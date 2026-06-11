@@ -29,6 +29,7 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { mealSession } from '$lib/stores/meal-session';
+  import { randomUUID } from '$lib/utils/uuid';
   import { matchAllergen } from '$lib/domain/allergen-matcher';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
@@ -150,12 +151,13 @@
   function addItem(partial: { name: string; foodId: string }) {
     const exists = currentItems.some(i => i.name === partial.name && i.foodId === partial.foodId);
     if (exists) return;
-    currentItems = [...currentItems, {
-      id: crypto.randomUUID(),
+    const newItem = {
+      id: randomUUID(),
       name: partial.name,
       foodId: partial.foodId as MealItem['foodId'],
       amount: selectedAmount,
-    }];
+    };
+    currentItems = [...currentItems, newItem];
     const triggers = mealCatalog.allergensForFood(partial.foodId);
     const conflictTrigger = triggers.find(t => eliminatedToday.includes(t));
     if (conflictTrigger) {

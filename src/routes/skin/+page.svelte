@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SkinObservation } from '$lib/domain/models';
+  import { randomUUID } from '$lib/utils/uuid';
   import { commonStrings } from '$lib/strings/common';
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext } from '$lib/domain/schedule-queries';
@@ -27,7 +28,7 @@
 
   async function handlePhotoCapture(blob: Blob): Promise<void> {
     await skinPhotoSession.save({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       date: date,
       capturedAt: new Date().toISOString(),
       blob,
