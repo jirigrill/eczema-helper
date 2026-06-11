@@ -29,6 +29,17 @@ vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 const mockPage = { url: new URL('http://localhost/meal') };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
+// ── Harvest candidate session mock (issue #229) ───────────────────────────────
+const mockHarvestReadByKey = vi.fn().mockResolvedValue({ ok: true, data: null });
+const mockHarvestUpsert = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+vi.mock('$lib/stores/harvest-candidate-session', () => ({
+  harvestCandidateSession: {
+    subscribe: writable([]).subscribe,
+    readByKey: (...args: unknown[]) => mockHarvestReadByKey(...args),
+    upsert: (...args: unknown[]) => mockHarvestUpsert(...args),
+  },
+}));
+
 const today = new Date().toISOString().split('T')[0];
 const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
 
@@ -105,6 +116,9 @@ beforeEach(() => {
   mockLoadBySlot.mockClear();
   mockLoadBySlot.mockResolvedValue({ ok: true, data: null }); // default: no saved slot
   mockPage.url = new URL('http://localhost/meal'); // reset returnTo to default
+  mockHarvestReadByKey.mockClear();
+  mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
+  mockHarvestUpsert.mockClear();
 });
 
 describe('meal/+page.svelte', () => {
@@ -1137,5 +1151,91 @@ describe('meal/+page.svelte', () => {
 
     expect(getByText('Kokos')).toBeInTheDocument();
     expect(getByText('🍽️')).toBeInTheDocument();
+  });
+
+  // ── Custom food landing (issue #229) ──────────────────────
+
+  it('unknown free text is logged with other:${normalizedKey} foodId (normalized, not raw)', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Kokos' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // Save the meal so we can inspect the MealItem.foodId
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    const savedMeal = mockSave.mock.calls[0]?.[0] as import('$lib/domain/models').Meal | undefined;
+    expect(savedMeal).toBeDefined();
+    const item = savedMeal!.items[0];
+    // normalizeKey('Kokos') === 'kokos', so foodId must be 'other:kokos'
+    expect(item.foodId).toBe('other:kokos');
+  });
+
+  it('harvest candidate is captured when unknown free text is submitted', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Křen' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // Give the async captureHarvestCandidate a chance to settle
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockHarvestUpsert).toHaveBeenCalledOnce();
+    const upsertedCandidate = mockHarvestUpsert.mock.calls[0][0] as import('$lib/domain/harvest-candidate').HarvestCandidate;
+    expect(upsertedCandidate.normalizedKey).toBe('křen');
+    expect(upsertedCandidate.rawForms).toContain('Křen');
+  });
+
+  it('harvest candidate is NOT captured when the input resolves to a known allergen alias', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    // 'pšenice' is a known alias for the wheat allergen — should NOT trigger harvest capture
+    await fireEvent.input(input, { target: { value: 'pšenice' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(mockHarvestUpsert).not.toHaveBeenCalled();
+  });
+
+  it('custom unknown food never causes a conflict toast, even during an active elimination', async () => {
+    // Set up a dairy-elimination schedule
+    const { setReady: _setReady } = (() => {
+      // Inline — reuse the module-level setReady helper by calling it directly
+      mockScheduleRaw.set({
+        status: 'ready',
+        schedule: dairyEliminationSchedule,
+        answers: sampleAnswers,
+      });
+      return { setReady: () => {} };
+    })();
+    void _setReady; // suppress unused warning
+
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByPlaceholderText, getByRole, queryByText } = render(MealPage);
+    await tick();
+
+    const input = getByPlaceholderText('Název potraviny…');
+    await fireEvent.input(input, { target: { value: 'Exotický koláč' } });
+    await fireEvent.click(getByRole('button', { name: 'Přidat' }));
+    await tick();
+
+    // No conflict toast should appear — custom foods have empty triggers
+    expect(queryByText(/vylučovacím jídelníčku/)).not.toBeInTheDocument();
   });
 });

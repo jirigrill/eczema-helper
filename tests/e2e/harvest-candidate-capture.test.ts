@@ -142,3 +142,28 @@ test('mixed session: unknown food captured, known food not captured', async ({ p
   const candidate = await readCandidate(page, 'kokos');
   expect(candidate).not.toBeNull();
 });
+
+// ── Normalized foodId stored on meal (issue #229) ─────────────────────────────
+
+test('unknown free-text food is stored with other:${normalizedKey} foodId, not the raw string', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/meal');
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  await page.fill('input[placeholder="Název potraviny…"]', 'Kokos');
+  await page.getByRole('button', { name: 'Přidat' }).click();
+  await expect(page.getByTestId('basket-item')).toBeVisible();
+
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+  // After save, the page navigates to /day/<today>; wait for that before querying DB
+  await page.waitForURL(/\/day\//);
+
+  const savedFoodId = await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    const meals = await db.meals.toArray();
+    return meals[0]?.items[0]?.foodId ?? null;
+  });
+
+  expect(savedFoodId).toBe('other:kokos');
+});

@@ -176,7 +176,7 @@
       const name = getCategoryConfig(matched.id)?.name ?? matched.id;
       addItem({ name, foodId: `other:${matched.id}` });
     } else {
-      addItem({ name: customName.trim(), foodId: `other:${customName.trim()}` });
+      addItem({ name: customName.trim(), foodId: `other:${normalizeKey(customName.trim())}` });
       captureHarvestCandidate(customName.trim());
     }
     customName = '';
