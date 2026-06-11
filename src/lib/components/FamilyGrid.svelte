@@ -21,7 +21,7 @@
 </script>
 
 <div class="grid grid-cols-4 gap-2">
-  {#each FAMILIES as family (family.id)}
+  {#each FAMILIES.filter(f => f.id !== 'custom') as family (family.id)}
     {@const state = stateFor(family.id)}
     <button
       type="button"

@@ -29,10 +29,7 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { mealSession } from '$lib/stores/meal-session';
-  import { matchAllergen } from '$lib/domain/allergen-matcher';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-  import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
-  import { mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
 
   const mealCatalog = new BundledCatalogAdapter();
 
@@ -68,8 +65,6 @@
   let currentItems = $state<MealItem[]>([]);
   let mealNotes = $state('');
   let showSuccess = $state(false);
-  let customName = $state('');
-
   // ── View state: null = family grid, FamilyId = drill-in ───
   let drilledFamily = $state<FamilyId | null>(null);
 
@@ -177,28 +172,6 @@
   function handleAddFood(foodId: string, name: string) {
     addItem({ name, foodId });
     // Don't auto-close drill-in — let user keep adding from same family
-  }
-
-  function addCustom() {
-    if (!customName.trim()) return;
-    const matched = matchAllergen(customName.trim());
-    if (matched) {
-      const name = getCategoryConfig(matched.id)?.name ?? matched.id;
-      addItem({ name, foodId: `other:${matched.id}` });
-    } else {
-      addItem({ name: customName.trim(), foodId: `other:${normalizeKey(customName.trim())}` });
-      captureHarvestCandidate(customName.trim());
-    }
-    customName = '';
-  }
-
-  async function captureHarvestCandidate(raw: string): Promise<void> {
-    const normalized = normalizeKey(raw);
-    if (!normalized) return;
-    const existing = await harvestCandidateSession.readByKey(normalized);
-    const prior = existing.ok ? existing.data : null;
-    const candidate = mergeCandidate(prior, raw, normalized, new Date().toISOString());
-    await harvestCandidateSession.upsert(candidate);
   }
 
   function removeItem(id: string) {
@@ -313,26 +286,6 @@
   </div>
 
   <div class="px-4 pt-4 space-y-5">
-
-    <!-- Custom item input -->
-    <div>
-      <p class="field-label">{commonStrings.meal.customFoodLabel}</p>
-      <div class="flex gap-2">
-        <input
-          type="text"
-          bind:value={customName}
-          placeholder={commonStrings.meal.customFoodPlaceholder}
-          class="input-base flex-1 px-3 py-2.5 bg-white"
-          onkeydown={(e) => e.key === 'Enter' && addCustom()}
-        />
-        <button
-          class="px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium"
-          onclick={addCustom}
-        >
-          {actionStrings.add}
-        </button>
-      </div>
-    </div>
 
     <!-- A1/A2: Family grid or drill-in -->
     <div>
