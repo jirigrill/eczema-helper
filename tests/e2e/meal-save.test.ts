@@ -226,18 +226,13 @@ test('conflict toast: selecting a food with an eliminated allergen shows transie
   // The eliminated-allergen banner confirms dairy is flagged for this session
   await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 
-  // Open the category sheet
-  await page.getByRole('button', { name: /Všechny kategorie/ }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  // Tap the Mléko family tile (dairy) — drill-in opens inline
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
 
-  // Tap "Mléčné výrobky" — it has sub-items, so this opens the sub-item panel
-  await page.getByRole('button', { name: /Mléčné/ }).click();
+  // Pick a specific dairy food (Kravské mléko)
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
 
-  // Pick a specific dairy sub-item (Jogurt)
-  await page.getByRole('button', { name: 'Jogurt' }).click();
-
-  // Sheet closes and the conflict toast appears with the allergen name
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  // Conflict toast appears with the allergen name
   await expect(
     page.getByText('⚠ Mléčné výrobky vyřazeno — odchylka zaznamenána')
   ).toBeVisible();
