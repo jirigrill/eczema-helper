@@ -42,3 +42,19 @@ export function getProtocolForAllergen(id: string): AllergenProtocol | undefined
   const record = ALLERGENS.find((r) => r.id === id) as { protocol?: AllergenProtocol } | undefined;
   return record?.protocol;
 }
+
+import type { FamilyId } from './allergen-catalog';
+
+/** All catalog allergens that belong to the given family, in catalog order. */
+export function allergensByFamily(familyId: FamilyId): typeof ALLERGENS[number][] {
+  return ALLERGENS.filter((a) => a.familyId === familyId);
+}
+
+/**
+ * Returns the single allergen id for a family that contains exactly one allergen,
+ * or null for multi-allergen families. Used to collapse the drill-in step.
+ */
+export function singleAllergenFamily(familyId: FamilyId): string | null {
+  const members = allergensByFamily(familyId);
+  return members.length === 1 ? members[0].id : null;
+}

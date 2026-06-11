@@ -3,7 +3,8 @@
   // V2 Prototype — Onboarding Questionnaire (5 steps)
   // ═══════════════════════════════════════════════════════════
   import { goto } from '$app/navigation';
-  import CategoryGrid from '$lib/components/CategoryGrid.svelte';
+  import FamilyGrid from '$lib/components/FamilyGrid.svelte';
+  import AllergenDrillIn from '$lib/components/AllergenDrillIn.svelte';
   import FormInput from '$lib/components/form-input.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
@@ -19,6 +20,9 @@
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import { protocolSession } from '$lib/stores/protocol-session';
+  import { singleAllergenFamily } from '$lib/data/allergen-catalog';
+  import { ALLERGENS } from '$lib/data/allergen-catalog';
+  import type { FamilyId } from '$lib/data/allergen-catalog';
 
   // ── Form state ────────────────────────────────────────────
   let step = $state(1);
@@ -30,13 +34,55 @@
   let babyAllergies = $state<string[]>([]);
   let programStartDate = $state(new Date().toISOString().split('T')[0]);
 
+  // Drill-in state for steps 3 and 4
+  let motherDrillFamily = $state<FamilyId | null>(null);
+  let babyDrillFamily = $state<FamilyId | null>(null);
+
+  function handleMotherFamilySelect(familyId: FamilyId) {
+    const single = singleAllergenFamily(familyId);
+    if (single !== null) {
+      // Toggle directly — no drill needed
+      if (motherAllergies.includes(single)) {
+        motherAllergies = motherAllergies.filter((a) => a !== single);
+      } else {
+        motherAllergies = [...motherAllergies, single];
+      }
+    } else {
+      motherDrillFamily = familyId;
+    }
+  }
+
+  function handleBabyFamilySelect(familyId: FamilyId) {
+    const single = singleAllergenFamily(familyId);
+    if (single !== null) {
+      if (babyAllergies.includes(single)) {
+        babyAllergies = babyAllergies.filter((a) => a !== single);
+      } else {
+        babyAllergies = [...babyAllergies, single];
+      }
+    } else {
+      babyDrillFamily = familyId;
+    }
+  }
+
   const progress = $derived(((step - 1) / (TOTAL_STEPS - 1)) * 100);
 
   const permanentSlugs = $derived(
     [...new Set([...motherAllergies.map(s => s.split(':')[0]), ...babyAllergies.map(s => s.split(':')[0])])]
   );
 
-  const summaryEndDate = $derived.by(() => {
+  // Maps allergen ids to their family — used to highlight families in FamilyGrid
+  function familiesForAllergens(allergenIds: string[]): FamilyId[] {
+    const families = new Set<FamilyId>();
+    for (const id of allergenIds) {
+      const rec = ALLERGENS.find((a) => a.id === id);
+      if (rec) families.add(rec.familyId as FamilyId);
+    }
+    return [...families];
+  }
+
+  const motherActiveFamilies = $derived(familiesForAllergens(motherAllergies));
+  const babyActiveFamilies = $derived(familiesForAllergens(babyAllergies)); = $derived.by(() => {
     if (!babyBirthDate || !programStartDate) return '—';
     const schedule = generateSchedule({
       babyBirthDate,
@@ -213,61 +259,87 @@
     <!-- ═══ Step 3: Mother's allergies ═══ -->
     {:else if step === 3}
       <div class="flex-1 flex flex-col gap-5">
-        <div>
-          <h2 class="card-heading">{commonStrings.onboarding.step3Heading}</h2>
-          <p class="body-muted">
-            {commonStrings.onboarding.step3Subtitle}
-          </p>
-        </div>
+        {#if motherDrillFamily === null}
+          <div>
+            <h2 class="card-heading">{commonStrings.onboarding.step3Heading}</h2>
+            <p class="body-muted">
+              {commonStrings.onboarding.step3Subtitle}
+            </p>
+          </div>
 
-        <InfoBanner variant="info">
-          <p class="body">{@html commonStrings.onboarding.step3InfoHtml}</p>
-        </InfoBanner>
+          <InfoBanner variant="info">
+            <p class="body">{@html commonStrings.onboarding.step3InfoHtml}</p>
+          </InfoBanner>
 
-        <CategoryGrid bind:selected={motherAllergies} variant="primary" expandable={true} />
+          <FamilyGrid
+            onSelect={handleMotherFamilySelect}
+            activeFamilyIds={motherActiveFamilies}
+          />
 
-        <div class="mt-auto space-y-2">
-          <Button onclick={next}>
-            {motherAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(motherAllergies)} ${allergenWordCs(affectedCategoryCount(motherAllergies))})` : actionStrings.continue}
-          </Button>
-          {#if motherAllergies.length === 0}
-            <button class="w-full py-2 body-muted" onclick={next}>
-              {actionStrings.noAllergy}
-            </button>
-          {/if}
-        </div>
+          <div class="mt-auto space-y-2">
+            <Button onclick={next}>
+              {motherAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(motherAllergies)} ${allergenWordCs(affectedCategoryCount(motherAllergies))})` : actionStrings.continue}
+            </Button>
+            {#if motherAllergies.length === 0}
+              <button class="w-full py-2 body-muted" onclick={next}>
+                {actionStrings.noAllergy}
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <AllergenDrillIn
+            familyId={motherDrillFamily}
+            bind:selected={motherAllergies}
+            variant="primary"
+            onBack={() => (motherDrillFamily = null)}
+          />
+          <div class="mt-auto px-4">
+            <Button onclick={() => (motherDrillFamily = null)}>{actionStrings.done}</Button>
+          </div>
+        {/if}
       </div>
 
     <!-- ═══ Step 4: Baby's confirmed allergies ═══ -->
     {:else if step === 4}
       <div class="flex-1 flex flex-col gap-5">
-        <div>
-          <h2 class="card-heading">{commonStrings.onboarding.step4Heading}</h2>
-          <p class="body-muted">
-            {commonStrings.onboarding.step4Subtitle}
-          </p>
-        </div>
+        {#if babyDrillFamily === null}
+          <div>
+            <h2 class="card-heading">{commonStrings.onboarding.step4Heading}</h2>
+            <p class="body-muted">
+              {commonStrings.onboarding.step4Subtitle}
+            </p>
+          </div>
 
-        <InfoBanner variant="danger">
-          <p class="body">{@html commonStrings.onboarding.step4InfoHtml}</p>
-        </InfoBanner>
+          <InfoBanner variant="danger">
+            <p class="body">{@html commonStrings.onboarding.step4InfoHtml}</p>
+          </InfoBanner>
 
-        <CategoryGrid
-          bind:selected={babyAllergies}
-          variant="danger"
-          expandable={true}
-        />
+          <FamilyGrid
+            onSelect={handleBabyFamilySelect}
+            activeFamilyIds={babyActiveFamilies}
+          />
 
-        <div class="mt-auto space-y-2">
-          <Button onclick={next}>
-            {babyAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(babyAllergies)} ${allergenWordCs(affectedCategoryCount(babyAllergies))})` : actionStrings.continue}
-          </Button>
-          {#if babyAllergies.length === 0}
-            <button class="w-full py-2 body-muted" onclick={next}>
-              {actionStrings.noConfirmedAllergy}
-            </button>
-          {/if}
-        </div>
+          <div class="mt-auto space-y-2">
+            <Button onclick={next}>
+              {babyAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(babyAllergies)} ${allergenWordCs(affectedCategoryCount(babyAllergies))})` : actionStrings.continue}
+            </Button>
+            {#if babyAllergies.length === 0}
+              <button class="w-full py-2 body-muted" onclick={next}>
+                {actionStrings.noConfirmedAllergy}
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <AllergenDrillIn
+            familyId={babyDrillFamily}
+            bind:selected={babyAllergies}
+            variant="danger"
+            onBack={() => (babyDrillFamily = null)}
+          />
+          <div class="mt-auto px-4">
+            <Button onclick={() => (babyDrillFamily = null)}>{actionStrings.done}</Button>
+          </div>
+        {/if}
       </div>
 
     <!-- ═══ Step 5: Program start date ═══ -->

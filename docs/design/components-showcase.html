@@ -94,6 +94,7 @@
   <a href="#toast">Toast</a>
   <a href="#family-grid">FamilyGrid</a>
   <a href="#family-drill-in">FamilyDrillIn</a>
+  <a href="#allergen-drill-in">AllergenDrillIn</a>
 </nav>
 
 <div class="canvas">
@@ -1115,6 +1116,54 @@
           <button style="font-size:13px;color:#8B4557;font-weight:500">← Procházet rodiny</button>
         </div>
         <p class="variant-name">familyId='dairy', eliminatedAllergenIds=['dairy']</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── AllergenDrillIn ─────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/AllergenDrillIn.svelte -->
+  <div class="component-section" id="allergen-drill-in">
+    <p class="component-label">▸ <span>AllergenDrillIn</span> — familyId: FamilyId, selected?: string[] (bindable), variant?: 'primary' | 'danger', onBack: () => void</p>
+    <p class="component-desc">Questionnaire allergen selector — one level shallower than FamilyDrillIn. Shows allergen chips for the given family. Chips toggle allergen ids into/out of selected[]. Used in steps 3 and 4 of onboarding. Single-allergen families are never passed here — collapse is handled by the parent page.</p>
+    <div class="variant-grid">
+
+      <!-- Legumes family: two allergens, soy selected (primary) -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
+            <span style="font-size:20px">🫘</span>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Luštěniny</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <!-- soy selected primary -->
+            <button style="padding:8px 12px;border-radius:12px;border:1.5px solid #8B4557;background:rgba(139,69,87,0.1);font-size:13px;color:#8B4557;font-weight:600;display:flex;align-items:center;gap:6px"><span style="font-size:16px">🫘</span>Sója</button>
+            <!-- legumes not selected -->
+            <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#fff;font-size:13px;color:#3D2B2F;display:flex;align-items:center;gap:6px"><span style="font-size:16px">🫘</span>Luštěniny</button>
+          </div>
+          <button style="width:100%;margin-top:16px;padding:12px;border-radius:16px;background:#8B4557;color:white;font-size:13px;font-weight:600">Hotovo</button>
+        </div>
+        <p class="variant-name">familyId='legumes', selected=['soy'], variant='primary'</p>
+      </div>
+
+      <!-- Nuts-seeds family: nuts + sesame + seeds, nuts selected (danger) -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
+            <span style="font-size:20px">🥜</span>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Ořechy a semínka</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <!-- nuts selected danger -->
+            <button style="padding:8px 12px;border-radius:12px;border:1.5px solid #B84444;background:rgba(184,68,68,0.1);font-size:13px;color:#B84444;font-weight:600;display:flex;align-items:center;gap:6px"><span style="font-size:16px">🥜</span>Ořechy</button>
+            <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#fff;font-size:13px;color:#3D2B2F;display:flex;align-items:center;gap:6px"><span style="font-size:16px">🌰</span>Sezam</button>
+            <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#fff;font-size:13px;color:#3D2B2F;display:flex;align-items:center;gap:6px"><span style="font-size:16px">🌱</span>Semínka</button>
+          </div>
+          <button style="width:100%;margin-top:16px;padding:12px;border-radius:16px;background:#B84444;color:white;font-size:13px;font-weight:600">Hotovo</button>
+        </div>
+        <p class="variant-name">familyId='nuts-seeds', selected=['nuts'], variant='danger'</p>
       </div>
 
     </div>
