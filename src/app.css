@@ -117,6 +117,11 @@ button, a, [role="button"] {
     @apply bg-white/85 text-danger border border-danger/40;
   }
 
+  /* Current variant — bordeaux outline, used for the active meal-type pill */
+  .chip--current {
+    @apply bg-transparent text-primary font-semibold border border-primary;
+  }
+
   /* ── Form atoms ──────────────────────────────────────────────────── */
 
   .input-base {
