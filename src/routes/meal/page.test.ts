@@ -129,7 +129,7 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
     expect(queryByText('Přidat jídlo')).not.toBeInTheDocument();
-    expect(queryByText(/Mléko/)).toBeInTheDocument();
+    expect(queryByText('🥛 Mléko')).toBeInTheDocument();
   });
 
   it('meal type pills hidden while drilled in, visible on grid', async () => {
