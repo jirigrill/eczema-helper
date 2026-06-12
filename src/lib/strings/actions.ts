@@ -40,4 +40,8 @@ export const actionStrings = {
   savedAssessment:    '✓ Uloženo',
   addPhoto:           'Přidat fotku',
   photoTaken:         'Fotka pořízena',
+  /** Meal logging modal-edit flow (issue #244) */
+  saveFood:          'Uložit',         // callers append ' {foodName}'
+  saveFamily:        'Uložit rodinu',  // generic fallback; callers can append family name
+
 } as const;

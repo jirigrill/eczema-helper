@@ -160,6 +160,9 @@ export const commonStrings = {
     browseFamiliesLabel:  'Procházet rodiny',
     customFoodsLabel:     'Dříve zadané',
     customFamilyEmptyHint:'Zatím žádné vlastní potraviny. Napište potravinu výše.',
+    // ── Issue #244: modal-edit flow ────────────────────────
+    confirmedFoodsLabel:  'Přidané potraviny',
+    mealNotesLabel:       'Poznámka k jídlu',
   },
 
   // ── Program page ──────────────────────────────────────────

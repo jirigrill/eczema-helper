@@ -92,6 +92,8 @@
   <a href="#toast">Toast</a>
   <a href="#family-grid">FamilyGrid</a>
   <a href="#family-drill-in">FamilyDrillIn</a>
+  <a href="#food-token">FoodToken</a>
+  <a href="#food-editor">FoodEditor</a>
   <a href="#allergen-drill-in">AllergenDrillIn</a>
 </nav>
 
@@ -940,97 +942,124 @@
   <!-- ─── FamilyDrillIn ───────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
   <div class="component-section" id="family-drill-in">
-    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, inMealFoodIds?: string[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onAddFood: (foodId, name) => void, onBack: () => void</p>
-    <p class="component-desc">Drill-in view for a single family. Foods grouped by allergenId (allergen header + food chips). Loose foods (allergenIds=[]) shown under "bez alergenu". States: neutral, success (in meal), danger (allergen eliminated). The Vlastní (custom) family lists previously-typed custom foods passed via customFoods under "Dříve zadané", or an empty hint when none exist. onBack returns to FamilyGrid.</p>
+    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onBack: () => void</p>
+    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodToken rows, grouped by allergen. Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The allergen group header shows a danger badge when that allergen is in eliminatedAllergenIds. The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. onBack returns to FamilyGrid. The sticky CTA lives in the page, not here.</p>
     <div class="variant-grid">
 
-      <!-- Fruit family: allergen groups + loose foods -->
-      <div class="variant-tile" style="max-width:300px">
-        <div style="space-y:16px;padding:16px;background:#FAF8F8;border-radius:16px">
+      <!-- Dairy family: editing state (one food editing, one locked) -->
+      <div class="variant-tile" style="max-width:320px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
           <!-- Header row -->
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:12px">
             <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">🍎 Ovoce</span>
+            <span style="font-size:20px">🥛</span>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Mléko</span>
           </div>
-          <!-- Allergen group: Citrusy -->
-          <div style="margin-bottom:12px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-              <span style="font-size:16px">🍋</span>
-              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Citrusy</span>
+          <!-- Allergen group: Mléčné výrobky -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:16px">🥛</span>
+              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Mléčné výrobky</span>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Pomeranč</button>
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Citron</button>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <!-- Kravské mléko: editing -->
+              <div style="border-radius:12px;overflow:hidden;border:2px solid #8B4557;background:rgba(139,69,87,0.04)">
+                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#8B4557;font-weight:500">Kravské mléko</button>
+                <div style="padding:0 12px 12px">
+                  <!-- FoodEditor -->
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <div>
+                      <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Množství</p>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">špetka</span>
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžička</span>
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžíce</span>
+                        <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">porce</span>
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">balení</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Příprava</p>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">vařené</span>
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
+                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Jogurt: locked (another food editing) -->
+              <div style="border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;opacity:0.4">
+                <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#7A6468;cursor:default">Jogurt</button>
+              </div>
             </div>
           </div>
-          <!-- Loose foods -->
-          <div>
-            <div style="margin-bottom:8px">
-              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">bez alergenu</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <!-- Jablko in meal → success -->
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid rgba(90,139,90,0.3);background:rgba(90,139,90,0.1);font-size:13px;color:#5A8B5A">Jablko</button>
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Hruška</button>
-            </div>
-          </div>
-          <button style="font-size:13px;color:#8B4557;font-weight:500;margin-top:12px">← Procházet rodiny</button>
         </div>
-        <p class="variant-name">familyId='fruit', inMealFoodIds=['jablko']</p>
+        <p class="variant-name">foods=[{kravske-mleko: editing, portion}, {jogurt: locked}]</p>
       </div>
 
-      <!-- Dairy family: eliminated allergen -->
-      <div class="variant-tile" style="max-width:300px">
-        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <!-- Dairy family: confirmed state + eliminated allergen -->
+      <div class="variant-tile" style="max-width:320px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px">
             <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">🥛 Mléko</span>
+            <span style="font-size:20px">🥛</span>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Mléko</span>
           </div>
-          <!-- Allergen group: Mléčné výrobky (eliminated) -->
-          <div style="margin-bottom:12px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <!-- Allergen group: eliminated -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:16px">🥛</span>
               <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Mléčné výrobky</span>
               <span style="font-size:10px;background:#B84444;color:white;border-radius:99px;padding:1px 6px">!</span>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);font-size:13px;color:#B84444">Kravské mléko</button>
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);font-size:13px;color:#B84444">Jogurt</button>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <!-- Kravské mléko: confirmed (bordeaux fill) -->
+              <div style="border-radius:12px;background:#8B4557;border:1px solid #8B4557">
+                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Kravské mléko</button>
+              </div>
+              <!-- Jogurt: idle with danger styling -->
+              <div style="border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08)">
+                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#B84444">Jogurt <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
+              </div>
             </div>
           </div>
-          <button style="font-size:13px;color:#8B4557;font-weight:500">← Procházet rodiny</button>
         </div>
-        <p class="variant-name">familyId='dairy', eliminatedAllergenIds=['dairy']</p>
+        <p class="variant-name">foods=[{kravske-mleko: confirmed}], eliminatedAllergenIds=['dairy']</p>
       </div>
 
       <!-- Custom (Vlastní) family: previously-typed customs -->
-      <div class="variant-tile" style="max-width:300px">
-        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div class="variant-tile" style="max-width:320px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px">
             <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">➕ Vlastní</span>
+            <span style="font-size:20px">➕</span>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Vlastní</span>
           </div>
-          <!-- Previously-typed customs -->
-          <div>
-            <div style="margin-bottom:8px">
-              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Dříve zadané</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Kokos</button>
-              <button style="padding:8px 12px;border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;font-size:13px;color:#3D2B2F">Quinoa</button>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Dříve zadané</span>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="border-radius:12px;border:1px solid #EDE8E9;background:white">
+                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#3D2B2F">Kokos</button>
+              </div>
+              <div style="border-radius:12px;background:#8B4557;border:1px solid #8B4557">
+                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Quinoa</button>
+              </div>
             </div>
           </div>
-          <button style="font-size:13px;color:#8B4557;font-weight:500;margin-top:12px">← Procházet rodiny</button>
         </div>
-        <p class="variant-name">familyId='custom', customFoods=[…]</p>
+        <p class="variant-name">familyId='custom', customFoods=[Kokos:idle, Quinoa:confirmed]</p>
       </div>
 
       <!-- Custom (Vlastní) family: empty -->
-      <div class="variant-tile" style="max-width:300px">
-        <div style="padding:16px;background:#FAF8F8;border-radius:16px">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div class="variant-tile" style="max-width:320px">
+        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px">
             <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">➕ Vlastní</span>
+            <span style="font-size:20px">➕</span>
+            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Vlastní</span>
           </div>
           <div style="border:1px dashed #EDE8E9;border-radius:12px;padding:20px 16px;text-align:center">
             <p style="font-size:12px;color:#7A6468">Zatím žádné vlastní potraviny. Napište potravinu výše.</p>
@@ -1041,6 +1070,145 @@
 
     </div>
   </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── FoodToken ─────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/FoodToken.svelte -->
+  <div class="component-section" id="food-token">
+    <p class="component-label">▸ <span>FoodToken</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', onclick?: () => void, editor?: Snippet</p>
+    <p class="component-desc">Per-food tile in FamilyDrillIn. Four visual states reflecting the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). eliminatedStatus='danger' adds red tint and "Vyloučeno" suffix on idle tiles. The editor snippet is rendered only when state='editing'.</p>
+    <div class="variant-grid">
+
+      <!-- idle -->
+      <div class="variant-tile">
+        <div style="border-radius:12px;border:1px solid #EDE8E9;background:white;overflow:hidden">
+          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#3D2B2F">Brambory</button>
+        </div>
+        <p class="variant-name">state='idle'</p>
+      </div>
+
+      <!-- idle + eliminated -->
+      <div class="variant-tile">
+        <div style="border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);overflow:hidden">
+          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#B84444">Kravské mléko <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
+        </div>
+        <p class="variant-name">state='idle', eliminatedStatus='danger'</p>
+      </div>
+
+      <!-- editing (with editor) -->
+      <div class="variant-tile" style="max-width:280px">
+        <div style="border-radius:12px;overflow:hidden;border:2px solid #8B4557;background:rgba(139,69,87,0.04)">
+          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#8B4557;font-weight:500">Losos</button>
+          <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:10px">
+            <div>
+              <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Množství</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">špetka</span>
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžička</span>
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžíce</span>
+                <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">porce</span>
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">balení</span>
+              </div>
+            </div>
+            <div>
+              <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Příprava</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">vařené</span>
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
+                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="variant-name">state='editing', amount='portion', preparation='boiled'</p>
+      </div>
+
+      <!-- confirmed -->
+      <div class="variant-tile">
+        <div style="border-radius:12px;background:#8B4557;border:1px solid #8B4557;overflow:hidden">
+          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Losos</button>
+        </div>
+        <p class="variant-name">state='confirmed'</p>
+      </div>
+
+      <!-- locked -->
+      <div class="variant-tile">
+        <div style="border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;opacity:0.4;overflow:hidden">
+          <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#7A6468;cursor:default">Brambory</button>
+        </div>
+        <p class="variant-name">state='locked'</p>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── FoodEditor ─────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/FoodEditor.svelte -->
+  <div class="component-section" id="food-editor">
+    <p class="component-label">▸ <span>FoodEditor</span> — amount: PortionKind, preparation?: PreparationMethod, onAmountChange: (a: PortionKind) => void, onPreparationChange: (p: PreparationMethod | undefined) => void</p>
+    <p class="component-desc">Množství / Příprava picker that expands beneath a FoodToken in editing state. Uses Chip for each option. Active chip is filled (bordeaux). Tapping the active preparation chip deselects it (toggles to undefined). Clicking amount/preparation chips calls stopPropagation to avoid triggering FoodToken's onclick.</p>
+    <div class="variant-grid">
+
+      <!-- Default: portion selected, no preparation -->
+      <div class="variant-tile" style="max-width:280px">
+        <div style="padding:12px;background:white;border-radius:12px;border:1px solid #EDE8E9;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Množství</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">špetka</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžička</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžíce</span>
+              <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">porce</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">balení</span>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Příprava</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">vařené</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
+            </div>
+          </div>
+        </div>
+        <p class="variant-name">amount='portion', preparation=undefined</p>
+      </div>
+
+      <!-- Teaspoon + boiled -->
+      <div class="variant-tile" style="max-width:280px">
+        <div style="padding:12px;background:white;border-radius:12px;border:1px solid #EDE8E9;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Množství</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">špetka</span>
+              <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">lžička</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">lžíce</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">porce</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">balení</span>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Příprava</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">vařené</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
+              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
+            </div>
+          </div>
+        </div>
+        <p class="variant-name">amount='teaspoon', preparation='boiled'</p>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
 
   <!-- ─── AllergenDrillIn ─────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/AllergenDrillIn.svelte -->
