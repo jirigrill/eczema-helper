@@ -13,6 +13,7 @@ import {
   editingFood,
   foodsForFamily,
   toMealItems,
+  removeFood,
 } from './working-meal';
 import type { WorkingMeal } from './working-meal';
 
@@ -284,5 +285,54 @@ describe('active edit slot invariant', () => {
       f => f.state.status === 'editing'
     ).length;
     expect(editingCount).toBe(1);
+  });
+});
+
+// ── removeFood ────────────────────────────────────────────────
+
+describe('removeFood', () => {
+  it('removes a confirmed food from the working list', () => {
+    let meal = mealWithConfirmed();
+    meal = removeFood(meal, FAM, FOOD_A);
+    expect(foodsForFamily(meal, FAM).some(f => f.foodId === FOOD_A)).toBe(false);
+  });
+
+  it('removes an idle food from the working list', () => {
+    let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
+    meal = cancelEditing(meal, FAM, FOOD_A); // now idle
+    meal = removeFood(meal, FAM, FOOD_A);
+    expect(foodsForFamily(meal, FAM).some(f => f.foodId === FOOD_A)).toBe(false);
+  });
+
+  it('is a no-op when the foodId is not present', () => {
+    const meal = mealWithConfirmed();
+    const after = removeFood(meal, FAM, 'nonexistent-food');
+    expect(foodsForFamily(after, FAM)).toEqual(foodsForFamily(meal, FAM));
+  });
+
+  it('removes only the targeted food, leaving others intact', () => {
+    let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
+    meal = confirmFood(meal, FAM, FOOD_A);
+    meal = startEditing(meal, FAM, FOOD_B, 'B');
+    meal = confirmFood(meal, FAM, FOOD_B);
+    meal = removeFood(meal, FAM, FOOD_A);
+    const foods = foodsForFamily(meal, FAM);
+    expect(foods.some(f => f.foodId === FOOD_A)).toBe(false);
+    expect(foods.some(f => f.foodId === FOOD_B)).toBe(true);
+  });
+
+  it('removing the editing food unlocks all locked siblings', () => {
+    let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
+    meal = confirmFood(meal, FAM, FOOD_A);
+    meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_A locked(confirmed), FOOD_B editing
+    meal = removeFood(meal, FAM, FOOD_B);        // remove the editing food
+    const a = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    expect(a?.state.status).not.toBe('locked');
+  });
+
+  it('does not persist — allConfirmedFoods excludes removed food', () => {
+    let meal = mealWithConfirmed();
+    meal = removeFood(meal, FAM, FOOD_A);
+    expect(allConfirmedFoods(meal)).toHaveLength(0);
   });
 });

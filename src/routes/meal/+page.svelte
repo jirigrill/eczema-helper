@@ -19,6 +19,7 @@
   import Chip from '$lib/components/Chip.svelte';
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
+  import FoodEditor from '$lib/components/FoodEditor.svelte';
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -34,6 +35,7 @@
     updateEditingAmount,
     updateEditingPreparation,
     commitFamily,
+    removeFood,
     allConfirmedFoods,
     editingFood as getEditingFood,
     foodsForFamily,
@@ -66,6 +68,8 @@
 
   // ── View state ────────────────────────────────────────────
   let drilledFamily = $state<FamilyId | null>(null);
+  /** Working-list row currently open for inline editing (grid view only). */
+  let gridEditingFoodId = $state<string | null>(null);
 
   // ── Derived working-meal helpers ──────────────────────────
   const confirmedFoods = $derived(allConfirmedFoods(workingMeal));
@@ -74,6 +78,24 @@
   const currentEditingFood = $derived(
     drilledFamily ? getEditingFood(workingMeal, drilledFamily) : null
   );
+
+  /** The food currently open for inline editing on the grid. */
+  const gridEditingFood = $derived(() => {
+    if (!gridEditingFoodId) return null;
+    for (const fam of workingMeal.families) {
+      const f = fam.foods.find(fd => fd.foodId === gridEditingFoodId);
+      if (f) return { food: f, familyId: fam.familyId };
+    }
+    return null;
+  });
+
+  /** Foods displayed in the grid working-list: confirmed + the one being inline-edited. */
+  const gridListFoods = $derived(() => {
+    const confirmed = allConfirmedFoods(workingMeal);
+    const editing = gridEditingFood();
+    if (!editing) return confirmed;
+    return [...confirmed, editing.food];
+  });
 
   const activeFamilyIds = $derived(
     confirmedFoods.flatMap(f => {
@@ -107,6 +129,10 @@
         return `${actionStrings.saveFood} ${currentEditingFood.name}`;
       }
       return `${actionStrings.saveFood} ${familyStrings[drilledFamily].name}`;
+    }
+    const ge = gridEditingFood();
+    if (ge) {
+      return `${actionStrings.saveFood} ${ge.food.name}`;
     }
     if (hasConfirmed) {
       return `${actionStrings.done} — ${mealConfig[selectedMealType].label}`;
@@ -144,16 +170,60 @@
   function handleCta(): void {
     if (drilledFamily) {
       if (currentEditingFood) {
-        // Confirm the editing food
         workingMeal = confirmFood(workingMeal, drilledFamily, currentEditingFood.foodId);
       } else {
-        // Commit the family → return to grid
         workingMeal = commitFamily(workingMeal, drilledFamily);
         drilledFamily = null;
       }
+      return;
+    }
+    const ge = gridEditingFood();
+    if (ge) {
+      workingMeal = confirmFood(workingMeal, ge.familyId, ge.food.foodId);
+      gridEditingFoodId = null;
+      return;
+    }
+    // Hotovo: persist
+    void saveMeal();
+  }
+
+  function handleGridRowTap(foodId: string, name: string, familyId: FamilyId): void {
+    if (gridEditingFoodId === foodId) {
+      // Re-tap: confirm back (collapses editor, food stays in list)
+      workingMeal = confirmFood(workingMeal, familyId, foodId);
+      gridEditingFoodId = null;
     } else {
-      // Hotovo: persist
-      void saveMeal();
+      // Confirm any currently-editing food first, then open the tapped one
+      const ge = gridEditingFood();
+      if (ge) {
+        workingMeal = confirmFood(workingMeal, ge.familyId, ge.food.foodId);
+      }
+      workingMeal = startEditing(workingMeal, familyId, foodId, name);
+      gridEditingFoodId = foodId;
+    }
+  }
+
+  function handleGridRowAmountChange(foodId: string, familyId: FamilyId, amount: PortionKind): void {
+    workingMeal = updateEditingAmount(workingMeal, familyId, foodId, amount);
+  }
+
+  function handleGridRowPreparationChange(foodId: string, familyId: FamilyId, prep: PreparationMethod | undefined): void {
+    workingMeal = updateEditingPreparation(workingMeal, familyId, foodId, prep);
+  }
+
+  function handleGridRowRemove(foodId: string, familyId: FamilyId): void {
+    if (gridEditingFoodId === foodId) gridEditingFoodId = null;
+    workingMeal = removeFood(workingMeal, familyId, foodId);
+  }
+
+  function handleGridContainerClick(e: MouseEvent): void {
+    if (!gridEditingFoodId) return;
+    if (!(e.target as Element).closest('[data-food-token]')) {
+      const ge = gridEditingFood();
+      if (ge) {
+        workingMeal = confirmFood(workingMeal, ge.familyId, ge.food.foodId);
+        gridEditingFoodId = null;
+      }
     }
   }
 
@@ -190,6 +260,7 @@
   }
 
   function handleFamilySelect(familyId: FamilyId): void {
+    if (gridEditingFoodId) return;
     drilledFamily = familyId;
   }
 
@@ -285,29 +356,57 @@
           onCancelEdit={handleCancelEdit}
         />
       {:else}
-        <p class="micro-label mb-2">{commonStrings.meal.allCategoriesLabel}</p>
-        <FamilyGrid
-          onSelect={handleFamilySelect}
-          {activeFamilyIds}
-          {eliminatedFamilyIds}
-        />
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div role="presentation" onclick={handleGridContainerClick}>
 
-        <!-- Confirmed foods summary -->
-        {#if hasConfirmed}
-          <div class="mt-5">
+        <!-- Confirmed foods summary (editable working list) -->
+        {#if hasConfirmed || gridEditingFoodId}
+          <div class="mb-5">
             <p class="micro-label mb-2">{commonStrings.meal.confirmedFoodsLabel}</p>
             <div class="space-y-1.5">
-              {#each confirmedFoods as food (food.foodId)}
-                <div class="flex items-center gap-2 bg-white border border-surface-dark rounded-xl px-3 py-2">
-                  <span class="text-sm text-text">{food.name}</span>
-                  {#if food.state.status === 'confirmed'}
-                    <span class="text-xs text-text-muted ml-auto">{food.state.amount}</span>
+              {#each gridListFoods() as food (food.foodId)}
+                {@const fam = workingMeal.families.find(f => f.foods.some(fd => fd.foodId === food.foodId))}
+                {@const familyId = fam?.familyId}
+                {@const isEditing = food.state.status === 'editing'}
+                <div data-food-token class="bg-white border border-surface-dark rounded-xl overflow-hidden">
+                  <div class="flex items-center gap-2 px-3 py-2">
+                    <button
+                      type="button"
+                      class="text-sm text-text flex-1 text-left"
+                      onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
+                    >{food.name}</button>
+                    {#if food.state.status === 'confirmed'}
+                      <span class="text-xs text-text-muted">{food.state.amount}</span>
+                    {/if}
+                    <button
+                      type="button"
+                      aria-label="Odebrat {food.name}"
+                      class="ml-1 text-text-muted hover:text-danger text-base leading-none"
+                      onclick={() => familyId && handleGridRowRemove(food.foodId, familyId)}
+                    >×</button>
+                  </div>
+                  {#if isEditing && food.state.status === 'editing'}
+                    <div class="px-3 pb-3">
+                      <FoodEditor
+                        amount={food.state.amount}
+                        preparation={food.state.preparation}
+                        onAmountChange={(a) => familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
+                        onPreparationChange={(p) => familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}
+                      />
+                    </div>
                   {/if}
                 </div>
               {/each}
             </div>
           </div>
         {/if}
+
+        <p class="micro-label mb-2">{commonStrings.meal.allCategoriesLabel}</p>
+        <FamilyGrid
+          onSelect={handleFamilySelect}
+          {activeFamilyIds}
+          {eliminatedFamilyIds}
+        />
 
         <!-- Meal notes -->
         <div class="mt-5">
@@ -322,6 +421,7 @@
             class="input-base w-full px-4 py-2.5 bg-white resize-none"
           ></textarea>
         </div>
+        </div>
       {/if}
     </div>
 
@@ -335,12 +435,12 @@
 >
   <div class="max-w-lg mx-auto">
     <button
-      aria-disabled={!drilledFamily && !hasConfirmed ? 'true' : 'false'}
+      aria-disabled={!drilledFamily && !gridEditingFoodId && !hasConfirmed ? 'true' : 'false'}
       onclick={handleCta}
       class="w-full py-3 rounded-xl font-semibold text-sm transition-all
-        {!drilledFamily && !hasConfirmed
+        {!drilledFamily && !gridEditingFoodId && !hasConfirmed
           ? 'bg-surface-dark text-text-muted cursor-default'
-          : hasConflicts && !drilledFamily
+          : hasConflicts && !drilledFamily && !gridEditingFoodId
             ? 'bg-warning text-white'
             : 'bg-primary text-white'}"
     >

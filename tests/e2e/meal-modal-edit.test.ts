@@ -485,3 +485,130 @@ test('eliminated allergen foods show danger state in drill-in', async ({ page })
   const dangerTile = page.locator('div[data-state="danger"]').filter({ hasText: /Kravské mléko/ });
   await expect(dangerTile).toBeVisible();
 });
+
+// ── AC245: editable working-list rows on the grid ────────────────────────────
+
+/** Bring a food to the working-list and return to the grid. */
+async function commitBramborToGrid(page: Page) {
+  await openMealAndDrillVegetables(page);
+  await page.getByRole('button', { name: /Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+  await expect(page.getByText('Přidané potraviny')).toBeVisible();
+}
+
+test('AC245-1: tapping a working-list row opens the inline FoodEditor for that food', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  // FoodEditor must not be open yet
+  await expect(page.getByText('Množství')).not.toBeVisible();
+
+  // Tap the row button (food name button, not the ✕)
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+
+  await expect(page.getByText('Množství')).toBeVisible();
+  await expect(page.getByText('Příprava')).toBeVisible();
+});
+
+test('AC245-2: while a grid row is editing, CTA reads "Uložit {Food}"', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+
+  await expect(page.getByRole('button', { name: /Uložit Brambory/ })).toBeVisible();
+});
+
+test('AC245-3: confirming a grid-row edit via CTA collapses the editor, food stays', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+
+  await expect(page.getByText('Množství')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
+});
+
+test('AC245-4: clicking outside the grid-row editor confirms the food and collapses the editor', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  // Click outside: the notes textarea is outside [data-food-token]
+  await page.getByLabel('Poznámka k jídlu').click();
+
+  await expect(page.getByText('Množství')).not.toBeVisible();
+  // Food is still in the working list (confirmed, not removed)
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Hotovo/ })).toBeVisible();
+});
+
+test('AC245-5: clicking a family-grid tile while a row is editing closes the editor and does not drill in', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  // Click a family tile — outside [data-food-token], so it confirms the edit
+  await page.getByRole('button', { name: /Ovoce/ }).click();
+
+  // Still on grid (no drill-in heading visible)
+  await expect(page.getByText('Všechny kategorie')).toBeVisible();
+  // Food still in working list
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
+});
+
+test('AC245-6: ✕ removes the food from the working list', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /Odebrat Brambory/ }).click();
+
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).not.toBeVisible();
+  await expect(page.getByText('Přidané potraviny')).not.toBeVisible();
+});
+
+test('AC245-7: removing a food does not write to DB before Hotovo', async ({ page }) => {
+  await commitBramborToGrid(page);
+
+  await page.getByRole('button', { name: /Odebrat Brambory/ }).click();
+
+  const mealCount = await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    return await db.meals.count();
+  });
+  expect(mealCount).toBe(0);
+});
+
+test('AC245-8: tapping another working-list row confirms the current edit and opens the new editor', async ({ page }) => {
+  // Commit two foods from different families to the working list
+  await openMealAndDrillVegetables(page);
+  await page.getByRole('button', { name: /Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+
+  await expect(page.getByText('Přidané potraviny')).toBeVisible();
+
+  // Open editor on Brambory
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Uložit Brambory/ })).toBeVisible();
+
+  // Tap Kravské mléko — should confirm Brambory and open its editor
+  await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Uložit Kravské mléko/ })).toBeVisible();
+
+  // Exactly one FoodEditor open (one 'Množství' label)
+  await expect(page.getByText('Množství')).toHaveCount(1);
+
+  // Brambory still in the working list (was confirmed, not removed)
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
+});
