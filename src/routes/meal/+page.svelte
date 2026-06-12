@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { Meal, MealType, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -26,6 +27,7 @@
   import { page } from '$app/state';
   import { mealSession } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
+  import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
 
   import {
     emptyWorkingMeal,
@@ -133,6 +135,21 @@
         foodId: `other:${c.normalizedKey}`,
         name: c.rawForms[c.rawForms.length - 1] ?? c.normalizedKey,
       }))
+  );
+
+  /**
+   * Tracks just-added custom foods not yet in the harvest store.
+   * Cleared when the drill-in is exited or when harvest store catches up.
+   */
+  let pendingCustomFoods = $state<{ foodId: string; name: string }[]>([]);
+
+  /** All custom foods to show: harvest candidates + any session-pending ones. */
+  const effectiveCustomFoods = $derived(
+    (() => {
+      const harvestIds = new Set(customFoods.map(c => c.foodId));
+      const fresh = pendingCustomFoods.filter(p => !harvestIds.has(p.foodId));
+      return [...fresh, ...customFoods];
+    })()
   );
 
   // ── CTA label ─────────────────────────────────────────────
@@ -288,6 +305,28 @@
     }
   }
 
+  async function handleNewCustomFood(rawName: string): Promise<void> {
+    if (!drilledFamily) return;
+    const key = normalizeKey(rawName);
+    if (!key) return;
+    const foodId = `other:${key}`;
+    // Add to pending list first, await a tick so the FoodToken exists in the DOM,
+    // then call handleFoodTap to put it in editing state.
+    pendingCustomFoods = [...pendingCustomFoods, { foodId, name: rawName }];
+    await tick();
+    handleFoodTap(foodId, rawName);
+    void (async () => {
+      const existing = await harvestCandidateSession.readByKey(key);
+      const candidate = mergeCandidate(
+        existing.ok ? existing.data : null,
+        rawName,
+        key,
+        new Date().toISOString(),
+      );
+      await harvestCandidateSession.upsert(candidate);
+    })();
+  }
+
   // ── Conflict detection ────────────────────────────────────
   const conflicts = $derived(detectConflicts(confirmedFoods.map(f => ({
     id: f.foodId,
@@ -393,11 +432,12 @@
           familyId={drilledFamily}
           foods={foodsForFamily(workingMeal, drilledFamily)}
           eliminatedAllergenIds={eliminatedAllergenIdStrings}
-          customFoods={drilledFamily === 'custom' ? customFoods : []}
+          customFoods={drilledFamily === 'custom' ? effectiveCustomFoods : []}
           onFoodTap={handleFoodTap}
           onAmountChange={handleAmountChange}
           onPreparationChange={handlePreparationChange}
           onCancelEdit={handleCancelEdit}
+          onNewCustomFood={handleNewCustomFood}
         />
       {:else}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
