@@ -140,4 +140,53 @@ describe('FamilyDrillIn — custom family', () => {
     });
     expect(getByText(/Zatím žádné vlastní potraviny/)).toBeInTheDocument();
   });
+
+  // ── AC1: text input + Přidat button ──────────────────────────
+
+  it('shows a text input in the Vlastní drill-in', () => {
+    const { getByRole } = render(FamilyDrillIn, { props: customBase });
+    expect(getByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('shows a "Přidat" button in the Vlastní drill-in', () => {
+    const { getByRole } = render(FamilyDrillIn, { props: customBase });
+    expect(getByRole('button', { name: /Přidat/ })).toBeInTheDocument();
+  });
+
+  it('does NOT show a text input in a non-custom family', () => {
+    const { queryByRole } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    expect(queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  // ── AC2: new custom food → calls onNewCustomFood ──────────────
+
+  it('typing a name and clicking Přidat calls onNewCustomFood with the typed text', async () => {
+    const onNewCustomFood = vi.fn();
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...customBase, onNewCustomFood },
+    });
+    await fireEvent.input(getByRole('textbox'), { target: { value: 'Špenát' } });
+    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
+    await tick();
+    expect(onNewCustomFood).toHaveBeenCalledWith('Špenát');
+  });
+
+  it('Přidat button is disabled when the text input is empty', () => {
+    const { getByRole } = render(FamilyDrillIn, { props: customBase });
+    expect(getByRole('button', { name: /Přidat/ })).toBeDisabled();
+  });
+
+  it('clears the text input after Přidat is clicked', async () => {
+    const onNewCustomFood = vi.fn();
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...customBase, onNewCustomFood },
+    });
+    const input = getByRole('textbox');
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
+    await tick();
+    expect((input as HTMLInputElement).value).toBe('');
+  });
 });

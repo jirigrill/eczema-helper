@@ -3,6 +3,7 @@
   import { foodStrings } from '$lib/strings/families';
   import { getCategoryConfig } from '$lib/config/categories';
   import { commonStrings } from '$lib/strings/common';
+  import { actionStrings } from '$lib/strings/actions';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
   import type { WorkingFood } from '$lib/domain/working-meal';
@@ -17,6 +18,7 @@
     onAmountChange,
     onPreparationChange,
     onCancelEdit,
+    onNewCustomFood,
     customFoods = [],
   }: {
     familyId: FamilyId;
@@ -28,8 +30,19 @@
     onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
     /** Called when the user clicks outside any FoodToken while one is editing. */
     onCancelEdit?: () => void;
+    /** Called when the user submits a new custom food name (Vlastní family only). */
+    onNewCustomFood?: (name: string) => void;
     customFoods?: { foodId: string; name: string }[];
   } = $props();
+
+  let customInputValue = $state('');
+
+  function handleAddCustomFood(): void {
+    const trimmed = customInputValue.trim();
+    if (!trimmed || !onNewCustomFood) return;
+    onNewCustomFood(trimmed);
+    customInputValue = '';
+  }
 
   const catalogFoods = $derived(FOODS.filter(f => f.familyId === familyId));
   const familyAllergenIds = $derived(
@@ -145,6 +158,25 @@
   {/if}
 
   <!-- Previously-typed custom foods (Vlastní family) -->
+  {#if familyId === 'custom'}
+    <div class="px-4 space-y-2">
+      <div class="flex gap-2">
+        <input
+          type="text"
+          bind:value={customInputValue}
+          placeholder={commonStrings.meal.customFoodPlaceholder}
+          class="input-base flex-1 px-3 py-2 bg-white text-sm"
+        />
+        <button
+          type="button"
+          disabled={customInputValue.trim().length === 0}
+          onclick={handleAddCustomFood}
+          class="px-4 py-2 rounded-xl text-sm font-medium bg-primary text-white disabled:bg-surface-dark disabled:text-text-muted"
+        >{actionStrings.add}</button>
+      </div>
+    </div>
+  {/if}
+
   {#if customFoods.length > 0}
     <div class="px-4 space-y-2">
       <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{commonStrings.meal.customFoodsLabel}</span>

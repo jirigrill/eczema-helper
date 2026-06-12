@@ -477,7 +477,110 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: /^Kokos$/ })).toBeInTheDocument();
   });
 
-  // ── Eliminated allergen banners preserved ────────────────
+  // ── AC2: new custom food → editing + harvest upsert ──────
+
+  it('typing a new food name and clicking Přidat puts it in editing (shows Množství)', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
+    await tick();
+    const input = getByRole('textbox');
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
+    await tick();
+    await tick(); // extra tick for async handleNewCustomFood
+    expect(queryByText('Množství')).toBeInTheDocument();
+    expect(queryByText('Příprava')).toBeInTheDocument();
+  });
+
+  it('typing a new custom food and clicking Přidat calls harvestCandidateSession.upsert', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
+    await tick();
+    const input = getByRole('textbox');
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
+    await tick();
+    expect(mockHarvestUpsert).toHaveBeenCalledOnce();
+    const candidate = mockHarvestUpsert.mock.calls[0][0];
+    expect(candidate.normalizedKey).toBe('špenát');
+    expect(candidate.rawForms).toContain('Špenát');
+  });
+
+  it('CTA reads "Uložit Špenát" while new custom food is in editing', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
+    await tick();
+    const input = getByRole('textbox');
+    await fireEvent.input(input, { target: { value: 'Špenát' } });
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
+    await tick();
+    expect(getByRole('button', { name: /Uložit Špenát/ })).toBeInTheDocument();
+  });
+
+  // ── AC3: re-tapping a harvest chip enters modal-edit flow ──
+
+  it('tapping an existing harvest chip in Vlastní enters editing (shows Množství)', async () => {
+    setReady();
+    mockHarvestStore.set([
+      {
+        normalizedKey: 'kokos', status: 'pending', count: 1,
+        firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString(),
+        rawForms: ['Kokos'],
+      },
+    ]);
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
+    await tick();
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+    await fireEvent.click(getByRole('button', { name: /^Kokos$/ }));
+    await tick();
+    expect(queryByText('Množství')).toBeInTheDocument();
+  });
+
+  it('re-tap harvest chip: CTA reads "Uložit Kokos"', async () => {
+    setReady();
+    mockHarvestStore.set([
+      {
+        normalizedKey: 'kokos', status: 'pending', count: 1,
+        firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString(),
+        rawForms: ['Kokos'],
+      },
+    ]);
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /^Kokos$/ }));
+    await tick();
+    expect(getByRole('button', { name: /Uložit Kokos/ })).toBeInTheDocument();
+  });
+
+  // ── AC5: no standalone custom-food input on the grid ─────
+
+  it('grid screen has no standalone custom-food text input', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByRole } = render(MealPage);
+    await tick();
+    // Only the Poznámka textarea should be present; no other textbox
+    const textboxes = queryByRole('textbox', { name: /Název potraviny|vlastní|custom/i });
+    expect(textboxes).not.toBeInTheDocument();
+  });
 
   it('food chips in an eliminated allergen show data-state="danger"', async () => {
     setReadyWithElim();
