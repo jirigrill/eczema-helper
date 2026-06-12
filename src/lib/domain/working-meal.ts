@@ -223,6 +223,32 @@ export function updateEditingPreparation(
 }
 
 /**
+ * Remove a food from the working list entirely (the ✕ action on a grid row).
+ * If the removed food was editing, locked siblings are restored to their prior state.
+ */
+export function removeFood(
+  meal: WorkingMeal,
+  familyId: FamilyId,
+  foodId: string
+): WorkingMeal {
+  return mapFamily(meal, familyId, fam => {
+    const target = fam.foods.find(f => f.foodId === foodId);
+    const wasEditing = target?.state.status === 'editing';
+    return {
+      ...fam,
+      foods: fam.foods
+        .filter(f => f.foodId !== foodId)
+        .map(f => {
+          if (!wasEditing || f.state.status !== 'locked') return f;
+          return f.state.prior === 'confirmed' && f.cachedAmount
+            ? { ...f, state: { status: 'confirmed', amount: f.cachedAmount, preparation: f.cachedPreparation } }
+            : { ...f, state: { status: 'idle' } };
+        }),
+    };
+  });
+}
+
+/**
  * "Uložit {Family}": remove all non-confirmed foods from the family,
  * reset confirmed foods' caches so the slot is clean for a future edit.
  */

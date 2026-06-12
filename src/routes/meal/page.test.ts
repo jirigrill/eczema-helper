@@ -489,4 +489,202 @@ describe('meal/+page.svelte', () => {
     const token = getByRole('button', { name: /^Jahody$/ });
     expect(token.closest('[data-state="danger"]')).toBeNull();
   });
+
+  // ── Grid working-list: tap-to-edit ───────────────────────
+
+  it('tapping a working-list row on the grid opens the inline editor for that food', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    // Add and commit Kravské mléko to the working list
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Back on grid — tap the working-list row
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+    const row = getByRole('button', { name: 'Kravské mléko' });
+    await fireEvent.click(row);
+    await tick();
+    expect(queryByText('Množství')).toBeInTheDocument();
+    expect(queryByText('Příprava')).toBeInTheDocument();
+  });
+
+  it('while a working-list row is editing, CTA reads "Uložit {Food}"', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Tap the working-list row to edit it
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    expect(getByRole('button', { name: /Uložit Kravské mléko/ })).toBeInTheDocument();
+  });
+
+  it('while a grid row is editing, family-grid tiles do not drill in', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Tap working-list row to start editing
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    // Clicking a family tile cancels the edit (outside-click) and does NOT drill in
+    await fireEvent.click(getByRole('button', { name: /Ovoce/ }));
+    await tick();
+    // Still on grid — "Všechny kategorie" label visible, no drill-in heading
+    expect(queryByText('Všechny kategorie')).toBeInTheDocument();
+    // Food still in the working list
+    expect(getByRole('button', { name: 'Kravské mléko' })).toBeInTheDocument();
+  });
+
+  it('confirming a working-list row edit collapses the editor and updates the row', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Tap working-list row
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    // Confirm via CTA
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    // Editor should be collapsed
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+    // Food still in the list
+    expect(getByRole('button', { name: 'Kravské mléko' })).toBeInTheDocument();
+  });
+
+  // ── Grid working-list: ✕ remove ─────────────────────────
+
+  it('✕ on a working-list row removes that food from the working list', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Click the remove button (✕) on the Kravské mléko row
+    const removeBtn = getByRole('button', { name: /Odebrat Kravské mléko|×|✕|remove/i });
+    await fireEvent.click(removeBtn);
+    await tick();
+    expect(queryByRole('button', { name: /Kravské mléko/ })).not.toBeInTheDocument();
+  });
+
+  it('removing a food from the working list does NOT call mealSession.save', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    const removeBtn = getByRole('button', { name: /Odebrat Kravské mléko|×|✕|remove/i });
+    await fireEvent.click(removeBtn);
+    await tick();
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('clicking outside the working-list editor confirms the food (food stays, editor closes)', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Open inline editor on the grid row
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    expect(queryByText('Množství')).toBeInTheDocument();
+    // Click the notes textarea — outside any [data-food-token]
+    await fireEvent.click(getByRole('textbox', { name: /Poznámka/ }));
+    await tick();
+    // Editor collapsed, food still present and confirmed
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+    expect(getByRole('button', { name: 'Kravské mléko' })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Hotovo — Oběd/ })).toBeInTheDocument();
+  });
+
+  it('tapping another working-list row while one is editing confirms the first and opens the second', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    // Add two foods to the working list: Kravské mléko (dairy) and Brambory (vegetables)
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Zelenina/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Zelenina/ }));
+    await tick();
+    // Both foods in the working list — open editor on first food
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    expect(queryByText('Množství')).toBeInTheDocument();
+    expect(getByRole('button', { name: /Uložit Kravské mléko/ })).toBeInTheDocument();
+    // Tap the second food — should confirm first and open second
+    await fireEvent.click(getByRole('button', { name: 'Brambory' }));
+    await tick();
+    // First food editor gone, second food editor open
+    expect(getByRole('button', { name: /Uložit Brambory/ })).toBeInTheDocument();
+    // Still exactly one editor open
+    expect(queryByText('Množství')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-food-token]').length).toBeGreaterThanOrEqual(2);
+  });
 });
