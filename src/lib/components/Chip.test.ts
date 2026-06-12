@@ -24,4 +24,23 @@ describe('Chip', () => {
     await fireEvent.click(getByRole('button'));
     expect(onclick).toHaveBeenCalledOnce();
   });
+
+  // ── variant='danger' ─────────────────────────────────────────
+
+  it('variant=danger + active=true: has chip--danger-active class', () => {
+    const { getByRole } = render(Chip, { props: { active: true, variant: 'danger' as const } });
+    expect(getByRole('button').className).toContain('chip--danger-active');
+  });
+
+  it('variant=danger + active=false: has chip--danger-muted class', () => {
+    const { getByRole } = render(Chip, { props: { active: false, variant: 'danger' as const } });
+    expect(getByRole('button').className).toContain('chip--danger-muted');
+  });
+
+  it('default variant + active=true: has chip--active class (not danger)', () => {
+    const { getByRole } = render(Chip, { props: { active: true } });
+    const cls = getByRole('button').className;
+    expect(cls).toContain('chip--active');
+    expect(cls).not.toContain('chip--danger');
+  });
 });

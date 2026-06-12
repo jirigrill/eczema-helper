@@ -85,3 +85,32 @@ describe('FoodToken — interactivity', () => {
     expect(onclick).toHaveBeenCalledOnce();
   });
 });
+
+describe('FoodToken — conflict (eliminated-today) variants', () => {
+  it('confirmed + eliminatedStatus=danger: data-state="danger-confirmed"', () => {
+    const { container } = render(FoodToken, {
+      props: { ...baseProps, state: 'confirmed' as const, eliminatedStatus: 'danger' as const },
+    });
+    expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger-confirmed');
+  });
+
+  it('editing + eliminatedStatus=danger: data-state="danger"', () => {
+    const { container } = render(FoodToken, {
+      props: { ...baseProps, state: 'editing' as const, eliminatedStatus: 'danger' as const },
+    });
+    expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger');
+  });
+
+  it('editing + eliminatedStatus=danger: shows warning text inside editor area', async () => {
+    const { queryByText } = render(FoodToken, {
+      props: { ...baseProps, state: 'editing' as const, eliminatedStatus: 'danger' as const },
+    });
+    await tick();
+    expect(queryByText(/Vyloučeno|vyloučeno/)).toBeInTheDocument();
+  });
+
+  it('confirmed without eliminatedStatus: still data-state="confirmed"', () => {
+    const { container } = render(FoodToken, { props: { ...baseProps, state: 'confirmed' as const } });
+    expect(container.firstElementChild?.getAttribute('data-state')).toBe('confirmed');
+  });
+});

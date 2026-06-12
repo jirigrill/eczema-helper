@@ -687,4 +687,213 @@ describe('meal/+page.svelte', () => {
     expect(queryByText('Množství')).toBeInTheDocument();
     expect(document.querySelectorAll('[data-food-token]').length).toBeGreaterThanOrEqual(2);
   });
+
+  // ── Conflict styling: CTA button + grid working-list ────────
+
+  it('CTA is danger-red when working meal contains a confirmed eliminated-today food', async () => {
+    setReadyWithElim(); // dairy is eliminated today
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Add and confirm a dairy food
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Back on grid — CTA should be danger-red
+    const cta = getByRole('button', { name: /Hotovo/ });
+    expect(cta.className).toContain('bg-danger');
+  });
+
+  it('CTA reverts to primary when the eliminated-today food is removed', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Remove the eliminated food
+    const removeBtn = getByRole('button', { name: /Odebrat Kravské mléko/ });
+    await fireEvent.click(removeBtn);
+    await tick();
+    // CTA should be back to primary (aria-disabled since nothing confirmed)
+    const cta = getByRole('button', { name: 'Hotovo' });
+    expect(cta.className).not.toContain('bg-warning');
+  });
+
+  it('confirmed eliminated-today food in grid working-list shows data-state="danger-confirmed"', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // The grid working-list row for an eliminated confirmed food should be danger-confirmed
+    const token = getByRole('button', { name: 'Kravské mléko' });
+    expect(token.closest('[data-state="danger-confirmed"]')).not.toBeNull();
+  });
+
+  it('editing an eliminated-today food in the grid shows a conflict warning', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Open grid row editor for the eliminated food
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    expect(queryByText(/Vyloučeno|vyloučeno/)).toBeInTheDocument();
+  });
+
+  // ── Bug fixes: eliminated-food CTA + grid working-list order ────
+
+  it('CTA is danger-red when saving a family that contains an eliminated food (no individual food editing)', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Drill into dairy family and confirm a food — but do NOT save individual food first
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    // Now in "Uložit Mléko" state — no individual food editing, but eliminated food is confirmed
+    const cta = getByRole('button', { name: /Uložit Mléko/ });
+    expect(cta.className).toContain('bg-danger');
+  });
+
+  it('CTA is primary when saving a family with no eliminated foods', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Drill into Zelenina (not eliminated)
+    await fireEvent.click(getByRole('button', { name: /Zelenina/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Brambory/ }));
+    await tick();
+    // "Uložit Zelenina" — no eliminated food, should be primary
+    const cta = getByRole('button', { name: /Uložit Zelenina/ });
+    expect(cta.className).toContain('bg-primary');
+    expect(cta.className).not.toContain('bg-danger');
+  });
+
+  it('confirmed eliminated grid row: amount text is white (visible on red background)', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, container } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // The amount span inside the danger-confirmed row should have text-white class
+    const dangerRow = container.querySelector('[data-state="danger-confirmed"]');
+    expect(dangerRow).not.toBeNull();
+    const amountSpan = dangerRow!.querySelector('span.text-white');
+    expect(amountSpan).not.toBeNull();
+  });
+
+  it('opening a grid row editor does not remove sibling foods from the working list', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Commit two foods from different families
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Zelenina/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Zelenina/ }));
+    await tick();
+    // Both foods are in the working list
+    expect(getByRole('button', { name: 'Kravské mléko' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Brambory' })).toBeInTheDocument();
+    // Open editor on Kravské mléko
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    // Brambory must still be visible — it should NOT disappear
+    expect(getByRole('button', { name: 'Brambory' })).toBeInTheDocument();
+    // Kravské mléko must be before Brambory (added first)
+    const foodTokens = document.querySelectorAll('[data-food-token]');
+    const names = [...foodTokens].map(el => el.textContent?.trim() ?? '');
+    const milkIdx = names.findIndex(n => n.includes('Kravské mléko'));
+    const potatoIdx = names.findIndex(n => n.includes('Brambory'));
+    expect(milkIdx).toBeLessThan(potatoIdx);
+  });
+
+  it('opening a grid row editor keeps the editing food in its original position, not appended at bottom', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Commit Kravské mléko first, then Brambory
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Zelenina/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Zelenina/ }));
+    await tick();
+    // Capture order before editing
+    const beforeTokens = [...document.querySelectorAll('[data-food-token]')].map(el => el.textContent?.trim() ?? '');
+    // Open editor on Brambory (second item)
+    await fireEvent.click(getByRole('button', { name: 'Brambory' }));
+    await tick();
+    // Capture order after — Brambory must stay at same index
+    const afterTokens = [...document.querySelectorAll('[data-food-token]')].map(el => el.textContent?.trim() ?? '');
+    const beforeBramborIdx = beforeTokens.findIndex(n => n.includes('Brambory'));
+    const afterBramborIdx = afterTokens.findIndex(n => n.includes('Brambory'));
+    expect(afterBramborIdx).toBe(beforeBramborIdx);
+  });
 });

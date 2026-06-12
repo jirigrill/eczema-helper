@@ -20,7 +20,9 @@
 
   const isInteractive = $derived(state !== 'locked');
   const dataState = $derived(
-    state === 'confirmed' ? 'confirmed'
+    eliminatedStatus === 'danger' && state === 'confirmed' ? 'danger-confirmed'
+    : eliminatedStatus === 'danger' && state === 'editing' ? 'danger'
+    : state === 'confirmed' ? 'confirmed'
     : eliminatedStatus ?? (state === 'locked' ? 'locked' : undefined)
   );
 </script>
@@ -29,9 +31,13 @@
   data-state={dataState}
   class="rounded-xl overflow-hidden transition-all
     {state === 'editing'
-      ? 'border-2 border-primary bg-primary/05'
+      ? eliminatedStatus === 'danger'
+        ? 'border-2 border-danger bg-danger/05'
+        : 'border-2 border-primary bg-primary/05'
       : state === 'confirmed'
-        ? 'bg-primary border border-primary'
+        ? eliminatedStatus === 'danger'
+          ? 'bg-danger border border-danger'
+          : 'bg-primary border border-primary'
         : state === 'locked'
           ? 'border border-surface-dark bg-surface opacity-40'
           : eliminatedStatus === 'danger'
@@ -48,7 +54,9 @@
         : state === 'locked'
           ? 'text-text-muted cursor-default'
           : state === 'editing'
-            ? 'text-primary font-medium'
+            ? eliminatedStatus === 'danger'
+              ? 'text-danger font-medium'
+              : 'text-primary font-medium'
             : eliminatedStatus === 'danger'
               ? 'text-danger'
               : 'text-text'}"
@@ -59,9 +67,14 @@
     {/if}
   </button>
 
-  {#if state === 'editing' && editor}
-    <div class="px-3 pb-3">
-      {@render editor()}
-    </div>
+  {#if state === 'editing'}
+    {#if eliminatedStatus === 'danger'}
+      <p class="px-3 pb-1 text-xs text-danger font-medium">⚠️ Vyloučeno dnes</p>
+    {/if}
+    {#if editor}
+      <div class="px-3 pb-3">
+        {@render editor()}
+      </div>
+    {/if}
   {/if}
 </div>
