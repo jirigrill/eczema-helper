@@ -2,129 +2,142 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import FamilyDrillIn from './FamilyDrillIn.svelte';
+import type { WorkingFood } from '$lib/domain/working-meal';
 
-// The fruit family is the canonical example from the issue:
-// allergen-grouped: citrus → pomeranč
-// loose (allergenIds: []): jablko, hruška, …
+// ── Helpers ──────────────────────────────────────────────────
+
+function idleFood(foodId: string, name: string): WorkingFood {
+  return { foodId, name, state: { status: 'idle' } };
+}
+function editingFood(foodId: string, name: string): WorkingFood {
+  return { foodId, name, state: { status: 'editing', amount: 'portion' } };
+}
+function confirmedFood(foodId: string, name: string): WorkingFood {
+  return { foodId, name, state: { status: 'confirmed', amount: 'portion' }, cachedAmount: 'portion' };
+}
+function lockedFood(foodId: string, name: string): WorkingFood {
+  return { foodId, name, state: { status: 'locked', prior: 'idle' } };
+}
+
+const baseProps = {
+  familyId: 'fruit' as const,
+  foods: [] as WorkingFood[],
+  eliminatedAllergenIds: [] as string[],
+  onFoodTap: vi.fn(),
+  onAmountChange: vi.fn(),
+  onPreparationChange: vi.fn(),
+};
+
+// ── Fruit family — catalog foods ─────────────────────────────
 
 describe('FamilyDrillIn — fruit family', () => {
-  const baseProps = {
-    familyId: 'fruit' as const,
-    inMealFoodIds: [] as string[],
-    eliminatedAllergenIds: [] as string[],
-    onAddFood: vi.fn(),
-    onBack: vi.fn(),
-  };
-
   it('renders allergen group header for citrus within fruit family', () => {
     const { getByText } = render(FamilyDrillIn, { props: baseProps });
-    // citrus allergen should appear as a section header
     expect(getByText(/citrus/i)).toBeInTheDocument();
   });
 
-  it('renders pomeranč (allergen-grouped food) under citrus', () => {
-    const { getByRole } = render(FamilyDrillIn, { props: baseProps });
-    expect(getByRole('button', { name: /Pomeranč/ })).toBeInTheDocument();
-  });
-
-  it('renders loose foods (jablko, hruška) without allergen header', () => {
+  it('renders loose foods (jablko, hruška) as FoodToken buttons', () => {
     const { getByRole } = render(FamilyDrillIn, { props: baseProps });
     expect(getByRole('button', { name: /Jablko/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Hruška/ })).toBeInTheDocument();
   });
 
-  it('calls onAddFood with foodId and Czech name when food tapped', async () => {
-    const onAddFood = vi.fn();
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, onAddFood },
-    });
+  it('calls onFoodTap with foodId and Czech name when food tapped', async () => {
+    const onFoodTap = vi.fn();
+    const { getByRole } = render(FamilyDrillIn, { props: { ...baseProps, onFoodTap } });
     await fireEvent.click(getByRole('button', { name: /Jablko/ }));
     await tick();
-    expect(onAddFood).toHaveBeenCalledWith('jablko', 'Jablko');
-  });
-
-  it('calls onBack when back button tapped', async () => {
-    const onBack = vi.fn();
-    const { getAllByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, onBack },
-    });
-    // Back button is the first button (header area)
-    const backBtn = getAllByRole('button').find(b => b.textContent?.includes('←') || b.getAttribute('aria-label') === 'Zpět');
-    expect(backBtn).toBeTruthy();
-    await fireEvent.click(backBtn!);
-    await tick();
-    expect(onBack).toHaveBeenCalled();
-  });
-
-  it('marks in-meal foods with data-state="success"', () => {
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, inMealFoodIds: ['jablko'] },
-    });
-    const btn = getByRole('button', { name: /Jablko/ });
-    expect(btn.dataset.state).toBe('success');
-  });
-
-  it('marks eliminated allergen food with data-state="danger"', () => {
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, eliminatedAllergenIds: ['citrus'] },
-    });
-    const btn = getByRole('button', { name: /Pomeranč/ });
-    expect(btn.dataset.state).toBe('danger');
-  });
-
-  it('in-meal takes precedence over eliminated for state', () => {
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, inMealFoodIds: ['pomeranc'], eliminatedAllergenIds: ['citrus'] },
-    });
-    const btn = getByRole('button', { name: /Pomeranč/ });
-    expect(btn.dataset.state).toBe('success');
+    expect(onFoodTap).toHaveBeenCalledWith('jablko', 'Jablko');
   });
 });
 
-// The custom (Vlastní) family has no catalog foods — it surfaces
-// previously-typed custom foods passed via the customFoods prop.
-describe('FamilyDrillIn — custom (Vlastní) family', () => {
-  const baseProps = {
-    familyId: 'custom' as const,
-    inMealFoodIds: [] as string[],
-    eliminatedAllergenIds: [] as string[],
-    onAddFood: vi.fn(),
-    onBack: vi.fn(),
-  };
+// ── Working-food states ───────────────────────────────────────
 
-  it('lists previously-typed custom foods for re-logging', () => {
+describe('FamilyDrillIn — working-food state rendering', () => {
+  it('idle food renders with no data-state="confirmed"', () => {
     const { getByRole } = render(FamilyDrillIn, {
-      props: {
-        ...baseProps,
-        customFoods: [
-          { foodId: 'other:kokos', name: 'Kokos' },
-          { foodId: 'other:quinoa', name: 'Quinoa' },
-        ],
-      },
+      props: { ...baseProps, foods: [idleFood('jablko', 'Jablko')] },
     });
-    expect(getByRole('button', { name: /Kokos/ })).toBeInTheDocument();
-    expect(getByRole('button', { name: /Quinoa/ })).toBeInTheDocument();
+    const btn = getByRole('button', { name: /Jablko/ });
+    expect(btn.closest('[data-state="confirmed"]')).toBeNull();
   });
 
-  it('re-logs a custom food with its other: foodId and name', async () => {
-    const onAddFood = vi.fn();
+  it('confirmed food renders with data-state="confirmed" wrapper', () => {
     const { getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, onAddFood, customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
+      props: { ...baseProps, foods: [confirmedFood('jablko', 'Jablko')] },
+    });
+    const btn = getByRole('button', { name: /Jablko/ });
+    expect(btn.closest('[data-state="confirmed"]')).not.toBeNull();
+  });
+
+  it('locked food button is disabled', () => {
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...baseProps, foods: [lockedFood('jablko', 'Jablko')] },
+    });
+    const btn = getByRole('button', { name: /Jablko/ });
+    expect(btn).toBeDisabled();
+  });
+
+  it('editing food shows FoodEditor (Množství + Příprava sections)', () => {
+    const { getByText } = render(FamilyDrillIn, {
+      props: { ...baseProps, foods: [editingFood('jablko', 'Jablko')] },
+    });
+    expect(getByText('Množství')).toBeInTheDocument();
+    expect(getByText('Příprava')).toBeInTheDocument();
+  });
+
+  it('non-editing food does not show FoodEditor', () => {
+    const { queryByText } = render(FamilyDrillIn, {
+      props: { ...baseProps, foods: [idleFood('jablko', 'Jablko')] },
+    });
+    expect(queryByText('Množství')).not.toBeInTheDocument();
+  });
+});
+
+// ── Eliminated allergen status ────────────────────────────────
+
+describe('FamilyDrillIn — eliminated allergen rendering', () => {
+  it('food in eliminated allergen shows "Vyloučeno" label', () => {
+    const { getAllByText } = render(FamilyDrillIn, {
+      props: { ...baseProps, eliminatedAllergenIds: ['citrus'] },
+    });
+    expect(getAllByText('Vyloučeno').length).toBeGreaterThan(0);
+  });
+
+  it('food in non-eliminated allergen does not show "Vyloučeno"', () => {
+    const { queryByText } = render(FamilyDrillIn, {
+      props: { ...baseProps, eliminatedAllergenIds: [] },
+    });
+    expect(queryByText('Vyloučeno')).not.toBeInTheDocument();
+  });
+});
+
+// ── Custom (Vlastní) family ───────────────────────────────────
+
+describe('FamilyDrillIn — custom family', () => {
+  const customBase = { ...baseProps, familyId: 'custom' as const };
+
+  it('lists previously-typed custom foods', () => {
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...customBase, customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
+    });
+    expect(getByRole('button', { name: /Kokos/ })).toBeInTheDocument();
+  });
+
+  it('calls onFoodTap with other: foodId when custom food tapped', async () => {
+    const onFoodTap = vi.fn();
+    const { getByRole } = render(FamilyDrillIn, {
+      props: { ...customBase, onFoodTap, customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
     });
     await fireEvent.click(getByRole('button', { name: /Kokos/ }));
     await tick();
-    expect(onAddFood).toHaveBeenCalledWith('other:kokos', 'Kokos');
+    expect(onFoodTap).toHaveBeenCalledWith('other:kokos', 'Kokos');
   });
 
-  it('marks an in-meal custom food with data-state="success"', () => {
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, inMealFoodIds: ['other:kokos'], customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
+  it('shows empty hint when no custom foods exist', () => {
+    const { getByText } = render(FamilyDrillIn, {
+      props: { ...customBase, customFoods: [] },
     });
-    expect(getByRole('button', { name: /Kokos/ }).dataset.state).toBe('success');
-  });
-
-  it('shows the empty hint when no custom foods exist yet', () => {
-    const { getByText } = render(FamilyDrillIn, { props: { ...baseProps, customFoods: [] } });
     expect(getByText(/Zatím žádné vlastní potraviny/)).toBeInTheDocument();
   });
 });

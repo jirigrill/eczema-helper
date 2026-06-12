@@ -1,77 +1,82 @@
 <script lang="ts">
-  import { FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
   import { foodStrings } from '$lib/strings/families';
   import { getCategoryConfig } from '$lib/config/categories';
-  import { familyStrings } from '$lib/strings/families';
-  import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
-  import type { FamilyId, CatalogFoodId } from '$lib/data/allergen-catalog/allergen-catalog';
-  import type { AllergenId } from '$lib/domain/models';
+  import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import type { PortionKind, PreparationMethod } from '$lib/domain/models';
+  import type { WorkingFood } from '$lib/domain/working-meal';
+  import FoodToken from '$lib/components/FoodToken.svelte';
+  import FoodEditor from '$lib/components/FoodEditor.svelte';
 
   let {
     familyId,
-    inMealFoodIds = [],
+    foods,
     eliminatedAllergenIds = [],
+    onFoodTap,
+    onAmountChange,
+    onPreparationChange,
+    onCancelEdit,
     customFoods = [],
-    onAddFood,
-    onBack,
   }: {
     familyId: FamilyId;
-    inMealFoodIds?: string[];
+    /** Current working-meal state for this family's foods. */
+    foods: WorkingFood[];
     eliminatedAllergenIds?: string[];
-    /** Previously-typed custom foods to surface for re-logging (Vlastní family). */
+    onFoodTap: (foodId: string, name: string) => void;
+    onAmountChange: (foodId: string, amount: PortionKind) => void;
+    onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
+    /** Called when the user clicks outside any FoodToken while one is editing. */
+    onCancelEdit?: () => void;
     customFoods?: { foodId: string; name: string }[];
-    onAddFood: (foodId: string, name: string) => void;
-    onBack: () => void;
   } = $props();
 
-  // All foods in this family
-  const familyFoods = $derived(FOODS.filter(f => f.familyId === familyId));
-
-  // Allergens that have at least one food in this family
+  const catalogFoods = $derived(FOODS.filter(f => f.familyId === familyId));
   const familyAllergenIds = $derived(
-    [...new Set(familyFoods.flatMap(f => f.allergenIds as string[]))]
+    [...new Set(catalogFoods.flatMap(f => f.allergenIds as string[]))]
   );
-
-  // Loose foods: no allergenId
-  const looseFoods = $derived(familyFoods.filter(f => f.allergenIds.length === 0));
-
-  // Nothing to show at all — only happens for the custom (Vlastní) family
-  // before any custom food has been typed.
-  const isEmpty = $derived(familyFoods.length === 0 && customFoods.length === 0);
+  const looseFoods = $derived(catalogFoods.filter(f => f.allergenIds.length === 0));
+  const isEmpty = $derived(catalogFoods.length === 0 && customFoods.length === 0);
 
   function nameFor(foodId: string): string {
     return (foodStrings as Record<string, { name: string }>)[foodId]?.name ?? foodId;
   }
 
-  function stateFor(foodId: string, allergenId?: string): 'success' | 'danger' | undefined {
-    if (inMealFoodIds.includes(foodId)) return 'success';
+  function workingFoodFor(foodId: string): WorkingFood | undefined {
+    return foods.find(f => f.foodId === foodId);
+  }
+
+  /** Whether any food in the working-meal state is currently editing. */
+  const hasActiveEditor = $derived(foods.some(f => f.state.status === 'editing'));
+
+  function stateFor(foodId: string): WorkingFood['state'] {
+    const wf = workingFoodFor(foodId);
+    if (wf) return wf.state;
+    // Food not yet in working meal: lock it if another food is editing
+    if (hasActiveEditor) return { status: 'locked', prior: 'idle' };
+    return { status: 'idle' };
+  }
+
+  function eliminatedFor(foodId: string, allergenId?: string): 'danger' | undefined {
     if (allergenId && eliminatedAllergenIds.includes(allergenId)) return 'danger';
     return undefined;
   }
+
+  function handleContainerClick(e: MouseEvent): void {
+    if (!hasActiveEditor || !onCancelEdit) return;
+    // Cancel if the click didn't land inside a food-token element
+    if (!(e.target as Element).closest('[data-food-token]')) {
+      onCancelEdit();
+    }
+  }
 </script>
 
-<div class="space-y-4">
-  <!-- Header row -->
-  <div class="flex items-center gap-3 px-4 pt-3">
-    <button
-      type="button"
-      aria-label="Zpět"
-      class="text-text-muted text-sm px-1 py-1"
-      onclick={onBack}
-    >←</button>
-    <div class="flex items-center gap-2 flex-1 min-w-0">
-      <span class="text-xl">{FAMILIES.find(f => f.id === familyId)?.icon ?? ''}</span>
-      <span class="text-sm font-semibold text-text">{familyStrings[familyId].name}</span>
-    </div>
-  </div>
-
+<div class="space-y-4" onclick={handleContainerClick} role="presentation">
   <!-- Allergen groups -->
   {#each familyAllergenIds as allergenId}
     {@const cfg = getCategoryConfig(allergenId)}
-    {@const groupFoods = familyFoods.filter(f => (f.allergenIds as string[]).includes(allergenId))}
+    {@const groupFoods = catalogFoods.filter(f => (f.allergenIds as string[]).includes(allergenId))}
     <div class="px-4 space-y-2">
-      <!-- Group header -->
       <div class="flex items-center gap-1.5">
         <span class="text-base">{cfg?.icon ?? ''}</span>
         <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{cfg?.name ?? allergenId}</span>
@@ -79,27 +84,29 @@
           <span class="ml-1 text-[10px] bg-danger text-white rounded-full px-1.5 py-0.5">!</span>
         {/if}
       </div>
-      <!-- Foods in group -->
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-col gap-2">
         {#each groupFoods as food}
           {@const name = nameFor(food.id)}
-          {@const state = stateFor(food.id, allergenId)}
-          <button
-            type="button"
-            data-state={state}
-            class="py-2 px-3 rounded-xl text-sm transition-all border
-              {state === 'success'
-                ? 'bg-success/10 border-success/30 text-success'
-                : state === 'danger'
-                  ? 'bg-danger/08 border-danger/30 text-danger'
-                  : 'bg-surface border-surface-dark text-text'}"
-            onclick={() => onAddFood(food.id, name)}
-          >
+          {@const st = stateFor(food.id)}
+          <div data-food-token>
+          <FoodToken
             {name}
-            {#if state === 'danger'}
-              <span class="ml-1 text-[10px] opacity-70">{commonStrings.meal.eliminatedChipLabel}</span>
-            {/if}
-          </button>
+            state={st.status}
+            eliminatedStatus={eliminatedFor(food.id, allergenId)}
+            onclick={() => onFoodTap(food.id, name)}
+          >
+            {#snippet editor()}
+              {#if st.status === 'editing'}
+                <FoodEditor
+                  amount={st.amount}
+                  preparation={st.preparation}
+                  onAmountChange={(a) => onAmountChange(food.id, a)}
+                  onPreparationChange={(p) => onPreparationChange(food.id, p)}
+                />
+              {/if}
+            {/snippet}
+          </FoodToken>
+          </div>
         {/each}
       </div>
     </div>
@@ -108,24 +115,29 @@
   <!-- Loose foods (no allergen) -->
   {#if looseFoods.length > 0}
     <div class="px-4 space-y-2">
-      <div class="flex items-center gap-1.5">
-        <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">bez alergenu</span>
-      </div>
-      <div class="flex flex-wrap gap-2">
+      <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">bez alergenu</span>
+      <div class="flex flex-col gap-2">
         {#each looseFoods as food}
           {@const name = nameFor(food.id)}
-          {@const state = stateFor(food.id)}
-          <button
-            type="button"
-            data-state={state}
-            class="py-2 px-3 rounded-xl text-sm transition-all border
-              {state === 'success'
-                ? 'bg-success/10 border-success/30 text-success'
-                : 'bg-surface border-surface-dark text-text'}"
-            onclick={() => onAddFood(food.id, name)}
-          >
+          {@const st = stateFor(food.id)}
+          <div data-food-token>
+          <FoodToken
             {name}
-          </button>
+            state={st.status}
+            onclick={() => onFoodTap(food.id, name)}
+          >
+            {#snippet editor()}
+              {#if st.status === 'editing'}
+                <FoodEditor
+                  amount={st.amount}
+                  preparation={st.preparation}
+                  onAmountChange={(a) => onAmountChange(food.id, a)}
+                  onPreparationChange={(p) => onPreparationChange(food.id, p)}
+                />
+              {/if}
+            {/snippet}
+          </FoodToken>
+          </div>
         {/each}
       </div>
     </div>
@@ -134,29 +146,34 @@
   <!-- Previously-typed custom foods (Vlastní family) -->
   {#if customFoods.length > 0}
     <div class="px-4 space-y-2">
-      <div class="flex items-center gap-1.5">
-        <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{commonStrings.meal.customFoodsLabel}</span>
-      </div>
-      <div class="flex flex-wrap gap-2">
+      <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{commonStrings.meal.customFoodsLabel}</span>
+      <div class="flex flex-col gap-2">
         {#each customFoods as food (food.foodId)}
-          {@const state = stateFor(food.foodId)}
-          <button
-            type="button"
-            data-state={state}
-            class="py-2 px-3 rounded-xl text-sm transition-all border
-              {state === 'success'
-                ? 'bg-success/10 border-success/30 text-success'
-                : 'bg-surface border-surface-dark text-text'}"
-            onclick={() => onAddFood(food.foodId, food.name)}
+          {@const st = stateFor(food.foodId)}
+          <div data-food-token>
+          <FoodToken
+            name={food.name}
+            state={st.status}
+            onclick={() => onFoodTap(food.foodId, food.name)}
           >
-            {food.name}
-          </button>
+            {#snippet editor()}
+              {#if st.status === 'editing'}
+                <FoodEditor
+                  amount={st.amount}
+                  preparation={st.preparation}
+                  onAmountChange={(a) => onAmountChange(food.foodId, a)}
+                  onPreparationChange={(p) => onPreparationChange(food.foodId, p)}
+                />
+              {/if}
+            {/snippet}
+          </FoodToken>
+          </div>
         {/each}
       </div>
     </div>
   {/if}
 
-  <!-- Empty state — custom family with nothing typed yet -->
+  <!-- Empty state -->
   {#if isEmpty}
     <div class="px-4">
       <div class="border border-dashed border-surface-dark rounded-xl px-4 py-5 text-center">
