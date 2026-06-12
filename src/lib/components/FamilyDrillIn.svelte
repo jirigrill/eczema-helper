@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
-  import { foodStrings, familyStrings } from '$lib/strings/families';
+  import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { foodStrings } from '$lib/strings/families';
   import { getCategoryConfig } from '$lib/config/categories';
   import { commonStrings } from '$lib/strings/common';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -16,7 +16,7 @@
     onFoodTap,
     onAmountChange,
     onPreparationChange,
-    onBack,
+    onCancelEdit,
     customFoods = [],
   }: {
     familyId: FamilyId;
@@ -26,7 +26,8 @@
     onFoodTap: (foodId: string, name: string) => void;
     onAmountChange: (foodId: string, amount: PortionKind) => void;
     onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
-    onBack: () => void;
+    /** Called when the user clicks outside any FoodToken while one is editing. */
+    onCancelEdit?: () => void;
     customFoods?: { foodId: string; name: string }[];
   } = $props();
 
@@ -60,23 +61,17 @@
     if (allergenId && eliminatedAllergenIds.includes(allergenId)) return 'danger';
     return undefined;
   }
+
+  function handleContainerClick(e: MouseEvent): void {
+    if (!hasActiveEditor || !onCancelEdit) return;
+    // Cancel if the click didn't land inside a food-token element
+    if (!(e.target as Element).closest('[data-food-token]')) {
+      onCancelEdit();
+    }
+  }
 </script>
 
-<div class="space-y-4">
-  <!-- Header -->
-  <div class="flex items-center gap-3 px-4 pt-3">
-    <button
-      type="button"
-      aria-label="Zpět"
-      class="text-text-muted text-sm px-1 py-1"
-      onclick={onBack}
-    >←</button>
-    <div class="flex items-center gap-2 flex-1 min-w-0">
-      <span class="text-xl">{FAMILIES.find(f => f.id === familyId)?.icon ?? ''}</span>
-      <span class="text-sm font-semibold text-text">{familyStrings[familyId].name}</span>
-    </div>
-  </div>
-
+<div class="space-y-4" onclick={handleContainerClick} role="presentation">
   <!-- Allergen groups -->
   {#each familyAllergenIds as allergenId}
     {@const cfg = getCategoryConfig(allergenId)}
@@ -93,6 +88,7 @@
         {#each groupFoods as food}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
+          <div data-food-token>
           <FoodToken
             {name}
             state={st.status}
@@ -110,6 +106,7 @@
               {/if}
             {/snippet}
           </FoodToken>
+          </div>
         {/each}
       </div>
     </div>
@@ -123,6 +120,7 @@
         {#each looseFoods as food}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
+          <div data-food-token>
           <FoodToken
             {name}
             state={st.status}
@@ -139,6 +137,7 @@
               {/if}
             {/snippet}
           </FoodToken>
+          </div>
         {/each}
       </div>
     </div>
@@ -151,6 +150,7 @@
       <div class="flex flex-col gap-2">
         {#each customFoods as food (food.foodId)}
           {@const st = stateFor(food.foodId)}
+          <div data-food-token>
           <FoodToken
             name={food.name}
             state={st.status}
@@ -167,6 +167,7 @@
               {/if}
             {/snippet}
           </FoodToken>
+          </div>
         {/each}
       </div>
     </div>

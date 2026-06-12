@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Meal, MealType, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
-  import { ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
@@ -173,9 +173,13 @@
     goto(returnTo);
   }
 
-  function handleFamilySelect(familyId: FamilyId): void {
-    drilledFamily = familyId;
-  }
+  // ── Header title ──────────────────────────────────────────
+  const headerTitle = $derived(() => {
+    if (!drilledFamily) return commonStrings.meal.heading;
+    const family = FAMILIES.find(f => f.id === drilledFamily);
+    const name = familyStrings[drilledFamily].name;
+    return family ? `${family.icon} ${name}` : name;
+  });
 
   function handleBack(): void {
     if (drilledFamily) {
@@ -185,8 +189,16 @@
     }
   }
 
-  function handleFamilyDrillInBack(): void {
-    drilledFamily = null;
+  function handleFamilySelect(familyId: FamilyId): void {
+    drilledFamily = familyId;
+  }
+
+  function handleCancelEdit(): void {
+    if (!drilledFamily) return;
+    const editing = getEditingFood(workingMeal, drilledFamily);
+    if (editing) {
+      workingMeal = cancelEditing(workingMeal, drilledFamily, editing.foodId);
+    }
   }
 
   // ── Conflict detection ────────────────────────────────────
@@ -206,13 +218,14 @@
 
   <!-- Sticky header -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <PageHeader title={commonStrings.meal.heading} onBack={handleBack}>
+    <PageHeader title={headerTitle()} onBack={handleBack}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(targetDate)}</p>
       {/snippet}
     </PageHeader>
 
     <!-- Meal type pills -->
+    {#if !drilledFamily}
     <div class="flex gap-1.5 px-4 pb-3">
       {#each mealTypes as type}
         <Chip active={selectedMealType === type} onclick={() => (selectedMealType = type)} class="flex-1">
@@ -253,6 +266,7 @@
         </InfoBanner>
       </div>
     {/if}
+    {/if}
   </div>
 
   <div class="px-4 pt-4 space-y-5">
@@ -268,7 +282,7 @@
           onFoodTap={handleFoodTap}
           onAmountChange={handleAmountChange}
           onPreparationChange={handlePreparationChange}
-          onBack={handleFamilyDrillInBack}
+          onCancelEdit={handleCancelEdit}
         />
       {:else}
         <p class="micro-label mb-2">{commonStrings.meal.allCategoriesLabel}</p>

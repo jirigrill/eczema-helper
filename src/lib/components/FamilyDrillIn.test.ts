@@ -26,25 +26,11 @@ const baseProps = {
   onFoodTap: vi.fn(),
   onAmountChange: vi.fn(),
   onPreparationChange: vi.fn(),
-  onBack: vi.fn(),
 };
 
 // ── Fruit family — catalog foods ─────────────────────────────
 
 describe('FamilyDrillIn — fruit family', () => {
-  it('renders back button with aria-label "Zpět"', () => {
-    const { getByRole } = render(FamilyDrillIn, { props: baseProps });
-    expect(getByRole('button', { name: 'Zpět' })).toBeInTheDocument();
-  });
-
-  it('calls onBack when back button tapped', async () => {
-    const onBack = vi.fn();
-    const { getByRole } = render(FamilyDrillIn, { props: { ...baseProps, onBack } });
-    await fireEvent.click(getByRole('button', { name: 'Zpět' }));
-    await tick();
-    expect(onBack).toHaveBeenCalled();
-  });
-
   it('renders allergen group header for citrus within fruit family', () => {
     const { getByText } = render(FamilyDrillIn, { props: baseProps });
     expect(getByText(/citrus/i)).toBeInTheDocument();

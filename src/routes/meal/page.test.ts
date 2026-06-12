@@ -120,27 +120,56 @@ describe('meal/+page.svelte', () => {
 
   // ── Drill-in navigation ───────────────────────────────────
 
-  it('tapping a family tile shows the drill-in with back button', async () => {
+  it('tapping a family tile shows the drill-in: header title changes to family name', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    expect(queryByText('Přidat jídlo')).toBeInTheDocument();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    expect(queryByText('Přidat jídlo')).not.toBeInTheDocument();
+    expect(queryByText(/Mléko/)).toBeInTheDocument();
+  });
+
+  it('meal type pills hidden while drilled in, visible on grid', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByRole } = render(MealPage);
     await tick();
-    expect(queryByRole('button', { name: 'Zpět' })).not.toBeInTheDocument();
+    expect(queryByRole('button', { name: 'Snídaně' })).toBeInTheDocument();
     await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
-    expect(queryByRole('button', { name: 'Zpět' })).toBeInTheDocument();
+    expect(queryByRole('button', { name: 'Snídaně' })).not.toBeInTheDocument();
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(queryByRole('button', { name: 'Snídaně' })).toBeInTheDocument();
   });
 
-  it('back arrow in drill-in returns to family grid', async () => {
+  it('eliminated banner hidden while drilled in, visible on grid', async () => {
+    setReadyWithElim();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, queryByText } = render(MealPage);
+    await tick();
+    expect(queryByText('Dnes vyřazeno:')).toBeInTheDocument();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    expect(queryByText('Dnes vyřazeno:')).not.toBeInTheDocument();
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(queryByText('Dnes vyřazeno:')).toBeInTheDocument();
+  });
+
+  it('back chevron (‹) in drill-in returns to family grid', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, getByText, queryByRole } = render(MealPage);
+    const { getByRole, getByText, queryByText } = render(MealPage);
     await tick();
     await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: 'Zpět' }));
+    await fireEvent.click(getByRole('button', { name: '‹' }));
     await tick();
-    expect(queryByRole('button', { name: 'Zpět' })).not.toBeInTheDocument();
+    expect(queryByText('Přidat jídlo')).toBeInTheDocument();
     expect(getByText('Všechny kategorie')).toBeInTheDocument();
   });
 
