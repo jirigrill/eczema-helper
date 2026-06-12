@@ -3,6 +3,7 @@
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { get } from 'svelte/store';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
@@ -40,8 +41,10 @@
     editingFood as getEditingFood,
     foodsForFamily,
     toMealItems,
+    isNonEmpty,
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
+  import { writeBuffer, discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
@@ -63,7 +66,15 @@
   let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
 
   // ── Working meal state ────────────────────────────────────
-  let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
+  function initialWorkingMeal(): WorkingMeal {
+    const buf = get(discardBuffer);
+    if (buf) {
+      clearBuffer();
+      return buf.workingMeal;
+    }
+    return emptyWorkingMeal();
+  }
+  let workingMeal = $state<WorkingMeal>(initialWorkingMeal());
   let mealNotes = $state('');
 
   // ── View state ────────────────────────────────────────────
@@ -257,6 +268,9 @@
     if (drilledFamily) {
       drilledFamily = null;
     } else {
+      if (isNonEmpty(workingMeal)) {
+        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+      }
       goto(returnTo);
     }
   }

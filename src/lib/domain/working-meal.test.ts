@@ -14,6 +14,7 @@ import {
   foodsForFamily,
   toMealItems,
   removeFood,
+  isNonEmpty,
 } from './working-meal';
 import type { WorkingMeal } from './working-meal';
 
@@ -334,5 +335,28 @@ describe('removeFood', () => {
     let meal = mealWithConfirmed();
     meal = removeFood(meal, FAM, FOOD_A);
     expect(allConfirmedFoods(meal)).toHaveLength(0);
+  });
+});
+
+// ── isNonEmpty ────────────────────────────────────────────────
+
+describe('isNonEmpty', () => {
+  it('returns false for an empty working meal', () => {
+    expect(isNonEmpty(emptyWorkingMeal())).toBe(false);
+  });
+
+  it('returns false when only idle foods are present', () => {
+    const meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
+    const idleMeal = cancelEditing(meal, FAM, FOOD_A);
+    expect(isNonEmpty(idleMeal)).toBe(false);
+  });
+
+  it('returns true when at least one confirmed food exists', () => {
+    expect(isNonEmpty(mealWithConfirmed())).toBe(true);
+  });
+
+  it('returns true when at least one food is currently editing', () => {
+    const meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
+    expect(isNonEmpty(meal)).toBe(true);
   });
 });

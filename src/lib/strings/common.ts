@@ -163,6 +163,8 @@ export const commonStrings = {
     // ── Issue #244: modal-edit flow ────────────────────────
     confirmedFoodsLabel:  'Přidané potraviny',
     mealNotesLabel:       'Poznámka k jídlu',
+    // ── Issue #247: discard guard ──────────────────────────
+    discardedToast:       'Jídlo zahozeno',
   },
 
   // ── Program page ──────────────────────────────────────────

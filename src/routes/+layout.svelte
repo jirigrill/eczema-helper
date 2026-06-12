@@ -10,10 +10,12 @@
   import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
   import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
+  import Toast from '$lib/components/Toast.svelte';
   import { commonStrings } from '$lib/strings/common';
   import { todayIso } from '$lib/utils/date';
   import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
   import type { SkinPhoto } from '$lib/domain/models';
+  import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
 
   let { children } = $props();
 
@@ -39,6 +41,24 @@
       blob,
     };
     await session.save(photo);
+  }
+
+  function handleDiscardUndo(): void {
+    const buf = $discardBuffer;
+    if (!buf) return;
+    // Don't clearBuffer here — meal page reads + clears it on mount.
+    // Only navigate; onClose will be called by Toast after this, but we guard it.
+    discardUndoFired = true;
+    goto(`/meal?returnTo=${encodeURIComponent(buf.returnTo)}&type=${buf.mealType}`);
+  }
+
+  let discardUndoFired = $state(false);
+
+  function handleDiscardClose(): void {
+    if (!discardUndoFired) {
+      clearBuffer();
+    }
+    discardUndoFired = false;
   }
 
   $effect(() => {
@@ -80,6 +100,15 @@
     </nav>
   {/if}
 </div>
+
+{#if $discardBuffer}
+  <Toast
+    message={commonStrings.meal.discardedToast}
+    type="info"
+    onUndo={handleDiscardUndo}
+    onClose={handleDiscardClose}
+  />
+{/if}
 
 {#if fabOpen}
   <FabActionSheet date={selectedDate} onclose={() => (fabOpen = false)} oncapturephoto={handleFabPhotoCapture} />
