@@ -302,3 +302,13 @@ export function toMealItems(meal: WorkingMeal): MealItem[] {
     };
   });
 }
+
+/**
+ * True when the working meal has at least one food in an active state
+ * (editing or confirmed). Used by the discard guard before navigating away.
+ */
+export function isNonEmpty(meal: WorkingMeal): boolean {
+  return meal.families.some(fam =>
+    fam.foods.some(f => f.state.status === 'editing' || f.state.status === 'confirmed')
+  );
+}

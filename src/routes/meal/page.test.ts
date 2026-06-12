@@ -11,6 +11,13 @@ vi.mock('$lib/stores/schedule-context', () => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
+const mockWriteBuffer = vi.fn();
+const mockClearBuffer = vi.fn();
+vi.mock('$lib/stores/discard-buffer', () => ({
+  writeBuffer: (...args: unknown[]) => mockWriteBuffer(...args),
+  clearBuffer: (...args: unknown[]) => mockClearBuffer(...args),
+}));
+
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockLoadBySlot = vi.fn().mockResolvedValue({ ok: true, data: null });
 const mockMealSessionStore = writable<import('$lib/domain/models').Meal[]>([]);
@@ -79,6 +86,8 @@ beforeEach(() => {
   mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
   mockHarvestUpsert.mockClear();
   mockHarvestStore.set([]);
+  mockWriteBuffer.mockClear();
+  mockClearBuffer.mockClear();
 });
 
 describe('meal/+page.svelte', () => {
@@ -895,5 +904,74 @@ describe('meal/+page.svelte', () => {
     const beforeBramborIdx = beforeTokens.findIndex(n => n.includes('Brambory'));
     const afterBramborIdx = afterTokens.findIndex(n => n.includes('Brambory'));
     expect(afterBramborIdx).toBe(beforeBramborIdx);
+  });
+
+  // ── Discard guard (issue #247) ───────────────────────────
+
+  it('back on grid with no confirmed foods does NOT call writeBuffer', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+  });
+
+  it('back on grid with no confirmed foods calls goto immediately', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
+  });
+
+  it('back on grid with confirmed food writes buffer then navigates', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Add and commit Kravské mléko
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Hit back
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    const buf = mockWriteBuffer.mock.calls[0][0];
+    expect(buf.mealType).toBe('lunch');
+    expect(buf.returnTo).toBe(`/day/${today}`);
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
+  });
+
+  it('back on grid after food confirmed but family not committed still writes buffer', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Go into drill-in, confirm a food, come back to grid (without committing family)
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    // Back to grid without committing the family
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    // Back on grid now — working meal has a confirmed food
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
   });
 });

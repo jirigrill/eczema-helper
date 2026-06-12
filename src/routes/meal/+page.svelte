@@ -40,8 +40,10 @@
     editingFood as getEditingFood,
     foodsForFamily,
     toMealItems,
+    isNonEmpty,
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
+  import { writeBuffer } from '$lib/stores/discard-buffer';
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
@@ -63,7 +65,11 @@
   let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
 
   // ── Working meal state ────────────────────────────────────
-  let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
+  function initialWorkingMeal(): WorkingMeal {
+    const state = history.state as { restoredWorkingMeal?: WorkingMeal } | null;
+    return state?.restoredWorkingMeal ?? emptyWorkingMeal();
+  }
+  let workingMeal = $state<WorkingMeal>(initialWorkingMeal());
   let mealNotes = $state('');
 
   // ── View state ────────────────────────────────────────────
@@ -257,6 +263,9 @@
     if (drilledFamily) {
       drilledFamily = null;
     } else {
+      if (isNonEmpty(workingMeal)) {
+        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+      }
       goto(returnTo);
     }
   }
