@@ -46,7 +46,19 @@
   function handleDiscardUndo(): void {
     const buf = $discardBuffer;
     if (!buf) return;
+    // Don't clearBuffer here — meal page reads + clears it on mount.
+    // Only navigate; onClose will be called by Toast after this, but we guard it.
+    discardUndoFired = true;
     goto(`/meal?returnTo=${encodeURIComponent(buf.returnTo)}&type=${buf.mealType}`);
+  }
+
+  let discardUndoFired = $state(false);
+
+  function handleDiscardClose(): void {
+    if (!discardUndoFired) {
+      clearBuffer();
+    }
+    discardUndoFired = false;
   }
 
   $effect(() => {
@@ -94,7 +106,7 @@
     message={commonStrings.meal.discardedToast}
     type="info"
     onUndo={handleDiscardUndo}
-    onClose={clearBuffer}
+    onClose={handleDiscardClose}
   />
 {/if}
 
