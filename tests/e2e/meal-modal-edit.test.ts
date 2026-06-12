@@ -612,3 +612,93 @@ test('AC245-8: tapping another working-list row confirms the current edit and op
   // Brambory still in the working list (was confirmed, not removed)
   await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
 });
+
+// ── Bug-fix regression tests ─────────────────────────────────────────────────
+
+test('grid: opening a row editor does not move the food to the bottom of the list', async ({ page }) => {
+  // Commit two foods from different families
+  await openMealAndDrillVegetables(page);
+  await page.getByRole('button', { name: /Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+
+  await expect(page.getByText('Přidané potraviny')).toBeVisible();
+
+  // Capture DOM order before editing
+  const orderBefore = await page.locator('[data-food-token]').allTextContents();
+
+  // Open editor on Brambory (first item)
+  await page.getByRole('button', { name: 'Brambory', exact: true }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  // Brambory must still appear at the same index — not appended at bottom
+  const orderAfter = await page.locator('[data-food-token]').allTextContents();
+  const idxBefore = orderBefore.findIndex(t => t.includes('Brambory'));
+  const idxAfter = orderAfter.findIndex(t => t.includes('Brambory'));
+  expect(idxAfter).toBe(idxBefore);
+
+  // Sibling (Kravské mléko) still visible
+  await expect(page.getByRole('button', { name: 'Kravské mléko', exact: true })).toBeVisible();
+});
+
+test('grid: opening one row editor keeps all other working-list foods visible', async ({ page }) => {
+  await openMealAndDrillVegetables(page);
+  await page.getByRole('button', { name: /Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+
+  // Open editor on Kravské mléko
+  await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  // Brambory must remain visible (was not the food being edited)
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
+});
+
+test('grid: CTA is red when saving a family that has a confirmed eliminated food', async ({ page }) => {
+  await seedDairyElimination(page);
+  await page.reload({ waitUntil: 'networkidle' });
+
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/meal?returnTo=/day/${today}`);
+
+  // Drill into dairy, confirm a food — now in "Uložit Mléko" state
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+
+  // CTA should be red (bg-danger class applied)
+  const cta = page.getByRole('button', { name: /Uložit Mléko/ });
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveClass(/bg-danger/);
+});
+
+test('grid: confirmed eliminated food row shows amount in white text', async ({ page }) => {
+  await seedDairyElimination(page);
+  await page.reload({ waitUntil: 'networkidle' });
+
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/meal?returnTo=/day/${today}`);
+
+  // Commit a dairy food to the working list
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+
+  await expect(page.getByText('Přidané potraviny')).toBeVisible();
+
+  // The amount span inside the danger-confirmed row must carry the white-text class
+  const amountSpan = page.locator('[data-state="danger-confirmed"] span.text-white');
+  await expect(amountSpan).toBeVisible();
+});

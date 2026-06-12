@@ -100,6 +100,7 @@
                 <FoodEditor
                   amount={st.amount}
                   preparation={st.preparation}
+                  eliminatedVariant={eliminatedFor(food.id, allergenId) === 'danger'}
                   onAmountChange={(a) => onAmountChange(food.id, a)}
                   onPreparationChange={(p) => onPreparationChange(food.id, p)}
                 />

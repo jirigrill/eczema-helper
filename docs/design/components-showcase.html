@@ -1056,7 +1056,7 @@
   <!-- sync with: src/lib/components/FoodToken.svelte -->
   <div class="component-section" id="food-token">
     <p class="component-label">▸ <span>FoodToken</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', onclick?: () => void, editor?: Snippet</p>
-    <p class="component-desc">Per-food tile in FamilyDrillIn. Four visual states reflecting the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). eliminatedStatus='danger' adds red tint and "Vyloučeno" suffix on idle tiles. The editor snippet is rendered only when state='editing'.</p>
+    <p class="component-desc">Per-food tile in FamilyDrillIn. Four visual states reflecting the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed', not bordeaux). data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', or unset (idle/editing without conflict).</p>
     <div class="variant-grid">
 
       <!-- idle -->
@@ -1118,6 +1118,31 @@
           <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#7A6468;cursor:default">Brambory</button>
         </div>
         <p class="variant-name">state='locked'</p>
+      </div>
+
+      <!-- editing + eliminated -->
+      <div class="variant-tile" style="max-width:280px">
+        <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid #B84444;background:rgba(184,68,68,0.04)">
+          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#B84444;font-weight:500">Kravské mléko</button>
+          <p style="padding:0 12px 4px;font-size:11px;color:#B84444;font-weight:600">⚠️ Vyloučeno dnes</p>
+          <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:10px">
+            <div>
+              <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Množství</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">porce</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="variant-name">state='editing', eliminatedStatus='danger'</p>
+      </div>
+
+      <!-- confirmed + eliminated -->
+      <div class="variant-tile">
+        <div data-state="danger-confirmed" style="border-radius:12px;background:#B84444;border:1px solid #B84444;overflow:hidden">
+          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Kravské mléko</button>
+        </div>
+        <p class="variant-name">state='confirmed', eliminatedStatus='danger'</p>
       </div>
 
     </div>

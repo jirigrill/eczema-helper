@@ -108,6 +108,15 @@ button, a, [role="button"] {
     @apply bg-surface-dark text-text-muted;
   }
 
+  /* Danger variant — used when chips sit inside an eliminated-food tile */
+  .chip--danger-active {
+    @apply bg-danger text-white font-semibold border border-danger;
+  }
+
+  .chip--danger-muted {
+    @apply bg-white/85 text-danger border border-danger/40;
+  }
+
   /* ── Form atoms ──────────────────────────────────────────────────── */
 
   .input-base {

@@ -78,7 +78,6 @@
   const currentEditingFood = $derived(
     drilledFamily ? getEditingFood(workingMeal, drilledFamily) : null
   );
-
   /** The food currently open for inline editing on the grid. */
   const gridEditingFood = $derived(() => {
     if (!gridEditingFoodId) return null;
@@ -89,12 +88,15 @@
     return null;
   });
 
-  /** Foods displayed in the grid working-list: confirmed + the one being inline-edited. */
+  /** Foods displayed in the grid working-list: all active foods in their original order. */
   const gridListFoods = $derived(() => {
-    const confirmed = allConfirmedFoods(workingMeal);
-    const editing = gridEditingFood();
-    if (!editing) return confirmed;
-    return [...confirmed, editing.food];
+    return workingMeal.families.flatMap(fam =>
+      fam.foods.filter(f =>
+        f.state.status === 'confirmed' ||
+        f.state.status === 'editing' ||
+        (f.state.status === 'locked' && f.state.prior === 'confirmed')
+      )
+    );
   });
 
   const activeFamilyIds = $derived(
@@ -280,6 +282,34 @@
     amount: (f.state.status === 'confirmed' ? f.state.amount : 'portion') as PortionKind,
   })), eliminatedToday));
   const hasConflicts = $derived(conflicts.length > 0);
+  /** All working-list foods (confirmed or editing) that touch an eliminated allergen. */
+  const allActiveFoods = $derived(
+    workingMeal.families.flatMap(fam =>
+      fam.foods.filter(f => f.state.status === 'confirmed' || f.state.status === 'editing')
+    )
+  );
+  const eliminatedFoodIds = $derived(new Set(
+    detectConflicts(allActiveFoods.map(f => ({
+      id: f.foodId,
+      name: f.name,
+      foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
+      amount: 'portion' as PortionKind,
+    })), eliminatedToday).map(c => c.foodId as string)
+  ));
+  /** True when the food being edited right now (drill-in or grid) is eliminated today. */
+  const editingFoodIsEliminated = $derived(
+    drilledFamily && currentEditingFood ? eliminatedFoodIds.has(currentEditingFood.foodId)
+    : gridEditingFoodId ? eliminatedFoodIds.has(gridEditingFoodId)
+    : false
+  );
+  /** True when saving the whole family would commit at least one eliminated food. */
+  const familySaveHasEliminated = $derived(
+    drilledFamily !== null && currentEditingFood === null &&
+    foodsForFamily(workingMeal, drilledFamily).some(
+      f => (f.state.status === 'confirmed' || f.state.status === 'editing') &&
+           eliminatedFoodIds.has(f.foodId)
+    )
+  );
 
   // ── Toast ─────────────────────────────────────────────────
   let conflictToastMessage = $state<string | null>(null);
@@ -368,15 +398,31 @@
                 {@const fam = workingMeal.families.find(f => f.foods.some(fd => fd.foodId === food.foodId))}
                 {@const familyId = fam?.familyId}
                 {@const isEditing = food.state.status === 'editing'}
-                <div data-food-token class="bg-white border border-surface-dark rounded-xl overflow-hidden">
+                {@const isConfirmedLike = food.state.status === 'confirmed' || (food.state.status === 'locked' && food.state.prior === 'confirmed')}
+                {@const isEliminated = eliminatedFoodIds.has(food.foodId)}
+                {@const gridDataState = isEliminated && isConfirmedLike ? 'danger-confirmed'
+                  : isEliminated && isEditing ? 'danger'
+                  : isConfirmedLike ? 'confirmed'
+                  : undefined}
+                <div data-food-token data-state={gridDataState}
+                  class="rounded-xl overflow-hidden border
+                    {isEliminated && isConfirmedLike
+                      ? 'bg-danger border-danger'
+                      : isEliminated && isEditing
+                        ? 'bg-danger/05 border-danger'
+                        : 'bg-white border-surface-dark'}">
                   <div class="flex items-center gap-2 px-3 py-2">
                     <button
                       type="button"
-                      class="text-sm text-text flex-1 text-left"
+                      class="text-sm flex-1 text-left
+                        {isConfirmedLike
+                          ? isEliminated ? 'text-white font-semibold' : 'text-text'
+                          : isEliminated ? 'text-danger font-medium' : 'text-text'}"
                       onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
                     >{food.name}</button>
-                    {#if food.state.status === 'confirmed'}
-                      <span class="text-xs text-text-muted">{food.state.amount}</span>
+                    {#if isConfirmedLike}
+                      {@const amount = food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount ?? ''}
+                      <span class="text-xs {isEliminated ? 'text-white' : 'text-text-muted'}">{amount}</span>
                     {/if}
                     <button
                       type="button"
@@ -386,10 +432,14 @@
                     >×</button>
                   </div>
                   {#if isEditing && food.state.status === 'editing'}
+                    {#if isEliminated}
+                      <p class="px-3 pb-1 text-xs text-danger font-medium">⚠️ Vyloučeno dnes</p>
+                    {/if}
                     <div class="px-3 pb-3">
                       <FoodEditor
                         amount={food.state.amount}
                         preparation={food.state.preparation}
+                        eliminatedVariant={isEliminated}
                         onAmountChange={(a) => familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
                         onPreparationChange={(p) => familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}
                       />
@@ -440,8 +490,8 @@
       class="w-full py-3 rounded-xl font-semibold text-sm transition-all
         {!drilledFamily && !gridEditingFoodId && !hasConfirmed
           ? 'bg-surface-dark text-text-muted cursor-default'
-          : hasConflicts && !drilledFamily && !gridEditingFoodId
-            ? 'bg-warning text-white'
+          : editingFoodIsEliminated || familySaveHasEliminated || (hasConflicts && !drilledFamily && !gridEditingFoodId)
+            ? 'bg-danger text-white'
             : 'bg-primary text-white'}"
     >
       {ctaLabel()}

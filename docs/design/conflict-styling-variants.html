@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conflict Styling Variants · Atopic Helper Design</title>
+<style>
+  /* ── Design tokens ── */
+  :root {
+    --primary:        #8B4557;
+    --on-primary:     #FFFFFF;
+    --ink:            #3D2B2F;
+    --ink-muted:      #7A6468;
+    --canvas:         #E8E4E5;
+    --surface:        #FAF8F8;
+    --surface-dark:   #EDE8E9;
+    --danger:         #B84444;
+    --warning:        #C9A227;
+    --success:        #5A8B5A;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--canvas);
+    color: var(--ink);
+    padding: 48px 32px 80px;
+  }
+
+  /* ── Document chrome ── */
+  .doc-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .doc-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .doc-desc {
+    font-size: 14px;
+    color: var(--ink-muted);
+    max-width: 720px;
+    line-height: 1.55;
+    margin-bottom: 48px;
+  }
+
+  /* ── Section headers ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 20px;
+  }
+
+  /* ── Row of phones ── */
+  .phone-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+    margin-bottom: 64px;
+  }
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .frame-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+    align-self: flex-start;
+  }
+  .phone {
+    width: 320px;
+    background: #000;
+    border-radius: 44px;
+    padding: 10px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.30), 0 8px 20px -8px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .screen {
+    background: var(--surface);
+    border-radius: 34px;
+    overflow: hidden;
+    min-height: 520px;
+    position: relative;
+  }
+  .dynamic-island {
+    width: 110px;
+    height: 32px;
+    background: #000;
+    border-radius: 9999px;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+  }
+  .status-bar {
+    height: 52px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .screen-content {
+    padding: 0 16px 24px;
+  }
+  .caption {
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 12px;
+    max-width: 280px;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ── Shared component primitives ── */
+  .micro-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    border: 1px solid var(--surface-dark);
+    background: white;
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+  .chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* ── Section divider ── */
+  hr.section-hr {
+    border: none;
+    border-top: 1px solid var(--surface-dark);
+    margin: 48px 0;
+  }
+
+  /* ── Comparison table ── */
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--surface-dark);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 48px;
+    background: white;
+  }
+  .cg-cell {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--surface-dark);
+    border-right: 1px solid var(--surface-dark);
+  }
+  .cg-cell:last-child { border-right: none; }
+  .cg-row:last-child .cg-cell { border-bottom: none; }
+  .cg-header {
+    background: var(--surface);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .cg-label { color: var(--ink-muted); font-size: 12px; }
+
+  /* ── CTA button styles ── */
+  .cta-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+  }
+  .cta-primary    { background: var(--primary);  color: white; }
+  .cta-warning    { background: var(--warning);  color: white; }
+  .cta-danger     { background: var(--danger);   color: white; }
+  .cta-disabled   { background: var(--surface-dark); color: var(--ink-muted); cursor: default; }
+</style>
+</head>
+<body>
+
+<p class="doc-eyebrow">Atopic Helper · Design · Conflict Styling</p>
+<h1 class="doc-title">Conflict Styling Variants</h1>
+<p class="doc-desc">
+  Four issues to resolve: (1) CTA button color for eliminated-food conflict — currently warning-amber, should be danger-red.
+  (2) Confirmed eliminated food in grid working-list needs white text. (3) Editor inside red tile — chips are unreadable.
+  (4) Same editor contrast issue in FamilyDrillIn. Three variants (A / B / C) show different approaches for the editor contrast problem.
+  The CTA and confirmed-food fixes are not variant-dependent.
+</p>
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 1: CTA BUTTON — amber vs red
+     ════════════════════════════════════════════════════ -->
+<p class="section-label">▸ Issue 1 — CTA button: warning-amber vs danger-red</p>
+
+<div class="phone-row">
+
+  <!-- Current: warning-amber -->
+  <div class="phone-col">
+    <p class="frame-tag">▸ Current (amber)</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Přidané potraviny</p>
+          <!-- confirmed eliminated food row (currently no white text issue shown) -->
+          <div style="border-radius:12px;background:var(--danger);border:1px solid var(--danger);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Kravské mléko</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">porce</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px">×</span>
+            </div>
+          </div>
+          <div style="border-radius:12px;background:white;border:1px solid var(--surface-dark);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:var(--ink);flex:1">Jogurt</span>
+              <span style="font-size:11px;color:var(--ink-muted)">lžíce</span>
+              <span style="color:var(--ink-muted);font-size:16px">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="width:300px;margin-top:12px;padding:0 10px">
+      <div class="cta-btn cta-warning">Hotovo — Oběd</div>
+    </div>
+    <p class="caption">CTA uses <strong>warning-amber</strong> (#C9A227). Reads as "caution" — same color as intermediate severity states.</p>
+  </div>
+
+  <!-- Proposed: danger-red -->
+  <div class="phone-col">
+    <p class="frame-tag">▸ Proposed (red)</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Přidané potraviny</p>
+          <div style="border-radius:12px;background:var(--danger);border:1px solid var(--danger);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Kravské mléko</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">porce</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px">×</span>
+            </div>
+          </div>
+          <div style="border-radius:12px;background:white;border:1px solid var(--surface-dark);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:var(--ink);flex:1">Jogurt</span>
+              <span style="font-size:11px;color:var(--ink-muted)">lžíce</span>
+              <span style="color:var(--ink-muted);font-size:16px">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="width:300px;margin-top:12px;padding:0 10px">
+      <div class="cta-btn cta-danger">Hotovo — Oběd</div>
+    </div>
+    <p class="caption">CTA uses <strong>danger-red</strong> (#B84444). Matches the eliminated-food tile color — the button's urgency is legible.</p>
+  </div>
+
+  <!-- Reference states -->
+  <div class="phone-col">
+    <p class="frame-tag">▸ Reference states</p>
+    <div style="padding:24px;background:white;border-radius:16px;border:1px solid var(--surface-dark);width:260px;display:flex;flex-direction:column;gap:12px">
+      <div>
+        <p style="font-size:10px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">No conflict</p>
+        <div class="cta-btn cta-primary">Hotovo — Oběd</div>
+      </div>
+      <div>
+        <p style="font-size:10px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">Current: has conflict</p>
+        <div class="cta-btn cta-warning">Hotovo — Oběd</div>
+      </div>
+      <div>
+        <p style="font-size:10px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">Proposed: has conflict</p>
+        <div class="cta-btn cta-danger">Hotovo — Oběd</div>
+      </div>
+      <div>
+        <p style="font-size:10px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">Disabled</p>
+        <div class="cta-btn cta-disabled">Hotovo</div>
+      </div>
+    </div>
+    <p class="caption">All four CTA states side by side. Red conflict = same visual family as the eliminated food tile.</p>
+  </div>
+
+</div>
+
+<hr class="section-hr">
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 2: VARIANT A — White inset card for editor
+     ════════════════════════════════════════════════════ -->
+<p class="section-label">▸ Variant A — White inset panel for editor</p>
+<p style="font-size:13px;color:var(--ink-muted);margin-bottom:24px;max-width:640px">
+  The food name row stays red-tinted. The editor (Množství + Příprava chips) lives on a white inset card below the warning line.
+  Chips are fully readable. Trade-off: the tile is visually split into two zones; slightly taller.
+</p>
+
+<div class="phone-row">
+
+  <!-- Variant A: FamilyDrillIn editing eliminated food -->
+  <div class="phone-col">
+    <p class="frame-tag">▸ A — drill-in editing</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Kravské produkty</p>
+
+          <!-- editing + eliminated: Variant A -->
+          <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid var(--danger);background:rgba(184,68,68,0.05);margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--danger);font-weight:500;background:none;border:none;cursor:pointer">Kravské mléko</button>
+            <!-- warning line -->
+            <div style="padding:0 12px 8px;display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;color:var(--danger);font-weight:600">⚠️ Vyloučeno dnes</span>
+            </div>
+            <!-- white inset card -->
+            <div style="margin:0 8px 8px;background:white;border-radius:8px;border:1px solid var(--surface-dark);padding:10px">
+              <div style="margin-bottom:8px">
+                <p class="micro-label">Množství</p>
+                <div class="chip-group">
+                  <span class="chip">špetka</span>
+                  <span class="chip">lžička</span>
+                  <span class="chip">lžíce</span>
+                  <span class="chip active">porce</span>
+                  <span class="chip">balení</span>
+                </div>
+              </div>
+              <div>
+                <p class="micro-label">Příprava</p>
+                <div class="chip-group">
+                  <span class="chip active">vařené</span>
+                  <span class="chip">dušené</span>
+                  <span class="chip">pečené</span>
+                  <span class="chip">smažené</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- idle food -->
+          <div style="border-radius:12px;overflow:hidden;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--danger);background:none;border:none;cursor:pointer">Jogurt <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
+          </div>
+
+          <!-- normal idle food -->
+          <div style="border-radius:12px;overflow:hidden;border:1px solid var(--surface-dark);background:white;margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--ink);background:none;border:none;cursor:pointer;opacity:0.4">Sýr</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Chips live on white inset — fully readable. Red tint stays on header row + warning.</p>
+  </div>
+
+  <!-- Variant A: Grid working-list editing eliminated food -->
+  <div class="phone-col">
+    <p class="frame-tag">▸ A — grid editing</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Přidané potraviny</p>
+
+          <!-- confirmed eliminated (white text fix shown here too) -->
+          <div data-state="danger-confirmed" style="border-radius:12px;background:var(--danger);border:1px solid var(--danger);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Máslo</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">lžička</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px;line-height:1">×</span>
+            </div>
+          </div>
+
+          <!-- editing eliminated: Variant A -->
+          <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid var(--danger);background:rgba(184,68,68,0.05);margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:var(--danger);font-weight:500;flex:1">Kravské mléko</span>
+              <span style="color:var(--danger);font-size:16px;line-height:1;opacity:0.6">×</span>
+            </div>
+            <div style="padding:0 12px 8px">
+              <span style="font-size:11px;color:var(--danger);font-weight:600">⚠️ Vyloučeno dnes</span>
+            </div>
+            <!-- white inset -->
+            <div style="margin:0 8px 8px;background:white;border-radius:8px;border:1px solid var(--surface-dark);padding:10px">
+              <div style="margin-bottom:8px">
+                <p class="micro-label">Množství</p>
+                <div class="chip-group">
+                  <span class="chip">špetka</span>
+                  <span class="chip active">porce</span>
+                  <span class="chip">balení</span>
+                </div>
+              </div>
+              <div>
+                <p class="micro-label">Příprava</p>
+                <div class="chip-group">
+                  <span class="chip">vařené</span>
+                  <span class="chip">dušené</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- normal confirmed food -->
+          <div style="border-radius:12px;background:var(--primary);border:1px solid var(--primary);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Brambory</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">lžíce</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Grid: confirmed eliminated = red fill + white text. Editing: white inset panel for chips. Normal confirmed stays bordeaux.</p>
+  </div>
+
+</div>
+
+<hr class="section-hr">
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 3: VARIANT B — Chips adapt to red context
+     ════════════════════════════════════════════════════ -->
+<p class="section-label">▸ Variant B — Chips adapt to red context</p>
+<p style="font-size:13px;color:var(--ink-muted);margin-bottom:24px;max-width:640px">
+  The entire tile stays red-tinted. Chips are restyled for a red background: inactive chips get white background + red border;
+  active chip gets white fill + red text (inverted). Trade-off: requires a new chip variant prop or inline override — more implementation work.
+</p>
+
+<div class="phone-row">
+
+  <div class="phone-col">
+    <p class="frame-tag">▸ B — drill-in editing</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Kravské produkty</p>
+
+          <!-- editing + eliminated: Variant B -->
+          <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid var(--danger);background:rgba(184,68,68,0.08);margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--danger);font-weight:500;background:none;border:none;cursor:pointer">Kravské mléko</button>
+            <div style="padding:2px 12px 8px">
+              <span style="font-size:11px;color:var(--danger);font-weight:600">⚠️ Vyloučeno dnes</span>
+            </div>
+            <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:8px">
+              <div>
+                <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:rgba(184,68,68,0.8);margin-bottom:6px">Množství</p>
+                <div class="chip-group">
+                  <!-- inactive: white bg + danger border -->
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">špetka</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">lžička</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">lžíce</span>
+                  <!-- active: white fill + danger text -->
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid var(--danger);background:white;font-size:12px;color:var(--danger);font-weight:600">porce</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">balení</span>
+                </div>
+              </div>
+              <div>
+                <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:rgba(184,68,68,0.8);margin-bottom:6px">Příprava</p>
+                <div class="chip-group">
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid var(--danger);background:white;font-size:12px;color:var(--danger);font-weight:600">vařené</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">dušené</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">pečené</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">smažené</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--danger);background:none;border:none;cursor:pointer">Jogurt <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
+          </div>
+          <div style="border-radius:12px;border:1px solid var(--surface-dark);background:white;margin-bottom:6px;opacity:0.4">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--ink);background:none;border:none;cursor:default">Sýr</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Chips fully readable. Consistent red palette. Requires a "danger" variant on the Chip component.</p>
+  </div>
+
+  <div class="phone-col">
+    <p class="frame-tag">▸ B — grid editing</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Přidané potraviny</p>
+
+          <div data-state="danger-confirmed" style="border-radius:12px;background:var(--danger);border:1px solid var(--danger);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Máslo</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">lžička</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px;line-height:1">×</span>
+            </div>
+          </div>
+
+          <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid var(--danger);background:rgba(184,68,68,0.08);margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:var(--danger);font-weight:500;flex:1">Kravské mléko</span>
+              <span style="color:var(--danger);opacity:0.6;font-size:16px;line-height:1">×</span>
+            </div>
+            <div style="padding:2px 12px 8px">
+              <span style="font-size:11px;color:var(--danger);font-weight:600">⚠️ Vyloučeno dnes</span>
+            </div>
+            <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:8px">
+              <div>
+                <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:rgba(184,68,68,0.8);margin-bottom:6px">Množství</p>
+                <div class="chip-group">
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid var(--danger);background:white;font-size:12px;color:var(--danger);font-weight:600">porce</span>
+                  <span style="padding:5px 10px;border-radius:9999px;border:1px solid rgba(184,68,68,0.4);background:rgba(255,255,255,0.85);font-size:12px;color:var(--danger)">balení</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-radius:12px;background:var(--primary);border:1px solid var(--primary);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Brambory</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">lžíce</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Consistent red palette throughout. Active chip = white fill + red text (matches the danger inversion pattern).</p>
+  </div>
+
+</div>
+
+<hr class="section-hr">
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 4: VARIANT C — No red fill on editing state
+     ════════════════════════════════════════════════════ -->
+<p class="section-label">▸ Variant C — No red fill in editing state (border + text only)</p>
+<p style="font-size:13px;color:var(--ink-muted);margin-bottom:24px;max-width:640px">
+  The editing tile drops its red fill entirely — only the border and text are red. Chips render normally (on a white/near-white background).
+  The ⚠️ warning line remains red. Trade-off: editing state is less visually distinct from idle-danger; confirmed-red is the loudest state.
+</p>
+
+<div class="phone-row">
+
+  <div class="phone-col">
+    <p class="frame-tag">▸ C — drill-in editing</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Kravské produkty</p>
+
+          <!-- editing + eliminated: Variant C -->
+          <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid var(--danger);background:white;margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--danger);font-weight:500;background:none;border:none;cursor:pointer">Kravské mléko</button>
+            <div style="padding:2px 12px 8px">
+              <span style="font-size:11px;color:var(--danger);font-weight:600">⚠️ Vyloučeno dnes</span>
+            </div>
+            <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:8px">
+              <div>
+                <p class="micro-label">Množství</p>
+                <div class="chip-group">
+                  <span class="chip">špetka</span>
+                  <span class="chip">lžička</span>
+                  <span class="chip">lžíce</span>
+                  <span class="chip active">porce</span>
+                  <span class="chip">balení</span>
+                </div>
+              </div>
+              <div>
+                <p class="micro-label">Příprava</p>
+                <div class="chip-group">
+                  <span class="chip active">vařené</span>
+                  <span class="chip">dušené</span>
+                  <span class="chip">pečené</span>
+                  <span class="chip">smažené</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);margin-bottom:6px">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--danger);background:none;border:none;cursor:pointer">Jogurt <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
+          </div>
+          <div style="border-radius:12px;border:1px solid var(--surface-dark);background:white;margin-bottom:6px;opacity:0.4">
+            <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:var(--ink);background:none;border:none;cursor:default">Sýr</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Zero contrast issue — standard chips on white. Red border + warning line signal the danger. Simplest to implement.</p>
+  </div>
+
+  <div class="phone-col">
+    <p class="frame-tag">▸ C — grid editing</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="screen-content">
+          <p class="micro-label" style="margin-bottom:12px">Přidané potraviny</p>
+
+          <div data-state="danger-confirmed" style="border-radius:12px;background:var(--danger);border:1px solid var(--danger);overflow:hidden;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Máslo</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">lžička</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px;line-height:1">×</span>
+            </div>
+          </div>
+
+          <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid var(--danger);background:white;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:var(--danger);font-weight:500;flex:1">Kravské mléko</span>
+              <span style="color:var(--danger);opacity:0.6;font-size:16px;line-height:1">×</span>
+            </div>
+            <div style="padding:2px 12px 8px">
+              <span style="font-size:11px;color:var(--danger);font-weight:600">⚠️ Vyloučeno dnes</span>
+            </div>
+            <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:8px">
+              <div>
+                <p class="micro-label">Množství</p>
+                <div class="chip-group">
+                  <span class="chip active">porce</span>
+                  <span class="chip">balení</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-radius:12px;background:var(--primary);border:1px solid var(--primary);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+              <span style="font-size:13px;color:white;font-weight:600;flex:1">Brambory</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.7)">lžíce</span>
+              <span style="color:rgba(255,255,255,0.6);font-size:16px">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Editing uses white bg + red border. Confirmed-red uses solid fill + white text. Clear hierarchy.</p>
+  </div>
+
+</div>
+
+<hr class="section-hr">
+
+<!-- ════════════════════════════════════════════════════
+     SECTION 5: Decision summary
+     ════════════════════════════════════════════════════ -->
+<p class="section-label">▸ Decision summary</p>
+
+<div class="comparison-grid">
+  <div class="cg-row" style="display:contents">
+    <div class="cg-cell cg-header"></div>
+    <div class="cg-cell cg-header">Trade-off: for</div>
+    <div class="cg-cell cg-header">Trade-off: against</div>
+  </div>
+  <div class="cg-row" style="display:contents">
+    <div class="cg-cell"><strong>Variant A</strong><br><span class="cg-label">White inset panel</span></div>
+    <div class="cg-cell" style="font-size:13px">Chips readable with no new component work. Red tile header zone reads clearly as danger.</div>
+    <div class="cg-cell" style="font-size:13px">Tile is visually "split" — two zones with different backgrounds. Slightly taller tile.</div>
+  </div>
+  <div class="cg-row" style="display:contents">
+    <div class="cg-cell"><strong>Variant B</strong><br><span class="cg-label">Chips adapt to red</span></div>
+    <div class="cg-cell" style="font-size:13px">Most consistent — entire tile speaks one language. Active chip inversion (white/red) is distinctive.</div>
+    <div class="cg-cell" style="font-size:13px">Requires a <code>variant="danger"</code> prop on Chip. More implementation work.</div>
+  </div>
+  <div class="cg-row" style="display:contents">
+    <div class="cg-cell" style="border-bottom:none"><strong>Variant C</strong><br><span class="cg-label">White bg, red border only</span></div>
+    <div class="cg-cell" style="border-bottom:none;font-size:13px">Zero contrast issue. Standard chips unchanged. Easiest to implement — just swap bg from red to white.</div>
+    <div class="cg-cell" style="border-bottom:none;font-size:13px">Editing state looks similar to idle-danger (both use pale red tint → white bg). Confirmed-red is loudest state — editing may feel understated.</div>
+  </div>
+</div>
+
+<p style="font-size:13px;color:var(--ink-muted);max-width:640px;line-height:1.6">
+  <strong>Recommendation:</strong> Variant C for the fastest correct fix — swap the editing background from <code>rgba(danger/0.05)</code>
+  to <code>white</code>, keep the 2px red border + red text + warning line. No new component work required.
+  If the editing state needs to feel more alarming (user research feedback), upgrade to Variant A (white inset).
+  Variant B is the most coherent but adds Chip API surface area.
+</p>
+
+</body>
+</html>
