@@ -13,7 +13,9 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 const mockWriteBuffer = vi.fn();
 const mockClearBuffer = vi.fn();
+const mockDiscardBuffer = writable<null>(null);
 vi.mock('$lib/stores/discard-buffer', () => ({
+  get discardBuffer() { return mockDiscardBuffer; },
   writeBuffer: (...args: unknown[]) => mockWriteBuffer(...args),
   clearBuffer: (...args: unknown[]) => mockClearBuffer(...args),
 }));

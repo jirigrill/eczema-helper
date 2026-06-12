@@ -46,10 +46,7 @@
   function handleDiscardUndo(): void {
     const buf = $discardBuffer;
     if (!buf) return;
-    clearBuffer();
-    goto(`/meal?returnTo=${encodeURIComponent(buf.returnTo)}&type=${buf.mealType}`, {
-      state: { restoredWorkingMeal: buf.workingMeal },
-    });
+    goto(`/meal?returnTo=${encodeURIComponent(buf.returnTo)}&type=${buf.mealType}`);
   }
 
   $effect(() => {

@@ -3,6 +3,7 @@
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { get } from 'svelte/store';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
@@ -43,7 +44,7 @@
     isNonEmpty,
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
-  import { writeBuffer } from '$lib/stores/discard-buffer';
+  import { writeBuffer, discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
@@ -66,8 +67,12 @@
 
   // ── Working meal state ────────────────────────────────────
   function initialWorkingMeal(): WorkingMeal {
-    const state = history.state as { restoredWorkingMeal?: WorkingMeal } | null;
-    return state?.restoredWorkingMeal ?? emptyWorkingMeal();
+    const buf = get(discardBuffer);
+    if (buf) {
+      clearBuffer();
+      return buf.workingMeal;
+    }
+    return emptyWorkingMeal();
   }
   let workingMeal = $state<WorkingMeal>(initialWorkingMeal());
   let mealNotes = $state('');
