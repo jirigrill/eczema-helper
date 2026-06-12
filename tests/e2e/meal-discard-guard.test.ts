@@ -91,5 +91,5 @@ test('discard guard: tapping Zpět on toast restores the working list', async ({
 
   // The restored working list should contain the original food
   await expect(page.getByText('Přidané potraviny')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Brambory' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
 });
