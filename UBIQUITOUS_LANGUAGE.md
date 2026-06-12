@@ -391,6 +391,43 @@ reintroduction. See ADR-0014.
 → Defined in `CONTEXT.md`. The person whose food intake a `Meal` describes. Always
 `'mother'` in v1.
 
+### Working Meal / Working List
+*Czech: Rozdělané jídlo*
+
+The in-memory meal being built on `/meal` before it is finalized — the list of
+**confirmed** foods plus the current `MealType`. Not a persisted `Meal`: it exists
+only in component/store state until "Hotovo" writes it to Dexie. See the
+**commit-gate** and PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
+
+### Commit-Gate
+The persistence rule for `/meal`: **nothing is written to Dexie until "Hotovo."**
+Drill-in confirmations and family commits mutate only the working list; leaving
+without finalizing discards it (guarded by **optimistic discard + undo**).
+→ See ADR-0018.
+
+### Active Edit Slot
+The invariant that **at most one food is in the `editing` state per screen.**
+Entering editing locks (greys, disables) every other food tile and the family
+grid; confirming or discarding releases the slot. Drives the save button's label
+(editing → "Uložit {Food}"; idle → "Uložit {Family}" or "Hotovo — {Meal}").
+
+### Confirm / Discard (a food)
+*Czech: Uložit / Zahodit*
+
+**Confirm** ("Uložit {Food}") moves a food `editing → confirmed` (bordeaux fill),
+collapsing its `FoodEditor`. **Discard** (re-tap the editing tile, or tap outside
+the editor) returns it to `idle`, storing nothing. The working session caches
+**last-confirmed** amount/prep per food — de-selecting a confirmed food keeps the
+cache for re-selection; discarding an unconfirmed edit does not.
+
+### Move / Switch-Away (meal-type pill)
+The two non-empty-working-list pill actions. **Move** = tap an *empty* pill →
+relabel the working foods to that type and empty the source slot (foods relocate,
+nothing lost, no prompt). **Switch-Away** = tap a *filled* pill (a slot with a
+finalized meal) → load that meal, abandoning the current working list (guarded by
+the commit-gate undo). When the working list is empty, a pill tap simply **loads**
+that slot. → See ADR-0019.
+
 ---
 
 ## Assessment & Observation
@@ -535,6 +572,27 @@ A single-field read/edit row used in the onboarding summary step (ONB 6). Displa
 one `label` (uppercase, small) and one `value` (bold). Renders as a tappable `button`
 with an inline "Upravit ›" affordance when `onEdit` is provided; as a plain `div`
 when read-only. Distinct from `DayCard` (today-screen data cards).
+
+### FoodToken
+
+The selectable food tile on `/meal`. Owns the unified state→class visual vocabulary
+of meal logging: `idle` (plain) · `editing` (bordeaux outline) · `confirmed`
+(bordeaux fill) · `locked` (greyed), plus the **conflict** (eliminated-today) red
+variants of each. The same vocabulary — not the layout — is reused by
+`MealTypePills`. See PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
+
+### FoodEditor
+
+The inline `Množství` (`PortionKind`) + `Příprava` (`PreparationMethod`) editor that
+unwraps beneath an `editing` food. One component mounted in two hosts: the drill-in
+`FoodToken` and the grid working-list row. Renders `Chip`s; emits amount/preparation
+changes. Carries no meal-level `Poznámka` (that lives on the grid only).
+
+### MealTypePills
+
+Thin wrapper over the (extended) `Chip` rendering the four `MealType` pills. Owns the
+empty/current/filled visual state (derived from slot occupancy + the working list's
+current type) and the **move / switch-away / load** click logic. → See ADR-0019.
 
 ---
 
