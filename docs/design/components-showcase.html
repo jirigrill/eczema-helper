@@ -942,19 +942,13 @@
   <!-- ─── FamilyDrillIn ───────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
   <div class="component-section" id="family-drill-in">
-    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onBack: () => void</p>
-    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodToken rows, grouped by allergen. Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The allergen group header shows a danger badge when that allergen is in eliminatedAllergenIds. The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. onBack returns to FamilyGrid. The sticky CTA lives in the page, not here.</p>
+    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onCancelEdit?: () => void</p>
+    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodToken rows, grouped by allergen. Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The allergen group header shows a danger badge when that allergen is in eliminatedAllergenIds. The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. The back arrow and family name live in the page's PageHeader, not here.</p>
     <div class="variant-grid">
 
       <!-- Dairy family: editing state (one food editing, one locked) -->
       <div class="variant-tile" style="max-width:320px">
         <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <!-- Header row -->
-          <div style="display:flex;align-items:center;gap:12px">
-            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:20px">🥛</span>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Mléko</span>
-          </div>
           <!-- Allergen group: Mléčné výrobky -->
           <div style="display:flex;flex-direction:column;gap:8px">
             <div style="display:flex;align-items:center;gap:6px">
@@ -1003,11 +997,6 @@
       <!-- Dairy family: confirmed state + eliminated allergen -->
       <div class="variant-tile" style="max-width:320px">
         <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;align-items:center;gap:12px">
-            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:20px">🥛</span>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Mléko</span>
-          </div>
           <!-- Allergen group: eliminated -->
           <div style="display:flex;flex-direction:column;gap:8px">
             <div style="display:flex;align-items:center;gap:6px">
@@ -1033,11 +1022,6 @@
       <!-- Custom (Vlastní) family: previously-typed customs -->
       <div class="variant-tile" style="max-width:320px">
         <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;align-items:center;gap:12px">
-            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:20px">➕</span>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Vlastní</span>
-          </div>
           <div style="display:flex;flex-direction:column;gap:8px">
             <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Dříve zadané</span>
             <div style="display:flex;flex-direction:column;gap:8px">
@@ -1056,11 +1040,6 @@
       <!-- Custom (Vlastní) family: empty -->
       <div class="variant-tile" style="max-width:320px">
         <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;align-items:center;gap:12px">
-            <button style="color:#7A6468;font-size:14px;padding:4px">←</button>
-            <span style="font-size:20px">➕</span>
-            <span style="font-size:14px;font-weight:600;color:#3D2B2F">Vlastní</span>
-          </div>
           <div style="border:1px dashed #EDE8E9;border-radius:12px;padding:20px 16px;text-align:center">
             <p style="font-size:12px;color:#7A6468">Zatím žádné vlastní potraviny. Napište potravinu výše.</p>
           </div>

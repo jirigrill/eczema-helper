@@ -3528,12 +3528,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
               <div class="flex-1"><span class="text-sm font-bold text-text">🍎 Ovoce</span></div>
               <span class="text-xs text-text-muted">5. 6.</span>
             </div>
-            <div class="flex gap-1.5 px-4 pb-3">
-              <div class="flex-1 py-1.5 rounded-full bg-primary text-white text-xs font-semibold text-center">Snídaně</div>
-              <div class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-xs font-medium text-center">Oběd</div>
-              <div class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-xs font-medium text-center">Svačina</div>
-              <div class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-xs font-medium text-center">Večeře</div>
-            </div>
           </div>
           <div class="px-4 py-4 space-y-4">
             <!-- Allergen group: Citrusy -->
@@ -3542,37 +3536,32 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <span class="text-base">🍋</span>
                 <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">Citrusy</span>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Pomeranč</div>
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Citron</div>
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Mandarinka</div>
+              <div class="flex flex-col gap-2">
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Pomeranč</button></div>
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Citron</button></div>
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Mandarinka</button></div>
               </div>
             </div>
-            <!-- Allergen group: Jahody (triggered allergen) -->
+            <!-- Allergen group: Jahody -->
             <div class="space-y-2">
               <div class="flex items-center gap-1.5">
                 <span class="text-base">🍓</span>
                 <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">Jahody</span>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Jahody</div>
+              <div class="flex flex-col gap-2">
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Jahody</button></div>
               </div>
             </div>
-            <!-- Loose foods section -->
+            <!-- Loose foods: bez alergenu — Jablko confirmed (bordeaux), others idle -->
             <div class="space-y-2">
-              <div class="flex items-center gap-1.5">
-                <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">bez alergenu</span>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <!-- Jablko: already in meal → success state -->
-                <div class="py-2 px-3 rounded-xl text-sm bg-success/10 border text-success" style="border-color: rgba(90,139,90,0.3)">Jablko</div>
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Hruška</div>
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Meruňka</div>
-                <div class="py-2 px-3 rounded-xl text-sm bg-surface border border-surface-dark text-text">Borůvky</div>
+              <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">bez alergenu</span>
+              <div class="flex flex-col gap-2">
+                <div class="rounded-xl border bg-[#8B4557]"><button class="w-full text-left px-3 py-2 text-sm text-white font-semibold">Jablko</button></div>
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Hruška</button></div>
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Meruňka</button></div>
+                <div class="rounded-xl border border-surface-dark bg-white"><button class="w-full text-left px-3 py-2 text-sm text-text">Borůvky</button></div>
               </div>
             </div>
-            <!-- "Procházet rodiny" back link -->
-            <button class="text-sm text-primary font-medium">← Procházet rodiny</button>
           </div>
         </div>
         <div class="px-4 pb-6 pt-2 bg-gradient-to-t from-surface to-transparent">
@@ -3596,19 +3585,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
               <div class="flex-1"><span class="text-sm font-bold text-text">🥛 Mléko</span></div>
               <span class="text-xs text-text-muted">5. 6.</span>
             </div>
-            <div class="flex gap-1.5 px-4 pb-3">
-              <div class="flex-1 py-1.5 rounded-full bg-primary text-white text-xs font-semibold text-center">Snídaně</div>
-              <div class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-xs font-medium text-center">Oběd</div>
-              <div class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-xs font-medium text-center">Svačina</div>
-              <div class="flex-1 py-1.5 rounded-full bg-surface-dark text-text-muted text-xs font-medium text-center">Večeře</div>
-            </div>
-            <!-- Warning banner -->
-            <div class="mx-4 mb-3 bg-warning/08 border border-warning/30 rounded-xl px-3 py-2 flex items-center gap-2">
-              <span class="text-xs font-medium text-warning">Dnes vyloučeno:</span>
-              <span class="text-sm">🥛</span>
-              <span class="text-xs text-warning">Mléčné výrobky</span>
-              <span class="ml-auto text-xs text-warning/70">Program →</span>
-            </div>
           </div>
           <div class="px-4 py-4 space-y-4">
             <!-- Allergen group: Mléčné výrobky (eliminated → danger) -->
@@ -3618,12 +3594,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">Mléčné výrobky</span>
                 <span class="ml-1 text-[10px] bg-danger text-white rounded-full px-1.5 py-0.5">!</span>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <div class="py-2 px-3 rounded-xl text-sm text-danger" style="background: rgba(184,68,68,0.08); border: 1px solid rgba(184,68,68,0.3)">Kravské mléko</div>
-                <div class="py-2 px-3 rounded-xl text-sm text-danger" style="background: rgba(184,68,68,0.08); border: 1px solid rgba(184,68,68,0.3)">Jogurt</div>
+              <div class="flex flex-col gap-2">
+                <div class="rounded-xl" style="background:rgba(184,68,68,0.08);border:1px solid rgba(184,68,68,0.3)"><button class="w-full text-left px-3 py-2 text-sm text-danger">Kravské mléko</button></div>
+                <div class="rounded-xl" style="background:rgba(184,68,68,0.08);border:1px solid rgba(184,68,68,0.3)"><button class="w-full text-left px-3 py-2 text-sm text-danger">Jogurt</button></div>
               </div>
             </div>
-            <button class="text-sm text-primary font-medium">← Procházet rodiny</button>
           </div>
         </div>
         <div class="px-4 pb-6 pt-2 bg-gradient-to-t from-surface to-transparent">
@@ -3631,7 +3606,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">A2 při eliminaci: skupina „Mléčné výrobky" má ! badge, potraviny jsou označeny danger tíntem. Přidání spustí conflict toast (viz A3 conflict níže).</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">A2 při eliminaci: skupina „Mléčné výrobky" má ! badge, potraviny jsou označeny danger tíntem. Pills a elimination banner nejsou vidět — schované v drill-in pohledu.</div>
     </div>
 
     <!-- A3 — In-meal list with conflict row + conflict toast -->
