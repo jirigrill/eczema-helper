@@ -130,14 +130,14 @@ describe('meal/+page.svelte', () => {
     // Seed the store so Snídaně pill renders as occupied (data-active="true")
     mockMealSessionStore.set([
       {
-        id: 'breakfast:2025-06-13',
+        id: '2025-06-13:breakfast',
         date: '2025-06-13',
         mealType: 'breakfast',
         actor: 'mother',
         items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
         createdAt: new Date().toISOString(),
       },
-    ] as import('$lib/domain/models').Meal[]);
+    ] as unknown as import('$lib/domain/models').Meal[]);
     mockLoadBySlot.mockResolvedValue({
       ok: true,
       data: {
@@ -155,7 +155,7 @@ describe('meal/+page.svelte', () => {
     await tick();
 
     // Tap the occupied Snídaně pill (working list is empty → handlePillLoad fires)
-    await fireEvent.click(getByRole('button', { name: 'Snídaně', exact: true }));
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
     await tick();
 
     // loadBySlot must have been called for the breakfast slot
