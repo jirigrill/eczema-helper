@@ -107,6 +107,26 @@ test('pills: occupied slot renders as filled (active) pill', async ({ page }) =>
   await expect(lunchPill).toHaveAttribute('data-active', 'false');
 });
 
+// ── Load: tapping occupied pill hydrates persisted foods into working list ────
+
+test('pills: tapping occupied pill with empty working list loads persisted foods into working meal', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  // Seed a finalized breakfast with Brambory
+  await seedMeal(page, 'breakfast', today);
+
+  // Start on Oběd (lunch) — working list is empty
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Tap the occupied Snídaně pill
+  await page.getByRole('button', { name: 'Snídaně', exact: true }).click();
+
+  // The seeded food should appear in the working meal grid
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
 // ── Move: non-empty working list + empty target ───────────────────────────────
 
 test('pills: move — non-empty working list + empty target pill → type changes, no discard toast', async ({ page }) => {
