@@ -124,6 +124,47 @@ describe('meal/+page.svelte', () => {
     expect(snidaneBtn.className).toContain('chip--muted');
   });
 
+  it('tapping an occupied pill with empty working list loads persisted foods into the working meal', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    // Seed the store so Snídaně pill renders as occupied (data-active="true")
+    mockMealSessionStore.set([
+      {
+        id: '2025-06-13:breakfast',
+        date: '2025-06-13',
+        mealType: 'breakfast',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        createdAt: new Date().toISOString(),
+      },
+    ] as unknown as import('$lib/domain/models').Meal[]);
+    mockLoadBySlot.mockResolvedValue({
+      ok: true,
+      data: {
+        id: 'breakfast:2025-06-13',
+        date: '2025-06-13',
+        mealType: 'breakfast',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, getByText } = render(MealPage);
+    await tick();
+
+    // Tap the occupied Snídaně pill (working list is empty → handlePillLoad fires)
+    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+    await tick();
+
+    // loadBySlot must have been called for the breakfast slot
+    expect(mockLoadBySlot).toHaveBeenCalledWith('2025-06-13', 'breakfast');
+
+    // The persisted food should appear in the working meal (grid working-list)
+    expect(getByText('Brambory')).toBeInTheDocument();
+  });
+
   // ── Layout: family grid ───────────────────────────────────
 
   it('renders "Všechny kategorie" label and family grid on initial load', async () => {
