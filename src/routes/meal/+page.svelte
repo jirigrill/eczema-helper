@@ -4,6 +4,7 @@
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { get } from 'svelte/store';
   import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
@@ -52,9 +53,10 @@
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
   const raw = $derived($scheduleRaw);
+  const catalog = new BundledCatalogAdapter();
   const ctx = $derived(
     raw.status === 'ready'
-      ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, targetDate)
+      ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, targetDate, catalog)
       : null
   );
   const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
@@ -163,21 +165,6 @@
         foodId: `other:${c.normalizedKey}`,
         name: c.rawForms[c.rawForms.length - 1] ?? c.normalizedKey,
       }))
-  );
-
-  /**
-   * Tracks just-added custom foods not yet in the harvest store.
-   * Cleared when the drill-in is exited or when harvest store catches up.
-   */
-  let pendingCustomFoods = $state<{ foodId: string; name: string }[]>([]);
-
-  /** All custom foods to show: harvest candidates + any session-pending ones. */
-  const effectiveCustomFoods = $derived(
-    (() => {
-      const harvestIds = new Set(customFoods.map(c => c.foodId));
-      const fresh = pendingCustomFoods.filter(p => !harvestIds.has(p.foodId));
-      return [...fresh, ...customFoods];
-    })()
   );
 
   // ── CTA label ─────────────────────────────────────────────
@@ -297,7 +284,13 @@
       notes: mealNotes.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
-    await mealSession.save(meal);
+    const result = await mealSession.save(meal);
+    if (!result.ok) {
+      // Surface the failure and stay on the meal page — navigating away would
+      // silently evict the unsaved working meal.
+      saveErrorMessage = result.error;
+      return;
+    }
     goto(returnTo);
   }
 
@@ -338,21 +331,16 @@
     const key = normalizeKey(rawName);
     if (!key) return;
     const foodId = `other:${key}`;
-    // Add to pending list first, await a tick so the FoodToken exists in the DOM,
-    // then call handleFoodTap to put it in editing state.
-    pendingCustomFoods = [...pendingCustomFoods, { foodId, name: rawName }];
+    const existing = await harvestCandidateSession.readByKey(key);
+    const candidate = mergeCandidate(
+      existing.ok ? existing.data : null,
+      rawName,
+      key,
+      new Date().toISOString(),
+    );
+    await harvestCandidateSession.upsert(candidate);
     await tick();
     handleFoodTap(foodId, rawName);
-    void (async () => {
-      const existing = await harvestCandidateSession.readByKey(key);
-      const candidate = mergeCandidate(
-        existing.ok ? existing.data : null,
-        rawName,
-        key,
-        new Date().toISOString(),
-      );
-      await harvestCandidateSession.upsert(candidate);
-    })();
   }
 
   // ── Conflict detection ────────────────────────────────────
@@ -361,7 +349,7 @@
     name: f.name,
     foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
     amount: (f.state.status === 'confirmed' ? f.state.amount : 'portion') as PortionKind,
-  })), eliminatedToday));
+  })), eliminatedToday, catalog));
   const hasConflicts = $derived(conflicts.length > 0);
   /** All working-list foods (confirmed or editing) that touch an eliminated allergen. */
   const allActiveFoods = $derived(
@@ -375,7 +363,7 @@
       name: f.name,
       foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
       amount: 'portion' as PortionKind,
-    })), eliminatedToday).map(c => c.foodId as string)
+    })), eliminatedToday, catalog).map(c => c.foodId as string)
   ));
   /** True when the food being edited right now (drill-in or grid) is eliminated today. */
   const editingFoodIsEliminated = $derived(
@@ -392,8 +380,8 @@
     )
   );
 
-  // ── Toast ─────────────────────────────────────────────────
-  let conflictToastMessage = $state<string | null>(null);
+  // ── Save-failure toast ────────────────────────────────────
+  let saveErrorMessage = $state<string | null>(null);
 </script>
 
 <div class="page-container pb-24">
@@ -463,7 +451,7 @@
           familyId={drilledFamily}
           foods={foodsForFamily(workingMeal, drilledFamily)}
           eliminatedAllergenIds={eliminatedAllergenIdStrings}
-          customFoods={drilledFamily === 'custom' ? effectiveCustomFoods : []}
+          customFoods={drilledFamily === 'custom' ? customFoods : []}
           onFoodTap={handleFoodTap}
           onAmountChange={handleAmountChange}
           onPreparationChange={handlePreparationChange}
@@ -518,7 +506,7 @@
                   </div>
                   {#if isEditing && food.state.status === 'editing'}
                     {#if isEliminated}
-                      <p class="px-3 pb-1 text-xs text-danger font-medium">⚠️ Vyloučeno dnes</p>
+                      <p class="px-3 pb-1 text-xs text-danger font-medium">{commonStrings.meal.eliminatedTodayWarning}</p>
                     {/if}
                     <div class="px-3 pb-3">
                       <FoodEditor
@@ -584,10 +572,10 @@
   </div>
 </div>
 
-{#if conflictToastMessage}
+{#if saveErrorMessage}
   <Toast
-    message={conflictToastMessage}
-    type="warning"
-    onClose={() => { conflictToastMessage = null; }}
+    message={saveErrorMessage}
+    type="error"
+    onClose={() => { saveErrorMessage = null; }}
   />
 {/if}

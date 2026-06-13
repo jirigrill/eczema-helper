@@ -140,24 +140,11 @@ export const commonStrings = {
   meal: {
     heading:              'Přidat jídlo',
     todayExcluded:        'Dnes vyřazeno:',
-    mealTypeLabel:        'Typ jídla',
-    allergenCategoryLabel:'Alergeny a kategorie',
     allCategoriesLabel:   'Všechny kategorie',
-    customFoodLabel:      'Přidat vlastní potravinu',
     customFoodPlaceholder:'Název potraviny…',
-    conflictTitle:        '⚠ Odchylka od programu',
-    conflictNote:         'tyto potraviny jsou dnes vyřazeny.',
-    conflictSaveNote:     'Jídlo bude uloženo a odchylka zaznamenána.',
-    todaySavedLabel:      'Dnes uložená jídla',
-    mealSavedToast:       '✓ Jídlo uloženo',
-    // ── Basket (slice 2c) ──────────────────────────────────
-    inThisMealLabel:      'V tomto jídle',
-    basketEmptyHint:      'Zatím prázdné. Klepni na potravinu výše.',
-    conflictItemLabel:    'vyřazeno',
     eliminatedChipLabel:  'Vyloučeno',
-    notesLabelPrefix:     'Poznámka k',
+    eliminatedTodayWarning: '⚠️ Vyloučeno dnes',
     notesPlaceholder:     'Poznámka (volitelné, např. u babičky)',
-    browseFamiliesLabel:  'Procházet rodiny',
     customFoodsLabel:     'Dříve zadané',
     customFamilyEmptyHint:'Zatím žádné vlastní potraviny. Napište potravinu výše.',
     // ── Issue #244: modal-edit flow ────────────────────────
@@ -337,11 +324,6 @@ export function snimkyCs(n: number): string {
 /** "Pokračovat (n alergenů)" — onboarding continue with selection count */
 export function continueWithCount(n: number): string {
   return `Pokračovat (${n} ${allergenWordCs(n)})`;
-}
-
-/** Conflict toast: shown briefly when a food item with an eliminated allergen is added to the basket */
-export function conflictToastCs(allergenName: string): string {
-  return `⚠ ${allergenName} vyřazeno — odchylka zaznamenána`;
 }
 
 /** Toast: cannot add retest — allergen not a confirmed baby allergy */

@@ -6,6 +6,9 @@ import type { ScheduleContext } from '$lib/stores/schedule-context';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule-queries';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+
+const catalog = new BundledCatalogAdapter();
 
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 
@@ -180,7 +183,7 @@ describe('program timeline — regression: reacted allergen', () => {
       answers: sampleAnswers,
       allergenStatuses: statuses,
       eliminatedToday: getEliminatedSlugsForDate(reactedSchedule, today),
-      reintroInfo: getReintroductionDayInfo(reactedSchedule, today),
+      reintroInfo: getReintroductionDayInfo(reactedSchedule, today, catalog),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
 

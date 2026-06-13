@@ -9,6 +9,7 @@
   import { phaseConfig } from '$lib/config/phases';
   import { formatDateCs, formatDateLongCs, todayIso, daysBetween } from '$lib/utils/date';
   import { protocolSession } from '$lib/stores/protocol-session';
+  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
@@ -37,6 +38,8 @@
   let meals = $state<import('$lib/domain/models').Meal[]>([]);
   let skinObservations = $state<import('$lib/domain/models').SkinObservation[]>([]);
   let evaluations = $state<import('$lib/domain/models').ReintroductionEvaluation[]>([]);
+
+  const catalog = new BundledCatalogAdapter();
 
   const today = $derived(todayIso());
   const ctx = $derived($protocolSession);
@@ -227,7 +230,7 @@
     const phaseEnd = phase.endDate || today;
     const conflicts: { name: string; icon: string; date: string }[] = [];
     for (const meal of meals.filter((m: { date: string }) => m.date >= phase.startDate && m.date <= phaseEnd)) {
-      for (const conflict of detectConflicts(meal.items, eliminated)) {
+      for (const conflict of detectConflicts(meal.items, eliminated, catalog)) {
         if (!conflicts.some(c => c.name === conflict.name && c.date === meal.date)) {
           const cfg = getCategoryConfig(conflict.allergenId);
           conflicts.push({ name: conflict.name, icon: cfg?.icon ?? '🍽️', date: meal.date });

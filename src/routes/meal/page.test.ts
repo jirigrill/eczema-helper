@@ -503,6 +503,32 @@ describe('meal/+page.svelte', () => {
     expect(goto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
+  it('save failure: surfaces an error toast and does NOT navigate', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    vi.mocked(goto).mockClear();
+    // Force the persistence layer to fail this one save.
+    mockSave.mockResolvedValueOnce({ ok: false, error: 'Uložení selhalo' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByText } = render(MealPage);
+    await tick();
+    // add + confirm + commit a food, then tap Hotovo
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+    expect(mockSave).toHaveBeenCalledOnce();
+    // The error message is shown and the user stays on the meal screen.
+    expect(await findByText('Uložení selhalo')).toBeInTheDocument();
+    expect(goto).not.toHaveBeenCalled();
+  });
+
   // ── Vlastní drill-in: previously-typed custom foods ──────
 
   it('Vlastní drill-in lists previously-typed custom foods for re-logging', async () => {

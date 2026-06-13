@@ -94,6 +94,7 @@
   <a href="#family-drill-in">FamilyDrillIn</a>
   <a href="#food-token">FoodToken</a>
   <a href="#food-editor">FoodEditor</a>
+  <a href="#meal-type-pills">MealTypePills</a>
   <a href="#allergen-drill-in">AllergenDrillIn</a>
 </nav>
 
@@ -169,7 +170,7 @@
   <!-- ─── Chip ────────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/Chip.svelte -->
   <div class="component-section" id="chip">
-    <p class="component-label">▸ <span>Chip</span> — active: boolean, onclick?: (e: MouseEvent) => void, class?: string</p>
+    <p class="component-label">▸ <span>Chip</span> — active: boolean, variant?: 'default' | 'danger' | 'current', onclick?: (e: MouseEvent) => void, class?: string</p>
     <div class="variant-row">
       <div class="variant-tile">
         <button type="button" data-active="false" class="chip chip--muted px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#EDE8E9] text-[#7A6468]">Snídaně</button>
@@ -178,6 +179,10 @@
       <div class="variant-tile">
         <button type="button" data-active="true" class="chip chip--active px-3 py-1 rounded-full text-xs font-medium transition-all bg-[#8B4557] text-white font-semibold">Oběd</button>
         <p class="variant-name">active=true (active)</p>
+      </div>
+      <div class="variant-tile">
+        <button type="button" data-active="false" class="chip chip--current px-3 py-1 rounded-full text-xs font-medium transition-all border-2 border-[#8B4557] text-[#8B4557]" style="background:rgba(139,69,87,0.05)">Oběd</button>
+        <p class="variant-name">variant="current" (bordeaux outline — matches FoodToken editing)</p>
       </div>
       <div class="variant-tile">
         <div class="flex gap-1.5">
@@ -1207,6 +1212,41 @@
           </div>
         </div>
         <p class="variant-name">amount='teaspoon', preparation='boiled'</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── MealTypePills ────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/MealTypePills.svelte -->
+  <div class="component-section" id="meal-type-pills">
+    <p class="component-label">▸ <span>MealTypePills</span> — currentType: MealType, occupiedTypes: MealType[], isWorkingListNonEmpty: boolean, onLoad: (t) =&gt; void, onMove: (t) =&gt; void, onSwitchAway: (t) =&gt; void, class?</p>
+    <p class="component-desc">Thin wrapper over Chip that maps the meal-type row to its state vocabulary: empty slot = muted, slot being built = current (bordeaux outline), slot with a finalized meal = active (bordeaux fill). Tap behaviour is derived from whether the working list is empty: empty → load that slot; non-empty + empty target → MOVE (relabel, no prompt); non-empty + occupied target → SWITCH-AWAY (discard guard). Re-tapping the current pill is a no-op. See ADR-0019.</p>
+    <div class="variant-row">
+
+      <!-- Single pill states -->
+      <div class="variant-tile">
+        <span style="display:inline-block;padding:5px 12px;border-radius:99px;font-size:12px;background:#EDE8E9;color:#7A6468">Svačina</span>
+        <p class="variant-name">empty slot (muted)</p>
+      </div>
+      <div class="variant-tile">
+        <span style="display:inline-block;padding:5px 12px;border-radius:99px;font-size:12px;background:rgba(139,69,87,0.05);color:#8B4557;font-weight:500;border:2px solid #8B4557">Oběd</span>
+        <p class="variant-name">current — building this slot (outline)</p>
+      </div>
+      <div class="variant-tile">
+        <span style="display:inline-block;padding:5px 12px;border-radius:99px;font-size:12px;background:#8B4557;color:white;font-weight:600">Snídaně</span>
+        <p class="variant-name">occupied — finalized meal (fill)</p>
+      </div>
+
+      <!-- Full row: Snídaně occupied, Oběd current, Svačina + Večeře empty -->
+      <div class="variant-tile" style="max-width:320px">
+        <div style="display:flex;gap:6px">
+          <span style="flex:1;text-align:center;padding:5px 12px;border-radius:99px;font-size:12px;background:#8B4557;color:white;font-weight:600">Snídaně</span>
+          <span style="flex:1;text-align:center;padding:5px 12px;border-radius:99px;font-size:12px;background:rgba(139,69,87,0.05);color:#8B4557;font-weight:500;border:2px solid #8B4557">Oběd</span>
+          <span style="flex:1;text-align:center;padding:5px 12px;border-radius:99px;font-size:12px;background:#EDE8E9;color:#7A6468">Svačina</span>
+          <span style="flex:1;text-align:center;padding:5px 12px;border-radius:99px;font-size:12px;background:#EDE8E9;color:#7A6468">Večeře</span>
+        </div>
+        <p class="variant-name">full row — one occupied, one current, two empty</p>
       </div>
 
     </div>

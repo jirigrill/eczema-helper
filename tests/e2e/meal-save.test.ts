@@ -92,6 +92,32 @@ test('liveQuery: meal saved on /meal appears on /day/<today> without reload', as
   await expect(page.getByText('Brambory')).toBeVisible();
 });
 
+// ── Save failure: surfaced, not silently lost ─────────────────────────────────
+
+test('meal save failure: shows an error toast and stays on /meal', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  await page.goto(`/meal?returnTo=/day/${today}`);
+  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+
+  // Force the next persistence write to throw, driving DexieMealRepository.save
+  // into its catch branch (Result.ok === false). The meal page imports the same
+  // db singleton, so patching db.meals.put here affects the real save path.
+  await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    db.meals.put = () => Promise.reject(new Error('QuotaExceededError'));
+  });
+
+  await addBramboraAndCommit(page);
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // Error surfaced and the user is NOT navigated away — the working meal survives.
+  await expect(page.getByRole('alert')).toContainText('QuotaExceededError');
+  await expect(page).toHaveURL(/\/meal/);
+});
+
 // ── Slice 4c: ?date= query parameter ─────────────────────────────────────────
 
 test('?date= param: saves to specified date, navigates to /day/<date>', async ({ page }) => {
