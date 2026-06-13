@@ -27,14 +27,37 @@ async function clearDb(page: Page) {
 }
 
 async function completeOnboarding(page: Page) {
-  await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
-  await page.getByRole('button', { name: 'Začít' }).click();
-  await page.fill('#birthdate', '2025-01-01');
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Potvrdit a spustit program' }).click();
+  // Seed the post-onboarding state directly into IndexedDB instead of clicking
+  // through the wizard — equivalent result (reset phase from today, no tested
+  // allergens), far faster. The onboarding flow itself is covered by the
+  // onboarding-summary + questionnaire-* tests.
+  const today = new Date().toISOString().split('T')[0];
+  await page.evaluate(async (start) => {
+    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.put({
+      id: 'singleton',
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate',
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: start,
+      completedAt: new Date().toISOString(),
+      testedAllergens: [],
+    });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: start,
+      estimatedEndDate: future,
+      phases: [
+        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
+      ],
+    });
+  }, today);
+  await page.goto(`/day/${today}`);
   await page.waitForURL(/\/day\//);
 }
 
@@ -65,7 +88,6 @@ async function openVlastniDrillIn(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
   await completeOnboarding(page);
 });
 
@@ -159,17 +181,17 @@ test('AC4: adding a new custom food captures it to the harvest-candidate store',
   await page.getByRole('textbox').fill('Špenát');
   await page.getByRole('button', { name: /Přidat/ }).click();
 
-  // Wait for async harvest write (the harvest upsert runs after the editing state is shown)
-  await page.waitForTimeout(500);
+  // Poll the harvest store until the async upsert lands (runs after the editing
+  // state is shown) — replaces a fixed 500ms sleep, resolves as soon as it's written.
+  const readCandidate = async () =>
+    page.evaluate(async () => {
+      const path = '/src/lib/db/atopic-db.ts';
+      const { db } = await import(/* @vite-ignore */ path);
+      return db.harvest_candidates.get('špenát');
+    });
+  await expect.poll(async () => (await readCandidate())?.normalizedKey ?? null).toBe('špenát');
 
-  const candidate = await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    return db.harvest_candidates.get('špenát');
-  });
-
-  expect(candidate).toBeTruthy();
-  expect((candidate as { normalizedKey: string }).normalizedKey).toBe('špenát');
+  const candidate = await readCandidate();
   expect((candidate as { rawForms: string[] }).rawForms).toContain('Špenát');
 });
 

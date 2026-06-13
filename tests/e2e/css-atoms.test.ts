@@ -33,6 +33,8 @@ async function injectElement(
 
 test.beforeEach(async ({ page }) => {
   // Any app route works — we just need the global Tailwind stylesheet loaded.
+  // networkidle is required here: in dev, Tailwind CSS is injected via JS after
+  // the load event, so a lighter wait sees transparent backgrounds.
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 });
