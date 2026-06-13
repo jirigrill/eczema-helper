@@ -119,7 +119,7 @@ button, a, [role="button"] {
 
   /* Current variant — matches FoodToken editing state (2px bordeaux border + tint) */
   .chip--current {
-    @apply bg-primary/05 text-primary font-medium border-2 border-primary;
+    @apply bg-primary/5 text-primary font-medium border-2 border-primary;
   }
 
   /* ── Form atoms ──────────────────────────────────────────────────── */
