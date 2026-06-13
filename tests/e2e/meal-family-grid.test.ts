@@ -50,7 +50,7 @@ async function completeOnboarding(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'load' });
 });
 
 test('family grid: shows 13 family tiles on meal page', async ({ page }) => {

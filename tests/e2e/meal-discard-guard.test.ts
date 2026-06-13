@@ -57,7 +57,7 @@ async function addBramboraAndCommit(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'load' });
 });
 
 // ── Discard guard: empty working list ─────────────────────────────────────────

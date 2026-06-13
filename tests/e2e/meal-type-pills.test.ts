@@ -85,7 +85,7 @@ async function addBramboraAndCommit(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'load' });
 });
 
 // ── Load: empty working list → tap any pill → load that slot ──────────────────

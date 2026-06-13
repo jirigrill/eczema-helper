@@ -25,7 +25,7 @@ async function navigateToSummaryStep(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'load' });
 });
 
 test('step 6 shows 5 QuestionnaireSummaryRow rows', async ({ page }) => {

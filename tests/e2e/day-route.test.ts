@@ -50,7 +50,7 @@ async function seedSchedule(page: Page, startDate: string) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'load' });
 });
 
 // ── Redirect tests ────────────────────────────────────────────────────────

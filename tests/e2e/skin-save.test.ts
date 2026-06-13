@@ -86,7 +86,7 @@ async function seedReintroductionSchedule(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/', { waitUntil: 'load' });
 });
 
 test('skin save: button disabled after save, only one observation written', async ({ page }) => {
