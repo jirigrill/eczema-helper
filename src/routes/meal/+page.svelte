@@ -31,6 +31,7 @@
 
   import {
     emptyWorkingMeal,
+    fromMealItems,
     startEditing,
     confirmFood,
     cancelEditing,
@@ -76,8 +77,13 @@
   /** Meal types that already have a finalized meal for targetDate. */
   const occupiedTypes = $derived($dateScopedMealSession.map(m => m.mealType));
 
-  function handlePillLoad(type: MealType): void {
+  async function handlePillLoad(type: MealType): Promise<void> {
     selectedMealType = type;
+    const result = await mealSession.loadBySlot(targetDate, type);
+    if (result.ok && result.data) {
+      workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
+      mealNotes = result.data.notes ?? '';
+    }
   }
 
   function handlePillMove(type: MealType): void {

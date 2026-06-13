@@ -16,7 +16,7 @@
     /** Meal types that already have a finalized (persisted) meal for the day. */
     occupiedTypes: MealType[];
     isWorkingListNonEmpty: boolean;
-    onLoad: (type: MealType) => void;
+    onLoad: (type: MealType) => void | Promise<void>;
     onMove: (type: MealType) => void;
     onSwitchAway: (type: MealType) => void;
     class?: string;
