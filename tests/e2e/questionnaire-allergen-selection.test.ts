@@ -22,7 +22,6 @@ async function advanceToStep3(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
 });
 
 test('step 3: family grid is shown (not allergen flat grid)', async ({ page }) => {

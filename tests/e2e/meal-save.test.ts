@@ -13,14 +13,37 @@ async function clearDb(page: Page) {
 }
 
 async function completeOnboarding(page: Page) {
-  await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
-  await page.getByRole('button', { name: 'Začít' }).click();
-  await page.fill('#birthdate', '2025-01-01');
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Potvrdit a spustit program' }).click();
+  // Seed the post-onboarding state directly into IndexedDB instead of clicking
+  // through the wizard — equivalent result (reset phase from today, no tested
+  // allergens), far faster. The onboarding flow itself is covered by the
+  // onboarding-summary + questionnaire-* tests.
+  const today = new Date().toISOString().split('T')[0];
+  await page.evaluate(async (start) => {
+    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.put({
+      id: 'singleton',
+      babyBirthDate: '2025-01-01',
+      eczemaSeverity: 'moderate',
+      motherAllergies: [],
+      babyConfirmedAllergies: [],
+      programStartDate: start,
+      completedAt: new Date().toISOString(),
+      testedAllergens: [],
+    });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: start,
+      estimatedEndDate: future,
+      phases: [
+        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
+      ],
+    });
+  }, today);
+  await page.goto(`/day/${today}`);
   await page.waitForURL(/\/day\//);
 }
 
@@ -33,9 +56,10 @@ async function addBramboraAndCommit(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  // Per-test isolation gives a fresh context with an empty IndexedDB, so the
+  // extra reload to "reset" state is redundant — goto + clear is enough.
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'networkidle' });
 });
 
 // ── Core save flow ────────────────────────────────────────────────────────────
