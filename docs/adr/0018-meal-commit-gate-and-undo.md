@@ -32,8 +32,8 @@ discard + undo.**
   only the in-memory working list. A meal is therefore a deliberate, finished
   artifact — the day overview never shows a half-built draft.
 - **Discard guard invariant:** the discard prompt appears **iff a non-empty,
-  unfinalized working list would be lost** — i.e. on grid back/swipe and on
-  switch-away onto a filled meal-type pill ([ADR-0019](0019-meal-type-mutable-with-move-semantics.md)).
+  unfinalized working list would be lost** — i.e. on grid back (the in-app back
+  arrow) and on switch-away onto a filled meal-type pill ([ADR-0019](0019-meal-type-mutable-with-move-semantics.md)).
   It does **not** fire for an empty working list or for a MOVE (which relabels and
   preserves the foods). Tying the prompt to the *consequence* (data loss), not the
   *gesture*, keeps it from becoming a reflexively-dismissed dialog.
@@ -56,3 +56,14 @@ discard + undo.**
 - Editing a previously-finalized meal that was loaded into the working list, then
   backing out, loses the *edits* but not the stored meal; the guard still fires on
   the non-empty list. Accepted for v1.
+- **Swipe / native-back is de-scoped for v1.** The PRD ([#242](https://github.com/jirigrill/eczema-helper/issues/242))
+  promised a swipe-back gesture, but v1 ships as a standalone iOS PWA
+  ([ADR-0001](0001-single-device-v1.md)) where there is no native edge-swipe-back
+  gesture and no browser back button — on `/meal` the in-app back arrow is the only
+  exit affordance, so it is the only path that can lose a working list. The guard
+  therefore lives in the arrow handler (`handleBack`), not in a navigation hook.
+  Widening the platform assumption (Android system back, in-browser use, or a
+  hand-rolled swipe gesture) would route those exits through `popstate`; the
+  natural extension is a `beforeNavigate` guard that fires `writeBuffer` on a
+  popstate leaving a non-empty grid — reusing the same buffer + layout undo toast,
+  not a second discard path. Unbuilt for v1.
