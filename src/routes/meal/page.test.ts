@@ -41,13 +41,23 @@ const mockPage = { url: new URL('http://localhost/meal') };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
 const mockHarvestReadByKey = vi.fn().mockResolvedValue({ ok: true, data: null });
-const mockHarvestUpsert = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockHarvestStore = writable<import('$lib/domain/harvest-candidate').HarvestCandidate[]>([]);
+// Mirror the real session's optimistic upsert: push the candidate into the
+// in-memory store synchronously so newly-typed custom foods render immediately
+// (the component dropped its local `pendingCustomFoods` mirror in favour of this).
+const mockHarvestUpsert = vi.fn((candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) => {
+  mockHarvestStore.update(list => {
+    const idx = list.findIndex(c => c.normalizedKey === candidate.normalizedKey);
+    return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];
+  });
+  return Promise.resolve({ ok: true, data: undefined });
+});
 vi.mock('$lib/stores/harvest-candidate-session', () => ({
   harvestCandidateSession: {
     subscribe: mockHarvestStore.subscribe,
     readByKey: (...args: unknown[]) => mockHarvestReadByKey(...args),
-    upsert: (...args: unknown[]) => mockHarvestUpsert(...args),
+    upsert: (candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) =>
+      mockHarvestUpsert(candidate),
   },
 }));
 
@@ -598,6 +608,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Přidat/ }));
     await tick();
+    await tick(); // extra tick for async handleNewCustomFood
     expect(getByRole('button', { name: /Uložit Špenát/ })).toBeInTheDocument();
   });
 
