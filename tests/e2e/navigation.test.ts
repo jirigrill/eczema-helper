@@ -43,9 +43,6 @@ async function completeOnboarding(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  // Full reload ensures Dexie reinitialises with the now-empty stores
-  // and component state is fully reset.
-  await page.reload({ waitUntil: 'load' });
 });
 
 test('redirect to / from /day/<today> when IndexedDB is empty', async ({ page }) => {

@@ -88,7 +88,6 @@ async function openVlastniDrillIn(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'load' });
   await completeOnboarding(page);
 });
 
@@ -182,17 +181,17 @@ test('AC4: adding a new custom food captures it to the harvest-candidate store',
   await page.getByRole('textbox').fill('Špenát');
   await page.getByRole('button', { name: /Přidat/ }).click();
 
-  // Wait for async harvest write (the harvest upsert runs after the editing state is shown)
-  await page.waitForTimeout(500);
+  // Poll the harvest store until the async upsert lands (runs after the editing
+  // state is shown) — replaces a fixed 500ms sleep, resolves as soon as it's written.
+  const readCandidate = async () =>
+    page.evaluate(async () => {
+      const path = '/src/lib/db/atopic-db.ts';
+      const { db } = await import(/* @vite-ignore */ path);
+      return db.harvest_candidates.get('špenát');
+    });
+  await expect.poll(async () => (await readCandidate())?.normalizedKey ?? null).toBe('špenát');
 
-  const candidate = await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    return db.harvest_candidates.get('špenát');
-  });
-
-  expect(candidate).toBeTruthy();
-  expect((candidate as { normalizedKey: string }).normalizedKey).toBe('špenát');
+  const candidate = await readCandidate();
   expect((candidate as { rawForms: string[] }).rawForms).toContain('Špenát');
 });
 

@@ -56,9 +56,10 @@ async function addBramboraAndCommit(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  // Per-test isolation gives a fresh context with an empty IndexedDB, so the
+  // extra reload to "reset" state is redundant — goto + clear is enough.
   await page.goto('/');
   await clearDb(page);
-  await page.reload({ waitUntil: 'load' });
 });
 
 // ── Core save flow ────────────────────────────────────────────────────────────
