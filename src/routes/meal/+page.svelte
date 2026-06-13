@@ -18,14 +18,14 @@
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
-  import Chip from '$lib/components/Chip.svelte';
+  import MealTypePills from '$lib/components/MealTypePills.svelte';
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { mealSession } from '$lib/stores/meal-session';
+  import { mealSession, createMealSession } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
 
@@ -66,6 +66,28 @@
     return mealTypes.includes(raw as MealTypeKind) ? (raw as MealTypeKind) : 'lunch';
   }
   let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
+
+  /** Reactive meal session for targetDate — re-created when date changes. */
+  let dateScopedMealSession = $state(createMealSession(parseDayQuery(page.url).date));
+  $effect(() => {
+    dateScopedMealSession = createMealSession(targetDate);
+  });
+
+  /** Meal types that already have a finalized meal for targetDate. */
+  const occupiedTypes = $derived($dateScopedMealSession.map(m => m.mealType));
+
+  function handlePillLoad(type: MealType): void {
+    selectedMealType = type;
+  }
+
+  function handlePillMove(type: MealType): void {
+    selectedMealType = type;
+  }
+
+  function handlePillSwitchAway(type: MealType): void {
+    writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+    goto(`/meal?returnTo=${encodeURIComponent(returnTo)}&type=${type}&date=${targetDate}`);
+  }
 
   // ── Working meal state ────────────────────────────────────
   function initialWorkingMeal(): WorkingMeal {
@@ -380,12 +402,15 @@
 
     <!-- Meal type pills -->
     {#if !drilledFamily}
-    <div class="flex gap-1.5 px-4 pb-3">
-      {#each mealTypes as type}
-        <Chip active={selectedMealType === type} onclick={() => (selectedMealType = type)} class="flex-1">
-          {mealConfig[type].label}
-        </Chip>
-      {/each}
+    <div class="px-4 pb-3">
+      <MealTypePills
+        currentType={selectedMealType}
+        {occupiedTypes}
+        isWorkingListNonEmpty={isNonEmpty(workingMeal)}
+        onLoad={handlePillLoad}
+        onMove={handlePillMove}
+        onSwitchAway={handlePillSwitchAway}
+      />
     </div>
 
     <!-- Dosing guidance during reintroduction -->
