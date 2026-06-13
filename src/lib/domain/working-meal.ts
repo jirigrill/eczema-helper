@@ -1,3 +1,4 @@
+import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { MealItem, PortionKind, PreparationMethod } from '$lib/domain/models';
 import { randomUUID } from '$lib/utils/uuid';
@@ -311,4 +312,38 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
   return meal.families.some(fam =>
     fam.foods.some(f => f.state.status === 'editing' || f.state.status === 'confirmed')
   );
+}
+
+/**
+ * Reconstruct a WorkingMeal from a persisted Meal's items, with all foods in
+ * confirmed state. Used when loading an existing meal slot for editing.
+ * Custom foods (foodId starting with "other:") are placed under the "custom" family.
+ */
+export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
+  const familyMap = new Map<FamilyId, WorkingFood[]>();
+
+  for (const item of items) {
+    const catalogFood = FOODS.find(f => f.id === item.foodId);
+    const familyId: FamilyId = catalogFood?.familyId ?? ('custom' as FamilyId);
+
+    const food: WorkingFood = {
+      foodId: item.foodId,
+      name: item.name,
+      state: { status: 'confirmed', amount: item.amount, preparation: item.preparationMethod },
+      cachedAmount: item.amount,
+      cachedPreparation: item.preparationMethod,
+    };
+
+    const existing = familyMap.get(familyId);
+    if (existing) {
+      existing.push(food);
+    } else {
+      familyMap.set(familyId, [food]);
+    }
+  }
+
+  return {
+    families: [...familyMap.entries()].map(([familyId, foods]) => ({ familyId, foods })),
+    notes,
+  };
 }

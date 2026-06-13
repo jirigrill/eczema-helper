@@ -43,4 +43,23 @@ describe('Chip', () => {
     expect(cls).toContain('chip--active');
     expect(cls).not.toContain('chip--danger');
   });
+
+  // ── variant='current' (bordeaux outline — third state for meal-type pills) ──
+
+  it('variant=current: has chip--current class regardless of active', () => {
+    const { getByRole } = render(Chip, { props: { active: false, variant: 'current' as const } });
+    expect(getByRole('button').className).toContain('chip--current');
+  });
+
+  it('variant=current + active=true: still uses chip--current class', () => {
+    const { getByRole } = render(Chip, { props: { active: true, variant: 'current' as const } });
+    expect(getByRole('button').className).toContain('chip--current');
+  });
+
+  it('variant=current: does not use chip--active or chip--muted', () => {
+    const { getByRole } = render(Chip, { props: { active: false, variant: 'current' as const } });
+    const cls = getByRole('button').className;
+    expect(cls).not.toContain('chip--active');
+    expect(cls).not.toContain('chip--muted');
+  });
 });

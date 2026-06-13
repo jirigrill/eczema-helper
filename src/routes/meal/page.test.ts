@@ -29,6 +29,11 @@ vi.mock('$lib/stores/meal-session', () => ({
     save: (...args: unknown[]) => mockSave(...args),
     loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
   },
+  createMealSession: () => ({
+    subscribe: mockMealSessionStore.subscribe,
+    save: (...args: unknown[]) => mockSave(...args),
+    loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
+  }),
 }));
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
@@ -114,7 +119,7 @@ describe('meal/+page.svelte', () => {
     const { getByRole } = render(MealPage);
     await tick();
     const obedBtn = getByRole('button', { name: 'Oběd' });
-    expect(obedBtn.className).toContain('chip--active');
+    expect(obedBtn.className).toContain('chip--current');
     const snidaneBtn = getByRole('button', { name: 'Snídaně' });
     expect(snidaneBtn.className).toContain('chip--muted');
   });
