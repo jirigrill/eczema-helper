@@ -46,4 +46,24 @@ describe('SkinPhotoCard', () => {
     await tick();
     expect(container.querySelector('.grid-cols-3')).toBeInTheDocument();
   });
+
+  // Guards against the frozen-snippet bug class: the `right` count must track
+  // the photos prop reactively, not freeze at its first-render value.
+  it('photo count in the header updates when the photos prop changes', async () => {
+    const { getByTestId, rerender } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ id: 'photo-1' })] },
+    });
+    await tick();
+    expect(getByTestId('day-card-right').textContent).toContain('1 snímek');
+
+    await rerender({
+      photos: [
+        makePhoto({ id: 'photo-1' }),
+        makePhoto({ id: 'photo-2' }),
+        makePhoto({ id: 'photo-3' }),
+      ],
+    });
+    await tick();
+    expect(getByTestId('day-card-right').textContent).toContain('3 snímky');
+  });
 });

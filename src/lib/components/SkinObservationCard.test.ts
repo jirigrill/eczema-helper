@@ -58,4 +58,24 @@ describe('SkinObservationCard', () => {
     await tick();
     expect(getByText('Stav ekzému')).toBeInTheDocument();
   });
+
+  // Guards against the frozen-snippet bug class: the `right` count must track
+  // the observations prop reactively, not freeze at its first-render value.
+  it('record count in the header updates when the observations prop changes', async () => {
+    const { getByTestId, rerender } = render(SkinObservationCard, {
+      props: { observations: [makeObservation({ id: 'obs-1' })] },
+    });
+    await tick();
+    expect(getByTestId('day-card-right').textContent).toContain('1 záznam');
+
+    await rerender({
+      observations: [
+        makeObservation({ id: 'obs-1' }),
+        makeObservation({ id: 'obs-2' }),
+        makeObservation({ id: 'obs-3' }),
+      ],
+    });
+    await tick();
+    expect(getByTestId('day-card-right').textContent).toContain('3 záznamy');
+  });
 });
