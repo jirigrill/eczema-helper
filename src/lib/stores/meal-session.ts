@@ -18,7 +18,11 @@ export function createMealSession(date: string) {
 		return repo.loadBySlot(d, mealType);
 	}
 
-	return { subscribe: meals.subscribe, save, loadBySlot };
+	async function remove(d: string, mealType: MealType): Promise<Result<void, string>> {
+		return repo.remove(d, mealType);
+	}
+
+	return { subscribe: meals.subscribe, save, loadBySlot, remove };
 }
 
 export const mealSession = createMealSession(todayIso());

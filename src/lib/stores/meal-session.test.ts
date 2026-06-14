@@ -46,12 +46,23 @@ function makeMeal(overrides: Partial<Meal> = {}): Meal {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('mealSession (default export — today singleton)', () => {
-  it('exports subscribe, save, loadBySlot', async () => {
+  it('exports subscribe, save, loadBySlot, remove', async () => {
     const mod = await import('./meal-session');
     expect(mod.mealSession).toBeDefined();
     expect(typeof mod.mealSession.subscribe).toBe('function');
     expect(typeof mod.mealSession.save).toBe('function');
     expect(typeof mod.mealSession.loadBySlot).toBe('function');
+    expect(typeof mod.mealSession.remove).toBe('function');
+  });
+
+  it('remove deletes a previously saved slot', async () => {
+    const { mealSession } = await import('./meal-session');
+    const meal = makeMeal({ id: `${today}:snack`, mealType: 'snack' });
+    await mealSession.save(meal);
+    await waitForMeals(mealSession, (ms) => ms.some((m) => m.id === meal.id));
+    expect(await mealSession.remove(today, 'snack')).toMatchObject({ ok: true });
+    const after = await mealSession.loadBySlot(today, 'snack');
+    expect(after).toMatchObject({ ok: true, data: null });
   });
 
   it('initial store value is an empty array', async () => {
@@ -97,12 +108,13 @@ describe('createMealSession (factory)', () => {
     expect(typeof mod.createMealSession).toBe('function');
   });
 
-  it('factory returns a store with subscribe, save, loadBySlot', async () => {
+  it('factory returns a store with subscribe, save, loadBySlot, remove', async () => {
     const { createMealSession } = await import('./meal-session');
     const session = createMealSession('2024-01-15');
     expect(typeof session.subscribe).toBe('function');
     expect(typeof session.save).toBe('function');
     expect(typeof session.loadBySlot).toBe('function');
+    expect(typeof session.remove).toBe('function');
   });
 
   it('factory store is scoped to the given date', async () => {

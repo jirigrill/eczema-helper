@@ -271,6 +271,34 @@ describe('DexieMealRepository', () => {
     expect(await repo.loadBySlot('2026-05-27', 'lunch')).toEqual({ ok: true, data: null });
   });
 
+  // ── remove: clears a slot (ADR-0019 MOVE empties the source) ──
+
+  it('remove deletes the meal occupying a slot', async () => {
+    await repo.save(makeMeal('2026-05-27', 'lunch'));
+    expect(await repo.remove('2026-05-27', 'lunch')).toEqual({ ok: true, data: undefined });
+    expect(await repo.loadBySlot('2026-05-27', 'lunch')).toEqual({ ok: true, data: null });
+  });
+
+  it('remove only affects the targeted slot', async () => {
+    await repo.save(makeMeal('2026-05-27', 'lunch', { items: [makeItem('keep')] }));
+    await repo.save(makeMeal('2026-05-27', 'dinner', { items: [makeItem('gone')] }));
+    await repo.remove('2026-05-27', 'dinner');
+    const lunch = await repo.loadBySlot('2026-05-27', 'lunch');
+    const dinner = await repo.loadBySlot('2026-05-27', 'dinner');
+    expect(lunch.ok && lunch.data?.items[0].id).toBe('keep');
+    expect(dinner).toEqual({ ok: true, data: null });
+  });
+
+  it('remove on an empty slot is a no-op Ok', async () => {
+    expect(await repo.remove('2026-05-27', 'snack')).toEqual({ ok: true, data: undefined });
+  });
+
+  it('remove returns Err when DB throws', async () => {
+    vi.spyOn(db.meals, 'delete').mockRejectedValueOnce(new Error('delete fail'));
+    const result = await repo.remove('2026-05-27', 'lunch');
+    expect(result).toEqual({ ok: false, error: 'delete fail' });
+  });
+
   // ── Slice 4: error paths ─────────────────────────────────────
 
   it('save returns Err when DB throws', async () => {

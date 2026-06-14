@@ -217,6 +217,40 @@ test('pills: block — tapping an occupied pill with non-empty working list trig
   await expect(page.getByText('Jídlo zahozeno')).toBeVisible();
 });
 
+// ── Initial load: landing on an occupied slot shows its foods immediately ─────
+
+test('pills: landing on /meal for an occupied slot hydrates its foods on mount (no tap)', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  // Seed a finalized lunch and open the lunch slot directly (the day-page entry point).
+  await seedMeal(page, 'lunch', today);
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+
+  // The persisted food must be visible without tapping any pill.
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
+// ── Return to source: move away then back must not discard ────────────────────
+
+test('pills: load slot, move to empty pill, return to source → no discard toast, foods kept', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  await seedMeal(page, 'lunch', today);
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  // MOVE to an empty slot (Svačina) …
+  await page.getByRole('button', { name: 'Svačina', exact: true }).click();
+  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+
+  // … then back onto Oběd — must be a MOVE-back, not a switch-away.
+  await page.getByRole('button', { name: 'Oběd', exact: true }).click();
+  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
 // ── Autosave removed: switching pill does not persist the working list ──────────
 
 test('pills: switching pill does not auto-save the current working list', async ({ page }) => {
