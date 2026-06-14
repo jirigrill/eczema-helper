@@ -1,10 +1,8 @@
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenStatus, AllergenId } from '$lib/domain/models';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { isDateInRange, daysBetween } from '$lib/utils/date';
-
-const catalog = new BundledCatalogAdapter();
 
 // ── Current phase ─────────────────────────────────────────────
 
@@ -77,7 +75,8 @@ export function isPhaseEndForEvaluation(
 
 export function detectConflicts(
   items: MealItem[],
-  eliminatedSlugs: AllergenId[]
+  eliminatedSlugs: AllergenId[],
+  catalog: CanonicalCatalogPort
 ): MealItem[] {
   if (eliminatedSlugs.length === 0) return [];
   return items.filter(item => {
@@ -92,7 +91,8 @@ export function detectConflicts(
 
 export function getReintroductionDayInfo(
   schedule: GeneratedSchedule,
-  date: string
+  date: string,
+  catalog: CanonicalCatalogPort
 ): ReintroductionDayInfo | null {
   const phase = getPhaseForDate(schedule, date);
   if (!phase || phase.type !== 'reintroduction') return null;
@@ -140,6 +140,7 @@ export type ReadyContext = {
 export function buildScheduleContext(
   raw: { schedule: GeneratedSchedule; answers: QuestionnaireAnswers },
   today: string,
+  catalog: CanonicalCatalogPort
 ): ReadyContext {
   const { schedule, answers } = raw;
   return {
@@ -147,7 +148,7 @@ export function buildScheduleContext(
     answers,
     allergenStatuses: getAllergenStatuses(schedule, today),
     eliminatedToday: getEliminatedSlugsForDate(schedule, today),
-    reintroInfo: getReintroductionDayInfo(schedule, today),
+    reintroInfo: getReintroductionDayInfo(schedule, today, catalog),
     progress: getScheduleProgress(schedule, today),
   };
 }

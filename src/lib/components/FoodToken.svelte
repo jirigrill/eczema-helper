@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
+  import { commonStrings } from '$lib/strings/common';
+
   type FoodTokenState = 'idle' | 'editing' | 'confirmed' | 'locked';
 
   let {
@@ -63,13 +65,13 @@
   >
     {name}
     {#if eliminatedStatus === 'danger' && state === 'idle'}
-      <span class="ml-1 text-[10px] opacity-70">Vyloučeno</span>
+      <span class="ml-1 text-[10px] opacity-70">{commonStrings.meal.eliminatedChipLabel}</span>
     {/if}
   </button>
 
   {#if state === 'editing'}
     {#if eliminatedStatus === 'danger'}
-      <p class="px-3 pb-1 text-xs text-danger font-medium">⚠️ Vyloučeno dnes</p>
+      <p class="px-3 pb-1 text-xs text-danger font-medium">{commonStrings.meal.eliminatedTodayWarning}</p>
     {/if}
     {#if editor}
       <div class="px-3 pb-3">

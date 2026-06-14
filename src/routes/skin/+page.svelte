@@ -7,6 +7,7 @@
   import { parseDayQuery } from '$lib/utils/day-query';
   import { skinObservationSession } from '$lib/stores/skin-observation-session';
   import { skinPhotoSession } from '$lib/stores/skin-photo-session';
+  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import EczemaCheck from '$lib/components/EczemaCheck.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { goto } from '$app/navigation';
@@ -14,9 +15,10 @@
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
   const raw = $derived($scheduleRaw);
+  const catalog = new BundledCatalogAdapter();
   const ctx = $derived(
     raw.status === 'ready'
-      ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, date)
+      ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, date, catalog)
       : null
   );
   const reintroductionAllergenId = $derived(ctx?.reintroInfo?.allergenId ?? null);

@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { createDayView } from '$lib/stores/day-view.svelte';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
+  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { todayIso, formatDateLongCs, formatWeekdayLongCs, addDays } from '$lib/utils/date';
   import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
   import WeekStrip from '$lib/components/WeekStrip/WeekStrip.svelte';
@@ -21,6 +22,7 @@
 
   const today = todayIso();
   const view = createDayView(() => page.params.date, today);
+  const catalog = new BundledCatalogAdapter();
 
   $effect(() => {
     if (view.redirectTo) goto(`/day/${view.redirectTo}`, { replaceState: true });
@@ -35,7 +37,7 @@
 
   const toleranceReminders = $derived(
     ctx.status === 'ready'
-      ? getToleranceBuildingRemindersForDate(ctx.schedule, selectedDate, meals)
+      ? getToleranceBuildingRemindersForDate(ctx.schedule, selectedDate, meals, catalog)
       : []
   );
 

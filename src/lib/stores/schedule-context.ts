@@ -6,6 +6,7 @@ import { buildScheduleContext } from '$lib/domain/schedule-queries';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
 import type { ReadyContext } from '$lib/domain/schedule-queries';
 import { todayIso } from '$lib/utils/date';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 export type ScheduleContext =
 	| { status: 'loading' }
@@ -69,6 +70,7 @@ export const scheduleRaw = readable<ScheduleRaw>({ status: 'loading' }, (set) =>
 });
 
 export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, (set) => {
+	const catalog = new BundledCatalogAdapter();
 	return createLiveRawSubscription((raw) => {
 		if (raw.status !== 'ready') {
 			set(raw);
@@ -79,6 +81,7 @@ export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, 
 			...buildScheduleContext(
 				{ schedule: raw.schedule, answers: raw.answers },
 				todayIso(),
+				catalog,
 			),
 		});
 	});

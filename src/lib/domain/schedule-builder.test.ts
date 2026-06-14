@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { generateSchedule, insertRestDays, addTrainingPhase, appendReTestPhases, removeReTestPhase, getToleranceBuildingRemindersForDate } from './schedule-builder';
 import { getPermanentEliminations } from '$lib/domain/models';
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, Meal } from '$lib/domain/models';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+
+const catalog = new BundledCatalogAdapter();
 
 function minimalAnswers(overrides: Partial<QuestionnaireAnswers> = {}): QuestionnaireAnswers {
   return {
@@ -431,12 +434,12 @@ describe('getToleranceBuildingRemindersForDate', () => {
         { id: 'reset', type: 'reset', allergenIds: [], startDate: '2026-05-01', endDate: '2026-05-05' },
       ],
     };
-    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-03', [])).toEqual([]);
+    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-03', [], catalog)).toEqual([]);
   });
 
   it('returns reminder with sentinel days when allergen was never dosed', () => {
     const schedule = trainingSchedule('2026-05-20');
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-20', []);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-20', [], catalog);
     expect(reminders).toHaveLength(1);
     expect(reminders[0].allergenId).toBe('dairy');
     expect(reminders[0].daysSinceLastDose).toBe(999);
@@ -445,19 +448,19 @@ describe('getToleranceBuildingRemindersForDate', () => {
   it('returns no reminder when allergen was dosed today (0 days)', () => {
     const schedule = trainingSchedule('2026-05-20');
     const meals = [meal('2026-05-20')];
-    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-20', meals)).toEqual([]);
+    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-20', meals, catalog)).toEqual([]);
   });
 
   it('returns no reminder when allergen was dosed 2 days ago (below threshold)', () => {
     const schedule = trainingSchedule('2026-05-20');
     const meals = [meal('2026-05-20'), meal('2026-05-22')];
-    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-24', meals)).toEqual([]);
+    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-24', meals, catalog)).toEqual([]);
   });
 
   it('returns reminder when allergen was dosed exactly 3 days ago (at threshold)', () => {
     const schedule = trainingSchedule('2026-05-20');
     const meals = [meal('2026-05-20')];
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals, catalog);
     expect(reminders).toHaveLength(1);
     expect(reminders[0].daysSinceLastDose).toBe(3);
   });
@@ -465,7 +468,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
   it('returns reminder when allergen was dosed 5 days ago (above threshold)', () => {
     const schedule = trainingSchedule('2026-05-20');
     const meals = [meal('2026-05-20')];
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-25', meals);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-25', meals, catalog);
     expect(reminders).toHaveLength(1);
     expect(reminders[0].daysSinceLastDose).toBe(5);
   });
@@ -474,7 +477,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const schedule = trainingSchedule('2026-05-20');
     const meals = [meal('2026-05-20'), meal('2026-05-22')];
     // Most recent dose is 2026-05-22; checking 2026-05-25 → 3 days → reminder fires
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-25', meals);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-25', meals, catalog);
     expect(reminders).toHaveLength(1);
     expect(reminders[0].daysSinceLastDose).toBe(3);
   });
@@ -483,7 +486,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const schedule = trainingSchedule('2026-05-20');
     // A future meal on 2026-05-27 should not influence the reminder for 2026-05-23
     const meals = [meal('2026-05-27')];
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals, catalog);
     expect(reminders).toHaveLength(1);
     expect(reminders[0].daysSinceLastDose).toBe(999);
   });
@@ -492,14 +495,14 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const schedule = trainingSchedule('2026-05-20');
     // Meal with vejce (eggs food twin), not dairy — should not count as a dairy dose
     const meals = [meal('2026-05-20', 'vejce')];
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals, catalog);
     expect(reminders[0].daysSinceLastDose).toBe(999);
   });
 
   it('does not fire reminder before training phase start date', () => {
     const schedule = trainingSchedule('2026-05-20');
     // Date before the phase starts
-    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-19', [])).toEqual([]);
+    expect(getToleranceBuildingRemindersForDate(schedule, '2026-05-19', [], catalog)).toEqual([]);
   });
 
   it('returns one reminder per active training phase', () => {
@@ -511,7 +514,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
         { id: 'training-eggs',  type: 'tolerance-building', allergenIds: ['eggs'],  startDate: '2026-05-20', endDate: '' },
       ],
     };
-    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-20', []);
+    const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-20', [], catalog);
     expect(reminders).toHaveLength(2);
     expect(reminders.map(r => r.allergenId)).toContain('dairy');
     expect(reminders.map(r => r.allergenId)).toContain('eggs');

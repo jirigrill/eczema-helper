@@ -41,13 +41,23 @@ const mockPage = { url: new URL('http://localhost/meal') };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
 const mockHarvestReadByKey = vi.fn().mockResolvedValue({ ok: true, data: null });
-const mockHarvestUpsert = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockHarvestStore = writable<import('$lib/domain/harvest-candidate').HarvestCandidate[]>([]);
+// Mirror the real session's optimistic upsert: push the candidate into the
+// in-memory store synchronously so newly-typed custom foods render immediately
+// (the component dropped its local `pendingCustomFoods` mirror in favour of this).
+const mockHarvestUpsert = vi.fn((candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) => {
+  mockHarvestStore.update(list => {
+    const idx = list.findIndex(c => c.normalizedKey === candidate.normalizedKey);
+    return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];
+  });
+  return Promise.resolve({ ok: true, data: undefined });
+});
 vi.mock('$lib/stores/harvest-candidate-session', () => ({
   harvestCandidateSession: {
     subscribe: mockHarvestStore.subscribe,
     readByKey: (...args: unknown[]) => mockHarvestReadByKey(...args),
-    upsert: (...args: unknown[]) => mockHarvestUpsert(...args),
+    upsert: (candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) =>
+      mockHarvestUpsert(candidate),
   },
 }));
 
@@ -503,6 +513,32 @@ describe('meal/+page.svelte', () => {
     expect(goto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
+  it('save failure: surfaces an error toast and does NOT navigate', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    vi.mocked(goto).mockClear();
+    // Force the persistence layer to fail this one save.
+    mockSave.mockResolvedValueOnce({ ok: false, error: 'Uložení selhalo' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByText } = render(MealPage);
+    await tick();
+    // add + confirm + commit a food, then tap Hotovo
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+    expect(mockSave).toHaveBeenCalledOnce();
+    // The error message is shown and the user stays on the meal screen.
+    expect(await findByText('Uložení selhalo')).toBeInTheDocument();
+    expect(goto).not.toHaveBeenCalled();
+  });
+
   // ── Vlastní drill-in: previously-typed custom foods ──────
 
   it('Vlastní drill-in lists previously-typed custom foods for re-logging', async () => {
@@ -572,6 +608,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Přidat/ }));
     await tick();
+    await tick(); // extra tick for async handleNewCustomFood
     expect(getByRole('button', { name: /Uložit Špenát/ })).toBeInTheDocument();
   });
 

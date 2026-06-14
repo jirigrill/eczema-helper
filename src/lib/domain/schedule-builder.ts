@@ -10,9 +10,7 @@ import {
   TRAINING_REMINDER_THRESHOLD_DAYS,
   NEVER_DOSED_SENTINEL_DAYS,
 } from '$lib/domain/policy';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-
-const builderCatalog = new BundledCatalogAdapter();
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 
 // ── Re-test eligibility rejection ────────────────────────────
 
@@ -324,7 +322,8 @@ export function removeReTestPhase(
 export function getToleranceBuildingRemindersForDate(
   schedule: GeneratedSchedule,
   date: string,
-  meals: Meal[]
+  meals: Meal[],
+  catalog: CanonicalCatalogPort
 ): ToleranceBuildingReminder[] {
   const trainingPhases = schedule.phases.filter(
     p => p.type === 'tolerance-building' && date >= p.startDate && (p.endDate === '' || date <= p.endDate)
@@ -334,7 +333,7 @@ export function getToleranceBuildingRemindersForDate(
     const allergenId = phase.allergenIds[0];
 
     const relevantMeals = meals
-      .filter(m => m.date <= date && m.items.some(i => builderCatalog.allergensForFood(i.foodId).includes(allergenId)))
+      .filter(m => m.date <= date && m.items.some(i => catalog.allergensForFood(i.foodId).includes(allergenId)))
       .sort((a, b) => b.date.localeCompare(a.date));
 
     const lastDate = relevantMeals[0]?.date;

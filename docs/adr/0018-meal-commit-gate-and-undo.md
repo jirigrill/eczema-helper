@@ -27,10 +27,14 @@ sleep-deprived parent) the thing to guard against.
 exit that would lose a non-empty working list is guarded by optimistic
 discard + undo.**
 
-- **Persist point:** "Hotovo" writes the `Meal` to Dexie, shows a success toast,
-  and navigates to `returnTo`. Drill-in confirmations and family commits mutate
-  only the in-memory working list. A meal is therefore a deliberate, finished
-  artifact — the day overview never shows a half-built draft.
+- **Persist point:** "Hotovo" writes the `Meal` to Dexie and navigates to
+  `returnTo`. Success needs no confirmation toast — the destination day overview
+  renders the saved meal immediately via live query, which is its own receipt.
+  A *failed* write is surfaced with an error `Toast` and keeps the user on
+  `/meal`, so a non-empty working meal is never silently lost to a persistence
+  error. Drill-in confirmations and family commits mutate only the in-memory
+  working list. A meal is therefore a deliberate, finished artifact — the day
+  overview never shows a half-built draft.
 - **Discard guard invariant:** the discard prompt appears **iff a non-empty,
   unfinalized working list would be lost** — i.e. on grid back (the in-app back
   arrow) and on switch-away onto a filled meal-type pill ([ADR-0019](0019-meal-type-mutable-with-move-semantics.md)).

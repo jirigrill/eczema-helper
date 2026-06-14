@@ -273,7 +273,7 @@ after data exists is a migration.
   for audit. See [ADR-0003](docs/adr/0003-day-granular-meals.md).
 - **One `Meal` per date+mealType slot.** A given `(date, mealType)` pair
   maps to exactly one `Meal` record. The record is upserted (not appended)
-  when the user commits the basket. `Meal.id` is the deterministic
+  when the user finalizes the working meal ("Hotovo"). `Meal.id` is the deterministic
   composite key `"${date}:${mealType}"` (e.g. `"2026-05-27:lunch"`).
 - **Causation is derived, not recorded.** The user logs only ground
   truth (meals, skin observations, end-of-phase reintro verdict). The

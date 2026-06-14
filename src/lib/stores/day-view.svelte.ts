@@ -7,6 +7,7 @@ import { createSkinObservationSession } from '$lib/stores/skin-observation-sessi
 import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
 import type { Meal, SkinObservation, SkinPhoto, SchedulePhase } from '$lib/domain/models';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 export type DayView = {
 	readonly redirectTo: string | null;
@@ -22,6 +23,7 @@ export type DayView = {
 };
 
 export function createDayView(getParam: () => string, today: string): DayView {
+	const catalog = new BundledCatalogAdapter();
 	const rawStore = fromStore(scheduleRaw);
 
 	const resolved = $derived(resolveDay(getParam(), rawStore.current, today));
@@ -40,7 +42,7 @@ export function createDayView(getParam: () => string, today: string): DayView {
 
 	const ctx = $derived(
 		raw.status === 'ready'
-			? { status: 'ready' as const, ...buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, selectedDate) }
+			? { status: 'ready' as const, ...buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, selectedDate, catalog) }
 			: raw,
 	);
 
