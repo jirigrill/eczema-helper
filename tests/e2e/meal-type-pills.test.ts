@@ -74,6 +74,27 @@ async function seedMeal(page: Page, mealType: string, today: string) {
   );
 }
 
+/** Seed a finalized meal with a caller-chosen food name (distinct per slot). */
+async function seedMealWithFood(page: Page, mealType: string, today: string, foodName: string) {
+  await page.evaluate(
+    async ({ mealType, today, foodName }) => {
+      const path = '/src/lib/db/atopic-db.ts';
+      const { db } = await import(/* @vite-ignore */ path);
+      await db.meals.put({
+        id: `${today}:${mealType}`,
+        date: today,
+        mealType,
+        actor: 'mother',
+        items: [
+          { id: `seed-${mealType}`, name: foodName, foodId: `other:${mealType}`, amount: 'portion' },
+        ],
+        createdAt: new Date().toISOString(),
+      });
+    },
+    { mealType, today, foodName },
+  );
+}
+
 /** Add Brambory via the Zelenina drill-in and commit the family. */
 async function addBramboraAndCommit(page: Page) {
   await page.getByRole('button', { name: /Zelenina/ }).click();
@@ -249,6 +270,33 @@ test('pills: load slot, move to empty pill, return to source → no discard toas
   await page.getByRole('button', { name: 'Oběd', exact: true }).click();
   await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
   await expect(page.getByText('Brambory')).toBeVisible();
+});
+
+// ── All slots occupied: switching pills loads each slot's own foods ───────────
+
+test('pills: with every slot saved, switching to another occupied pill loads THAT slot\'s foods', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  // Seed all four slots with distinct foods.
+  await seedMealWithFood(page, 'breakfast', today, 'Ovesná kaše');
+  await seedMealWithFood(page, 'lunch', today, 'Brokolice');
+  await seedMealWithFood(page, 'snack', today, 'Jablko');
+  await seedMealWithFood(page, 'dinner', today, 'Rýže');
+
+  // Land on lunch — its own food shows on mount.
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+  await expect(page.getByText('Brokolice')).toBeVisible();
+
+  // Tap the (occupied) Snídaně pill — must load breakfast's foods, not carry lunch's.
+  await page.getByRole('button', { name: 'Snídaně', exact: true }).click();
+  await expect(page.getByText('Ovesná kaše')).toBeVisible();
+  await expect(page.getByText('Brokolice')).not.toBeVisible();
+
+  // And on to Večeře.
+  await page.getByRole('button', { name: 'Večeře', exact: true }).click();
+  await expect(page.getByText('Rýže')).toBeVisible();
+  await expect(page.getByText('Ovesná kaše')).not.toBeVisible();
 });
 
 // ── Autosave removed: switching pill does not persist the working list ──────────
