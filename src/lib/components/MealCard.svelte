@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createRawSnippet } from 'svelte';
   import type { Meal } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
   import { actionStrings } from '$lib/strings/actions';
@@ -27,13 +26,15 @@
       .filter((m): m is Meal => m !== undefined)
   );
 
-  const rightSnippet = $derived(createRawSnippet(() => ({
-    render: () =>
-      `<a href="/meal?date=${date}&returnTo=/day/${date}" class="text-primary text-xs font-medium">+ ${actionStrings.add}</a>`,
-  })));
 </script>
 
-<DayCard label={commonStrings.today.mealsLabel} right={rightSnippet}>
+{#snippet addLink()}
+  <a
+    href="/meal?date={date}&returnTo=/day/{date}"
+    class="text-primary text-xs font-medium">+ {actionStrings.add}</a>
+{/snippet}
+
+<DayCard label={commonStrings.today.mealsLabel} right={addLink}>
   {#if mealsSorted.length === 0}
     <p class="body-muted">{commonStrings.today.mealsEmpty}</p>
   {:else}

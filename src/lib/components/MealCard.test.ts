@@ -58,6 +58,33 @@ describe('MealCard', () => {
     expect(getByText('Večeře')).toBeInTheDocument();
   });
 
+  it('"+ Přidat" link points at the card\'s date', async () => {
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-06-13', meals: [], eliminatedToday: [] },
+    });
+    await tick();
+    const link = getByTestId('day-card-right').querySelector('a');
+    expect(link?.getAttribute('href')).toBe(
+      '/meal?date=2026-06-13&returnTo=/day/2026-06-13',
+    );
+  });
+
+  it('"+ Přidat" link href updates when the date prop changes', async () => {
+    const { getByTestId, rerender } = render(MealCard, {
+      props: { date: '2026-06-14', meals: [], eliminatedToday: [] },
+    });
+    await tick();
+    expect(getByTestId('day-card-right').querySelector('a')?.getAttribute('href')).toBe(
+      '/meal?date=2026-06-14&returnTo=/day/2026-06-14',
+    );
+
+    await rerender({ date: '2026-06-13', meals: [], eliminatedToday: [] });
+    await tick();
+    expect(getByTestId('day-card-right').querySelector('a')?.getAttribute('href')).toBe(
+      '/meal?date=2026-06-13&returnTo=/day/2026-06-13',
+    );
+  });
+
   it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {
     const meal = makeMeal({
       items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
