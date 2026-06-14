@@ -426,7 +426,11 @@ relabel the working foods to that type and empty the source slot (foods relocate
 nothing lost, no prompt). **Switch-Away** = tap a *filled* pill (a slot with a
 finalized meal) → load that meal, abandoning the current working list (guarded by
 the commit-gate undo). When the working list is empty, a pill tap simply **loads**
-that slot. → See ADR-0019.
+that slot. Landing on `/meal?type=…` **hydrates** the pre-selected slot on mount
+(same effect as loading it), so an existing meal opened from the day screen shows
+its foods immediately. The slot a working list was loaded/hydrated from is its
+**source**; a Move empties the source by excluding it from the occupied set and
+deleting its persisted record when the relabeled meal is finalized. → See ADR-0019.
 
 ---
 

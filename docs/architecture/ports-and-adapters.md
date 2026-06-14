@@ -96,7 +96,7 @@ Each port has a single production adapter. Adapter tests run against `fake-index
 | Store                        | File                                     | What it does                                               |
 | ---------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
 | `scheduleContext`            | `stores/schedule-context.ts`            | `loading\|empty\|ready\|error` discriminated union for the program |
-| `mealSession`                | `stores/meal-session.ts`                | `readable<Meal[]>` for today + `save` / `loadBySlot`      |
+| `mealSession`                | `stores/meal-session.ts`                | `readable<Meal[]>` for today + `save` / `loadBySlot` / `remove` |
 | `skinObservationSession`     | `stores/skin-observation-session.ts`    | `readable<SkinObservation[]>` for today + `save`           |
 | `skinPhotoSession`           | `stores/skin-photo-session.ts`          | `readable<SkinPhoto[]>` for today + `save`                 |
 | `protocolSession`            | `stores/protocol-session.ts`            | Protocol write commands (start, retest, reset)             |

@@ -22,17 +22,20 @@ vi.mock('$lib/stores/discard-buffer', () => ({
 
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockLoadBySlot = vi.fn().mockResolvedValue({ ok: true, data: null });
+const mockRemove = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockMealSessionStore = writable<import('$lib/domain/models').Meal[]>([]);
 vi.mock('$lib/stores/meal-session', () => ({
   mealSession: {
     subscribe: mockMealSessionStore.subscribe,
     save: (...args: unknown[]) => mockSave(...args),
     loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
+    remove: (...args: unknown[]) => mockRemove(...args),
   },
   createMealSession: () => ({
     subscribe: mockMealSessionStore.subscribe,
     save: (...args: unknown[]) => mockSave(...args),
     loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
+    remove: (...args: unknown[]) => mockRemove(...args),
   }),
 }));
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
@@ -98,6 +101,8 @@ beforeEach(() => {
   mockSave.mockClear();
   mockLoadBySlot.mockClear();
   mockLoadBySlot.mockResolvedValue({ ok: true, data: null });
+  mockRemove.mockClear();
+  mockRemove.mockResolvedValue({ ok: true, data: undefined });
   mockPage.url = new URL('http://localhost/meal');
   mockHarvestReadByKey.mockClear();
   mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
@@ -148,17 +153,25 @@ describe('meal/+page.svelte', () => {
         createdAt: new Date().toISOString(),
       },
     ] as unknown as import('$lib/domain/models').Meal[]);
-    mockLoadBySlot.mockResolvedValue({
-      ok: true,
-      data: {
-        id: 'breakfast:2025-06-13',
-        date: '2025-06-13',
-        mealType: 'breakfast',
-        actor: 'mother',
-        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-        createdAt: new Date().toISOString(),
-      },
-    });
+    // Arg-aware: only the breakfast slot has data; the initially-selected lunch
+    // slot is empty so the page mounts with an empty working list.
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(
+        mealType === 'breakfast'
+          ? {
+              ok: true,
+              data: {
+                id: '2025-06-13:breakfast',
+                date: '2025-06-13',
+                mealType: 'breakfast',
+                actor: 'mother',
+                items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+                createdAt: new Date().toISOString(),
+              },
+            }
+          : { ok: true, data: null },
+      ),
+    );
 
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText } = render(MealPage);
@@ -1161,5 +1174,111 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: '‹' }));
     await tick();
     expect(mockWriteBuffer).toHaveBeenCalledOnce();
+  });
+
+  // ── Initial load of the pre-selected slot (bug: foods missing on landing) ──
+
+  function lunchWithBrambory() {
+    return {
+      ok: true,
+      data: {
+        id: '2025-06-13:lunch',
+        date: '2025-06-13',
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  it('hydrates the pre-selected slot on mount — persisted foods show without any pill tap', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockMealSessionStore.set([
+      {
+        id: '2025-06-13:lunch', date: '2025-06-13', mealType: 'lunch', actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        createdAt: new Date().toISOString(),
+      },
+    ] as unknown as import('$lib/domain/models').Meal[]);
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+    await tick();
+
+    // No interaction — the lunch slot was auto-loaded on mount.
+    expect(mockLoadBySlot).toHaveBeenCalledWith('2025-06-13', 'lunch');
+    expect(getByText('Brambory')).toBeInTheDocument();
+  });
+
+  // ── Return to the source slot after a MOVE must not discard (bug 2) ──
+
+  it('moving to an empty slot then back to the source slot does NOT trigger discard', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockMealSessionStore.set([
+      {
+        id: '2025-06-13:lunch', date: '2025-06-13', mealType: 'lunch', actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        createdAt: new Date().toISOString(),
+      },
+    ] as unknown as import('$lib/domain/models').Meal[]);
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, getByText } = render(MealPage);
+    await tick();
+    await tick();
+    expect(getByText('Brambory')).toBeInTheDocument();
+
+    // MOVE to an empty slot (Svačina) — relabels, source slot is freed.
+    await fireEvent.click(getByRole('button', { name: 'Svačina' }));
+    await tick();
+
+    // Tap back onto Oběd — this is a MOVE-back, not a switch-away.
+    await fireEvent.click(getByRole('button', { name: 'Oběd' }));
+    await tick();
+
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+    expect(getByText('Brambory')).toBeInTheDocument();
+  });
+
+  it('saving after a MOVE empties the original source slot', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockMealSessionStore.set([
+      {
+        id: '2025-06-13:lunch', date: '2025-06-13', mealType: 'lunch', actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        createdAt: new Date().toISOString(),
+      },
+    ] as unknown as import('$lib/domain/models').Meal[]);
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await tick();
+
+    // MOVE lunch → snack, then finalize.
+    await fireEvent.click(getByRole('button', { name: 'Svačina' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await tick();
+
+    // The new snack slot is saved …
+    expect(mockSave).toHaveBeenCalledOnce();
+    expect(mockSave.mock.calls[0][0]).toMatchObject({ mealType: 'snack' });
+    // … and the stale lunch source slot is removed (no duplicate).
+    expect(mockRemove).toHaveBeenCalledWith('2025-06-13', 'lunch');
   });
 });

@@ -33,4 +33,14 @@ export class DexieMealRepository implements MealRepository {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
+
+  async remove(date: string, mealType: MealType): Promise<Result<void, string>> {
+    try {
+      const id = `${date}:${mealType}` as Meal['id'];
+      await this.db.meals.delete(id);
+      return { ok: true, data: undefined };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
 }

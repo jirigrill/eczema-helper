@@ -70,14 +70,68 @@
   }
   let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
 
+  /**
+   * The slot the working list was hydrated from (on mount or via a pill load).
+   * A MOVE relabels `selectedMealType` but keeps this pointing at the origin, so
+   * the source slot reads as free (excluded from `occupiedTypes`) and is deleted
+   * on save when the meal is finalized under a different type (ADR-0019).
+   */
+  let loadedFromType = $state<MealTypeKind | null>(null);
+
   /** Reactive meal session for targetDate — re-created when date changes. */
   let dateScopedMealSession = $state(createMealSession(parseDayQuery(page.url).date));
   $effect(() => {
     dateScopedMealSession = createMealSession(targetDate);
   });
 
-  /** Meal types that already have a finalized meal for targetDate. */
-  const occupiedTypes = $derived($dateScopedMealSession.map(m => m.mealType));
+  /**
+   * Meal types that already have a finalized meal for targetDate. The slot the
+   * working list was loaded from is excluded — a MOVE has logically emptied it,
+   * so returning to it is a MOVE-back, not a data-destroying switch-away.
+   */
+  const occupiedTypes = $derived(
+    $dateScopedMealSession.map(m => m.mealType).filter(t => t !== loadedFromType)
+  );
+
+  // ── Slot hydration, keyed on the URL (date + type) ────────
+  // SvelteKit reuses this component across `?type=` navigations, so a
+  // switch-away `goto` does NOT remount — the only thing that changes is the
+  // URL. This effect reacts to that change and hydrates the addressed slot:
+  // landing on /meal?type=lunch surfaces lunch's foods, and switching to
+  // another occupied slot loads *that* slot rather than carrying the old list
+  // over. A matching discard buffer means we arrived here via undo → restore it.
+  let lastHydratedKey = '';
+  $effect(() => {
+    const type = parseMealType(page.url.searchParams.get('type'));
+    const key = `${targetDate}:${type}`;
+    if (key === lastHydratedKey) return;
+    lastHydratedKey = key;
+
+    const buf = get(discardBuffer);
+    if (buf && buf.mealType === type) {
+      // Undo: we navigated back to the slot the buffer was captured for.
+      clearBuffer();
+      selectedMealType = type;
+      workingMeal = buf.workingMeal;
+      loadedFromType = buf.loadedFromType ?? null;
+      return;
+    }
+
+    selectedMealType = type;
+    void mealSession.loadBySlot(targetDate, type).then((result) => {
+      // Guard against races: only apply if the URL still addresses this slot.
+      if (parseMealType(page.url.searchParams.get('type')) !== type) return;
+      if (result.ok && result.data) {
+        workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
+        mealNotes = result.data.notes ?? '';
+        loadedFromType = type;
+      } else {
+        workingMeal = emptyWorkingMeal();
+        mealNotes = '';
+        loadedFromType = null;
+      }
+    });
+  });
 
   async function handlePillLoad(type: MealType): Promise<void> {
     selectedMealType = type;
@@ -85,6 +139,9 @@
     if (result.ok && result.data) {
       workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
       mealNotes = result.data.notes ?? '';
+      loadedFromType = type;
+    } else {
+      loadedFromType = null;
     }
   }
 
@@ -93,20 +150,14 @@
   }
 
   function handlePillSwitchAway(type: MealType): void {
-    writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+    writeBuffer({ workingMeal, mealType: selectedMealType, returnTo, loadedFromType });
     goto(`/meal?returnTo=${encodeURIComponent(returnTo)}&type=${type}&date=${targetDate}`);
   }
 
   // ── Working meal state ────────────────────────────────────
-  function initialWorkingMeal(): WorkingMeal {
-    const buf = get(discardBuffer);
-    if (buf) {
-      clearBuffer();
-      return buf.workingMeal;
-    }
-    return emptyWorkingMeal();
-  }
-  let workingMeal = $state<WorkingMeal>(initialWorkingMeal());
+  // Starts empty; the URL-keyed hydration effect above fills it on mount
+  // (loading the addressed slot, or restoring the discard buffer on undo).
+  let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let mealNotes = $state('');
 
   // ── View state ────────────────────────────────────────────
@@ -291,6 +342,16 @@
       saveErrorMessage = result.error;
       return;
     }
+    // MOVE semantics (ADR-0019): the working list came from another slot and was
+    // relabeled. Now that it is persisted under the new type, empty the source so
+    // the foods relocate rather than duplicate.
+    if (loadedFromType && loadedFromType !== selectedMealType) {
+      const removed = await mealSession.remove(targetDate, loadedFromType);
+      if (!removed.ok) {
+        saveErrorMessage = removed.error;
+        return;
+      }
+    }
     goto(returnTo);
   }
 
@@ -307,7 +368,7 @@
       drilledFamily = null;
     } else {
       if (isNonEmpty(workingMeal)) {
-        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo, loadedFromType });
       }
       goto(returnTo);
     }

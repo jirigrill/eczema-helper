@@ -74,6 +74,27 @@ async function seedMeal(page: Page, mealType: string, today: string) {
   );
 }
 
+/** Seed a finalized meal with a caller-chosen food name (distinct per slot). */
+async function seedMealWithFood(page: Page, mealType: string, today: string, foodName: string) {
+  await page.evaluate(
+    async ({ mealType, today, foodName }) => {
+      const path = '/src/lib/db/atopic-db.ts';
+      const { db } = await import(/* @vite-ignore */ path);
+      await db.meals.put({
+        id: `${today}:${mealType}`,
+        date: today,
+        mealType,
+        actor: 'mother',
+        items: [
+          { id: `seed-${mealType}`, name: foodName, foodId: `other:${mealType}`, amount: 'portion' },
+        ],
+        createdAt: new Date().toISOString(),
+      });
+    },
+    { mealType, today, foodName },
+  );
+}
+
 /** Add Brambory via the Zelenina drill-in and commit the family. */
 async function addBramboraAndCommit(page: Page) {
   await page.getByRole('button', { name: /Zelenina/ }).click();
@@ -215,6 +236,67 @@ test('pills: block — tapping an occupied pill with non-empty working list trig
 
   // Discard guard must appear, proving the MOVE was blocked and switch-away ran.
   await expect(page.getByText('Jídlo zahozeno')).toBeVisible();
+});
+
+// ── Initial load: landing on an occupied slot shows its foods immediately ─────
+
+test('pills: landing on /meal for an occupied slot hydrates its foods on mount (no tap)', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  // Seed a finalized lunch and open the lunch slot directly (the day-page entry point).
+  await seedMeal(page, 'lunch', today);
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+
+  // The persisted food must be visible without tapping any pill.
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
+// ── Return to source: move away then back must not discard ────────────────────
+
+test('pills: load slot, move to empty pill, return to source → no discard toast, foods kept', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  await seedMeal(page, 'lunch', today);
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  // MOVE to an empty slot (Svačina) …
+  await page.getByRole('button', { name: 'Svačina', exact: true }).click();
+  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+
+  // … then back onto Oběd — must be a MOVE-back, not a switch-away.
+  await page.getByRole('button', { name: 'Oběd', exact: true }).click();
+  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+  await expect(page.getByText('Brambory')).toBeVisible();
+});
+
+// ── All slots occupied: switching pills loads each slot's own foods ───────────
+
+test('pills: with every slot saved, switching to another occupied pill loads THAT slot\'s foods', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  // Seed all four slots with distinct foods.
+  await seedMealWithFood(page, 'breakfast', today, 'Ovesná kaše');
+  await seedMealWithFood(page, 'lunch', today, 'Brokolice');
+  await seedMealWithFood(page, 'snack', today, 'Jablko');
+  await seedMealWithFood(page, 'dinner', today, 'Rýže');
+
+  // Land on lunch — its own food shows on mount.
+  await page.goto(`/meal?returnTo=/day/${today}&type=lunch`);
+  await expect(page.getByText('Brokolice')).toBeVisible();
+
+  // Tap the (occupied) Snídaně pill — must load breakfast's foods, not carry lunch's.
+  await page.getByRole('button', { name: 'Snídaně', exact: true }).click();
+  await expect(page.getByText('Ovesná kaše')).toBeVisible();
+  await expect(page.getByText('Brokolice')).not.toBeVisible();
+
+  // And on to Večeře.
+  await page.getByRole('button', { name: 'Večeře', exact: true }).click();
+  await expect(page.getByText('Rýže')).toBeVisible();
+  await expect(page.getByText('Ovesná kaše')).not.toBeVisible();
 });
 
 // ── Autosave removed: switching pill does not persist the working list ──────────
