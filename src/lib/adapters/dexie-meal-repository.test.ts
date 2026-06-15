@@ -271,7 +271,7 @@ describe('DexieMealRepository', () => {
     expect(await repo.loadBySlot('2026-05-27', 'lunch')).toEqual({ ok: true, data: null });
   });
 
-  // ── remove: clears a slot (ADR-0019 MOVE empties the source) ──
+  // ── remove: clears a slot (explicit "Smazat jídlo" action, issue #268) ──
 
   it('remove deletes the meal occupying a slot', async () => {
     await repo.save(makeMeal('2026-05-27', 'lunch'));

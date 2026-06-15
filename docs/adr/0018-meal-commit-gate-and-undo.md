@@ -72,8 +72,17 @@ shows no delete (there is nothing to delete). This keeps the meal row single-pur
 (tap = edit) and makes accidental deletion hard, while the undo toast remains the real
 safety net. (Swipe/long-press delete from the day page was prototyped and rejected:
 the gesture is invisible and collides with scroll/tap-to-edit; "deleted by accident" is
-judged worse than "one extra tap to find delete" — see
-`docs/design/meal-delete-prototype.html`.)
+judged worse than "one extra tap to find delete" — see the now-deleted prototype at
+`docs/design/meal-delete-prototype.html` (verdict baked into this ADR; prototype removed
+once the decision shipped, issue #268).)
+
+**Undo semantics.** "Undo delete" is **not transactional rollback**. The page snapshots
+the working meal into the `discardBuffer` *before* `remove` is called; the layout toast's
+`Zpět` rehydrates that snapshot back into the `/meal` page. The user then taps **Hotovo**
+to re-persist — producing a fresh `Meal` with a new `createdAt`, identical to the deleted
+one for all user-visible purposes. The same pattern fits "empty-meal hint": finalizing a
+zero-food working list is a no-op (composing-new) or shows an inline hint pointing to
+Smazat (editing-existing) — emptying-then-saving is never a hidden delete alias.
 
 ### Discard guard
 

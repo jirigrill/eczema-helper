@@ -85,8 +85,11 @@
     const buf = get(discardBuffer);
     if (buf && buf.mealType === selectedMealType) {
       // Undo: we navigated back to the slot the buffer was captured for.
+      // The buffer is captured for both back-out-with-draft AND post-delete
+      // restores, so flip into edit mode if the snapshot has any active foods.
       clearBuffer();
       workingMeal = buf.workingMeal;
+      editingExisting = isNonEmpty(buf.workingMeal);
       return;
     }
 
@@ -94,9 +97,11 @@
       if (result.ok && result.data) {
         workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
         mealNotes = result.data.notes ?? '';
+        editingExisting = true;
       } else {
         workingMeal = emptyWorkingMeal();
         mealNotes = '';
+        editingExisting = false;
       }
     });
   });
@@ -105,6 +110,10 @@
   // Starts empty; the hydration effect above fills it on mount.
   let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let mealNotes = $state('');
+  /** Edit-existing vs compose-new: gates the ⋯ overflow + the empty-meal hint. */
+  let editingExisting = $state(false);
+  /** True while the destructive-confirm bottom sheet is open. */
+  let overflowOpen = $state(false);
 
   // ── View state ────────────────────────────────────────────
   let drilledFamily = $state<FamilyId | null>(null);
@@ -379,6 +388,28 @@
 
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
+
+  // ── Empty-meal hint (issue #268) ──────────────────────────
+  // Shown only while editing an existing meal whose working list is empty —
+  // so the user is told to use Smazat instead of trying to "save zero foods".
+  // On compose-new, the disabled CTA carries the message implicitly.
+  const showEmptyHint = $derived(
+    editingExisting && !drilledFamily && !gridEditingFoodId && !hasConfirmed,
+  );
+
+  // ── Delete (issue #268) ───────────────────────────────────
+  async function handleDeleteConfirm(): Promise<void> {
+    overflowOpen = false;
+    // Capture the working-meal snapshot BEFORE the remove call so undo can rehydrate.
+    const snapshot = workingMeal;
+    const result = await mealSession.remove(targetDate, selectedMealType);
+    if (!result.ok) {
+      saveErrorMessage = result.error;
+      return;
+    }
+    writeBuffer({ workingMeal: snapshot, mealType: selectedMealType, returnTo });
+    goto(returnTo);
+  }
 </script>
 
 <div class="page-container pb-24">
@@ -388,6 +419,14 @@
     <PageHeader title={headerTitle()} onBack={handleBack}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(targetDate)}</p>
+        {#if editingExisting && !drilledFamily}
+          <button
+            type="button"
+            aria-label={actionStrings.more}
+            class="ml-1 text-text-muted text-lg leading-none px-2 -mr-2"
+            onclick={() => (overflowOpen = true)}
+          >⋯</button>
+        {/if}
       {/snippet}
     </PageHeader>
 
@@ -543,6 +582,9 @@
   style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
 >
   <div class="max-w-lg mx-auto">
+    {#if showEmptyHint}
+      <p class="body-muted text-center pb-2">{commonStrings.meal.emptyMealHint}</p>
+    {/if}
     <button
       aria-disabled={!drilledFamily && !gridEditingFoodId && !hasConfirmed ? 'true' : 'false'}
       onclick={handleCta}
@@ -564,4 +606,41 @@
     type="error"
     onClose={() => { saveErrorMessage = null; }}
   />
+{/if}
+
+<!--
+  Destructive-confirm bottom sheet (issue #268, ADR-0018).
+  Inline rather than extracted: this is the only confirm-sheet in the app
+  today — extract to lib/components/ConfirmSheet.svelte if a second screen
+  needs the same shape (CLAUDE.md component-reuse rule).
+-->
+{#if overflowOpen}
+  <div
+    role="presentation"
+    class="fixed inset-0 bg-black/35 z-40"
+    onclick={() => (overflowOpen = false)}
+  ></div>
+  <div
+    role="dialog"
+    aria-label={commonStrings.meal.deleteConfirmHeading}
+    class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[20px] pb-safe"
+    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+  >
+    <div class="px-5 pt-5 pb-3">
+      <p class="body-bold mb-1">{commonStrings.meal.deleteConfirmHeading}</p>
+      <p class="body-muted">{commonStrings.meal.deleteConfirmBody}</p>
+    </div>
+    <div class="px-5 pt-1 pb-2 space-y-2">
+      <button
+        type="button"
+        class="w-full py-3 rounded-xl font-semibold text-sm bg-danger text-white"
+        onclick={handleDeleteConfirm}
+      >{actionStrings.deleteMeal}</button>
+      <button
+        type="button"
+        class="w-full py-3 rounded-xl font-semibold text-sm bg-surface text-text"
+        onclick={() => (overflowOpen = false)}
+      >{actionStrings.cancel}</button>
+    </div>
+  </div>
 {/if}

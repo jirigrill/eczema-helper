@@ -436,6 +436,22 @@ editing. Both routes land on the same `/meal?type=X&date=…&returnTo=…` loade
 The FAB is **day-scoped** (bound to the day page's `selectedDate`), so backfilling an
 earlier day works. → See ADR-0018.
 
+### Smazat jídlo (delete a meal)
+Explicit destructive action on `/meal` in **edit mode only**. Surfaced behind the ⋯
+overflow in the page header → confirm bottom sheet. Confirming calls
+`mealRepository.remove(date, mealType)`, snapshots the working meal into the
+`discardBuffer`, and navigates to `returnTo`; the layout's existing **discard toast**
+offers `Zpět` (undo). Undo rehydrates the working list from the snapshot — re-tapping
+**Hotovo** then re-persists a fresh copy. Hidden while composing a brand-new meal
+(nothing to delete). → See ADR-0018, issue #268.
+
+### Empty-Hotovo Guard
+Finalizing a zero-food working list is a **no-op** by construction. While composing a
+new meal, the disabled CTA carries the message implicitly. While editing an existing
+meal whose foods have been ✕'d to zero, an inline hint near the CTA tells the user to
+use **Smazat jídlo** instead — closing the loophole where "empty then save" could
+have been a hidden delete path. → See issue #268.
+
 ---
 
 ## Assessment & Observation

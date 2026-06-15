@@ -152,3 +152,47 @@ test('tap a logged meal row → edit → Hotovo → change reflects on the day (
   await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
   await expect(page.getByTestId('meal-row-lunch')).toContainText('Mrkev');
 });
+
+test('delete a meal → row disappears → undo restores it (#268)', async ({ page }) => {
+  await completeOnboarding(page);
+
+  // Seed a lunch with one food via the FAB launcher.
+  await page.getByRole('button', { name: 'Přidat záznam' }).click();
+  await page.getByTestId('fab-action-meal').click();
+  await page.getByTestId('fab-meal-type-lunch').click();
+  await page.waitForURL(/\/meal\?type=lunch/);
+
+  await page.getByRole('button', { name: /Mléko/ }).click();
+  await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  const today = new Date().toISOString().split('T')[0];
+  await page.waitForURL(`**/day/${today}`);
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
+
+  // Tap the lunch row → land on /meal in edit mode.
+  await page.getByTestId('meal-row-lunch').click();
+  await page.waitForURL(/\/meal\?type=lunch/);
+  await expect(page.getByText('Kravské mléko')).toBeVisible();
+
+  // Open the ⋯ overflow and confirm "Smazat jídlo".
+  await page.getByRole('button', { name: 'Více' }).click();
+  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+
+  // Lands on the day; the lunch row is gone.
+  await page.waitForURL(`**/day/${today}`);
+  await expect(page.getByTestId('meal-row-lunch')).toHaveCount(0);
+
+  // The discard toast is offering undo. Tap "Zpět" → land back on /meal with
+  // the original food rehydrated; tap Hotovo to re-persist the meal.
+  await page.getByRole('button', { name: 'Zpět' }).click();
+  await page.waitForURL(/\/meal\?.*type=lunch/);
+  await expect(page.getByText('Kravské mléko')).toBeVisible();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // Back on the day, the lunch row is restored with its original food.
+  await page.waitForURL(`**/day/${today}`);
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
+});
