@@ -9,7 +9,20 @@ const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 vi.mock('$lib/stores/schedule-context', () => ({
   scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
 }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+// Capture every `beforeNavigate` callback the meal page registers so tests
+// can drive it with synthetic `Navigation` arguments — `beforeNavigate` itself
+// never fires in jsdom (no router), so without this we'd be testing nothing.
+const beforeNavigateCallbacks: Array<(nav: { type: string }) => void> = [];
+
+vi.mock('$app/navigation', () => ({
+  goto: vi.fn(),
+  beforeNavigate: vi.fn((cb: (nav: { type: string }) => void) => {
+    beforeNavigateCallbacks.push(cb);
+  }),
+  pushState: vi.fn((_url: string, state: Record<string, unknown>) => {
+    mockPage.state = state;
+  }),
+}));
 
 const mockWriteBuffer = vi.fn();
 const mockClearBuffer = vi.fn();
@@ -40,7 +53,10 @@ vi.mock('$lib/stores/meal-session', () => ({
 }));
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
-const mockPage = { url: new URL('http://localhost/meal') };
+const mockPage: { url: URL; state: Record<string, unknown> } = {
+  url: new URL('http://localhost/meal'),
+  state: {},
+};
 vi.mock('$app/state', () => ({ page: mockPage }));
 
 const mockHarvestReadByKey = vi.fn().mockResolvedValue({ ok: true, data: null });
@@ -104,6 +120,8 @@ beforeEach(() => {
   mockRemove.mockClear();
   mockRemove.mockResolvedValue({ ok: true, data: undefined });
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+  mockPage.state = {};
+  beforeNavigateCallbacks.length = 0;
   mockHarvestReadByKey.mockClear();
   mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
   mockHarvestUpsert.mockClear();
@@ -1123,6 +1141,95 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: '‹' }));
     await tick();
     expect(mockWriteBuffer).toHaveBeenCalledOnce();
+  });
+
+  // ── Discard guard exit-path-completeness (issue #262) ─────────────
+  // The arrow's `discardAndLeave` calls `writeBuffer` then `goto(returnTo)`.
+  // The goto re-enters `beforeNavigate` as a `goto` navigation. Without the
+  // popstate-only gate, that callback would fire `writeBuffer` again,
+  // producing a double-write. The test simulates the re-entry by invoking
+  // the captured `beforeNavigate` callback directly with `type: 'goto'`.
+
+  it('explicit back arrow on a non-empty grid writes the discard buffer exactly once (no double-fire)', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Build a non-empty working list.
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Tap arrow once — the click handler writes the buffer + calls goto.
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    // Now simulate the goto re-entering beforeNavigate as type='goto'. With
+    // the popstate gate in place, this must be a no-op for the buffer.
+    const cb = beforeNavigateCallbacks.at(-1);
+    expect(cb).toBeDefined();
+    cb!({ type: 'goto' });
+    expect(mockWriteBuffer).toHaveBeenCalledOnce(); // still one — gate held
+  });
+
+  it('beforeNavigate callback ignores non-popstate types (link, goto, form, leave) even with a non-empty working list', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Build a non-empty working list.
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    const cb = beforeNavigateCallbacks.at(-1);
+    expect(cb).toBeDefined();
+    // None of these synthetic navigations should fire writeBuffer — only
+    // popstate is the discard-guard trigger.
+    cb!({ type: 'link' });
+    cb!({ type: 'goto' });
+    cb!({ type: 'form' });
+    cb!({ type: 'leave' });
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+  });
+
+  it('beforeNavigate callback writes the buffer on popstate when the working list is non-empty', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    const cb = beforeNavigateCallbacks.at(-1);
+    cb!({ type: 'popstate' });
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    const buf = mockWriteBuffer.mock.calls[0][0];
+    expect(buf.mealType).toBe('lunch');
+    expect(buf.returnTo).toBe(`/day/${today}`);
+  });
+
+  it('beforeNavigate callback does NOT write the buffer on popstate when working list is empty', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    render(MealPage);
+    await tick();
+    const cb = beforeNavigateCallbacks.at(-1);
+    cb!({ type: 'popstate' });
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
   });
 
   // ── Initial load of the pre-selected slot (bug: foods missing on landing) ──

@@ -23,7 +23,7 @@
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
 
-  import { goto } from '$app/navigation';
+  import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
   import { mealSession } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
@@ -116,6 +116,14 @@
   let overflowOpen = $state(false);
 
   // ── View state ────────────────────────────────────────────
+  // Drill-in is **shallow-routed** (issue #262): each drill-in entry pushes a
+  // history entry and mirrors the family id into `page.state.drilledFamily`.
+  // Browser/Android back fires popstate; the `beforeNavigate` guard inspects
+  // the next `page.state` and unwinds local `drilledFamily` accordingly. The
+  // local `$state` is the source of truth for rendering — `page.state` only
+  // gates whether popstate is "leave the route" or "exit a drill-in".
+  // (On hard reload `page.state` is empty → land on grid; consistent with
+  // the in-memory working meal already being lost on reload.)
   let drilledFamily = $state<FamilyId | null>(null);
   /** Working-list row currently open for inline editing (grid view only). */
   let gridEditingFoodId = $state<string | null>(null);
@@ -225,6 +233,9 @@
       } else {
         workingMeal = commitFamily(workingMeal, drilledFamily);
         drilledFamily = null;
+        // Unwind the drill-in's pushed history entry so the grid is reached
+        // by popping, not by stacking another entry on top.
+        history.back();
       }
       return;
     }
@@ -311,17 +322,88 @@
   function handleBack(): void {
     if (drilledFamily) {
       drilledFamily = null;
+      // Unwind the drill-in's pushed history entry so popstate-back (system
+      // back gesture) and arrow-back produce identical history.
+      history.back();
     } else {
-      if (isNonEmpty(workingMeal)) {
-        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
-      }
-      goto(returnTo);
+      discardAndLeave();
     }
   }
+
+  /**
+   * Single discard + navigate path used by the explicit back arrow's grid
+   * branch. Extracted (rather than inlined) so the popstate guard can call
+   * it later if a future entry point ships a `returnTo` that's decoupled
+   * from the previous history entry — at which point `cancel()` +
+   * `discardAndLeave()` becomes necessary to keep arrow and gesture on the
+   * same destination. See the `beforeNavigate` block below.
+   */
+  function discardAndLeave(): void {
+    if (isNonEmpty(workingMeal)) {
+      writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+    }
+    goto(returnTo);
+  }
+
+  // ── Discard guard exit-path-completeness (issue #262 / ADR-0018) ────────
+  // Two cooperating mechanisms close the popstate hole left by the
+  // click-only `handleBack`:
+  //
+  // 1. Native popstate listener: `pushState` on drill-in entry is a SvelteKit
+  //    **shallow route** — popping the shallow entry updates `page.state`
+  //    and dispatches `popstate` on `window`, but does NOT call
+  //    `beforeNavigate` (no real navigation). We sync local `drilledFamily`
+  //    from `history.state` here so a system-back from a drill-in returns
+  //    to the grid without leaving `/meal`.
+  //
+  // 2. `beforeNavigate` chokepoint: fires on every navigation kind that DOES
+  //    leave `/meal` (`link`, `goto`, `popstate`, `form`, `leave`). We act
+  //    only on `popstate` — the explicit arrow's `goto(returnTo)` arrives
+  //    as `goto` and is short-circuited, so the buffer is written by exactly
+  //    one path per navigation. Without this gate, the arrow would
+  //    `writeBuffer → goto`, re-enter as `goto`, and write again.
+  //
+  // The drill-in case never reaches `beforeNavigate` (shallow popstate
+  // bypasses it) — checking `drilledFamily` here is a belt-and-braces guard
+  // for a hypothetical edge where SvelteKit decides to treat the shallow
+  // pop as a real navigation.
+  //
+  // Note: the issue's original design called for `nav.cancel()` +
+  // `goto(returnTo)` to handle a future case where `returnTo` is decoupled
+  // from the previous history entry (e.g. a `/week` FAB → `/meal` with
+  // `returnTo=/day/<today>`). That entry point doesn't exist in v1 — every
+  // call site (`MealCard`, `FabActionSheet`) sets `returnTo=/day/<that day>`
+  // matching the previous history entry. So we let popstate proceed
+  // natively. If a mismatched-returnTo entry ships later, this handler is
+  // the right place to add `nav.cancel()` + `goto(returnTo)`, sequenced via
+  // `tick()` to avoid racing SvelteKit's own `history.go(-delta)` undo.
+  $effect(() => {
+    function syncDrillFromHistory(): void {
+      const sk: Record<string, unknown> | undefined =
+        (history.state ?? {})['sveltekit:states'];
+      const stateDrill = (sk ?? {})['drilledFamily'] as FamilyId | undefined;
+      drilledFamily = stateDrill ?? null;
+    }
+    window.addEventListener('popstate', syncDrillFromHistory);
+    return () => window.removeEventListener('popstate', syncDrillFromHistory);
+  });
+
+  beforeNavigate((nav) => {
+    if (nav.type !== 'popstate') return;
+    if (drilledFamily) return;
+    if (isNonEmpty(workingMeal)) {
+      writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
+    }
+  });
 
   function handleFamilySelect(familyId: FamilyId): void {
     if (gridEditingFoodId) return;
     drilledFamily = familyId;
+    // Shallow-route the drill-in into the history stack so Android system
+    // back / browser back from the drill-in pops to the grid (handled by the
+    // `beforeNavigate` popstate branch below) rather than leaving `/meal`.
+    // The page URL is unchanged — only `$page.state` carries the family id.
+    pushState('', { drilledFamily: familyId });
   }
 
   function handleCancelEdit(): void {
