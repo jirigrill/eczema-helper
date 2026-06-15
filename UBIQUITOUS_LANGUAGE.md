@@ -396,20 +396,22 @@ reintroduction. See ADR-0014.
 
 The in-memory meal being built on `/meal` before it is finalized — the list of
 **confirmed** foods plus the current `MealType`. Not a persisted `Meal`: it exists
-only in component/store state until "Hotovo" writes it to Dexie. See the
-**commit-gate** and PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
+only in component/store state until the **finalize CTA** (`Uložit`) writes it to Dexie.
+See the **commit-gate** and PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
 
 ### Commit-Gate
-The persistence rule for `/meal`: **nothing is written to Dexie until "Hotovo."**
-Drill-in confirmations and family commits mutate only the working list; leaving
-without finalizing discards it (guarded by **optimistic discard + undo**).
+The persistence rule for `/meal`: **nothing is written to Dexie until the finalize CTA
+(`Uložit`).** Drill-in confirmations and family commits mutate only the working list;
+backing out discards it **only if it would lose unsaved work** — a non-empty draft, or a
+*dirty* edit — guarded by **optimistic discard + undo**. A clean edit-back is silent.
 → See ADR-0018.
 
 ### Active Edit Slot
 The invariant that **at most one food is in the `editing` state per screen.**
 Entering editing locks (greys, disables) every other food tile and the family
-grid; confirming or discarding releases the slot. Drives the save button's label
-(editing → "Uložit {Food}"; idle → "Uložit {Family}" or "Hotovo — {Meal}").
+grid; confirming or discarding releases the slot. Drives the save button's label, one
+uniform `Uložit {what}` ladder (food editing → "Uložit {Food}"; family idle → "Uložit
+{Family}"; meal finalize → "Uložit {MealType}" composing, "Uložit změny" editing).
 
 ### Confirm / Discard (a food)
 *Czech: Uložit / Zahodit*
@@ -440,17 +442,25 @@ earlier day works. → See ADR-0018.
 Explicit destructive action on `/meal` in **edit mode only**. Surfaced behind the ⋯
 overflow in the page header → confirm bottom sheet. Confirming calls
 `mealRepository.remove(date, mealType)`, snapshots the working meal into the
-`discardBuffer`, and navigates to `returnTo`; the layout's existing **discard toast**
-offers `Zpět` (undo). Undo rehydrates the working list from the snapshot — re-tapping
-**Hotovo** then re-persists a fresh copy. Hidden while composing a brand-new meal
-(nothing to delete). → See ADR-0018, issue #268.
+`discardBuffer`, and navigates to `returnTo`; the layout's **discard toast** offers
+`Zpět` (undo) and reads `Jídlo smazáno`. Undo rehydrates the working list from the
+snapshot — re-tapping the finalize CTA (`Uložit`) then re-persists a fresh copy. Hidden
+while composing a brand-new meal (nothing to delete). → See ADR-0018, issue #268.
 
-### Empty-Hotovo Guard
+### Discard Toast
+The layout-level `Toast` (with `Zpět` undo) shown after the working meal is buffered to
+`discardBuffer`. Its wording is keyed by the buffer's `kind` so it stays accurate to what
+was actually lost: **`Jídlo neuloženo`** (compose-new draft), **`Změny neuloženy`** (dirty
+edit — the saved meal stays, only the edits drop), **`Jídlo smazáno`** (delete). A *clean*
+edit-back shows no toast. → See ADR-0018 "Discard guard".
+
+### Empty-meal Guard
 Finalizing a zero-food working list is a **no-op** by construction. While composing a
 new meal, the disabled CTA carries the message implicitly. While editing an existing
 meal whose foods have been ✕'d to zero, an inline hint near the CTA tells the user to
 use **Smazat jídlo** instead — closing the loophole where "empty then save" could
-have been a hidden delete path. → See issue #268.
+have been a hidden delete path. (Formerly "Empty-Hotovo Guard"; renamed with the
+`Hotovo → Uložit` relabel.) → See issue #268.
 
 ---
 
