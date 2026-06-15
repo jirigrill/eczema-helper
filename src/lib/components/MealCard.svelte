@@ -3,6 +3,7 @@
   import { commonStrings } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
+  import { preparationStrings } from '$lib/strings/preparations';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import DayCard from './DayCard.svelte';
 
@@ -38,13 +39,14 @@
     <div class="space-y-3">
       {#each mealsSorted as meal (meal.id)}
         {@const cfg = mealConfig[meal.mealType]}
+        {@const Icon = cfg.icon}
         <a
           data-testid="meal-row-{meal.mealType}"
           href="/meal?type={meal.mealType}&date={meal.date}&returnTo=/day/{meal.date}"
           class="block"
         >
           <div class="flex items-center gap-1.5 mb-1">
-            <span class="text-base leading-none">{cfg.icon}</span>
+            <Icon class="w-4 h-4 text-text" />
             <span class="text-[12px] font-semibold text-text">{cfg.label}</span>
           </div>
           <div class="flex flex-wrap gap-1">
@@ -58,7 +60,9 @@
                   : 'bg-surface text-text'}"
               >
                 {item.name}
-                <span class="text-text-muted"> {portionStrings[item.amount].short}</span>
+                <span class="text-text-muted">
+                  {portionStrings[item.amount].label}{#if item.preparationMethod} · {preparationStrings[item.preparationMethod].label}{/if}
+                </span>
               </span>
             {/each}
           </div>

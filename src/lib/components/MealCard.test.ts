@@ -145,6 +145,63 @@ describe('MealCard', () => {
     }
   });
 
+  it('renders portion as full Czech label (e.g. "Lžíce"), not the raw key or short form', async () => {
+    const meal = makeMeal({
+      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon' }],
+    });
+    const { getByText, queryByText } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    expect(getByText(/Lžíce/)).toBeInTheDocument();
+    // Must not show the raw key or the short form.
+    expect(queryByText(/\bspoon\b/)).not.toBeInTheDocument();
+    expect(queryByText(/\blžíce\b/)).not.toBeInTheDocument(); // .short is lowercase 'lžíce'
+  });
+
+  it('appends "· {preparation label}" suffix only when preparationMethod is set', async () => {
+    const mealWithPrep = makeMeal({
+      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon', preparationMethod: 'boiled' }],
+    });
+    const { getByText, unmount } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [mealWithPrep], eliminatedToday: [] },
+    });
+    await tick();
+    // The full chip text reads "Jogurt Lžíce · Vařené" (whitespace-tolerant).
+    expect(getByText(/Lžíce\s*·\s*Vařené/)).toBeInTheDocument();
+    unmount();
+
+    const mealNoPrep = makeMeal({
+      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon' }],
+    });
+    const { queryByText } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [mealNoPrep], eliminatedToday: [] },
+    });
+    await tick();
+    // No middle-dot when preparation is unset.
+    expect(queryByText(/·/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['breakfast', '🌅'],
+    ['lunch',     '☀️'],
+    ['snack',     '🍎'],
+    ['dinner',    '🌙'],
+  ] as const)('meal-type marker for %s renders an <svg> icon, not the legacy emoji', async (mealType, emoji) => {
+    const meal = makeMeal({
+      id: `2026-05-31:${mealType}`,
+      mealType,
+      items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
+    });
+    const { getByTestId, queryByText } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId(`meal-row-${mealType}`);
+    expect(row.querySelector('svg')).not.toBeNull();
+    expect(queryByText(emoji)).not.toBeInTheDocument();
+  });
+
   it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {
     const meal = makeMeal({
       items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
