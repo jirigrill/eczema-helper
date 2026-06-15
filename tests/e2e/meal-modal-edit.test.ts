@@ -98,7 +98,7 @@ async function seedDairyElimination(page: Page) {
 /** Open /meal and drill into the Zelenina (vegetables) family. */
 async function openMealAndDrillVegetables(page: Page) {
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
   await page.getByRole('button', { name: /Zelenina/ }).click();
   // Loose food (no allergen) Brambory should be visible
@@ -336,7 +336,7 @@ test('AC7: family tile with confirmed foods shows active state', async ({ page }
 
 test('AC8: grid shows the Poznámka field', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   await expect(page.getByLabel('Poznámka k jídlu')).toBeVisible();
@@ -456,7 +456,7 @@ test('AC11: drill-in back arrow (‹) in PageHeader returns to the family grid',
 
 test('AC11: grid back arrow (‹) navigates to returnTo', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // PageHeader back button renders "‹" as text content (no aria-label)
@@ -465,28 +465,25 @@ test('AC11: grid back arrow (‹) navigates to returnTo', async ({ page }) => {
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('AC11: meal type pills and banners hidden while drilled in, restored on back', async ({ page }) => {
+test('AC11: elimination banner hidden while drilled in, restored on back', async ({ page }) => {
   await seedDairyElimination(page);
   await page.reload({ waitUntil: 'networkidle' });
 
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
 
-  // On grid: pills and elimination banner visible
-  await expect(page.getByRole('button', { name: 'Snídaně' })).toBeVisible();
+  // On grid: elimination banner visible (pills are gone after #266 / ADR-0018)
   await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 
   // Drill into Zelenina
   await page.getByRole('button', { name: /Zelenina/ }).click();
 
-  // Header title changes; pills and banner gone
+  // Header title changes; banner gone
   await expect(page.getByText(/Zelenina/).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Snídaně' })).not.toBeVisible();
   await expect(page.getByText('Dnes vyřazeno:')).not.toBeVisible();
 
-  // Back to grid: pills and banner restored
+  // Back to grid: banner restored
   await page.getByRole('button', { name: '‹' }).click();
-  await expect(page.getByRole('button', { name: 'Snídaně' })).toBeVisible();
   await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 });
 
@@ -497,7 +494,7 @@ test('eliminated allergen foods show danger state in drill-in', async ({ page })
   await page.reload({ waitUntil: 'networkidle' });
 
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 
   // Drill into dairy
@@ -692,7 +689,7 @@ test('grid: CTA is red when saving a family that has a confirmed eliminated food
   await page.reload({ waitUntil: 'networkidle' });
 
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
 
   // Drill into dairy, confirm a food — now in "Uložit Mléko" state
   await page.getByRole('button', { name: /Mléko/ }).first().click();
@@ -710,7 +707,7 @@ test('grid: confirmed eliminated food row shows amount in white text', async ({ 
   await page.reload({ waitUntil: 'networkidle' });
 
   const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
 
   // Commit a dairy food to the working list
   await page.getByRole('button', { name: /Mléko/ }).first().click();

@@ -58,31 +58,14 @@ describe('MealCard', () => {
     expect(getByText('Večeře')).toBeInTheDocument();
   });
 
-  it('"+ Přidat" link points at the card\'s date', async () => {
-    const { getByTestId } = render(MealCard, {
+  it('does NOT render a "+ Přidat" link — the Meal-Type FAB Submenu is the launcher now', async () => {
+    const { queryByText, queryByTestId } = render(MealCard, {
       props: { date: '2026-06-13', meals: [], eliminatedToday: [] },
     });
     await tick();
-    const link = getByTestId('day-card-right').querySelector('a');
-    expect(link?.getAttribute('href')).toBe(
-      '/meal?date=2026-06-13&returnTo=/day/2026-06-13',
-    );
-  });
-
-  it('"+ Přidat" link href updates when the date prop changes', async () => {
-    const { getByTestId, rerender } = render(MealCard, {
-      props: { date: '2026-06-14', meals: [], eliminatedToday: [] },
-    });
-    await tick();
-    expect(getByTestId('day-card-right').querySelector('a')?.getAttribute('href')).toBe(
-      '/meal?date=2026-06-14&returnTo=/day/2026-06-14',
-    );
-
-    await rerender({ date: '2026-06-13', meals: [], eliminatedToday: [] });
-    await tick();
-    expect(getByTestId('day-card-right').querySelector('a')?.getAttribute('href')).toBe(
-      '/meal?date=2026-06-13&returnTo=/day/2026-06-13',
-    );
+    expect(queryByText(/\+ Přidat/)).not.toBeInTheDocument();
+    // The DayCard right-snippet is no longer used — no testid emitted.
+    expect(queryByTestId('day-card-right')).not.toBeInTheDocument();
   });
 
   it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {

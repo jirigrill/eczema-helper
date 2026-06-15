@@ -103,7 +103,7 @@ beforeEach(() => {
   mockLoadBySlot.mockResolvedValue({ ok: true, data: null });
   mockRemove.mockClear();
   mockRemove.mockResolvedValue({ ok: true, data: undefined });
-  mockPage.url = new URL('http://localhost/meal');
+  mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockHarvestReadByKey.mockClear();
   mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
   mockHarvestUpsert.mockClear();
@@ -114,78 +114,41 @@ beforeEach(() => {
 
 describe('meal/+page.svelte', () => {
 
-  // ── Layout: meal type pills ───────────────────────────────
+  // ── Layout: NO meal type pills (type is fixed at entry, ADR-0018) ────────
 
-  it('renders meal type pills with text labels only — no emoji in pill text', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getAllByRole } = render(MealPage);
-    await tick();
-    const buttons = getAllByRole('button', { name: /Snídaně|Oběd|Svačina|Večeře/ });
-    expect(buttons.length).toBeGreaterThanOrEqual(4);
-    buttons.forEach(btn => {
-      expect(btn.textContent?.trim()).toMatch(/^(Snídaně|Oběd|Svačina|Večeře)$/);
-    });
-  });
-
-  it('active meal type pill has primary style; inactive pills have muted style', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    const obedBtn = getByRole('button', { name: 'Oběd' });
-    expect(obedBtn.className).toContain('chip--current');
-    const snidaneBtn = getByRole('button', { name: 'Snídaně' });
-    expect(snidaneBtn.className).toContain('chip--muted');
-  });
-
-  it('tapping an occupied pill with empty working list loads persisted foods into the working meal', async () => {
+  it('does NOT render meal type pills — type is bound to the URL', async () => {
     setReady();
     mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    // Seed the store so Snídaně pill renders as occupied (data-active="true")
-    mockMealSessionStore.set([
-      {
-        id: '2025-06-13:breakfast',
-        date: '2025-06-13',
-        mealType: 'breakfast',
-        actor: 'mother',
-        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-        createdAt: new Date().toISOString(),
-      },
-    ] as unknown as import('$lib/domain/models').Meal[]);
-    // Arg-aware: only the breakfast slot has data; the initially-selected lunch
-    // slot is empty so the page mounts with an empty working list.
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(
-        mealType === 'breakfast'
-          ? {
-              ok: true,
-              data: {
-                id: '2025-06-13:breakfast',
-                date: '2025-06-13',
-                mealType: 'breakfast',
-                actor: 'mother',
-                items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-                createdAt: new Date().toISOString(),
-              },
-            }
-          : { ok: true, data: null },
-      ),
-    );
-
     const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, getByText } = render(MealPage);
+    const { queryByRole } = render(MealPage);
     await tick();
+    // No standalone Snídaně/Oběd/Svačina/Večeře pill buttons (CTA may include them).
+    const pillCandidates = ['Snídaně', 'Oběd', 'Svačina', 'Večeře'].map(name =>
+      queryByRole('button', { name }),
+    );
+    expect(pillCandidates.every(b => b === null)).toBe(true);
+  });
 
-    // Tap the occupied Snídaně pill (working list is empty → handlePillLoad fires)
-    await fireEvent.click(getByRole('button', { name: 'Snídaně' }));
+  it('redirects to returnTo when ?type= is missing — there is no `lunch` fallback anymore', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    vi.mocked(goto).mockClear();
+    mockPage.url = new URL('http://localhost/meal?date=2025-06-13&returnTo=/day/2025-06-13');
+    const { default: MealPage } = await import('./+page.svelte');
+    render(MealPage);
     await tick();
+    expect(goto).toHaveBeenCalledWith('/day/2025-06-13', { replaceState: true });
+  });
 
-    // loadBySlot must have been called for the breakfast slot
-    expect(mockLoadBySlot).toHaveBeenCalledWith('2025-06-13', 'breakfast');
-
-    // The persisted food should appear in the working meal (grid working-list)
-    expect(getByText('Brambory')).toBeInTheDocument();
+  it('redirects to today when ?type= is invalid (e.g. unknown value) and no returnTo is given', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    vi.mocked(goto).mockClear();
+    mockPage.url = new URL('http://localhost/meal?type=brunch');
+    const { default: MealPage } = await import('./+page.svelte');
+    render(MealPage);
+    await tick();
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`, { replaceState: true });
   });
 
   // ── Layout: family grid ───────────────────────────────────
@@ -210,20 +173,6 @@ describe('meal/+page.svelte', () => {
     await tick();
     expect(queryByText('Přidat jídlo')).not.toBeInTheDocument();
     expect(queryByText('🥛 Mléko')).toBeInTheDocument();
-  });
-
-  it('meal type pills hidden while drilled in, visible on grid', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, queryByRole } = render(MealPage);
-    await tick();
-    expect(queryByRole('button', { name: 'Snídaně' })).toBeInTheDocument();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    expect(queryByRole('button', { name: 'Snídaně' })).not.toBeInTheDocument();
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(queryByRole('button', { name: 'Snídaně' })).toBeInTheDocument();
   });
 
   it('eliminated banner hidden while drilled in, visible on grid', async () => {
@@ -1214,71 +1163,5 @@ describe('meal/+page.svelte', () => {
     // No interaction — the lunch slot was auto-loaded on mount.
     expect(mockLoadBySlot).toHaveBeenCalledWith('2025-06-13', 'lunch');
     expect(getByText('Brambory')).toBeInTheDocument();
-  });
-
-  // ── Return to the source slot after a MOVE must not discard (bug 2) ──
-
-  it('moving to an empty slot then back to the source slot does NOT trigger discard', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockMealSessionStore.set([
-      {
-        id: '2025-06-13:lunch', date: '2025-06-13', mealType: 'lunch', actor: 'mother',
-        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-        createdAt: new Date().toISOString(),
-      },
-    ] as unknown as import('$lib/domain/models').Meal[]);
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, getByText } = render(MealPage);
-    await tick();
-    await tick();
-    expect(getByText('Brambory')).toBeInTheDocument();
-
-    // MOVE to an empty slot (Svačina) — relabels, source slot is freed.
-    await fireEvent.click(getByRole('button', { name: 'Svačina' }));
-    await tick();
-
-    // Tap back onto Oběd — this is a MOVE-back, not a switch-away.
-    await fireEvent.click(getByRole('button', { name: 'Oběd' }));
-    await tick();
-
-    expect(mockWriteBuffer).not.toHaveBeenCalled();
-    expect(getByText('Brambory')).toBeInTheDocument();
-  });
-
-  it('saving after a MOVE empties the original source slot', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockMealSessionStore.set([
-      {
-        id: '2025-06-13:lunch', date: '2025-06-13', mealType: 'lunch', actor: 'mother',
-        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-        createdAt: new Date().toISOString(),
-      },
-    ] as unknown as import('$lib/domain/models').Meal[]);
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await tick();
-
-    // MOVE lunch → snack, then finalize.
-    await fireEvent.click(getByRole('button', { name: 'Svačina' }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
-    await tick();
-
-    // The new snack slot is saved …
-    expect(mockSave).toHaveBeenCalledOnce();
-    expect(mockSave.mock.calls[0][0]).toMatchObject({ mealType: 'snack' });
-    // … and the stale lunch source slot is removed (no duplicate).
-    expect(mockRemove).toHaveBeenCalledWith('2025-06-13', 'lunch');
   });
 });

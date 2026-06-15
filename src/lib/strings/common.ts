@@ -22,11 +22,15 @@ export const commonStrings = {
 
   // ── FAB action sheet ──────────────────────────────────────
   fabSheet: {
-    heading:    'Co chceš přidat?',
-    addMeal:    'Přidat jídlo',
-    addPhoto:   'Přidat fotku',
-    addSkin:    'Zaznamenat stav kůže',
-    cancel:     'Zrušit',
+    heading:        'Co chceš přidat?',
+    addMeal:        'Přidat jídlo',
+    addPhoto:       'Přidat fotku',
+    addSkin:        'Zaznamenat stav kůže',
+    cancel:         'Zrušit',
+    /** Heading shown on the second-level meal-type submenu. */
+    pickMealType:   'Jaké jídlo zaznamenáš?',
+    /** Aria suffix appended to a submenu row when that slot is already logged. */
+    alreadyLogged:  'již zaznamenáno',
   },
 
   // ── Today page ────────────────────────────────────────────

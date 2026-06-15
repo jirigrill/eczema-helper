@@ -156,9 +156,13 @@ describe('+layout.svelte — bottom nav visibility', () => {
     const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
     fab.click();
     await tick();
+    // Tapping `Přidat jídlo` opens the meal-type submenu; picking `Snídaně`
+    // navigates with date + returnTo bound to the page's selectedDate.
     await fireEvent.click(getByTestId('fab-action-meal'));
     await tick();
-    expect(mockGoto).toHaveBeenCalledWith('/meal?date=2025-01-15&returnTo=/day/2025-01-15');
+    await fireEvent.click(getByTestId('fab-meal-type-breakfast'));
+    await tick();
+    expect(mockGoto).toHaveBeenCalledWith('/meal?type=breakfast&date=2025-01-15&returnTo=/day/2025-01-15');
   });
 });
 

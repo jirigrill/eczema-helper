@@ -14,7 +14,8 @@
   import { commonStrings } from '$lib/strings/common';
   import { todayIso } from '$lib/utils/date';
   import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
-  import type { SkinPhoto } from '$lib/domain/models';
+  import { createMealSession } from '$lib/stores/meal-session';
+  import type { SkinPhoto, MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
 
   let { children } = $props();
@@ -29,6 +30,11 @@
   const dnesActive = $derived($page.params.date === todayIso());
 
   const selectedDate = $derived($page.params.date ?? todayIso());
+
+  // Day-scoped meal session — feeds the Meal-Type FAB Submenu so it can
+  // mark already-logged slots with a ✓ for the current `selectedDate`.
+  const dayMealSession = $derived(createMealSession(selectedDate));
+  const loggedTypes = $derived<MealType[]>($dayMealSession.map((m) => m.mealType));
 
   let fabOpen = $state(false);
 
@@ -111,5 +117,10 @@
 {/if}
 
 {#if fabOpen}
-  <FabActionSheet date={selectedDate} onclose={() => (fabOpen = false)} oncapturephoto={handleFabPhotoCapture} />
+  <FabActionSheet
+    date={selectedDate}
+    {loggedTypes}
+    onclose={() => (fabOpen = false)}
+    oncapturephoto={handleFabPhotoCapture}
+  />
 {/if}

@@ -420,17 +420,21 @@ the editor) returns it to `idle`, storing nothing. The working session caches
 **last-confirmed** amount/prep per food — de-selecting a confirmed food keeps the
 cache for re-selection; discarding an unconfirmed edit does not.
 
-### Move / Switch-Away (meal-type pill)
-The two non-empty-working-list pill actions. **Move** = tap an *empty* pill →
-relabel the working foods to that type and empty the source slot (foods relocate,
-nothing lost, no prompt). **Switch-Away** = tap a *filled* pill (a slot with a
-finalized meal) → load that meal, abandoning the current working list (guarded by
-the commit-gate undo). When the working list is empty, a pill tap simply **loads**
-that slot. Landing on `/meal?type=…` **hydrates** the pre-selected slot on mount
-(same effect as loading it), so an existing meal opened from the day screen shows
-its foods immediately. The slot a working list was loaded/hydrated from is its
-**source**; a Move empties the source by excluding it from the occupied set and
-deleting its persisted record when the relabeled meal is finalized. → See ADR-0019.
+### Fixed-at-Entry (meal type)
+Meal type is chosen **before any food is added** and is **fixed** for that composing
+session — `/meal` composes exactly one meal of one type. There is no mid-add type
+change and no in-`/meal` slot switching. Because type is bound at entry, a draft and a
+finalized meal can never contend for one slot, so slot collisions are impossible *by
+construction*. → See ADR-0018. (Supersedes the earlier *mutable-attribute* model with
+**Move** / **Switch-Away** pill actions, recorded in the superseded ADR-0019.)
+
+### Meal-Type FAB Submenu / Meal Launcher
+The day-page entry into `/meal`. The **FAB** opens a submenu of the four `MealType`s;
+an already-logged type carries a ✓ and **edits** that meal, an unlogged type opens an
+**empty** compose session. **Tapping a finalized meal row** (`MealCard`) opens it for
+editing. Both routes land on the same `/meal?type=X&date=…&returnTo=…` loaded state.
+The FAB is **day-scoped** (bound to the day page's `selectedDate`), so backfilling an
+earlier day works. → See ADR-0018.
 
 ---
 
@@ -582,8 +586,8 @@ when read-only. Distinct from `DayCard` (today-screen data cards).
 The selectable food tile on `/meal`. Owns the unified state→class visual vocabulary
 of meal logging: `idle` (plain) · `editing` (bordeaux outline) · `confirmed`
 (bordeaux fill) · `locked` (greyed), plus the **conflict** (eliminated-today) red
-variants of each. The same vocabulary — not the layout — is reused by
-`MealTypePills`. See PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
+variants of each. See PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
+(The vocabulary was previously also reused by the now-retired `MealTypePills`.)
 
 ### FoodEditor
 
@@ -592,11 +596,14 @@ unwraps beneath an `editing` food. One component mounted in two hosts: the drill
 `FoodToken` and the grid working-list row. Renders `Chip`s; emits amount/preparation
 changes. Carries no meal-level `Poznámka` (that lives on the grid only).
 
-### MealTypePills
+### MealTypePills *(retired)*
 
-Thin wrapper over the (extended) `Chip` rendering the four `MealType` pills. Owns the
-empty/current/filled visual state (derived from slot occupancy + the working list's
-current type) and the **move / switch-away / load** click logic. → See ADR-0019.
+The in-`/meal` meal-type pill row that owned the empty/current/filled visual state and
+the move / switch-away / load click logic. **Retired** when meal type became
+[Fixed-at-Entry](#fixed-at-entry-meal-type): type is chosen on the day page (see
+[Meal-Type FAB Submenu](#meal-type-fab-submenu--meal-launcher)) and no longer switches
+inside `/meal`. The component, its tests, and the `discard-buffer.loadedFromType`
+field were removed in issue #266. → See ADR-0018 (supersedes ADR-0019).
 
 ---
 
