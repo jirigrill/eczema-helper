@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { Meal, MealType, PortionKind, PreparationMethod } from '$lib/domain/models';
+  import type { Meal, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -12,21 +12,20 @@
   import { commonStrings, reintroDayLabel } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
   import { familyStrings } from '$lib/strings/families';
-  import { formatDateLongCs } from '$lib/utils/date';
+  import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext } from '$lib/domain/schedule-queries';
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
-  import MealTypePills from '$lib/components/MealTypePills.svelte';
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { mealSession, createMealSession } from '$lib/stores/meal-session';
+  import { mealSession } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
 
@@ -62,101 +61,48 @@
   const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
   const reintroInfo = $derived(ctx?.reintroInfo ?? null);
 
-  // ── Meal type pills ──────────────────────────────────────
+  // ── Meal type: Fixed-at-Entry (ADR-0018) ─────────────────
+  // The meal type is read once from the URL and never mutated in-screen.
+  // The Meal-Type FAB Submenu is the only legal entry point, so a missing
+  // or invalid `?type=` is treated as a stale link / hand-typed URL and
+  // bounces back to the day overview. There is no longer a 'lunch' fallback.
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
   type MealTypeKind = typeof mealTypes[number];
-  function parseMealType(raw: string | null): MealTypeKind {
-    return mealTypes.includes(raw as MealTypeKind) ? (raw as MealTypeKind) : 'lunch';
+  function isMealType(raw: string | null): raw is MealTypeKind {
+    return mealTypes.includes(raw as MealTypeKind);
   }
-  let selectedMealType = $state<MealTypeKind>(parseMealType(page.url.searchParams.get('type')));
+  const urlType = page.url.searchParams.get('type');
+  if (!isMealType(urlType)) {
+    const fallback = parseDayQuery(page.url).returnTo || `/day/${todayIso()}`;
+    goto(fallback, { replaceState: true });
+  }
+  const selectedMealType: MealTypeKind = isMealType(urlType) ? urlType : 'lunch';
 
-  /**
-   * The slot the working list was hydrated from (on mount or via a pill load).
-   * A MOVE relabels `selectedMealType` but keeps this pointing at the origin, so
-   * the source slot reads as free (excluded from `occupiedTypes`) and is deleted
-   * on save when the meal is finalized under a different type (ADR-0019).
-   */
-  let loadedFromType = $state<MealTypeKind | null>(null);
-
-  /** Reactive meal session for targetDate — re-created when date changes. */
-  let dateScopedMealSession = $state(createMealSession(parseDayQuery(page.url).date));
+  // ── Slot hydration on mount ──────────────────────────────
+  // Type is fixed, so this only needs to run once per mount: load the
+  // addressed slot, or restore an undo-buffer captured for the same slot.
   $effect(() => {
-    dateScopedMealSession = createMealSession(targetDate);
-  });
-
-  /**
-   * Meal types that already have a finalized meal for targetDate. The slot the
-   * working list was loaded from is excluded — a MOVE has logically emptied it,
-   * so returning to it is a MOVE-back, not a data-destroying switch-away.
-   */
-  const occupiedTypes = $derived(
-    $dateScopedMealSession.map(m => m.mealType).filter(t => t !== loadedFromType)
-  );
-
-  // ── Slot hydration, keyed on the URL (date + type) ────────
-  // SvelteKit reuses this component across `?type=` navigations, so a
-  // switch-away `goto` does NOT remount — the only thing that changes is the
-  // URL. This effect reacts to that change and hydrates the addressed slot:
-  // landing on /meal?type=lunch surfaces lunch's foods, and switching to
-  // another occupied slot loads *that* slot rather than carrying the old list
-  // over. A matching discard buffer means we arrived here via undo → restore it.
-  let lastHydratedKey = '';
-  $effect(() => {
-    const type = parseMealType(page.url.searchParams.get('type'));
-    const key = `${targetDate}:${type}`;
-    if (key === lastHydratedKey) return;
-    lastHydratedKey = key;
-
     const buf = get(discardBuffer);
-    if (buf && buf.mealType === type) {
+    if (buf && buf.mealType === selectedMealType) {
       // Undo: we navigated back to the slot the buffer was captured for.
       clearBuffer();
-      selectedMealType = type;
       workingMeal = buf.workingMeal;
-      loadedFromType = buf.loadedFromType ?? null;
       return;
     }
 
-    selectedMealType = type;
-    void mealSession.loadBySlot(targetDate, type).then((result) => {
-      // Guard against races: only apply if the URL still addresses this slot.
-      if (parseMealType(page.url.searchParams.get('type')) !== type) return;
+    void mealSession.loadBySlot(targetDate, selectedMealType).then((result) => {
       if (result.ok && result.data) {
         workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
         mealNotes = result.data.notes ?? '';
-        loadedFromType = type;
       } else {
         workingMeal = emptyWorkingMeal();
         mealNotes = '';
-        loadedFromType = null;
       }
     });
   });
 
-  async function handlePillLoad(type: MealType): Promise<void> {
-    selectedMealType = type;
-    const result = await mealSession.loadBySlot(targetDate, type);
-    if (result.ok && result.data) {
-      workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
-      mealNotes = result.data.notes ?? '';
-      loadedFromType = type;
-    } else {
-      loadedFromType = null;
-    }
-  }
-
-  function handlePillMove(type: MealType): void {
-    selectedMealType = type;
-  }
-
-  function handlePillSwitchAway(type: MealType): void {
-    writeBuffer({ workingMeal, mealType: selectedMealType, returnTo, loadedFromType });
-    goto(`/meal?returnTo=${encodeURIComponent(returnTo)}&type=${type}&date=${targetDate}`);
-  }
-
   // ── Working meal state ────────────────────────────────────
-  // Starts empty; the URL-keyed hydration effect above fills it on mount
-  // (loading the addressed slot, or restoring the discard buffer on undo).
+  // Starts empty; the hydration effect above fills it on mount.
   let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let mealNotes = $state('');
 
@@ -342,16 +288,6 @@
       saveErrorMessage = result.error;
       return;
     }
-    // MOVE semantics (ADR-0019): the working list came from another slot and was
-    // relabeled. Now that it is persisted under the new type, empty the source so
-    // the foods relocate rather than duplicate.
-    if (loadedFromType && loadedFromType !== selectedMealType) {
-      const removed = await mealSession.remove(targetDate, loadedFromType);
-      if (!removed.ok) {
-        saveErrorMessage = removed.error;
-        return;
-      }
-    }
     goto(returnTo);
   }
 
@@ -368,7 +304,7 @@
       drilledFamily = null;
     } else {
       if (isNonEmpty(workingMeal)) {
-        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo, loadedFromType });
+        writeBuffer({ workingMeal, mealType: selectedMealType, returnTo });
       }
       goto(returnTo);
     }
@@ -455,19 +391,8 @@
       {/snippet}
     </PageHeader>
 
-    <!-- Meal type pills -->
+    <!-- Meal type is fixed at entry (ADR-0018) — no pills here. -->
     {#if !drilledFamily}
-    <div class="px-4 pb-3">
-      <MealTypePills
-        currentType={selectedMealType}
-        {occupiedTypes}
-        isWorkingListNonEmpty={isNonEmpty(workingMeal)}
-        onLoad={handlePillLoad}
-        onMove={handlePillMove}
-        onSwitchAway={handlePillSwitchAway}
-      />
-    </div>
-
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
       {@const cat = getCategoryConfig(reintroInfo.allergenId)}

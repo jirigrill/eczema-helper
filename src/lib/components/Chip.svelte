@@ -9,7 +9,7 @@
     class: extraClass = '',
   }: {
     active: boolean;
-    variant?: 'default' | 'danger' | 'current';
+    variant?: 'default' | 'danger';
     onclick?: (e: MouseEvent) => void;
     children?: Snippet;
     class?: string;
@@ -18,9 +18,7 @@
   const cls = $derived(
     variant === 'danger'
       ? active ? 'chip--danger-active' : 'chip--danger-muted'
-      : variant === 'current'
-        ? 'chip--current'
-        : active ? 'chip--active' : 'chip--muted'
+      : active ? 'chip--active' : 'chip--muted'
   );
 </script>
 

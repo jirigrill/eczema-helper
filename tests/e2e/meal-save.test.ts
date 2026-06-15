@@ -68,7 +68,7 @@ test('meal save: add a food via drill-in, hit Hotovo, navigates to /day/<today>'
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   await addBramboraAndCommit(page);
@@ -83,7 +83,7 @@ test('liveQuery: meal saved on /meal appears on /day/<today> without reload', as
 
   await expect(page.getByText('Zatím žádný záznam.')).toBeVisible();
 
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await addBramboraAndCommit(page);
   await page.getByRole('button', { name: /Hotovo/ }).click();
 
@@ -98,7 +98,7 @@ test('meal save failure: shows an error toast and stays on /meal', async ({ page
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   // Force the next persistence write to throw, driving DexieMealRepository.save
@@ -163,6 +163,7 @@ test('?date= param: saves to specified date, navigates to /day/<date>', async ({
 // ── Issue #198: date-scoped schedule context ──────────────────────────────────
 
 test('back-dated /meal shows past date\'s elimination set, not today\'s', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
   await page.evaluate(async () => {
     const today = new Date().toISOString().split('T')[0];
     const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
@@ -194,11 +195,11 @@ test('back-dated /meal shows past date\'s elimination set, not today\'s', async 
   });
 
   const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
-  await page.goto(`/meal?date=${pastDate}`);
+  await page.goto(`/meal?type=lunch&date=${pastDate}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
   await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 
-  await page.goto('/meal');
+  await page.goto(`/meal?type=lunch&date=${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
   await expect(page.getByText('Dnes vyřazeno:')).not.toBeVisible();
 });

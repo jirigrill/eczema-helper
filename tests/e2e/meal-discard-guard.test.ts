@@ -65,7 +65,7 @@ test('discard guard: back with empty working list navigates immediately, no toas
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   await page.getByRole('button', { name: '‹' }).click();
@@ -79,7 +79,7 @@ test('discard guard: back with non-empty working list discards and shows toast',
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   await addBramboraAndCommit(page);
@@ -97,7 +97,7 @@ test('discard guard: tapping Zpět on toast restores the working list', async ({
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
-  await page.goto(`/meal?returnTo=/day/${today}`);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   await addBramboraAndCommit(page);

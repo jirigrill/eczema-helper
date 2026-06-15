@@ -102,10 +102,13 @@ test('FAB opens action sheet with three actions', async ({ page }) => {
   await expect(page.getByTestId('fab-action-photo')).toBeVisible();
 });
 
-test('FAB meal action opens meal page', async ({ page }) => {
+test('FAB meal action opens the meal-type submenu, then a row navigates to /meal', async ({ page }) => {
   await completeOnboarding(page);
   await openFabSheet(page);
   await page.getByTestId('fab-action-meal').click();
+  // Submenu replaces the action list with the four meal types.
+  await expect(page.getByTestId('fab-meal-type-lunch')).toBeVisible();
+  await page.getByTestId('fab-meal-type-lunch').click();
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 });
 
@@ -157,6 +160,7 @@ test('FAB on /day/[date] opens meal page for that date', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Přidat záznam' })).toBeVisible({ timeout: 10000 });
   await openFabSheet(page);
   await page.getByTestId('fab-action-meal').click();
+  await page.getByTestId('fab-meal-type-lunch').click();
   // Meal page loaded — verify it renders for the correct date, not just that the URL is right
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`date=${today}`));

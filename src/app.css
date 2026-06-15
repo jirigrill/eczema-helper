@@ -117,10 +117,7 @@ button, a, [role="button"] {
     @apply bg-white/85 text-danger border border-danger/40;
   }
 
-  /* Current variant — matches FoodToken editing state (2px bordeaux border + tint) */
-  .chip--current {
-    @apply bg-primary/5 text-primary font-medium border-2 border-primary;
-  }
+  /* Current variant — retired in #266 / ADR-0018 with MealTypePills. */
 
   /* ── Form atoms ──────────────────────────────────────────────────── */
 

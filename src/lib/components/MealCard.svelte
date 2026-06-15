@@ -1,14 +1,13 @@
 <script lang="ts">
   import type { Meal } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
-  import { actionStrings } from '$lib/strings/actions';
   import { mealConfig } from '$lib/config/meals';
   import { portionStrings } from '$lib/strings/portions';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import DayCard from './DayCard.svelte';
 
   let {
-    date,
+    date: _date,
     meals,
     eliminatedToday,
   }: {
@@ -16,6 +15,10 @@
     meals: Meal[];
     eliminatedToday: string[];
   } = $props();
+
+  // `date` is intentionally unused here — meals are pre-filtered by the caller
+  // and the launcher (FAB submenu) lives outside this card. Kept in the props
+  // contract for the day-page integration test and future tap-to-edit (#265).
 
   const catalog = new BundledCatalogAdapter();
   const mealTypeOrder = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
@@ -28,13 +31,7 @@
 
 </script>
 
-{#snippet addLink()}
-  <a
-    href="/meal?date={date}&returnTo=/day/{date}"
-    class="text-primary text-xs font-medium">+ {actionStrings.add}</a>
-{/snippet}
-
-<DayCard label={commonStrings.today.mealsLabel} right={addLink}>
+<DayCard label={commonStrings.today.mealsLabel}>
   {#if mealsSorted.length === 0}
     <p class="body-muted">{commonStrings.today.mealsEmpty}</p>
   {:else}
