@@ -11,6 +11,8 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, reintroDayLabel } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
+  import { portionStrings } from '$lib/strings/portions';
+  import { preparationStrings } from '$lib/strings/preparations';
   import { familyStrings } from '$lib/strings/families';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { scheduleRaw } from '$lib/stores/schedule-context';
@@ -750,8 +752,11 @@
                       onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
                     >{food.name}</button>
                     {#if isConfirmedLike}
-                      {@const amount = food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount ?? ''}
-                      <span class="text-xs {isEliminated ? 'text-white' : 'text-text-muted'}">{amount}</span>
+                      {@const amount = food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount}
+                      {@const prep = food.state.status === 'confirmed' ? food.state.preparation : food.cachedPreparation}
+                      <span class="text-xs {isEliminated ? 'text-white' : 'text-text-muted'}">
+                        {amount ? portionStrings[amount].label : ''}{#if prep} · {preparationStrings[prep].label}{/if}
+                      </span>
                     {/if}
                     <button
                       type="button"

@@ -139,4 +139,31 @@ describe('FabActionSheet', () => {
     expect(onclose).toHaveBeenCalledOnce();
     expect(gotoMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['breakfast', '🌅'],
+    ['lunch',     '☀️'],
+    ['snack',     '🍎'],
+    ['dinner',    '🌙'],
+  ] as const)('meal-type submenu row for %s renders an <svg> icon, not the legacy emoji', async (mealType, emoji) => {
+    const { getByTestId, queryByText } = render(FabActionSheet, {
+      props: { date, onclose: vi.fn() },
+    });
+    await fireEvent.click(getByTestId('fab-action-meal'));
+    await tick();
+    const row = getByTestId(`fab-meal-type-${mealType}`);
+    expect(row.querySelector('svg')).not.toBeNull();
+    expect(queryByText(emoji)).not.toBeInTheDocument();
+  });
+
+  it('the ✓ logged marker still renders alongside the new SVG icon', async () => {
+    const { getByTestId } = render(FabActionSheet, {
+      props: { date, onclose: vi.fn(), loggedTypes: ['breakfast'] },
+    });
+    await fireEvent.click(getByTestId('fab-action-meal'));
+    await tick();
+    const row = getByTestId('fab-meal-type-breakfast');
+    expect(row.querySelector('svg')).not.toBeNull();
+    expect(row.textContent).toContain('✓');
+  });
 });

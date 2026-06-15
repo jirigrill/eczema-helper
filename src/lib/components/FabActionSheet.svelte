@@ -66,6 +66,7 @@
 
     {#each mealTypes as type (type)}
       {@const cfg = mealConfig[type]}
+      {@const Icon = cfg.icon}
       {@const logged = loggedTypes.includes(type)}
       <button
         data-testid="fab-meal-type-{type}"
@@ -76,8 +77,8 @@
         class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
         onclick={() => navigateToMeal(type)}
       >
-        <span class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-lg">
-          {cfg.icon}
+        <span class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+          <Icon class="w-[22px] h-[22px]" />
         </span>
         <span class="flex-1 text-[15px] font-semibold text-text text-left">
           {cfg.label}

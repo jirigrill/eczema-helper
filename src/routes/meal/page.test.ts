@@ -1617,4 +1617,86 @@ describe('meal/+page.svelte', () => {
     await tick();
     expect(mockSave).not.toHaveBeenCalled();
   });
+
+  // ── Working-list amount + preparation rendering (#279) ─────
+  describe('working-list amount + preparation suffix', () => {
+    function lunchWithSpoonBrambory() {
+      return {
+        ok: true,
+        data: {
+          id: '2025-06-13:lunch',
+          date: '2025-06-13',
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'spoon' }],
+          createdAt: new Date().toISOString(),
+        },
+      };
+    }
+    function lunchWithSpoonBramboryBoiled() {
+      return {
+        ok: true,
+        data: {
+          id: '2025-06-13:lunch',
+          date: '2025-06-13',
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'spoon', preparationMethod: 'boiled' }],
+          createdAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    it('confirmed-food row renders Czech portion label "Lžíce" — not raw key, not short form', async () => {
+      setReady();
+      mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+      mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+        Promise.resolve(mealType === 'lunch' ? lunchWithSpoonBrambory() : { ok: true, data: null }),
+      );
+      const { default: MealPage } = await import('./+page.svelte');
+      const { container } = render(MealPage);
+      await tick();
+      await tick();
+
+      const row = container.querySelector('[data-food-token]');
+      expect(row).not.toBeNull();
+      const text = row!.textContent ?? '';
+      expect(text).toMatch(/Lžíce/);
+      // Must not show the raw key 'spoon' or the short form 'lžíce' (lowercase).
+      expect(text).not.toMatch(/\bspoon\b/);
+      expect(text).not.toMatch(/\blžíce\b/);
+    });
+
+    it('confirmed-food row appends "· {preparation label}" only when preparationMethod is set', async () => {
+      setReady();
+      mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+      mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+        Promise.resolve(mealType === 'lunch' ? lunchWithSpoonBramboryBoiled() : { ok: true, data: null }),
+      );
+      const { default: MealPage } = await import('./+page.svelte');
+      const { container } = render(MealPage);
+      await tick();
+      await tick();
+
+      const row = container.querySelector('[data-food-token]');
+      const text = row!.textContent ?? '';
+      expect(text).toMatch(/Lžíce\s*·\s*Vařené/);
+    });
+
+    it('confirmed-food row omits the "·" separator when no preparation is set', async () => {
+      setReady();
+      mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+      mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+        Promise.resolve(mealType === 'lunch' ? lunchWithSpoonBrambory() : { ok: true, data: null }),
+      );
+      const { default: MealPage } = await import('./+page.svelte');
+      const { container } = render(MealPage);
+      await tick();
+      await tick();
+
+      const row = container.querySelector('[data-food-token]');
+      const text = row!.textContent ?? '';
+      expect(text).not.toMatch(/·/);
+    });
+  });
 });
