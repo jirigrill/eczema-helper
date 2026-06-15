@@ -75,4 +75,26 @@ describe('PageHeader', () => {
     });
     expect(getByText('Pravá strana')).toBeInTheDocument();
   });
+
+  // Back-chevron sizing: under `compact` it stays `text-lg` to match the
+  // small heading; under `large` it scales up to `text-3xl` so it reads at
+  // the same optical weight as the page-heading title (issue #278 follow-up).
+
+  it('renders the back chevron at text-lg under the compact variant', () => {
+    const onBack = vi.fn();
+    const { getByText } = render(PageHeader, { props: { title: 'Nastavení', onBack } });
+    const chevron = getByText('‹');
+    expect(chevron.classList.contains('text-lg')).toBe(true);
+    expect(chevron.classList.contains('text-3xl')).toBe(false);
+  });
+
+  it('renders the back chevron at text-3xl under the large variant', () => {
+    const onBack = vi.fn();
+    const { getByText } = render(PageHeader, {
+      props: { title: 'Oběd', variant: 'large', onBack },
+    });
+    const chevron = getByText('‹');
+    expect(chevron.classList.contains('text-3xl')).toBe(true);
+    expect(chevron.classList.contains('text-lg')).toBe(false);
+  });
 });
