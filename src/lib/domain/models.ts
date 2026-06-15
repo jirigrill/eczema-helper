@@ -105,6 +105,13 @@ export type Meal = {
   items: MealItem[];
   notes?: string; // optional free-text observation (renamed from label)
   createdAt: string; // ISO datetime; render as Czech HH:MM at display sites (ADR-0014)
+  /**
+   * ISO datetime, set on edit-update only (issue #277, ADR-0018). Absent on a
+   * compose-new write — `undefined` means "never edited since creation". Edits
+   * preserve `createdAt` and stamp this field; only a fresh compose-new mints
+   * a new `createdAt`.
+   */
+  updatedAt?: string;
 };
 
 export type SkinObservation = {

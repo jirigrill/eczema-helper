@@ -154,8 +154,13 @@ export const commonStrings = {
     // ── Issue #244: modal-edit flow ────────────────────────
     confirmedFoodsLabel:  'Přidané potraviny',
     mealNotesLabel:       'Poznámka k jídlu',
-    // ── Issue #247: discard guard ──────────────────────────
-    discardedToast:       'Jídlo zahozeno',
+    // ── Issue #247 / #277: dirty-aware discard toast (one per DiscardKind) ──
+    /** Compose-new back-out: a fresh draft was discarded (neuter-singular). */
+    discardedComposeToast: 'Jídlo neuloženo',
+    /** Edit back-out, dirty: unsaved edits to a saved meal were dropped (feminine-plural "změny"). */
+    discardedEditToast:    'Změny neuloženy',
+    /** Explicit delete: the saved meal was removed; undo re-saves a fresh meal. */
+    deletedToast:          'Jídlo smazáno',
     // ── Issue #268: explicit delete + empty-Hotovo guard ───
     deleteConfirmHeading: 'Smazat jídlo?',
     deleteConfirmBody:    'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',

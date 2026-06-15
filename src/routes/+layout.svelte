@@ -67,6 +67,22 @@
     discardUndoFired = false;
   }
 
+  // ── Discard toast routing (issue #277) ─────────────────────
+  // The layout doesn't know what just happened on /meal — that context is
+  // carried in the buffer's `kind` discriminator. Map each kind to the
+  // matching Czech-grammar-correct string; the back-out paths and the
+  // delete path each set their own kind, so we never have to reverse-engineer
+  // here.
+  const discardMessage = $derived(() => {
+    const buf = $discardBuffer;
+    if (!buf) return '';
+    switch (buf.kind) {
+      case 'compose': return commonStrings.meal.discardedComposeToast;
+      case 'edit':    return commonStrings.meal.discardedEditToast;
+      case 'delete':  return commonStrings.meal.deletedToast;
+    }
+  });
+
   $effect(() => {
     if (ctx.status === 'loading') return;
     if (ctx.status === 'empty' && !isOnboarding) goto('/');
@@ -109,7 +125,7 @@
 
 {#if $discardBuffer}
   <Toast
-    message={commonStrings.meal.discardedToast}
+    message={discardMessage()}
     type="info"
     onUndo={handleDiscardUndo}
     onClose={handleDiscardClose}

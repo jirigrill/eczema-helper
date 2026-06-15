@@ -73,7 +73,7 @@ test('meal save: add a food via drill-in, hit Hotovo, navigates to /day/<today>'
 
   await addBramboraAndCommit(page);
 
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
@@ -85,7 +85,7 @@ test('liveQuery: meal saved on /meal appears on /day/<today> without reload', as
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await addBramboraAndCommit(page);
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   await expect(page).toHaveURL(`/day/${today}`);
   await expect(page.getByText('Oběd')).toBeVisible();
@@ -111,7 +111,7 @@ test('meal save failure: shows an error toast and stays on /meal', async ({ page
   });
 
   await addBramboraAndCommit(page);
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   // Error surfaced and the user is NOT navigated away — the working meal survives.
   await expect(page.getByRole('alert')).toContainText('QuotaExceededError');
@@ -154,7 +154,7 @@ test('?date= param: saves to specified date, navigates to /day/<date>', async ({
   await expect(page.getByText('Přidat jídlo')).toBeVisible();
 
   await addBramboraAndCommit(page);
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Snídaně/ }).click();
 
   await expect(page).toHaveURL('/day/2025-01-15');
   await expect(page.getByText('Brambory')).toBeVisible();

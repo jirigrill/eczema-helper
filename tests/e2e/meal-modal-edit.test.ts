@@ -357,7 +357,7 @@ test('AC9: "Hotovo — {Meal}" persists meal with notes and navigates to returnT
   await page.getByLabel('Poznámka k jídlu').fill('U babičky');
 
   // Hit Hotovo
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   // Navigated to returnTo
   await expect(page).toHaveURL(`/day/${today}`);
@@ -370,7 +370,7 @@ test('AC9: saved meal appears on /day/<today> after Hotovo', async ({ page }) =>
   await page.getByRole('button', { name: /Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   await expect(page).toHaveURL(`/day/${today}`);
   await expect(page.getByText('Brambory')).toBeVisible();
@@ -415,7 +415,7 @@ test('AC10: meal written to DB only after Hotovo', async ({ page }) => {
   await page.getByRole('button', { name: /Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   await expect(page).toHaveURL(`/day/${today}`);
 
@@ -561,7 +561,7 @@ test('AC245-4: clicking outside the grid-row editor confirms the food and collap
   await expect(page.getByText('Množství')).not.toBeVisible();
   // Food is still in the working list (confirmed, not removed)
   await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Hotovo/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Uložit Oběd/ })).toBeVisible();
 });
 
 test('AC245-5: clicking a family-grid tile while a row is editing closes the editor and does not drill in', async ({ page }) => {

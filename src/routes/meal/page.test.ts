@@ -287,16 +287,18 @@ describe('meal/+page.svelte', () => {
     expect(cta).toBeInTheDocument();
   });
 
-  it('CTA reads "Hotovo" on grid with no confirmed foods', async () => {
+  it('CTA reads "Uložit" on grid with no confirmed foods', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
-    const cta = getByRole('button', { name: 'Hotovo' });
+    // Compose-new + empty list: the CTA simplifies to bare "Uložit" (disabled).
+    const cta = getByRole('button', { name: 'Uložit' });
     expect(cta).toBeInTheDocument();
+    expect(cta.getAttribute('aria-disabled')).toBe('true');
   });
 
-  it('CTA reads "Hotovo — {Meal}" on grid when confirmed foods exist', async () => {
+  it('CTA reads "Uložit {MealType}" on grid when confirmed foods exist (compose-new)', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
@@ -312,8 +314,8 @@ describe('meal/+page.svelte', () => {
     // Commit family: click "Uložit Mléko"
     await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
     await tick();
-    // Back on grid — button should say "Hotovo — Oběd"
-    const cta = getByRole('button', { name: /Hotovo — Oběd/ });
+    // Back on grid — button should now read "Uložit Oběd" (compose-new finalize).
+    const cta = getByRole('button', { name: /Uložit Oběd/ });
     expect(cta).toBeInTheDocument();
   });
 
@@ -383,7 +385,7 @@ describe('meal/+page.svelte', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('"Hotovo" with confirmed foods calls mealSession.save once', async () => {
+  it('"Uložit Oběd" with confirmed foods calls mealSession.save once', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
@@ -396,7 +398,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
     await tick();
     expect(mockSave).toHaveBeenCalledOnce();
     const saved = mockSave.mock.calls[0][0];
@@ -404,12 +406,12 @@ describe('meal/+page.svelte', () => {
     expect(saved.items[0].name).toBe('Kravské mléko');
   });
 
-  it('"Hotovo" with no confirmed foods does NOT call mealSession.save', async () => {
+  it('"Uložit" with no confirmed foods does NOT call mealSession.save (disabled)', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
-    await fireEvent.click(getByRole('button', { name: 'Hotovo' }));
+    await fireEvent.click(getByRole('button', { name: 'Uložit' }));
     await tick();
     expect(mockSave).not.toHaveBeenCalled();
   });
@@ -488,7 +490,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
     await tick();
     expect(goto).toHaveBeenCalledWith(`/day/${today}`);
   });
@@ -502,7 +504,7 @@ describe('meal/+page.svelte', () => {
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, findByText } = render(MealPage);
     await tick();
-    // add + confirm + commit a food, then tap Hotovo
+    // add + confirm + commit a food, then tap finalize
     await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
@@ -511,7 +513,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
     await tick();
-    await fireEvent.click(getByRole('button', { name: /Hotovo/ }));
+    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
     await tick();
     expect(mockSave).toHaveBeenCalledOnce();
     // The error message is shown and the user stays on the meal screen.
@@ -825,7 +827,7 @@ describe('meal/+page.svelte', () => {
     // Editor collapsed, food still present and confirmed
     expect(queryByText('Množství')).not.toBeInTheDocument();
     expect(getByRole('button', { name: 'Kravské mléko' })).toBeInTheDocument();
-    expect(getByRole('button', { name: /Hotovo — Oběd/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Uložit Oběd/ })).toBeInTheDocument();
   });
 
   it('tapping another working-list row while one is editing confirms the first and opens the second', async () => {
@@ -882,7 +884,7 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
     await tick();
     // Back on grid — CTA should be danger-red
-    const cta = getByRole('button', { name: /Hotovo/ });
+    const cta = getByRole('button', { name: /Uložit Oběd/ });
     expect(cta.className).toContain('bg-danger');
   });
 
@@ -904,7 +906,7 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(removeBtn);
     await tick();
     // CTA should be back to primary (aria-disabled since nothing confirmed)
-    const cta = getByRole('button', { name: 'Hotovo' });
+    const cta = getByRole('button', { name: 'Uložit' });
     expect(cta.className).not.toContain('bg-warning');
   });
 
@@ -1424,5 +1426,194 @@ describe('meal/+page.svelte', () => {
     await tick();
     await tick();
     expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+  });
+  // ── Issue #277: dirty-aware discard + unified Uložit CTA ────────
+
+  // The 9 tests below cover the AC for issue #277. They share an
+  // assumption with the existing tests: mockLoadBySlot, mockMealSessionStore,
+  // and mockWriteBuffer are reset by `beforeEach`.
+
+  function lunchSavedAtFixedTime() {
+    return {
+      ok: true,
+      data: {
+        id: '2025-06-13:lunch',
+        date: '2025-06-13',
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+        // Fixed createdAt — the AC requires this to be preserved across
+        // edit-update; if a test sees `Date.now()`-shaped value back, the
+        // preservation broke.
+        createdAt: '2025-06-13T08:00:00.000Z',
+      },
+    };
+  }
+
+  it('finalize CTA reads "Uložit změny" (disabled) when editing a clean existing meal', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole } = render(MealPage);
+    // Wait for hydration.
+    const cta = await findByRole('button', { name: 'Uložit změny' });
+    expect(cta).toBeInTheDocument();
+    expect(cta.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('finalize CTA "Uložit změny" becomes enabled once the user dirties the meal (notes change)', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await findByRole('button', { name: 'Uložit změny' });
+    // Type into the notes textarea — that flips dirty=true.
+    const notes = getByRole('textbox', { name: /Poznámka/ });
+    await fireEvent.input(notes, { target: { value: 'něco poznámka' } });
+    await tick();
+    const cta = getByRole('button', { name: 'Uložit změny' });
+    expect(cta.getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it('clean back-out from edit mode does NOT write the discard buffer (no toast)', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    // Wait for the loaded food row to confirm hydration finished.
+    await findByRole('button', { name: /^Brambory$/ });
+    // Tap back arrow without touching anything.
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+  });
+
+  it('dirty back-out from edit mode writes the buffer with kind="edit"', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await findByRole('button', { name: /^Brambory$/ });
+    // Dirty: edit notes.
+    const notes = getByRole('textbox', { name: /Poznámka/ });
+    await fireEvent.input(notes, { target: { value: 'edited' } });
+    await tick();
+    // Back out.
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    expect(mockWriteBuffer.mock.calls[0][0].kind).toBe('edit');
+  });
+
+  it('back-out from compose-new with non-empty list writes the buffer with kind="compose"', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Build a non-empty draft.
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Back out.
+    await fireEvent.click(getByRole('button', { name: '‹' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    expect(mockWriteBuffer.mock.calls[0][0].kind).toBe('compose');
+  });
+
+  it('confirming delete writes the buffer with kind="delete"', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    expect(mockWriteBuffer.mock.calls[0][0].kind).toBe('delete');
+  });
+
+  it('save on edit-update preserves the loaded createdAt and stamps a fresh updatedAt', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await findByRole('button', { name: /^Brambory$/ });
+    // Dirty so the CTA enables.
+    const notes = getByRole('textbox', { name: /Poznámka/ });
+    await fireEvent.input(notes, { target: { value: 'edit me' } });
+    await tick();
+    // Tap "Uložit změny".
+    await fireEvent.click(getByRole('button', { name: 'Uložit změny' }));
+    await tick();
+    expect(mockSave).toHaveBeenCalledOnce();
+    const saved = mockSave.mock.calls[0][0];
+    // Original createdAt preserved.
+    expect(saved.createdAt).toBe('2025-06-13T08:00:00.000Z');
+    // Fresh updatedAt stamped.
+    expect(saved.updatedAt).toBeDefined();
+    expect(saved.updatedAt).not.toBe(saved.createdAt);
+  });
+
+  it('save on compose-new mints a fresh createdAt and leaves updatedAt undefined', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    // Build + finalize a compose-new meal.
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
+    await tick();
+    expect(mockSave).toHaveBeenCalledOnce();
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.createdAt).toBeDefined();
+    expect(saved.updatedAt).toBeUndefined();
+  });
+
+  it('finalize CTA on a clean edit is a no-op (does NOT call mealSession.save)', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole } = render(MealPage);
+    const cta = await findByRole('button', { name: 'Uložit změny' });
+    // Click on a disabled (aria-disabled='true') button — handler runs but
+    // bails out because finalizeDisabled is true.
+    await fireEvent.click(cta);
+    await tick();
+    expect(mockSave).not.toHaveBeenCalled();
   });
 });
