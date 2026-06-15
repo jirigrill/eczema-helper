@@ -96,7 +96,7 @@ test('FAB submenu → pick type → add food → Hotovo → meal shows on the da
   await page.getByRole('button', { name: /Uložit Mléko/ }).click();
 
   // Hotovo persists the meal and returns to the day overview.
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
   const today = new Date().toISOString().split('T')[0];
   await page.waitForURL(`**/day/${today}`);
 
@@ -124,7 +124,7 @@ test('tap a logged meal row → edit → Hotovo → change reflects on the day (
   await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
   await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
   await page.getByRole('button', { name: /Uložit Mléko/ }).click();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   const today = new Date().toISOString().split('T')[0];
   await page.waitForURL(`**/day/${today}`);
@@ -143,12 +143,13 @@ test('tap a logged meal row → edit → Hotovo → change reflects on the day (
   // Edit-load path: the previously-saved food is hydrated and visible on the working list.
   await expect(page.getByText('Kravské mléko')).toBeVisible();
 
-  // Add a second food (Mrkev, under Zelenina) and persist.
+  // Add a second food (Mrkev, under Zelenina) and persist via the
+  // edit-mode finalize CTA (renamed from "Hotovo" in issue #277).
   await page.getByRole('button', { name: /Zelenina/ }).click();
   await page.getByRole('button', { name: 'Mrkev', exact: true }).click();
   await page.getByRole('button', { name: /Uložit Mrkev/ }).click();
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: 'Uložit změny' }).click();
 
   // Back on the day: the lunch row now carries both foods.
   await page.waitForURL(`**/day/${today}`);
@@ -169,7 +170,7 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
   await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
   await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
   await page.getByRole('button', { name: /Uložit Mléko/ }).click();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   const today = new Date().toISOString().split('T')[0];
   await page.waitForURL(`**/day/${today}`);
@@ -193,7 +194,7 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
   await page.getByRole('button', { name: 'Zpět' }).click();
   await page.waitForURL(/\/meal\?.*type=lunch/);
   await expect(page.getByText('Kravské mléko')).toBeVisible();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   // Back on the day, the lunch row is restored with its original food.
   await page.waitForURL(`**/day/${today}`);
@@ -227,7 +228,7 @@ test('backfill a past day via the day-scoped FAB persists on that date, not toda
   await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
   await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
   await page.getByRole('button', { name: /Uložit Mléko/ }).click();
-  await page.getByRole('button', { name: /Hotovo/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   // Returns to yesterday's day page with the meal visible there.
   await page.waitForURL(`**/day/${yesterday}`);

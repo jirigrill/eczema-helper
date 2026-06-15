@@ -14,6 +14,14 @@ export const actionStrings = {
   backArrow:          '← Zpět',
   add:                'Přidat',
   save:               'Uložit',
+  /**
+   * Edit-mode finalize CTA on `/meal` (issue #277, ADR-0018). Distinct from
+   * `save` because compose-new reads "Uložit {MealType}" (e.g. "Uložit Oběd")
+   * — naming the artifact being created — while edit-update reads
+   * "Uložit změny" — naming the *change*, never the meal type, so the user
+   * never fears creating a duplicate lunch.
+   */
+  saveChanges:        'Uložit změny',
   cancel:             'Zrušit',
   close:              'Zavřít',
   done:               'Hotovo',
@@ -40,9 +48,6 @@ export const actionStrings = {
   savedAssessment:    '✓ Uloženo',
   addPhoto:           'Přidat fotku',
   photoTaken:         'Fotka pořízena',
-  /** Meal logging modal-edit flow (issue #244) */
-  saveFood:          'Uložit',         // callers append ' {foodName}'
-  saveFamily:        'Uložit rodinu',  // generic fallback; callers can append family name
 
   /** Meal delete + overflow (issue #268, ADR-0018) */
   more:              'Více',            // aria-label for the ⋯ overflow trigger

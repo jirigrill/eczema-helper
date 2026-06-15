@@ -70,7 +70,7 @@ test('discard guard: back with empty working list navigates immediately, no toas
 
   await page.getByRole('button', { name: '‹' }).click();
   await expect(page).toHaveURL(`/day/${today}`);
-  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+  await expect(page.getByText('Jídlo neuloženo')).not.toBeVisible();
 });
 
 // ── Discard guard: non-empty working list ─────────────────────────────────────
@@ -88,7 +88,7 @@ test('discard guard: back with non-empty working list discards and shows toast',
   await page.getByRole('button', { name: '‹' }).click();
   await expect(page).toHaveURL(`/day/${today}`);
   // Toast must appear on the destination screen (rendered by layout)
-  await expect(page.getByText('Jídlo zahozeno')).toBeVisible();
+  await expect(page.getByText('Jídlo neuloženo')).toBeVisible();
 });
 
 // ── Discard undo: Zpět restores working list ──────────────────────────────────
@@ -105,7 +105,7 @@ test('discard guard: tapping Zpět on toast restores the working list', async ({
   // Back — discard
   await page.getByRole('button', { name: '‹' }).click();
   await expect(page).toHaveURL(`/day/${today}`);
-  await expect(page.getByText('Jídlo zahozeno')).toBeVisible();
+  await expect(page.getByText('Jídlo neuloženo')).toBeVisible();
 
   // Tap "Zpět" on the toast
   await page.getByRole('button', { name: 'Zpět' }).click();
@@ -148,7 +148,7 @@ test('popstate: leaving grid with non-empty working list discards, lands on retu
   await expect(page).toHaveURL(`/day/${today}`);
   // Layout-level undo toast appears — this is the externally observable evidence
   // that writeBuffer fired (the toast renders iff discardBuffer is set).
-  await expect(page.getByText('Jídlo zahozeno')).toBeVisible();
+  await expect(page.getByText('Jídlo neuloženo')).toBeVisible();
 
   // Tap Zpět to restore the working list.
   await page.getByRole('button', { name: 'Zpět' }).click();
@@ -173,7 +173,7 @@ test('popstate: leaving grid with empty working list navigates immediately, no t
 
   await expect(page).toHaveURL(`/day/${today}`);
   // No discard happened, so the layout toast must NOT appear.
-  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+  await expect(page.getByText('Jídlo neuloženo')).not.toBeVisible();
 });
 
 test('popstate: from inside a drill-in pops to the grid (does not leave /meal), working list preserved', async ({ page }) => {
@@ -201,7 +201,7 @@ test('popstate: from inside a drill-in pops to the grid (does not leave /meal), 
   // Working list intact.
   await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
   // No discard buffer / toast.
-  await expect(page.getByText('Jídlo zahozeno')).not.toBeVisible();
+  await expect(page.getByText('Jídlo neuloženo')).not.toBeVisible();
 });
 
 // ── AC4: arrow and popstate are byte-identical (same destination, same
