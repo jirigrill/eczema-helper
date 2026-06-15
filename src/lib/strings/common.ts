@@ -156,6 +156,10 @@ export const commonStrings = {
     mealNotesLabel:       'Poznámka k jídlu',
     // ── Issue #247: discard guard ──────────────────────────
     discardedToast:       'Jídlo zahozeno',
+    // ── Issue #268: explicit delete + empty-Hotovo guard ───
+    deleteConfirmHeading: 'Smazat jídlo?',
+    deleteConfirmBody:    'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',
+    emptyMealHint:        'Jídlo potřebuje aspoň jednu položku — pro odebrání použij Smazat.',
   },
 
   // ── Program page ──────────────────────────────────────────

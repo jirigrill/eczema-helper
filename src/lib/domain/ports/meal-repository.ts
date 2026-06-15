@@ -10,8 +10,10 @@ export type MealRepository = {
   listByDate(date: string): Promise<Result<Meal[], string>>;
   /**
    * Delete the meal occupying a slot, if any. A no-op (still Ok) when the slot
-   * is already empty. Used by the MOVE semantics to empty the source slot once
-   * the working list is re-saved under a different meal type (ADR-0019).
+   * is already empty. Used by the explicit "Smazat jídlo" action on /meal in
+   * edit mode (ADR-0018, issue #268). The page snapshots the working meal into
+   * the discard buffer before calling this so the layout's undo toast can
+   * rehydrate the working list — re-Hotovo then re-persists a fresh copy.
    */
   remove(date: string, mealType: MealType): Promise<Result<void, string>>;
 };

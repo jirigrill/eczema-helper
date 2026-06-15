@@ -44,4 +44,9 @@ export const actionStrings = {
   saveFood:          'Uložit',         // callers append ' {foodName}'
   saveFamily:        'Uložit rodinu',  // generic fallback; callers can append family name
 
+  /** Meal delete + overflow (issue #268, ADR-0018) */
+  more:              'Více',            // aria-label for the ⋯ overflow trigger
+  deleteMeal:        'Smazat jídlo',    // destructive button on the confirm sheet
+  confirmDelete:     'Potvrdit smazání', // future-proof; not currently rendered (deleteMeal is itself the confirm verb)
+
 } as const;

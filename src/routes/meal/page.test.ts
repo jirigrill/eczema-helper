@@ -1164,4 +1164,158 @@ describe('meal/+page.svelte', () => {
     expect(mockLoadBySlot).toHaveBeenCalledWith('2025-06-13', 'lunch');
     expect(getByText('Brambory')).toBeInTheDocument();
   });
+
+  // ── Explicit delete + empty-Hotovo guard (issue #268) ─────
+
+  it('does NOT render the ⋯ overflow when composing a brand-new meal (empty slot)', async () => {
+    setReady();
+    // Default beforeEach: mockLoadBySlot returns { ok: true, data: null } — empty slot.
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByRole } = render(MealPage);
+    await tick();
+    await tick();
+    expect(queryByRole('button', { name: 'Více' })).not.toBeInTheDocument();
+  });
+
+  it('renders the ⋯ overflow when editing an existing meal', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole } = render(MealPage);
+    expect(await findByRole('button', { name: 'Více' })).toBeInTheDocument();
+  });
+
+  it('tapping ⋯ opens the confirm sheet with "Smazat jídlo" + "Zrušit"', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    expect(getByRole('button', { name: 'Smazat jídlo' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Zrušit' })).toBeInTheDocument();
+  });
+
+  it('tapping "Zrušit" in the confirm sheet closes it without calling remove', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, queryByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Zrušit' }));
+    await tick();
+    expect(queryByRole('button', { name: 'Smazat jídlo' })).not.toBeInTheDocument();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it('confirming delete calls mealSession.remove(date, mealType) once', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
+    expect(mockRemove).toHaveBeenCalledOnce();
+    expect(mockRemove).toHaveBeenCalledWith('2025-06-13', 'lunch');
+  });
+
+  it('confirming delete writes the discard buffer with the loaded working meal', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    const buf = mockWriteBuffer.mock.calls[0][0];
+    expect(buf.mealType).toBe('lunch');
+    expect(buf.returnTo).toBe('/day/2025-06-13');
+    // The buffer carries the loaded working-meal so undo can rehydrate it.
+    expect(buf.workingMeal).toBeTruthy();
+  });
+
+  it('confirming delete navigates to returnTo', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    vi.mocked(goto).mockClear();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
+    expect(goto).toHaveBeenCalledWith('/day/2025-06-13');
+  });
+
+  it('remove failure: surfaces an error toast and does NOT navigate or write buffer', async () => {
+    setReady();
+    const { goto } = await import('$app/navigation');
+    vi.mocked(goto).mockClear();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    mockRemove.mockResolvedValueOnce({ ok: false, error: 'Smazání selhalo' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, findByText } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
+    expect(await findByText('Smazání selhalo')).toBeInTheDocument();
+    expect(goto).not.toHaveBeenCalled();
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+  });
+
+  it('empty-meal hint visible when editing an existing meal with zero foods', async () => {
+    setReady();
+    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
+      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
+    );
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, queryByText, getByText } = render(MealPage);
+    // Wait for hydration: the food row appears.
+    await findByRole('button', { name: /^Brambory$/ });
+    // Hint not yet — there's a food.
+    expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+    // ✕ the only food via the working-list remove button.
+    await fireEvent.click(await findByRole('button', { name: /Odebrat Brambory/ }));
+    await tick();
+    expect(getByText(/aspoň jednu položku/)).toBeInTheDocument();
+  });
+
+  it('empty-meal hint NOT visible when composing a brand-new meal with zero foods', async () => {
+    setReady();
+    // Default beforeEach: empty slot — composing-new.
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByText } = render(MealPage);
+    await tick();
+    await tick();
+    expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+  });
 });
