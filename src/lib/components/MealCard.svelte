@@ -38,7 +38,11 @@
     <div class="space-y-3">
       {#each mealsSorted as meal (meal.id)}
         {@const cfg = mealConfig[meal.mealType]}
-        <div>
+        <a
+          data-testid="meal-row-{meal.mealType}"
+          href="/meal?type={meal.mealType}&date={meal.date}&returnTo=/day/{meal.date}"
+          class="block"
+        >
           <div class="flex items-center gap-1.5 mb-1">
             <span class="text-base leading-none">{cfg.icon}</span>
             <span class="text-[12px] font-semibold text-text">{cfg.label}</span>
@@ -58,7 +62,7 @@
               </span>
             {/each}
           </div>
-        </div>
+        </a>
       {/each}
     </div>
   {/if}
