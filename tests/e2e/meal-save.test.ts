@@ -69,7 +69,7 @@ test('meal save: add a food via drill-in, hit Hotovo, navigates to /day/<today>'
   await completeOnboarding(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   await addBramboraAndCommit(page);
 
@@ -99,7 +99,7 @@ test('meal save failure: shows an error toast and stays on /meal', async ({ page
   await completeOnboarding(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   // Force the next persistence write to throw, driving DexieMealRepository.save
   // into its catch branch (Result.ok === false). The meal page imports the same
@@ -151,7 +151,7 @@ test('?date= param: saves to specified date, navigates to /day/<date>', async ({
   });
 
   await page.goto('/meal?type=breakfast&date=2025-01-15');
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Snídaně' })).toBeVisible();
 
   await addBramboraAndCommit(page);
   await page.getByRole('button', { name: /Uložit Snídaně/ }).click();
@@ -196,10 +196,10 @@ test('back-dated /meal shows past date\'s elimination set, not today\'s', async 
 
   const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&date=${pastDate}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 
   await page.goto(`/meal?type=lunch&date=${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await expect(page.getByText('Dnes vyřazeno:')).not.toBeVisible();
 });

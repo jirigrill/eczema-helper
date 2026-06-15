@@ -109,7 +109,7 @@ test('FAB meal action opens the meal-type submenu, then a row navigates to /meal
   // Submenu replaces the action list with the four meal types.
   await expect(page.getByTestId('fab-meal-type-lunch')).toBeVisible();
   await page.getByTestId('fab-meal-type-lunch').click();
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 });
 
 test('FAB skin action opens skin observation page', async ({ page }) => {
@@ -162,6 +162,6 @@ test('FAB on /day/[date] opens meal page for that date', async ({ page }) => {
   await page.getByTestId('fab-action-meal').click();
   await page.getByTestId('fab-meal-type-lunch').click();
   // Meal page loaded — verify it renders for the correct date, not just that the URL is right
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`date=${today}`));
 });

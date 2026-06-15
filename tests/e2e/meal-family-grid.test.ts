@@ -56,7 +56,7 @@ test('family grid: shows 13 family tiles on meal page', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   // Grid should show family tiles (grid uses CSS grid-cols-4)
   await expect(page.getByRole('button', { name: /Mléko/ }).first()).toBeVisible();

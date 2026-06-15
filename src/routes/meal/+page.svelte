@@ -439,8 +439,12 @@
   }
 
   // ── Header title ──────────────────────────────────────────
+  // Grid state: meal-type label only (e.g. "Oběd") — issue #278. The label
+  // tells the mother which slot she's editing without an emoji prefix.
+  // Drill-in: family icon + family name (e.g. "🥛 Mléko"). Both render in
+  // the large `.page-heading` style so the screen reads at "Dnes" weight.
   const headerTitle = $derived(() => {
-    if (!drilledFamily) return commonStrings.meal.heading;
+    if (!drilledFamily) return mealConfig[selectedMealType].label;
     const family = FAMILIES.find(f => f.id === drilledFamily);
     const name = familyStrings[drilledFamily].name;
     return family ? `${family.icon} ${name}` : name;
@@ -643,7 +647,7 @@
 
   <!-- Sticky header -->
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <PageHeader title={headerTitle()} onBack={handleBack}>
+    <PageHeader title={headerTitle()} variant="large" onBack={handleBack}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(targetDate)}</p>
         {#if editingExisting && !drilledFamily}
@@ -860,7 +864,7 @@
     <div class="px-5 pt-1 pb-2 space-y-2">
       <button
         type="button"
-        class="w-full py-3 rounded-xl font-semibold text-sm bg-danger text-white"
+        class="w-full py-3 rounded-xl font-semibold text-sm bg-primary text-white"
         onclick={handleDeleteConfirm}
       >{actionStrings.deleteMeal}</button>
       <button

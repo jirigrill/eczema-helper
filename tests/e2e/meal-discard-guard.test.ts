@@ -72,7 +72,7 @@ test('discard guard: back with empty working list navigates immediately, no toas
   await completeOnboarding(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   await page.getByRole('button', { name: '‹' }).click();
   await expect(page).toHaveURL(`/day/${today}`);
@@ -86,7 +86,7 @@ test('discard guard: back with non-empty working list discards and shows toast',
   await completeOnboarding(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   await addBramboraAndCommit(page);
 
@@ -104,7 +104,7 @@ test('discard guard: tapping Zpět on toast restores the working list', async ({
   await completeOnboarding(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   await addBramboraAndCommit(page);
 
@@ -143,7 +143,7 @@ test('popstate: leaving grid with non-empty working list discards, lands on retu
   await page.getByRole('button', { name: 'Přidat jídlo' }).click();
   await page.getByRole('button', { name: 'Oběd', exact: true }).click();
   await expect(page).toHaveURL(/\/meal\?type=lunch/);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   await addBramboraAndCommit(page);
 
@@ -172,7 +172,7 @@ test('popstate: leaving grid with empty working list navigates immediately, no t
   await page.getByRole('button', { name: 'Přidat jídlo' }).click();
   await page.getByRole('button', { name: 'Oběd', exact: true }).click();
   await expect(page).toHaveURL(/\/meal\?type=lunch/);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   // No food added — working list is empty.
   await page.evaluate(() => history.back());
