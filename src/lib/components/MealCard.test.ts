@@ -68,6 +68,83 @@ describe('MealCard', () => {
     expect(queryByTestId('day-card-right')).not.toBeInTheDocument();
   });
 
+  it('renders each finalized meal row as a tap-to-edit link to /meal?type=…&date=…&returnTo=…', async () => {
+    const meal = makeMeal({
+      mealType: 'breakfast',
+      date: '2026-05-31',
+      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'portion' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-breakfast');
+    expect(row.tagName).toBe('A');
+    expect(row.getAttribute('href')).toBe(
+      '/meal?type=breakfast&date=2026-05-31&returnTo=/day/2026-05-31'
+    );
+  });
+
+  it.each([
+    'breakfast',
+    'lunch',
+    'snack',
+    'dinner',
+  ] as const)('row for %s links to /meal with that exact type', async (mealType) => {
+    const meal = makeMeal({
+      id: `2026-05-31:${mealType}`,
+      mealType,
+      items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId(`meal-row-${mealType}`);
+    expect(row.getAttribute('href')).toBe(
+      `/meal?type=${mealType}&date=2026-05-31&returnTo=/day/2026-05-31`
+    );
+  });
+
+  it('row has a single tap gesture — no swipe/long-press handlers attached', async () => {
+    const meal = makeMeal({
+      mealType: 'breakfast',
+      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'portion' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-breakfast');
+    // No long-press / right-click menu handler.
+    expect(row.getAttribute('oncontextmenu')).toBeNull();
+    // No swipe gesture wiring.
+    expect(row.getAttribute('onpointerdown')).toBeNull();
+    expect(row.getAttribute('ontouchstart')).toBeNull();
+    // No swipe-related data attribute.
+    const attrs = row.getAttributeNames();
+    expect(attrs.find((a) => a.startsWith('data-swipe'))).toBeUndefined();
+  });
+
+  it('the empty-state label is non-interactive (not a link or button)', async () => {
+    const { getByText } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [], eliminatedToday: [] },
+    });
+    await tick();
+    const label = getByText('Zatím žádný záznam.');
+    // The label itself is a plain element.
+    expect(['A', 'BUTTON']).not.toContain(label.tagName);
+    // No interactive ARIA role anywhere up the chain (would announce as button/link to screen readers).
+    let node: HTMLElement | null = label;
+    while (node) {
+      const role = node.getAttribute('role');
+      expect(role === 'button' || role === 'link').toBe(false);
+      // Stop once we've climbed past the card boundary.
+      if (node.tagName === 'BODY') break;
+      node = node.parentElement;
+    }
+  });
+
   it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {
     const meal = makeMeal({
       items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],

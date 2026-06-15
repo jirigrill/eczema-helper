@@ -107,3 +107,48 @@ test('FAB submenu → pick type → add food → Hotovo → meal shows on the da
   await expect(page.getByTestId('fab-meal-type-lunch')).toHaveAttribute('data-logged', 'true');
   await expect(page.getByTestId('fab-meal-type-breakfast')).toHaveAttribute('data-logged', 'false');
 });
+
+test('tap a logged meal row → edit → Hotovo → change reflects on the day (#267)', async ({ page }) => {
+  await completeOnboarding(page);
+
+  // Seed a lunch with one food via the FAB launcher (the only legal entry path).
+  await page.getByRole('button', { name: 'Přidat záznam' }).click();
+  await page.getByTestId('fab-action-meal').click();
+  await page.getByTestId('fab-meal-type-lunch').click();
+  await page.waitForURL(/\/meal\?type=lunch/);
+
+  await page.getByRole('button', { name: /Mléko/ }).click();
+  await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  const today = new Date().toISOString().split('T')[0];
+  await page.waitForURL(`**/day/${today}`);
+
+  // The lunch row is on screen. Tap it directly — this is the new gesture #267 adds.
+  const lunchRow = page.getByTestId('meal-row-lunch');
+  await expect(lunchRow).toBeVisible();
+  await expect(lunchRow).toContainText('Kravské mléko');
+  await lunchRow.click();
+
+  // Lands on the same /meal URL the FAB ✓ entry would have produced.
+  await page.waitForURL(/\/meal\?type=lunch/);
+  expect(page.url()).toContain(`date=${today}`);
+  expect(page.url()).toContain(`returnTo=/day/${today}`);
+
+  // Edit-load path: the previously-saved food is hydrated and visible on the working list.
+  await expect(page.getByText('Kravské mléko')).toBeVisible();
+
+  // Add a second food (Mrkev, under Zelenina) and persist.
+  await page.getByRole('button', { name: /Zelenina/ }).click();
+  await page.getByRole('button', { name: 'Mrkev', exact: true }).click();
+  await page.getByRole('button', { name: /Uložit Mrkev/ }).click();
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // Back on the day: the lunch row now carries both foods.
+  await page.waitForURL(`**/day/${today}`);
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Mrkev');
+});
