@@ -1,7 +1,8 @@
 # 0018 — Meal logging lifecycle: commit-gate, fixed-type entry, explicit delete
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-14
+**Accepted:** 2026-06-15
 **Supersedes:** [ADR-0019](0019-meal-type-mutable-with-move-semantics.md) (merged here)
 **Related:** [ADR-0003](0003-day-granular-meals.md) · [ADR-0006](0006-dexie-persistence.md) · PRD: [issue #242](https://github.com/jirigrill/eczema-helper/issues/242)
 
@@ -109,9 +110,9 @@ where no draft is in flight to lose.
   tests), the meal-type pills on `/meal`, MOVE / SWITCH-AWAY, `occupiedTypes`,
   `loadedFromType`, the `handlePill*` handlers, `parseMealType`'s `'lunch'` fallback, and
   the `+ Přidat` link on `MealCard`. Added: a FAB-with-submenu and tappable meal rows on
-  the day page, and a ⋯-overflow "Smazat jídlo" in `/meal` edit mode. The current code
-  still implements the reversed model; this ADR describes the target and implies that
-  cleanup as a follow-up.
+  the day page, and a ⋯-overflow "Smazat jídlo" in `/meal` edit mode. Shipped via
+  issues #266 (fixed-type entry + FAB launcher), #267 (tap-to-edit from `MealCard`),
+  and #268 (explicit Smazat + empty-Hotovo guard).
 - **The undo buffer survives navigation** for the back-out case: after `goto(returnTo)`
   the meal page unmounts, so the buffer is a store (not component state) and the restore
   toast is rendered at app/layout level. Delete reuses the *same* buffer + layout toast.
