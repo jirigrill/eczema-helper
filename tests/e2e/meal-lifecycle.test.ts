@@ -23,10 +23,13 @@ async function clearDb(page: Page) {
   });
 }
 
-async function completeOnboarding(page: Page) {
+async function completeOnboarding(page: Page, startIso?: string) {
   // Seed the post-onboarding state directly into IndexedDB. Same shortcut as
   // the other meal e2e specs — onboarding itself is covered elsewhere.
+  // `startIso` backdates the program so earlier days fall inside the schedule
+  // (used by the backfill test); it defaults to today.
   const today = new Date().toISOString().split('T')[0];
+  const start = startIso ?? today;
   await page.evaluate(async (start) => {
     const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
     const path = '/src/lib/db/atopic-db.ts';
@@ -51,7 +54,7 @@ async function completeOnboarding(page: Page) {
         { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
       ],
     });
-  }, today);
+  }, start);
   await page.goto(`/day/${today}`);
   await page.waitForURL(/\/day\//);
 }
@@ -195,4 +198,43 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
   // Back on the day, the lunch row is restored with its original food.
   await page.waitForURL(`**/day/${today}`);
   await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
+});
+
+test('backfill a past day via the day-scoped FAB persists on that date, not today (#265 story 19)', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+
+  // Backdate the program so `yesterday` falls inside the schedule window.
+  await completeOnboarding(page, weekAgo);
+
+  // View an earlier day. The FAB is bound to the day page's `selectedDate`,
+  // so opening it here should log against `yesterday`, not today.
+  await page.goto(`/day/${yesterday}`);
+  await page.waitForURL(`**/day/${yesterday}`);
+
+  await page.getByRole('button', { name: 'Přidat záznam' }).click();
+  await page.getByTestId('fab-action-meal').click();
+  await page.getByTestId('fab-meal-type-lunch').click();
+
+  // The launcher carries the viewed day through to /meal — not today.
+  await page.waitForURL(/\/meal\?type=lunch/);
+  expect(page.url()).toContain(`date=${yesterday}`);
+  expect(page.url()).toContain(`returnTo=/day/${yesterday}`);
+
+  // Log a food and finalize.
+  await page.getByRole('button', { name: /Mléko/ }).click();
+  await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+  await page.getByRole('button', { name: /Hotovo/ }).click();
+
+  // Returns to yesterday's day page with the meal visible there.
+  await page.waitForURL(`**/day/${yesterday}`);
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
+
+  // The meal landed on yesterday only — today's lunch slot stays empty.
+  await page.goto(`/day/${today}`);
+  await page.waitForURL(`**/day/${today}`);
+  await expect(page.getByTestId('meal-row-lunch')).toHaveCount(0);
 });

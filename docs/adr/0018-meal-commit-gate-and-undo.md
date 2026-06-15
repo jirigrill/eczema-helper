@@ -64,6 +64,16 @@ collisions are impossible *by construction*, not blocked by a rule.
     direct manipulation for "I see the mistake, I tap it."
 - Both routes resolve to the *same* loaded-for-edit state; there is one code path.
 
+> **Implementation note.** The planning issue (#265) proposed a new `MealTypeFab`
+> component for the launcher. It shipped instead as a meal-type **submenu inside the
+> existing `FabActionSheet`** (the global "+" sheet already hosting the photo/skin
+> actions): a `mealSubmenuOpen` branch plus a `loggedTypes` prop for the ✓ markers. The
+> submenu is the second face of one bottom sheet — it shares the sheet shell, backdrop
+> and `onclose` contract — so it is not a standalone component, and there is no
+> `MealTypeFab.svelte`. Its tests live in `FabActionSheet.test.ts` (colocated with the
+> source). Extract a standalone picker only if a second surface ever needs the
+> meal-type list without the surrounding launcher actions.
+
 ### 3. Delete is explicit, edit-mode-only, undo-protected
 
 A "Smazat jídlo" action appears **only when editing an existing meal**, behind the
