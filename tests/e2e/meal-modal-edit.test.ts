@@ -99,7 +99,7 @@ async function seedDairyElimination(page: Page) {
 async function openMealAndDrillVegetables(page: Page) {
   const today = new Date().toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await page.getByRole('button', { name: /Zelenina/ }).click();
   // Loose food (no allergen) Brambory should be visible
   await expect(page.getByRole('button', { name: /Brambory/ })).toBeVisible();
@@ -337,7 +337,7 @@ test('AC7: family tile with confirmed foods shows active state', async ({ page }
 test('AC8: grid shows the Poznámka field', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   await expect(page.getByLabel('Poznámka k jídlu')).toBeVisible();
 });
@@ -457,7 +457,7 @@ test('AC11: drill-in back arrow (‹) in PageHeader returns to the family grid',
 test('AC11: grid back arrow (‹) navigates to returnTo', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   // PageHeader back button renders "‹" as text content (no aria-label)
   await page.getByRole('button', { name: '‹' }).click();

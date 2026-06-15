@@ -79,7 +79,7 @@ async function seedHarvestCandidate(page: Page, normalizedKey: string, rawForm: 
 async function openVlastniDrillIn(page: Page) {
   const today = new Date().toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await page.getByRole('button', { name: /Vlastní/ }).click();
 }
 
@@ -200,7 +200,7 @@ test('AC4: adding a new custom food captures it to the harvest-candidate store',
 test('AC5: the grid screen has no standalone custom-food text input', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
   // The only textbox on the grid should be the meal-notes textarea (id=meal-notes),
   // not a custom-food entry input.

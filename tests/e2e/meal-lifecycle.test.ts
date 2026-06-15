@@ -86,7 +86,7 @@ test('FAB submenu → pick type → add food → Hotovo → meal shows on the da
   await page.waitForURL(/\/meal\?type=lunch/);
 
   // The fixed-type page renders the heading and family grid (no pill row).
-  await expect(page.getByText('Přidat jídlo')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await expect(page.getByText('Všechny kategorie')).toBeVisible();
 
   // Drill into Mléko → tap Kravské mléko → save the food → save the family.
@@ -101,8 +101,8 @@ test('FAB submenu → pick type → add food → Hotovo → meal shows on the da
   await page.waitForURL(`**/day/${today}`);
 
   // The day's meal card now shows lunch + the food we logged.
-  await expect(page.getByText('Oběd')).toBeVisible();
-  await expect(page.getByText('Kravské mléko')).toBeVisible();
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Oběd');
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
 
   // Re-open the FAB submenu — the lunch slot is now marked ✓.
   await page.getByRole('button', { name: 'Přidat záznam' }).click();

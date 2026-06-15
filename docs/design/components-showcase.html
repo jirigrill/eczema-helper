@@ -501,7 +501,7 @@
   <!-- ─── PageHeader ───────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/PageHeader.svelte -->
   <div class="component-section" id="page-header">
-    <p class="component-label">▸ <span>PageHeader</span> — title, onBack?, right?</p>
+    <p class="component-label">▸ <span>PageHeader</span> — title, onBack?, right?, variant?</p>
     <div class="variant-row">
 
       <div class="variant-tile w-phone">
@@ -520,7 +520,7 @@
             <h1 class="text-sm font-bold text-text flex-1">Přidat jídlo</h1>
           </div>
         </div>
-        <p class="variant-name">with onBack</p>
+        <p class="variant-name">compact (default), with onBack</p>
       </div>
 
       <div class="variant-tile w-phone">
@@ -531,7 +531,18 @@
             <button class="text-xs text-primary font-medium">Uložit</button>
           </div>
         </div>
-        <p class="variant-name">with onBack + right slot</p>
+        <p class="variant-name">compact, with onBack + right slot</p>
+      </div>
+
+      <div class="variant-tile w-phone">
+        <div class="bg-surface border border-surface-dark rounded-xl overflow-hidden">
+          <div class="bg-surface border-b border-surface-dark px-4 py-2.5 flex items-center gap-3">
+            <button class="text-text text-lg leading-none">‹</button>
+            <h1 class="text-2xl font-bold text-text flex-1">Oběd</h1>
+            <p class="text-xs text-text-muted">5.&nbsp;3.</p>
+          </div>
+        </div>
+        <p class="variant-name">large (issue #278) — meal screen</p>
       </div>
 
     </div>

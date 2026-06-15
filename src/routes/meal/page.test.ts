@@ -186,10 +186,11 @@ describe('meal/+page.svelte', () => {
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
     await tick();
-    expect(queryByText('Přidat jídlo')).toBeInTheDocument();
+    // Grid-state header: meal-type label only (issue #278) — URL is ?type=lunch.
+    expect(queryByText('Oběd')).toBeInTheDocument();
     await fireEvent.click(getByRole('button', { name: /Mléko/ }));
     await tick();
-    expect(queryByText('Přidat jídlo')).not.toBeInTheDocument();
+    expect(queryByText('Oběd')).not.toBeInTheDocument();
     expect(queryByText('🥛 Mléko')).toBeInTheDocument();
   });
 
@@ -216,7 +217,7 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: '‹' }));
     await tick();
-    expect(queryByText('Přidat jídlo')).toBeInTheDocument();
+    expect(queryByText('Oběd')).toBeInTheDocument();
     expect(getByText('Všechny kategorie')).toBeInTheDocument();
   });
 
