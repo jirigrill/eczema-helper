@@ -1,8 +1,5 @@
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
-
-const defaultCatalog: CanonicalCatalogPort = new BundledCatalogAdapter();
 
 // Precision-biased normalization (ADR-0017): lowercase + trim + collapse whitespace
 // + strip surrounding non-letters. Diacritics preserved; no stemming.
@@ -20,7 +17,7 @@ export function normalizeKey(raw: string): string {
  * catalog ids and aliases after normalization (ADR-0017).
  * Returns null for unknown or empty input — never creates an other: entry.
  */
-export function matchAllergen(raw: string, catalog: CanonicalCatalogPort = defaultCatalog): CanonicalAllergen | null {
+export function matchAllergen(raw: string, catalog: CanonicalCatalogPort): CanonicalAllergen | null {
   const normalized = normalizeKey(raw);
   if (!normalized) return null;
 
@@ -41,7 +38,7 @@ export type FoodMatch = {
  * Resolves raw free-text to a catalog food record by matching food ids and
  * aliases after normalization. Returns null for unknown or empty input.
  */
-export function matchFood(raw: string, catalog: CanonicalCatalogPort = defaultCatalog): FoodMatch | null {
+export function matchFood(raw: string, catalog: CanonicalCatalogPort): FoodMatch | null {
   const normalized = normalizeKey(raw);
   if (!normalized) return null;
 
