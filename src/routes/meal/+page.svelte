@@ -1,7 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
-  import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -33,7 +32,6 @@
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
 
   import {
-    fromMealItems,
     startEditing,
     confirmFood,
     cancelEditing,
@@ -44,7 +42,6 @@
     removeFood,
     editingFood as getEditingFood,
     foodsForFamily,
-    isNonEmpty,
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
   import { writeBuffer, discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
@@ -103,11 +100,11 @@
       // so the rehydrated state reads as the new clean baseline.
       clearBuffer();
       const slot = { date: targetDate, mealType: selectedMealType };
-      void editor.restore({ slot, workingMeal: buf.workingMeal, kind: buf.kind });
+      void editor.applyUndo(slot, buf);
       return;
     }
 
-    void editor.open({ date: targetDate, mealType: selectedMealType });
+    void editor.open({ date: targetDate, mealType: selectedMealType }, eliminatedToday);
   });
 
   // ── Working meal state ────────────────────────────────────
@@ -357,9 +354,10 @@
 
   /**
    * Single discard + navigate path used by the explicit back arrow's grid
-   * branch. The buffer's `kind` is `edit` when leaving a saved meal with
-   * dirty changes, `compose` when leaving a fresh non-empty draft. A clean
-   * back-out from edit mode writes nothing — there is no work to discard.
+   * branch. The editor decides *what* the discard contains (kind +
+   * working meal); the route pairs that with `mealType`/`returnTo` and
+   * decides *when* to write the buffer. A clean back-out from edit mode
+   * yields a `null` descriptor — there is nothing to discard.
    *
    * Extracted (rather than inlined) so the popstate guard can call it later
    * if a future entry point ships a `returnTo` that's decoupled from the
@@ -368,17 +366,9 @@
    * See the `beforeNavigate` block below.
    */
   function discardAndLeave(): void {
-    if (editingExisting) {
-      if (editor.dirty) {
-        // Snapshot the live notes into the working meal so the undo path
-        // restores the user's typed text (`editor.notes` is bound to the
-        // textarea separately).
-        const snapshot = { ...workingMeal, notes: editor.notes };
-        writeBuffer({ kind: 'edit', workingMeal: snapshot, mealType: selectedMealType, returnTo });
-      }
-    } else if (isNonEmpty(workingMeal)) {
-      const snapshot = { ...workingMeal, notes: editor.notes };
-      writeBuffer({ kind: 'compose', workingMeal: snapshot, mealType: selectedMealType, returnTo });
+    const desc = editor.discardDescriptor();
+    if (desc) {
+      writeBuffer({ ...desc, mealType: selectedMealType, returnTo });
     }
     goto(returnTo);
   }
@@ -429,14 +419,9 @@
   beforeNavigate((nav) => {
     if (nav.type !== 'popstate') return;
     if (drilledFamily) return;
-    if (editingExisting) {
-      if (editor.dirty) {
-        const snapshot = { ...workingMeal, notes: editor.notes };
-        writeBuffer({ kind: 'edit', workingMeal: snapshot, mealType: selectedMealType, returnTo });
-      }
-    } else if (isNonEmpty(workingMeal)) {
-      const snapshot = { ...workingMeal, notes: editor.notes };
-      writeBuffer({ kind: 'compose', workingMeal: snapshot, mealType: selectedMealType, returnTo });
+    const desc = editor.discardDescriptor();
+    if (desc) {
+      writeBuffer({ ...desc, mealType: selectedMealType, returnTo });
     }
   });
 
@@ -476,27 +461,23 @@
   }
 
   // ── Conflict detection ────────────────────────────────────
-  const conflicts = $derived(detectConflicts(confirmedFoods.map(f => ({
-    id: f.foodId,
-    name: f.name,
-    foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
-    amount: (f.state.status === 'confirmed' ? f.state.amount : 'portion') as PortionKind,
-  })), eliminatedToday, catalog));
-  const hasConflicts = $derived(conflicts.length > 0);
-  /** All working-list foods (confirmed or editing) that touch an eliminated allergen. */
-  const allActiveFoods = $derived(
-    workingMeal.families.flatMap(fam =>
-      fam.foods.filter(f => f.state.status === 'confirmed' || f.state.status === 'editing')
-    )
+  // The editor owns the food×eliminated-allergen intersection
+  // (`editor.eliminatedFoodIds`, `editor.hasConflicts`) — computed via the
+  // shared `detectConflicts` over its own foods, fed by the `eliminatedToday`
+  // injected through `editor.open(..)`. The route builds the view-specific
+  // danger flags (per-row danger styling, the red CTA gate, the
+  // editing/family banners) on top of that set.
+  const eliminatedFoodIds = $derived(editor.eliminatedFoodIds);
+  /**
+   * Red CTA condition restricted to the grid view (no drill-in, no grid row
+   * edit). Narrower than `editor.hasConflicts` because the editor's set
+   * includes editing-state foods too — but a grid view with no
+   * `gridEditingFoodId` only has confirmed entries in practice, so this also
+   * filters defensively to confirmed foods.
+   */
+  const hasConflicts = $derived(
+    confirmedFoods.some((f) => eliminatedFoodIds.has(f.foodId)),
   );
-  const eliminatedFoodIds = $derived(new Set(
-    detectConflicts(allActiveFoods.map(f => ({
-      id: f.foodId,
-      name: f.name,
-      foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
-      amount: 'portion' as PortionKind,
-    })), eliminatedToday, catalog).map(c => c.foodId as string)
-  ));
   /** True when the food being edited right now (drill-in or grid) is eliminated today. */
   const editingFoodIsEliminated = $derived(
     drilledFamily && currentEditingFood ? eliminatedFoodIds.has(currentEditingFood.foodId)
@@ -526,14 +507,18 @@
   // ── Delete (issue #268) ───────────────────────────────────
   async function handleDeleteConfirm(): Promise<void> {
     overflowOpen = false;
-    // Capture the working-meal snapshot BEFORE the remove call so undo can rehydrate.
-    const snapshot = { ...workingMeal, notes: editor.notes };
+    // Capture the discard descriptor BEFORE the remove call so undo can
+    // rehydrate. The 'delete' intent is explicit: the editor cannot infer
+    // that the user just deleted from its own state.
+    const desc = editor.discardDescriptor('delete');
     const result = await mealSession.remove(targetDate, selectedMealType);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
     }
-    writeBuffer({ kind: 'delete', workingMeal: snapshot, mealType: selectedMealType, returnTo });
+    if (desc) {
+      writeBuffer({ ...desc, mealType: selectedMealType, returnTo });
+    }
     goto(returnTo);
   }
 </script>

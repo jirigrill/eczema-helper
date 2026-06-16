@@ -7,9 +7,11 @@ import {
 	isNonEmpty,
 } from '$lib/domain/working-meal';
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import type { Meal, MealType, MealItem } from '$lib/domain/models';
+import type { Meal, MealType, MealItem, AllergenId, PortionKind } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
-import type { DiscardKind } from '$lib/stores/discard-buffer';
+import type { DiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
+import { detectConflicts } from '$lib/domain/schedule-queries';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 type ComparableItem = {
 	name: string;
@@ -101,24 +103,59 @@ export type MealEditor = {
 	 * meal-finalize action (sub-CTAs are gated separately).
 	 */
 	readonly canFinalize: boolean;
-	open(slot: MealSlot): Promise<void>;
+	/**
+	 * The set of food ids in the working meal (confirmed or editing) that
+	 * touch an eliminated allergen for today. Computed by calling the shared
+	 * `detectConflicts` over the editor's own foods using the elimination
+	 * window injected via `open(slot, eliminatedToday)`.
+	 *
+	 * The route builds its view-specific danger flags
+	 * (`editingFoodIsEliminated`, `familySaveHasEliminated`, per-row danger
+	 * styling, the warning banner, the red CTA) on top of this set.
+	 */
+	readonly eliminatedFoodIds: Set<string>;
+	/** True iff `eliminatedFoodIds` is non-empty. */
+	readonly hasConflicts: boolean;
+	open(slot: MealSlot, eliminatedToday?: AllergenId[]): Promise<void>;
 	update(fn: (m: WorkingMeal) => WorkingMeal): void;
 	/**
-	 * Overlay editor state from a discard-buffer undo. The `kind` decides
-	 * how `finalize()` will frame the next save:
+	 * Decide what (if anything) the next discard buffer should contain.
+	 *
+	 * Without a hint, infers from the editor's own state:
+	 *  - Compose-new with any confirmed/editing food → `{ kind: 'compose', workingMeal }`.
+	 *  - Dirty edit                                  → `{ kind: 'edit', workingMeal }`.
+	 *  - Clean edit / empty compose                  → `null` (nothing to discard).
+	 *
+	 * With `'delete'`, returns `{ kind: 'delete', workingMeal }` regardless of
+	 * dirtiness — delete is an explicit user action the editor cannot infer
+	 * (the route calls this after `mealSession.remove()` succeeds, threading
+	 * the captured working meal into the buffer for undo).
+	 *
+	 * The returned `workingMeal` always carries the live `editor.notes` so
+	 * the buffer rehydrates whatever the user had typed at the moment of
+	 * discard. The route pairs this descriptor with `mealType`/`returnTo`
+	 * before calling `writeBuffer(...)` — the route still owns *when*.
+	 */
+	discardDescriptor(intent?: 'delete'): { kind: DiscardKind; workingMeal: WorkingMeal } | null;
+	/**
+	 * Overlay editor state from a discard-buffer undo. The buffer's `kind`
+	 * decides how `finalize()` will frame the next save:
 	 *  - `'edit'`   → re-fetch persisted `createdAt`, treat as edit-update.
+	 *                 Re-captures the load snapshot so the rehydrated state
+	 *                 reads as the new clean baseline.
 	 *  - `'delete'` → the persisted row is gone; treat the next save as a
 	 *                 fresh compose-new (mints a new `createdAt`).
 	 *  - `'compose'`→ slot was empty before; still compose-new.
 	 *
-	 * Will be replaced by `applyUndo` once the undo lifecycle moves into
-	 * the editor in a later PRD #284 slice.
+	 * Slot is passed explicitly because the route owns the URL and the page
+	 * is freshly mounted on undo navigation (the editor has no slot yet).
 	 */
-	restore(state: { slot: MealSlot; workingMeal: WorkingMeal; kind: DiscardKind }): Promise<void>;
+	applyUndo(slot: MealSlot, buffer: DiscardedMeal): Promise<void>;
 	finalize(opts?: FinalizeOptions): Promise<Result<void, string>>;
 };
 
 export function createMealEditor(): MealEditor {
+	const catalog = new BundledCatalogAdapter();
 	let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
 	let editingExisting = $state(false);
 	let slot = $state<MealSlot | null>(null);
@@ -130,6 +167,11 @@ export function createMealEditor(): MealEditor {
 	 * and after an undone delete (next save mints fresh `createdAt`).
 	 */
 	let loadSnapshot = $state<MealSnapshot | null>(null);
+	/**
+	 * Today's elimination window injected by the route; defaults to empty so
+	 * an editor opened without a window simply reports no conflicts.
+	 */
+	let eliminatedToday = $state<AllergenId[]>([]);
 
 	const dirty = $derived(
 		loadSnapshot === null
@@ -140,9 +182,33 @@ export function createMealEditor(): MealEditor {
 	const canFinalize = $derived(
 		editingExisting ? dirty : allConfirmedFoods(workingMeal).length > 0
 	);
+	/**
+	 * All working-list foods that touch an eliminated allergen — computed via
+	 * the shared `detectConflicts`, so swapping that function later requires
+	 * no change here beyond the call site itself. Includes both `confirmed`
+	 * and `editing` foods so the route can flag a row before the user
+	 * confirms it (per-row danger styling).
+	 */
+	const eliminatedFoodIds = $derived.by(() => {
+		if (eliminatedToday.length === 0) return new Set<string>();
+		const activeFoods = workingMeal.families.flatMap((fam) =>
+			fam.foods.filter(
+				(f) => f.state.status === 'confirmed' || f.state.status === 'editing',
+			),
+		);
+		const items: MealItem[] = activeFoods.map((f) => ({
+			id: f.foodId,
+			name: f.name,
+			foodId: f.foodId as MealItem['foodId'],
+			amount: 'portion' as PortionKind,
+		}));
+		return new Set(detectConflicts(items, eliminatedToday, catalog).map((c) => c.foodId as string));
+	});
+	const hasConflicts = $derived(eliminatedFoodIds.size > 0);
 
-	async function open(next: MealSlot): Promise<void> {
+	async function open(next: MealSlot, eliminatedTodayArg: AllergenId[] = []): Promise<void> {
 		slot = next;
+		eliminatedToday = eliminatedTodayArg;
 		const session = createMealSession(next.date);
 		const result = await session.loadBySlot(next.date, next.mealType);
 		if (result.ok && result.data) {
@@ -164,20 +230,31 @@ export function createMealEditor(): MealEditor {
 		workingMeal = fn(workingMeal);
 	}
 
-	async function restore(state: {
-		slot: MealSlot;
-		workingMeal: WorkingMeal;
-		kind: DiscardKind;
-	}): Promise<void> {
-		slot = state.slot;
-		workingMeal = state.workingMeal;
-		notes = state.workingMeal.notes;
-		if (state.kind === 'edit') {
+	function discardDescriptor(
+		intent?: 'delete',
+	): { kind: DiscardKind; workingMeal: WorkingMeal } | null {
+		// Snapshot the live `notes` into the working meal so the buffer
+		// rehydrates whatever the user had typed at the moment of discard.
+		const snapshot: WorkingMeal = { ...workingMeal, notes };
+		if (intent === 'delete') {
+			return { kind: 'delete', workingMeal: snapshot };
+		}
+		if (editingExisting) {
+			return dirty ? { kind: 'edit', workingMeal: snapshot } : null;
+		}
+		return isNonEmpty(workingMeal) ? { kind: 'compose', workingMeal: snapshot } : null;
+	}
+
+	async function applyUndo(next: MealSlot, buffer: DiscardedMeal): Promise<void> {
+		slot = next;
+		workingMeal = buffer.workingMeal;
+		notes = buffer.workingMeal.notes;
+		if (buffer.kind === 'edit') {
 			// The persisted row is still in Dexie — re-fetch its `createdAt` so
 			// finalize preserves it across the back-out → undo → save round-trip.
 			editingExisting = true;
-			const session = createMealSession(state.slot.date);
-			const res = await session.loadBySlot(state.slot.date, state.slot.mealType);
+			const session = createMealSession(next.date);
+			const res = await session.loadBySlot(next.date, next.mealType);
 			loadedCreatedAt = res.ok && res.data ? res.data.createdAt : null;
 			// Re-capture the snapshot so the rehydrated state reads as the
 			// "loaded" baseline; further edits compare against it.
@@ -226,9 +303,12 @@ export function createMealEditor(): MealEditor {
 		get dirty() { return dirty; },
 		get finalizeKind() { return finalizeKind; },
 		get canFinalize() { return canFinalize; },
+		get eliminatedFoodIds() { return eliminatedFoodIds; },
+		get hasConflicts() { return hasConflicts; },
 		open,
 		update,
-		restore,
+		discardDescriptor,
+		applyUndo,
 		finalize,
 	};
 }
