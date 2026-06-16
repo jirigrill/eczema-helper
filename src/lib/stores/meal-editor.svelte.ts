@@ -7,9 +7,11 @@ import {
 	isNonEmpty,
 } from '$lib/domain/working-meal';
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import type { Meal, MealType, MealItem } from '$lib/domain/models';
+import type { Meal, MealType, MealItem, AllergenId, PortionKind } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import type { DiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
+import { detectConflicts } from '$lib/domain/schedule-queries';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 type ComparableItem = {
 	name: string;
@@ -101,7 +103,20 @@ export type MealEditor = {
 	 * meal-finalize action (sub-CTAs are gated separately).
 	 */
 	readonly canFinalize: boolean;
-	open(slot: MealSlot): Promise<void>;
+	/**
+	 * The set of food ids in the working meal (confirmed or editing) that
+	 * touch an eliminated allergen for today. Computed by calling the shared
+	 * `detectConflicts` over the editor's own foods using the elimination
+	 * window injected via `open(slot, eliminatedToday)`.
+	 *
+	 * The route builds its view-specific danger flags
+	 * (`editingFoodIsEliminated`, `familySaveHasEliminated`, per-row danger
+	 * styling, the warning banner, the red CTA) on top of this set.
+	 */
+	readonly eliminatedFoodIds: Set<string>;
+	/** True iff `eliminatedFoodIds` is non-empty. */
+	readonly hasConflicts: boolean;
+	open(slot: MealSlot, eliminatedToday?: AllergenId[]): Promise<void>;
 	update(fn: (m: WorkingMeal) => WorkingMeal): void;
 	/**
 	 * Decide what (if anything) the next discard buffer should contain.
@@ -140,6 +155,7 @@ export type MealEditor = {
 };
 
 export function createMealEditor(): MealEditor {
+	const catalog = new BundledCatalogAdapter();
 	let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
 	let editingExisting = $state(false);
 	let slot = $state<MealSlot | null>(null);
@@ -151,6 +167,11 @@ export function createMealEditor(): MealEditor {
 	 * and after an undone delete (next save mints fresh `createdAt`).
 	 */
 	let loadSnapshot = $state<MealSnapshot | null>(null);
+	/**
+	 * Today's elimination window injected by the route; defaults to empty so
+	 * an editor opened without a window simply reports no conflicts.
+	 */
+	let eliminatedToday = $state<AllergenId[]>([]);
 
 	const dirty = $derived(
 		loadSnapshot === null
@@ -161,9 +182,33 @@ export function createMealEditor(): MealEditor {
 	const canFinalize = $derived(
 		editingExisting ? dirty : allConfirmedFoods(workingMeal).length > 0
 	);
+	/**
+	 * All working-list foods that touch an eliminated allergen — computed via
+	 * the shared `detectConflicts`, so swapping that function later requires
+	 * no change here beyond the call site itself. Includes both `confirmed`
+	 * and `editing` foods so the route can flag a row before the user
+	 * confirms it (per-row danger styling).
+	 */
+	const eliminatedFoodIds = $derived.by(() => {
+		if (eliminatedToday.length === 0) return new Set<string>();
+		const activeFoods = workingMeal.families.flatMap((fam) =>
+			fam.foods.filter(
+				(f) => f.state.status === 'confirmed' || f.state.status === 'editing',
+			),
+		);
+		const items: MealItem[] = activeFoods.map((f) => ({
+			id: f.foodId,
+			name: f.name,
+			foodId: f.foodId as MealItem['foodId'],
+			amount: 'portion' as PortionKind,
+		}));
+		return new Set(detectConflicts(items, eliminatedToday, catalog).map((c) => c.foodId as string));
+	});
+	const hasConflicts = $derived(eliminatedFoodIds.size > 0);
 
-	async function open(next: MealSlot): Promise<void> {
+	async function open(next: MealSlot, eliminatedTodayArg: AllergenId[] = []): Promise<void> {
 		slot = next;
+		eliminatedToday = eliminatedTodayArg;
 		const session = createMealSession(next.date);
 		const result = await session.loadBySlot(next.date, next.mealType);
 		if (result.ok && result.data) {
@@ -258,6 +303,8 @@ export function createMealEditor(): MealEditor {
 		get dirty() { return dirty; },
 		get finalizeKind() { return finalizeKind; },
 		get canFinalize() { return canFinalize; },
+		get eliminatedFoodIds() { return eliminatedFoodIds; },
+		get hasConflicts() { return hasConflicts; },
 		open,
 		update,
 		discardDescriptor,

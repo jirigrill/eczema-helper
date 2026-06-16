@@ -1,7 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
-  import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -105,7 +104,7 @@
       return;
     }
 
-    void editor.open({ date: targetDate, mealType: selectedMealType });
+    void editor.open({ date: targetDate, mealType: selectedMealType }, eliminatedToday);
   });
 
   // ── Working meal state ────────────────────────────────────
@@ -462,27 +461,23 @@
   }
 
   // ── Conflict detection ────────────────────────────────────
-  const conflicts = $derived(detectConflicts(confirmedFoods.map(f => ({
-    id: f.foodId,
-    name: f.name,
-    foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
-    amount: (f.state.status === 'confirmed' ? f.state.amount : 'portion') as PortionKind,
-  })), eliminatedToday, catalog));
-  const hasConflicts = $derived(conflicts.length > 0);
-  /** All working-list foods (confirmed or editing) that touch an eliminated allergen. */
-  const allActiveFoods = $derived(
-    workingMeal.families.flatMap(fam =>
-      fam.foods.filter(f => f.state.status === 'confirmed' || f.state.status === 'editing')
-    )
+  // The editor owns the food×eliminated-allergen intersection
+  // (`editor.eliminatedFoodIds`, `editor.hasConflicts`) — computed via the
+  // shared `detectConflicts` over its own foods, fed by the `eliminatedToday`
+  // injected through `editor.open(..)`. The route builds the view-specific
+  // danger flags (per-row danger styling, the red CTA gate, the
+  // editing/family banners) on top of that set.
+  const eliminatedFoodIds = $derived(editor.eliminatedFoodIds);
+  /**
+   * Red CTA condition restricted to the grid view (no drill-in, no grid row
+   * edit). Narrower than `editor.hasConflicts` because the editor's set
+   * includes editing-state foods too — but a grid view with no
+   * `gridEditingFoodId` only has confirmed entries in practice, so this also
+   * filters defensively to confirmed foods.
+   */
+  const hasConflicts = $derived(
+    confirmedFoods.some((f) => eliminatedFoodIds.has(f.foodId)),
   );
-  const eliminatedFoodIds = $derived(new Set(
-    detectConflicts(allActiveFoods.map(f => ({
-      id: f.foodId,
-      name: f.name,
-      foodId: f.foodId as import('$lib/domain/models').MealItem['foodId'],
-      amount: 'portion' as PortionKind,
-    })), eliminatedToday, catalog).map(c => c.foodId as string)
-  ));
   /** True when the food being edited right now (drill-in or grid) is eliminated today. */
   const editingFoodIsEliminated = $derived(
     drilledFamily && currentEditingFood ? eliminatedFoodIds.has(currentEditingFood.foodId)

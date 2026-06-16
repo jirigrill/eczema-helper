@@ -509,3 +509,53 @@ describe('createMealEditor — finalize() empty no-op', () => {
     expect(reload).toMatchObject({ ok: true, data: null });
   });
 });
+
+describe('createMealEditor — eliminatedFoodIds + hasConflicts', () => {
+  it('with eliminatedToday=["dairy"], confirming a dairy food puts its id in eliminatedFoodIds and sets hasConflicts', async () => {
+    const editor = createMealEditor();
+    await editor.open({ date: '2024-11-01', mealType: 'breakfast' }, ['dairy']);
+
+    expect(editor.eliminatedFoodIds).toEqual(new Set());
+    expect(editor.hasConflicts).toBe(false);
+
+    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
+    editor.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
+
+    expect(editor.eliminatedFoodIds).toEqual(new Set(['kravske-mleko']));
+    expect(editor.hasConflicts).toBe(true);
+  });
+
+  it('with no eliminatedToday provided, eliminatedFoodIds is empty and hasConflicts is false even with foods confirmed', async () => {
+    const editor = createMealEditor();
+    await editor.open({ date: '2024-11-02', mealType: 'breakfast' });
+
+    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
+    editor.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
+
+    expect(editor.eliminatedFoodIds).toEqual(new Set());
+    expect(editor.hasConflicts).toBe(false);
+  });
+
+  it('with eliminatedToday=["dairy"], a non-dairy food does not appear in eliminatedFoodIds', async () => {
+    const editor = createMealEditor();
+    await editor.open({ date: '2024-11-03', mealType: 'breakfast' }, ['dairy']);
+
+    editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
+    editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
+
+    expect(editor.eliminatedFoodIds).toEqual(new Set());
+    expect(editor.hasConflicts).toBe(false);
+  });
+
+  it('eliminatedFoodIds includes a food that is still in editing (not yet confirmed)', async () => {
+    // Mirrors the route's per-row danger styling: an editing food that touches
+    // an eliminated allergen must be flagged before the user confirms.
+    const editor = createMealEditor();
+    await editor.open({ date: '2024-11-04', mealType: 'breakfast' }, ['dairy']);
+
+    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
+
+    expect(editor.eliminatedFoodIds.has('kravske-mleko')).toBe(true);
+    expect(editor.hasConflicts).toBe(true);
+  });
+});
