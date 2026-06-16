@@ -1122,4 +1122,75 @@ describe('meal/+page.svelte', () => {
       expect(text).not.toMatch(/·/);
     });
   });
+
+  // ── Issue #302: unified 3-style typography on meal screen ───────
+  // User stories 11+12 of #297: section headers, date, banners share one
+  // type rhythm; the date in top-right reads as quiet meta (caption), not
+  // body content. Section headers carry the consolidated `eyebrow` utility.
+
+  describe('typography (issue #302)', () => {
+    it('"Všechny kategorie" section header carries the eyebrow utility', async () => {
+      setReady();
+      const { default: MealPage } = await import('./+page.svelte');
+      const { getByText } = render(MealPage);
+      await tick();
+      const header = getByText('Všechny kategorie');
+      expect(header.classList.contains('eyebrow')).toBe(true);
+    });
+
+    it('"Přidané potraviny" section header carries the eyebrow utility', async () => {
+      setReady();
+      const { default: MealPage } = await import('./+page.svelte');
+      const { getByRole, getByText } = render(MealPage);
+      await tick();
+      // Confirm a food so the working-list section appears.
+      await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+      await tick();
+      await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+      await tick();
+      await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+      await tick();
+      await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+      await tick();
+      const header = getByText('Přidané potraviny');
+      expect(header.classList.contains('eyebrow')).toBe(true);
+    });
+
+    it('"Poznámka" section header carries the eyebrow utility', async () => {
+      setReady();
+      const { default: MealPage } = await import('./+page.svelte');
+      const { container } = render(MealPage);
+      await tick();
+      const label = container.querySelector('label[for="meal-notes"]');
+      expect(label).not.toBeNull();
+      expect(label!.classList.contains('eyebrow')).toBe(true);
+    });
+
+    it('date in the top-right carries the caption utility, not body classes', async () => {
+      setReady();
+      mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+      const { default: MealPage } = await import('./+page.svelte');
+      const { container } = render(MealPage);
+      await tick();
+      // The date string appears next to the page header; locate by Czech-format pattern.
+      const candidates = [...container.querySelectorAll('p, span')].filter(el =>
+        /^\d+\.\s\S+/.test(el.textContent?.trim() ?? ''),
+      );
+      expect(candidates.length).toBeGreaterThan(0);
+      // Every date-shaped element on the meal screen must carry caption (not body-muted).
+      for (const el of candidates) {
+        expect(el.classList.contains('caption')).toBe(true);
+        expect(el.classList.contains('body-muted')).toBe(false);
+      }
+    });
+
+    it('eliminated-today banner label carries the eyebrow utility', async () => {
+      setReadyWithElim();
+      const { default: MealPage } = await import('./+page.svelte');
+      const { getByText } = render(MealPage);
+      await tick();
+      const label = getByText(/Dnes vyřazeno/);
+      expect(label.classList.contains('eyebrow')).toBe(true);
+    });
+  });
 });

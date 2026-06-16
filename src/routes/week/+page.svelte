@@ -4,7 +4,7 @@
 
 <div class="page-container pb-24">
   <div class="pt-3 pb-2">
-    <div class="micro-label">{commonStrings.week.overviewLabel}</div>
+    <div class="eyebrow">{commonStrings.week.overviewLabel}</div>
     <h2 class="page-heading">{commonStrings.week.heading}</h2>
   </div>
 

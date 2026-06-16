@@ -58,18 +58,39 @@ test('card-base applies p-4 padding', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------
-// section-label
-// text-xs = 12px, uppercase, tracking-wide (letter-spacing > 0)
+// eyebrow (issue #302 — supersedes section-label / micro-label)
+// text-xs = 12px, font-semibold, uppercase, tracking-wide, text-text-muted
 // ---------------------------------------------------------------------------
 
-test('section-label applies text-xs font-size', async ({ page }) => {
-  const el = await injectElement(page, { id: 'test-section-label', className: 'section-label' });
+test('eyebrow applies text-xs font-size', async ({ page }) => {
+  const el = await injectElement(page, { id: 'test-eyebrow', className: 'eyebrow' });
   await expect(el).toHaveCSS('font-size', '12px');
 });
 
-test('section-label applies uppercase text-transform', async ({ page }) => {
-  const el = await injectElement(page, { id: 'test-section-label-case', className: 'section-label' });
+test('eyebrow applies uppercase text-transform', async ({ page }) => {
+  const el = await injectElement(page, { id: 'test-eyebrow-case', className: 'eyebrow' });
   await expect(el).toHaveCSS('text-transform', 'uppercase');
+});
+
+test('eyebrow applies semibold font-weight (600)', async ({ page }) => {
+  const el = await injectElement(page, { id: 'test-eyebrow-weight', className: 'eyebrow' });
+  await expect(el).toHaveCSS('font-weight', '600');
+});
+
+// ---------------------------------------------------------------------------
+// caption (issue #302)
+// text-[11px] = 11px, text-text-muted color
+// ---------------------------------------------------------------------------
+
+test('caption applies 11px font-size', async ({ page }) => {
+  const el = await injectElement(page, { id: 'test-caption', className: 'caption' });
+  await expect(el).toHaveCSS('font-size', '11px');
+});
+
+test('caption applies muted text color (#7A6468)', async ({ page }) => {
+  const el = await injectElement(page, { id: 'test-caption-color', className: 'caption' });
+  // text-text-muted = #7A6468 = rgb(122, 100, 104)
+  await expect(el).toHaveCSS('color', 'rgb(122, 100, 104)');
 });
 
 // ---------------------------------------------------------------------------

@@ -529,7 +529,7 @@
   <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
     <PageHeader title={headerTitle()} variant="large" onBack={handleBack}>
       {#snippet right()}
-        <p class="body-muted">{formatDateLongCs(targetDate)}</p>
+        <p class="caption">{formatDateLongCs(targetDate)}</p>
         {#if editingExisting && !drilledFamily}
           <button
             type="button"
@@ -549,10 +549,10 @@
       {@const protocolDay = getProtocolForAllergen(reintroInfo.allergenId)?.days[reintroInfo.dayInPhase - 1]}
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">
-          <p class="text-xs font-medium text-success">
+          <p class="eyebrow text-success">
             {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
           </p>
-          <p class="body-muted mt-0.5">{protocolDay?.instructionCs ?? ''} ({cat?.name})</p>
+          <p class="caption mt-0.5">{protocolDay?.instructionCs ?? ''} ({cat?.name})</p>
         </InfoBanner>
       </div>
     {/if}
@@ -561,17 +561,17 @@
     {#if eliminatedToday.length > 0}
       <div class="px-4 pt-2 pb-3">
         <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs font-medium text-warning">{commonStrings.meal.todayExcluded}</span>
+          <span class="eyebrow text-warning">{commonStrings.meal.todayExcluded}</span>
           {#each eliminatedToday as allergenId}
             {@const cat = getCategoryConfig(allergenId)}
             {#if cat}
               <span class="text-sm">{cat.icon}</span>
             {/if}
           {/each}
-          <span class="text-xs text-warning">
+          <span class="caption text-warning">
             {eliminatedToday.map(s => getCategoryConfig(s)?.name).filter(Boolean).join(', ')}
           </span>
-          <span class="ml-auto text-xs text-warning/70">Program →</span>
+          <span class="ml-auto caption text-warning/70">Program →</span>
         </InfoBanner>
       </div>
     {/if}
@@ -601,7 +601,7 @@
         <!-- Confirmed foods summary (editable working list) -->
         {#if hasConfirmed || gridEditingFoodId}
           <div class="mb-5">
-            <p class="micro-label mb-2">{commonStrings.meal.confirmedFoodsLabel}</p>
+            <p class="eyebrow mb-2">{commonStrings.meal.confirmedFoodsLabel}</p>
             <div class="space-y-1.5">
               {#each gridListFoods() as food (food.foodId)}
                 {@const fam = workingMeal.families.find(f => f.foods.some(fd => fd.foodId === food.foodId))}
@@ -632,7 +632,7 @@
                     {#if isConfirmedLike}
                       {@const amount = food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount}
                       {@const prep = food.state.status === 'confirmed' ? food.state.preparation : food.cachedPreparation}
-                      <span class="text-xs {isEliminated ? 'text-white' : 'text-text-muted'}">
+                      <span class="caption {isEliminated ? 'text-white' : ''}">
                         {amount ? portionStrings[amount].label : ''}{#if prep} · {preparationStrings[prep].label}{/if}
                       </span>
                     {/if}
@@ -645,7 +645,7 @@
                   </div>
                   {#if isEditing && food.state.status === 'editing'}
                     {#if isEliminated}
-                      <p class="px-3 pb-1 text-xs text-danger font-medium">{commonStrings.meal.eliminatedTodayWarning}</p>
+                      <p class="px-3 pb-1 caption text-danger font-medium">{commonStrings.meal.eliminatedTodayWarning}</p>
                     {/if}
                     <div class="px-3 pb-3">
                       <FoodEditor
@@ -663,7 +663,7 @@
           </div>
         {/if}
 
-        <p class="micro-label mb-2">{commonStrings.meal.allCategoriesLabel}</p>
+        <p class="eyebrow mb-2">{commonStrings.meal.allCategoriesLabel}</p>
         <FamilyGrid
           onSelect={handleFamilySelect}
           {activeFamilyIds}
@@ -672,7 +672,7 @@
 
         <!-- Meal notes -->
         <div class="mt-5">
-          <label class="field-label block mb-1" for="meal-notes">
+          <label class="eyebrow block mb-1" for="meal-notes">
             {commonStrings.meal.mealNotesLabel}
           </label>
           <textarea

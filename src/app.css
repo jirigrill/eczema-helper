@@ -50,8 +50,23 @@ button, a, [role="button"] {
 
   /* ── Typography atoms ─────────────────────────────────────────────── */
 
-  .section-label {
-    @apply text-xs font-semibold text-text-muted uppercase tracking-wide mb-1;
+  /*
+   * Unified 3-style set on the meal screen (issue #302):
+   *   eyebrow  → 12px / 600 / uppercase / tracking-wide / muted
+   *              section headers + banner labels
+   *   body     → 14px / text  (defined below)
+   *              food names, primary content
+   *   caption  → 11px / muted
+   *              date, porce/preparation meta, secondary banner text
+   *
+   * Supersedes the duplicated `.section-label` and `.micro-label` utilities.
+   */
+  .eyebrow {
+    @apply text-xs font-semibold text-text-muted uppercase tracking-wide;
+  }
+
+  .caption {
+    @apply text-[11px] text-text-muted;
   }
 
   .body {
@@ -64,10 +79,6 @@ button, a, [role="button"] {
 
   .body-muted {
     @apply text-sm text-text-muted;
-  }
-
-  .micro-label {
-    @apply text-[11px] uppercase tracking-wide text-text-muted;
   }
 
   .muted-list {

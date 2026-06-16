@@ -311,12 +311,12 @@
           {#if currentPhase.type === 'reset'}
 
             <div>
-              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">{@html commonStrings.program.resetTodoHtml}</p>
             </div>
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="section-label">{commonStrings.program.sectionPermanent}</p>
+                <p class="eyebrow mb-1">{commonStrings.program.sectionPermanent}</p>
                 <p class="body-muted mb-2">{commonStrings.program.sectionPermanentNote}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item (item.slug)}
@@ -329,11 +329,11 @@
           {:else if currentPhase.type === 'elimination'}
 
             <div>
-              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">{@html commonStrings.program.eliminationTodoHtml}</p>
             </div>
             <div>
-              <p class="section-label text-danger">{commonStrings.program.sectionEliminated}</p>
+              <p class="eyebrow mb-1 text-danger">{commonStrings.program.sectionEliminated}</p>
               <div class="flex flex-wrap gap-1.5">
                 {#each protocolEliminated.filter(s => getCategoryConfig(s) !== undefined) as slug (slug)}
                   <AllergenChip {slug} color="warning" />
@@ -342,7 +342,7 @@
             </div>
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="section-label">{commonStrings.program.sectionPermanent}</p>
+                <p class="eyebrow mb-1">{commonStrings.program.sectionPermanent}</p>
                 <p class="body-muted mb-2">{commonStrings.program.sectionPermanentReasonNote}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item (item.slug)}
@@ -356,7 +356,7 @@
           {@const testCat = getCategoryConfig(currentPhase.allergenIds[0])}
 
             <div>
-              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">
                 {commonStrings.program.reintroAddPrefix} <strong>{testCat?.name?.toLowerCase() ?? ''}</strong> {commonStrings.program.reintroAddSuffix}
                 {#if reintroInfo?.isEvaluationDay}
@@ -369,7 +369,7 @@
 
             {#if testCat}
               <div>
-                <p class="section-label text-success">{commonStrings.program.sectionTesting}</p>
+                <p class="eyebrow mb-1 text-success">{commonStrings.program.sectionTesting}</p>
                 <div class="flex flex-wrap items-center gap-1.5">
                   <AllergenChip slug={currentPhase.allergenIds[0]} color="success" />
                   {#if reintroInfo}
@@ -383,7 +383,7 @@
 
             {#if protocolEliminated.length > 0}
               <div>
-                <p class="section-label">{commonStrings.program.sectionStillEliminated}</p>
+                <p class="eyebrow mb-1">{commonStrings.program.sectionStillEliminated}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each protocolEliminated.filter(s => getCategoryConfig(s) !== undefined) as slug (slug)}
                     <AllergenChip {slug} />
@@ -394,7 +394,7 @@
 
             {#if permanentEliminated.length > 0}
               <div>
-                <p class="section-label">{commonStrings.program.sectionPermanent}</p>
+                <p class="eyebrow mb-1">{commonStrings.program.sectionPermanent}</p>
                 <div class="flex flex-wrap gap-1.5">
                   {#each permanentEliminated as item (item.slug)}
                     <AllergenChip slug={item.slug} />
@@ -406,7 +406,7 @@
           {:else if currentPhase.type === 'rest'}
 
             <div>
-              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">{phaseConfig[currentPhase.type].description}</p>
             </div>
 
@@ -414,7 +414,7 @@
           {@const trainingCat = getCategoryConfig(currentPhase.allergenIds[0])}
 
             <div>
-              <p class="section-label">{commonStrings.program.sectionTodo}</p>
+              <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
               <p class="body-muted">
                 {commonStrings.program.toleranceBuildingPrefix} <strong>{trainingCat?.name?.toLowerCase() ?? ''}</strong> {commonStrings.program.toleranceBuildingSuffix}
               </p>
@@ -430,7 +430,7 @@
 
         <div class="space-y-3 border-t border-surface-dark pt-3 text-xs">
           <div>
-            <p class="section-label">{commonStrings.program.sectionDeviations}</p>
+            <p class="eyebrow mb-1">{commonStrings.program.sectionDeviations}</p>
             {#if heroConflicts.count === 0}
               <p class="text-text-muted">{commonStrings.program.noDeviations}</p>
             {:else}
@@ -447,7 +447,7 @@
           </div>
 
           <div>
-            <p class="section-label">{commonStrings.program.sectionSkinReaction}</p>
+            <p class="eyebrow mb-1">{commonStrings.program.sectionSkinReaction}</p>
             {#if heroAssessments.length === 0}
               <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
             {:else}
@@ -458,7 +458,7 @@
           {#if currentPhase.type === 'reintroduction'}
             {#if protocolAllergenStatuses.length > 1}
               <div>
-                <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
+                <p class="eyebrow mb-1">{commonStrings.program.sectionAllergenStatus}</p>
                 <div class="muted-list">
                   {#each protocolAllergenStatuses as row}
                     {@const rowCat = getCategoryConfig(row.allergenId)}
@@ -477,7 +477,7 @@
           {/if}
 
           <div>
-            <p class="section-label">{commonStrings.program.sectionEvaluation}</p>
+            <p class="eyebrow mb-1">{commonStrings.program.sectionEvaluation}</p>
             {#if heroEval}
               <p class="font-medium {evalColor(heroEval)}">{evalLabel(heroEval)}{#if heroEval.notes} <span class="font-normal text-text-muted">— {heroEval.notes}</span>{/if}</p>
             {:else}
@@ -532,7 +532,7 @@
 
                 <!-- Dietary deviations -->
                 <div>
-                  <p class="section-label">{commonStrings.program.sectionDeviations}</p>
+                  <p class="eyebrow mb-1">{commonStrings.program.sectionDeviations}</p>
                   {#if conflicts.count === 0}
                     <p class="text-text-muted">{commonStrings.program.noDeviations}</p>
                   {:else}
@@ -550,7 +550,7 @@
 
                 <!-- Skin reactions -->
                 <div>
-                  <p class="section-label">{commonStrings.program.sectionSkinReaction}</p>
+                  <p class="eyebrow mb-1">{commonStrings.program.sectionSkinReaction}</p>
                   {#if phaseAssessments.length === 0}
                     <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
                   {:else}
@@ -567,7 +567,7 @@
                   {@const phaseRows = getPhaseVerdictStatuses(schedule, phase).sort((a, b) => a.status.localeCompare(b.status))}
                   {#if phaseRows.length > 1}
                     <div>
-                      <p class="section-label">{commonStrings.program.sectionAllergenStatus}</p>
+                      <p class="eyebrow mb-1">{commonStrings.program.sectionAllergenStatus}</p>
                       <div class="muted-list">
                         {#each phaseRows as row}
                           {@const rowCat = getCategoryConfig(row.allergenId)}
@@ -587,7 +587,7 @@
 
                 <!-- Overall evaluation -->
                 <div>
-                  <p class="section-label">{commonStrings.program.sectionEvaluation}</p>
+                  <p class="eyebrow mb-1">{commonStrings.program.sectionEvaluation}</p>
                   {#if phaseEval}
                     <p class="font-medium {evalColor(phaseEval)}">{evalLabel(phaseEval)}{#if phaseEval.notes} <span class="font-normal text-text-muted">— {phaseEval.notes}</span>{/if}</p>
                   {:else}
@@ -654,7 +654,7 @@
     <!-- ═══ Permanent allergen sections ═══ -->
     {#if motherAllergenStatuses.length > 0}
       <div class="card-base space-y-3">
-        <p class="section-label">{commonStrings.program.motherAllergensSection}</p>
+        <p class="eyebrow mb-1">{commonStrings.program.motherAllergensSection}</p>
         <p class="body-muted text-xs">{commonStrings.program.motherAllergensNote}</p>
         <div class="flex flex-wrap gap-1.5">
           {#each motherAllergenStatuses as s (s.allergenId)}
@@ -666,7 +666,7 @@
 
     {#if babyPermanentStatuses.length > 0}
       <div class="card-base space-y-3">
-        <p class="section-label">{commonStrings.program.babyAllergensSection}</p>
+        <p class="eyebrow mb-1">{commonStrings.program.babyAllergensSection}</p>
         <p class="body-muted text-xs">{commonStrings.program.babyAllergensNote}</p>
         <div class="flex flex-wrap gap-2">
           {#each babyPermanentStatuses as allergenStatus}
