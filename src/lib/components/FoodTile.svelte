@@ -3,7 +3,7 @@
 
   import { commonStrings } from '$lib/strings/common';
 
-  type FoodTokenState = 'idle' | 'editing' | 'confirmed' | 'locked';
+  type FoodTileState = 'idle' | 'editing' | 'confirmed' | 'locked';
 
   let {
     name,
@@ -13,7 +13,7 @@
     editor,
   }: {
     name: string;
-    state: FoodTokenState;
+    state: FoodTileState;
     eliminatedStatus?: 'danger';
     onclick?: () => void;
     /** Rendered beneath the tile when state === 'editing'. */

@@ -620,7 +620,7 @@ one `label` (uppercase, small) and one `value` (bold). Renders as a tappable `bu
 with an inline "Upravit ›" affordance when `onEdit` is provided; as a plain `div`
 when read-only. Distinct from `DayCard` (today-screen data cards).
 
-### FoodToken
+### FoodTile
 
 The selectable food tile on `/meal`. Owns the unified state→class visual vocabulary
 of meal logging: `idle` (plain) · `editing` (bordeaux outline) · `confirmed`
@@ -632,7 +632,7 @@ variants of each. See PRD [issue #242](https://github.com/jirigrill/eczema-helpe
 
 The inline `Množství` (`PortionKind`) + `Příprava` (`PreparationMethod`) editor that
 unwraps beneath an `editing` food. One component mounted in two hosts: the drill-in
-`FoodToken` and the grid working-list row. Renders `Chip`s; emits amount/preparation
+`FoodTile` and the grid working-list row. Renders `Chip`s; emits amount/preparation
 changes. Carries no meal-level `Poznámka` (that lives on the grid only).
 
 ### MealTypePills *(retired)*

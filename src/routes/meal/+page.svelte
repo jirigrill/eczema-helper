@@ -309,7 +309,7 @@
 
   function handleGridContainerClick(e: MouseEvent): void {
     if (!gridEditingFoodId) return;
-    if (!(e.target as Element).closest('[data-food-token]')) {
+    if (!(e.target as Element).closest('[data-food-tile]')) {
       const ge = gridEditingFood();
       if (ge) {
         editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
@@ -613,7 +613,7 @@
                   : isEliminated && isEditing ? 'danger'
                   : isConfirmedLike ? 'confirmed'
                   : undefined}
-                <div data-food-token data-state={gridDataState}
+                <div data-food-tile data-state={gridDataState}
                   class="rounded-xl overflow-hidden border
                     {isEliminated && isConfirmedLike
                       ? 'bg-danger border-danger'

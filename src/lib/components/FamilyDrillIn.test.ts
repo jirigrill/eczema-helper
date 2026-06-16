@@ -36,7 +36,7 @@ describe('FamilyDrillIn — fruit family', () => {
     expect(getByText(/citrus/i)).toBeInTheDocument();
   });
 
-  it('renders loose foods (jablko, hruška) as FoodToken buttons', () => {
+  it('renders loose foods (jablko, hruška) as FoodTile buttons', () => {
     const { getByRole } = render(FamilyDrillIn, { props: baseProps });
     expect(getByRole('button', { name: /Jablko/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Hruška/ })).toBeInTheDocument();
