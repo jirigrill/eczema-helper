@@ -44,7 +44,6 @@
     removeFood,
     editingFood as getEditingFood,
     foodsForFamily,
-    toMealItems,
     isNonEmpty,
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
@@ -100,92 +99,26 @@
       //    persisted record so the AC's createdAt-preservation invariant
       //    holds across a back-out → undo → save round-trip.
       //  - `compose`: the slot was empty before, still empty → compose-new.
+      // The editor re-captures its load snapshot internally on kind='edit',
+      // so the rehydrated state reads as the new clean baseline.
       clearBuffer();
-      mealNotes = buf.workingMeal.notes;
       const slot = { date: targetDate, mealType: selectedMealType };
-      void editor.restore({ slot, workingMeal: buf.workingMeal, kind: buf.kind }).then(() => {
-        if (buf.kind === 'edit') {
-          loadSnapshot = snapshotOf(buf.workingMeal, buf.workingMeal.notes);
-        } else {
-          loadSnapshot = null;
-        }
-      });
+      void editor.restore({ slot, workingMeal: buf.workingMeal, kind: buf.kind });
       return;
     }
 
-    void editor.open({ date: targetDate, mealType: selectedMealType }).then(() => {
-      mealNotes = editor.workingMeal.notes;
-      if (editor.editingExisting) {
-        loadSnapshot = snapshotOf(editor.workingMeal, editor.workingMeal.notes);
-      } else {
-        loadSnapshot = null;
-      }
-    });
+    void editor.open({ date: targetDate, mealType: selectedMealType });
   });
 
   // ── Working meal state ────────────────────────────────────
-  // The editor owns the working meal; the route still owns the bindable
-  // `mealNotes` (it threads through `finalize({ notes })`) and the load
-  // snapshot used for dirtiness — both deferred to a later #284 slice.
+  // The editor owns the working meal, the live `notes`, and the dirtiness
+  // derivation. The route binds `editor.notes` to the textarea and reads
+  // `editor.dirty` / `editor.canFinalize` / `editor.finalizeKind` for the
+  // CTA. View state (drill-in, grid edit) and navigation stay in the route.
   const workingMeal = $derived<WorkingMeal>(editor.workingMeal);
   const editingExisting = $derived(editor.editingExisting);
-  let mealNotes = $state('');
   /** True while the destructive-confirm bottom sheet is open. */
   let overflowOpen = $state(false);
-  /**
-   * Snapshot of the loaded meal (issue #277, ADR-0018). Captured on mount
-   * for an existing slot — `null` for compose-new. The `dirty` derived flag
-   * compares the live working meal against this and drives both the
-   * back-out toast (`kind: 'edit'` only fires when dirty) and the finalize
-   * CTA enabledness (clean edits leave the button disabled).
-   */
-  let loadSnapshot = $state<MealSnapshot | null>(null);
-
-  type ComparableItem = {
-    name: string;
-    foodId: string;
-    amount: string;
-    preparationMethod?: string;
-  };
-  type MealSnapshot = { items: ComparableItem[]; notes: string };
-
-  /**
-   * Project a working meal + notes into a stable shape suitable for deep-
-   * equality. Strips ephemeral state (UUIDs minted on each `toMealItems` call)
-   * and trims notes so leading/trailing whitespace is not "dirty".
-   */
-  function snapshotOf(meal: WorkingMeal, notes: string): MealSnapshot {
-    const items: ComparableItem[] = toMealItems(meal).map(i => ({
-      name: i.name,
-      foodId: i.foodId,
-      amount: i.amount,
-      preparationMethod: i.preparationMethod,
-    }));
-    return { items, notes: notes.trim() };
-  }
-
-  function snapshotsEqual(a: MealSnapshot, b: MealSnapshot): boolean {
-    if (a.notes !== b.notes) return false;
-    if (a.items.length !== b.items.length) return false;
-    // Order-independent: editing reorders foods; same set of foodIds with
-    // same amounts/preparations is "clean" regardless of order.
-    const key = (i: ComparableItem) =>
-      `${i.foodId}${i.name}${i.amount}${i.preparationMethod ?? ''}`;
-    const av = a.items.map(key).sort();
-    const bv = b.items.map(key).sort();
-    return av.every((k, idx) => k === bv[idx]);
-  }
-
-  /**
-   * True iff the live working meal differs from the loaded snapshot.
-   * - Compose-new (snapshot is null): dirty iff any food is confirmed/editing.
-   * - Edit-existing: dirty iff the snapshot of the live state differs from
-   *   the load snapshot (foods or notes changed).
-   */
-  const dirty = $derived(() => {
-    if (loadSnapshot === null) return isNonEmpty(workingMeal);
-    return !snapshotsEqual(snapshotOf(workingMeal, mealNotes), loadSnapshot);
-  });
 
   // ── View state ────────────────────────────────────────────
   // Drill-in is **shallow-routed** (issue #262): each drill-in entry pushes a
@@ -274,7 +207,7 @@
     if (ge) {
       return `${actionStrings.save} ${ge.food.name}`;
     }
-    if (editingExisting) {
+    if (editor.finalizeKind === 'edit') {
       return actionStrings.saveChanges;
     }
     if (hasConfirmed) {
@@ -311,18 +244,16 @@
 
   // ── CTA action ────────────────────────────────────────────
   /**
-   * Finalize CTA disabledness (issue #277). The button is disabled in two
-   * cases — both surface to the user as "nothing to save right now":
+   * Finalize CTA disabledness (issue #277, #286). The button is disabled in
+   * two cases — both surface to the user as "nothing to save right now":
    *  - Compose-new with zero foods (the empty-meal hint says so explicitly).
    *  - Editing an existing meal whose live state matches the load snapshot
    *    (a clean edit; back arrow is the right exit).
-   * Sub-CTAs (food/family inside the drill-in or grid edit row) are never
-   * disabled here — they're driven by their own state.
+   * Both rules live inside `editor.canFinalize`. Sub-CTAs (food/family
+   * inside the drill-in or grid edit row) gate the route-level disable here.
    */
   const finalizeDisabled = $derived(
-    !drilledFamily &&
-    !gridEditingFoodId &&
-    (editingExisting ? !dirty() : !hasConfirmed),
+    !drilledFamily && !gridEditingFoodId && !editor.canFinalize,
   );
 
   function handleCta(): void {
@@ -391,7 +322,7 @@
   }
 
   async function saveMeal(): Promise<void> {
-    const result = await editor.finalize({ notes: mealNotes });
+    const result = await editor.finalize();
     if (!result.ok) {
       // Surface the failure and stay on the meal page — navigating away would
       // silently evict the unsaved working meal.
@@ -438,14 +369,15 @@
    */
   function discardAndLeave(): void {
     if (editingExisting) {
-      if (dirty()) {
+      if (editor.dirty) {
         // Snapshot the live notes into the working meal so the undo path
-        // restores the user's typed text (mealNotes is bound separately).
-        const snapshot = { ...workingMeal, notes: mealNotes };
+        // restores the user's typed text (`editor.notes` is bound to the
+        // textarea separately).
+        const snapshot = { ...workingMeal, notes: editor.notes };
         writeBuffer({ kind: 'edit', workingMeal: snapshot, mealType: selectedMealType, returnTo });
       }
     } else if (isNonEmpty(workingMeal)) {
-      const snapshot = { ...workingMeal, notes: mealNotes };
+      const snapshot = { ...workingMeal, notes: editor.notes };
       writeBuffer({ kind: 'compose', workingMeal: snapshot, mealType: selectedMealType, returnTo });
     }
     goto(returnTo);
@@ -498,12 +430,12 @@
     if (nav.type !== 'popstate') return;
     if (drilledFamily) return;
     if (editingExisting) {
-      if (dirty()) {
-        const snapshot = { ...workingMeal, notes: mealNotes };
+      if (editor.dirty) {
+        const snapshot = { ...workingMeal, notes: editor.notes };
         writeBuffer({ kind: 'edit', workingMeal: snapshot, mealType: selectedMealType, returnTo });
       }
     } else if (isNonEmpty(workingMeal)) {
-      const snapshot = { ...workingMeal, notes: mealNotes };
+      const snapshot = { ...workingMeal, notes: editor.notes };
       writeBuffer({ kind: 'compose', workingMeal: snapshot, mealType: selectedMealType, returnTo });
     }
   });
@@ -595,7 +527,7 @@
   async function handleDeleteConfirm(): Promise<void> {
     overflowOpen = false;
     // Capture the working-meal snapshot BEFORE the remove call so undo can rehydrate.
-    const snapshot = { ...workingMeal, notes: mealNotes };
+    const snapshot = { ...workingMeal, notes: editor.notes };
     const result = await mealSession.remove(targetDate, selectedMealType);
     if (!result.ok) {
       saveErrorMessage = result.error;
@@ -761,7 +693,7 @@
           <textarea
             id="meal-notes"
             rows={2}
-            bind:value={mealNotes}
+            bind:value={editor.notes}
             placeholder={commonStrings.meal.notesPlaceholder}
             class="input-base w-full px-4 py-2.5 bg-white resize-none"
           ></textarea>

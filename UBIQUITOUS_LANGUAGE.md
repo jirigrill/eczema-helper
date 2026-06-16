@@ -406,6 +406,19 @@ backing out discards it **only if it would lose unsaved work** — a non-empty d
 *dirty* edit — guarded by **optimistic discard + undo**. A clean edit-back is silent.
 → See ADR-0018.
 
+### MealEditor
+*Czech: —* (internal module, not user-visible)
+
+Runes module under `src/lib/stores/meal-editor.svelte.ts` that owns the meal
+editing lifecycle from `open` to `finalize`: hydrates a `WorkingMeal` from Dexie
+(or starts empty for a fresh slot), threads transitions through `update(fn)`,
+captures the **load snapshot** for dirtiness, exposes `dirty` / `canFinalize` /
+`finalizeKind` (`'edit'` | `'compose'`), and persists via an internally-created
+`createMealSession`. The `/meal` route delegates load/save/dirty/finalize-state
+to it; view state (drill-in, grid edit) and navigation stay in the route.
+Mirrors `day-view.svelte.ts`, extended from read-only to read-write.
+→ See PRD [issue #284](https://github.com/jirigrill/eczema-helper/issues/284) and ADR-0018.
+
 ### Active Edit Slot
 The invariant that **at most one food is in the `editing` state per screen.**
 Entering editing locks (greys, disables) every other food tile and the family
