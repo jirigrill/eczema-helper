@@ -106,6 +106,7 @@
             {name}
             state={st.status}
             eliminatedStatus={eliminatedFor(food.id, allergenId)}
+            lockedPrior={st.status === 'locked' ? st.prior : undefined}
             onclick={() => onFoodTap(food.id, name)}
           >
             {#snippet editor()}
@@ -138,6 +139,7 @@
           <FoodTile
             {name}
             state={st.status}
+            lockedPrior={st.status === 'locked' ? st.prior : undefined}
             onclick={() => onFoodTap(food.id, name)}
           >
             {#snippet editor()}
@@ -187,6 +189,7 @@
           <FoodTile
             name={food.name}
             state={st.status}
+            lockedPrior={st.status === 'locked' ? st.prior : undefined}
             onclick={() => onFoodTap(food.foodId, food.name)}
           >
             {#snippet editor()}

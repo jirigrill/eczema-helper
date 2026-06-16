@@ -721,3 +721,85 @@ test('grid: confirmed eliminated food row shows amount in white text', async ({ 
   const amountSpan = page.locator('[data-state="danger-confirmed"] span.text-white');
   await expect(amountSpan).toBeVisible();
 });
+
+// ── Issue #300: working-list parity + locked-confirmed ──────────────────────
+
+test('parity: drill-in confirmed tile and working-list row both render via FoodTile (data-state="confirmed")', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+
+  // Drill in and confirm Brambory
+  await page.getByRole('button', { name: /Zelenina/ }).click();
+  await page.getByRole('button', { name: /Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+
+  // In the drill-in, Brambory now shows data-state="confirmed"
+  const drillInConfirmed = page
+    .locator('div[data-state="confirmed"]')
+    .filter({ hasText: /Brambory/ });
+  await expect(drillInConfirmed).toBeVisible();
+
+  // Commit family — back on grid, the working-list row uses the same wrapper
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+  const gridConfirmed = page
+    .locator('div[data-state="confirmed"]')
+    .filter({ hasText: /Brambory/ });
+  await expect(gridConfirmed).toBeVisible();
+});
+
+test('parity: working-list row exposes a remove (×) button that fires the remove handler', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+
+  // Add Brambory to the working list
+  await page.getByRole('button', { name: /Zelenina/ }).click();
+  await page.getByRole('button', { name: /Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Brambory/ }).click();
+  await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
+
+  // The working-list row carries an aria-labelled remove button
+  const remove = page.getByRole('button', { name: /Odebrat Brambory/ });
+  await expect(remove).toBeVisible();
+
+  await remove.click();
+  // Brambory is gone from the working list
+  await expect(page.getByRole('button', { name: 'Brambory' })).toHaveCount(0);
+});
+
+test('in-family lock: editing a sibling keeps confirmed sibling visible as locked-confirmed', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+
+  // Drill into Mléko, confirm Kravské mléko
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+
+  // Start editing a sibling in the same family
+  await page.getByRole('button', { name: /Jogurt/ }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  // The confirmed sibling now renders with data-state="locked-confirmed"
+  const lockedConfirmed = page
+    .locator('div[data-state="locked-confirmed"]')
+    .filter({ hasText: /Kravské mléko/ });
+  await expect(lockedConfirmed).toBeVisible();
+});
+
+test('in-family lock: idle siblings remain greyed-out (data-state="locked")', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+
+  // Drill into Mléko, confirm Kravské mléko, then edit Jogurt
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await page.getByRole('button', { name: /Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Jogurt/ }).click();
+  await expect(page.getByText('Množství')).toBeVisible();
+
+  // An idle sibling (Sójové mléko) is still locked + grey
+  const lockedIdle = page
+    .locator('div[data-state="locked"]')
+    .filter({ hasText: /Sójové mléko/ });
+  await expect(lockedIdle).toBeVisible();
+});

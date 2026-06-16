@@ -298,6 +298,49 @@ describe('meal/+page.svelte', () => {
     expect(jogurt).not.toBeDisabled();
   });
 
+  it('editing a sibling in the drill-in: confirmed sibling stays visible as locked-confirmed', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, container } = render(MealPage);
+    await tick();
+    // Drill into Mléko, confirm Kravské mléko
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    // Now start editing a sibling in the same family (Jogurt)
+    await fireEvent.click(getByRole('button', { name: 'Jogurt' }));
+    await tick();
+    // Kravské mléko (the previously-confirmed sibling) should now be locked
+    // but render as locked-confirmed so the user can still see "in the meal".
+    const lockedConfirmed = container.querySelector('[data-state="locked-confirmed"]');
+    expect(lockedConfirmed).not.toBeNull();
+    expect(lockedConfirmed?.textContent).toContain('Kravské mléko');
+  });
+
+  it('editing a sibling in the drill-in: idle siblings render as locked (greyed out)', async () => {
+    setReady();
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, container } = render(MealPage);
+    await tick();
+    // Drill into Mléko, confirm Kravské mléko, then edit Jogurt
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Jogurt' }));
+    await tick();
+    // An idle sibling such as Sójové mléko — never confirmed — should be locked + grey
+    // (data-state="locked", not "locked-confirmed").
+    const lockedTiles = container.querySelectorAll('[data-state="locked"]');
+    const lockedIdleNames = [...lockedTiles].map(el => el.textContent ?? '');
+    expect(lockedIdleNames.some(n => n.includes('Sójové mléko'))).toBe(true);
+  });
+
   it('re-tapping editing food cancels it back to idle, caches nothing', async () => {
     setReady();
     const { default: MealPage } = await import('./+page.svelte');
