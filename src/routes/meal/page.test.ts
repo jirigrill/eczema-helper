@@ -3,7 +3,7 @@ import { render, fireEvent } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type { GeneratedSchedule, QuestionnaireAnswers, Meal } from '$lib/domain/models';
 
 const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 vi.mock('$lib/stores/schedule-context', () => ({
@@ -17,31 +17,31 @@ vi.mock('$app/navigation', () => ({
   }),
 }));
 
-const mockWriteBuffer = vi.fn();
-const mockClearBuffer = vi.fn();
 const mockDiscardBuffer = writable<null>(null);
 vi.mock('$lib/stores/discard-buffer', () => ({
   get discardBuffer() { return mockDiscardBuffer; },
-  writeBuffer: (...args: unknown[]) => mockWriteBuffer(...args),
-  clearBuffer: (...args: unknown[]) => mockClearBuffer(...args),
+  writeBuffer: vi.fn(),
+  clearBuffer: vi.fn(),
 }));
 
-const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+// `mockLoadBySlot` is the only assertion-free hook still used by tests:
+// rendering tests that need an existing meal in edit mode seed Dexie's
+// shape via `.mockImplementation(...)`. Save/remove call assertions live
+// in `meal-editor.test.ts` (the editor owns those code paths).
 const mockLoadBySlot = vi.fn().mockResolvedValue({ ok: true, data: null });
-const mockRemove = vi.fn().mockResolvedValue({ ok: true, data: undefined });
-const mockMealSessionStore = writable<import('$lib/domain/models').Meal[]>([]);
+const mockMealSessionStore = writable<Meal[]>([]);
 vi.mock('$lib/stores/meal-session', () => ({
   mealSession: {
     subscribe: mockMealSessionStore.subscribe,
-    save: (...args: unknown[]) => mockSave(...args),
+    save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
     loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
-    remove: (...args: unknown[]) => mockRemove(...args),
+    remove: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
   },
   createMealSession: () => ({
     subscribe: mockMealSessionStore.subscribe,
-    save: (...args: unknown[]) => mockSave(...args),
+    save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
     loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
-    remove: (...args: unknown[]) => mockRemove(...args),
+    remove: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
   }),
 }));
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
@@ -52,24 +52,21 @@ const mockPage: { url: URL; state: Record<string, unknown> } = {
 };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
-const mockHarvestReadByKey = vi.fn().mockResolvedValue({ ok: true, data: null });
 const mockHarvestStore = writable<import('$lib/domain/harvest-candidate').HarvestCandidate[]>([]);
-// Mirror the real session's optimistic upsert: push the candidate into the
-// in-memory store synchronously so newly-typed custom foods render immediately
-// (the component dropped its local `pendingCustomFoods` mirror in favour of this).
-const mockHarvestUpsert = vi.fn((candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) => {
-  mockHarvestStore.update(list => {
-    const idx = list.findIndex(c => c.normalizedKey === candidate.normalizedKey);
-    return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];
-  });
-  return Promise.resolve({ ok: true, data: undefined });
-});
 vi.mock('$lib/stores/harvest-candidate-session', () => ({
   harvestCandidateSession: {
     subscribe: mockHarvestStore.subscribe,
-    readByKey: (...args: unknown[]) => mockHarvestReadByKey(...args),
-    upsert: (candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) =>
-      mockHarvestUpsert(candidate),
+    readByKey: vi.fn().mockResolvedValue({ ok: true, data: null }),
+    // The real session optimistically upserts into its in-memory store, so
+    // newly-typed custom foods render immediately. The stub mirrors that
+    // shape so the editing-after-Přidat rendering tests stay realistic.
+    upsert: (candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) => {
+      mockHarvestStore.update(list => {
+        const idx = list.findIndex(c => c.normalizedKey === candidate.normalizedKey);
+        return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];
+      });
+      return Promise.resolve({ ok: true, data: undefined });
+    },
   },
 }));
 
@@ -107,19 +104,11 @@ function setReady() {
 
 beforeEach(() => {
   mockScheduleRaw.set({ status: 'loading' });
-  mockSave.mockClear();
   mockLoadBySlot.mockClear();
   mockLoadBySlot.mockResolvedValue({ ok: true, data: null });
-  mockRemove.mockClear();
-  mockRemove.mockResolvedValue({ ok: true, data: undefined });
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
-  mockHarvestReadByKey.mockClear();
-  mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
-  mockHarvestUpsert.mockClear();
   mockHarvestStore.set([]);
-  mockWriteBuffer.mockClear();
-  mockClearBuffer.mockClear();
 });
 
 describe('meal/+page.svelte', () => {
