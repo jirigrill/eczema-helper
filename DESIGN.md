@@ -683,8 +683,8 @@ The single primary CTA per screen carries the wine-rose accent. Its verb signals
 
 | Verb | Meaning | When to use | Example screens |
 |---|---|---|---|
-| **`Uložit`** | **Single-commit save.** Without pressing it, the user's input is lost. Modal / blocking semantics. | One-shot decision per session (status, score, evaluation). May add object: `Uložit hodnocení`, `Uložit stav`. | Stav kůže · Vyhodnocení testu |
-| **`Hotovo`** | **Session closure.** Data is already autosaved per-action; the button only returns to the caller. | Builder / list / multi-item editor where each tap persists immediately. Optionally suffix with count: `Hotovo · 3 položky`. | Přidat jídlo · Onboarding final step |
+| **`Uložit`** | **Single-commit save.** Without pressing it, the user's input is lost. Modal / blocking semantics. | One-shot decision per session (status, score, evaluation). May add object: `Uložit hodnocení`, `Uložit stav`, `Uložit změny`, `Uložit {jídlo}`. | Stav kůže · Vyhodnocení testu · Přidat jídlo |
+| **`Hotovo`** | **Session closure.** Data is already autosaved per-action; the button only returns to the caller. | Builder / list / multi-item editor where each tap persists immediately. Optionally suffix with count: `Hotovo · 3 položky`. | Onboarding final step |
 | **`Pokračovat`** / **`Další`** | **Flow navigation.** Moves to the next step of a wizard. Not a commit. | Multi-step flows (onboarding). Prefer `Další` for short wizards; `Pokračovat` only when the next step is conceptually distinct. | Onboarding intermediate steps |
 | **`Potvrdit X`** | **Explicit acknowledgment.** Reserved for irreversible or high-stakes confirmations. Always carries the object: `Potvrdit datum`, `Potvrdit smazání`. | Date pickers, destructive actions. | Date selector |
 
