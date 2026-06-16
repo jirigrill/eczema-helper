@@ -625,7 +625,7 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
     await tick();
     expect(queryByText('Množství')).toBeInTheDocument();
-    // Click the notes textarea — outside any [data-food-token]
+    // Click the notes textarea — outside any [data-food-tile]
     await fireEvent.click(getByRole('textbox', { name: /Poznámka/ }));
     await tick();
     // Editor collapsed, food still present and confirmed
@@ -668,7 +668,7 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: /Uložit Brambory/ })).toBeInTheDocument();
     // Still exactly one editor open
     expect(queryByText('Množství')).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-food-token]').length).toBeGreaterThanOrEqual(2);
+    expect(document.querySelectorAll('[data-food-tile]').length).toBeGreaterThanOrEqual(2);
   });
 
   // ── Conflict styling: CTA button + grid working-list ────────
@@ -839,8 +839,8 @@ describe('meal/+page.svelte', () => {
     // Brambory must still be visible — it should NOT disappear
     expect(getByRole('button', { name: 'Brambory' })).toBeInTheDocument();
     // Kravské mléko must be before Brambory (added first)
-    const foodTokens = document.querySelectorAll('[data-food-token]');
-    const names = [...foodTokens].map(el => el.textContent?.trim() ?? '');
+    const foodTiles = document.querySelectorAll('[data-food-tile]');
+    const names = [...foodTiles].map(el => el.textContent?.trim() ?? '');
     const milkIdx = names.findIndex(n => n.includes('Kravské mléko'));
     const potatoIdx = names.findIndex(n => n.includes('Brambory'));
     expect(milkIdx).toBeLessThan(potatoIdx);
@@ -869,14 +869,14 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Uložit Zelenina/ }));
     await tick();
     // Capture order before editing
-    const beforeTokens = [...document.querySelectorAll('[data-food-token]')].map(el => el.textContent?.trim() ?? '');
+    const beforeTiles = [...document.querySelectorAll('[data-food-tile]')].map(el => el.textContent?.trim() ?? '');
     // Open editor on Brambory (second item)
     await fireEvent.click(getByRole('button', { name: 'Brambory' }));
     await tick();
     // Capture order after — Brambory must stay at same index
-    const afterTokens = [...document.querySelectorAll('[data-food-token]')].map(el => el.textContent?.trim() ?? '');
-    const beforeBramborIdx = beforeTokens.findIndex(n => n.includes('Brambory'));
-    const afterBramborIdx = afterTokens.findIndex(n => n.includes('Brambory'));
+    const afterTiles = [...document.querySelectorAll('[data-food-tile]')].map(el => el.textContent?.trim() ?? '');
+    const beforeBramborIdx = beforeTiles.findIndex(n => n.includes('Brambory'));
+    const afterBramborIdx = afterTiles.findIndex(n => n.includes('Brambory'));
     expect(afterBramborIdx).toBe(beforeBramborIdx);
   });
 
@@ -1081,7 +1081,7 @@ describe('meal/+page.svelte', () => {
       await tick();
       await tick();
 
-      const row = container.querySelector('[data-food-token]');
+      const row = container.querySelector('[data-food-tile]');
       expect(row).not.toBeNull();
       const text = row!.textContent ?? '';
       expect(text).toMatch(/Lžíce/);
@@ -1101,7 +1101,7 @@ describe('meal/+page.svelte', () => {
       await tick();
       await tick();
 
-      const row = container.querySelector('[data-food-token]');
+      const row = container.querySelector('[data-food-tile]');
       const text = row!.textContent ?? '';
       expect(text).toMatch(/Lžíce\s*·\s*Vařené/);
     });
@@ -1117,7 +1117,7 @@ describe('meal/+page.svelte', () => {
       await tick();
       await tick();
 
-      const row = container.querySelector('[data-food-token]');
+      const row = container.querySelector('[data-food-tile]');
       const text = row!.textContent ?? '';
       expect(text).not.toMatch(/·/);
     });

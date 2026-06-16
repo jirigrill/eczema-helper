@@ -7,7 +7,7 @@
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
   import type { WorkingFood } from '$lib/domain/working-meal';
-  import FoodToken from '$lib/components/FoodToken.svelte';
+  import FoodTile from '$lib/components/FoodTile.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
 
   let {
@@ -28,7 +28,7 @@
     onFoodTap: (foodId: string, name: string) => void;
     onAmountChange: (foodId: string, amount: PortionKind) => void;
     onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
-    /** Called when the user clicks outside any FoodToken while one is editing. */
+    /** Called when the user clicks outside any FoodTile while one is editing. */
     onCancelEdit?: () => void;
     /** Called when the user submits a new custom food name (Vlastní family only). */
     onNewCustomFood?: (name: string) => void;
@@ -77,8 +77,8 @@
 
   function handleContainerClick(e: MouseEvent): void {
     if (!hasActiveEditor || !onCancelEdit) return;
-    // Cancel if the click didn't land inside a food-token element
-    if (!(e.target as Element).closest('[data-food-token]')) {
+    // Cancel if the click didn't land inside a food-tile element
+    if (!(e.target as Element).closest('[data-food-tile]')) {
       onCancelEdit();
     }
   }
@@ -101,8 +101,8 @@
         {#each groupFoods as food}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
-          <div data-food-token>
-          <FoodToken
+          <div data-food-tile>
+          <FoodTile
             {name}
             state={st.status}
             eliminatedStatus={eliminatedFor(food.id, allergenId)}
@@ -119,7 +119,7 @@
                 />
               {/if}
             {/snippet}
-          </FoodToken>
+          </FoodTile>
           </div>
         {/each}
       </div>
@@ -134,8 +134,8 @@
         {#each looseFoods as food}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
-          <div data-food-token>
-          <FoodToken
+          <div data-food-tile>
+          <FoodTile
             {name}
             state={st.status}
             onclick={() => onFoodTap(food.id, name)}
@@ -150,7 +150,7 @@
                 />
               {/if}
             {/snippet}
-          </FoodToken>
+          </FoodTile>
           </div>
         {/each}
       </div>
@@ -183,8 +183,8 @@
       <div class="flex flex-col gap-2">
         {#each customFoods as food (food.foodId)}
           {@const st = stateFor(food.foodId)}
-          <div data-food-token>
-          <FoodToken
+          <div data-food-tile>
+          <FoodTile
             name={food.name}
             state={st.status}
             onclick={() => onFoodTap(food.foodId, food.name)}
@@ -199,7 +199,7 @@
                 />
               {/if}
             {/snippet}
-          </FoodToken>
+          </FoodTile>
           </div>
         {/each}
       </div>

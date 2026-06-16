@@ -4,8 +4,8 @@
  * Covers acceptance criteria 1–12 (AC13 = showcase update, not a runtime behaviour).
  *
  * Selectors:
- *  - FoodToken wrapper:  div[data-state]  (confirmed | locked | danger)
- *  - FoodToken button:   getByRole('button', { name }) — the tappable label
+ *  - FoodTile wrapper:  div[data-state]  (confirmed | locked | danger)
+ *  - FoodTile button:   getByRole('button', { name }) — the tappable label
  *  - FoodEditor section: text 'Množství' / 'Příprava'
  *  - Confirmed-foods list on grid: text from commonStrings.meal.confirmedFoodsLabel
  *  - CTA: getByRole('button', { name: /…/ })  (sticky bottom button)
@@ -169,7 +169,7 @@ test('AC3: tapping "Uložit {Food}" confirms the food (bordeaux fill, editor col
   // FoodEditor is gone
   await expect(page.getByText('Množství')).not.toBeVisible();
 
-  // FoodToken wrapper has data-state="confirmed"
+  // FoodTile wrapper has data-state="confirmed"
   const confirmedTile = page.locator('div[data-state="confirmed"]').filter({ hasText: /Brambory/ });
   await expect(confirmedTile).toBeVisible();
 });
@@ -195,7 +195,7 @@ test('AC4: clicking outside the food editor cancels the edit', async ({ page }) 
   await drillIn.getByRole('button', { name: 'Brambory', exact: true }).click();
   await expect(page.getByText('Množství')).toBeVisible();
 
-  // Click the "bez alergenu" section heading — inside the drill-in but outside any FoodToken
+  // Click the "bez alergenu" section heading — inside the drill-in but outside any FoodTile
   await page.getByText('bez alergenu').click();
 
   // FoodEditor should collapse
@@ -555,7 +555,7 @@ test('AC245-4: clicking outside the grid-row editor confirms the food and collap
   await page.getByRole('button', { name: 'Brambory', exact: true }).click();
   await expect(page.getByText('Množství')).toBeVisible();
 
-  // Click outside: the notes textarea is outside [data-food-token]
+  // Click outside: the notes textarea is outside [data-food-tile]
   await page.getByLabel('Poznámka k jídlu').click();
 
   await expect(page.getByText('Množství')).not.toBeVisible();
@@ -570,7 +570,7 @@ test('AC245-5: clicking a family-grid tile while a row is editing closes the edi
   await page.getByRole('button', { name: 'Brambory', exact: true }).click();
   await expect(page.getByText('Množství')).toBeVisible();
 
-  // Click a family tile — outside [data-food-token], so it confirms the edit
+  // Click a family tile — outside [data-food-tile], so it confirms the edit
   await page.getByRole('button', { name: /Ovoce/ }).click();
 
   // Still on grid (no drill-in heading visible)
@@ -649,14 +649,14 @@ test('grid: opening a row editor does not move the food to the bottom of the lis
   await expect(page.getByText('Přidané potraviny')).toBeVisible();
 
   // Capture DOM order before editing
-  const orderBefore = await page.locator('[data-food-token]').allTextContents();
+  const orderBefore = await page.locator('[data-food-tile]').allTextContents();
 
   // Open editor on Brambory (first item)
   await page.getByRole('button', { name: 'Brambory', exact: true }).click();
   await expect(page.getByText('Množství')).toBeVisible();
 
   // Brambory must still appear at the same index — not appended at bottom
-  const orderAfter = await page.locator('[data-food-token]').allTextContents();
+  const orderAfter = await page.locator('[data-food-tile]').allTextContents();
   const idxBefore = orderBefore.findIndex(t => t.includes('Brambory'));
   const idxAfter = orderAfter.findIndex(t => t.includes('Brambory'));
   expect(idxAfter).toBe(idxBefore);

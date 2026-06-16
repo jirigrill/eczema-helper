@@ -70,7 +70,7 @@ test('confirmed-food row renders Czech portion label "Lžíce" — never the raw
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
 
   // Working-list row should show the food name and the Czech label.
-  const row = page.locator('[data-food-token]').filter({ hasText: 'Brambory' }).first();
+  const row = page.locator('[data-food-tile]').filter({ hasText: 'Brambory' }).first();
   await expect(row).toContainText('Lžíce');
   // Negative checks: no raw key, no lowercase short form.
   await expect(row).not.toContainText(/\bspoon\b/);
@@ -99,10 +99,10 @@ test('confirmed-food row appends "· Vařené" when a preparation is set, omits 
   // Commit family → back to grid.
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
 
-  const row = page.locator('[data-food-token]').filter({ hasText: 'Brambory' }).first();
+  const row = page.locator('[data-food-tile]').filter({ hasText: 'Brambory' }).first();
   await expect(row).toContainText(/Lžíce\s*·\s*Vařené/);
 
-  const rowNoPrep = page.locator('[data-food-token]').filter({ hasText: 'Cuketa' }).first();
+  const rowNoPrep = page.locator('[data-food-tile]').filter({ hasText: 'Cuketa' }).first();
   await expect(rowNoPrep).toContainText('Porce');
   const noPrepText = (await rowNoPrep.textContent()) ?? '';
   expect(noPrepText).not.toContain('·');

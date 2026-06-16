@@ -92,7 +92,7 @@
   <a href="#toast">Toast</a>
   <a href="#family-grid">FamilyGrid</a>
   <a href="#family-drill-in">FamilyDrillIn</a>
-  <a href="#food-token">FoodToken</a>
+  <a href="#food-tile">FoodTile</a>
   <a href="#food-editor">FoodEditor</a>
   <a href="#meal-type-pills">MealTypePills (retired)</a>
   <a href="#allergen-drill-in">AllergenDrillIn</a>
@@ -1004,7 +1004,7 @@
   <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
   <div class="component-section" id="family-drill-in">
     <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onCancelEdit?: () => void</p>
-    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodToken rows, grouped by allergen. Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The allergen group header shows a danger badge when that allergen is in eliminatedAllergenIds. The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. The back arrow and family name live in the page's PageHeader, not here.</p>
+    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodTile rows, grouped by allergen. Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The allergen group header shows a danger badge when that allergen is in eliminatedAllergenIds. The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. The back arrow and family name live in the page's PageHeader, not here.</p>
     <div class="variant-grid">
 
       <!-- Dairy family: editing state (one food editing, one locked) -->
@@ -1113,10 +1113,10 @@
 
   <hr class="section-hr">
 
-  <!-- ─── FoodToken ─────────────────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/FoodToken.svelte -->
-  <div class="component-section" id="food-token">
-    <p class="component-label">▸ <span>FoodToken</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', onclick?: () => void, editor?: Snippet</p>
+  <!-- ─── FoodTile ─────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/FoodTile.svelte -->
+  <div class="component-section" id="food-tile">
+    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', onclick?: () => void, editor?: Snippet</p>
     <p class="component-desc">Per-food tile in FamilyDrillIn. Four visual states reflecting the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed', not bordeaux). data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', or unset (idle/editing without conflict).</p>
     <div class="variant-grid">
 
@@ -1215,7 +1215,7 @@
   <!-- sync with: src/lib/components/FoodEditor.svelte -->
   <div class="component-section" id="food-editor">
     <p class="component-label">▸ <span>FoodEditor</span> — amount: PortionKind, preparation?: PreparationMethod, onAmountChange: (a: PortionKind) => void, onPreparationChange: (p: PreparationMethod | undefined) => void</p>
-    <p class="component-desc">Množství / Příprava picker that expands beneath a FoodToken in editing state. Uses Chip for each option. Active chip is filled (bordeaux). Tapping the active preparation chip deselects it (toggles to undefined). Clicking amount/preparation chips calls stopPropagation to avoid triggering FoodToken's onclick.</p>
+    <p class="component-desc">Množství / Příprava picker that expands beneath a FoodTile in editing state. Uses Chip for each option. Active chip is filled (bordeaux). Tapping the active preparation chip deselects it (toggles to undefined). Clicking amount/preparation chips calls stopPropagation to avoid triggering FoodTile's onclick.</p>
     <div class="variant-grid">
 
       <!-- Default: portion selected, no preparation -->
