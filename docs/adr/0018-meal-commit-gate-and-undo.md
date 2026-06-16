@@ -65,6 +65,9 @@ overview never shows a half-built draft.
   (composing) or is rejected with a hint (editing — "a meal needs at least one food;
   use Smazat to remove it"). Deleting a meal is never done by emptying it.
 
+> **Implementation note.** This lifecycle is implemented by the `MealEditor` module
+> (`src/lib/stores/meal-editor.svelte.ts`) — see PRD [issue #284](https://github.com/jirigrill/eczema-helper/issues/284).
+
 ### 2. Meal type is fixed at entry; the day page is the launcher
 
 Meal type is chosen **before any food is added** and is **fixed** for that composing
