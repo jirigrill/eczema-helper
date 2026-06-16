@@ -16,6 +16,39 @@ message from a failed repository load. This is an application-layer concept,
 not a domain concept — it is the authoritative name for what routes consume,
 as distinct from the raw `GeneratedSchedule` stored in the database.
 
+### MealEditor
+The meal editing lifecycle as one home — a runes module
+(`src/lib/stores/meal-editor.svelte.ts`, factory `createMealEditor()`)
+that owns a meal "from open to save/discard". The `/meal` route delegates
+load/save/dirtiness/conflicts here and keeps only view/navigation state
+(`drilledFamily`, `gridEditingFoodId`, popstate/shallow routing, `goto`).
+An application-layer concept, like `ScheduleContext`; distinct from
+`meal-session` (the Dexie/`liveQuery` persistence store it reaches through)
+and `working-meal` (the pure in-memory value it edits via a single
+`update(fn)` chokepoint). Mirrors `day-view.svelte.ts`, extended from
+read-only projection to read-write editing.
+
+Three invariants live here (the home ADR-0018 lacked):
+
+- `createdAt` survives an edit; `updatedAt` is stamped only on edit;
+  compose-new mints a fresh `createdAt` and writes no `updatedAt`.
+- An empty meal never persists — `finalize()` with zero confirmed foods is
+  a no-op; emptying a meal is done via an explicit delete, not by saving
+  empty.
+- Dirtiness is snapshot-relative — compose-new is dirty iff any food is
+  confirmed/editing; an edit is dirty iff live foods or trimmed notes
+  differ from the load snapshot (order-independent food comparison).
+
+**Conflict responsibility:** `MealEditor` exposes which of its foods touch
+today's elimination window (`eliminatedFoodIds`, `hasConflicts`) by calling
+the *shared* domain `detectConflicts` over its own foods — so the meal
+screen, `MealCard`, and day view stay consistent and the implementation can
+be swapped behind one call site. It takes `eliminatedToday` (an
+`AllergenId[]`) injected by the route; it never reads `scheduleRaw` or calls
+`buildScheduleContext`. The view-specific danger flags (per-row styling, the
+warning banner, the red CTA, reintro dosing) stay in the route, built on top
+of `eliminatedFoodIds`. See ADR-0018 and PRD issue #284.
+
 ### SkinObservation
 A timestamped record of what the parent observed about the baby's skin
 at a point in time: status (`improved` / `unchanged` / `worsened` /
