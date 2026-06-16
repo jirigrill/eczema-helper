@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { Meal, PortionKind, PreparationMethod } from '$lib/domain/models';
+  import type { PortionKind, PreparationMethod } from '$lib/domain/models';
   import { detectConflicts } from '$lib/domain/schedule-queries';
   import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -29,10 +29,10 @@
   import { page } from '$app/state';
   import { mealSession } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
+  import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
 
   import {
-    emptyWorkingMeal,
     fromMealItems,
     startEditing,
     confirmFood,
@@ -42,7 +42,6 @@
     updateEditingPreparation,
     commitFamily,
     removeFood,
-    allConfirmedFoods,
     editingFood as getEditingFood,
     foodsForFamily,
     toMealItems,
@@ -80,9 +79,14 @@
   }
   const selectedMealType: MealTypeKind = isMealType(urlType) ? urlType : 'lunch';
 
-  // ── Slot hydration on mount ──────────────────────────────
-  // Type is fixed, so this only needs to run once per mount: load the
-  // addressed slot, or restore an undo-buffer captured for the same slot.
+  // ── Editor + slot hydration on mount ─────────────────────
+  // The MealEditor (PRD #284) owns the meal lifecycle from open to finalize:
+  // load, hydration, working-meal mutation, and save. It internally creates
+  // its own `createMealSession(date)` — no port is injected. View state
+  // (drill-in, grid edit), navigation, dirtiness, and the discard buffer
+  // stay in the route and are deferred to later slices of #284.
+  const editor = createMealEditor();
+
   $effect(() => {
     const buf = get(discardBuffer);
     if (buf && buf.mealType === selectedMealType) {
@@ -97,47 +101,35 @@
       //    holds across a back-out → undo → save round-trip.
       //  - `compose`: the slot was empty before, still empty → compose-new.
       clearBuffer();
-      workingMeal = buf.workingMeal;
       mealNotes = buf.workingMeal.notes;
-      if (buf.kind === 'edit') {
-        editingExisting = true;
-        loadSnapshot = snapshotOf(buf.workingMeal, buf.workingMeal.notes);
-        // Re-fetch the persisted createdAt — we don't carry it on the buffer.
-        void mealSession.loadBySlot(targetDate, selectedMealType).then((res) => {
-          if (res.ok && res.data) loadedCreatedAt = res.data.createdAt;
-        });
-      } else {
-        editingExisting = false;
-        loadSnapshot = null;
-        loadedCreatedAt = null;
-      }
+      const slot = { date: targetDate, mealType: selectedMealType };
+      void editor.restore({ slot, workingMeal: buf.workingMeal, kind: buf.kind }).then(() => {
+        if (buf.kind === 'edit') {
+          loadSnapshot = snapshotOf(buf.workingMeal, buf.workingMeal.notes);
+        } else {
+          loadSnapshot = null;
+        }
+      });
       return;
     }
 
-    void mealSession.loadBySlot(targetDate, selectedMealType).then((result) => {
-      if (result.ok && result.data) {
-        const notes = result.data.notes ?? '';
-        workingMeal = fromMealItems(result.data.items, notes);
-        mealNotes = notes;
-        editingExisting = true;
-        loadSnapshot = snapshotOf(workingMeal, notes);
-        loadedCreatedAt = result.data.createdAt;
+    void editor.open({ date: targetDate, mealType: selectedMealType }).then(() => {
+      mealNotes = editor.workingMeal.notes;
+      if (editor.editingExisting) {
+        loadSnapshot = snapshotOf(editor.workingMeal, editor.workingMeal.notes);
       } else {
-        workingMeal = emptyWorkingMeal();
-        mealNotes = '';
-        editingExisting = false;
         loadSnapshot = null;
-        loadedCreatedAt = null;
       }
     });
   });
 
   // ── Working meal state ────────────────────────────────────
-  // Starts empty; the hydration effect above fills it on mount.
-  let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
+  // The editor owns the working meal; the route still owns the bindable
+  // `mealNotes` (it threads through `finalize({ notes })`) and the load
+  // snapshot used for dirtiness — both deferred to a later #284 slice.
+  const workingMeal = $derived<WorkingMeal>(editor.workingMeal);
+  const editingExisting = $derived(editor.editingExisting);
   let mealNotes = $state('');
-  /** Edit-existing vs compose-new: gates the ⋯ overflow + the empty-meal hint. */
-  let editingExisting = $state(false);
   /** True while the destructive-confirm bottom sheet is open. */
   let overflowOpen = $state(false);
   /**
@@ -148,12 +140,6 @@
    * CTA enabledness (clean edits leave the button disabled).
    */
   let loadSnapshot = $state<MealSnapshot | null>(null);
-  /**
-   * The loaded meal's original `createdAt`. Preserved across an edit-update
-   * so the meal's identity (when it was first logged) survives edits — only
-   * a compose-new write mints a fresh `createdAt`.
-   */
-  let loadedCreatedAt = $state<string | null>(null);
 
   type ComparableItem = {
     name: string;
@@ -184,7 +170,7 @@
     // Order-independent: editing reorders foods; same set of foodIds with
     // same amounts/preparations is "clean" regardless of order.
     const key = (i: ComparableItem) =>
-      `${i.foodId} ${i.name} ${i.amount} ${i.preparationMethod ?? ''}`;
+      `${i.foodId}${i.name}${i.amount}${i.preparationMethod ?? ''}`;
     const av = a.items.map(key).sort();
     const bv = b.items.map(key).sort();
     return av.every((k, idx) => k === bv[idx]);
@@ -215,7 +201,7 @@
   let gridEditingFoodId = $state<string | null>(null);
 
   // ── Derived working-meal helpers ──────────────────────────
-  const confirmedFoods = $derived(allConfirmedFoods(workingMeal));
+  const confirmedFoods = $derived(editor.confirmedFoods);
   const hasConfirmed = $derived(confirmedFoods.length > 0);
 
   const currentEditingFood = $derived(
@@ -305,22 +291,22 @@
     const status = existing?.state.status;
 
     if (status === 'editing') {
-      workingMeal = cancelEditing(workingMeal, drilledFamily, foodId);
+      editor.update(m => cancelEditing(m, drilledFamily!, foodId));
     } else if (status === 'confirmed') {
-      workingMeal = deselectFood(workingMeal, drilledFamily, foodId);
+      editor.update(m => deselectFood(m, drilledFamily!, foodId));
     } else if (status !== 'locked') {
-      workingMeal = startEditing(workingMeal, drilledFamily, foodId, name);
+      editor.update(m => startEditing(m, drilledFamily!, foodId, name));
     }
   }
 
   function handleAmountChange(foodId: string, amount: PortionKind): void {
     if (!drilledFamily) return;
-    workingMeal = updateEditingAmount(workingMeal, drilledFamily, foodId, amount);
+    editor.update(m => updateEditingAmount(m, drilledFamily!, foodId, amount));
   }
 
   function handlePreparationChange(foodId: string, prep: PreparationMethod | undefined): void {
     if (!drilledFamily) return;
-    workingMeal = updateEditingPreparation(workingMeal, drilledFamily, foodId, prep);
+    editor.update(m => updateEditingPreparation(m, drilledFamily!, foodId, prep));
   }
 
   // ── CTA action ────────────────────────────────────────────
@@ -342,9 +328,9 @@
   function handleCta(): void {
     if (drilledFamily) {
       if (currentEditingFood) {
-        workingMeal = confirmFood(workingMeal, drilledFamily, currentEditingFood.foodId);
+        editor.update(m => confirmFood(m, drilledFamily!, currentEditingFood.foodId));
       } else {
-        workingMeal = commitFamily(workingMeal, drilledFamily);
+        editor.update(m => commitFamily(m, drilledFamily!));
         drilledFamily = null;
         // Unwind the drill-in's pushed history entry so the grid is reached
         // by popping, not by stacking another entry on top.
@@ -354,7 +340,7 @@
     }
     const ge = gridEditingFood();
     if (ge) {
-      workingMeal = confirmFood(workingMeal, ge.familyId, ge.food.foodId);
+      editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
       gridEditingFoodId = null;
       return;
     }
@@ -367,30 +353,30 @@
   function handleGridRowTap(foodId: string, name: string, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) {
       // Re-tap: confirm back (collapses editor, food stays in list)
-      workingMeal = confirmFood(workingMeal, familyId, foodId);
+      editor.update(m => confirmFood(m, familyId, foodId));
       gridEditingFoodId = null;
     } else {
       // Confirm any currently-editing food first, then open the tapped one
       const ge = gridEditingFood();
       if (ge) {
-        workingMeal = confirmFood(workingMeal, ge.familyId, ge.food.foodId);
+        editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
       }
-      workingMeal = startEditing(workingMeal, familyId, foodId, name);
+      editor.update(m => startEditing(m, familyId, foodId, name));
       gridEditingFoodId = foodId;
     }
   }
 
   function handleGridRowAmountChange(foodId: string, familyId: FamilyId, amount: PortionKind): void {
-    workingMeal = updateEditingAmount(workingMeal, familyId, foodId, amount);
+    editor.update(m => updateEditingAmount(m, familyId, foodId, amount));
   }
 
   function handleGridRowPreparationChange(foodId: string, familyId: FamilyId, prep: PreparationMethod | undefined): void {
-    workingMeal = updateEditingPreparation(workingMeal, familyId, foodId, prep);
+    editor.update(m => updateEditingPreparation(m, familyId, foodId, prep));
   }
 
   function handleGridRowRemove(foodId: string, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) gridEditingFoodId = null;
-    workingMeal = removeFood(workingMeal, familyId, foodId);
+    editor.update(m => removeFood(m, familyId, foodId));
   }
 
   function handleGridContainerClick(e: MouseEvent): void {
@@ -398,39 +384,14 @@
     if (!(e.target as Element).closest('[data-food-token]')) {
       const ge = gridEditingFood();
       if (ge) {
-        workingMeal = confirmFood(workingMeal, ge.familyId, ge.food.foodId);
+        editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
         gridEditingFoodId = null;
       }
     }
   }
 
   async function saveMeal(): Promise<void> {
-    const items = toMealItems(workingMeal);
-    if (items.length === 0) return;
-    const now = new Date().toISOString();
-    // Preserve createdAt on edit-update; mint fresh on compose-new (issue #277,
-    // ADR-0018). updatedAt is stamped only on edit; absent on compose-new.
-    const meal: Meal = editingExisting && loadedCreatedAt
-      ? {
-          id: `${targetDate}:${selectedMealType}`,
-          date: targetDate,
-          mealType: selectedMealType,
-          actor: 'mother',
-          items,
-          notes: mealNotes.trim() || undefined,
-          createdAt: loadedCreatedAt,
-          updatedAt: now,
-        }
-      : {
-          id: `${targetDate}:${selectedMealType}`,
-          date: targetDate,
-          mealType: selectedMealType,
-          actor: 'mother',
-          items,
-          notes: mealNotes.trim() || undefined,
-          createdAt: now,
-        };
-    const result = await mealSession.save(meal);
+    const result = await editor.finalize({ notes: mealNotes });
     if (!result.ok) {
       // Surface the failure and stay on the meal page — navigating away would
       // silently evict the unsaved working meal.
@@ -561,7 +522,7 @@
     if (!drilledFamily) return;
     const editing = getEditingFood(workingMeal, drilledFamily);
     if (editing) {
-      workingMeal = cancelEditing(workingMeal, drilledFamily, editing.foodId);
+      editor.update(m => cancelEditing(m, drilledFamily!, editing.foodId));
     }
   }
 
