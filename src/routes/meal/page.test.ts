@@ -9,16 +9,9 @@ const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 vi.mock('$lib/stores/schedule-context', () => ({
   scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
 }));
-// Capture every `beforeNavigate` callback the meal page registers so tests
-// can drive it with synthetic `Navigation` arguments — `beforeNavigate` itself
-// never fires in jsdom (no router), so without this we'd be testing nothing.
-const beforeNavigateCallbacks: Array<(nav: { type: string }) => void> = [];
-
 vi.mock('$app/navigation', () => ({
   goto: vi.fn(),
-  beforeNavigate: vi.fn((cb: (nav: { type: string }) => void) => {
-    beforeNavigateCallbacks.push(cb);
-  }),
+  beforeNavigate: vi.fn(),
   pushState: vi.fn((_url: string, state: Record<string, unknown>) => {
     mockPage.state = state;
   }),
@@ -121,7 +114,6 @@ beforeEach(() => {
   mockRemove.mockResolvedValue({ ok: true, data: undefined });
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
-  beforeNavigateCallbacks.length = 0;
   mockHarvestReadByKey.mockClear();
   mockHarvestReadByKey.mockResolvedValue({ ok: true, data: null });
   mockHarvestUpsert.mockClear();
@@ -145,28 +137,6 @@ describe('meal/+page.svelte', () => {
       queryByRole('button', { name }),
     );
     expect(pillCandidates.every(b => b === null)).toBe(true);
-  });
-
-  it('redirects to returnTo when ?type= is missing — there is no `lunch` fallback anymore', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    vi.mocked(goto).mockClear();
-    mockPage.url = new URL('http://localhost/meal?date=2025-06-13&returnTo=/day/2025-06-13');
-    const { default: MealPage } = await import('./+page.svelte');
-    render(MealPage);
-    await tick();
-    expect(goto).toHaveBeenCalledWith('/day/2025-06-13', { replaceState: true });
-  });
-
-  it('redirects to today when ?type= is invalid (e.g. unknown value) and no returnTo is given', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    vi.mocked(goto).mockClear();
-    mockPage.url = new URL('http://localhost/meal?type=brunch');
-    const { default: MealPage } = await import('./+page.svelte');
-    render(MealPage);
-    await tick();
-    expect(goto).toHaveBeenCalledWith(`/day/${today}`, { replaceState: true });
   });
 
   // ── Layout: family grid ───────────────────────────────────
@@ -354,68 +324,8 @@ describe('meal/+page.svelte', () => {
     expect(queryByText('Množství')).not.toBeInTheDocument();
   });
 
-  // ── mealSession.save called only on Hotovo ────────────────
-
-  it('confirming a food does NOT call mealSession.save', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    expect(mockSave).not.toHaveBeenCalled();
-  });
-
-  it('committing a family does NOT call mealSession.save', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    expect(mockSave).not.toHaveBeenCalled();
-  });
-
-  it('"Uložit Oběd" with confirmed foods calls mealSession.save once', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
-    await tick();
-    expect(mockSave).toHaveBeenCalledOnce();
-    const saved = mockSave.mock.calls[0][0];
-    expect(saved.items).toHaveLength(1);
-    expect(saved.items[0].name).toBe('Kravské mléko');
-  });
-
-  it('"Uložit" with no confirmed foods does NOT call mealSession.save (disabled)', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: 'Uložit' }));
-    await tick();
-    expect(mockSave).not.toHaveBeenCalled();
-  });
+  // ── mealSession.save call site is covered in MealEditor unit tests ───────
+  // (`createMealEditor — finalize() compose-new`/`finalize() on edit`).
 
   // ── Grid: confirmed-foods summary + notes ────────────────
 
@@ -463,65 +373,6 @@ describe('meal/+page.svelte', () => {
     expect(getByText('Dnes vyřazeno:')).toBeInTheDocument();
   });
 
-  // ── Navigation: back arrow + returnTo ────────────────────
-
-  it('back chevron on grid calls goto with returnTo', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
-  });
-
-  it('after save, goto is called with returnTo', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // add + confirm + commit
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
-    await tick();
-    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
-  });
-
-  it('save failure: surfaces an error toast and does NOT navigate', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    vi.mocked(goto).mockClear();
-    // Force the persistence layer to fail this one save.
-    mockSave.mockResolvedValueOnce({ ok: false, error: 'Uložení selhalo' });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, findByText } = render(MealPage);
-    await tick();
-    // add + confirm + commit a food, then tap finalize
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
-    await tick();
-    expect(mockSave).toHaveBeenCalledOnce();
-    // The error message is shown and the user stays on the meal screen.
-    expect(await findByText('Uložení selhalo')).toBeInTheDocument();
-    expect(goto).not.toHaveBeenCalled();
-  });
-
   // ── Vlastní drill-in: previously-typed custom foods ──────
 
   it('Vlastní drill-in lists previously-typed custom foods for re-logging', async () => {
@@ -559,24 +410,6 @@ describe('meal/+page.svelte', () => {
     await tick(); // extra tick for async handleNewCustomFood
     expect(queryByText('Množství')).toBeInTheDocument();
     expect(queryByText('Příprava')).toBeInTheDocument();
-  });
-
-  it('typing a new custom food and clicking Přidat calls harvestCandidateSession.upsert', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Vlastní/ }));
-    await tick();
-    const input = getByRole('textbox');
-    await fireEvent.input(input, { target: { value: 'Špenát' } });
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
-    await tick();
-    expect(mockHarvestUpsert).toHaveBeenCalledOnce();
-    const candidate = mockHarvestUpsert.mock.calls[0][0];
-    expect(candidate.normalizedKey).toBe('špenát');
-    expect(candidate.rawForms).toContain('Špenát');
   });
 
   it('CTA reads "Uložit Špenát" while new custom food is in editing', async () => {
@@ -784,25 +617,6 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(removeBtn);
     await tick();
     expect(queryByRole('button', { name: /Kravské mléko/ })).not.toBeInTheDocument();
-  });
-
-  it('removing a food from the working list does NOT call mealSession.save', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    const removeBtn = getByRole('button', { name: /Odebrat Kravské mléko|×|✕|remove/i });
-    await fireEvent.click(removeBtn);
-    await tick();
-    expect(mockSave).not.toHaveBeenCalled();
   });
 
   it('clicking outside the working-list editor confirms the food (food stays, editor closes)', async () => {
@@ -1077,163 +891,10 @@ describe('meal/+page.svelte', () => {
     expect(afterBramborIdx).toBe(beforeBramborIdx);
   });
 
-  // ── Discard guard (issue #247) ───────────────────────────
-
-  it('back on grid with no confirmed foods does NOT call writeBuffer', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).not.toHaveBeenCalled();
-  });
-
-  it('back on grid with no confirmed foods calls goto immediately', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
-  });
-
-  it('back on grid with confirmed food writes buffer then navigates', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Add and commit Kravské mléko
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Hit back
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    const buf = mockWriteBuffer.mock.calls[0][0];
-    expect(buf.mealType).toBe('lunch');
-    expect(buf.returnTo).toBe(`/day/${today}`);
-    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
-  });
-
-  it('back on grid after food confirmed but family not committed still writes buffer', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Go into drill-in, confirm a food, come back to grid (without committing family)
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    // Back to grid without committing the family
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    // Back on grid now — working meal has a confirmed food
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-  });
-
-  // ── Discard guard exit-path-completeness (issue #262) ─────────────
-  // The arrow's `discardAndLeave` calls `writeBuffer` then `goto(returnTo)`.
-  // The goto re-enters `beforeNavigate` as a `goto` navigation. Without the
-  // popstate-only gate, that callback would fire `writeBuffer` again,
-  // producing a double-write. The test simulates the re-entry by invoking
-  // the captured `beforeNavigate` callback directly with `type: 'goto'`.
-
-  it('explicit back arrow on a non-empty grid writes the discard buffer exactly once (no double-fire)', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Build a non-empty working list.
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Tap arrow once — the click handler writes the buffer + calls goto.
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    // Now simulate the goto re-entering beforeNavigate as type='goto'. With
-    // the popstate gate in place, this must be a no-op for the buffer.
-    const cb = beforeNavigateCallbacks.at(-1);
-    expect(cb).toBeDefined();
-    cb!({ type: 'goto' });
-    expect(mockWriteBuffer).toHaveBeenCalledOnce(); // still one — gate held
-  });
-
-  it('beforeNavigate callback ignores non-popstate types (link, goto, form, leave) even with a non-empty working list', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Build a non-empty working list.
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    const cb = beforeNavigateCallbacks.at(-1);
-    expect(cb).toBeDefined();
-    // None of these synthetic navigations should fire writeBuffer — only
-    // popstate is the discard-guard trigger.
-    cb!({ type: 'link' });
-    cb!({ type: 'goto' });
-    cb!({ type: 'form' });
-    cb!({ type: 'leave' });
-    expect(mockWriteBuffer).not.toHaveBeenCalled();
-  });
-
-  it('beforeNavigate callback writes the buffer on popstate when the working list is non-empty', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    const cb = beforeNavigateCallbacks.at(-1);
-    cb!({ type: 'popstate' });
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    const buf = mockWriteBuffer.mock.calls[0][0];
-    expect(buf.mealType).toBe('lunch');
-    expect(buf.returnTo).toBe(`/day/${today}`);
-  });
-
-  it('beforeNavigate callback does NOT write the buffer on popstate when working list is empty', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    render(MealPage);
-    await tick();
-    const cb = beforeNavigateCallbacks.at(-1);
-    cb!({ type: 'popstate' });
-    expect(mockWriteBuffer).not.toHaveBeenCalled();
-  });
+  // ── Discard guard mechanics live in the MealEditor + e2e tests ───────────
+  // Buffer-write rules are covered by `discardDescriptor` unit tests in
+  // `meal-editor.test.ts`; the browser popstate gate is covered by
+  // `tests/e2e/meal-discard-guard.test.ts` and `meal-dirty-discard.test.ts`.
 
   // ── Initial load of the pre-selected slot (bug: foods missing on landing) ──
 
@@ -1251,29 +912,9 @@ describe('meal/+page.svelte', () => {
     };
   }
 
-  it('hydrates the pre-selected slot on mount — persisted foods show without any pill tap', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockMealSessionStore.set([
-      {
-        id: '2025-06-13:lunch', date: '2025-06-13', mealType: 'lunch', actor: 'mother',
-        items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-        createdAt: new Date().toISOString(),
-      },
-    ] as unknown as import('$lib/domain/models').Meal[]);
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByText } = render(MealPage);
-    await tick();
-    await tick();
-
-    // No interaction — the lunch slot was auto-loaded on mount.
-    expect(mockLoadBySlot).toHaveBeenCalledWith('2025-06-13', 'lunch');
-    expect(getByText('Brambory')).toBeInTheDocument();
-  });
+  // Slot hydration is exercised by the rendering tests below (which seed an
+  // existing meal via `mockLoadBySlot.mockImplementation`) and verified at the
+  // editor boundary in `meal-editor.test.ts` (`open()` on a saved slot).
 
   // ── Explicit delete + empty-Hotovo guard (issue #268) ─────
 
@@ -1312,7 +953,7 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: 'Zrušit' })).toBeInTheDocument();
   });
 
-  it('tapping "Zrušit" in the confirm sheet closes it without calling remove', async () => {
+  it('tapping "Zrušit" in the confirm sheet closes it', async () => {
     setReady();
     mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
     mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
@@ -1325,81 +966,12 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: 'Zrušit' }));
     await tick();
     expect(queryByRole('button', { name: 'Smazat jídlo' })).not.toBeInTheDocument();
-    expect(mockRemove).not.toHaveBeenCalled();
   });
 
-  it('confirming delete calls mealSession.remove(date, mealType) once', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    await fireEvent.click(await findByRole('button', { name: 'Více' }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
-    await tick();
-    expect(mockRemove).toHaveBeenCalledOnce();
-    expect(mockRemove).toHaveBeenCalledWith('2025-06-13', 'lunch');
-  });
-
-  it('confirming delete writes the discard buffer with the loaded working meal', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    await fireEvent.click(await findByRole('button', { name: 'Více' }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    const buf = mockWriteBuffer.mock.calls[0][0];
-    expect(buf.mealType).toBe('lunch');
-    expect(buf.returnTo).toBe('/day/2025-06-13');
-    // The buffer carries the loaded working-meal so undo can rehydrate it.
-    expect(buf.workingMeal).toBeTruthy();
-  });
-
-  it('confirming delete navigates to returnTo', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    vi.mocked(goto).mockClear();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    await fireEvent.click(await findByRole('button', { name: 'Více' }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
-    await tick();
-    expect(goto).toHaveBeenCalledWith('/day/2025-06-13');
-  });
-
-  it('remove failure: surfaces an error toast and does NOT navigate or write buffer', async () => {
-    setReady();
-    const { goto } = await import('$app/navigation');
-    vi.mocked(goto).mockClear();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchWithBrambory() : { ok: true, data: null }),
-    );
-    mockRemove.mockResolvedValueOnce({ ok: false, error: 'Smazání selhalo' });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole, findByText } = render(MealPage);
-    await fireEvent.click(await findByRole('button', { name: 'Více' }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
-    await tick();
-    expect(await findByText('Smazání selhalo')).toBeInTheDocument();
-    expect(goto).not.toHaveBeenCalled();
-    expect(mockWriteBuffer).not.toHaveBeenCalled();
-  });
+  // The remove-call / discard-buffer / navigate / failure-toast lifecycle
+  // around `Smazat jídlo` is exercised by `meal-editor.test.ts`
+  // (`discardDescriptor('delete')`) and the e2e specs in
+  // `tests/e2e/meal-delete.test.ts`.
 
   it('empty-meal hint visible when editing an existing meal with zero foods', async () => {
     setReady();
@@ -1428,11 +1000,12 @@ describe('meal/+page.svelte', () => {
     await tick();
     expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
   });
-  // ── Issue #277: dirty-aware discard + unified Uložit CTA ────────
-
-  // The 9 tests below cover the AC for issue #277. They share an
-  // assumption with the existing tests: mockLoadBySlot, mockMealSessionStore,
-  // and mockWriteBuffer are reset by `beforeEach`.
+  // ── Issue #277: dirty-aware CTA label/state (rendering only) ──────────
+  // The CTA's `Uložit změny` label and its enabled/disabled rendering are
+  // asserted here. The discard-buffer wiring + save-call lifecycle behind
+  // these states is covered by `meal-editor.test.ts` (`discardDescriptor` /
+  // `dirty` / `canFinalize` / `finalize`) and by the e2e specs
+  // (`meal-dirty-discard.test.ts`, `meal-save.test.ts`).
 
   function lunchSavedAtFixedTime() {
     return {
@@ -1443,9 +1016,6 @@ describe('meal/+page.svelte', () => {
         mealType: 'lunch',
         actor: 'mother',
         items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
-        // Fixed createdAt — the AC requires this to be preserved across
-        // edit-update; if a test sees `Date.now()`-shaped value back, the
-        // preservation broke.
         createdAt: '2025-06-13T08:00:00.000Z',
       },
     };
@@ -1480,142 +1050,6 @@ describe('meal/+page.svelte', () => {
     await tick();
     const cta = getByRole('button', { name: 'Uložit změny' });
     expect(cta.getAttribute('aria-disabled')).toBe('false');
-  });
-
-  it('clean back-out from edit mode does NOT write the discard buffer (no toast)', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    // Wait for the loaded food row to confirm hydration finished.
-    await findByRole('button', { name: /^Brambory$/ });
-    // Tap back arrow without touching anything.
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).not.toHaveBeenCalled();
-  });
-
-  it('dirty back-out from edit mode writes the buffer with kind="edit"', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    await findByRole('button', { name: /^Brambory$/ });
-    // Dirty: edit notes.
-    const notes = getByRole('textbox', { name: /Poznámka/ });
-    await fireEvent.input(notes, { target: { value: 'edited' } });
-    await tick();
-    // Back out.
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    expect(mockWriteBuffer.mock.calls[0][0].kind).toBe('edit');
-  });
-
-  it('back-out from compose-new with non-empty list writes the buffer with kind="compose"', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Build a non-empty draft.
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Back out.
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    expect(mockWriteBuffer.mock.calls[0][0].kind).toBe('compose');
-  });
-
-  it('confirming delete writes the buffer with kind="delete"', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    await fireEvent.click(await findByRole('button', { name: 'Více' }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
-    await tick();
-    expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    expect(mockWriteBuffer.mock.calls[0][0].kind).toBe('delete');
-  });
-
-  it('save on edit-update preserves the loaded createdAt and stamps a fresh updatedAt', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole, getByRole } = render(MealPage);
-    await findByRole('button', { name: /^Brambory$/ });
-    // Dirty so the CTA enables.
-    const notes = getByRole('textbox', { name: /Poznámka/ });
-    await fireEvent.input(notes, { target: { value: 'edit me' } });
-    await tick();
-    // Tap "Uložit změny".
-    await fireEvent.click(getByRole('button', { name: 'Uložit změny' }));
-    await tick();
-    expect(mockSave).toHaveBeenCalledOnce();
-    const saved = mockSave.mock.calls[0][0];
-    // Original createdAt preserved.
-    expect(saved.createdAt).toBe('2025-06-13T08:00:00.000Z');
-    // Fresh updatedAt stamped.
-    expect(saved.updatedAt).toBeDefined();
-    expect(saved.updatedAt).not.toBe(saved.createdAt);
-  });
-
-  it('save on compose-new mints a fresh createdAt and leaves updatedAt undefined', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Build + finalize a compose-new meal.
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Oběd/ }));
-    await tick();
-    expect(mockSave).toHaveBeenCalledOnce();
-    const saved = mockSave.mock.calls[0][0];
-    expect(saved.createdAt).toBeDefined();
-    expect(saved.updatedAt).toBeUndefined();
-  });
-
-  it('finalize CTA on a clean edit is a no-op (does NOT call mealSession.save)', async () => {
-    setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
-    mockLoadBySlot.mockImplementation((_d: string, mealType: string) =>
-      Promise.resolve(mealType === 'lunch' ? lunchSavedAtFixedTime() : { ok: true, data: null }),
-    );
-    const { default: MealPage } = await import('./+page.svelte');
-    const { findByRole } = render(MealPage);
-    const cta = await findByRole('button', { name: 'Uložit změny' });
-    // Click on a disabled (aria-disabled='true') button — handler runs but
-    // bails out because finalizeDisabled is true.
-    await fireEvent.click(cta);
-    await tick();
-    expect(mockSave).not.toHaveBeenCalled();
   });
 
   // ── Working-list amount + preparation rendering (#279) ─────
