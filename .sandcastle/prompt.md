@@ -29,7 +29,7 @@ Pick the highest-priority open issue that is not blocked by another open issue.
 
 1. **Explore** — read the issue carefully. Pull in the parent PRD if referenced. Read the relevant source files and tests before writing any code.
 2. **Plan** — decide what to change and why. Keep the change as small as possible.
-3. **Execute** — use RGR (Red → Green → Repeat → Refactor): write a failing test first, then write the implementation to pass it.
+3. **Execute** — use RGR (Red → Green → Repeat → Refactor): write a failing unit and e2e tests first, then write the implementation to pass them.
 4. **Verify** — run `just check` and `just test` before committing. Fix any failures before proceeding.
 5. **Branch** — before touching any files, create and switch to a branch named `agent/ralph-issue-<ID>`:
    ```

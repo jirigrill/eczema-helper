@@ -1,43 +1,120 @@
 import { run, claudeCode } from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 
-// Simple loop: an agent that picks open issues one by one and closes them.
-// Run this with: npx tsx .sandcastle/main.ts
-// Or add to package.json scripts: "sandcastle": "npx tsx .sandcastle/main.ts"
+const PRD_ISSUE = process.argv[2];
+if (!PRD_ISSUE) {
+  console.error("Usage: npx tsx .sandcastle/main.ts <prd-issue-number>");
+  process.exit(1);
+}
 
-await run({
-  // A name for this run, shown as a prefix in log output.
-  name: "worker",
+const MAX_PARALLEL = 3;
 
-  // Sandbox provider — runs the agent inside an isolated container.
+// Phase 1: Planner agent reads PRD + linked issues, outputs dependency graph
+console.log(`\n=== Planning from PRD #${PRD_ISSUE} ===\n`);
+
+const plan = await run({
+  name: "planner",
   sandbox: docker(),
-
-  // The agent provider. Pass a model string to claudeCode() — sonnet balances
-  // capability and speed for most tasks. Switch to claude-opus-4-7 for harder
-  // problems, or claude-haiku-4-5-20251001 for speed.
   agent: claudeCode("claude-opus-4-7"),
-
-  // Path to the prompt file. Shell expressions inside are evaluated inside the
-  // sandbox at the start of each iteration, so the agent always sees fresh data.
-  promptFile: "./.sandcastle/prompt.md",
-
-  // Maximum number of iterations (agent invocations) to run in a session.
-  // Each iteration works on a single issue. Increase this to process more issues
-  // per run, or set it to 1 for a single-shot mode.
-  maxIterations: 3,
-
-  // Agent owns branch creation: it runs `git checkout -b agent/ralph-issue-<ID>`
-  // before doing any work, then pushes and opens a PR. GitHub closes the issue
-  // when the PR merges. head mode bind-mounts the host directory directly.
+  promptFile: ".sandcastle/plan-prompt.md",
+  promptArgs: { PRD_ISSUE },
   branchStrategy: { type: "head" },
-
-  // Lifecycle hooks — commands grouped by where they run (host or sandbox).
-  hooks: {
-    sandbox: {
-      // onSandboxReady runs once after the sandbox is initialised and the repo is
-      // synced in, before the agent starts. Use it to install dependencies or run
-      // any other setup steps your project needs.
-      onSandboxReady: [{ command: "bun install" }],
-    },
-  },
 });
+
+const planMatch = plan.stdout.match(/<plan>([\s\S]*?)<\/plan>/);
+if (!planMatch) {
+  throw new Error("Planner did not produce a <plan> tag.\n\n" + plan.stdout);
+}
+
+type Issue = { number: number; title: string; dependencies: number[] };
+const { issues } = JSON.parse(planMatch[1]) as { issues: Issue[] };
+
+if (issues.length === 0) {
+  console.log("No actionable issues found.");
+  process.exit(0);
+}
+
+console.log(`Plan: ${issues.length} issue(s)`);
+for (const issue of issues) {
+  const deps = issue.dependencies.length
+    ? ` (depends on: ${issue.dependencies.join(", ")})`
+    : "";
+  console.log(`  #${issue.number}: ${issue.title}${deps}`);
+}
+
+// Topological sort → parallelizable batches
+function buildBatches(issues: Issue[]): Issue[][] {
+  const remaining = new Set(issues.map((i) => i.number));
+  const done = new Set<number>();
+  const batches: Issue[][] = [];
+
+  while (remaining.size > 0) {
+    const batch = issues.filter(
+      (i) =>
+        remaining.has(i.number) &&
+        i.dependencies.every((d) => done.has(d) || !remaining.has(d)),
+    );
+    if (batch.length === 0) break; // circular dep guard
+    for (const i of batch) remaining.delete(i.number);
+    for (const i of batch) done.add(i.number);
+    batches.push(batch);
+  }
+
+  return batches;
+}
+
+const batches = buildBatches(issues);
+console.log(`\n${batches.length} batch(es) planned`);
+
+// Phase 2: Execute batches sequentially, issues within each batch in parallel
+for (const [batchIdx, batch] of batches.entries()) {
+  console.log(
+    `\n=== Batch ${batchIdx + 1}/${batches.length}: ${batch.map((i) => `#${i.number}`).join(", ")} ===\n`,
+  );
+
+  // Chunk into MAX_PARALLEL to avoid saturating the proxy
+  for (let i = 0; i < batch.length; i += MAX_PARALLEL) {
+    const chunk = batch.slice(i, i + MAX_PARALLEL);
+
+    const results = await Promise.allSettled(
+      chunk.map((issue) =>
+        run({
+          name: `worker-${issue.number}`,
+          sandbox: docker(),
+          agent: claudeCode("claude-opus-4-7"),
+          promptFile: ".sandcastle/worker-prompt.md",
+          promptArgs: {
+            ISSUE_NUMBER: String(issue.number),
+            ISSUE_TITLE: issue.title,
+          },
+          branchStrategy: {
+            type: "branch",
+            branch: `agent/ralph-issue-${issue.number}`,
+          },
+          copyToWorktree: ["node_modules"],
+          hooks: {
+            sandbox: {
+              onSandboxReady: [
+                { command: "bun install" },
+                { command: "bunx playwright install --with-deps chromium" },
+              ],
+            },
+          },
+        }),
+      ),
+    );
+
+    for (const [j, result] of results.entries()) {
+      const issue = chunk[j];
+      if (result.status === "rejected") {
+        console.error(`  ✗ #${issue.number} failed: ${result.reason}`);
+      } else {
+        console.log(
+          `  ✓ #${issue.number}: ${result.value.commits.length} commit(s)`,
+        );
+      }
+    }
+  }
+}
+
+console.log("\nAll batches complete.");
