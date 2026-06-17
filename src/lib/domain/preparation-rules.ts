@@ -10,7 +10,7 @@ import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 export const formPreparations = {
   none:       [],
   liquid:     ['raw', 'boiled', 'baked'],
-  cookable:   ['raw', 'boiled', 'steamed', 'baked', 'fried'],
+  cookable:   ['raw', 'boiled', 'baked', 'fried'],
   'raw-only': ['raw'],
 } as const satisfies Record<FoodForm, readonly PreparationMethod[]>;
 
