@@ -1209,7 +1209,7 @@ describe('meal/+page.svelte', () => {
       expect(label!.classList.contains('eyebrow')).toBe(true);
     });
 
-    it('date in the top-right carries the caption utility, not body classes', async () => {
+    it('date in the top-right carries the larger body-muted utility, not the tiny caption', async () => {
       setReady();
       mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
       const { default: MealPage } = await import('./+page.svelte');
@@ -1220,10 +1220,10 @@ describe('meal/+page.svelte', () => {
         /^\d+\.\s\S+/.test(el.textContent?.trim() ?? ''),
       );
       expect(candidates.length).toBeGreaterThan(0);
-      // Every date-shaped element on the meal screen must carry caption (not body-muted).
+      // The header date is bumped up to body-muted for legibility (no longer caption).
       for (const el of candidates) {
-        expect(el.classList.contains('caption')).toBe(true);
-        expect(el.classList.contains('body-muted')).toBe(false);
+        expect(el.classList.contains('body-muted')).toBe(true);
+        expect(el.classList.contains('caption')).toBe(false);
       }
     });
 

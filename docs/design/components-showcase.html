@@ -501,7 +501,7 @@
   <!-- ─── PageHeader ───────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/PageHeader.svelte -->
   <div class="component-section" id="page-header">
-    <p class="component-label">▸ <span>PageHeader</span> — title, onBack?, right?, variant?</p>
+    <p class="component-label">▸ <span>PageHeader</span> — title, onBack?, right?, variant?, bordered? (default true; set false when an outer sticky container owns the chrome, e.g. the meal grid, to avoid a doubled divider)</p>
     <div class="variant-row">
 
       <div class="variant-tile w-phone">
@@ -962,11 +962,11 @@
   <!-- ─── FamilyGrid ─────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyGrid.svelte -->
   <div class="component-section" id="family-grid">
-    <p class="component-label">▸ <span>FamilyGrid</span> — onSelect: (familyId) => void, activeFamilyIds?: FamilyId[], eliminatedFamilyIds?: FamilyId[]</p>
-    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (13 total). Visual states: neutral (white, default), active (white tile + small primary dot top-right — family already has a confirmed food in the meal), danger (C.3b badge: danger tint + danger border + danger text + ! badge — family contains an eliminated allergen, soft heads-up only since family≠allergen). Active takes precedence over danger. Eliminated tiles remain tappable.</p>
+    <p class="component-label">▸ <span>FamilyGrid</span> — onSelect: (familyId) => void</p>
+    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (13 total). Every tile is a plain, tappable white tile — the grid no longer carries active/eliminated indicators. Active and eliminated state are shown only on the individual foods once the user drills into a family (see FamilyDrillIn / FoodTile danger state).</p>
     <div class="variant-grid">
 
-      <!-- Neutral grid -->
+      <!-- Plain grid — the only state -->
       <div class="variant-tile" style="max-width:300px">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
           <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🌾</span><span>Obiloviny</span></button>
@@ -974,25 +974,7 @@
           <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🍎</span><span>Ovoce</span></button>
           <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥩</span><span>Maso</span></button>
         </div>
-        <p class="variant-name">neutral (default)</p>
-      </div>
-
-      <!-- Active tile — white tile + primary dot -->
-      <div class="variant-tile" style="max-width:300px">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🍎</span><span>Ovoce</span><span style="position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:99px;background:#8B4557"></span></button>
-          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥛</span><span>Mléko</span></button>
-        </div>
-        <p class="variant-name">activeFamilyIds=['fruit'] (white tile + primary dot)</p>
-      </div>
-
-      <!-- Danger tile -->
-      <div class="variant-tile" style="max-width:300px">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);font-size:10px;font-weight:500;color:#B84444;position:relative"><span style="font-size:22px;line-height:1">🥛</span><span>Mléko</span><span style="position:absolute;top:-4px;right:-4px;font-size:10px;background:#B84444;color:white;border-radius:99px;width:16px;height:16px;display:flex;align-items:center;justify-content:center">!</span></button>
-          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥚</span><span>Vejce</span></button>
-        </div>
-        <p class="variant-name">eliminatedFamilyIds=['dairy'] (danger tint + !)</p>
+        <p class="variant-name">plain (the only state)</p>
       </div>
 
     </div>
@@ -1116,8 +1098,8 @@
   <!-- ─── FoodTile ─────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FoodTile.svelte -->
   <div class="component-section" id="food-tile">
-    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', lockedPrior?: 'idle' | 'confirmed', summary?: string, onclick?: () => void, onRemove?: () => void, editor?: Snippet</p>
-    <p class="component-desc">Per-food tile rendered identically in FamilyDrillIn (drill-in) and on the working-meal list (collapsed pill, expanded editor, danger banner). Visual states reflect the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). lockedPrior branches the locked rendering: locked + prior='confirmed' keeps the confirmed fill at reduced emphasis (data-state='locked-confirmed' or 'locked-danger-confirmed') so the user can still see "this food is in the meal" while editing a sibling; locked + prior='idle' (or omitted) renders the grey outline. eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed'). Optional `summary` slot renders a porce/příprava meta line on confirmed/locked-confirmed rows; optional `onRemove` renders a × action used by the working-list view. data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', 'locked-confirmed', 'locked-danger-confirmed', or unset (idle/editing without conflict).</p>
+    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', lockedPrior?: 'idle' | 'confirmed', summary?: string, variant?: 'tile' | 'list', onclick?: () => void, onRemove?: () => void, editor?: Snippet</p>
+    <p class="component-desc">Per-food tile rendered in FamilyDrillIn (drill-in) and on the working-meal list. The `variant` prop adapts the confirmed fill to context: `tile` (default, drill-in) keeps the bordeaux fill so confirmed foods stand out from idle siblings; `list` (working-list) renders non-eliminated confirmed/locked-confirmed foods plain (white + dark text) since every food shown is already added — the porce summary + remove × already mark it. Eliminated (danger) foods keep the red treatment in both variants. Visual states reflect the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill in `tile`, plain white in `list`, tap deselects), locked (dimmed, no interaction). lockedPrior branches the locked rendering: locked + prior='confirmed' keeps the confirmed fill at reduced emphasis (data-state='locked-confirmed' or 'locked-danger-confirmed') so the user can still see "this food is in the meal" while editing a sibling; locked + prior='idle' (or omitted) renders the grey outline. eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed'). Optional `summary` slot renders a porce/příprava meta line on confirmed/locked-confirmed rows; optional `onRemove` renders a × action used by the working-list view. data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', 'locked-confirmed', 'locked-danger-confirmed', or unset (idle/editing without conflict).</p>
     <div class="variant-grid">
 
       <!-- idle -->
@@ -1173,16 +1155,16 @@
         <p class="variant-name">state='confirmed'</p>
       </div>
 
-      <!-- confirmed + summary + remove (working-list use) -->
+      <!-- confirmed + summary + remove (working-list use — variant='list', plain white) -->
       <div class="variant-tile" style="max-width:280px">
-        <div data-state="confirmed" style="border-radius:12px;background:#8B4557;border:1px solid #8B4557;overflow:hidden">
+        <div style="border-radius:12px;background:white;border:1px solid #EDE8E9;overflow:hidden">
           <div style="display:flex;align-items:center;gap:8px">
-            <button style="flex:1;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Brambory</button>
-            <span style="font-size:12px;color:white;white-space:nowrap;padding-right:4px">porce · vařené</span>
-            <button aria-label="Odebrat Brambory" style="padding:4px 8px;margin-right:4px;color:rgba(255,255,255,0.8);font-size:16px;line-height:1">×</button>
+            <button style="flex:1;text-align:left;padding:8px 12px;font-size:13px;color:#3D2B2F;font-weight:600">Brambory</button>
+            <span style="font-size:12px;color:#7A6468;white-space:nowrap;padding-right:4px">porce · vařené</span>
+            <button aria-label="Odebrat Brambory" style="padding:4px 8px;margin-right:4px;color:#7A6468;font-size:16px;line-height:1">×</button>
           </div>
         </div>
-        <p class="variant-name">state='confirmed', summary='porce · vařené', onRemove (working-list row)</p>
+        <p class="variant-name">variant='list', state='confirmed', summary='porce · vařené', onRemove (working-list row — plain white)</p>
       </div>
 
       <!-- locked -->

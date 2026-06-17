@@ -3440,7 +3440,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 
     <!-- A1 — Family grid (with dairy elimination + fruit active) -->
     <div>
-      <div class="phase-label">▸ A1 · grid s eliminací + aktivní rodinou</div>
+      <div class="phase-label">▸ A1 · grid při eliminaci (dlaždice zůstávají neutrální)</div>
       <div class="phone"><div class="phone-screen">
         <div class="island"></div>
         <div class="status-bar"><span class="time">9:41</span><span class="icons">●●● ◐</span></div>
@@ -3478,12 +3478,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
               <div class="grid grid-cols-4 gap-2">
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🌾</span><span class="leading-tight text-center text-[10px]">Obiloviny</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥦</span><span class="leading-tight text-center text-[10px]">Zelenina</span></div>
-                <!-- Ovoce: active (item was added) — white tile, no badge -->
+                <!-- Ovoce: has a confirmed food, but the grid tile stays neutral white (no dot) -->
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🍎</span><span class="leading-tight text-center text-[10px]">Ovoce</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥩</span><span class="leading-tight text-center text-[10px]">Maso</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🐟</span><span class="leading-tight text-center text-[10px]">Ryby</span></div>
-                <!-- Mléko: danger (dairy eliminated) -->
-                <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium text-danger relative" style="background: rgba(184,68,68,0.08); border: 1px solid rgba(184,68,68,0.3)"><span class="text-2xl">🥛</span><span class="leading-tight text-center text-[10px]">Mléko</span><span class="absolute -top-1 -right-1 text-[10px] bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center">!</span></div>
+                <!-- Mléko: plain tile — elimination is shown on the food inside the family, not on the grid -->
+                <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥛</span><span class="leading-tight text-center text-[10px]">Mléko</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥚</span><span class="leading-tight text-center text-[10px]">Vejce</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🫘</span><span class="leading-tight text-center text-[10px]">Luštěniny</span></div>
                 <div class="flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-medium bg-white border border-surface-dark text-text relative"><span class="text-2xl">🥜</span><span class="leading-tight text-center text-[10px]">Ořechy</span></div>
@@ -3512,7 +3512,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Ovoce = aktivní (bílý tile, bez badge). Mléko = nebezpečné (! badge, danger tint). In-meal: 1 položka. CTA aktivní.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Grid je vždy neutrální (bílé dlaždice, bez badge/teček). Eliminace se ukazuje až na potravině uvnitř rodiny (drill-in), ne na dlaždici rodiny. In-meal: 1 položka. CTA aktivní.</div>
     </div>
 
     <!-- A2 — Drill-in: fruit family (allergen-grouped + loose) -->

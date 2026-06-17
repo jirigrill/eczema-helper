@@ -15,15 +15,23 @@
     onBack,
     right,
     variant = 'compact',
+    bordered = true,
   }: {
     title: string;
     onBack?: () => void;
     right?: Snippet;
     variant?: Variant;
+    /**
+     * Draws the bottom hairline under the header. Default `true`. Set `false`
+     * when the header sits inside an outer sticky container that owns its own
+     * chrome (e.g. the meal grid wraps the header with banners), to avoid a
+     * doubled divider line.
+     */
+    bordered?: boolean;
   } = $props();
 </script>
 
-<div class="sticky top-0 bg-surface z-20 border-b border-surface-dark px-4 py-2.5 flex items-center gap-3">
+<div class="sticky top-0 bg-surface z-20 px-4 py-2.5 flex items-center gap-3 {bordered ? 'border-b border-surface-dark' : ''}">
   {#if onBack}
     <!--
       Back-chevron sizing tracks the title:
