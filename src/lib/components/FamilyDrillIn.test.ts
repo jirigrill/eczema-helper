@@ -78,6 +78,29 @@ describe('FamilyDrillIn — working-food state rendering', () => {
     expect(btn).toBeDisabled();
   });
 
+  it('locked + prior=confirmed sibling renders data-state="locked-confirmed" so it stays visible', () => {
+    const lockedConfirmed: WorkingFood = {
+      foodId: 'jablko',
+      name: 'Jablko',
+      state: { status: 'locked', prior: 'confirmed' },
+      cachedAmount: 'portion',
+    };
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, foods: [lockedConfirmed] },
+    });
+    const tile = container.querySelector('[data-state="locked-confirmed"]');
+    expect(tile).not.toBeNull();
+  });
+
+  it('locked + prior=idle sibling renders data-state="locked" (greyed out)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, foods: [lockedFood('jablko', 'Jablko')] },
+    });
+    const tile = container.querySelector('[data-state="locked"]');
+    expect(tile).not.toBeNull();
+    expect(container.querySelector('[data-state="locked-confirmed"]')).toBeNull();
+  });
+
   it('editing food shows FoodEditor (Množství + Příprava sections)', () => {
     const { getByText } = render(FamilyDrillIn, {
       props: { ...baseProps, foods: [editingFood('jablko', 'Jablko')] },

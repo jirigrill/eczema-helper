@@ -34,6 +34,32 @@ describe('FoodTile — visual states', () => {
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked');
   });
 
+  it('locked + lockedPrior=confirmed: data-state="locked-confirmed"', () => {
+    const { container } = render(FoodTile, {
+      props: { ...baseProps, state: 'locked' as const, lockedPrior: 'confirmed' as const },
+    });
+    expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked-confirmed');
+  });
+
+  it('locked + lockedPrior=confirmed + eliminatedStatus=danger: data-state="locked-danger-confirmed"', () => {
+    const { container } = render(FoodTile, {
+      props: {
+        ...baseProps,
+        state: 'locked' as const,
+        lockedPrior: 'confirmed' as const,
+        eliminatedStatus: 'danger' as const,
+      },
+    });
+    expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked-danger-confirmed');
+  });
+
+  it('locked + lockedPrior=idle: still data-state="locked"', () => {
+    const { container } = render(FoodTile, {
+      props: { ...baseProps, state: 'locked' as const, lockedPrior: 'idle' as const },
+    });
+    expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked');
+  });
+
   it('idle with eliminatedStatus: data-state="danger"', () => {
     const { container } = render(FoodTile, { props: { ...baseProps, eliminatedStatus: 'danger' as const } });
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger');
@@ -112,5 +138,48 @@ describe('FoodTile — conflict (eliminated-today) variants', () => {
   it('confirmed without eliminatedStatus: still data-state="confirmed"', () => {
     const { container } = render(FoodTile, { props: { ...baseProps, state: 'confirmed' as const } });
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('confirmed');
+  });
+});
+
+describe('FoodTile — row affordances (working-list use)', () => {
+  it('renders the porce summary when summary prop is provided', () => {
+    const { getByText } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const, summary: 'porce · vařené' },
+    });
+    expect(getByText('porce · vařené')).toBeInTheDocument();
+  });
+
+  it('does not render the summary slot when summary prop is omitted', () => {
+    const { queryByText } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const },
+    });
+    expect(queryByText('porce · vařené')).not.toBeInTheDocument();
+  });
+
+  it('renders a remove (×) button when onRemove handler is provided', () => {
+    const onRemove = vi.fn();
+    const { getByLabelText } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const, onRemove },
+    });
+    expect(getByLabelText(/Odebrat Kravské mléko/)).toBeInTheDocument();
+  });
+
+  it('does not render a remove button when onRemove is omitted', () => {
+    const { queryByLabelText } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const },
+    });
+    expect(queryByLabelText(/Odebrat/)).not.toBeInTheDocument();
+  });
+
+  it('clicking the remove button fires onRemove without firing onclick', async () => {
+    const onRemove = vi.fn();
+    const onclick = vi.fn();
+    const { getByLabelText } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const, onRemove, onclick },
+    });
+    await fireEvent.click(getByLabelText(/Odebrat Kravské mléko/));
+    await tick();
+    expect(onRemove).toHaveBeenCalledOnce();
+    expect(onclick).not.toHaveBeenCalled();
   });
 });
