@@ -117,6 +117,13 @@ export type MealEditor = {
 	/** True iff `eliminatedFoodIds` is non-empty. */
 	readonly hasConflicts: boolean;
 	open(slot: MealSlot, eliminatedToday?: AllergenId[]): Promise<void>;
+	/**
+	 * Update the elimination window after `open`/`applyUndo` (e.g. when the
+	 * schedule loads asynchronously and the route's `eliminatedToday` flips
+	 * from `[]` to its real value). Keeps `eliminatedFoodIds` / `hasConflicts`
+	 * in sync without re-loading the meal.
+	 */
+	setEliminatedToday(eliminatedToday: AllergenId[]): void;
 	update(fn: (m: WorkingMeal) => WorkingMeal): void;
 	/**
 	 * Decide what (if anything) the next discard buffer should contain.
@@ -140,17 +147,27 @@ export type MealEditor = {
 	/**
 	 * Overlay editor state from a discard-buffer undo. The buffer's `kind`
 	 * decides how `finalize()` will frame the next save:
-	 *  - `'edit'`   → re-fetch persisted `createdAt`, treat as edit-update.
-	 *                 Re-captures the load snapshot so the rehydrated state
-	 *                 reads as the new clean baseline.
+	 *  - `'edit'`   → re-fetch the persisted Meal, take the load snapshot from
+	 *                 it (the *original* clean baseline), then overlay the
+	 *                 buffer's working meal. The restored edit therefore reads
+	 *                 as **dirty** — `Uložit změny` is enabled and a second
+	 *                 back-out re-buffers (issue #299).
 	 *  - `'delete'` → the persisted row is gone; treat the next save as a
 	 *                 fresh compose-new (mints a new `createdAt`).
 	 *  - `'compose'`→ slot was empty before; still compose-new.
 	 *
+	 * `eliminatedToday` is the same value the route passes to `open` and
+	 * repopulates `eliminatedFoodIds` / `hasConflicts` on the undo mount, so
+	 * the per-food danger styling and red CTA reappear (issue #299).
+	 *
 	 * Slot is passed explicitly because the route owns the URL and the page
 	 * is freshly mounted on undo navigation (the editor has no slot yet).
 	 */
-	applyUndo(slot: MealSlot, buffer: DiscardedMeal): Promise<void>;
+	applyUndo(
+		slot: MealSlot,
+		buffer: DiscardedMeal,
+		eliminatedToday?: AllergenId[],
+	): Promise<void>;
 	finalize(opts?: FinalizeOptions): Promise<Result<void, string>>;
 };
 
@@ -230,6 +247,10 @@ export function createMealEditor(): MealEditor {
 		workingMeal = fn(workingMeal);
 	}
 
+	function setEliminatedToday(next: AllergenId[]): void {
+		eliminatedToday = next;
+	}
+
 	function discardDescriptor(
 		intent?: 'delete',
 	): { kind: DiscardKind; workingMeal: WorkingMeal } | null {
@@ -245,20 +266,33 @@ export function createMealEditor(): MealEditor {
 		return isNonEmpty(workingMeal) ? { kind: 'compose', workingMeal: snapshot } : null;
 	}
 
-	async function applyUndo(next: MealSlot, buffer: DiscardedMeal): Promise<void> {
+	async function applyUndo(
+		next: MealSlot,
+		buffer: DiscardedMeal,
+		eliminatedTodayArg: AllergenId[] = [],
+	): Promise<void> {
 		slot = next;
+		eliminatedToday = eliminatedTodayArg;
 		workingMeal = buffer.workingMeal;
 		notes = buffer.workingMeal.notes;
 		if (buffer.kind === 'edit') {
-			// The persisted row is still in Dexie — re-fetch its `createdAt` so
-			// finalize preserves it across the back-out → undo → save round-trip.
+			// The persisted row is still in Dexie — re-fetch it and use IT as the
+			// load snapshot, so the buffer's (dirty) working meal compares
+			// against the *original* clean baseline. Without this, the editor
+			// would treat the restored dirty edit as the new clean baseline,
+			// disabling save and silently dropping the food on the next back-out
+			// (issue #299).
 			editingExisting = true;
 			const session = createMealSession(next.date);
 			const res = await session.loadBySlot(next.date, next.mealType);
-			loadedCreatedAt = res.ok && res.data ? res.data.createdAt : null;
-			// Re-capture the snapshot so the rehydrated state reads as the
-			// "loaded" baseline; further edits compare against it.
-			loadSnapshot = snapshotOf(workingMeal, notes);
+			if (res.ok && res.data) {
+				loadedCreatedAt = res.data.createdAt;
+				const persistedMeal = fromMealItems(res.data.items, res.data.notes ?? '');
+				loadSnapshot = snapshotOf(persistedMeal, res.data.notes ?? '');
+			} else {
+				loadedCreatedAt = null;
+				loadSnapshot = null;
+			}
 		} else {
 			// `delete` (row is gone) and `compose` (was empty) both finalize as
 			// fresh compose-new on next save.
@@ -307,6 +341,7 @@ export function createMealEditor(): MealEditor {
 		get hasConflicts() { return hasConflicts; },
 		open,
 		update,
+		setEliminatedToday,
 		discardDescriptor,
 		applyUndo,
 		finalize,
