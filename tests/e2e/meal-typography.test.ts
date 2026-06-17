@@ -7,8 +7,8 @@ import type { Page } from '@playwright/test';
  * Locks in the unified 3-style set on `/meal`:
  *   eyebrow  → section headers (V tomto jídle / Přidané potraviny,
  *              Všechny kategorie, Poznámka) + banner labels
- *   body     → food names, primary content
- *   caption  → date (top-right), porce/preparation meta, secondary banner text
+ *   body     → food names, primary content; body-muted → date (top-right)
+ *   caption  → porce/preparation meta, secondary banner text
  *
  * Lifts user stories 11 + 12 of #297: section headers + date share one
  * type rhythm; the date reads as quiet meta, not body content.
@@ -106,14 +106,15 @@ test('"Přidané potraviny" working-list header carries eyebrow once a food is c
   await expect(header).toHaveCSS('text-transform', 'uppercase');
 });
 
-test('date in the top-right reads as caption (11px / muted), not body', async ({ page }) => {
+test('date in the top-right reads as body-muted (14px / muted), bumped up from caption', async ({ page }) => {
   await completeOnboarding(page);
   await openLunchMeal(page);
 
   // The header date uses the long Czech format ("X. měsíce"); locate inside
-  // the sticky page-header next to the h1 ("Oběd").
-  const date = page.locator('header, .sticky').first().locator('p.caption').first();
-  await expect(date).toHaveCSS('font-size', '11px');
+  // the sticky page-header next to the h1 ("Oběd"). Bumped from caption (11px)
+  // to body-muted (14px) for legibility.
+  const date = page.locator('header, .sticky').first().locator('p.body-muted').first();
+  await expect(date).toHaveCSS('font-size', '14px');
   // text-text-muted = #7A6468
   await expect(date).toHaveCSS('color', 'rgb(122, 100, 104)');
 });

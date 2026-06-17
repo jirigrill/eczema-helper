@@ -321,15 +321,18 @@ test('AC7: grid shows read-only confirmed foods list after committing a family',
   await expect(page.getByText(/Brambory/)).toBeVisible();
 });
 
-test('AC7: family tile with confirmed foods shows active state', async ({ page }) => {
+test('AC7: family tile stays plain after confirming foods — no active dot on the meal grid', async ({ page }) => {
   await openMealAndDrillVegetables(page);
 
   await page.getByRole('button', { name: /Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
 
+  // The meal grid no longer dots the family tile — active/eliminated state is
+  // shown only on the food inside the drill-in.
   const zelenina = page.getByRole('button', { name: /Zelenina/ });
-  await expect(zelenina).toHaveAttribute('data-state', 'active');
+  await expect(zelenina).not.toHaveAttribute('data-state', 'active');
+  await expect(zelenina.locator('[data-testid="active-dot"]')).toHaveCount(0);
 });
 
 // ── AC8: grid has meal-level Poznámka field ───────────────────────────────────

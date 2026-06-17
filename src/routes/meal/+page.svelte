@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
-  import { ALLERGENS, FOODS, FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
+  import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { get } from 'svelte/store';
@@ -175,20 +175,6 @@
       )
     );
   });
-
-  const activeFamilyIds = $derived(
-    confirmedFoods.flatMap(f => {
-      const food = FOODS.find(fd => fd.id === f.foodId);
-      return food ? [food.familyId as FamilyId] : [];
-    }).filter((v, i, a) => a.indexOf(v) === i)
-  );
-
-  const eliminatedFamilyIds = $derived(
-    eliminatedToday.flatMap(allergenId => {
-      const allergen = ALLERGENS.find(a => a.id === allergenId);
-      return allergen ? [allergen.familyId as FamilyId] : [];
-    }).filter((v, i, a) => a.indexOf(v) === i)
-  );
 
   const eliminatedAllergenIdStrings = $derived(eliminatedToday.map(String));
 
@@ -544,10 +530,10 @@
 <div class="page-container pb-24">
 
   <!-- Sticky header -->
-  <div class="sticky top-0 bg-surface z-20 border-b border-surface-dark">
-    <PageHeader title={headerTitle()} variant="large" onBack={handleBack}>
+  <div class="sticky top-0 bg-surface z-20">
+    <PageHeader title={headerTitle()} variant="large" onBack={handleBack} bordered={false}>
       {#snippet right()}
-        <p class="caption">{formatDateLongCs(targetDate)}</p>
+        <p class="body-muted">{formatDateLongCs(targetDate)}</p>
         {#if editingExisting && !drilledFamily}
           <button
             type="button"
@@ -639,6 +625,7 @@
                   <FoodTile
                     name={food.name}
                     state={tileState}
+                    variant="list"
                     eliminatedStatus={isEliminated ? 'danger' : undefined}
                     lockedPrior={lockedPriorVal}
                     summary={isEditing ? undefined : summary}
@@ -664,11 +651,7 @@
         {/if}
 
         <p class="eyebrow mb-2">{commonStrings.meal.allCategoriesLabel}</p>
-        <FamilyGrid
-          onSelect={handleFamilySelect}
-          {activeFamilyIds}
-          {eliminatedFamilyIds}
-        />
+        <FamilyGrid onSelect={handleFamilySelect} />
 
         <!-- Meal notes -->
         <div class="mt-5">

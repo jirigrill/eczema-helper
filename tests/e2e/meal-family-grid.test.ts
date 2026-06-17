@@ -64,8 +64,11 @@ test('family grid: shows 13 family tiles on meal page', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Zelenina/ })).toBeVisible();
 });
 
-// Issue #301 / #297 user stories 13-15: eliminated-family C.3b badge tile + active dot.
-test('family grid: eliminated family shows the C.3b badge and is still tappable; active family shows the primary dot', async ({ page }) => {
+// Issue #297 follow-up: the family grid no longer carries elimination/active
+// indicators. The danger treatment (warning + changed background) lives only on
+// the food once the user drills into the family; adding a food no longer dots
+// the family tile.
+test('family grid: tiles stay plain — no eliminated badge, no active dot; danger shows on the food inside the family', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
@@ -94,32 +97,29 @@ test('family grid: eliminated family shows the C.3b badge and is still tappable;
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
-  // Eliminated family (Mléko, dairy) renders the C.3b badge: data-state="danger" + the ! marker.
+  // Eliminated family (Mléko, dairy) is a plain tile — no badge, no danger state.
   const dairyTile = page.getByRole('button', { name: /Mléko/ }).first();
-  await expect(dairyTile).toHaveAttribute('data-state', 'danger');
-  await expect(dairyTile.locator('[data-testid="eliminated-badge"]')).toBeVisible();
+  await expect(dairyTile).not.toHaveAttribute('data-state', 'danger');
+  await expect(dairyTile.locator('[data-testid="eliminated-badge"]')).toHaveCount(0);
 
-  // It is a soft heads-up — drilling in must still work.
+  // Drilling in still works, and the danger treatment shows on the food itself.
   await expect(dairyTile).toBeEnabled();
   await dairyTile.click();
   await expect(page.getByRole('button', { name: /Kravské mléko/ })).toBeVisible();
+  // The eliminated food carries the "Vyloučeno" marker (changed background + warning).
+  await expect(page.getByText('Vyloučeno').first()).toBeVisible();
 
-  // Back to the grid, add a vegetable so Zelenina becomes active.
+  // Back to the grid, add a vegetable so Zelenina has a confirmed food.
   await page.goBack();
   await page.getByRole('button', { name: /Zelenina/ }).click();
   await page.getByRole('button', { name: /Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Brambory/ }).click();
   await page.getByRole('button', { name: /Uložit Zelenina/ }).click();
 
-  // Active family tile: data-state="active", primary dot present, no eliminated badge.
+  // The family tile stays plain — no active dot appears just because a food was added.
   const veggieTile = page.getByRole('button', { name: /Zelenina/ });
-  await expect(veggieTile).toHaveAttribute('data-state', 'active');
-  await expect(veggieTile.locator('[data-testid="active-dot"]')).toBeVisible();
-  await expect(veggieTile.locator('[data-testid="eliminated-badge"]')).toHaveCount(0);
-
-  // The eliminated tile still carries its badge — active and danger live side by side.
-  await expect(dairyTile).toHaveAttribute('data-state', 'danger');
-  await expect(dairyTile.locator('[data-testid="eliminated-badge"]')).toBeVisible();
+  await expect(veggieTile).not.toHaveAttribute('data-state', 'active');
+  await expect(veggieTile.locator('[data-testid="active-dot"]')).toHaveCount(0);
 });
 
 // drill-in → add food → back to grid, danger state, and conflict toast are now

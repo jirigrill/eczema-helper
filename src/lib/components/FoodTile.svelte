@@ -11,6 +11,7 @@
     eliminatedStatus,
     lockedPrior,
     summary,
+    variant = 'tile',
     onclick,
     onRemove,
     editor,
@@ -18,6 +19,14 @@
     name: string;
     state: FoodTileState;
     eliminatedStatus?: 'danger';
+    /**
+     * `tile` (default): the drill-in rendering — confirmed foods get the
+     *   bordeaux fill so they stand out from idle siblings in the family list.
+     * `list`: the working-list rendering — every food shown is already added,
+     *   so a non-eliminated confirmed food renders plain (white) instead of
+     *   filled; the porce summary + remove × already mark it as added.
+     */
+    variant?: 'tile' | 'list';
     /**
      * When state === 'locked', what the food's status was before the lock.
      * Locked + prior=confirmed keeps the confirmed fill at reduced emphasis
@@ -44,6 +53,13 @@
 
   const isInteractive = $derived(state !== 'locked');
   const isLockedConfirmed = $derived(state === 'locked' && lockedPrior === 'confirmed');
+  // Working-list ('list') variant renders non-eliminated confirmed foods plain
+  // (white) rather than bordeaux-filled — see the `variant` prop doc.
+  const plainFill = $derived(
+    variant === 'list' &&
+    eliminatedStatus !== 'danger' &&
+    (state === 'confirmed' || isLockedConfirmed)
+  );
   const dataState = $derived(
     state === 'locked' && lockedPrior === 'confirmed' && eliminatedStatus === 'danger' ? 'locked-danger-confirmed'
     : state === 'locked' && lockedPrior === 'confirmed' ? 'locked-confirmed'
@@ -53,7 +69,7 @@
     : eliminatedStatus ?? (state === 'locked' ? 'locked' : undefined)
   );
 
-  const isFilled = $derived(state === 'confirmed' || isLockedConfirmed);
+  const isFilled = $derived(!plainFill && (state === 'confirmed' || isLockedConfirmed));
 
   function handleRemove(e: MouseEvent): void {
     e.stopPropagation();
@@ -68,6 +84,8 @@
       ? eliminatedStatus === 'danger'
         ? 'border-2 border-danger bg-danger/05'
         : 'border-2 border-primary bg-primary/05'
+      : plainFill
+        ? 'border border-surface-dark bg-white'
       : state === 'confirmed'
         ? eliminatedStatus === 'danger'
           ? 'bg-danger border border-danger'
@@ -88,7 +106,11 @@
       disabled={!isInteractive}
       onclick={isInteractive ? onclick : undefined}
       class="flex-1 text-left py-2 px-3 text-sm
-        {state === 'confirmed'
+        {plainFill
+          ? state === 'confirmed'
+            ? 'text-text font-semibold'
+            : 'text-text font-semibold cursor-default'
+          : state === 'confirmed'
           ? 'text-white font-semibold'
           : isLockedConfirmed
             ? 'text-white font-semibold cursor-default'
@@ -109,8 +131,8 @@
     </button>
     {#if summary}
       <span
-        class="text-xs whitespace-nowrap pr-1
-          {isFilled ? 'text-white' : 'text-text-muted'}"
+        class="caption whitespace-nowrap pr-1
+          {isFilled ? 'text-white' : ''}"
       >{summary}</span>
     {/if}
     {#if onRemove}

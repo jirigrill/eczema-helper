@@ -31,78 +31,33 @@ describe('FamilyGrid', () => {
     expect(onSelect).toHaveBeenCalledWith('dairy');
   });
 
-  it('marks active families with data-state="active"', () => {
+  it('marks active families with a primary dot and data-state="active"', () => {
     const { getByRole } = render(FamilyGrid, {
       props: { onSelect: vi.fn(), activeFamilyIds: ['dairy'] },
     });
     const btn = getByRole('button', { name: /Mléko/ });
     expect(btn.dataset.state).toBe('active');
+    expect(btn.querySelector('[data-testid="active-dot"]')).not.toBeNull();
   });
 
-  it('marks eliminated families with data-state="danger"', () => {
+  it('a non-active tile is a plain white tile — no dot, no data-state', () => {
     const { getByRole } = render(FamilyGrid, {
-      props: { onSelect: vi.fn(), eliminatedFamilyIds: ['dairy'] },
-    });
-    const btn = getByRole('button', { name: /Mléko/ });
-    expect(btn.dataset.state).toBe('danger');
-  });
-
-  it('renders the C.3b badge treatment on an eliminated tile (danger tint + border + text + ! badge)', () => {
-    const { getByRole } = render(FamilyGrid, {
-      props: { onSelect: vi.fn(), eliminatedFamilyIds: ['dairy'] },
-    });
-    const btn = getByRole('button', { name: /Mléko/ });
-    expect(btn.className).toContain('bg-danger/08');
-    expect(btn.className).toContain('border-danger/30');
-    expect(btn.className).toContain('text-danger');
-    expect(btn.querySelector('[data-testid="eliminated-badge"]')).not.toBeNull();
-  });
-
-  it('eliminated tile is not disabled — it is a soft heads-up', async () => {
-    const onSelect = vi.fn();
-    const { getByRole } = render(FamilyGrid, {
-      props: { onSelect, eliminatedFamilyIds: ['dairy'] },
-    });
-    const btn = getByRole('button', { name: /Mléko/ }) as HTMLButtonElement;
-    expect(btn.disabled).toBe(false);
-    await fireEvent.click(btn);
-    await tick();
-    expect(onSelect).toHaveBeenCalledWith('dairy');
-  });
-
-  it('renders a primary dot on an active tile, distinct from the danger badge', () => {
-    const { getByRole } = render(FamilyGrid, {
-      props: { onSelect: vi.fn(), activeFamilyIds: ['fruit'] },
-    });
-    const btn = getByRole('button', { name: /Ovoce/ });
-    const dot = btn.querySelector('[data-testid="active-dot"]');
-    expect(dot).not.toBeNull();
-    // and no eliminated badge
-    expect(btn.querySelector('[data-testid="eliminated-badge"]')).toBeNull();
-  });
-
-  it('a neutral tile renders neither the active dot nor the eliminated badge', () => {
-    const { getByRole } = render(FamilyGrid, {
-      props: { onSelect: vi.fn() },
+      props: { onSelect: vi.fn(), activeFamilyIds: ['dairy'] },
     });
     const btn = getByRole('button', { name: /Vejce/ });
+    expect(btn.className).toContain('bg-white');
     expect(btn.querySelector('[data-testid="active-dot"]')).toBeNull();
-    expect(btn.querySelector('[data-testid="eliminated-badge"]')).toBeNull();
-  });
-
-  it('active takes precedence over eliminated', () => {
-    const { getByRole } = render(FamilyGrid, {
-      props: { onSelect: vi.fn(), activeFamilyIds: ['dairy'], eliminatedFamilyIds: ['dairy'] },
-    });
-    const btn = getByRole('button', { name: /Mléko/ });
-    expect(btn.dataset.state).toBe('active');
-  });
-
-  it('neutral families have no data-state', () => {
-    const { getByRole } = render(FamilyGrid, {
-      props: { onSelect: vi.fn() },
-    });
-    const btn = getByRole('button', { name: /Vejce/ });
     expect(btn.dataset.state).toBeUndefined();
+  });
+
+  it('never renders an eliminated badge or danger tint — elimination shows on the food inside the family, not the grid', () => {
+    const { getAllByRole } = render(FamilyGrid, {
+      props: { onSelect: vi.fn(), activeFamilyIds: ['dairy'] },
+    });
+    for (const btn of getAllByRole('button') as HTMLButtonElement[]) {
+      expect(btn.disabled).toBe(false);
+      expect(btn.className).not.toContain('bg-danger');
+      expect(btn.querySelector('[data-testid="eliminated-badge"]')).toBeNull();
+    }
   });
 });
