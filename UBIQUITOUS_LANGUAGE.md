@@ -142,6 +142,21 @@ allergen is domain** (they may diverge — `sójové mléko` → family `Mléko`
 Triggers are **resolved live** from the catalog, never snapshotted onto a
 `MealItem`.
 
+### Source Subgroup (`sourceGroup`) / Ostatní
+*Czech: Zdroj / podskupina. See
+[ADR-0019](docs/adr/0019-food-source-subgroup.md) and the CONTEXT.md
+"food-source subgroup" principle.*
+
+A **second presentation axis** on a food, independent of `familyId` and
+`allergenIds`. Optional `sourceGroup` key (e.g. `cow`, `plant`, `gluten`) clusters
+foods *within a family* by the axis a mother thinks in (`Mléko` → Kravské · Ovčí ·
+Kozí · Rostlinné). Labels are **per-family and ordered**, in `familySources`
+(`src/lib/strings/family-sources.ts`); array order = render order. A family renders
+**grouped only when it has ≥ 5 foods and an authored source structure**, else flat.
+Foods with no `sourceGroup` fall into a trailing **Ostatní** bucket — presentation
+catch-all with **no safety claim** (danger stays per-food). Replaces the former
+`bez alergenu` section. Like `familyId`, source never enters conflict detection.
+
 ### Tested Allergens
 *Czech: Sledované alergeny*
 
