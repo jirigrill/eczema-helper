@@ -47,6 +47,49 @@ describe('FamilyGrid', () => {
     expect(btn.dataset.state).toBe('danger');
   });
 
+  it('renders the C.3b badge treatment on an eliminated tile (danger tint + border + text + ! badge)', () => {
+    const { getByRole } = render(FamilyGrid, {
+      props: { onSelect: vi.fn(), eliminatedFamilyIds: ['dairy'] },
+    });
+    const btn = getByRole('button', { name: /Mléko/ });
+    expect(btn.className).toContain('bg-danger/08');
+    expect(btn.className).toContain('border-danger/30');
+    expect(btn.className).toContain('text-danger');
+    expect(btn.querySelector('[data-testid="eliminated-badge"]')).not.toBeNull();
+  });
+
+  it('eliminated tile is not disabled — it is a soft heads-up', async () => {
+    const onSelect = vi.fn();
+    const { getByRole } = render(FamilyGrid, {
+      props: { onSelect, eliminatedFamilyIds: ['dairy'] },
+    });
+    const btn = getByRole('button', { name: /Mléko/ }) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    await fireEvent.click(btn);
+    await tick();
+    expect(onSelect).toHaveBeenCalledWith('dairy');
+  });
+
+  it('renders a primary dot on an active tile, distinct from the danger badge', () => {
+    const { getByRole } = render(FamilyGrid, {
+      props: { onSelect: vi.fn(), activeFamilyIds: ['fruit'] },
+    });
+    const btn = getByRole('button', { name: /Ovoce/ });
+    const dot = btn.querySelector('[data-testid="active-dot"]');
+    expect(dot).not.toBeNull();
+    // and no eliminated badge
+    expect(btn.querySelector('[data-testid="eliminated-badge"]')).toBeNull();
+  });
+
+  it('a neutral tile renders neither the active dot nor the eliminated badge', () => {
+    const { getByRole } = render(FamilyGrid, {
+      props: { onSelect: vi.fn() },
+    });
+    const btn = getByRole('button', { name: /Vejce/ });
+    expect(btn.querySelector('[data-testid="active-dot"]')).toBeNull();
+    expect(btn.querySelector('[data-testid="eliminated-badge"]')).toBeNull();
+  });
+
   it('active takes precedence over eliminated', () => {
     const { getByRole } = render(FamilyGrid, {
       props: { onSelect: vi.fn(), activeFamilyIds: ['dairy'], eliminatedFamilyIds: ['dairy'] },
