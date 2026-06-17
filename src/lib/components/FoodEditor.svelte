@@ -26,7 +26,7 @@
 
 <div class="space-y-2.5">
   <div>
-    <p class="micro-label mb-1.5"
+    <p class="eyebrow mb-1.5"
       class:text-danger={eliminatedVariant}>Množství</p>
     <div class="flex flex-wrap gap-1.5">
       {#each portionKinds as kind}
@@ -42,7 +42,7 @@
   </div>
 
   <div>
-    <p class="micro-label mb-1.5"
+    <p class="eyebrow mb-1.5"
       class:text-danger={eliminatedVariant}>Příprava</p>
     <div class="flex flex-wrap gap-1.5">
       {#each preparationMethods as method}

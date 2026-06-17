@@ -481,6 +481,16 @@ The marketing/document layer and the in-device layer use the **same primary stac
 - **Bold is reserved for emphasis inside flowing prose.** A sentence like "stav byl **zhoršený** ve **3 ze 4** případů" uses bold to surface the testable claim. Headers don't need bold — they're already heavy via weight 600/700.
 - **No italics for tone.** Italic appears only for citations (`*latte*`) or rare disclaimers. Tone is carried by word choice, not by slant.
 
+### Component Utilities
+
+The CSS layer in `src/app.css` exposes a small set of `@layer components` utilities mapping to the table above:
+
+- `.eyebrow` → `{typography.eyebrow}` (12px / 600 / uppercase / tracking-wide / muted). Use for **all** in-device section headers and banner labels. Supersedes the previous `.micro-label` and `.section-label` utilities, which were two near-duplicate tokens for the same role; both have been removed.
+- `.body` → `{typography.body}` (14px / text). Food names, primary content, evidence rows.
+- `.caption` → `{typography.caption}` (11px / muted). Date meta, porce/preparation suffixes, secondary banner text — anything that should read as quiet meta and not compete with body content.
+
+These three together form the unified typography rhythm on the meal screen (issue #302); they are also the recommended starting set for any new screen.
+
 ### Note on Czech Diacritics
 
 All in-app type renders Czech diacritics — `š ž č ř ě á í ó ú ý ě ů`. The chosen system stack handles these correctly on macOS, iOS, Windows, and Android. Never substitute (e.g., `zhorseny` for `zhoršený`).
