@@ -6,6 +6,7 @@ import FoodEditor from './FoodEditor.svelte';
 const baseProps = {
   amount: 'portion' as const,
   preparation: undefined,
+  form: 'cookable' as const,
   onAmountChange: vi.fn(),
   onPreparationChange: vi.fn(),
 };
@@ -21,13 +22,47 @@ describe('FoodEditor', () => {
     expect(getByText('Balení')).toBeInTheDocument();
   });
 
-  it('renders Příprava section with all 4 method chips', () => {
+  it('cookable food shows all five preparation chips including Syrové', () => {
     const { getByText } = render(FoodEditor, { props: baseProps });
     expect(getByText('Příprava')).toBeInTheDocument();
+    expect(getByText('Syrové')).toBeInTheDocument();
     expect(getByText('Vařené')).toBeInTheDocument();
     expect(getByText('Dušené')).toBeInTheDocument();
     expect(getByText('Pečené')).toBeInTheDocument();
     expect(getByText('Smažené')).toBeInTheDocument();
+  });
+
+  it('liquid food shows only Syrové, Vařené, Pečené', () => {
+    const { getByText, queryByText } = render(FoodEditor, {
+      props: { ...baseProps, form: 'liquid' as const },
+    });
+    expect(getByText('Příprava')).toBeInTheDocument();
+    expect(getByText('Syrové')).toBeInTheDocument();
+    expect(getByText('Vařené')).toBeInTheDocument();
+    expect(getByText('Pečené')).toBeInTheDocument();
+    expect(queryByText('Dušené')).not.toBeInTheDocument();
+    expect(queryByText('Smažené')).not.toBeInTheDocument();
+  });
+
+  it('raw-only food shows only Syrové', () => {
+    const { getByText, queryByText } = render(FoodEditor, {
+      props: { ...baseProps, form: 'raw-only' as const },
+    });
+    expect(getByText('Příprava')).toBeInTheDocument();
+    expect(getByText('Syrové')).toBeInTheDocument();
+    expect(queryByText('Vařené')).not.toBeInTheDocument();
+    expect(queryByText('Dušené')).not.toBeInTheDocument();
+    expect(queryByText('Pečené')).not.toBeInTheDocument();
+    expect(queryByText('Smažené')).not.toBeInTheDocument();
+  });
+
+  it('none food shows no preparation row at all', () => {
+    const { queryByText } = render(FoodEditor, {
+      props: { ...baseProps, form: 'none' as const },
+    });
+    expect(queryByText('Příprava')).not.toBeInTheDocument();
+    expect(queryByText('Syrové')).not.toBeInTheDocument();
+    expect(queryByText('Vařené')).not.toBeInTheDocument();
   });
 
   it('active amount chip is marked active', () => {
@@ -50,6 +85,14 @@ describe('FoodEditor', () => {
     await fireEvent.click(getByRole('button', { name: 'Vařené' }));
     await tick();
     expect(onPreparationChange).toHaveBeenCalledWith('boiled');
+  });
+
+  it('calls onPreparationChange with raw when Syrové chip is tapped', async () => {
+    const onPreparationChange = vi.fn();
+    const { getByRole } = render(FoodEditor, { props: { ...baseProps, onPreparationChange } });
+    await fireEvent.click(getByRole('button', { name: 'Syrové' }));
+    await tick();
+    expect(onPreparationChange).toHaveBeenCalledWith('raw');
   });
 
   it('calls onPreparationChange with undefined when active prep chip is re-tapped (toggle off)', async () => {

@@ -1,0 +1,25 @@
+import type { PreparationMethod } from './models';
+import type { FoodForm } from '$lib/data/allergen-catalog/allergen-catalog';
+import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+
+/**
+ * Resolves a food's physical form to the preparation chips that make sense
+ * for it. Catalog `form` is metadata only — `preparationMethod` on a logged
+ * meal item is unconstrained (issue #314).
+ */
+export const formPreparations = {
+  none:       [],
+  liquid:     ['raw', 'boiled', 'baked'],
+  cookable:   ['raw', 'boiled', 'steamed', 'baked', 'fried'],
+  'raw-only': ['raw'],
+} as const satisfies Record<FoodForm, readonly PreparationMethod[]>;
+
+/**
+ * Looks up a food's `form` from the catalog. Custom user-typed foods
+ * (`other:*` ids, never in FOODS) default to `cookable` — the editor shows
+ * all five chips so users can pick freely.
+ */
+export function formForFood(foodId: string): FoodForm {
+  const record = FOODS.find(f => f.id === foodId);
+  return record?.form ?? 'cookable';
+}

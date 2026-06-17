@@ -76,6 +76,23 @@ describe('required fields', () => {
       expect(Array.isArray(food.allergenIds)).toBe(true);
     }
   });
+
+  it('every food has a form drawn from the closed FoodForm set', () => {
+    const valid = new Set(['none', 'liquid', 'cookable', 'raw-only']);
+    for (const food of FOODS) {
+      expect(valid, `food '${food.id}' has invalid form '${food.form}'`).toContain(food.form);
+    }
+  });
+
+  it('representative foods are tagged with the documented form', () => {
+    const byId = (id: string) => FOODS.find((f) => f.id === id);
+    expect(byId('voda')?.form).toBe('none');
+    expect(byId('sul')?.form).toBe('none');
+    expect(byId('kravske-mleko')?.form).toBe('liquid');
+    expect(byId('brambory')?.form).toBe('cookable');
+    expect(byId('hovezi')?.form).toBe('cookable');
+    expect(byId('spenat')?.form).toBe('raw-only');
+  });
 });
 
 // ── Count sanity ──────────────────────────────────────────────

@@ -5,6 +5,7 @@ export type PreparationStrings = {
 };
 
 export const preparationStrings = {
+  raw:     { label: 'Syrové'  },
   boiled:  { label: 'Vařené'  },
   steamed: { label: 'Dušené'  },
   baked:   { label: 'Pečené'  },

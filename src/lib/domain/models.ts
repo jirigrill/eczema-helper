@@ -82,7 +82,7 @@ export function getPermanentEliminations(schedule: GeneratedSchedule): AllergenI
 
 export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
-export type PreparationMethod = 'boiled' | 'steamed' | 'baked' | 'fried';
+export type PreparationMethod = 'raw' | 'boiled' | 'steamed' | 'baked' | 'fried';
 
 export type MealItem = {
   id: string;
