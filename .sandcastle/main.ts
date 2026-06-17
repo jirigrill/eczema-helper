@@ -96,7 +96,7 @@ for (const [batchIdx, batch] of batches.entries()) {
             sandbox: {
               onSandboxReady: [
                 { command: "bun install" },
-                { command: "bunx playwright install --with-deps chromium" },
+                { command: "bunx playwright install chromium" },
               ],
             },
           },

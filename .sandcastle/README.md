@@ -82,7 +82,10 @@ Run `npx sandcastle docker build-image` first.
 Issues may reference closed blockers — planner checks `gh issue view <N>` to confirm. If still empty, verify open issues reference the PRD number in their body.
 
 **Playwright `two different versions` error inside container**
-macOS node_modules copied into Linux container. Fixed: `bunx playwright install --with-deps chromium` runs in `onSandboxReady` hook automatically.
+macOS node_modules copied into Linux container. Fixed: `bunx playwright install chromium` runs in `onSandboxReady` hook automatically (downloads the version-pinned browser binary into the agent's cache).
+
+**Playwright `su: Authentication failure` / password prompt during sandbox setup**
+The container runs as non-root user `agent`, so `playwright install --with-deps` can't `apt-get` OS libs. Fixed: OS-level deps are baked into the image at build time as root (`playwright install-deps` in the Dockerfile); the runtime hook only downloads the browser binary as the agent user.
 
 **Local main diverged after PR merge**
 Squash merges cause divergence. Always use `git reset --hard origin/main` after merging, never `git pull`.
