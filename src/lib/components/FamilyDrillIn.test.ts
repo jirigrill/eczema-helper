@@ -72,6 +72,33 @@ describe('FamilyDrillIn — eggs family (flat, < 5 foods)', () => {
   });
 });
 
+// ── Vegetables — large family (≥5 foods) with NO authored sources ──
+
+describe('FamilyDrillIn — vegetables family (flat, large/uncurated)', () => {
+  const vegBase = { ...baseProps, familyId: 'vegetables' as const };
+
+  it('renders a flat list with no source-group headers despite ≥5 foods', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: vegBase });
+    // No familySources entry for vegetables → flat even though it has 17 foods.
+    expect(queryByText('Kravské')).not.toBeInTheDocument();
+    expect(queryByText('Rostlinné')).not.toBeInTheDocument();
+    expect(queryByText('S lepkem')).not.toBeInTheDocument();
+    expect(queryByText('Ostatní')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render the legacy "bez alergenu" heading', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: vegBase });
+    expect(queryByText(/bez alergenu/i)).not.toBeInTheDocument();
+  });
+
+  it('still renders the family foods as buttons in flat mode', () => {
+    const { getByRole } = render(FamilyDrillIn, { props: vegBase });
+    expect(getByRole('button', { name: /Brambory/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Mrkev/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Špenát/ })).toBeInTheDocument();
+  });
+});
+
 // ── Mléko (dairy) — large family with authored source groups ──
 
 describe('FamilyDrillIn — dairy family (grouped by source)', () => {
