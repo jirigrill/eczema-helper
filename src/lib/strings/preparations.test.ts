@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import type { PreparationMethod } from '$lib/domain/models';
+import { PREPARATION_METHODS } from '$lib/domain/models';
 
 describe('preparationStrings', () => {
-  it('exports all four PreparationMethod keys with Czech labels', async () => {
+  it('exports a Czech label for every PreparationMethod', async () => {
     const { preparationStrings } = await import('./preparations');
 
-    const keys: PreparationMethod[] = ['raw', 'boiled', 'baked', 'fried'];
-    for (const key of keys) {
+    for (const key of PREPARATION_METHODS) {
       expect(preparationStrings[key]).toBeDefined();
       expect(typeof preparationStrings[key].label).toBe('string');
       expect(preparationStrings[key].label.length).toBeGreaterThan(0);

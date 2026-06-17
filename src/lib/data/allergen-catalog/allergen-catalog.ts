@@ -249,10 +249,15 @@ export type ProtocolAllergenId3 = Extract<typeof ALLERGENS[number], { protocol: 
  * Catalog-only metadata — never persisted on a logged meal item.
  *   - none      → no preparation row (water, oil, salt, sugar)
  *   - liquid    → raw · boiled · baked (milk, drinkable)
- *   - cookable  → all five chips (potato, meat, rice, vegetables)
+ *   - cookable  → all four chips (potato, meat, rice, vegetables)
  *   - raw-only  → only raw (leafy salad, fresh fruit eaten raw)
+ *
+ * Single source of truth — the type derives from this array, and
+ * `formPreparations` fails `tsc` via its `satisfies` clause until it covers
+ * every value here.
  */
-export type FoodForm = 'none' | 'liquid' | 'cookable' | 'raw-only';
+export const FOOD_FORMS = ['none', 'liquid', 'cookable', 'raw-only'] as const;
+export type FoodForm = (typeof FOOD_FORMS)[number];
 
 type FoodRecord = {
   id: string;
