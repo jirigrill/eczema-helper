@@ -17,7 +17,7 @@ export const formPreparations = {
 /**
  * Looks up a food's `form` from the catalog. Custom user-typed foods
  * (`other:*` ids, never in FOODS) default to `cookable` — the editor shows
- * all five chips so users can pick freely.
+ * the full chip set so users can pick freely.
  */
 export function formForFood(foodId: string): FoodForm {
   const record = FOODS.find(f => f.id === foodId);
