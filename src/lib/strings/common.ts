@@ -143,7 +143,6 @@ export const commonStrings = {
   // ── Meal logging page ─────────────────────────────────────
   meal: {
     heading:              'Přidat jídlo',
-    todayExcluded:        'Dnes vyřazeno:',
     allCategoriesLabel:   'Všechny kategorie',
     customFoodPlaceholder:'Název potraviny…',
     eliminatedChipLabel:  'Vyloučeno',

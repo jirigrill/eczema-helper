@@ -153,19 +153,6 @@ describe('meal/+page.svelte', () => {
     expect(queryByText('🥛 Mléko')).toBeInTheDocument();
   });
 
-  it('eliminated banner hidden while drilled in, visible on grid', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, queryByText } = render(MealPage);
-    await tick();
-    expect(queryByText('Dnes vyřazeno:')).toBeInTheDocument();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    expect(queryByText('Dnes vyřazeno:')).not.toBeInTheDocument();
-    await fireEvent.click(getByRole('button', { name: '‹' }));
-    await tick();
-    expect(queryByText('Dnes vyřazeno:')).toBeInTheDocument();
-  });
 
   it('back chevron (‹) in drill-in returns to family grid', async () => {
     setReady();
@@ -389,21 +376,6 @@ describe('meal/+page.svelte', () => {
 
   // ── Schedule banners (preserved) ─────────────────────────
 
-  it('does not show eliminated banner when eliminatedToday is empty', async () => {
-    setReady();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { queryByText } = render(MealPage);
-    await tick();
-    expect(queryByText('Dnes vyřazeno:')).not.toBeInTheDocument();
-  });
-
-  it('shows eliminated banner when eliminatedToday is non-empty', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByText } = render(MealPage);
-    await tick();
-    expect(getByText('Dnes vyřazeno:')).toBeInTheDocument();
-  });
 
   // ── Vlastní drill-in: previously-typed custom foods ──────
 
@@ -1227,13 +1199,6 @@ describe('meal/+page.svelte', () => {
       }
     });
 
-    it('eliminated-today banner label carries the eyebrow utility', async () => {
-      setReadyWithElim();
-      const { default: MealPage } = await import('./+page.svelte');
-      const { getByText } = render(MealPage);
-      await tick();
-      const label = getByText(/Dnes vyřazeno/);
-      expect(label.classList.contains('eyebrow')).toBe(true);
-    });
+
   });
 });
