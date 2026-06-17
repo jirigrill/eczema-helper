@@ -249,37 +249,47 @@ type FoodRecord = {
   familyId: FamilyId;
   allergenIds: readonly CatalogAllergenId3[];
   aliases?: readonly string[];
+  /**
+   * Optional presentation key clustering foods within a family (ADR-0019).
+   * Independent of `familyId`/`allergenIds`; never enters conflict detection.
+   */
+  sourceGroup?: string;
 };
 
 export const FOODS = [
   // ── Food twins (§3a) ─────────────────────────────────────
   { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs']          },
-  { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy']         },
-  { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy']         },
-  { id: 'psenicny-chleb',    familyId: 'grains' as FamilyId,      allergenIds: ['wheat']         },
+  { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        sourceGroup: 'cow' },
+  { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        sourceGroup: 'cow' },
+  { id: 'psenicny-chleb',    familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        sourceGroup: 'gluten' },
   { id: 'tofu',              familyId: 'legumes' as FamilyId,     allergenIds: ['soy']           },
   { id: 'arasisove-maslo',   familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts']          },
   { id: 'sezam',             familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame']        },
   { id: 'tahini',            familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame']        },
   { id: 'jahody',            familyId: 'fruit' as FamilyId,       allergenIds: ['strawberries']  },
   { id: 'rajce',             familyId: 'vegetables' as FamilyId,  allergenIds: ['tomatoes']      },
-  { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn']          },
+  { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn'],         sourceGroup: 'gluten-free' },
   { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus']        },
   { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    aliases: ['hořká čokoláda', 'dark chocolate'] },
   { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
   { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish']     },
   // ── Divergent placements (§3b) ───────────────────────────
-  { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          aliases: ['sójové mléko', 'sojove mleko', 'soya milk'] },
+  { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          aliases: ['sójové mléko', 'sojove mleko', 'soya milk'], sourceGroup: 'plant' },
   { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: []                },
+  { id: 'mandlove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: ['nuts'],         aliases: ['mandlové mléko', 'almond milk'], sourceGroup: 'plant' },
+  { id: 'ovesne-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               aliases: ['ovesné mléko', 'oat milk'], sourceGroup: 'plant' },
+  { id: 'kokosove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: [],               aliases: ['kokosové mléko', 'coconut milk'], sourceGroup: 'plant' },
+  { id: 'ovci-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        aliases: ['ovčí mléko', 'sheep milk'], sourceGroup: 'sheep' },
+  { id: 'kozi-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        aliases: ['kozí mléko', 'goat milk'], sourceGroup: 'goat' },
   // ── Composite food (§3c) ─────────────────────────────────
   { id: 'hummus', familyId: 'legumes' as FamilyId, allergenIds: ['legumes', 'sesame'], aliases: ['hummus', 'homus'] },
    { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'],    aliases: ['mléčná čokoláda', 'milk chocolate'] },
   // ── Loose everyday foods (§3d) ───────────────────────────
   // Grains
-  { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               aliases: ['rýže', 'ryze', 'rice'] },
-  { id: 'pohanka',           familyId: 'grains' as FamilyId,      allergenIds: []                },
-  { id: 'ovesne-vlocky',     familyId: 'grains' as FamilyId,      allergenIds: []                },
-  { id: 'proso-jahly',       familyId: 'grains' as FamilyId,      allergenIds: []                },
+  { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               aliases: ['rýže', 'ryze', 'rice'], sourceGroup: 'gluten-free' },
+  { id: 'pohanka',           familyId: 'grains' as FamilyId,      allergenIds: [],               sourceGroup: 'gluten-free' },
+  { id: 'ovesne-vlocky',     familyId: 'grains' as FamilyId,      allergenIds: [],               sourceGroup: 'gluten' },
+  { id: 'proso-jahly',       familyId: 'grains' as FamilyId,      allergenIds: [],               sourceGroup: 'gluten-free' },
   // Vegetables
   { id: 'okurka',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
   { id: 'cuketa',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
