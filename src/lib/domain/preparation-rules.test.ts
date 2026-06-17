@@ -10,11 +10,10 @@ describe('formPreparations', () => {
     expect(formPreparations.liquid).toEqual(['raw', 'boiled', 'baked']);
   });
 
-  it('cookable → all five chips including raw', () => {
+  it('cookable → all four chips including raw', () => {
     expect(formPreparations.cookable).toEqual([
       'raw',
       'boiled',
-      'steamed',
       'baked',
       'fried',
     ]);

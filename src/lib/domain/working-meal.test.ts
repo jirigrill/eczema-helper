@@ -188,14 +188,14 @@ describe('updateEditingAmount', () => {
 describe('updateEditingPreparation', () => {
   it('sets preparation while editing', () => {
     let meal = mealWithFood();
-    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'steamed');
+    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
-    expect(food?.state).toMatchObject({ status: 'editing', preparation: 'steamed' });
+    expect(food?.state).toMatchObject({ status: 'editing', preparation: 'boiled' });
   });
 
   it('toggles preparation off when set to undefined', () => {
     let meal = mealWithFood();
-    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'steamed');
+    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     meal = updateEditingPreparation(meal, FAM, FOOD_A, undefined);
     const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
     expect((food?.state as { preparation?: string }).preparation).toBeUndefined();

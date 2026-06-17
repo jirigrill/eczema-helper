@@ -183,7 +183,7 @@ describe('DexieMealRepository', () => {
   // ── preparationMethod — all four values ──────────────────────
 
   it.each([
-    'boiled', 'steamed', 'baked', 'fried',
+    'raw', 'boiled', 'baked', 'fried',
   ] as PreparationMethod[])('preparationMethod "%s" round-trips', async (method) => {
     const item = makeItem('item-1', { preparationMethod: method });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
@@ -226,7 +226,7 @@ describe('DexieMealRepository', () => {
   });
 
   it('re-saving without preparationMethod removes it from the persisted item', async () => {
-    const withMethod = makeItem('item-1', { preparationMethod: 'steamed' });
+    const withMethod = makeItem('item-1', { preparationMethod: 'boiled' });
     const withoutMethod = makeItem('item-1'); // preparationMethod absent
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withMethod] }));
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withoutMethod] }));

@@ -22,12 +22,11 @@ describe('FoodEditor', () => {
     expect(getByText('Balení')).toBeInTheDocument();
   });
 
-  it('cookable food shows all five preparation chips including Syrové', () => {
+  it('cookable food shows all four preparation chips including Syrové', () => {
     const { getByText } = render(FoodEditor, { props: baseProps });
     expect(getByText('Příprava')).toBeInTheDocument();
     expect(getByText('Syrové')).toBeInTheDocument();
     expect(getByText('Vařené')).toBeInTheDocument();
-    expect(getByText('Dušené')).toBeInTheDocument();
     expect(getByText('Pečené')).toBeInTheDocument();
     expect(getByText('Smažené')).toBeInTheDocument();
   });
@@ -40,7 +39,6 @@ describe('FoodEditor', () => {
     expect(getByText('Syrové')).toBeInTheDocument();
     expect(getByText('Vařené')).toBeInTheDocument();
     expect(getByText('Pečené')).toBeInTheDocument();
-    expect(queryByText('Dušené')).not.toBeInTheDocument();
     expect(queryByText('Smažené')).not.toBeInTheDocument();
   });
 
@@ -51,7 +49,6 @@ describe('FoodEditor', () => {
     expect(getByText('Příprava')).toBeInTheDocument();
     expect(getByText('Syrové')).toBeInTheDocument();
     expect(queryByText('Vařené')).not.toBeInTheDocument();
-    expect(queryByText('Dušené')).not.toBeInTheDocument();
     expect(queryByText('Pečené')).not.toBeInTheDocument();
     expect(queryByText('Smažené')).not.toBeInTheDocument();
   });
