@@ -330,9 +330,11 @@ describe('createMealEditor — discardDescriptor()', () => {
 });
 
 describe('createMealEditor — applyUndo()', () => {
-  it('after applyUndo(buffer with kind="edit") rehydrates state and re-fetches createdAt', async () => {
+  it('after applyUndo(buffer with kind="edit") rehydrates state as DIRTY (load snapshot is the persisted row, not the rehydrated dirty state)', async () => {
     // Simulates the round-trip: open existing meal, dirty it, navigate away
     // (writes buffer), navigate back (mounts a fresh editor), call applyUndo.
+    // The restored edit must read as dirty so a second back-out re-buffers
+    // rather than silently dropping the user's restored work (issue #299).
     const date = '2024-10-06';
     const originalCreatedAt = '2024-10-06T07:00:00.000Z';
     const session = createMealSession(date);
@@ -357,10 +359,74 @@ describe('createMealEditor — applyUndo()', () => {
     );
 
     expect(editor2.finalizeKind).toBe('edit');
-    expect(editor2.dirty).toBe(false);
+    expect(editor2.dirty).toBe(true);
+    expect(editor2.canFinalize).toBe(true);
     expect(editor2.notes).toBe('dirty edit notes');
     expect(editor2.confirmedFoods.map((f) => f.foodId).sort()).toEqual(['brambory', 'mrkev']);
     expect(editor2.loadedCreatedAt).toBe(originalCreatedAt);
+  });
+
+  it('after applyUndo with eliminatedToday, conflict context is re-injected (eliminatedFoodIds + hasConflicts)', async () => {
+    // Issue #299: undo must re-inject the elimination window so the per-food
+    // danger styling and red CTA reappear on the rehydrated screen.
+    const date = '2024-11-10';
+    const session = createMealSession(date);
+    // Seed a saved meal with a single non-eliminated food.
+    await session.save(makeMeal({
+      id: `${date}:breakfast`,
+      date,
+      mealType: 'breakfast',
+      items: [{ id: 'item-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+    }));
+
+    // Simulate user adding an eliminated dairy food, backing out, capturing buffer.
+    const editor1 = createMealEditor();
+    await editor1.open({ date, mealType: 'breakfast' }, ['dairy']);
+    editor1.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
+    editor1.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
+    expect(editor1.hasConflicts).toBe(true);
+    const desc = editor1.discardDescriptor();
+    expect(desc?.kind).toBe('edit');
+
+    // Fresh editor on undo navigation: applyUndo with eliminatedToday.
+    const editor2 = createMealEditor();
+    await editor2.applyUndo(
+      { date, mealType: 'breakfast' },
+      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'breakfast', returnTo: `/day/${date}` },
+      ['dairy'],
+    );
+
+    expect(editor2.eliminatedFoodIds.has('kravske-mleko')).toBe(true);
+    expect(editor2.hasConflicts).toBe(true);
+  });
+
+  it('after applyUndo, a second back-out yields a fresh discard descriptor (no silent loss of restored food)', async () => {
+    // Issue #299: undo restores dirty state, so backing out again must
+    // re-write the buffer rather than treat the meal as clean.
+    const date = '2024-11-11';
+    const session = createMealSession(date);
+    await session.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+
+    const editor1 = createMealEditor();
+    await editor1.open({ date, mealType: 'lunch' });
+    editor1.update((m) => startEditing(m, 'vegetables', 'mrkev', 'Mrkev'));
+    editor1.update((m) => confirmFood(m, 'vegetables', 'mrkev'));
+    const desc = editor1.discardDescriptor()!;
+
+    const editor2 = createMealEditor();
+    await editor2.applyUndo(
+      { date, mealType: 'lunch' },
+      { kind: 'edit', workingMeal: desc.workingMeal, mealType: 'lunch', returnTo: `/day/${date}` },
+    );
+
+    // Second back-out: editor must report a non-null descriptor with the
+    // restored mrkev still in the working meal.
+    const desc2 = editor2.discardDescriptor();
+    expect(desc2).not.toBeNull();
+    expect(desc2!.kind).toBe('edit');
+    expect(
+      desc2!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId)).sort(),
+    ).toEqual(['brambory', 'mrkev']);
   });
 
   it('back-out → undo → finalize round-trip preserves the original createdAt', async () => {
@@ -429,7 +495,9 @@ describe('createMealEditor — applyUndo()', () => {
     expect(editor.loadedCreatedAt).toBeNull();
   });
 
-  it('after applyUndo(buffer with kind="compose") finalize-state is compose-new', async () => {
+  it('after applyUndo(buffer with kind="compose") finalize-state is compose-new and canFinalize is true (restored confirmed food)', async () => {
+    // Issue #299: compose-new undo must leave canFinalize true so the user
+    // can save the restored draft.
     const date = '2024-10-09';
     const editor = createMealEditor();
 
@@ -460,6 +528,7 @@ describe('createMealEditor — applyUndo()', () => {
 
     expect(editor.finalizeKind).toBe('compose');
     expect(editor.dirty).toBe(true);
+    expect(editor.canFinalize).toBe(true);
     expect(editor.notes).toBe('draft');
     expect(editor.loadedCreatedAt).toBeNull();
   });
