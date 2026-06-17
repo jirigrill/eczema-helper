@@ -962,11 +962,11 @@
   <!-- ─── FamilyGrid ─────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyGrid.svelte -->
   <div class="component-section" id="family-grid">
-    <p class="component-label">▸ <span>FamilyGrid</span> — onSelect: (familyId) => void</p>
-    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (13 total). Every tile is a plain, tappable white tile — the grid no longer carries active/eliminated indicators. Active and eliminated state are shown only on the individual foods once the user drills into a family (see FamilyDrillIn / FoodTile danger state).</p>
+    <p class="component-label">▸ <span>FamilyGrid</span> — onSelect: (familyId) => void, activeFamilyIds?: FamilyId[]</p>
+    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (13 total). Two states: neutral (plain white) and active (white tile + small primary dot top-right — the family has a selection). The onboarding questionnaire passes activeFamilyIds to dot families with a chosen allergen; the meal grid leaves it empty, so its tiles are always plain — there the active/eliminated state is shown only on the food inside the drill-in (see FamilyDrillIn / FoodTile danger state), never on the family tile. There is no eliminated badge or danger tint on the grid anymore.</p>
     <div class="variant-grid">
 
-      <!-- Plain grid — the only state -->
+      <!-- Neutral grid -->
       <div class="variant-tile" style="max-width:300px">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
           <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🌾</span><span>Obiloviny</span></button>
@@ -974,7 +974,16 @@
           <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🍎</span><span>Ovoce</span></button>
           <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥩</span><span>Maso</span></button>
         </div>
-        <p class="variant-name">plain (the only state)</p>
+        <p class="variant-name">neutral (default)</p>
+      </div>
+
+      <!-- Active tile — white tile + primary dot (questionnaire) -->
+      <div class="variant-tile" style="max-width:300px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🍎</span><span>Ovoce</span><span style="position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:99px;background:#8B4557"></span></button>
+          <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid #EDE8E9;background:white;font-size:10px;font-weight:500;color:#3D2B2F;position:relative"><span style="font-size:22px;line-height:1">🥛</span><span>Mléko</span></button>
+        </div>
+        <p class="variant-name">activeFamilyIds=['fruit'] (white tile + primary dot)</p>
       </div>
 
     </div>

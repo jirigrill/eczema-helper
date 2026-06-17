@@ -131,8 +131,8 @@
     </button>
     {#if summary}
       <span
-        class="text-xs whitespace-nowrap pr-1
-          {isFilled ? 'text-white' : 'text-text-muted'}"
+        class="caption whitespace-nowrap pr-1
+          {isFilled ? 'text-white' : ''}"
       >{summary}</span>
     {/if}
     {#if onRemove}
