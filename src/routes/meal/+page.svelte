@@ -13,6 +13,7 @@
   import { portionStrings } from '$lib/strings/portions';
   import { preparationStrings } from '$lib/strings/preparations';
   import { familyStrings } from '$lib/strings/families';
+  import { formForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext } from '$lib/domain/schedule-queries';
@@ -619,6 +620,7 @@
                         <FoodEditor
                           amount={food.state.amount}
                           preparation={food.state.preparation}
+                          form={formForFood(food.foodId)}
                           eliminatedVariant={isEliminated}
                           onAmountChange={(a) => familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
                           onPreparationChange={(p) => familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}

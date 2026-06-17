@@ -388,10 +388,22 @@ optional `subitemId`, `amount` (`PortionKind`), optional `preparationMethod`
 ### PreparationMethod
 *Czech: Způsob přípravy*
 
-One of: `'boiled'` (Vařené) · `'steamed'` (Dušené) · `'baked'` (Pečené) ·
-`'fried'` (Smažené). Optional observational field on `MealItem` — records how
-the food was prepared. Has no impact on allergen conflict detection; stored
-purely for the mother's reference.
+One of: `'raw'` (Syrové) · `'boiled'` (Vařené) · `'steamed'` (Dušené) ·
+`'baked'` (Pečené) · `'fried'` (Smažené). Optional observational field on
+`MealItem` — records how the food was prepared. Has no impact on allergen
+conflict detection; stored purely for the mother's reference. Which chips a
+food shows in the editor is gated by its catalog `FoodForm`.
+
+### FoodForm
+*Czech: Forma potraviny*
+
+Closed 4-value catalog metadata on a `CatalogFood`: `'none'` (water, oil,
+salt — no preparation row at all) · `'liquid'` (milk, drinkable — Syrové ·
+Vařené · Pečené) · `'cookable'` (potato, meat, rice — all five chips) ·
+`'raw-only'` (leafy salad, fresh fruit — Syrové only). The `formPreparations`
+map (in `domain/preparation-rules.ts`) resolves a form to its chip subset. The
+form is **never persisted** on a logged `MealItem`; `preparationMethod` stays
+unconstrained on the persisted record.
 
 ### PortionKind
 *Czech: Velikost porce*

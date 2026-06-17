@@ -13,6 +13,7 @@ import {
   editingFood,
   foodsForFamily,
   toMealItems,
+  fromMealItems,
   removeFood,
   isNonEmpty,
 } from './working-meal';
@@ -187,14 +188,14 @@ describe('updateEditingAmount', () => {
 describe('updateEditingPreparation', () => {
   it('sets preparation while editing', () => {
     let meal = mealWithFood();
-    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'steamed');
+    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
-    expect(food?.state).toMatchObject({ status: 'editing', preparation: 'steamed' });
+    expect(food?.state).toMatchObject({ status: 'editing', preparation: 'boiled' });
   });
 
   it('toggles preparation off when set to undefined', () => {
     let meal = mealWithFood();
-    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'steamed');
+    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     meal = updateEditingPreparation(meal, FAM, FOOD_A, undefined);
     const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
     expect((food?.state as { preparation?: string }).preparation).toBeUndefined();
@@ -273,6 +274,45 @@ describe('toMealItems', () => {
 
   it('returns empty array for empty meal', () => {
     expect(toMealItems(emptyWorkingMeal())).toHaveLength(0);
+  });
+});
+
+// ── Round-trip: toMealItems → fromMealItems ───────────────────
+
+describe('toMealItems / fromMealItems round-trip', () => {
+  it('round-trips raw (Syrové) preparation through confirm → toMealItems → fromMealItems', () => {
+    let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'Kravské mléko');
+    meal = updateEditingAmount(meal, FAM, FOOD_A, 'spoon');
+    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'raw');
+    meal = confirmFood(meal, FAM, FOOD_A);
+
+    const items = toMealItems(meal);
+    expect(items[0].preparationMethod).toBe('raw');
+
+    const restored = fromMealItems(items);
+    const restoredFood = foodsForFamily(restored, FAM).find(f => f.foodId === FOOD_A);
+    expect(restoredFood?.state).toMatchObject({
+      status: 'confirmed',
+      amount: 'spoon',
+      preparation: 'raw',
+    });
+  });
+
+  it('round-trips boiled preparation through the same cycle', () => {
+    let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'Kravské mléko');
+    meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
+    meal = confirmFood(meal, FAM, FOOD_A);
+    const restored = fromMealItems(toMealItems(meal));
+    const restoredFood = foodsForFamily(restored, FAM).find(f => f.foodId === FOOD_A);
+    expect(restoredFood?.state).toMatchObject({ preparation: 'boiled' });
+  });
+
+  it('round-trips an unset preparation as undefined', () => {
+    let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'Kravské mléko');
+    meal = confirmFood(meal, FAM, FOOD_A);
+    const restored = fromMealItems(toMealItems(meal));
+    const restoredFood = foodsForFamily(restored, FAM).find(f => f.foodId === FOOD_A);
+    expect(restoredFood?.state).toMatchObject({ preparation: undefined });
   });
 });
 

@@ -82,7 +82,14 @@ export function getPermanentEliminations(schedule: GeneratedSchedule): AllergenI
 
 export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
-export type PreparationMethod = 'boiled' | 'steamed' | 'baked' | 'fried';
+/**
+ * Single source of truth for preparation methods, in chip-display order.
+ * The type derives from this array — add or remove a method here only, and
+ * `preparationStrings` (labels) and `formPreparations` (form→subset) fail
+ * `tsc` via their `satisfies` clauses until they match.
+ */
+export const PREPARATION_METHODS = ['raw', 'boiled', 'baked', 'fried'] as const;
+export type PreparationMethod = (typeof PREPARATION_METHODS)[number];
 
 export type MealItem = {
   id: string;

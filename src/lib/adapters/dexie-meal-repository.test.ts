@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieMealRepository } from './dexie-meal-repository';
 import { AtopicDb } from '$lib/db/atopic-db';
-import type { Meal, MealItem, PreparationMethod } from '$lib/domain/models';
+import type { Meal, MealItem } from '$lib/domain/models';
+import { PREPARATION_METHODS } from '$lib/domain/models';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -182,9 +183,7 @@ describe('DexieMealRepository', () => {
 
   // ── preparationMethod — all four values ──────────────────────
 
-  it.each([
-    'boiled', 'steamed', 'baked', 'fried',
-  ] as PreparationMethod[])('preparationMethod "%s" round-trips', async (method) => {
+  it.each(PREPARATION_METHODS)('preparationMethod "%s" round-trips', async (method) => {
     const item = makeItem('item-1', { preparationMethod: method });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
@@ -226,7 +225,7 @@ describe('DexieMealRepository', () => {
   });
 
   it('re-saving without preparationMethod removes it from the persisted item', async () => {
-    const withMethod = makeItem('item-1', { preparationMethod: 'steamed' });
+    const withMethod = makeItem('item-1', { preparationMethod: 'boiled' });
     const withoutMethod = makeItem('item-1'); // preparationMethod absent
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withMethod] }));
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withoutMethod] }));

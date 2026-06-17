@@ -244,10 +244,26 @@ export type ProtocolAllergenId3 = Extract<typeof ALLERGENS[number], { protocol: 
 
 // ── Foods ─────────────────────────────────────────────────────
 
+/**
+ * Physical form of a food, governing which preparation chips make sense.
+ * Catalog-only metadata — never persisted on a logged meal item.
+ *   - none      → no preparation row (water, oil, salt, sugar)
+ *   - liquid    → raw · boiled · baked (milk, drinkable)
+ *   - cookable  → all four chips (potato, meat, rice, vegetables)
+ *   - raw-only  → only raw (leafy salad, fresh fruit eaten raw)
+ *
+ * Single source of truth — the type derives from this array, and
+ * `formPreparations` fails `tsc` via its `satisfies` clause until it covers
+ * every value here.
+ */
+export const FOOD_FORMS = ['none', 'liquid', 'cookable', 'raw-only'] as const;
+export type FoodForm = (typeof FOOD_FORMS)[number];
+
 type FoodRecord = {
   id: string;
   familyId: FamilyId;
   allergenIds: readonly CatalogAllergenId3[];
+  form: FoodForm;
   aliases?: readonly string[];
   /**
    * Optional presentation key clustering foods within a family (ADR-0019).
@@ -258,97 +274,97 @@ type FoodRecord = {
 
 export const FOODS = [
   // ── Food twins (§3a) ─────────────────────────────────────
-  { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs']          },
-  { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        sourceGroup: 'cow' },
-  { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        sourceGroup: 'cow' },
-  { id: 'psenicny-chleb',    familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        sourceGroup: 'gluten' },
-  { id: 'tofu',              familyId: 'legumes' as FamilyId,     allergenIds: ['soy']           },
-  { id: 'arasisove-maslo',   familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts']          },
-  { id: 'sezam',             familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame']        },
-  { id: 'tahini',            familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame']        },
-  { id: 'jahody',            familyId: 'fruit' as FamilyId,       allergenIds: ['strawberries']  },
-  { id: 'rajce',             familyId: 'vegetables' as FamilyId,  allergenIds: ['tomatoes']      },
-  { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn'],         sourceGroup: 'gluten-free' },
-  { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus']        },
-  { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    aliases: ['hořká čokoláda', 'dark chocolate'] },
-  { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
-  { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish']     },
+  { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
+  { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
+  { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
+  { id: 'psenicny-chleb',    familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        form: 'cookable', sourceGroup: 'gluten' },
+  { id: 'tofu',              familyId: 'legumes' as FamilyId,     allergenIds: ['soy'],          form: 'cookable' },
+  { id: 'arasisove-maslo',   familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts'],         form: 'raw-only' },
+  { id: 'sezam',             familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame'],       form: 'cookable' },
+  { id: 'tahini',            familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame'],       form: 'raw-only' },
+  { id: 'jahody',            familyId: 'fruit' as FamilyId,       allergenIds: ['strawberries'], form: 'raw-only' },
+  { id: 'rajce',             familyId: 'vegetables' as FamilyId,  allergenIds: ['tomatoes'],     form: 'cookable' },
+  { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn'],         form: 'cookable', sourceGroup: 'gluten-free' },
+  { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'raw-only' },
+  { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    form: 'raw-only', aliases: ['hořká čokoláda', 'dark chocolate'] },
+  { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable' },
+  { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish'],    form: 'cookable' },
   // ── Divergent placements (§3b) ───────────────────────────
-  { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          aliases: ['sójové mléko', 'sojove mleko', 'soya milk'], sourceGroup: 'plant' },
-  { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: []                },
-  { id: 'mandlove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: ['nuts'],         aliases: ['mandlové mléko', 'almond milk'], sourceGroup: 'plant' },
-  { id: 'ovesne-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               aliases: ['ovesné mléko', 'oat milk'], sourceGroup: 'plant' },
-  { id: 'kokosove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: [],               aliases: ['kokosové mléko', 'coconut milk'], sourceGroup: 'plant' },
-  { id: 'ovci-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        aliases: ['ovčí mléko', 'sheep milk'], sourceGroup: 'sheep' },
-  { id: 'kozi-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        aliases: ['kozí mléko', 'goat milk'], sourceGroup: 'goat' },
+  { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          form: 'liquid', aliases: ['sójové mléko', 'sojove mleko', 'soya milk'], sourceGroup: 'plant' },
+  { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid' },
+  { id: 'mandlove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: ['nuts'],         form: 'liquid', aliases: ['mandlové mléko', 'almond milk'], sourceGroup: 'plant' },
+  { id: 'ovesne-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid', aliases: ['ovesné mléko', 'oat milk'], sourceGroup: 'plant' },
+  { id: 'kokosove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid', aliases: ['kokosové mléko', 'coconut milk'], sourceGroup: 'plant' },
+  { id: 'ovci-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid', aliases: ['ovčí mléko', 'sheep milk'], sourceGroup: 'sheep' },
+  { id: 'kozi-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid', aliases: ['kozí mléko', 'goat milk'], sourceGroup: 'goat' },
   // ── Composite food (§3c) ─────────────────────────────────
-  { id: 'hummus', familyId: 'legumes' as FamilyId, allergenIds: ['legumes', 'sesame'], aliases: ['hummus', 'homus'] },
-   { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'],    aliases: ['mléčná čokoláda', 'milk chocolate'] },
+  { id: 'hummus', familyId: 'legumes' as FamilyId, allergenIds: ['legumes', 'sesame'], form: 'raw-only', aliases: ['hummus', 'homus'] },
+   { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'], form: 'raw-only', aliases: ['mléčná čokoláda', 'milk chocolate'] },
   // ── Loose everyday foods (§3d) ───────────────────────────
   // Grains
-  { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               aliases: ['rýže', 'ryze', 'rice'], sourceGroup: 'gluten-free' },
-  { id: 'pohanka',           familyId: 'grains' as FamilyId,      allergenIds: [],               sourceGroup: 'gluten-free' },
-  { id: 'ovesne-vlocky',     familyId: 'grains' as FamilyId,      allergenIds: [],               sourceGroup: 'gluten' },
-  { id: 'proso-jahly',       familyId: 'grains' as FamilyId,      allergenIds: [],               sourceGroup: 'gluten-free' },
+  { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', aliases: ['rýže', 'ryze', 'rice'], sourceGroup: 'gluten-free' },
+  { id: 'pohanka',           familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten-free' },
+  { id: 'ovesne-vlocky',     familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
+  { id: 'proso-jahly',       familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten-free' },
   // Vegetables
-  { id: 'okurka',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'cuketa',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'spenat',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'paprika',           familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'brokolice',         familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'mrkev',             familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'brambory',          familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'cesnek',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
-  { id: 'cibule',            familyId: 'vegetables' as FamilyId,  allergenIds: []                },
+  { id: 'okurka',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only' },
+  { id: 'cuketa',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },
+  { id: 'spenat',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only' },
+  { id: 'paprika',           familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only' },
+  { id: 'brokolice',         familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },
+  { id: 'mrkev',             familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },
+  { id: 'brambory',          familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },
+  { id: 'cesnek',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },
+  { id: 'cibule',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },
   // Fruit
-  { id: 'jablko',            familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'hruska',            familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'merunka',           familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'broskev',           familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'hrozny',            familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'boruvky',           familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'banan',             familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'kiwi',              familyId: 'fruit' as FamilyId,       allergenIds: []                },
-  { id: 'mango',             familyId: 'fruit' as FamilyId,       allergenIds: []                },
+  { id: 'jablko',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'hruska',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'merunka',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'broskev',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'hrozny',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'boruvky',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'banan',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'kiwi',              familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
+  { id: 'mango',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only' },
   // Meat
-  { id: 'kureci',            familyId: 'meat' as FamilyId,        allergenIds: ['eggs']                },
-  { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy']                },
-  { id: 'veprovka',          familyId: 'meat' as FamilyId,        allergenIds: []                },
-  { id: 'kruti',             familyId: 'meat' as FamilyId,        allergenIds: []                },
-  { id: 'jehnneci',          familyId: 'meat' as FamilyId,        allergenIds: []                },
+  { id: 'kureci',            familyId: 'meat' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
+  { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable' },
+  { id: 'veprovka',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
+  { id: 'kruti',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
+  { id: 'jehnneci',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   // Fish/seafood
-  { id: 'treska',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
-  { id: 'pstruh',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
-  { id: 'tunak',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
-  { id: 'sardinky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish']          },
+  { id: 'treska',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable' },
+  { id: 'pstruh',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable' },
+  { id: 'tunak',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable' },
+  { id: 'sardinky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable' },
   // Legumes
-  { id: 'cocka',             familyId: 'legumes' as FamilyId,     allergenIds: ['legumes']       },
-  { id: 'fazole',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes']       },
-  { id: 'hrac',              familyId: 'legumes' as FamilyId,     allergenIds: ['legumes']       },
-  { id: 'cizrna',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes']       },
+  { id: 'cocka',             familyId: 'legumes' as FamilyId,     allergenIds: ['legumes'],      form: 'cookable' },
+  { id: 'fazole',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes'],      form: 'cookable' },
+  { id: 'hrac',              familyId: 'legumes' as FamilyId,     allergenIds: ['legumes'],      form: 'cookable' },
+  { id: 'cizrna',            familyId: 'legumes' as FamilyId,     allergenIds: ['legumes'],      form: 'cookable' },
   // Nuts/seeds
-  { id: 'vlassky-orech',     familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts']          },
-  { id: 'mandle',            familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts']          },
-  { id: 'dynova-seminka',    familyId: 'nuts-seeds' as FamilyId,  allergenIds: []                },
-  { id: 'lnene-semenko',     familyId: 'nuts-seeds' as FamilyId,  allergenIds: []                },
-  { id: 'slunecnicova-seminka', familyId: 'nuts-seeds' as FamilyId, allergenIds: ['seeds']       },
+  { id: 'vlassky-orech',     familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts'],         form: 'raw-only' },
+  { id: 'mandle',            familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts'],         form: 'raw-only' },
+  { id: 'dynova-seminka',    familyId: 'nuts-seeds' as FamilyId,  allergenIds: [],               form: 'raw-only' },
+  { id: 'lnene-semenko',     familyId: 'nuts-seeds' as FamilyId,  allergenIds: [],               form: 'raw-only' },
+  { id: 'slunecnicova-seminka', familyId: 'nuts-seeds' as FamilyId, allergenIds: ['seeds'],      form: 'raw-only' },
   // Sweet
-  { id: 'med',               familyId: 'sweet' as FamilyId,       allergenIds: []                },
-  { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: []                },
-  { id: 'trtinovy-cukr',     familyId: 'sweet' as FamilyId,       allergenIds: []                },
+  { id: 'med',               familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
+  { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
+  { id: 'trtinovy-cukr',     familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
   // Spices/condiments
-  { id: 'sul',               familyId: 'spices-condiments' as FamilyId, allergenIds: []          },
-  { id: 'kmin',              familyId: 'spices-condiments' as FamilyId, allergenIds: []          },
-  { id: 'skorice',           familyId: 'spices-condiments' as FamilyId, allergenIds: []          },
-  { id: 'pepr',              familyId: 'spices-condiments' as FamilyId, allergenIds: []          },
-  { id: 'kecup',             familyId: 'spices-condiments' as FamilyId, allergenIds: ['tomatoes'] },
-  { id: 'horcice',           familyId: 'spices-condiments' as FamilyId, allergenIds: ['mustard'] },
-  { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'] },
+  { id: 'sul',               familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
+  { id: 'kmin',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
+  { id: 'skorice',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
+  { id: 'pepr',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
+  { id: 'kecup',             familyId: 'spices-condiments' as FamilyId, allergenIds: ['tomatoes'], form: 'raw-only' },
+  { id: 'horcice',           familyId: 'spices-condiments' as FamilyId, allergenIds: ['mustard'], form: 'raw-only' },
+  { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'], form: 'raw-only' },
   // Drinks
-  { id: 'voda',              familyId: 'drinks' as FamilyId,      allergenIds: []                },
-  { id: 'bylinny-caj',       familyId: 'drinks' as FamilyId,      allergenIds: []                },
-  { id: 'kava',              familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea']    },
-  { id: 'cerny-caj',         familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea']    },
+  { id: 'voda',              familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none'     },
+  { id: 'bylinny-caj',       familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'liquid'   },
+  { id: 'kava',              familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'liquid'   },
+  { id: 'cerny-caj',         familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'liquid'   },
 ] as const satisfies readonly FoodRecord[];
 
 export type CatalogFoodId = typeof FOODS[number]['id'];

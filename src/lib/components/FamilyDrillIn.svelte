@@ -10,6 +10,7 @@
   import type { WorkingFood } from '$lib/domain/working-meal';
   import FoodTile from '$lib/components/FoodTile.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
+  import { formForFood } from '$lib/domain/preparation-rules';
 
   type CatalogFood = (typeof FOODS)[number];
 
@@ -151,6 +152,7 @@
                     <FoodEditor
                       amount={st.amount}
                       preparation={st.preparation}
+                      form={formForFood(food.id)}
                       eliminatedVariant={danger === 'danger'}
                       onAmountChange={(a) => onAmountChange(food.id, a)}
                       onPreparationChange={(p) => onPreparationChange(food.id, p)}
@@ -183,6 +185,7 @@
                   <FoodEditor
                     amount={st.amount}
                     preparation={st.preparation}
+                    form={formForFood(food.id)}
                     eliminatedVariant={danger === 'danger'}
                     onAmountChange={(a) => onAmountChange(food.id, a)}
                     onPreparationChange={(p) => onPreparationChange(food.id, p)}
@@ -234,6 +237,7 @@
                 <FoodEditor
                   amount={st.amount}
                   preparation={st.preparation}
+                  form={formForFood(food.foodId)}
                   onAmountChange={(a) => onAmountChange(food.foodId, a)}
                   onPreparationChange={(p) => onPreparationChange(food.foodId, p)}
                 />
