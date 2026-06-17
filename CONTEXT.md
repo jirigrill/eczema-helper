@@ -230,6 +230,25 @@ a dairy allergen; `sójové mléko` conflicts during a `soy` elimination and is
 allowed during a `dairy` one. The food↔allergen relation is **many-to-many**:
 one allergen is expressed by many foods, one food may trigger several allergens.
 
+**Principle — food-source subgroup is a second presentation axis, family-scoped
+and decoupled from allergen.** Inside a family drill-in, foods cluster by an
+optional **source subgroup** (`Mléko` → *Kravské · Ovčí · Kozí · Rostlinné*;
+`Obiloviny` → *S lepkem · Bez lepku*) — the axis the mother actually thinks in,
+not the allergen-trigger axis. Source is its own field on a food (`sourceGroup`,
+a key like `cow` / `gluten`), independent of both `familyId` and `allergenIds`:
+`mandlové mléko` sits under source `Rostlinné` while its allergen is `nuts`, and
+`sójové mléko` under `Rostlinné` while its allergen is `soy`. Grouping by allergen
+would scatter these away from where they are looked for; source-grouping keeps
+them together. The subgroup vocabulary is **per-family** — `cow` means nothing
+outside `Mléko` — and lives, ordered, in the strings layer (`familySources`,
+[ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md)); the array
+order is the render order. Grouping is a **progressive enhancement**: a family
+renders grouped only when it has **≥ 5 foods _and_ an authored source structure**,
+otherwise flat. Foods with no `sourceGroup` fall into a trailing **`Ostatní`**
+bucket — a presentation catch-all carrying *no* safety claim (danger stays
+per-food). Source never enters the trigger path; like `familyId` it is presentation
+only — see [ADR-0019](docs/adr/0019-food-source-subgroup.md).
+
 **A logged `MealItem` stores only its `foodId`; its triggers are resolved live
 from the catalog, never snapshotted onto the meal.** Conflict detection is
 already a derived, recomputed view (it was never a stored audit fact — only
