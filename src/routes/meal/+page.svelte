@@ -561,24 +561,6 @@
       </div>
     {/if}
 
-    <!-- Schedule context banner -->
-    {#if eliminatedToday.length > 0}
-      <div class="px-4 pt-2 pb-3">
-        <InfoBanner variant="warning" href="/program" class="flex items-center gap-2 flex-wrap">
-          <span class="eyebrow text-warning">{commonStrings.meal.todayExcluded}</span>
-          {#each eliminatedToday as allergenId}
-            {@const cat = getCategoryConfig(allergenId)}
-            {#if cat}
-              <span class="text-sm">{cat.icon}</span>
-            {/if}
-          {/each}
-          <span class="caption text-warning">
-            {eliminatedToday.map(s => getCategoryConfig(s)?.name).filter(Boolean).join(', ')}
-          </span>
-          <span class="ml-auto caption text-warning/70">Program →</span>
-        </InfoBanner>
-      </div>
-    {/if}
     {/if}
   </div>
 
