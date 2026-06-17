@@ -23,6 +23,7 @@
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
+  import FoodTile from '$lib/components/FoodTile.svelte';
 
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
@@ -624,56 +625,38 @@
                 {@const fam = workingMeal.families.find(f => f.foods.some(fd => fd.foodId === food.foodId))}
                 {@const familyId = fam?.familyId}
                 {@const isEditing = food.state.status === 'editing'}
-                {@const isConfirmedLike = food.state.status === 'confirmed' || (food.state.status === 'locked' && food.state.prior === 'confirmed')}
+                {@const isConfirmed = food.state.status === 'confirmed'}
+                {@const isLockedConfirmed = food.state.status === 'locked' && food.state.prior === 'confirmed'}
                 {@const isEliminated = eliminatedFoodIds.has(food.foodId)}
-                {@const gridDataState = isEliminated && isConfirmedLike ? 'danger-confirmed'
-                  : isEliminated && isEditing ? 'danger'
-                  : isConfirmedLike ? 'confirmed'
+                {@const tileState = isEditing ? 'editing' : isConfirmed ? 'confirmed' : 'locked'}
+                {@const lockedPriorVal = isLockedConfirmed ? 'confirmed' : undefined}
+                {@const amount = isConfirmed && food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount}
+                {@const prep = isConfirmed && food.state.status === 'confirmed' ? food.state.preparation : food.cachedPreparation}
+                {@const summary = amount
+                  ? `${portionStrings[amount].label}${prep ? ` · ${preparationStrings[prep].label}` : ''}`
                   : undefined}
-                <div data-food-tile data-state={gridDataState}
-                  class="rounded-xl overflow-hidden border
-                    {isEliminated && isConfirmedLike
-                      ? 'bg-danger border-danger'
-                      : isEliminated && isEditing
-                        ? 'bg-danger/05 border-danger'
-                        : 'bg-white border-surface-dark'}">
-                  <div class="flex items-center gap-2 px-3 py-2">
-                    <button
-                      type="button"
-                      class="text-sm flex-1 text-left
-                        {isConfirmedLike
-                          ? isEliminated ? 'text-white font-semibold' : 'text-text'
-                          : isEliminated ? 'text-danger font-medium' : 'text-text'}"
-                      onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
-                    >{food.name}</button>
-                    {#if isConfirmedLike}
-                      {@const amount = food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount}
-                      {@const prep = food.state.status === 'confirmed' ? food.state.preparation : food.cachedPreparation}
-                      <span class="text-xs {isEliminated ? 'text-white' : 'text-text-muted'}">
-                        {amount ? portionStrings[amount].label : ''}{#if prep} · {preparationStrings[prep].label}{/if}
-                      </span>
-                    {/if}
-                    <button
-                      type="button"
-                      aria-label="Odebrat {food.name}"
-                      class="ml-1 text-text-muted hover:text-danger text-base leading-none"
-                      onclick={() => familyId && handleGridRowRemove(food.foodId, familyId)}
-                    >×</button>
-                  </div>
-                  {#if isEditing && food.state.status === 'editing'}
-                    {#if isEliminated}
-                      <p class="px-3 pb-1 text-xs text-danger font-medium">{commonStrings.meal.eliminatedTodayWarning}</p>
-                    {/if}
-                    <div class="px-3 pb-3">
-                      <FoodEditor
-                        amount={food.state.amount}
-                        preparation={food.state.preparation}
-                        eliminatedVariant={isEliminated}
-                        onAmountChange={(a) => familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
-                        onPreparationChange={(p) => familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}
-                      />
-                    </div>
-                  {/if}
+                <div data-food-tile>
+                  <FoodTile
+                    name={food.name}
+                    state={tileState}
+                    eliminatedStatus={isEliminated ? 'danger' : undefined}
+                    lockedPrior={lockedPriorVal}
+                    summary={isEditing ? undefined : summary}
+                    onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
+                    onRemove={() => familyId && handleGridRowRemove(food.foodId, familyId)}
+                  >
+                    {#snippet editor()}
+                      {#if food.state.status === 'editing'}
+                        <FoodEditor
+                          amount={food.state.amount}
+                          preparation={food.state.preparation}
+                          eliminatedVariant={isEliminated}
+                          onAmountChange={(a) => familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
+                          onPreparationChange={(p) => familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}
+                        />
+                      {/if}
+                    {/snippet}
+                  </FoodTile>
                 </div>
               {/each}
             </div>

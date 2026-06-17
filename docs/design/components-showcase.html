@@ -1116,8 +1116,8 @@
   <!-- ─── FoodTile ─────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FoodTile.svelte -->
   <div class="component-section" id="food-tile">
-    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', onclick?: () => void, editor?: Snippet</p>
-    <p class="component-desc">Per-food tile in FamilyDrillIn. Four visual states reflecting the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed', not bordeaux). data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', or unset (idle/editing without conflict).</p>
+    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', lockedPrior?: 'idle' | 'confirmed', summary?: string, onclick?: () => void, onRemove?: () => void, editor?: Snippet</p>
+    <p class="component-desc">Per-food tile rendered identically in FamilyDrillIn (drill-in) and on the working-meal list (collapsed pill, expanded editor, danger banner). Visual states reflect the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill, tap deselects), locked (dimmed, no interaction). lockedPrior branches the locked rendering: locked + prior='confirmed' keeps the confirmed fill at reduced emphasis (data-state='locked-confirmed' or 'locked-danger-confirmed') so the user can still see "this food is in the meal" while editing a sibling; locked + prior='idle' (or omitted) renders the grey outline. eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed'). Optional `summary` slot renders a porce/příprava meta line on confirmed/locked-confirmed rows; optional `onRemove` renders a × action used by the working-list view. data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', 'locked-confirmed', 'locked-danger-confirmed', or unset (idle/editing without conflict).</p>
     <div class="variant-grid">
 
       <!-- idle -->
@@ -1173,12 +1173,40 @@
         <p class="variant-name">state='confirmed'</p>
       </div>
 
+      <!-- confirmed + summary + remove (working-list use) -->
+      <div class="variant-tile" style="max-width:280px">
+        <div data-state="confirmed" style="border-radius:12px;background:#8B4557;border:1px solid #8B4557;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button style="flex:1;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Brambory</button>
+            <span style="font-size:12px;color:white;white-space:nowrap;padding-right:4px">porce · vařené</span>
+            <button aria-label="Odebrat Brambory" style="padding:4px 8px;margin-right:4px;color:rgba(255,255,255,0.8);font-size:16px;line-height:1">×</button>
+          </div>
+        </div>
+        <p class="variant-name">state='confirmed', summary='porce · vařené', onRemove (working-list row)</p>
+      </div>
+
       <!-- locked -->
       <div class="variant-tile">
-        <div style="border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;opacity:0.4;overflow:hidden">
+        <div data-state="locked" style="border-radius:12px;border:1px solid #EDE8E9;background:#FAF8F8;opacity:0.4;overflow:hidden">
           <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#7A6468;cursor:default">Brambory</button>
         </div>
-        <p class="variant-name">state='locked'</p>
+        <p class="variant-name">state='locked' (lockedPrior='idle' or omitted — fully greyed out)</p>
+      </div>
+
+      <!-- locked + prior=confirmed: dimmed confirmed -->
+      <div class="variant-tile">
+        <div data-state="locked-confirmed" style="border-radius:12px;background:#8B4557;border:1px solid #8B4557;opacity:0.5;overflow:hidden">
+          <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600;cursor:default">Kravské mléko</button>
+        </div>
+        <p class="variant-name">state='locked', lockedPrior='confirmed' (dimmed bordeaux — sibling already in meal)</p>
+      </div>
+
+      <!-- locked + prior=confirmed + danger: dimmed danger -->
+      <div class="variant-tile">
+        <div data-state="locked-danger-confirmed" style="border-radius:12px;background:#B84444;border:1px solid #B84444;opacity:0.5;overflow:hidden">
+          <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600;cursor:default">Kravské mléko</button>
+        </div>
+        <p class="variant-name">state='locked', lockedPrior='confirmed', eliminatedStatus='danger'</p>
       </div>
 
       <!-- editing + eliminated -->
