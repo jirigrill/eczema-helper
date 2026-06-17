@@ -195,8 +195,8 @@ test('AC4: clicking outside the food editor cancels the edit', async ({ page }) 
   await drillIn.getByRole('button', { name: 'Brambory', exact: true }).click();
   await expect(page.getByText('Množství')).toBeVisible();
 
-  // Click the "bez alergenu" section heading — inside the drill-in but outside any FoodTile
-  await page.getByText('bez alergenu').click();
+  // Click the drill-in container in an empty area (outside any FoodTile) to cancel
+  await drillIn.click({ position: { x: 4, y: 4 } });
 
   // FoodEditor should collapse
   await expect(page.getByText('Množství')).not.toBeVisible();

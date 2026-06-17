@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { dev } from '$app/environment';
   import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
   import { foodStrings } from '$lib/strings/families';
-  import { getCategoryConfig } from '$lib/config/categories';
+  import { familySources, ostatniLabel } from '$lib/strings/family-sources';
   import { commonStrings } from '$lib/strings/common';
   import { actionStrings } from '$lib/strings/actions';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -9,6 +10,8 @@
   import type { WorkingFood } from '$lib/domain/working-meal';
   import FoodTile from '$lib/components/FoodTile.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
+
+  type CatalogFood = (typeof FOODS)[number];
 
   let {
     familyId,
@@ -45,10 +48,53 @@
   }
 
   const catalogFoods = $derived(FOODS.filter(f => f.familyId === familyId));
-  const familyAllergenIds = $derived(
-    [...new Set(catalogFoods.flatMap(f => f.allergenIds as string[]))]
+  const sources = $derived(
+    (familySources as Partial<Record<FamilyId, readonly { key: string; label: string }[]>>)[familyId]
   );
-  const looseFoods = $derived(catalogFoods.filter(f => f.allergenIds.length === 0));
+  const grouped = $derived(catalogFoods.length >= 5 && sources != null);
+
+  type RenderGroup = {
+    key: string;
+    label: string;
+    foods: readonly CatalogFood[];
+  };
+
+  const renderGroups = $derived.by<RenderGroup[]>(() => {
+    if (!grouped || !sources) return [];
+    const authored = sources.map(s => ({
+      key: s.key,
+      label: s.label,
+      foods: catalogFoods.filter(f => f.sourceGroup === s.key),
+    }));
+    const authoredKeys = new Set(authored.map(g => g.key));
+    const ostatni = catalogFoods.filter(
+      f => f.sourceGroup === undefined || !authoredKeys.has(f.sourceGroup),
+    );
+    const result: RenderGroup[] = authored.filter(g => g.foods.length > 0);
+    if (ostatni.length > 0) {
+      result.push({ key: '__ostatni__', label: ostatniLabel, foods: ostatni });
+    }
+    return result;
+  });
+
+  $effect(() => {
+    if (!dev || !grouped) return;
+    const ostatni = renderGroups.find(g => g.key === '__ostatni__');
+    if (!ostatni) return;
+    const maxAuthored = Math.max(
+      0,
+      ...renderGroups.filter(g => g.key !== '__ostatni__').map(g => g.foods.length),
+    );
+    if (ostatni.foods.length > maxAuthored) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[FamilyDrillIn] family "${familyId}" has Ostatní (${ostatni.foods.length}) ` +
+          `larger than its largest authored source group (${maxAuthored}). ` +
+          'Consider adding another sourceGroup or tagging foods.',
+      );
+    }
+  });
+
   const isEmpty = $derived(catalogFoods.length === 0 && customFoods.length === 0);
 
   function nameFor(foodId: string): string {
@@ -65,19 +111,17 @@
   function stateFor(foodId: string): WorkingFood['state'] {
     const wf = workingFoodFor(foodId);
     if (wf) return wf.state;
-    // Food not yet in working meal: lock it if another food is editing
     if (hasActiveEditor) return { status: 'locked', prior: 'idle' };
     return { status: 'idle' };
   }
 
-  function eliminatedFor(foodId: string, allergenId?: string): 'danger' | undefined {
-    if (allergenId && eliminatedAllergenIds.includes(allergenId)) return 'danger';
+  function eliminatedForFood(food: CatalogFood): 'danger' | undefined {
+    if (food.allergenIds.some(a => eliminatedAllergenIds.includes(a))) return 'danger';
     return undefined;
   }
 
   function handleContainerClick(e: MouseEvent): void {
     if (!hasActiveEditor || !onCancelEdit) return;
-    // Cancel if the click didn't land inside a food-tile element
     if (!(e.target as Element).closest('[data-food-tile]')) {
       onCancelEdit();
     }
@@ -85,74 +129,67 @@
 </script>
 
 <div class="space-y-4" onclick={handleContainerClick} role="presentation">
-  <!-- Allergen groups -->
-  {#each familyAllergenIds as allergenId}
-    {@const cfg = getCategoryConfig(allergenId)}
-    {@const groupFoods = catalogFoods.filter(f => (f.allergenIds as string[]).includes(allergenId))}
-    <div class="px-4 space-y-2">
-      <div class="flex items-center gap-1.5">
-        <span class="text-base">{cfg?.icon ?? ''}</span>
-        <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{cfg?.name ?? allergenId}</span>
-        {#if eliminatedAllergenIds.includes(allergenId)}
-          <span class="ml-1 text-[10px] bg-danger text-white rounded-full px-1.5 py-0.5">!</span>
-        {/if}
+  {#if grouped}
+    {#each renderGroups as group (group.key)}
+      <div class="px-4 space-y-2">
+        <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">{group.label}</span>
+        <div class="flex flex-col gap-2">
+          {#each group.foods as food (food.id)}
+            {@const name = nameFor(food.id)}
+            {@const st = stateFor(food.id)}
+            {@const danger = eliminatedForFood(food)}
+            <div data-food-tile>
+              <FoodTile
+                {name}
+                state={st.status}
+                eliminatedStatus={danger}
+                lockedPrior={st.status === 'locked' ? st.prior : undefined}
+                onclick={() => onFoodTap(food.id, name)}
+              >
+                {#snippet editor()}
+                  {#if st.status === 'editing'}
+                    <FoodEditor
+                      amount={st.amount}
+                      preparation={st.preparation}
+                      eliminatedVariant={danger === 'danger'}
+                      onAmountChange={(a) => onAmountChange(food.id, a)}
+                      onPreparationChange={(p) => onPreparationChange(food.id, p)}
+                    />
+                  {/if}
+                {/snippet}
+              </FoodTile>
+            </div>
+          {/each}
+        </div>
       </div>
+    {/each}
+  {:else if catalogFoods.length > 0}
+    <div class="px-4 space-y-2">
       <div class="flex flex-col gap-2">
-        {#each groupFoods as food}
+        {#each catalogFoods as food (food.id)}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
+          {@const danger = eliminatedForFood(food)}
           <div data-food-tile>
-          <FoodTile
-            {name}
-            state={st.status}
-            eliminatedStatus={eliminatedFor(food.id, allergenId)}
-            lockedPrior={st.status === 'locked' ? st.prior : undefined}
-            onclick={() => onFoodTap(food.id, name)}
-          >
-            {#snippet editor()}
-              {#if st.status === 'editing'}
-                <FoodEditor
-                  amount={st.amount}
-                  preparation={st.preparation}
-                  eliminatedVariant={eliminatedFor(food.id, allergenId) === 'danger'}
-                  onAmountChange={(a) => onAmountChange(food.id, a)}
-                  onPreparationChange={(p) => onPreparationChange(food.id, p)}
-                />
-              {/if}
-            {/snippet}
-          </FoodTile>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/each}
-
-  <!-- Loose foods (no allergen) -->
-  {#if looseFoods.length > 0}
-    <div class="px-4 space-y-2">
-      <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">bez alergenu</span>
-      <div class="flex flex-col gap-2">
-        {#each looseFoods as food}
-          {@const name = nameFor(food.id)}
-          {@const st = stateFor(food.id)}
-          <div data-food-tile>
-          <FoodTile
-            {name}
-            state={st.status}
-            lockedPrior={st.status === 'locked' ? st.prior : undefined}
-            onclick={() => onFoodTap(food.id, name)}
-          >
-            {#snippet editor()}
-              {#if st.status === 'editing'}
-                <FoodEditor
-                  amount={st.amount}
-                  preparation={st.preparation}
-                  onAmountChange={(a) => onAmountChange(food.id, a)}
-                  onPreparationChange={(p) => onPreparationChange(food.id, p)}
-                />
-              {/if}
-            {/snippet}
-          </FoodTile>
+            <FoodTile
+              {name}
+              state={st.status}
+              eliminatedStatus={danger}
+              lockedPrior={st.status === 'locked' ? st.prior : undefined}
+              onclick={() => onFoodTap(food.id, name)}
+            >
+              {#snippet editor()}
+                {#if st.status === 'editing'}
+                  <FoodEditor
+                    amount={st.amount}
+                    preparation={st.preparation}
+                    eliminatedVariant={danger === 'danger'}
+                    onAmountChange={(a) => onAmountChange(food.id, a)}
+                    onPreparationChange={(p) => onPreparationChange(food.id, p)}
+                  />
+                {/if}
+              {/snippet}
+            </FoodTile>
           </div>
         {/each}
       </div>

@@ -45,6 +45,11 @@ export const foodStrings = {
   // Divergent placements (§3b)
   'sojove-mleko':      { name: 'Sójové mléko'           },
   'ryzove-mleko':      { name: 'Rýžové mléko'           },
+  'mandlove-mleko':    { name: 'Mandlové mléko'         },
+  'ovesne-mleko':      { name: 'Ovesné mléko'           },
+  'kokosove-mleko':    { name: 'Kokosové mléko'         },
+  'ovci-mleko':        { name: 'Ovčí mléko'             },
+  'kozi-mleko':        { name: 'Kozí mléko'             },
   // Composite (§3c)
   hummus:              { name: 'Hummus'                 },
   // Loose everyday foods (§3d)

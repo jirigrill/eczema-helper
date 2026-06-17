@@ -28,15 +28,23 @@ const baseProps = {
   onPreparationChange: vi.fn(),
 };
 
-// ── Fruit family — catalog foods ─────────────────────────────
+// ── Fruit family — small/uncurated → flat list ───────────────
 
-describe('FamilyDrillIn — fruit family', () => {
-  it('renders allergen group header for citrus within fruit family', () => {
-    const { getByText } = render(FamilyDrillIn, { props: baseProps });
-    expect(getByText(/citrus/i)).toBeInTheDocument();
+describe('FamilyDrillIn — fruit family (flat, small/uncurated)', () => {
+  it('renders no source-group headers (no familySources entry for fruit)', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: baseProps });
+    // No "Kravské", "Rostlinné", "S lepkem" headers etc.
+    expect(queryByText('Kravské')).not.toBeInTheDocument();
+    expect(queryByText('Rostlinné')).not.toBeInTheDocument();
+    expect(queryByText('Ostatní')).not.toBeInTheDocument();
   });
 
-  it('renders loose foods (jablko, hruška) as FoodTile buttons', () => {
+  it('does NOT render the legacy "bez alergenu" heading', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: baseProps });
+    expect(queryByText(/bez alergenu/i)).not.toBeInTheDocument();
+  });
+
+  it('renders foods (Jablko, Hruška) as FoodTile buttons in flat mode', () => {
     const { getByRole } = render(FamilyDrillIn, { props: baseProps });
     expect(getByRole('button', { name: /Jablko/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Hruška/ })).toBeInTheDocument();
@@ -48,6 +56,114 @@ describe('FamilyDrillIn — fruit family', () => {
     await fireEvent.click(getByRole('button', { name: /Jablko/ }));
     await tick();
     expect(onFoodTap).toHaveBeenCalledWith('jablko', 'Jablko');
+  });
+});
+
+// ── Eggs family — flat-small (< 5 foods, no entry) ────────────
+
+describe('FamilyDrillIn — eggs family (flat, < 5 foods)', () => {
+  it('renders without source-group headers (only one food)', () => {
+    const { queryByText, getByRole } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'eggs' as const },
+    });
+    expect(getByRole('button', { name: /Vejce/ })).toBeInTheDocument();
+    expect(queryByText('Kravské')).not.toBeInTheDocument();
+    expect(queryByText('Ostatní')).not.toBeInTheDocument();
+  });
+});
+
+// ── Mléko (dairy) — large family with authored source groups ──
+
+describe('FamilyDrillIn — dairy family (grouped by source)', () => {
+  const dairyBase = { ...baseProps, familyId: 'dairy' as const };
+
+  it('renders authored source-group headers in authored order', () => {
+    const { getAllByText } = render(FamilyDrillIn, { props: dairyBase });
+    const headers = ['Kravské', 'Ovčí', 'Kozí', 'Rostlinné'];
+    const indices = headers.map(h => {
+      const elements = getAllByText(h);
+      expect(elements.length).toBeGreaterThan(0);
+      return elements[0].compareDocumentPosition;
+    });
+    // Verify each header is present
+    expect(indices.every(Boolean)).toBe(true);
+  });
+
+  it('renders Kravské header before Ovčí, Ovčí before Kozí, Kozí before Rostlinné', () => {
+    const { getByText } = render(FamilyDrillIn, { props: dairyBase });
+    const cow = getByText('Kravské');
+    const sheep = getByText('Ovčí');
+    const goat = getByText('Kozí');
+    const plant = getByText('Rostlinné');
+
+    const cowVsSheep = cow.compareDocumentPosition(sheep);
+    const sheepVsGoat = sheep.compareDocumentPosition(goat);
+    const goatVsPlant = goat.compareDocumentPosition(plant);
+
+    expect(cowVsSheep & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sheepVsGoat & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(goatVsPlant & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('plant milks (sójové, mandlové, ovesné, kokosové) all render under Rostlinné despite differing allergenIds', () => {
+    const { getByText, getByRole } = render(FamilyDrillIn, { props: dairyBase });
+    const plantHeader = getByText('Rostlinné');
+    const plantSection = plantHeader.parentElement;
+    expect(plantSection).not.toBeNull();
+
+    const sojove = getByRole('button', { name: /Sójové mléko/ });
+    const mandlove = getByRole('button', { name: /Mandlové mléko/ });
+    const ovesne = getByRole('button', { name: /Ovesné mléko/ });
+    const kokosove = getByRole('button', { name: /Kokosové mléko/ });
+
+    [sojove, mandlove, ovesne, kokosove].forEach(btn => {
+      expect(plantSection!.contains(btn)).toBe(true);
+    });
+  });
+
+  it('does NOT render the legacy "bez alergenu" heading even in grouped mode', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: dairyBase });
+    expect(queryByText(/bez alergenu/i)).not.toBeInTheDocument();
+  });
+
+  it('eliminated dairy food shows danger styling (Vyloučeno) in grouped mode', () => {
+    const { getAllByText } = render(FamilyDrillIn, {
+      props: { ...dairyBase, eliminatedAllergenIds: ['dairy'] },
+    });
+    expect(getAllByText('Vyloučeno').length).toBeGreaterThan(0);
+  });
+});
+
+// ── Ostatní bucket ────────────────────────────────────────────
+
+describe('FamilyDrillIn — Ostatní (unsourced) bucket', () => {
+  it('renders Ostatní as a trailing section when a grouped family has unsourced foods', () => {
+    // dairy has authored source groups; ryzove-mleko has no sourceGroup → Ostatní.
+    const { getByText, getByRole } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'dairy' as const },
+    });
+    const ostatni = getByText('Ostatní');
+    expect(ostatni).toBeInTheDocument();
+    const ryzove = getByRole('button', { name: /Rýžové mléko/ });
+    const ostatniSection = ostatni.parentElement;
+    expect(ostatniSection!.contains(ryzove)).toBe(true);
+  });
+
+  it('Ostatní renders AFTER all authored groups', () => {
+    const { getByText } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'dairy' as const },
+    });
+    const plant = getByText('Rostlinné');
+    const ostatni = getByText('Ostatní');
+    const cmp = plant.compareDocumentPosition(ostatni);
+    expect(cmp & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Ostatní does NOT appear when all foods are tagged', () => {
+    const { queryByText } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'grains' as const },
+    });
+    expect(queryByText('Ostatní')).not.toBeInTheDocument();
   });
 });
 
