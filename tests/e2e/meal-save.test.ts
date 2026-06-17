@@ -197,9 +197,14 @@ test('back-dated /meal shows past date\'s elimination set, not today\'s', async 
   const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&date=${pastDate}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
-  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
+  // Past date is in elimination phase — dairy FoodTile should show danger state
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await expect(page.locator('div[data-state="danger"]').first()).toBeVisible();
+  await page.getByRole('button', { name: '‹' }).click();
 
   await page.goto(`/meal?type=lunch&date=${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
-  await expect(page.getByText('Dnes vyřazeno:')).not.toBeVisible();
+  // Today is in reintro phase — dairy FoodTile should NOT show danger state
+  await page.getByRole('button', { name: /Mléko/ }).first().click();
+  await expect(page.locator('div[data-state="danger"]')).not.toBeVisible();
 });

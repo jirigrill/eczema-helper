@@ -468,27 +468,7 @@ test('AC11: grid back arrow (‹) navigates to returnTo', async ({ page }) => {
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('AC11: elimination banner hidden while drilled in, restored on back', async ({ page }) => {
-  await seedDairyElimination(page);
-  await page.reload({ waitUntil: 'networkidle' });
 
-  const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-
-  // On grid: elimination banner visible (pills are gone after #266 / ADR-0018)
-  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
-
-  // Drill into Zelenina
-  await page.getByRole('button', { name: /Zelenina/ }).click();
-
-  // Header title changes; banner gone
-  await expect(page.getByText(/Zelenina/).first()).toBeVisible();
-  await expect(page.getByText('Dnes vyřazeno:')).not.toBeVisible();
-
-  // Back to grid: banner restored
-  await page.getByRole('button', { name: '‹' }).click();
-  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
-});
 
 // ── AC12 (partial — runtime side): eliminated foods marked with danger ────────
 
@@ -498,7 +478,6 @@ test('eliminated allergen foods show danger state in drill-in', async ({ page })
 
   const today = new Date().toISOString().split('T')[0];
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-  await expect(page.getByText('Dnes vyřazeno:')).toBeVisible();
 
   // Drill into dairy
   await page.getByRole('button', { name: /Mléko/ }).first().click();
