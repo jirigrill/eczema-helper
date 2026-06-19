@@ -258,3 +258,51 @@ describe('per-family expansion (issue #319 scope)', () => {
     }
   });
 });
+
+describe('dairy + meat: fats expansion (Q4: ghí, rostlinné máslo, sádlo + ryzove-mleko bug)', () => {
+  it('ryzove-mleko has sourceGroup: plant (bug fix — previously missing, dropped to Ostatní)', () => {
+    expect(byId('ryzove-mleko')?.sourceGroup).toBe('plant');
+  });
+
+  it('ghi: dairy family, cow source, dairy allergen, cookable', () => {
+    const f = byId('ghi');
+    expect(f, 'ghi must be added').toBeDefined();
+    expect(f?.familyId).toBe('dairy');
+    expect(f?.sourceGroup).toBe('cow');
+    expect(f?.allergenIds).toEqual(['dairy']);
+    expect(f?.form).toBe('cookable');
+  });
+
+  it('rostlinne-maslo: dairy family, plant source, no allergens, form: none', () => {
+    const f = byId('rostlinne-maslo');
+    expect(f, 'rostlinne-maslo must be added').toBeDefined();
+    expect(f?.familyId).toBe('dairy');
+    expect(f?.sourceGroup).toBe('plant');
+    expect(f?.allergenIds).toEqual([]);
+    expect(f?.form).toBe('none');
+  });
+
+  it('sadlo: meat family (rendered animal fat — not dairy), no allergens, form: none', () => {
+    const f = byId('sadlo');
+    expect(f, 'sadlo must be added').toBeDefined();
+    expect(f?.familyId).toBe('meat');
+    expect(f?.allergenIds).toEqual([]);
+    expect(f?.form).toBe('none');
+  });
+
+  it('siblings-cohere: every dairy *-mleko food not in cow|sheep|goat is in plant (defense test)', () => {
+    type FoodLite = { id: string; familyId: string; sourceGroup?: string };
+    const animalGroups = new Set(['cow', 'sheep', 'goat']);
+    const dairyMleko = (FOODS as readonly FoodLite[]).filter(
+      (f) => f.familyId === 'dairy' && f.id.endsWith('-mleko'),
+    );
+    expect(dairyMleko.length, 'sanity: should have several *-mleko foods').toBeGreaterThan(3);
+    for (const f of dairyMleko) {
+      if (f.sourceGroup && animalGroups.has(f.sourceGroup)) continue;
+      expect(
+        f.sourceGroup,
+        `dairy plant-milk '${f.id}' must have sourceGroup: 'plant' (got '${f.sourceGroup}')`,
+      ).toBe('plant');
+    }
+  });
+});

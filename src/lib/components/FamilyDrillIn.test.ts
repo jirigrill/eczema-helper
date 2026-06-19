@@ -168,24 +168,25 @@ describe('FamilyDrillIn — dairy family (grouped by source)', () => {
 
 describe('FamilyDrillIn — Ostatní (unsourced) bucket', () => {
   it('renders Ostatní as a trailing section when a grouped family has unsourced foods', () => {
-    // dairy has authored source groups; ryzove-mleko has no sourceGroup → Ostatní.
+    // vegetables: houby has no sourceGroup → renders under Ostatní (mushrooms ≠ culinary veg).
     const { getByText, getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, familyId: 'dairy' as const },
+      props: { ...baseProps, familyId: 'vegetables' as const },
     });
     const ostatni = getByText('Ostatní');
     expect(ostatni).toBeInTheDocument();
-    const ryzove = getByRole('button', { name: /Rýžové mléko/ });
+    const houby = getByRole('button', { name: /Houby/ });
     const ostatniSection = ostatni.parentElement;
-    expect(ostatniSection!.contains(ryzove)).toBe(true);
+    expect(ostatniSection!.contains(houby)).toBe(true);
   });
 
   it('Ostatní renders AFTER all authored groups', () => {
     const { getByText } = render(FamilyDrillIn, {
-      props: { ...baseProps, familyId: 'dairy' as const },
+      props: { ...baseProps, familyId: 'vegetables' as const },
     });
-    const plant = getByText('Rostlinné');
+    // Košťálová is the last authored vegetables group; Ostatní must follow it.
+    const lastAuthored = getByText('Košťálová');
     const ostatni = getByText('Ostatní');
-    const cmp = plant.compareDocumentPosition(ostatni);
+    const cmp = lastAuthored.compareDocumentPosition(ostatni);
     expect(cmp & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

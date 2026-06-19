@@ -292,7 +292,7 @@ export const FOODS = [
   { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish'],    form: 'cookable', sourceGroup: 'plody-more' },
   // ── Divergent placements (§3b) ───────────────────────────
   { id: 'sojove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: ['soy'],          form: 'liquid', aliases: ['sójové mléko', 'sojove mleko', 'soya milk'], sourceGroup: 'plant' },
-  { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid' },
+  { id: 'ryzove-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid', aliases: ['rýžové mléko', 'rice milk'], sourceGroup: 'plant' },
   { id: 'mandlove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: ['nuts'],         form: 'liquid', aliases: ['mandlové mléko', 'almond milk'], sourceGroup: 'plant' },
   { id: 'ovesne-mleko',      familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid', aliases: ['ovesné mléko', 'oat milk'], sourceGroup: 'plant' },
   { id: 'kokosove-mleko',    familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'liquid', aliases: ['kokosové mléko', 'coconut milk'], sourceGroup: 'plant' },
@@ -310,6 +310,9 @@ export const FOODS = [
   { id: 'smetana',           familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
   { id: 'brynza',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'sheep' },
   { id: 'kozi-syr',          familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'goat', aliases: ['kozí sýr'] },
+  // Dairy fats — ghí (clarified cow butter, ~dairy clinically but conservatively tagged) and rostlinné máslo (plant margarine, no dairy)
+  { id: 'ghi',               familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'cow', aliases: ['ghí', 'ghee', 'přepuštěné máslo'] },
+  { id: 'rostlinne-maslo',   familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'plant', aliases: ['rostlinné máslo', 'margarín', 'Rama', 'Flora'] },
   // Grains — source-tier only (ADR-0019 + #319 follow-up).
   // Specific products (chleb, rohlík, těstoviny, mouka) reduce to their source.
   { id: 'oves',              familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
@@ -376,6 +379,7 @@ export const FOODS = [
   { id: 'kralik',            familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['králík'] },
   { id: 'zverina',           familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable', aliases: ['zvěřina', 'jelení', 'srnčí', 'divočák'] },
   { id: 'sunka',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['šunka', 'uzeniny'] },
+  { id: 'sadlo',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'none',     aliases: ['sádlo', 'vepřové sádlo', 'husí sádlo'] },
   // Fish/seafood
   { id: 'treska',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
   { id: 'tunak',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
