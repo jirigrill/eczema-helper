@@ -9,8 +9,20 @@ export type SourceGroup = {
 
 /**
  * Per-family ordered list of source subgroups (ADR-0019).
- * Array order is render order. Only families large enough to benefit need an
- * entry; missing families render flat.
+ *
+ * Array order is the *curated* render order (editorial, frequency-biased —
+ * the group most-encountered in everyday CZ use comes first). Foods inside
+ * each group are sorted alphabetically by Czech name at render time
+ * (`FamilyDrillIn.svelte`).
+ *
+ * The render layer additionally sinks fully-eliminated groups to the bottom:
+ * a group whose every food carries an eliminated allergen renders below
+ * non-eliminated groups, so the parent on an active protocol scrolls less
+ * for the foods they actually log. Stable sort preserves curated order
+ * among non-eliminated groups.
+ *
+ * Only families large enough to benefit need an entry; missing families
+ * render flat (alphabetical).
  */
 export const familySources = {
   dairy: [
@@ -22,6 +34,38 @@ export const familySources = {
   grains: [
     { key: 'gluten',       label: 'S lepkem' },
     { key: 'gluten-free',  label: 'Bez lepku' },
+  ],
+  fruit: [
+    { key: 'jadroviny',  label: 'Jádroviny'  },
+    { key: 'peckoviny',  label: 'Peckoviny'  },
+    { key: 'bobuloviny', label: 'Bobuloviny' },
+    { key: 'citrusy',    label: 'Citrusy'    },
+    { key: 'tropicke',   label: 'Tropické'   },
+  ],
+  'nuts-seeds': [
+    { key: 'orechy',  label: 'Ořechy'   },
+    { key: 'seminka', label: 'Semínka'  },
+  ],
+  'fish-seafood': [
+    { key: 'sladkovodni', label: 'Sladkovodní'  },
+    { key: 'morske',      label: 'Mořské'       },
+    { key: 'plody-more',  label: 'Plody moře'   },
+  ],
+  vegetables: [
+    { key: 'korenova',  label: 'Kořenová'  },
+    { key: 'listova',   label: 'Listová'   },
+    { key: 'plodova',   label: 'Plodová'   },
+    { key: 'cibulova',  label: 'Cibulová'  },
+    { key: 'hlizova',   label: 'Hlízová'   },
+    { key: 'kostalova', label: 'Košťálová' },
+  ],
+  'fats-oils': [
+    { key: 'plant',  label: 'Rostlinné'  },
+    { key: 'animal', label: 'Živočišné'  },
+  ],
+  sweet: [
+    { key: 'chocolate', label: 'Čokoláda a kakao' },
+    { key: 'sweetener', label: 'Sladidla a sirupy' },
   ],
 } as const satisfies Partial<Record<FamilyId, readonly SourceGroup[]>>;
 

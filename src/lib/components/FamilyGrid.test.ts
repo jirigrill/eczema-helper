@@ -8,9 +8,9 @@ describe('FamilyGrid', () => {
     const { getAllByRole } = render(FamilyGrid, {
       props: { onSelect: vi.fn() },
     });
-    // 13 FAMILIES defined in the catalog
+    // 14 FAMILIES defined in the catalog (13 clinical + custom)
     const tiles = getAllByRole('button');
-    expect(tiles.length).toBe(13);
+    expect(tiles.length).toBe(14);
   });
 
   it('shows Czech family name on each tile', () => {

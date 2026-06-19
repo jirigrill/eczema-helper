@@ -120,31 +120,31 @@ test.describe('source-subgroup grouping', () => {
     await expect(plantSection.getByRole('button', { name: /Mandlové mléko/ })).toBeVisible();
   });
 
-  test('unsourced food (Rýžové mléko) lands in trailing Ostatní; no "bez alergenu"', async ({ page }) => {
+  test('unsourced food (Houby) lands in trailing Ostatní; no "bez alergenu"', async ({ page }) => {
     await completeOnboarding(page);
-    await openMealAndDrill(page, 'Mléko');
+    await openMealAndDrill(page, 'Zelenina');
 
     const ostatni = page.getByText('Ostatní', { exact: true });
     await expect(ostatni).toBeVisible();
-    await expect(page.getByRole('button', { name: /Rýžové mléko/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Houby/ })).toBeVisible();
     await expect(page.getByText(/bez alergenu/i)).not.toBeVisible();
 
-    // Ostatní follows the last authored group (Rostlinné).
+    // Ostatní follows the last authored group (Košťálová).
     const trailing = await page.evaluate(() => {
       const text = (t: string) =>
         [...document.querySelectorAll('span')].find(e => e.textContent?.trim() === t)!;
-      const r = text('Rostlinné'), o = text('Ostatní');
+      const r = text('Košťálová'), o = text('Ostatní');
       return !!(r.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING);
     });
     expect(trailing).toBe(true);
   });
 
-  test('large uncurated family (Zelenina, ≥5 foods, no sources) renders flat', async ({ page }) => {
+  test('large uncurated family (Maso, ≥5 foods, no sources) renders flat', async ({ page }) => {
     await completeOnboarding(page);
-    await openMealAndDrill(page, 'Zelenina');
+    await openMealAndDrill(page, 'Maso');
 
-    await expect(page.getByRole('button', { name: /Brambory/ })).toBeVisible();
-    await expect(page.getByText('Kravské', { exact: true })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Kuřecí/ })).toBeVisible();
+    await expect(page.getByText('Kořenová', { exact: true })).not.toBeVisible();
     await expect(page.getByText('Rostlinné', { exact: true })).not.toBeVisible();
     await expect(page.getByText('Ostatní', { exact: true })).not.toBeVisible();
   });
@@ -198,11 +198,11 @@ test.describe('preparation form gating', () => {
     }
   });
 
-  test('raw-only food (Špenát) shows only Syrové', async ({ page }) => {
+  test('raw-only food (Okurka) shows only Syrové', async ({ page }) => {
     await completeOnboarding(page);
     await openMealAndDrill(page, 'Zelenina');
 
-    await page.getByRole('button', { name: /Špenát/ }).click();
+    await page.getByRole('button', { name: /Okurka/ }).click();
     await expect(page.getByText('Příprava')).toBeVisible();
 
     await expect(page.getByRole('button', { name: 'Syrové', exact: true })).toBeVisible();
@@ -210,11 +210,11 @@ test.describe('preparation form gating', () => {
     await expect(page.getByRole('button', { name: 'Smažené', exact: true })).not.toBeVisible();
   });
 
-  test('none food (Voda) shows no Příprava row at all', async ({ page }) => {
+  test('none food (Džus) shows no Příprava row at all', async ({ page }) => {
     await completeOnboarding(page);
     await openMealAndDrill(page, 'Nápoje');
 
-    await page.getByRole('button', { name: /Voda/ }).click();
+    await page.getByRole('button', { name: /Džus/ }).click();
     await expect(page.getByText('Množství')).toBeVisible();
     await expect(page.getByText('Příprava')).not.toBeVisible();
   });

@@ -62,28 +62,28 @@ describe('FamilyDrillIn — fruit family (flat, small/uncurated)', () => {
 // ── Eggs family — flat-small (< 5 foods, no entry) ────────────
 
 describe('FamilyDrillIn — eggs family (flat, < 5 foods)', () => {
-  it('renders without source-group headers (only one food)', () => {
+  it('renders without source-group headers (3 foods, below ADR-0019 grouping threshold)', () => {
     const { queryByText, getByRole } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'eggs' as const },
     });
-    expect(getByRole('button', { name: /Vejce/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Celé vejce/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Bílek/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Žloutek/ })).toBeInTheDocument();
     expect(queryByText('Kravské')).not.toBeInTheDocument();
     expect(queryByText('Ostatní')).not.toBeInTheDocument();
   });
 });
 
-// ── Vegetables — large family (≥5 foods) with NO authored sources ──
+// ── Vegetables — large family with authored 6-group axis ──
 
-describe('FamilyDrillIn — vegetables family (flat, large/uncurated)', () => {
+describe('FamilyDrillIn — vegetables family (grouped by culinary axis)', () => {
   const vegBase = { ...baseProps, familyId: 'vegetables' as const };
 
-  it('renders a flat list with no source-group headers despite ≥5 foods', () => {
-    const { queryByText } = render(FamilyDrillIn, { props: vegBase });
-    // No familySources entry for vegetables → flat even though it has 17 foods.
-    expect(queryByText('Kravské')).not.toBeInTheDocument();
-    expect(queryByText('Rostlinné')).not.toBeInTheDocument();
-    expect(queryByText('S lepkem')).not.toBeInTheDocument();
-    expect(queryByText('Ostatní')).not.toBeInTheDocument();
+  it('renders the 6-group culinary axis (kořenová / listová / plodová / cibulová / hlízová / košťálová)', () => {
+    const { getAllByText } = render(FamilyDrillIn, { props: vegBase });
+    for (const label of ['Kořenová', 'Listová', 'Plodová', 'Cibulová', 'Hlízová', 'Košťálová']) {
+      expect(getAllByText(label).length, `'${label}' header missing`).toBeGreaterThan(0);
+    }
   });
 
   it('does NOT render the legacy "bez alergenu" heading', () => {
@@ -91,11 +91,16 @@ describe('FamilyDrillIn — vegetables family (flat, large/uncurated)', () => {
     expect(queryByText(/bez alergenu/i)).not.toBeInTheDocument();
   });
 
-  it('still renders the family foods as buttons in flat mode', () => {
+  it('renders veg foods as buttons (grouped under their source headers)', () => {
     const { getByRole } = render(FamilyDrillIn, { props: vegBase });
     expect(getByRole('button', { name: /Brambory/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Mrkev/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Špenát/ })).toBeInTheDocument();
+  });
+
+  it('houby renders under Ostatní (mushrooms aren’t culinary vegetables)', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: vegBase });
+    expect(queryByText('Ostatní')).toBeInTheDocument();
   });
 });
 
@@ -165,24 +170,25 @@ describe('FamilyDrillIn — dairy family (grouped by source)', () => {
 
 describe('FamilyDrillIn — Ostatní (unsourced) bucket', () => {
   it('renders Ostatní as a trailing section when a grouped family has unsourced foods', () => {
-    // dairy has authored source groups; ryzove-mleko has no sourceGroup → Ostatní.
+    // vegetables: houby has no sourceGroup → renders under Ostatní (mushrooms ≠ culinary veg).
     const { getByText, getByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, familyId: 'dairy' as const },
+      props: { ...baseProps, familyId: 'vegetables' as const },
     });
     const ostatni = getByText('Ostatní');
     expect(ostatni).toBeInTheDocument();
-    const ryzove = getByRole('button', { name: /Rýžové mléko/ });
+    const houby = getByRole('button', { name: /Houby/ });
     const ostatniSection = ostatni.parentElement;
-    expect(ostatniSection!.contains(ryzove)).toBe(true);
+    expect(ostatniSection!.contains(houby)).toBe(true);
   });
 
   it('Ostatní renders AFTER all authored groups', () => {
     const { getByText } = render(FamilyDrillIn, {
-      props: { ...baseProps, familyId: 'dairy' as const },
+      props: { ...baseProps, familyId: 'vegetables' as const },
     });
-    const plant = getByText('Rostlinné');
+    // Košťálová is the last authored vegetables group; Ostatní must follow it.
+    const lastAuthored = getByText('Košťálová');
     const ostatni = getByText('Ostatní');
-    const cmp = plant.compareDocumentPosition(ostatni);
+    const cmp = lastAuthored.compareDocumentPosition(ostatni);
     expect(cmp & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -354,5 +360,156 @@ describe('FamilyDrillIn — custom family', () => {
     await fireEvent.click(getByRole('button', { name: /Přidat/ }));
     await tick();
     expect((input as HTMLInputElement).value).toBe('');
+  });
+});
+
+// ── Alphabetical order within source groups (Czech locale) ──────
+
+describe('FamilyDrillIn — alphabetical food order within groups', () => {
+  /** Returns the visible Czech food names in DOM order, restricted to the given group. */
+  function namesInGroup(container: HTMLElement, groupLabel: string): string[] {
+    const headers = Array.from(container.querySelectorAll('span.uppercase')) as HTMLElement[];
+    const header = headers.find((h) => h.textContent?.trim() === groupLabel);
+    if (!header) return [];
+    const groupRoot = header.parentElement;
+    if (!groupRoot) return [];
+    const buttons = Array.from(groupRoot.querySelectorAll('button')) as HTMLButtonElement[];
+    return buttons
+      .map((b) => b.getAttribute('aria-label') || b.textContent?.trim() || '')
+      .filter(Boolean);
+  }
+
+  it('fruit · jádroviny sorted alphabetically (Hruška → Jablko)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Jádroviny');
+    expect(names).toEqual(['Hruška', 'Jablko']);
+  });
+
+  it('fruit · peckoviny sorted alphabetically (Broskev → Meruňka → Švestka → Třešně)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Peckoviny');
+    expect(names).toEqual(['Broskev', 'Meruňka', 'Švestka', 'Třešně']);
+  });
+
+  it('fruit · bobuloviny sorted alphabetically (Angrešt → Borůvky → Brusinky → Hrozny → Jahody → Maliny → Ostružiny → Rybíz)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Bobuloviny');
+    expect(names).toEqual(['Angrešt', 'Borůvky', 'Brusinky', 'Hrozny', 'Jahody', 'Maliny', 'Ostružiny', 'Rybíz']);
+  });
+
+  it('fruit · citrusy sorted alphabetically (Citron → Grapefruit → Mandarinka → Pomeranč)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Citrusy');
+    expect(names).toEqual(['Citron', 'Grapefruit', 'Mandarinka', 'Pomeranč']);
+  });
+
+  it('fruit · tropické sorted alphabetically (Ananas → Avokádo → Banán → Kiwi → Mango → Meloun)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Tropické');
+    expect(names).toEqual(['Ananas', 'Avokádo', 'Banán', 'Kiwi', 'Mango', 'Meloun']);
+  });
+
+  it('fish-seafood · sladkovodní sorted alphabetically (Kapr → Pangas → Pstruh → Sumec)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fish-seafood' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Sladkovodní');
+    expect(names).toEqual(['Kapr', 'Pangas', 'Pstruh', 'Sumec']);
+  });
+
+  it('fish-seafood · mořské sorted alphabetically (Halibut → Losos → Makrela → Sardinky → Sleď → Tilapie → Treska → Tuňák)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fish-seafood' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Mořské');
+    expect(names).toEqual(['Halibut', 'Losos', 'Makrela', 'Sardinky', 'Sleď', 'Tilapie', 'Treska', 'Tuňák']);
+  });
+
+  it('fish-seafood · plody moře sorted alphabetically (Krab → Krevety → Mušle)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fish-seafood' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Plody moře');
+    expect(names).toEqual(['Krab', 'Krevety', 'Mušle']);
+  });
+
+  it('grains · s lepkem sorted alphabetically (Ječmen → Oves → Pšenice → Žito)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'grains' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'S lepkem');
+    expect(names).toEqual(['Ječmen', 'Oves', 'Pšenice', 'Žito']);
+  });
+
+  it('vegetables · plodová sorted alphabetically (Cuketa → Dýně → Lilek → Okurka → Paprika → Rajče)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'vegetables' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Plodová');
+    expect(names).toEqual(['Cuketa', 'Dýně', 'Lilek', 'Okurka', 'Paprika', 'Rajče']);
+  });
+});
+
+// ── Eliminated group sinks last (less scrolling for active protocol) ──
+
+describe('FamilyDrillIn — eliminated source group sinks to bottom', () => {
+  /** Returns the visible source-group header labels in DOM order. */
+  function groupHeaders(container: HTMLElement): string[] {
+    const headers = Array.from(container.querySelectorAll('span.uppercase')) as HTMLElement[];
+    return headers.map((h) => h.textContent?.trim() ?? '').filter(Boolean);
+  }
+
+  it('dairy with no elimination keeps curated order (Kravské first, Rostlinné last among authored)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'dairy' as const, eliminatedAllergenIds: [] },
+    });
+    const headers = groupHeaders(container as HTMLElement);
+    // Authored order: Kravské → Ovčí → Kozí → Rostlinné
+    expect(headers.indexOf('Kravské')).toBeLessThan(headers.indexOf('Rostlinné'));
+    expect(headers.indexOf('Kravské')).toBe(0);
+  });
+
+  it('dairy with [dairy] eliminated sinks Kravské/Ovčí/Kozí below Rostlinné', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'dairy' as const, eliminatedAllergenIds: ['dairy'] },
+    });
+    const headers = groupHeaders(container as HTMLElement);
+    // Rostlinné carries no `dairy` allergen → stays up; cow/sheep/goat all carry dairy → sink.
+    expect(headers.indexOf('Rostlinné')).toBeLessThan(headers.indexOf('Kravské'));
+    expect(headers.indexOf('Rostlinné')).toBeLessThan(headers.indexOf('Ovčí'));
+    expect(headers.indexOf('Rostlinné')).toBeLessThan(headers.indexOf('Kozí'));
+  });
+
+  it('dairy with [dairy] eliminated keeps relative order among the eliminated groups (stable sort)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'dairy' as const, eliminatedAllergenIds: ['dairy'] },
+    });
+    const headers = groupHeaders(container as HTMLElement);
+    // After Rostlinné, the original cow → sheep → goat ordering is preserved.
+    const idxKravske = headers.indexOf('Kravské');
+    const idxOvci    = headers.indexOf('Ovčí');
+    const idxKozi    = headers.indexOf('Kozí');
+    expect(idxKravske).toBeLessThan(idxOvci);
+    expect(idxOvci).toBeLessThan(idxKozi);
+  });
+
+  it('grains with [wheat] eliminated sinks the gluten group below gluten-free', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'grains' as const, eliminatedAllergenIds: ['wheat'] },
+    });
+    const headers = groupHeaders(container as HTMLElement);
+    // Gluten group: only `psenice` carries `wheat` (oves/jecmen/zito don't);
+    // so `every` is false → S lepkem does NOT sink. Curated order preserved.
+    expect(headers.indexOf('S lepkem')).toBeLessThan(headers.indexOf('Bez lepku'));
   });
 });

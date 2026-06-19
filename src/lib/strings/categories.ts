@@ -29,6 +29,7 @@ export const categoryStrings = {
   'onion-garlic':        { name: 'Cibule a česnek'           },
   potato:                { name: 'Brambory'                  },
   mushroom:              { name: 'Houby'                     },
+  celery:                { name: 'Celer'                     },
   'other-vegetables':    { name: 'Ostatní zelenina'          },
   meat:                  { name: 'Maso'                      },
   mustard:               { name: 'Hořčice'                   },

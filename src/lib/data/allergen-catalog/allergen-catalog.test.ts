@@ -86,20 +86,19 @@ describe('required fields', () => {
 
   it('representative foods are tagged with the documented form', () => {
     const byId = (id: string) => FOODS.find((f) => f.id === id);
-    expect(byId('voda')?.form).toBe('none');
     expect(byId('sul')?.form).toBe('none');
     expect(byId('kravske-mleko')?.form).toBe('liquid');
     expect(byId('brambory')?.form).toBe('cookable');
     expect(byId('hovezi')?.form).toBe('cookable');
-    expect(byId('spenat')?.form).toBe('raw-only');
+    expect(byId('listovy-salat')?.form).toBe('raw-only');
   });
 });
 
 // ── Count sanity ──────────────────────────────────────────────
 
 describe('collection counts', () => {
-  it('13 families (12 clinical + custom)', () => {
-    expect(FAMILIES).toHaveLength(13);
+  it('14 families (13 clinical + custom)', () => {
+    expect(FAMILIES).toHaveLength(14);
   });
 
   it('at least 32 allergens (all records from the previous catalog)', () => {
