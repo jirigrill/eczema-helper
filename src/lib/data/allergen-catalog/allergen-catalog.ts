@@ -438,8 +438,9 @@ export const FOODS = [
   { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener' },
   { id: 'agavovy-sirup',     familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['agávový sirup', 'agave syrup'] },
   { id: 'cekankovy-sirup',   familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['čekankový sirup', 'chicory syrup'] },
-  { id: 'trtinovy-cukr',     familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener' },
+  { id: 'cukr',              familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['cukr', 'třtinový cukr', 'bílý cukr', 'sugar'] },
   { id: 'xylitol',           familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['xylitol', 'březový cukr', 'birch sugar'] },
+  { id: 'stevie',            familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['stévie', 'stevia'] },
   // Spices/condiments
   { id: 'sul',               familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
   { id: 'kmin',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
