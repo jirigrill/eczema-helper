@@ -303,6 +303,17 @@ describe('per-family expansion (issue #319 scope)', () => {
       expect(byId(id), `individual spice '${id}' must be aggregated away`).toBeUndefined();
     }
   });
+
+  it('every spices-condiments food is form: none (flavorings, no preparation row)', () => {
+    type FoodLite = { id: string; familyId: string; form: string };
+    const condiments = (FOODS as readonly FoodLite[]).filter(
+      (f) => f.familyId === 'spices-condiments',
+    );
+    expect(condiments.length).toBeGreaterThan(0);
+    for (const f of condiments) {
+      expect(f.form, `condiment '${f.id}' should be form: none`).toBe('none');
+    }
+  });
 });
 
 describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/meat/spices)', () => {
