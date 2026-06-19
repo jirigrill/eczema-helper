@@ -27,7 +27,9 @@ export type FoodStrings = {
 
 export const foodStrings = {
   // Food twins (§3a)
-  vejce:               { name: 'Vejce'                  },
+  vejce:               { name: 'Celé vejce'             },
+  bilek:               { name: 'Bílek'                  },
+  zloutek:             { name: 'Žloutek'                },
   'kravske-mleko':     { name: 'Kravské mléko'          },
   jogurt:              { name: 'Jogurt'                 },
   'psenice':           { name: 'Pšenice'                },

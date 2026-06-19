@@ -62,11 +62,13 @@ describe('FamilyDrillIn — fruit family (flat, small/uncurated)', () => {
 // ── Eggs family — flat-small (< 5 foods, no entry) ────────────
 
 describe('FamilyDrillIn — eggs family (flat, < 5 foods)', () => {
-  it('renders without source-group headers (only one food)', () => {
+  it('renders without source-group headers (3 foods, below ADR-0019 grouping threshold)', () => {
     const { queryByText, getByRole } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'eggs' as const },
     });
-    expect(getByRole('button', { name: /Vejce/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Celé vejce/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Bílek/ })).toBeInTheDocument();
+    expect(getByRole('button', { name: /Žloutek/ })).toBeInTheDocument();
     expect(queryByText('Kravské')).not.toBeInTheDocument();
     expect(queryByText('Ostatní')).not.toBeInTheDocument();
   });

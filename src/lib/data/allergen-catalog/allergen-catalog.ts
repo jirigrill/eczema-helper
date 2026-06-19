@@ -276,7 +276,9 @@ type FoodRecord = {
 
 export const FOODS = [
   // ── Food twins (§3a) ─────────────────────────────────────
-  { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
+  { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable', aliases: ['celé vejce'] },
+  { id: 'bilek',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable', aliases: ['bílek', 'vaječný bílek', 'egg white'] },
+  { id: 'zloutek',           familyId: 'eggs' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable', aliases: ['žloutek', 'vaječný žloutek', 'egg yolk'] },
   { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
   { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
   { id: 'psenice',           familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        form: 'cookable', sourceGroup: 'gluten' },

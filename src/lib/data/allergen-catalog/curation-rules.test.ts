@@ -90,6 +90,42 @@ describe('earned-granularity guard', () => {
   });
 });
 
+describe('eggs family: bílek / žloutek / celé vejce split (Q8)', () => {
+  it('eggs family has 3 members (vejce, bilek, zloutek)', () => {
+    type FoodLite = { id: string; familyId: string };
+    const eggs = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'eggs');
+    const ids = eggs.map((f) => f.id).sort();
+    expect(ids).toEqual(['bilek', 'vejce', 'zloutek']);
+  });
+
+  it('vejce (whole egg): eggs allergen, cookable, no sourceGroup', () => {
+    const f = byId('vejce');
+    expect(f).toBeDefined();
+    expect(f?.familyId).toBe('eggs');
+    expect(f?.allergenIds).toEqual(['eggs']);
+    expect(f?.form).toBe('cookable');
+    expect(f?.sourceGroup).toBeUndefined();
+  });
+
+  it('bilek (egg white): eggs allergen, cookable, no sourceGroup', () => {
+    const f = byId('bilek');
+    expect(f, 'bilek must be added').toBeDefined();
+    expect(f?.familyId).toBe('eggs');
+    expect(f?.allergenIds).toEqual(['eggs']);
+    expect(f?.form).toBe('cookable');
+    expect(f?.sourceGroup).toBeUndefined();
+  });
+
+  it('zloutek (egg yolk): eggs allergen, cookable, no sourceGroup', () => {
+    const f = byId('zloutek');
+    expect(f, 'zloutek must be added').toBeDefined();
+    expect(f?.familyId).toBe('eggs');
+    expect(f?.allergenIds).toEqual(['eggs']);
+    expect(f?.form).toBe('cookable');
+    expect(f?.sourceGroup).toBeUndefined();
+  });
+});
+
 describe('per-family expansion (issue #319 scope)', () => {
   it('dairy: cow product split present (tvaroh, syr, smetana)', () => {
     // Note: máslo moved to fats-oils family (Q7) — it's a cooking fat, not a milk product.
