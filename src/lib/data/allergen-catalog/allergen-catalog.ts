@@ -368,11 +368,13 @@ export const FOODS = [
   // Meat
   { id: 'kureci',            familyId: 'meat' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
   { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable' },
-  { id: 'veprovka',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
+  { id: 'teleci',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable', aliases: ['telecí'] },
+  { id: 'veprove',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'kruti',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'jehnneci',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'kachna',            familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'kralik',            familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['králík'] },
+  { id: 'zverina',           familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable', aliases: ['zvěřina', 'jelení', 'srnčí', 'divočák'] },
   { id: 'sunka',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['šunka', 'uzeniny'] },
   // Fish/seafood
   { id: 'treska',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'ryby' },
