@@ -234,8 +234,8 @@ describe('allConfirmedFoods', () => {
   it('returns confirmed foods across multiple families', () => {
     const FAM2 = 'grains' as const;
     let meal = mealWithConfirmed(FOOD_A, 'A');
-    meal = startEditing(meal, FAM2, 'psenicny-chleb', 'Pšeničný chléb');
-    meal = confirmFood(meal, FAM2, 'psenicny-chleb');
+    meal = startEditing(meal, FAM2, 'psenice', 'Pšenice');
+    meal = confirmFood(meal, FAM2, 'psenice');
     expect(allConfirmedFoods(meal)).toHaveLength(2);
   });
 });

@@ -54,6 +54,26 @@
   );
   const grouped = $derived(catalogFoods.length >= 5 && sources != null);
 
+  /** Czech-locale comparator on resolved Czech name (fallback to id when missing). */
+  function compareByName(a: CatalogFood, b: CatalogFood): number {
+    return nameFor(a.id).localeCompare(nameFor(b.id), 'cs');
+  }
+
+  /**
+   * A source group is "eliminated" when EVERY food in it carries at least one
+   * eliminated allergen. Conservative: a mixed group (some foods eliminated,
+   * some not) keeps its curated position. See ADR-0019.
+   */
+  function isGroupEliminated(foods: readonly CatalogFood[]): boolean {
+    if (foods.length === 0) return false;
+    return foods.every((f) =>
+      f.allergenIds.some((a) => eliminatedAllergenIds.includes(a)),
+    );
+  }
+
+  /** Foods rendered in flat mode — alphabetical by Czech name. */
+  const sortedCatalogFoods = $derived([...catalogFoods].sort(compareByName));
+
   type RenderGroup = {
     key: string;
     label: string;
@@ -65,13 +85,17 @@
     const authored = sources.map(s => ({
       key: s.key,
       label: s.label,
-      foods: catalogFoods.filter(f => f.sourceGroup === s.key),
+      foods: catalogFoods.filter(f => f.sourceGroup === s.key).sort(compareByName),
     }));
     const authoredKeys = new Set(authored.map(g => g.key));
-    const ostatni = catalogFoods.filter(
-      f => f.sourceGroup === undefined || !authoredKeys.has(f.sourceGroup),
-    );
-    const result: RenderGroup[] = authored.filter(g => g.foods.length > 0);
+    const ostatni = catalogFoods
+      .filter(f => f.sourceGroup === undefined || !authoredKeys.has(f.sourceGroup))
+      .sort(compareByName);
+    // Eliminated groups sink to the bottom (less scrolling for active protocols).
+    // Array.prototype.sort is stable → non-eliminated groups keep curated order.
+    const result: RenderGroup[] = authored
+      .filter(g => g.foods.length > 0)
+      .sort((a, b) => Number(isGroupEliminated(a.foods)) - Number(isGroupEliminated(b.foods)));
     if (ostatni.length > 0) {
       result.push({ key: '__ostatni__', label: ostatniLabel, foods: ostatni });
     }
@@ -168,7 +192,7 @@
   {:else if catalogFoods.length > 0}
     <div class="px-4 space-y-2">
       <div class="flex flex-col gap-2">
-        {#each catalogFoods as food (food.id)}
+        {#each sortedCatalogFoods as food (food.id)}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
           {@const danger = eliminatedForFood(food)}

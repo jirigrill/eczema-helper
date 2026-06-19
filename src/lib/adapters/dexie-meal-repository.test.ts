@@ -171,7 +171,7 @@ describe('DexieMealRepository', () => {
 
   it('multiple items in a meal all persist', async () => {
     const items = [
-      makeItem('item-1', { name: 'Chléb', foodId: 'psenicny-chleb', amount: 'portion' }),
+      makeItem('item-1', { name: 'Pšenice', foodId: 'psenice', amount: 'portion' }),
       makeItem('item-2', { name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }),
       makeItem('item-3', { name: 'Rajče', foodId: 'rajce', amount: 'spoon', preparationMethod: 'baked' }),
     ];

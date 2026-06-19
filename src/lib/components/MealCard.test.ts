@@ -37,7 +37,7 @@ describe('MealCard', () => {
     const meal = makeMeal({
       items: [
         { id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'portion' },
-        { id: 'i2', name: 'Ovesné vločky', foodId: 'ovesne-vlocky', amount: 'spoon' },
+        { id: 'i2', name: 'Oves', foodId: 'oves', amount: 'spoon' },
       ],
     });
     const { getByText } = render(MealCard, {
@@ -45,7 +45,7 @@ describe('MealCard', () => {
     });
     await tick();
     expect(getByText(/Jogurt/)).toBeInTheDocument();
-    expect(getByText(/Ovesné vločky/)).toBeInTheDocument();
+    expect(getByText(/Oves/)).toBeInTheDocument();
   });
 
   it('renders meal type icon and label', async () => {

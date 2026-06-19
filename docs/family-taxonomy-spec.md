@@ -83,7 +83,7 @@ A food twin lets a mother log the concrete food she eats, while the allergen tri
 |----------------|--------------|----------|--------------------|-------|
 | `vejce`        | Vejce        | `eggs`   | `['eggs']`         | Twin for the entire eggs allergen |
 | `kravske-mleko`| Kravské mléko| `dairy`  | `['dairy']`        | Twin for dairy allergen |
-| `psenicny-chleb` | Pšeničný chléb | `grains` | `['wheat']`   | Representative wheat food |
+| `psenice`      | Pšenice      | `grains` | `['wheat']`   | Source-tier twin for wheat allergen |
 | `tofu`         | Tofu         | `legumes`| `['soy']`          | Twin for soy, under legumes |
 | `arasisove-maslo` | Arašídové máslo | `nuts-seeds` | `['nuts']` | Representative nut food |
 | `sezam`        | Sezamová semínka | `nuts-seeds` | `['sesame']` | Twin for sesame allergen |
@@ -174,7 +174,7 @@ All food names in §3 are already Czech strings.
 
 - [x] Every current catalog record assigned to exactly one family (35 records → see §2)
 - [x] Every food has a family and a (possibly empty) allergen trigger set (§3)
-- [x] Food twins specified: `vejce`, `kravske-mleko`, `psenicny-chleb`, `tofu`, `arasisove-maslo`, `sezam`, `tahini`, `jahody`, `rajce`, `kukurice`, `pomeranc`, `cokolada`, `losos`, `krevetky` (§3a)
+- [x] Food twins specified: `vejce`, `kravske-mleko`, `psenice`, `tofu`, `arasisove-maslo`, `sezam`, `tahini`, `jahody`, `rajce`, `kukurice`, `pomeranc`, `cokolada`, `losos`, `krevetky` (§3a)
 - [x] Divergent placements specified: `sojove-mleko`, `ryzove-mleko` (§3b)
 - [x] At least one composite food: `hummus` (chickpea + sesame) (§3c)
 - [x] Homeless records resolved: `mustard`, `sulphites-additives`, `vinegar-fermented`, `yeast` → all `spices-condiments` (§4)

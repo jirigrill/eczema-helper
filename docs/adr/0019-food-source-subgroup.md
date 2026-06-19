@@ -102,3 +102,52 @@ grouping on the meal-log drill-in.
 - `bez alergenu` is removed; the false-safety surface is gone.
 - A fat `Ostatní` bucket is the (manual + dev-warn) signal that a family's source
   axis needs another group, not that its foods are wrong.
+
+## Render-order rules
+
+Once `sourceGroup` exists, two further sub-decisions follow about *what order*
+groups and foods render in:
+
+### Foods within a group: **alphabetical (Czech locale)**
+
+Foods inside a single `sourceGroup` are *peers* — `Borůvky` and `Maliny` carry
+no inherent rank. Sort by Czech name (`localeCompare(name, 'cs')`) at render
+time. Predictable, language-correct, future-foods-safe (no per-food order
+authoring). The same rule applies to flat (ungrouped) families.
+
+`FOODS` keeps its §3a/§3b/§3c/§3d sectioning so the editorial narrative of
+*why* each row exists is preserved; sort happens in `FamilyDrillIn.svelte`.
+
+### Source groups within a family: **curated, eliminated-sinks-last**
+
+Source groups are *not* peers. `Kravské` is the entire mainstream dairy axis,
+`Kozí` is a niche specialty, `Rostlinné` is a different category surface
+entirely. Alphabetical sort produces visibly weird results (`Kozí` first in
+dairy, `Bez lepku` first in grains) because alphabetical treats unequal items
+as equal.
+
+The render order is the *curated* `familySources[familyId]` array order —
+authored editorially, frequency-biased: the group most-encountered in
+everyday CZ use comes first.
+
+The render layer additionally **sinks fully-eliminated groups** to the
+bottom: a group whose every food carries an eliminated allergen renders
+below non-eliminated groups. Rationale: a parent on an active elimination
+protocol is *avoiding* the eliminated group; sinking it reduces scrolling
+for the foods they actually log. Stable sort preserves curated order among
+non-eliminated groups; among eliminated groups; and the trailing `Ostatní`
+bucket always renders last regardless.
+
+The predicate is **`every food in the group carries at least one eliminated
+allergen`** (conservative). A mixed group keeps its curated position. This
+degenerates safely across all 5 axes:
+
+- `dairy` with `dairy` eliminated: all of cow/sheep/goat sink uniformly,
+  `Rostlinné` floats up. Optimal.
+- `grains` with `wheat` eliminated: only `psenice` carries `wheat`;
+  `oves`/`jecmen`/`zito` don't, so `S lepkem` group does **not** sink. The
+  individual `Pšenice` tile still dims via `eliminatedStatus="danger"`. (A
+  future predicate could map group-key → defining allergen for a more
+  aggressive sink; not done because the cost/benefit doesn't justify a new
+  mapping table for one family's edge case.)
+- `fruit`/`nuts-seeds`/`fish-seafood`: mixed-allergen groups → no sink.

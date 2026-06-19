@@ -277,7 +277,7 @@ export const FOODS = [
   { id: 'vejce',             familyId: 'eggs' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
   { id: 'kravske-mleko',     familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
   { id: 'jogurt',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
-  { id: 'psenicny-chleb',    familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        form: 'cookable', sourceGroup: 'gluten' },
+  { id: 'psenice',           familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        form: 'cookable', sourceGroup: 'gluten' },
   { id: 'tofu',              familyId: 'legumes' as FamilyId,     allergenIds: ['soy'],          form: 'cookable' },
   { id: 'arasisove-maslo',   familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts'],         form: 'raw-only', sourceGroup: 'orechy' },
   { id: 'sezam',             familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame'],       form: 'cookable', sourceGroup: 'seminka' },
@@ -309,14 +309,15 @@ export const FOODS = [
   { id: 'smetana',           familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
   { id: 'brynza',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'sheep' },
   { id: 'kozi-syr',          familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'goat', aliases: ['kozí sýr'] },
-  // Grains
+  // Grains — source-tier only (ADR-0019 + #319 follow-up).
+  // Specific products (chleb, rohlík, těstoviny, mouka) reduce to their source.
+  { id: 'oves',              familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
+  { id: 'jecmen',            familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
+  { id: 'zito',              familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
   { id: 'ryze',              familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', aliases: ['rýže', 'ryze', 'rice'], sourceGroup: 'gluten-free' },
   { id: 'pohanka',           familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten-free' },
-  { id: 'ovesne-vlocky',     familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
   { id: 'proso-jahly',       familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten-free' },
-  { id: 'testoviny',         familyId: 'grains' as FamilyId,      allergenIds: ['wheat'],        form: 'cookable', sourceGroup: 'gluten' },
   { id: 'quinoa',            familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten-free' },
-  { id: 'kukuricna-mouka',   familyId: 'grains' as FamilyId,      allergenIds: ['corn'],         form: 'cookable', sourceGroup: 'gluten-free', aliases: ['kukuřičná mouka'] },
   // Vegetables
   { id: 'okurka',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only' },
   { id: 'cuketa',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable' },

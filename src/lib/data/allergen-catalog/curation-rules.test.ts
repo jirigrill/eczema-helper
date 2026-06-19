@@ -64,14 +64,22 @@ describe('curation: cross-tag retention (intentional, not bugs)', () => {
 });
 
 describe('earned-granularity guard', () => {
-  it('exactly one canonical wheat-bread food (no rohlík/houska cosmetic dups)', () => {
-    // Wheat-bread tile = grains + wheat + cookable + sourceGroup 'gluten' AND id contains 'chleb' or is bread-shaped.
-    // The denylist below catches the specific cosmetic variants the issue forbids.
-    const forbiddenBreadIds = ['rohlik', 'houska', 'bageta', 'toust', 'sendvic'];
-    for (const id of forbiddenBreadIds) {
-      expect(byId(id), `cosmetic wheat-bread '${id}' must not be in catalog`).toBeUndefined();
+  it('grains are source-tier only — no wheat-product variants in catalog', () => {
+    // ADR-0019 + #319 follow-up: grains are stored at source-tier (`psenice`,
+    // `oves`, `jecmen`, `zito`, `ryze`, …). Specific cooked/processed wheat
+    // products (chleb, rohlík, těstoviny, mouka, …) are NOT separate Foods —
+    // they reduce to `psenice` as far as the allergen surface is concerned.
+    const forbiddenWheatProducts = [
+      'psenicny-chleb',
+      'rohlik', 'houska', 'bageta', 'toust', 'sendvic',
+      'testoviny', 'psenicna-mouka',
+      'ovesne-vlocky',
+      'kukuricna-mouka',
+    ];
+    for (const id of forbiddenWheatProducts) {
+      expect(byId(id), `wheat-product '${id}' must not be in catalog`).toBeUndefined();
     }
-    expect(byId('psenicny-chleb'), 'canonical wheat-bread must exist').toBeDefined();
+    expect(byId('psenice'), 'canonical wheat source must exist').toBeDefined();
   });
 
   it('forbidden cosmetic-dup ids are absent (kefír, zmrzlina, granola, müsli, pizza, guláš)', () => {
@@ -100,11 +108,21 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(byId('kozi-syr')?.allergenIds).toEqual(['dairy']);
   });
 
-  it('grains: těstoviny + quinoa + kukuřičná mouka present', () => {
-    expect(byId('testoviny')?.allergenIds).toEqual(['wheat']);
+  it('grains: source-tier rows for cereals (pšenice/oves/ječmen/žito + quinoa)', () => {
+    // Wheat is the only gluten cereal carrying the `wheat` allergen.
+    expect(byId('psenice')?.familyId).toBe('grains');
+    expect(byId('psenice')?.allergenIds).toEqual(['wheat']);
+    expect(byId('psenice')?.sourceGroup).toBe('gluten');
+    // Other gluten cereals: gluten in `sourceGroup` but no per-Food allergen
+    // (they trigger no specific tracked allergen besides the gluten axis).
+    for (const id of ['oves', 'jecmen', 'zito']) {
+      expect(byId(id), `gluten cereal '${id}' missing`).toBeDefined();
+      expect(byId(id)?.familyId).toBe('grains');
+      expect(byId(id)?.allergenIds).toEqual([]);
+      expect(byId(id)?.sourceGroup).toBe('gluten');
+    }
     expect(byId('quinoa')?.familyId).toBe('grains');
     expect(byId('quinoa')?.allergenIds).toEqual([]);
-    expect(byId('kukuricna-mouka')?.allergenIds).toEqual(['corn']);
   });
 
   it('fruit expansion has švestka, třešně, maliny, rybíz, ananas, avokádo, citron', () => {
