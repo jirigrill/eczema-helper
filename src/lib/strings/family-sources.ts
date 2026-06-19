@@ -36,10 +36,11 @@ export const familySources = {
     { key: 'gluten-free',  label: 'Bez lepku' },
   ],
   fruit: [
-    { key: 'tuzemske',   label: 'Tuzemské'   },
+    { key: 'jadroviny',  label: 'Jádroviny'  },
+    { key: 'peckoviny',  label: 'Peckoviny'  },
     { key: 'bobuloviny', label: 'Bobuloviny' },
     { key: 'citrusy',    label: 'Citrusy'    },
-    { key: 'exoticke',   label: 'Exotické'   },
+    { key: 'tropicke',   label: 'Tropické'   },
   ],
   'nuts-seeds': [
     { key: 'orechy',  label: 'Ořechy'   },

@@ -376,28 +376,28 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
       .filter(Boolean);
   }
 
-  it('fruit · tuzemské is sorted alphabetically (Czech locale)', () => {
+  it('fruit · jádroviny sorted alphabetically (Hruška → Jablko)', () => {
     const { container } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'fruit' as const },
     });
-    const names = namesInGroup(container as HTMLElement, 'Tuzemské');
-    // Expected Czech-locale order:
-    // Broskev → Hrozny → Hruška → Jablko → Meruňka → Švestka → Třešně
-    expect(names[0]).toBe('Broskev');
-    expect(names[1]).toBe('Hrozny');
-    expect(names[2]).toBe('Hruška');
-    expect(names[3]).toBe('Jablko');
-    expect(names[4]).toBe('Meruňka');
-    expect(names[5]).toBe('Švestka');
-    expect(names[6]).toBe('Třešně');
+    const names = namesInGroup(container as HTMLElement, 'Jádroviny');
+    expect(names).toEqual(['Hruška', 'Jablko']);
   });
 
-  it('fruit · bobuloviny sorted alphabetically (Angrešt → Borůvky → Brusinky → Jahody → Maliny → Ostružiny → Rybíz)', () => {
+  it('fruit · peckoviny sorted alphabetically (Broskev → Meruňka → Švestka → Třešně)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Peckoviny');
+    expect(names).toEqual(['Broskev', 'Meruňka', 'Švestka', 'Třešně']);
+  });
+
+  it('fruit · bobuloviny sorted alphabetically (Angrešt → Borůvky → Brusinky → Hrozny → Jahody → Maliny → Ostružiny → Rybíz)', () => {
     const { container } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'fruit' as const },
     });
     const names = namesInGroup(container as HTMLElement, 'Bobuloviny');
-    expect(names).toEqual(['Angrešt', 'Borůvky', 'Brusinky', 'Jahody', 'Maliny', 'Ostružiny', 'Rybíz']);
+    expect(names).toEqual(['Angrešt', 'Borůvky', 'Brusinky', 'Hrozny', 'Jahody', 'Maliny', 'Ostružiny', 'Rybíz']);
   });
 
   it('fruit · citrusy sorted alphabetically (Citron → Grapefruit → Mandarinka → Pomeranč)', () => {
@@ -406,6 +406,14 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
     });
     const names = namesInGroup(container as HTMLElement, 'Citrusy');
     expect(names).toEqual(['Citron', 'Grapefruit', 'Mandarinka', 'Pomeranč']);
+  });
+
+  it('fruit · tropické sorted alphabetically (Ananas → Avokádo → Banán → Kiwi → Mango → Meloun)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Tropické');
+    expect(names).toEqual(['Ananas', 'Avokádo', 'Banán', 'Kiwi', 'Mango', 'Meloun']);
   });
 
   it('grains · s lepkem sorted alphabetically (Ječmen → Oves → Pšenice → Žito)', () => {
