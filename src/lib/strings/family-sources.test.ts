@@ -15,11 +15,11 @@ describe('familySources axes', () => {
     expect(keys).toEqual(['orechy', 'seminka']);
   });
 
-  it('fish-seafood has ryby · plody moře (in render order)', () => {
+  it('fish-seafood has sladkovodní · mořské · plody moře (in render order)', () => {
     const keys = (familySources as Record<string, readonly { key: string }[]>)['fish-seafood']?.map(
       (s) => s.key
     );
-    expect(keys).toEqual(['ryby', 'plody-more']);
+    expect(keys).toEqual(['sladkovodni', 'morske', 'plody-more']);
   });
 
   it('vegetables has 6 culinary groups (kořenová · listová · plodová · cibulová · hlízová · košťálová)', () => {

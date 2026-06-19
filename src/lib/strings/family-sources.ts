@@ -47,8 +47,9 @@ export const familySources = {
     { key: 'seminka', label: 'Semínka'  },
   ],
   'fish-seafood': [
-    { key: 'ryby',       label: 'Ryby'        },
-    { key: 'plody-more', label: 'Plody moře'  },
+    { key: 'sladkovodni', label: 'Sladkovodní'  },
+    { key: 'morske',      label: 'Mořské'       },
+    { key: 'plody-more',  label: 'Plody moře'   },
   ],
   vegetables: [
     { key: 'korenova',  label: 'Kořenová'  },

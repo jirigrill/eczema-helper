@@ -146,7 +146,7 @@ describe('per-family expansion (issue #319 scope)', () => {
 
   it('fish-seafood expansion has makrela, sleď, mušle, krab', () => {
     expect(byId('makrela')?.allergenIds).toEqual(['fish']);
-    expect(byId('makrela')?.sourceGroup).toBe('ryby');
+    expect(byId('makrela')?.sourceGroup).toBe('morske');
     expect(byId('sled')?.allergenIds).toEqual(['fish']);
     expect(byId('musle')?.allergenIds).toEqual(['shellfish']);
     expect(byId('musle')?.sourceGroup).toBe('plody-more');

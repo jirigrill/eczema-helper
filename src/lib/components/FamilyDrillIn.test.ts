@@ -416,6 +416,30 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
     expect(names).toEqual(['Ananas', 'Avokádo', 'Banán', 'Kiwi', 'Mango', 'Meloun']);
   });
 
+  it('fish-seafood · sladkovodní sorted alphabetically (Kapr → Pangas → Pstruh → Sumec)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fish-seafood' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Sladkovodní');
+    expect(names).toEqual(['Kapr', 'Pangas', 'Pstruh', 'Sumec']);
+  });
+
+  it('fish-seafood · mořské sorted alphabetically (Halibut → Losos → Makrela → Sardinky → Sleď → Tilapie → Treska → Tuňák)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fish-seafood' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Mořské');
+    expect(names).toEqual(['Halibut', 'Losos', 'Makrela', 'Sardinky', 'Sleď', 'Tilapie', 'Treska', 'Tuňák']);
+  });
+
+  it('fish-seafood · plody moře sorted alphabetically (Krab → Krevety → Mušle)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fish-seafood' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Plody moře');
+    expect(names).toEqual(['Krab', 'Krevety', 'Mušle']);
+  });
+
   it('grains · s lepkem sorted alphabetically (Ječmen → Oves → Pšenice → Žito)', () => {
     const { container } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'grains' as const },
