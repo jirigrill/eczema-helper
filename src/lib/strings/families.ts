@@ -14,6 +14,7 @@ export const familyStrings = {
   eggs:               { name: 'Vejce'                   },
   legumes:            { name: 'Luštěniny'               },
   'nuts-seeds':       { name: 'Ořechy a semínka'        },
+  'fats-oils':        { name: 'Oleje a tuky'            },
   sweet:              { name: 'Sladké'                  },
   'spices-condiments':{ name: 'Koření, omáčky a droždí' },
   drinks:             { name: 'Nápoje a čaje'           },

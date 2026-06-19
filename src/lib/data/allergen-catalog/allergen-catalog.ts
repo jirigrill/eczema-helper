@@ -15,6 +15,7 @@ export const FAMILIES = [
   { id: 'eggs',               icon: '🥚' },
   { id: 'legumes',            icon: '🫘' },
   { id: 'nuts-seeds',         icon: '🥜' },
+  { id: 'fats-oils',          icon: '🧈' },
   { id: 'sweet',              icon: '🍯' },
   { id: 'spices-condiments',  icon: '🌿' },
   { id: 'drinks',             icon: '☕' },
@@ -303,16 +304,15 @@ export const FOODS = [
    { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'], form: 'raw-only', aliases: ['mléčná čokoláda', 'milk chocolate'] },
    { id: 'oriskova-cokolada', familyId: 'sweet' as FamilyId,      allergenIds: ['chocolate', 'dairy', 'nuts'], form: 'raw-only', aliases: ['oříšková čokoláda', 'hazelnut chocolate'] },
   // ── Loose everyday foods (§3d) ───────────────────────────
-  // Dairy — cow product split (earned: jogurt fermented, máslo near-pure fat, sýr/tvaroh casein-heavy, smetana fat-rich)
+  // Dairy — cow product split (earned: jogurt fermented, sýr/tvaroh casein-heavy, smetana fat-rich)
+  // Note: cooking fats (máslo, ghí, rostlinné máslo) live in `fats-oils` family — they share a
+  // shopping aisle with sádlo and olej, not with milk drinks. Allergen tags preserved (máslo + ghí
+  // still carry `dairy` for elimination).
   { id: 'tvaroh',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'raw-only', sourceGroup: 'cow' },
   { id: 'syr',               familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'cow' },
-  { id: 'maslo',             familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'none',     sourceGroup: 'cow' },
   { id: 'smetana',           familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid',   sourceGroup: 'cow' },
   { id: 'brynza',            familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'sheep' },
   { id: 'kozi-syr',          familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'goat', aliases: ['kozí sýr'] },
-  // Dairy fats — ghí (clarified cow butter, ~dairy clinically but conservatively tagged) and rostlinné máslo (plant margarine, no dairy)
-  { id: 'ghi',               familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'cow', aliases: ['ghí', 'ghee', 'přepuštěné máslo'] },
-  { id: 'rostlinne-maslo',   familyId: 'dairy' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'plant', aliases: ['rostlinné máslo', 'margarín', 'Rama', 'Flora'] },
   // Grains — source-tier only (ADR-0019 + #319 follow-up).
   // Specific products (chleb, rohlík, těstoviny, mouka) reduce to their source.
   { id: 'oves',              familyId: 'grains' as FamilyId,      allergenIds: [],               form: 'cookable', sourceGroup: 'gluten' },
@@ -379,7 +379,7 @@ export const FOODS = [
   { id: 'kralik',            familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['králík'] },
   { id: 'zverina',           familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable', aliases: ['zvěřina', 'jelení', 'srnčí', 'divočák'] },
   { id: 'sunka',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['šunka', 'uzeniny'] },
-  { id: 'sadlo',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'none',     aliases: ['sádlo', 'vepřové sádlo', 'husí sádlo'] },
+  // Note: sádlo (rendered pork fat) lives in `fats-oils` family — it's a cooking fat, not meat.
   // Fish/seafood
   { id: 'treska',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
   { id: 'tunak',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
@@ -411,6 +411,13 @@ export const FOODS = [
   { id: 'lnene-semenko',     familyId: 'nuts-seeds' as FamilyId,  allergenIds: [],               form: 'raw-only', sourceGroup: 'seminka' },
   { id: 'slunecnicova-seminka', familyId: 'nuts-seeds' as FamilyId, allergenIds: ['seeds'],      form: 'raw-only', sourceGroup: 'seminka' },
   { id: 'chia',              familyId: 'nuts-seeds' as FamilyId,  allergenIds: [],               form: 'raw-only', sourceGroup: 'seminka' },
+  // Fats & oils — cooking fats consolidated (Q7: split out from dairy/meat/spices)
+  // Source axis: cow (dairy fats), plant (oils, margarine), pork (rendered animal fat)
+  { id: 'maslo',             familyId: 'fats-oils' as FamilyId,   allergenIds: ['dairy'],        form: 'none',     sourceGroup: 'cow' },
+  { id: 'ghi',               familyId: 'fats-oils' as FamilyId,   allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'cow', aliases: ['ghí', 'ghee', 'přepuštěné máslo'] },
+  { id: 'rostlinne-maslo',   familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant', aliases: ['rostlinné máslo', 'margarín', 'Rama', 'Flora'] },
+  { id: 'olej',              familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant', aliases: ['olej', 'olivový olej'] },
+  { id: 'sadlo',             familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'pork',  aliases: ['sádlo', 'vepřové sádlo', 'husí sádlo'] },
   // Sweet
   { id: 'med',               familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
   { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
@@ -423,7 +430,6 @@ export const FOODS = [
   { id: 'kecup',             familyId: 'spices-condiments' as FamilyId, allergenIds: ['tomatoes'], form: 'raw-only' },
   { id: 'horcice',           familyId: 'spices-condiments' as FamilyId, allergenIds: ['mustard'], form: 'raw-only' },
   { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'], form: 'raw-only' },
-  { id: 'olej',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['olej', 'olivový olej'] },
   { id: 'bazalka',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
   { id: 'oregano',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
   { id: 'mleta-paprika',     familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['mletá paprika'] },

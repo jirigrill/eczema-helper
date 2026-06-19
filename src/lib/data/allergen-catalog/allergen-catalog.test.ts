@@ -98,8 +98,8 @@ describe('required fields', () => {
 // ── Count sanity ──────────────────────────────────────────────
 
 describe('collection counts', () => {
-  it('13 families (12 clinical + custom)', () => {
-    expect(FAMILIES).toHaveLength(13);
+  it('14 families (13 clinical + custom)', () => {
+    expect(FAMILIES).toHaveLength(14);
   });
 
   it('at least 32 allergens (all records from the previous catalog)', () => {
