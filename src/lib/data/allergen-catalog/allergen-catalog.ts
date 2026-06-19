@@ -443,15 +443,12 @@ export const FOODS = [
   { id: 'stevie',            familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['stévie', 'stevia'] },
   // Spices/condiments
   { id: 'sul',               familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
-  { id: 'kmin',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
-  { id: 'skorice',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
-  { id: 'pepr',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
+  // Dried spices & herbs aggregated into one tile — all carry [] and have negligible
+  // differential eczema signal (earned-granularity; individual names kept as aliases).
+  { id: 'koreni-bylinky',    familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['koření', 'bylinky', 'kmín', 'skořice', 'pepř', 'bazalka', 'oregano', 'mletá paprika', 'chilli', 'majoránka', 'petržel', 'kurkuma', 'zázvor'] },
   { id: 'kecup',             familyId: 'spices-condiments' as FamilyId, allergenIds: ['tomatoes'], form: 'raw-only' },
   { id: 'horcice',           familyId: 'spices-condiments' as FamilyId, allergenIds: ['mustard'], form: 'raw-only' },
-  { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'], form: 'raw-only' },
-  { id: 'bazalka',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
-  { id: 'oregano',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
-  { id: 'mleta-paprika',     familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['mletá paprika'] },
+  { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'], form: 'raw-only', aliases: ['ocet', 'jablečný ocet', 'vinný ocet', 'balsamico'] },
   // Drinks
   { id: 'voda',              familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none'     },
   { id: 'bylinny-caj',       familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'liquid'   },

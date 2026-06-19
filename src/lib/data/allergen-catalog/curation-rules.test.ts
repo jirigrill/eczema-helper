@@ -293,11 +293,14 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(byId('nealko-pivo')?.familyId).toBe('drinks');
   });
 
-  it('spices: bazalka, oregano, mletá paprika added', () => {
-    for (const id of ['bazalka', 'oregano', 'mleta-paprika']) {
-      const f = byId(id);
-      expect(f, `spice '${id}' missing`).toBeDefined();
-      expect(f?.familyId).toBe('spices-condiments');
+  it('dried spices & herbs aggregated into one koreni-bylinky tile (earned-granularity)', () => {
+    const f = byId('koreni-bylinky');
+    expect(f, 'koreni-bylinky must exist').toBeDefined();
+    expect(f?.familyId).toBe('spices-condiments');
+    expect(f?.allergenIds).toEqual([]);
+    // Individual dried spices no longer earn their own tiles.
+    for (const id of ['kmin', 'skorice', 'pepr', 'bazalka', 'oregano', 'mleta-paprika']) {
+      expect(byId(id), `individual spice '${id}' must be aggregated away`).toBeUndefined();
     }
   });
 });
