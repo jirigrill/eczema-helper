@@ -85,9 +85,7 @@ A food twin lets a mother log the concrete food she eats, while the allergen tri
 | `kravske-mleko`| Kravské mléko| `dairy`  | `['dairy']`        | Twin for dairy allergen |
 | `psenice`      | Pšenice      | `grains` | `['wheat']`   | Source-tier twin for wheat allergen |
 | `tofu`         | Tofu         | `legumes`| `['soy']`          | Twin for soy, under legumes |
-| `arasisove-maslo` | Arašídové máslo | `nuts-seeds` | `['nuts']` | Representative nut food |
 | `sezam`        | Sezamová semínka | `nuts-seeds` | `['sesame']` | Twin for sesame allergen |
-| `tahini`       | Tahini       | `nuts-seeds` | `['sesame']`   | |
 | `jahody`       | Jahody       | `fruit`  | `['strawberries']` | Twin for strawberries allergen |
 | `rajce`        | Rajče        | `vegetables` | `['tomatoes']` | Twin for tomatoes allergen |
 | `kukurice`     | Kukuřice     | `grains` | `['corn']`         | Twin for corn allergen |
@@ -107,7 +105,7 @@ A food twin lets a mother log the concrete food she eats, while the allergen tri
 
 | food id  | Czech name | familyId  | allergenIds             | Notes |
 |----------|------------|-----------|-------------------------|-------|
-| `hummus` | Hummus     | `legumes` | `['legumes', 'sesame']` | Chickpea (legumes) + tahini (sesame) — warns during *either* elimination |
+| `hummus` | Hummus     | `legumes` | `['legumes', 'sesame']` | Chickpea (legumes) + sesame paste (sesame) — warns during *either* elimination |
 
 ### 3d. Loose everyday foods per family (representative, non-exhaustive)
 
@@ -174,7 +172,7 @@ All food names in §3 are already Czech strings.
 
 - [x] Every current catalog record assigned to exactly one family (35 records → see §2)
 - [x] Every food has a family and a (possibly empty) allergen trigger set (§3)
-- [x] Food twins specified: `vejce`, `kravske-mleko`, `psenice`, `tofu`, `arasisove-maslo`, `sezam`, `tahini`, `jahody`, `rajce`, `kukurice`, `pomeranc`, `cokolada`, `losos`, `krevetky` (§3a)
+- [x] Food twins specified: `vejce`, `kravske-mleko`, `psenice`, `tofu`, `sezam`, `jahody`, `rajce`, `kukurice`, `pomeranc`, `cokolada`, `losos`, `krevetky` (§3a)
 - [x] Divergent placements specified: `sojove-mleko`, `ryzove-mleko` (§3b)
 - [x] At least one composite food: `hummus` (chickpea + sesame) (§3c)
 - [x] Homeless records resolved: `mustard`, `sulphites-additives`, `vinegar-fermented`, `yeast` → all `spices-condiments` (§4)

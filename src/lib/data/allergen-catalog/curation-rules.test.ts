@@ -171,7 +171,7 @@ describe('per-family expansion (issue #319 scope)', () => {
   });
 
   it('nuts-seeds expansion has lískové, kešu, para, chia', () => {
-    for (const id of ['liskove', 'kesu', 'para']) {
+    for (const id of ['liskove', 'kesu', 'para', 'arasidy', 'pekanove', 'pistacie', 'makadamove']) {
       const f = byId(id);
       expect(f, `nut '${id}' missing`).toBeDefined();
       expect(f?.allergenIds).toEqual(['nuts']);
@@ -179,6 +179,12 @@ describe('per-family expansion (issue #319 scope)', () => {
     }
     expect(byId('chia')?.allergenIds).toEqual([]);
     expect(byId('chia')?.sourceGroup).toBe('seminka');
+    expect(byId('mak')?.allergenIds).toEqual(['seeds']);
+    expect(byId('mak')?.sourceGroup).toBe('seminka');
+    expect(byId('konopna-seminka')?.allergenIds).toEqual(['seeds']);
+    expect(byId('konopna-seminka')?.sourceGroup).toBe('seminka');
+    expect(byId('kokos')?.allergenIds).toEqual([]);
+    expect(byId('kokos')?.sourceGroup).toBe('orechy');
   });
 
   it('fish-seafood expansion has makrela, sleď, mušle, krab', () => {
