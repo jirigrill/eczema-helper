@@ -449,13 +449,15 @@ export const FOODS = [
   { id: 'kecup',             familyId: 'spices-condiments' as FamilyId, allergenIds: ['tomatoes'], form: 'none' },
   { id: 'horcice',           familyId: 'spices-condiments' as FamilyId, allergenIds: ['mustard'], form: 'none' },
   { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'], form: 'none', aliases: ['ocet', 'jablečný ocet', 'vinný ocet', 'balsamico'] },
-  // Drinks
-  { id: 'voda',              familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none'     },
-  { id: 'bylinny-caj',       familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'liquid'   },
-  { id: 'kava',              familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'liquid'   },
-  { id: 'cerny-caj',         familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'liquid'   },
-  { id: 'nealko-pivo',       familyId: 'drinks' as FamilyId,      allergenIds: ['wheat', 'yeast'], form: 'liquid', aliases: ['nealkoholické pivo'] },
-  { id: 'dzus',              familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'liquid', aliases: ['džus'] },
+  // Drinks — all form: none (beverages are drunk, not prepared raw/cooked)
+  { id: 'bylinny-caj',       familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none'   },
+  { id: 'kava',              familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'none'   },
+  { id: 'cerny-caj',         familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'none'   },
+  { id: 'obilna-kava',       familyId: 'drinks' as FamilyId,      allergenIds: ['wheat'],        form: 'none', aliases: ['obilná káva', 'Caro', 'Melta', 'cikorka'] },
+  { id: 'pivo',              familyId: 'drinks' as FamilyId,      allergenIds: ['wheat', 'yeast'], form: 'none', aliases: ['pivo', 'nealkoholické pivo', 'alkoholické pivo', 'beer'] },
+  { id: 'vino',              familyId: 'drinks' as FamilyId,      allergenIds: ['sulphites-additives'], form: 'none', aliases: ['víno', 'wine'] },
+  { id: 'tvrdy-alkohol',     familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none', aliases: ['tvrdý alkohol', 'destilát', 'spirits'] },
+  { id: 'dzus',              familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none', aliases: ['džus'] },
 ] as const satisfies readonly FoodRecord[];
 
 export type CatalogFoodId = typeof FOODS[number]['id'];

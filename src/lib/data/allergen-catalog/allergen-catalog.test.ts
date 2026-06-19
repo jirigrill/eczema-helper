@@ -86,7 +86,6 @@ describe('required fields', () => {
 
   it('representative foods are tagged with the documented form', () => {
     const byId = (id: string) => FOODS.find((f) => f.id === id);
-    expect(byId('voda')?.form).toBe('none');
     expect(byId('sul')?.form).toBe('none');
     expect(byId('kravske-mleko')?.form).toBe('liquid');
     expect(byId('brambory')?.form).toBe('cookable');

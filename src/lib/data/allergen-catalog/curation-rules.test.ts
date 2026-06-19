@@ -46,10 +46,28 @@ describe('curation: precision-biased allergenIds', () => {
     expect(f?.allergenIds).toEqual([]);
   });
 
-  it('nealko pivo carries [wheat, yeast]', () => {
-    const f = byId('nealko-pivo');
+  it('pivo carries [wheat, yeast]', () => {
+    const f = byId('pivo');
     expect(f).toBeDefined();
     expect([...(f?.allergenIds ?? [])].sort()).toEqual(['wheat', 'yeast'].sort());
+  });
+
+  it('obilná káva (Caro/Melta) carries [wheat] — distinct trigger from coffee', () => {
+    expect(byId('obilna-kava')?.allergenIds).toEqual(['wheat']);
+  });
+
+  it('víno carries [sulphites-additives]; tvrdý alkohol has no modelled allergen', () => {
+    expect(byId('vino')?.allergenIds).toEqual(['sulphites-additives']);
+    expect(byId('tvrdy-alkohol')?.allergenIds).toEqual([]);
+  });
+
+  it('every drink is form: none (beverages are drunk, not prepared)', () => {
+    type FoodLite = { id: string; familyId: string; form: string };
+    const drinks = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'drinks');
+    expect(drinks.length).toBeGreaterThan(0);
+    for (const f of drinks) {
+      expect(f.form, `drink '${f.id}' should be form: none`).toBe('none');
+    }
   });
 });
 
@@ -288,9 +306,10 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(byId('edamame')?.allergenIds).toEqual(['soy']);
   });
 
-  it('drinks: džus added; nealko pivo present', () => {
+  it('drinks: džus + pivo present; voda removed', () => {
     expect(byId('dzus')?.familyId).toBe('drinks');
-    expect(byId('nealko-pivo')?.familyId).toBe('drinks');
+    expect(byId('pivo')?.familyId).toBe('drinks');
+    expect(byId('voda'), 'voda removed from catalog').toBeUndefined();
   });
 
   it('dried spices & herbs aggregated into one koreni-bylinky tile (earned-granularity)', () => {

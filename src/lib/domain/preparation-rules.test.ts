@@ -26,7 +26,7 @@ describe('formPreparations', () => {
 
 describe('formForFood', () => {
   it('returns the catalog form for a known food', () => {
-    expect(formForFood('voda')).toBe('none');
+    expect(formForFood('sul')).toBe('none');
     expect(formForFood('kravske-mleko')).toBe('liquid');
     expect(formForFood('brambory')).toBe('cookable');
     expect(formForFood('listovy-salat')).toBe('raw-only');
