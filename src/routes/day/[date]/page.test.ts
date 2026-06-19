@@ -428,14 +428,18 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     expect(getByText('Brambory')).toBeInTheDocument();
   });
 
-  it('shows "Zatím žádný záznam." when liveQuery returns no meals', async () => {
+  it('shows all four unlogged meal slots when liveQuery returns no meals', async () => {
     mockPage.params.date = today;
     liveMeals = [];
     mockScheduleRaw.set(readyRawToday);
     const { default: DayPage } = await import('./+page.svelte');
-    const { getByText } = render(DayPage);
+    const { getByTestId, queryByText } = render(DayPage);
     await tick();
-    expect(getByText('Zatím žádný záznam.')).toBeInTheDocument();
+    expect(getByTestId('meal-row-breakfast')).toBeInTheDocument();
+    expect(getByTestId('meal-row-lunch')).toBeInTheDocument();
+    expect(getByTestId('meal-row-snack')).toBeInTheDocument();
+    expect(getByTestId('meal-row-dinner')).toBeInTheDocument();
+    expect(queryByText('Zatím žádný záznam.')).not.toBeInTheDocument();
   });
 
   it('shows tolerance reminder when training phase is active and allergen never dosed', async () => {

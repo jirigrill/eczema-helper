@@ -625,6 +625,143 @@
 
   <hr class="section-hr">
 
+  <!-- ─── MealCard ─────────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/MealCard.svelte -->
+  <div class="component-section" id="meal-card">
+    <p class="component-label">▸ <span>MealCard</span> — date, meals: Meal[], eliminatedToday: string[]</p>
+    <p class="component-desc">Single white card with internal dividers, eyebrow "Dnešní jídla". Always renders all four meal slots in order (Snídaně · Oběd · Svačina · Večeře). Three row states: (1) unlogged — muted icon (no circle), muted label, "+" on right, tappable → /meal?type=&lt;slot&gt;&date=&lt;date&gt;&returnTo=/day/&lt;date&gt;. (2) clean logged — primary icon in plain white circle, bold meal-type label, food names joined by " · " (no portion, no prep), chevron. (3) conflict logged — danger/15-tinted circle + danger icon, one "⚠ &lt;Czech allergen name&gt;" pill per distinct eliminated allergen the meal triggers, each triggering food in text-danger red, chevron. Conflict set = food's allergensForFood ∩ eliminatedToday.</p>
+    <div class="component-variants">
+      <!-- Unlogged slots (all four) -->
+      <div style="max-width:360px">
+        <p class="variant-name">all four slots unlogged</p>
+        <div class="bg-white border border-[#E8DFE1] rounded-2xl p-3.5">
+          <div style="font-size:10px;color:#9E8D91;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">Dnešní jídla</div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌅</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Snídaně</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">☀️</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Oběd</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🍎</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Svačina</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌙</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Večeře</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clean logged + unlogged mix -->
+      <div style="max-width:360px">
+        <p class="variant-name">clean logged (Snídaně) · unlogged rest</p>
+        <div class="bg-white border border-[#E8DFE1] rounded-2xl p-3.5">
+          <div style="font-size:10px;color:#9E8D91;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">Dnešní jídla</div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#7A5C64;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌅</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:14px;font-weight:600;color:#2E1B20">Snídaně</div>
+                  <div style="font-size:11px;color:#9E8D91">Ovesná kaše · Banán</div>
+                </div>
+                <span style="color:#9E8D91;font-size:14px">›</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">☀️</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Oběd</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conflict logged + multi-allergen -->
+      <div style="max-width:360px">
+        <p class="variant-name">conflict logged (Oběd, 2 allergens) · clean (Snídaně) · unlogged rest</p>
+        <div class="bg-white border border-[#E8DFE1] rounded-2xl p-3.5">
+          <div style="font-size:10px;color:#9E8D91;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;margin-bottom:8px">Dnešní jídla</div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#7A5C64;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌅</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:14px;font-weight:600;color:#2E1B20">Snídaně</div>
+                  <div style="font-size:11px;color:#9E8D91">Ovesná kaše · Banán</div>
+                </div>
+                <span style="color:#9E8D91;font-size:14px">›</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:rgba(193,46,46,0.15);color:#C12E2E;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">☀️</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                    <span style="font-size:14px;font-weight:600;color:#2E1B20">Oběd</span>
+                    <span style="font-size:10px;font-weight:600;border-radius:9999px;padding:2px 6px;background:rgba(193,46,46,0.15);color:#C12E2E">⚠ Mléčné výrobky</span>
+                    <span style="font-size:10px;font-weight:600;border-radius:9999px;padding:2px 6px;background:rgba(193,46,46,0.15);color:#C12E2E">⚠ Sója</span>
+                  </div>
+                  <div style="font-size:11px;color:#9E8D91">Kuřecí · <span style="color:#C12E2E;font-weight:500">Jogurt</span> · <span style="color:#C12E2E;font-weight:500">Sójové mléko</span></div>
+                </div>
+                <span style="color:#9E8D91;font-size:14px">›</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🍎</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Svačina</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+          <div style="border-top:1px solid #E8DFE1">
+            <a href="#" style="display:block;text-decoration:none">
+              <div style="padding:8px 0;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#fff;color:#ccc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌙</div>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:#9E8D91;opacity:0.7">Večeře</div></div>
+                <span style="color:#7A5C64;font-size:18px;line-height:1">+</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
   <!-- ─── SkinObservationCard ──────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/SkinObservationCard.svelte -->
   <div class="component-section" id="skin-observation-card">
