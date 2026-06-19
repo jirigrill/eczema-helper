@@ -249,6 +249,61 @@ bucket — a presentation catch-all carrying *no* safety claim (danger stays
 per-food). Source never enters the trigger path; like `familyId` it is presentation
 only — see [ADR-0019](docs/adr/0019-food-source-subgroup.md).
 
+**Principle — what qualifies as a Food: atomic consumption *and* fixed
+composition.** A catalog Food is a thing **acquired and eaten as one indivisible
+unit whose allergen set is invariant across instances** — `jogurt`, `ovesné
+mléko`, `mléčná čokoláda`, `nealkoholické pivo`, `hummus`, `tofu`. Two
+independent tests both must hold: *atomic consumption* (eaten as one unit, the
+eater cannot separate the parts — milk chocolate is one bar, you cannot eat the
+cacao without the milk) **and** *fixed composition* (the allergen set does not
+vary instance to instance). A multi-ingredient **dish** assembled at eating time
+fails the second test even when eaten from one bowl — `guláš`, `pizza`,
+`polévka`, `sendvič` differ recipe to recipe, so no honest `allergenIds` exists.
+A dish is therefore **never** a catalog Food: the mother either **decomposes** it
+into its component Foods (`guláš` → `hovězí` + `cibule` + …) or logs it as a
+free-text **custom food** (`other:guláš`, empty `allergenIds`, the honest-unknown
+state below). A dish can never *graduate* into the catalog — there is no
+deterministic allergen set to curate; asserting one would lie about the next
+instance. The meal *is* the composition (`Meal.items` is a list); the Food is not.
+
+**Principle — food allergen-curation is precision-biased: characteristic
+ingredients only.** A Food's `allergenIds` are the **characteristic ingredients
+of the standard product**, not every allergen any brand might contain. Excluded:
+trace cross-contamination (oats are intrinsically gluten-free → `ovesné mléko` is
+`[]`, never `wheat`, even though some brands cross-contaminate), optional
+emulsifiers/additives (soy lecithin in `mléčná čokoláda` → not asserted), and
+brand-variable add-ins. A *reliably-present second characteristic ingredient*
+spawns a **separate named Food** (`oříšková čokoláda` → `[chocolate, dairy,
+nuts]`), never a widened allergen set on the plain tile. This is the same
+precision-bias ADR-0017 applies to harvest normalization and to the empty
+`allergenIds` of custom foods: **never assert a trigger we are not sure of.** The
+reason is diagnostic, not lazy — a substitute product's whole purpose is what it
+replaces (`ovesné mléko` is reached for *to avoid* dairy), so over-tagging turns
+the safe option red and trains the mother to ignore warnings (alarm fatigue),
+which is worse for diagnosis than a rare missed trace. The recall safety-net is
+the live-resolution + harvest machinery already described below: a genuinely
+missed *characteristic* trigger learned later retroactively enriches every past
+log; trace contaminants do not qualify, characteristic ingredients do.
+
+**Principle — food granularity is earned, not exhaustive: split only on a
+differential trigger or insight signal.** A distinct product earns its own Food
+**only** when it differs from a sibling in either its `allergenIds` *or* its
+likely reaction signal (different allergen expression / physiology — fermented vs
+fresh, casein-heavy vs near-pure fat). **Cosmetic variants of the same substance
+and processing class do not earn a tile.** `rohlík` is the same gluten and the
+same processing as `pšeničný chleb` → one canonical wheat-bread food, not
+bread + rolls + bagels. By contrast `jogurt` / `máslo` / `sýr` differ
+physiologically (fermentation, casein:whey, fat) → each earns a tile, all sharing
+`allergenIds: ['dairy']`. The allergen is the questionnaire/reintroduction unit
+and is **never loggable**; the meal log always selects a concrete food, so an
+allergen with no neutral home still needs **≥1 representative food** (you log
+`pšeničný chleb`, never the allergen `wheat`). The bar is *one canonical food per
+(allergen × meaningful form/physiology)*, not one per culinary product — granularity
+serves insight resolution, not catalog completeness. The long tail of cosmetic
+products is absorbed by custom foods (`other:`) and harvest, not by pre-seeding
+every variant. (Dishes are excluded one level up by the atomicity + fixed-composition
+rule; this rule governs the *atomic products that remain*.)
+
 **A logged `MealItem` stores only its `foodId`; its triggers are resolved live
 from the catalog, never snapshotted onto the meal.** Conflict detection is
 already a derived, recomputed view (it was never a stored audit fact — only

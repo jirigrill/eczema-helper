@@ -23,6 +23,19 @@ export const familySources = {
     { key: 'gluten',       label: 'S lepkem' },
     { key: 'gluten-free',  label: 'Bez lepku' },
   ],
+  fruit: [
+    { key: 'tuzemske',   label: 'Tuzemské'   },
+    { key: 'bobuloviny', label: 'Bobuloviny' },
+    { key: 'exoticke',   label: 'Exotické'   },
+  ],
+  'nuts-seeds': [
+    { key: 'orechy',  label: 'Ořechy'   },
+    { key: 'seminka', label: 'Semínka'  },
+  ],
+  'fish-seafood': [
+    { key: 'ryby',       label: 'Ryby'        },
+    { key: 'plody-more', label: 'Plody moře'  },
+  ],
 } as const satisfies Partial<Record<FamilyId, readonly SourceGroup[]>>;
 
 /** Czech label for the trailing unsourced bucket. */

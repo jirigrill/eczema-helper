@@ -468,7 +468,7 @@ session — `/meal` composes exactly one meal of one type. There is no mid-add t
 change and no in-`/meal` slot switching. Because type is bound at entry, a draft and a
 finalized meal can never contend for one slot, so slot collisions are impossible *by
 construction*. → See ADR-0018. (Supersedes the earlier *mutable-attribute* model with
-**Move** / **Switch-Away** pill actions, recorded in the superseded ADR-0019.)
+**Move** / **Switch-Away** pill actions.)
 
 ### Meal-Type FAB Submenu / Meal Launcher
 The day-page entry into `/meal`. The **FAB** opens a submenu of the four `MealType`s;
@@ -669,7 +669,7 @@ the move / switch-away / load click logic. **Retired** when meal type became
 [Fixed-at-Entry](#fixed-at-entry-meal-type): type is chosen on the day page (see
 [Meal-Type FAB Submenu](#meal-type-fab-submenu--meal-launcher)) and no longer switches
 inside `/meal`. The component, its tests, and the `discard-buffer.loadedFromType`
-field were removed in issue #266. → See ADR-0018 (supersedes ADR-0019).
+field were removed in issue #266. → See ADR-0018.
 
 ---
 
