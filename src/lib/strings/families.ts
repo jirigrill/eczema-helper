@@ -180,7 +180,7 @@ export const foodStrings = {
   'kokosovy-olej':     { name: 'Kokosový olej'          },
   'bylinny-caj':       { name: 'Bylinkový čaj'          },
   kava:                { name: 'Káva'                   },
-  'cerny-caj':         { name: 'Černý čaj'              },
+  caj:                 { name: 'Čaj (s kofeinem)'       },
   'obilna-kava':       { name: 'Obilná káva (Caro)'     },
   pivo:                { name: 'Pivo'                   },
   vino:                { name: 'Víno'                   },

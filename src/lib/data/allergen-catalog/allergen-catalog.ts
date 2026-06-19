@@ -452,7 +452,7 @@ export const FOODS = [
   // Drinks — all form: none (beverages are drunk, not prepared raw/cooked)
   { id: 'bylinny-caj',       familyId: 'drinks' as FamilyId,      allergenIds: [],               form: 'none'   },
   { id: 'kava',              familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'none'   },
-  { id: 'cerny-caj',         familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'none'   },
+  { id: 'caj',               familyId: 'drinks' as FamilyId,      allergenIds: ['coffee-tea'],   form: 'none', aliases: ['čaj', 'černý čaj', 'zelený čaj', 'bílý čaj', 'oolong'] },
   { id: 'obilna-kava',       familyId: 'drinks' as FamilyId,      allergenIds: ['wheat'],        form: 'none', aliases: ['obilná káva', 'Caro', 'Melta', 'cikorka'] },
   { id: 'pivo',              familyId: 'drinks' as FamilyId,      allergenIds: ['wheat', 'yeast'], form: 'none', aliases: ['pivo', 'nealkoholické pivo', 'alkoholické pivo', 'beer'] },
   { id: 'vino',              familyId: 'drinks' as FamilyId,      allergenIds: ['sulphites-additives'], form: 'none', aliases: ['víno', 'wine'] },
