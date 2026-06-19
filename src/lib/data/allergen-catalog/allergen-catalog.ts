@@ -422,15 +422,15 @@ export const FOODS = [
   // Source axis: plant (oils, margarine) / animal (dairy fats + rendered pork fat).
   // Oils split by type (option A) — different fatty-acid profiles are a plausible
   // eczema insight signal; all carry [] (refined oil ≈ no seed/fruit protein).
-  { id: 'maslo',             familyId: 'fats-oils' as FamilyId,   allergenIds: ['dairy'],        form: 'none',     sourceGroup: 'animal' },
+  { id: 'maslo',             familyId: 'fats-oils' as FamilyId,   allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'animal' },
   { id: 'ghi',               familyId: 'fats-oils' as FamilyId,   allergenIds: ['dairy'],        form: 'cookable', sourceGroup: 'animal', aliases: ['ghí', 'ghee', 'přepuštěné máslo'] },
-  { id: 'sadlo',             familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'animal', aliases: ['sádlo', 'vepřové sádlo', 'husí sádlo'] },
-  { id: 'rostlinne-maslo',   familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant',  aliases: ['rostlinné máslo', 'margarín', 'Rama', 'Flora'] },
-  { id: 'olivovy-olej',      familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant',  aliases: ['olivový olej', 'olive oil'] },
-  { id: 'repkovy-olej',      familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant',  aliases: ['řepkový olej', 'rapeseed oil', 'canola'] },
-  { id: 'slunecnicovy-olej', familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant',  aliases: ['slunečnicový olej', 'sunflower oil'] },
-  { id: 'lneny-olej',        familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant',  aliases: ['lněný olej', 'flaxseed oil', 'linseed oil'] },
-  { id: 'kokosovy-olej',     familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'none',     sourceGroup: 'plant',  aliases: ['kokosový olej', 'coconut oil'] },
+  { id: 'sadlo',             familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'animal', aliases: ['sádlo', 'vepřové sádlo', 'husí sádlo'] },
+  { id: 'rostlinne-maslo',   familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['rostlinné máslo', 'margarín', 'Rama', 'Flora'] },
+  { id: 'olivovy-olej',      familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['olivový olej', 'olive oil'] },
+  { id: 'repkovy-olej',      familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['řepkový olej', 'rapeseed oil', 'canola'] },
+  { id: 'slunecnicovy-olej', familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['slunečnicový olej', 'sunflower oil'] },
+  { id: 'lneny-olej',        familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['lněný olej', 'flaxseed oil', 'linseed oil'] },
+  { id: 'kokosovy-olej',     familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['kokosový olej', 'coconut oil'] },
   // Sweet
   { id: 'med',               familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
   { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
