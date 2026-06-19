@@ -60,9 +60,8 @@ export const familySources = {
     { key: 'kostalova', label: 'Košťálová' },
   ],
   'fats-oils': [
-    { key: 'plant', label: 'Rostlinné'   },
-    { key: 'cow',   label: 'Kravské'     },
-    { key: 'pork',  label: 'Vepřové'     },
+    { key: 'plant',  label: 'Rostlinné'  },
+    { key: 'animal', label: 'Živočišné'  },
   ],
 } as const satisfies Partial<Record<FamilyId, readonly SourceGroup[]>>;
 

@@ -39,9 +39,9 @@ describe('curation: precision-biased allergenIds', () => {
     expect([...(f?.allergenIds ?? [])].sort()).toEqual(['chocolate', 'dairy', 'nuts'].sort());
   });
 
-  it('olej (cooking fat) is form: none with no allergens', () => {
-    const f = byId('olej');
-    expect(f, 'olej must be added as a neutral staple').toBeDefined();
+  it('olivový olej (cooking fat) is form: none with no allergens', () => {
+    const f = byId('olivovy-olej');
+    expect(f, 'olivovy-olej must be added as a neutral staple').toBeDefined();
     expect(f?.form).toBe('none');
     expect(f?.allergenIds).toEqual([]);
   });
@@ -303,11 +303,21 @@ describe('per-family expansion (issue #319 scope)', () => {
 });
 
 describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/meat/spices)', () => {
-  it('family exists with 5 members (olej, maslo, ghi, rostlinne-maslo, sadlo)', () => {
+  it('family exists with animal fats + split plant oils (option A)', () => {
     type FoodLite = { id: string; familyId: string };
     const fats = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'fats-oils');
     const ids = fats.map((f) => f.id).sort();
-    expect(ids).toEqual(['ghi', 'maslo', 'olej', 'rostlinne-maslo', 'sadlo']);
+    expect(ids).toEqual([
+      'ghi',
+      'kokosovy-olej',
+      'lneny-olej',
+      'maslo',
+      'olivovy-olej',
+      'repkovy-olej',
+      'rostlinne-maslo',
+      'sadlo',
+      'slunecnicovy-olej',
+    ]);
   });
 
   it('ryzove-mleko stays in dairy family (sourceGroup: plant) — fats-oils is for cooking fats, not plant milks', () => {
@@ -315,20 +325,20 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
     expect(byId('ryzove-mleko')?.sourceGroup).toBe('plant');
   });
 
-  it('maslo: fats-oils family, cow source, dairy allergen, form: none', () => {
+  it('maslo: fats-oils family, animal source, dairy allergen, form: none', () => {
     const f = byId('maslo');
     expect(f).toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
-    expect(f?.sourceGroup).toBe('cow');
+    expect(f?.sourceGroup).toBe('animal');
     expect(f?.allergenIds).toEqual(['dairy']);
     expect(f?.form).toBe('none');
   });
 
-  it('ghi: fats-oils family, cow source, dairy allergen, cookable', () => {
+  it('ghi: fats-oils family, animal source, dairy allergen, cookable', () => {
     const f = byId('ghi');
     expect(f, 'ghi must be added').toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
-    expect(f?.sourceGroup).toBe('cow');
+    expect(f?.sourceGroup).toBe('animal');
     expect(f?.allergenIds).toEqual(['dairy']);
     expect(f?.form).toBe('cookable');
   });
@@ -342,33 +352,36 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
     expect(f?.form).toBe('none');
   });
 
-  it('sadlo: fats-oils family, pork source (rendered pork fat), no allergens, form: none', () => {
+  it('sadlo: fats-oils family, animal source (rendered pork fat), no allergens, form: none', () => {
     const f = byId('sadlo');
     expect(f, 'sadlo must be added').toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
-    expect(f?.sourceGroup).toBe('pork');
+    expect(f?.sourceGroup).toBe('animal');
     expect(f?.allergenIds).toEqual([]);
     expect(f?.form).toBe('none');
   });
 
-  it('olej: fats-oils family, plant source, no allergens, form: none (was misfiled in spices-condiments)', () => {
-    const f = byId('olej');
-    expect(f).toBeDefined();
-    expect(f?.familyId).toBe('fats-oils');
-    expect(f?.sourceGroup).toBe('plant');
-    expect(f?.allergenIds).toEqual([]);
-    expect(f?.form).toBe('none');
+  it('oils split by type (option A), all plant source, no allergens, form: none', () => {
+    const oils = ['olivovy-olej', 'repkovy-olej', 'slunecnicovy-olej', 'lneny-olej', 'kokosovy-olej'];
+    for (const id of oils) {
+      const f = byId(id);
+      expect(f, `${id} must be added`).toBeDefined();
+      expect(f?.familyId).toBe('fats-oils');
+      expect(f?.sourceGroup).toBe('plant');
+      expect(f?.allergenIds, `${id} carries no allergens (refined oil ≈ no protein)`).toEqual([]);
+      expect(f?.form).toBe('none');
+    }
   });
 
-  it('siblings-cohere: every fats-oils food has a sourceGroup in {cow, plant, pork}', () => {
+  it('siblings-cohere: every fats-oils food has a sourceGroup in {plant, animal}', () => {
     type FoodLite = { id: string; familyId: string; sourceGroup?: string };
-    const validGroups = new Set(['cow', 'plant', 'pork']);
+    const validGroups = new Set(['plant', 'animal']);
     const fats = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'fats-oils');
     expect(fats.length, 'sanity: fats-oils non-empty').toBeGreaterThan(0);
     for (const f of fats) {
       expect(
         f.sourceGroup,
-        `fats-oils '${f.id}' must have sourceGroup in {cow, plant, pork} (got '${f.sourceGroup}')`,
+        `fats-oils '${f.id}' must have sourceGroup in {plant, animal} (got '${f.sourceGroup}')`,
       ).toBeDefined();
       expect(
         validGroups,
@@ -392,10 +405,14 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
     expect(meat.find((f) => f.id === 'sadlo'), 'sadlo must not be in meat').toBeUndefined();
   });
 
-  it('spices-condiments family no longer contains olej', () => {
+  it('spices-condiments family no longer contains cooking oils', () => {
     type FoodLite = { id: string; familyId: string };
     const spices = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'spices-condiments');
     expect(spices.find((f) => f.id === 'olej'), 'olej must not be in spices-condiments').toBeUndefined();
+    expect(
+      spices.find((f) => f.id.endsWith('-olej')),
+      'cooking oils must not be in spices-condiments',
+    ).toBeUndefined();
   });
 });
 
