@@ -392,12 +392,20 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
     expect(names[6]).toBe('Třešně');
   });
 
-  it('fruit · bobuloviny sorted alphabetically (Borůvky → Jahody → Maliny → Rybíz)', () => {
+  it('fruit · bobuloviny sorted alphabetically (Angrešt → Borůvky → Brusinky → Jahody → Maliny → Ostružiny → Rybíz)', () => {
     const { container } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'fruit' as const },
     });
     const names = namesInGroup(container as HTMLElement, 'Bobuloviny');
-    expect(names).toEqual(['Borůvky', 'Jahody', 'Maliny', 'Rybíz']);
+    expect(names).toEqual(['Angrešt', 'Borůvky', 'Brusinky', 'Jahody', 'Maliny', 'Ostružiny', 'Rybíz']);
+  });
+
+  it('fruit · citrusy sorted alphabetically (Citron → Grapefruit → Mandarinka → Pomeranč)', () => {
+    const { container } = render(FamilyDrillIn, {
+      props: { ...baseProps, familyId: 'fruit' as const },
+    });
+    const names = namesInGroup(container as HTMLElement, 'Citrusy');
+    expect(names).toEqual(['Citron', 'Grapefruit', 'Mandarinka', 'Pomeranč']);
   });
 
   it('grains · s lepkem sorted alphabetically (Ječmen → Oves → Pšenice → Žito)', () => {

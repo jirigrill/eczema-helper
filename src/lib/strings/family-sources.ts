@@ -38,6 +38,7 @@ export const familySources = {
   fruit: [
     { key: 'tuzemske',   label: 'Tuzemské'   },
     { key: 'bobuloviny', label: 'Bobuloviny' },
+    { key: 'citrusy',    label: 'Citrusy'    },
     { key: 'exoticke',   label: 'Exotické'   },
   ],
   'nuts-seeds': [

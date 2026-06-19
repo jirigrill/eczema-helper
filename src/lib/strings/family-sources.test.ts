@@ -3,9 +3,9 @@ import { familySources } from './family-sources';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 
 describe('familySources axes', () => {
-  it('fruit has tuzemské · bobuloviny · exotické (in render order)', () => {
+  it('fruit has tuzemské · bobuloviny · citrusy · exotické (in render order)', () => {
     const keys = (familySources as Record<string, readonly { key: string }[]>).fruit?.map((s) => s.key);
-    expect(keys).toEqual(['tuzemske', 'bobuloviny', 'exoticke']);
+    expect(keys).toEqual(['tuzemske', 'bobuloviny', 'citrusy', 'exoticke']);
   });
 
   it('nuts-seeds has ořechy · semínka (in render order)', () => {
