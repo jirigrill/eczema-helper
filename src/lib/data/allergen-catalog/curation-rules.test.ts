@@ -306,3 +306,21 @@ describe('dairy + meat: fats expansion (Q4: ghí, rostlinné máslo, sádlo + ry
     }
   });
 });
+
+describe('fruit family: form coherence (Q5: fruit is cookable, not raw-only)', () => {
+  it('every fruit has form: cookable (compote, jam, baking, povidla — fruit is not destroyed by cooking)', () => {
+    // `form` governs which preparation chips render on the meal-log UI.
+    // `raw-only` should be reserved for foods *destroyed* by cooking (leafy salads).
+    // CZ home cooking routinely cooks fruit: štrúdl, povidla, kompoty, koláče,
+    // knedlíky s ovocem, grilled pears, citrus zest in baking, berry jams.
+    type FoodLite = { id: string; familyId: string; form: string };
+    const fruits = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'fruit');
+    expect(fruits.length, 'sanity: should have many fruits').toBeGreaterThan(20);
+    for (const f of fruits) {
+      expect(
+        f.form,
+        `fruit '${f.id}' should be 'cookable' (compote/jam/baking applies); got '${f.form}'`,
+      ).toBe('cookable');
+    }
+  });
+});

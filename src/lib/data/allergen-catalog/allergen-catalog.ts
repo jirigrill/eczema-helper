@@ -250,8 +250,8 @@ export type ProtocolAllergenId3 = Extract<typeof ALLERGENS[number], { protocol: 
  * Catalog-only metadata — never persisted on a logged meal item.
  *   - none      → no preparation row (water, oil, salt, sugar)
  *   - liquid    → raw · boiled · baked (milk, drinkable)
- *   - cookable  → all four chips (potato, meat, rice, vegetables)
- *   - raw-only  → only raw (leafy salad, fresh fruit eaten raw)
+ *   - cookable  → all four chips (potato, meat, rice, vegetables, most fruit — anything not destroyed by cooking)
+ *   - raw-only  → only raw (leafy salad, cucumber — destroyed or made unpalatable by heat)
  *
  * Single source of truth — the type derives from this array, and
  * `formPreparations` fails `tsc` via its `satisfies` clause until it covers
@@ -283,10 +283,10 @@ export const FOODS = [
   { id: 'arasisove-maslo',   familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['nuts'],         form: 'raw-only', sourceGroup: 'orechy' },
   { id: 'sezam',             familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame'],       form: 'cookable', sourceGroup: 'seminka' },
   { id: 'tahini',            familyId: 'nuts-seeds' as FamilyId,  allergenIds: ['sesame'],       form: 'raw-only', sourceGroup: 'seminka' },
-  { id: 'jahody',            familyId: 'fruit' as FamilyId,       allergenIds: ['strawberries'], form: 'raw-only', sourceGroup: 'bobuloviny' },
+  { id: 'jahody',            familyId: 'fruit' as FamilyId,       allergenIds: ['strawberries'], form: 'cookable', sourceGroup: 'bobuloviny' },
   { id: 'rajce',             familyId: 'vegetables' as FamilyId,  allergenIds: ['tomatoes'],     form: 'cookable', sourceGroup: 'plodova' },
   { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn'],         form: 'cookable', sourceGroup: 'gluten-free' },
-  { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'raw-only', sourceGroup: 'citrusy' },
+  { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
   { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    form: 'raw-only', aliases: ['hořká čokoláda', 'dark chocolate'] },
   { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
   { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish'],    form: 'cookable', sourceGroup: 'plody-more' },
@@ -346,28 +346,28 @@ export const FOODS = [
   { id: 'lilek',              familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'plodova' },
   { id: 'houby',              familyId: 'vegetables' as FamilyId,  allergenIds: ['mushroom'],     form: 'cookable' },
   // Fruit
-  { id: 'jablko',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'jadroviny' },
-  { id: 'hruska',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'jadroviny' },
-  { id: 'merunka',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'peckoviny' },
-  { id: 'broskev',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'peckoviny' },
-  { id: 'hrozny',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny' },
-  { id: 'svestka',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'peckoviny', aliases: ['švestka'] },
-  { id: 'tresne',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'peckoviny', aliases: ['třešně', 'višně'] },
-  { id: 'boruvky',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny' },
-  { id: 'maliny',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny' },
-  { id: 'rybiz',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny', aliases: ['rybíz'] },
-  { id: 'banan',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'tropicke' },
-  { id: 'kiwi',              familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'tropicke' },
-  { id: 'mango',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'tropicke' },
-  { id: 'ananas',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'tropicke' },
-  { id: 'avokado',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'tropicke', aliases: ['avokádo'] },
-  { id: 'citron',            familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'raw-only', sourceGroup: 'citrusy' },
-  { id: 'mandarinka',        familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'raw-only', sourceGroup: 'citrusy' },
-  { id: 'grapefruit',        familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'raw-only', sourceGroup: 'citrusy' },
-  { id: 'meloun',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'tropicke' },
-  { id: 'brusinky',          familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny' },
-  { id: 'ostruziny',         familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny', aliases: ['ostružiny'] },
-  { id: 'angrest',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'raw-only', sourceGroup: 'bobuloviny', aliases: ['angrešt'] },
+  { id: 'jablko',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'jadroviny' },
+  { id: 'hruska',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'jadroviny' },
+  { id: 'merunka',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'peckoviny' },
+  { id: 'broskev',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'peckoviny' },
+  { id: 'hrozny',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny' },
+  { id: 'svestka',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'peckoviny', aliases: ['švestka'] },
+  { id: 'tresne',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'peckoviny', aliases: ['třešně', 'višně'] },
+  { id: 'boruvky',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny' },
+  { id: 'maliny',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny' },
+  { id: 'rybiz',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny', aliases: ['rybíz'] },
+  { id: 'banan',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
+  { id: 'kiwi',              familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
+  { id: 'mango',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
+  { id: 'ananas',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
+  { id: 'avokado',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke', aliases: ['avokádo'] },
+  { id: 'citron',            familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
+  { id: 'mandarinka',        familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
+  { id: 'grapefruit',        familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
+  { id: 'meloun',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
+  { id: 'brusinky',          familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny' },
+  { id: 'ostruziny',         familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny', aliases: ['ostružiny'] },
+  { id: 'angrest',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny', aliases: ['angrešt'] },
   // Meat
   { id: 'kureci',            familyId: 'meat' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
   { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable' },
