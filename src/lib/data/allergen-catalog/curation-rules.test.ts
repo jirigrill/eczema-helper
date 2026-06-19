@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FOODS } from './allergen-catalog';
+import { FOODS, ALLERGENS } from './allergen-catalog';
 
 type FoodLite = { id: string; familyId: string; allergenIds: readonly string[]; form: string; sourceGroup?: string };
 const byId = (id: string): FoodLite | undefined => (FOODS as readonly FoodLite[]).find((f) => f.id === id);
@@ -162,6 +162,74 @@ describe('per-family expansion (issue #319 scope)', () => {
       expect(f?.familyId).toBe('vegetables');
     }
     expect(byId('houby')?.allergenIds).toEqual(['mushroom']);
+  });
+
+  it('vegetables: pastyňák / listový salát / celer / ředkev added (issue #319 follow-up)', () => {
+    for (const id of ['pastynak', 'listovy-salat', 'celer', 'redkev']) {
+      const f = byId(id);
+      expect(f, `vegetable '${id}' missing`).toBeDefined();
+      expect(f?.familyId).toBe('vegetables');
+    }
+    // Celer carries the (newly tracked) `celery` allergen — EU regulatory allergen #9.
+    expect(byId('celer')?.allergenIds).toEqual(['celery']);
+    // Other three carry no tracked allergen.
+    expect(byId('pastynak')?.allergenIds).toEqual([]);
+    expect(byId('listovy-salat')?.allergenIds).toEqual([]);
+    expect(byId('redkev')?.allergenIds).toEqual([]);
+  });
+
+  it('vegetables: every food has a sourceGroup matching the kořenová/listová/plodová/cibulová/hlízová/košťálová axis (houby → ostatní)', () => {
+    type FoodLite = { id: string; familyId: string; sourceGroup?: string };
+    const veg = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'vegetables');
+    const expected: Record<string, string | undefined> = {
+      // Plodová (fruit-vegetables)
+      rajce:           'plodova',
+      okurka:          'plodova',
+      cuketa:          'plodova',
+      paprika:         'plodova',
+      dyne:            'plodova',
+      lilek:           'plodova',
+      // Listová (leaf)
+      spenat:          'listova',
+      'listovy-salat': 'listova',
+      // Kořenová (root)
+      mrkev:           'korenova',
+      repa:            'korenova',
+      celer:           'korenova',
+      pastynak:        'korenova',
+      redkev:          'korenova',
+      // Cibulová (bulb / allium)
+      cesnek:          'cibulova',
+      cibule:          'cibulova',
+      // Hlízová (tuber)
+      brambory:        'hlizova',
+      bataty:          'hlizova',
+      // Košťálová (brassica)
+      kvetak:          'kostalova',
+      zeli:            'kostalova',
+      brokolice:       'kostalova',
+      // Houby — mushrooms aren't culinary vegetables → Ostatní (sourceGroup undefined)
+      houby:           undefined,
+    };
+    for (const food of veg) {
+      const want = expected[food.id];
+      if (want === undefined) {
+        expect(food.sourceGroup, `${food.id} should be unsourced (Ostatní)`).toBeUndefined();
+      } else {
+        expect(
+          food.sourceGroup,
+          `${food.id} expected sourceGroup '${want}', got '${food.sourceGroup}'`,
+        ).toBe(want);
+      }
+    }
+  });
+
+  it('celery allergen tracked as log-only (no protocol)', () => {
+    type AllergenLite = { id: string; familyId: string; protocol?: unknown };
+    const celery = (ALLERGENS as readonly AllergenLite[]).find((a) => a.id === 'celery');
+    expect(celery, '`celery` allergen must exist').toBeDefined();
+    expect(celery?.familyId).toBe('vegetables');
+    expect(celery?.protocol, '`celery` is log-only (no reintroduction protocol)').toBeUndefined();
   });
 
   it('meat expansion has kachna, králík, šunka', () => {

@@ -72,18 +72,16 @@ describe('FamilyDrillIn — eggs family (flat, < 5 foods)', () => {
   });
 });
 
-// ── Vegetables — large family (≥5 foods) with NO authored sources ──
+// ── Vegetables — large family with authored 6-group axis ──
 
-describe('FamilyDrillIn — vegetables family (flat, large/uncurated)', () => {
+describe('FamilyDrillIn — vegetables family (grouped by culinary axis)', () => {
   const vegBase = { ...baseProps, familyId: 'vegetables' as const };
 
-  it('renders a flat list with no source-group headers despite ≥5 foods', () => {
-    const { queryByText } = render(FamilyDrillIn, { props: vegBase });
-    // No familySources entry for vegetables → flat even though it has 17 foods.
-    expect(queryByText('Kravské')).not.toBeInTheDocument();
-    expect(queryByText('Rostlinné')).not.toBeInTheDocument();
-    expect(queryByText('S lepkem')).not.toBeInTheDocument();
-    expect(queryByText('Ostatní')).not.toBeInTheDocument();
+  it('renders the 6-group culinary axis (kořenová / listová / plodová / cibulová / hlízová / košťálová)', () => {
+    const { getAllByText } = render(FamilyDrillIn, { props: vegBase });
+    for (const label of ['Kořenová', 'Listová', 'Plodová', 'Cibulová', 'Hlízová', 'Košťálová']) {
+      expect(getAllByText(label).length, `'${label}' header missing`).toBeGreaterThan(0);
+    }
   });
 
   it('does NOT render the legacy "bez alergenu" heading', () => {
@@ -91,11 +89,16 @@ describe('FamilyDrillIn — vegetables family (flat, large/uncurated)', () => {
     expect(queryByText(/bez alergenu/i)).not.toBeInTheDocument();
   });
 
-  it('still renders the family foods as buttons in flat mode', () => {
+  it('renders veg foods as buttons (grouped under their source headers)', () => {
     const { getByRole } = render(FamilyDrillIn, { props: vegBase });
     expect(getByRole('button', { name: /Brambory/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Mrkev/ })).toBeInTheDocument();
     expect(getByRole('button', { name: /Špenát/ })).toBeInTheDocument();
+  });
+
+  it('houby renders under Ostatní (mushrooms aren’t culinary vegetables)', () => {
+    const { queryByText } = render(FamilyDrillIn, { props: vegBase });
+    expect(queryByText('Ostatní')).toBeInTheDocument();
   });
 });
 
@@ -405,18 +408,12 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
     expect(names).toEqual(['Ječmen', 'Oves', 'Pšenice', 'Žito']);
   });
 
-  it('vegetables (flat, no axis) is sorted alphabetically as one list', () => {
+  it('vegetables · plodová sorted alphabetically (Cuketa → Dýně → Lilek → Okurka → Paprika → Rajče)', () => {
     const { container } = render(FamilyDrillIn, {
       props: { ...baseProps, familyId: 'vegetables' as const },
     });
-    const buttons = Array.from(
-      (container as HTMLElement).querySelectorAll('button'),
-    ) as HTMLButtonElement[];
-    const names = buttons
-      .map((b) => b.getAttribute('aria-label') || b.textContent?.trim() || '')
-      .filter(Boolean);
-    const sorted = [...names].sort((a, b) => a.localeCompare(b, 'cs'));
-    expect(names).toEqual(sorted);
+    const names = namesInGroup(container as HTMLElement, 'Plodová');
+    expect(names).toEqual(['Cuketa', 'Dýně', 'Lilek', 'Okurka', 'Paprika', 'Rajče']);
   });
 });
 

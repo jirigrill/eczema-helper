@@ -22,6 +22,20 @@ describe('familySources axes', () => {
     expect(keys).toEqual(['ryby', 'plody-more']);
   });
 
+  it('vegetables has 6 culinary groups (kořenová · listová · plodová · cibulová · hlízová · košťálová)', () => {
+    const keys = (familySources as Record<string, readonly { key: string }[]>).vegetables?.map(
+      (s) => s.key
+    );
+    expect(keys).toEqual([
+      'korenova',
+      'listova',
+      'plodova',
+      'cibulova',
+      'hlizova',
+      'kostalova',
+    ]);
+  });
+
   it('dairy axis (existing) reused, not redefined', () => {
     const keys = (familySources as Record<string, readonly { key: string }[]>).dairy.map((s) => s.key);
     expect(keys).toEqual(['cow', 'sheep', 'goat', 'plant']);
