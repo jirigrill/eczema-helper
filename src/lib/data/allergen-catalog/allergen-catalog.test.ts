@@ -91,7 +91,7 @@ describe('required fields', () => {
     expect(byId('kravske-mleko')?.form).toBe('liquid');
     expect(byId('brambory')?.form).toBe('cookable');
     expect(byId('hovezi')?.form).toBe('cookable');
-    expect(byId('spenat')?.form).toBe('raw-only');
+    expect(byId('listovy-salat')?.form).toBe('raw-only');
   });
 });
 

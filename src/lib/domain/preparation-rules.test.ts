@@ -29,7 +29,7 @@ describe('formForFood', () => {
     expect(formForFood('voda')).toBe('none');
     expect(formForFood('kravske-mleko')).toBe('liquid');
     expect(formForFood('brambory')).toBe('cookable');
-    expect(formForFood('spenat')).toBe('raw-only');
+    expect(formForFood('listovy-salat')).toBe('raw-only');
   });
 
   it('defaults custom (other:*) and unknown foods to cookable', () => {

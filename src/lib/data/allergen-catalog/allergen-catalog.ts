@@ -327,9 +327,9 @@ export const FOODS = [
   // Houby renders under `Ostatní` (mushrooms aren't culinary vegetables).
   { id: 'okurka',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only', sourceGroup: 'plodova' },
   { id: 'cuketa',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'plodova' },
-  { id: 'spenat',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only', sourceGroup: 'listova' },
+  { id: 'spenat',            familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'listova' },
   { id: 'listovy-salat',     familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only', sourceGroup: 'listova', aliases: ['listový salát', 'salát'] },
-  { id: 'paprika',           familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'raw-only', sourceGroup: 'plodova' },
+  { id: 'paprika',           familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'plodova' },
   { id: 'brokolice',         familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'kostalova' },
   { id: 'mrkev',             familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'korenova' },
   { id: 'pastynak',          familyId: 'vegetables' as FamilyId,  allergenIds: [],               form: 'cookable', sourceGroup: 'korenova', aliases: ['pastyňák'] },

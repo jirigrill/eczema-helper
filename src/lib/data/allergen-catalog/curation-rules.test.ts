@@ -307,6 +307,37 @@ describe('dairy + meat: fats expansion (Q4: ghí, rostlinné máslo, sádlo + ry
   });
 });
 
+describe('vegetables family: form coherence (Q6: only the genuinely raw-only stay raw-only)', () => {
+  it('špenát and paprika flip to cookable (špenát se smetanou, plněné papriky — dominant CZ uses)', () => {
+    expect(byId('spenat')?.form).toBe('cookable');
+    expect(byId('paprika')?.form).toBe('cookable');
+  });
+
+  it('listový salát, okurka, ředkev stay raw-only (cooking is not a CZ-canonical pathway)', () => {
+    // Rule: chip presence reflects "is cooking a recognized CZ preparation",
+    // not "is cooking physically possible". A cooked-okurka chip would be
+    // dead weight on the meal-log UI; a parent logging cooked cucumber is
+    // more likely a fat-finger error than an intentional log.
+    expect(byId('listovy-salat')?.form).toBe('raw-only');
+    expect(byId('okurka')?.form).toBe('raw-only');
+    expect(byId('redkev')?.form).toBe('raw-only');
+  });
+
+  it('siblings-cohere: every vegetable not in the raw-only allow-list is cookable', () => {
+    type FoodLite = { id: string; familyId: string; form: string };
+    const RAW_ONLY_VEG = new Set(['listovy-salat', 'okurka', 'redkev']);
+    const veg = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'vegetables');
+    expect(veg.length, 'sanity: should have many vegetables').toBeGreaterThan(15);
+    for (const f of veg) {
+      const expected = RAW_ONLY_VEG.has(f.id) ? 'raw-only' : 'cookable';
+      expect(
+        f.form,
+        `vegetable '${f.id}' expected form '${expected}' (allow-list: ${[...RAW_ONLY_VEG].join(', ')}), got '${f.form}'`,
+      ).toBe(expected);
+    }
+  });
+});
+
 describe('fruit family: form coherence (Q5: fruit is cookable, not raw-only)', () => {
   it('every fruit has form: cookable (compote, jam, baking, povidla — fruit is not destroyed by cooking)', () => {
     // `form` governs which preparation chips render on the meal-log UI.
