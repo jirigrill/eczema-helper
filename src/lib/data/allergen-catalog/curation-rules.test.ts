@@ -465,6 +465,34 @@ describe('vegetables family: form coherence (Q6: only the genuinely raw-only sta
   });
 });
 
+describe('sweet family: cocoa/carob + syrup expansion + source split', () => {
+  it('kakao carries [chocolate]; karob is a cocoa-free substitute with no allergens', () => {
+    expect(byId('kakao')?.allergenIds).toEqual(['chocolate']);
+    expect(byId('karob')?.allergenIds, 'carob has no cocoa → no chocolate trigger').toEqual([]);
+  });
+
+  it('new syrups/sweeteners carry [] (natural sugars, precision-biased)', () => {
+    for (const id of ['agavovy-sirup', 'cekankovy-sirup', 'xylitol']) {
+      const f = byId(id);
+      expect(f, `${id} must be added`).toBeDefined();
+      expect(f?.allergenIds).toEqual([]);
+      expect(f?.form).toBe('none');
+    }
+  });
+
+  it('siblings-cohere: every sweet food has a sourceGroup in {chocolate, sweetener}', () => {
+    type FoodLite = { id: string; familyId: string; sourceGroup?: string };
+    const valid = new Set(['chocolate', 'sweetener']);
+    const sweets = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'sweet');
+    expect(sweets.length).toBeGreaterThan(0);
+    for (const f of sweets) {
+      expect(valid, `sweet '${f.id}' has invalid sourceGroup '${f.sourceGroup}'`).toContain(
+        f.sourceGroup,
+      );
+    }
+  });
+});
+
 describe('fruit family: form coherence (Q5: fruit is cookable, not raw-only)', () => {
   it('every fruit has form: cookable (compote, jam, baking, povidla — fruit is not destroyed by cooking)', () => {
     // `form` governs which preparation chips render on the meal-log UI.

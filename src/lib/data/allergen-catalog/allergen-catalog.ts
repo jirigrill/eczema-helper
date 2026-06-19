@@ -288,7 +288,7 @@ export const FOODS = [
   { id: 'rajce',             familyId: 'vegetables' as FamilyId,  allergenIds: ['tomatoes'],     form: 'cookable', sourceGroup: 'plodova' },
   { id: 'kukurice',          familyId: 'grains' as FamilyId,      allergenIds: ['corn'],         form: 'cookable', sourceGroup: 'gluten-free' },
   { id: 'pomeranc',          familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
-  { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    form: 'raw-only', aliases: ['hořká čokoláda', 'dark chocolate'] },
+  { id: 'horka-cokolada',   familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    form: 'raw-only', sourceGroup: 'chocolate', aliases: ['hořká čokoláda', 'dark chocolate'] },
   { id: 'losos',             familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
   { id: 'krevetky',          familyId: 'fish-seafood' as FamilyId,allergenIds: ['shellfish'],    form: 'cookable', sourceGroup: 'plody-more' },
   // ── Divergent placements (§3b) ───────────────────────────
@@ -301,8 +301,8 @@ export const FOODS = [
   { id: 'kozi-mleko',        familyId: 'dairy' as FamilyId,       allergenIds: ['dairy'],        form: 'liquid', aliases: ['kozí mléko', 'goat milk'], sourceGroup: 'goat' },
   // ── Composite food (§3c) ─────────────────────────────────
   { id: 'hummus', familyId: 'legumes' as FamilyId, allergenIds: ['legumes', 'sesame'], form: 'raw-only', aliases: ['hummus', 'homus'] },
-   { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'], form: 'raw-only', aliases: ['mléčná čokoláda', 'milk chocolate'] },
-   { id: 'oriskova-cokolada', familyId: 'sweet' as FamilyId,      allergenIds: ['chocolate', 'dairy', 'nuts'], form: 'raw-only', aliases: ['oříšková čokoláda', 'hazelnut chocolate'] },
+   { id: 'mlecna-cokolada',  familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate', 'dairy'], form: 'raw-only', sourceGroup: 'chocolate', aliases: ['mléčná čokoláda', 'milk chocolate'] },
+   { id: 'oriskova-cokolada', familyId: 'sweet' as FamilyId,      allergenIds: ['chocolate', 'dairy', 'nuts'], form: 'raw-only', sourceGroup: 'chocolate', aliases: ['oříšková čokoláda', 'hazelnut chocolate'] },
   // ── Loose everyday foods (§3d) ───────────────────────────
   // Dairy — cow product split (earned: jogurt fermented, sýr/tvaroh casein-heavy, smetana fat-rich)
   // Note: cooking fats (máslo, ghí, rostlinné máslo) live in `fats-oils` family — they share a
@@ -432,9 +432,14 @@ export const FOODS = [
   { id: 'lneny-olej',        familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['lněný olej', 'flaxseed oil', 'linseed oil'] },
   { id: 'kokosovy-olej',     familyId: 'fats-oils' as FamilyId,   allergenIds: [],               form: 'cookable', sourceGroup: 'plant',  aliases: ['kokosový olej', 'coconut oil'] },
   // Sweet
-  { id: 'med',               familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
-  { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
-  { id: 'trtinovy-cukr',     familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none'     },
+  { id: 'kakao',             familyId: 'sweet' as FamilyId,       allergenIds: ['chocolate'],    form: 'none',     sourceGroup: 'chocolate', aliases: ['kakao', 'cocoa', 'kakaový prášek'] },
+  { id: 'karob',             familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'chocolate', aliases: ['karob', 'carob', 'svatojánský chléb'] },
+  { id: 'med',               familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener' },
+  { id: 'javorovy-sirup',    familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener' },
+  { id: 'agavovy-sirup',     familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['agávový sirup', 'agave syrup'] },
+  { id: 'cekankovy-sirup',   familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['čekankový sirup', 'chicory syrup'] },
+  { id: 'trtinovy-cukr',     familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener' },
+  { id: 'xylitol',           familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['xylitol', 'březový cukr', 'birch sugar'] },
   // Spices/condiments
   { id: 'sul',               familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
   { id: 'kmin',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
