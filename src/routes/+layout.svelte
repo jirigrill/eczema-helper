@@ -7,6 +7,7 @@
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import { isPhaseEndForEvaluation } from '$lib/domain/schedule-queries';
   import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
   import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
@@ -42,6 +43,12 @@
   // mark already-logged slots with a ✓ for the current `selectedDate`.
   const dayMealSession = $derived(createMealSession(selectedDate));
   const loggedTypes = $derived<MealType[]>($dayMealSession.map((m) => m.mealType));
+
+  // Contextual fourth FAB row — shown only when `selectedDate` is the last day
+  // of an evaluable phase (issue #331).
+  const showEvaluate = $derived(
+    ctx.status === 'ready' && isPhaseEndForEvaluation(ctx.schedule, selectedDate),
+  );
 
   let fabOpen = $state(false);
 
@@ -166,6 +173,7 @@
   <FabActionSheet
     date={selectedDate}
     {loggedTypes}
+    {showEvaluate}
     onclose={() => (fabOpen = false)}
     oncapturephoto={handleFabPhotoCapture}
   />

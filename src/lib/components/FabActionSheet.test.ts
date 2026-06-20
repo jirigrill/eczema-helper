@@ -166,4 +166,64 @@ describe('FabActionSheet', () => {
     expect(row.querySelector('svg')).not.toBeNull();
     expect(row.textContent).toContain('✓');
   });
+
+  describe('contextual evaluate action (issue #331)', () => {
+    it('is absent by default (ordinary day)', () => {
+      const { queryByTestId } = render(FabActionSheet, {
+        props: { date, onclose: vi.fn() },
+      });
+      expect(queryByTestId('fab-action-evaluate')).not.toBeInTheDocument();
+    });
+
+    it('is absent when showEvaluate is false', () => {
+      const { queryByTestId } = render(FabActionSheet, {
+        props: { date, onclose: vi.fn(), showEvaluate: false },
+      });
+      expect(queryByTestId('fab-action-evaluate')).not.toBeInTheDocument();
+    });
+
+    it('renders the evaluate row when showEvaluate is true', () => {
+      const { getByTestId } = render(FabActionSheet, {
+        props: { date, onclose: vi.fn(), showEvaluate: true },
+      });
+      expect(getByTestId('fab-action-evaluate')).toBeInTheDocument();
+    });
+
+    it('tapping the evaluate row navigates to /evaluation with ?date= and ?returnTo=', async () => {
+      const onclose = vi.fn();
+      const { getByTestId } = render(FabActionSheet, {
+        props: { date, onclose, showEvaluate: true },
+      });
+      await fireEvent.click(getByTestId('fab-action-evaluate'));
+      await tick();
+      expect(gotoMock).toHaveBeenCalledWith(
+        `/evaluation?date=${date}&returnTo=/day/${date}`,
+      );
+      expect(onclose).toHaveBeenCalledOnce();
+    });
+
+    it('the evaluate row is day-scoped — uses the current `date` prop', async () => {
+      const pastDate = '2025-04-01';
+      const { getByTestId } = render(FabActionSheet, {
+        props: { date: pastDate, onclose: vi.fn(), showEvaluate: true },
+      });
+      await fireEvent.click(getByTestId('fab-action-evaluate'));
+      await tick();
+      expect(gotoMock).toHaveBeenCalledWith(
+        `/evaluation?date=${pastDate}&returnTo=/day/${pastDate}`,
+      );
+    });
+
+    it('does not appear inside the meal-type submenu', async () => {
+      const { getByTestId, queryByTestId } = render(FabActionSheet, {
+        props: { date, onclose: vi.fn(), showEvaluate: true },
+      });
+      // While on the top-level action list, evaluate is visible.
+      expect(getByTestId('fab-action-evaluate')).toBeInTheDocument();
+      await fireEvent.click(getByTestId('fab-action-meal'));
+      await tick();
+      // Once the meal submenu replaces the list, evaluate is gone with the rest.
+      expect(queryByTestId('fab-action-evaluate')).not.toBeInTheDocument();
+    });
+  });
 });
