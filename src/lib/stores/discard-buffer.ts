@@ -20,6 +20,13 @@ export type DiscardedMeal = {
   kind: DiscardKind;
   workingMeal: WorkingMeal;
   mealType: MealType;
+  /**
+   * Original day the buffered meal belongs to (issue #323). Without this,
+   * the layout-level undo had no way to reconstruct `?date=` and fell
+   * through to today, silently moving deleted/discarded meals forward by
+   * however many days the user was browsing back.
+   */
+  date: string;
   returnTo: string;
 };
 

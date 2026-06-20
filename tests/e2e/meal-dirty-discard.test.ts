@@ -148,6 +148,76 @@ test('explicit Smazat shows "Jídlo smazáno" and Zpět re-persists the meal', a
   await expect(page.getByText('Brambory')).toBeVisible();
 });
 
+// ── Past-day delete-undo restores meal on its original day (issue #323) ─────
+
+test('delete-undo on a past day restores the meal to that day, not today', async ({ page }) => {
+  // Onboarding seeds programStartDate=today, but the bug only reproduces on
+  // past days — re-seed with programStartDate 5 days back so yesterday lands
+  // inside the schedule and `/day/<yesterday>` doesn't redirect to today.
+  await completeOnboarding(page);
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const start = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
+  const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
+  await page.evaluate(async ({ start, future }) => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.answers.update('singleton', { programStartDate: start });
+    await db.schedule.put({
+      id: 'singleton',
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: start,
+      estimatedEndDate: future,
+      phases: [
+        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
+      ],
+    });
+  }, { start, future });
+
+  // Seed a saved breakfast on yesterday.
+  await page.evaluate(async (date) => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.meals.put({
+      id: `${date}:breakfast`,
+      date,
+      mealType: 'breakfast',
+      actor: 'mother',
+      items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+      createdAt: '2025-06-13T08:00:00.000Z',
+    });
+  }, yesterday);
+
+  await page.goto(`/meal?type=breakfast&date=${yesterday}&returnTo=/day/${yesterday}`);
+  await expect(page.getByRole('button', { name: /^Brambory$/ })).toBeVisible();
+
+  // Delete via the ⋯ overflow.
+  await page.getByRole('button', { name: 'Více' }).click();
+  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+  await expect(page).toHaveURL(`/day/${yesterday}`);
+  await expect(page.getByText('Jídlo smazáno')).toBeVisible();
+
+  // Undo: must reopen the editor on the *original* day, not on today.
+  await page.getByRole('button', { name: 'Zpět' }).click();
+  await expect(page).toHaveURL(new RegExp(`/meal\\?.*date=${yesterday}`));
+  await expect(page).not.toHaveURL(new RegExp(`date=${today}`));
+
+  // Re-save: the meal must land on yesterday, not today.
+  await page.getByRole('button', { name: /Uložit Snídaně/ }).click();
+  await expect(page).toHaveURL(`/day/${yesterday}`);
+
+  const persisted = await page.evaluate(async ({ y, t }) => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    const onYesterday = await db.meals.get(`${y}:breakfast`);
+    const onToday = await db.meals.get(`${t}:breakfast`);
+    return { onYesterday: !!onYesterday, onToday: !!onToday };
+  }, { y: yesterday, t: today });
+  expect(persisted.onYesterday).toBe(true);
+  expect(persisted.onToday).toBe(false);
+});
+
 // ── createdAt preservation on edit-update ────────────────────────────────────
 
 test('save on edit-update preserves the original createdAt and stamps updatedAt', async ({ page }) => {

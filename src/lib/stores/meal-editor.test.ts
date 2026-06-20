@@ -355,7 +355,7 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'lunch', returnTo: '/day/2024-10-06' },
+      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'lunch', date, returnTo: '/day/2024-10-06' },
     );
 
     expect(editor2.finalizeKind).toBe('edit');
@@ -392,7 +392,7 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'breakfast' },
-      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'breakfast', returnTo: `/day/${date}` },
+      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'breakfast', date, returnTo: `/day/${date}` },
       ['dairy'],
     );
 
@@ -416,7 +416,7 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: 'edit', workingMeal: desc.workingMeal, mealType: 'lunch', returnTo: `/day/${date}` },
+      { kind: 'edit', workingMeal: desc.workingMeal, mealType: 'lunch', date, returnTo: `/day/${date}` },
     );
 
     // Second back-out: editor must report a non-null descriptor with the
@@ -448,7 +448,7 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: desc.kind, workingMeal: desc.workingMeal, mealType: 'lunch', returnTo: '/day/x' },
+      { kind: desc.kind, workingMeal: desc.workingMeal, mealType: 'lunch', date, returnTo: '/day/x' },
     );
     const result = await editor2.finalize();
     expect(result).toMatchObject({ ok: true });
@@ -484,6 +484,7 @@ describe('createMealEditor — applyUndo()', () => {
           ],
         },
         mealType: 'lunch',
+        date,
         returnTo: '/day/x',
       },
     );
@@ -522,6 +523,7 @@ describe('createMealEditor — applyUndo()', () => {
           ],
         },
         mealType: 'breakfast',
+        date,
         returnTo: '/day/x',
       },
     );

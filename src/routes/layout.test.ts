@@ -5,8 +5,8 @@ import { tick } from 'svelte';
 import { createRawSnippet } from 'svelte';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
-import { discardBuffer } from '$lib/stores/discard-buffer';
-import type { WorkingMeal } from '$lib/domain/working-meal';
+import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+import { emptyWorkingMeal, type WorkingMeal } from '$lib/domain/working-meal';
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
@@ -195,6 +195,7 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
       kind: 'compose',
       workingMeal: sampleWorkingMeal,
       mealType: 'breakfast',
+      date: today,
       returnTo: `/day/${today}`,
     });
 
@@ -332,5 +333,37 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
     await tick();
 
     expect(main.scrollTop).toBe(0);
+  });
+});
+
+describe('+layout.svelte — discard toast undo', () => {
+  beforeEach(() => {
+    clearBuffer();
+  });
+
+  it('preserves the buffer\'s original date when undoing a delete on a past day', async () => {
+    const pastDate = '2026-06-19';
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${pastDate}`),
+      params: { date: pastDate },
+      data: {},
+    });
+    mockScheduleContext.set(readyContext);
+    writeBuffer({
+      kind: 'delete',
+      workingMeal: emptyWorkingMeal(),
+      mealType: 'breakfast',
+      date: pastDate,
+      returnTo: `/day/${pastDate}`,
+    });
+
+    const { getByText } = await renderLayout();
+    await tick();
+    await fireEvent.click(getByText('Zpět'));
+    await tick();
+
+    expect(mockGoto).toHaveBeenCalledWith(
+      `/meal?type=breakfast&date=${pastDate}&returnTo=${encodeURIComponent(`/day/${pastDate}`)}`,
+    );
   });
 });
