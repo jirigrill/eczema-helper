@@ -639,7 +639,7 @@
 
         <!-- Meal notes -->
         <div class="mt-5">
-          <label class="eyebrow block mb-1" for="meal-notes">
+          <label class="eyebrow block mb-2" for="meal-notes">
             {commonStrings.meal.mealNotesLabel}
           </label>
           <textarea
