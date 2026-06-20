@@ -107,7 +107,7 @@
   </main>
 
   {#if showNav}
-    <nav class="bg-white border-t border-surface-dark pt-2 pb-5 shrink-0">
+    <nav class="relative z-30 bg-white border-t border-surface-dark pt-2 pb-5 shrink-0">
       <div class="grid grid-cols-3 items-end max-w-lg mx-auto">
         <a
           href="/day/{todayIso()}"
@@ -118,7 +118,7 @@
         </a>
         <div class="flex justify-center">
           <button
-            class="-mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
+            class="relative z-50 -mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
             aria-label={commonStrings.nav.addRecordAria}
             onclick={() => (fabOpen = true)}
           >+</button>

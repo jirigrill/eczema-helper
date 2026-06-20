@@ -540,6 +540,25 @@ The system **resists shadow elsewhere**. Inside the device, every elevation is c
 - **Subtle inner highlight** on the device bezel: `inset 0 0 0 1px rgba(255,255,255,0.06)` — gives the black bezel a faint pixel-rendered edge so it doesn't read as flat-fill.
 - **No atmospheric gradients on screen backgrounds.** The only gradients in the system are: (a) photo-thumb placeholder, (b) FAB shadow falloff. That's it.
 
+### Stacking Scale
+
+Z-index values across the app follow a fixed ladder. New surfaces pick the matching layer rather than inventing a value, so the FAB's overhanging top edge never gets covered by something arbitrarily set to `z-50` (issue #324).
+
+| Layer | Tailwind | Use |
+|---|---|---|
+| Base | (none) | Page content in normal flow |
+| Sticky chrome | `z-20` | Sticky page headers (`PageHeader`) |
+| Page CTA overlay | `z-30` | Bottom-anchored CTA gradients (e.g. meal page) — also the **bottom navigation bar** |
+| Transient notification | `z-40` | Toasts that float above the nav |
+| FAB | `z-50` | The "+" button — must outrank toast, nav siblings, and any page-level overlay so its lifted top edge is always visible |
+| Modal scrim | `z-[60]` | Backdrop behind a sheet/dialog |
+| Modal content | `z-[70]` | Bottom sheets, action sheets, confirm dialogs — intentionally cover the FAB |
+
+Rules:
+- Anything that uses `z-index` must also have a non-static `position` (use `relative` if no other positioning is needed).
+- A surface that pops up *above* the FAB must reach the modal layer (`z-[60]` / `z-[70]`); halfway values cover the FAB by accident.
+- Toast-style notifications stay below the FAB, not above it. Keep them at `z-40` and use `bottom-[…]` to clear the nav vertically.
+
 ## Shapes
 
 ### Border Radius Scale

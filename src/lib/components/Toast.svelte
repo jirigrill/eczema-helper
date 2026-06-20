@@ -53,7 +53,7 @@
 {#if visible}
   <div
     class="
-      fixed bottom-[84px] left-4 right-4 z-50
+      fixed bottom-[84px] left-4 right-4 z-40
       flex items-center justify-between gap-3
       px-4 py-3 rounded-xl shadow-lg
       animate-slideUp

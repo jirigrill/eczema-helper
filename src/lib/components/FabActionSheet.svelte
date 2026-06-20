@@ -46,7 +46,7 @@
 <!-- Backdrop -->
 <div
   role="presentation"
-  class="fixed inset-0 bg-black/35 z-40"
+  class="fixed inset-0 bg-black/35 z-[60]"
   onclick={onclose}
 ></div>
 
@@ -54,7 +54,7 @@
 <div
   role="dialog"
   aria-label={mealSubmenuOpen ? commonStrings.fabSheet.pickMealType : commonStrings.fabSheet.heading}
-  class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[20px] pb-safe"
+  class="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[20px] pb-safe"
 >
   {#if mealSubmenuOpen}
     <div class="px-5 pt-4 pb-2 text-center">
