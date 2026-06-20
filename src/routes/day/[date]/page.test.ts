@@ -264,6 +264,57 @@ describe('/day/[date] page', () => {
     });
   });
 
+  describe('header de-duplication', () => {
+    it('shows "Dnes" heading and weekday · date eyebrow on today', async () => {
+      mockPage.params.date = today;
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+
+      const heading = container.querySelector('h2.page-heading');
+      expect(heading?.textContent?.trim()).toBe('Dnes');
+
+      const eyebrow = container.querySelector('.eyebrow');
+      const eyebrowText = eyebrow?.textContent ?? '';
+      // Eyebrow on today shows weekday · date (the divider with surrounding spaces).
+      expect(eyebrowText).toContain('·');
+    });
+
+    it('shows the date exactly once in the header on a non-today day', async () => {
+      // Use a fixed past date so the long-format date is deterministic ("1. června").
+      mockPage.params.date = pastDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+
+      const headerBlock = container.querySelector('h2.page-heading')?.parentElement;
+      expect(headerBlock).toBeTruthy();
+      const headerText = headerBlock?.textContent ?? '';
+
+      const occurrences = headerText.split('1. června').length - 1;
+      expect(occurrences).toBe(1);
+
+      // Heading carries the date; eyebrow does not repeat it.
+      const heading = container.querySelector('h2.page-heading');
+      expect(heading?.textContent ?? '').toContain('1. června');
+
+      const eyebrow = container.querySelector('.eyebrow');
+      expect(eyebrow?.textContent ?? '').not.toContain('1. června');
+    });
+
+    it('eyebrow on a non-today day still shows the weekday', async () => {
+      mockPage.params.date = pastDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+      const eyebrow = container.querySelector('.eyebrow');
+      expect(eyebrow?.textContent?.toLowerCase() ?? '').toContain('neděle');
+    });
+  });
+
   describe('redirect on invalid param', () => {
     it('calls goto with today when param is a future date', async () => {
       mockPage.params.date = futureDate;

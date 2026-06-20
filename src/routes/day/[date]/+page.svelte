@@ -80,7 +80,11 @@
   <div class="px-4 pt-4 pb-2 flex items-end justify-between">
     <div>
       <div class="eyebrow">
-        {formatWeekdayLongCs(selectedDate)} · {formatDateLongCs(selectedDate)}
+        {#if isToday}
+          {formatWeekdayLongCs(selectedDate)} · {formatDateLongCs(selectedDate)}
+        {:else}
+          {formatWeekdayLongCs(selectedDate)}
+        {/if}
       </div>
       <h2 class="page-heading">{isToday ? commonStrings.today.heading : formatDateLongCs(selectedDate)}</h2>
     </div>
