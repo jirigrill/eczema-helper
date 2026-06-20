@@ -443,9 +443,15 @@ export const FOODS = [
   { id: 'stevie',            familyId: 'sweet' as FamilyId,       allergenIds: [],               form: 'none',     sourceGroup: 'sweetener', aliases: ['stévie', 'stevia'] },
   // Spices/condiments
   { id: 'sul',               familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none'     },
-  // Dried spices & herbs aggregated into one tile — all carry [] and have negligible
-  // differential eczema signal (earned-granularity; individual names kept as aliases).
-  { id: 'koreni-bylinky',    familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['koření', 'bylinky', 'kmín', 'skořice', 'pepř', 'bazalka', 'oregano', 'mletá paprika', 'chilli', 'majoránka', 'petržel', 'kurkuma', 'zázvor'] },
+  // Bylinky aggregated (fresh + dried herbs share [] allergen signal); individual spices
+  // split out per #338 — cinnamon/chilli/cumin/paprika powder appear often enough to
+  // warrant their own tiles. Yeast (droždí) gets a tile so it can be logged from /meal.
+  { id: 'bylinky',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['bylinky', 'bazalka', 'oregano', 'petržel', 'majoránka', 'kurkuma', 'zázvor', 'tymián', 'rozmarýn', 'koriandr'] },
+  { id: 'skorice',           familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['skořice', 'cinnamon'] },
+  { id: 'chilli',            familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['chilli', 'chili', 'kajenský pepř', 'cayenne'] },
+  { id: 'kmin',              familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['kmín', 'caraway'] },
+  { id: 'mleta-paprika',     familyId: 'spices-condiments' as FamilyId, allergenIds: [],         form: 'none', aliases: ['mletá paprika', 'paprika powder', 'sladká paprika', 'uzená paprika'] },
+  { id: 'drozdi',            familyId: 'spices-condiments' as FamilyId, allergenIds: ['yeast'],  form: 'none', aliases: ['droždí', 'kvasnice', 'pekařské droždí', 'sušené droždí'] },
   { id: 'kecup',             familyId: 'spices-condiments' as FamilyId, allergenIds: ['tomatoes'], form: 'none' },
   { id: 'horcice',           familyId: 'spices-condiments' as FamilyId, allergenIds: ['mustard'], form: 'none' },
   { id: 'ocet',              familyId: 'spices-condiments' as FamilyId, allergenIds: ['vinegar-fermented'], form: 'none', aliases: ['ocet', 'jablečný ocet', 'vinný ocet', 'balsamico'] },
