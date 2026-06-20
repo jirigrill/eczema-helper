@@ -45,9 +45,14 @@ describe('resolveRouteDate', () => {
     expect(result).toEqual({ type: 'redirect', to: today });
   });
 
-  it('returns redirect for a future date', () => {
+  it('returns preview for a future date within range', () => {
     const result = resolveRouteDate('2025-12-31', protocolStart, today);
-    expect(result).toEqual({ type: 'redirect', to: today });
+    expect(result).toEqual({ type: 'preview', date: '2025-12-31' });
+  });
+
+  it('returns preview for the day immediately after today', () => {
+    const result = resolveRouteDate('2025-06-11', protocolStart, today);
+    expect(result).toEqual({ type: 'preview', date: '2025-06-11' });
   });
 
   it('returns redirect for a date before protocolStart', () => {

@@ -58,6 +58,14 @@ export const commonStrings = {
     reminderOverdue:   'Naposledy před',
   },
 
+  // ── Future-day preview (read-only "Naplánováno" view) ────
+  dayPreview: {
+    /** Eyebrow / status badge on a future day. */
+    badge:        'Naplánováno',
+    /** Body copy explaining why the day is read-only. */
+    description:  'Tento den teprve nastane. Záznamy můžeš přidat, až bude den aktuální.',
+  },
+
   // ── Week page ─────────────────────────────────────────────
   week: {
     heading:      'Týden',

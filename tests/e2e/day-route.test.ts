@@ -62,13 +62,22 @@ test('/day/<invalid> redirects to /day/<today>', async ({ page }) => {
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('/day/<future> redirects to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
+test('/day/<future> renders read-only "Naplánováno" preview, no FAB', async ({ page }) => {
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
   const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
   await seedSchedule(page, startDate);
   await page.goto(`/day/${futureDate}`);
-  await expect(page).toHaveURL(`/day/${today}`);
+  // Stays on the future URL — no redirect.
+  await expect(page).toHaveURL(`/day/${futureDate}`);
+  // Preview block visible.
+  await expect(page.getByTestId('day-preview')).toBeVisible();
+  await expect(page.getByText('Naplánováno')).toBeVisible();
+  // Logging entry points are absent.
+  await expect(page.getByText('Stav ekzému')).not.toBeVisible();
+  await expect(page.getByText('Foto kůže')).not.toBeVisible();
+  await expect(page.getByText('Dnešní jídla')).not.toBeVisible();
+  // FAB (add-record button) is suppressed on a future day.
+  await expect(page.getByRole('button', { name: 'Přidat záznam' })).toHaveCount(0);
 });
 
 test('/day/<before-start> redirects to /day/<today>', async ({ page }) => {

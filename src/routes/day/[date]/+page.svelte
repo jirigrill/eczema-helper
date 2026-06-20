@@ -35,6 +35,7 @@
   const ctx = $derived(view.ctx);
   const selectedDate = $derived(view.selectedDate);
   const phase = $derived(view.phase);
+  const isPreview = $derived(view.viewMode === 'preview');
 
   const toleranceReminders = $derived(
     ctx.status === 'ready'
@@ -159,83 +160,98 @@
       </a>
 
       <!-- Today-only chrome: task counter + tolerance reminders -->
-      {#if isToday}
-        <div class="bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between" data-testid="task-counter">
-          <div class="text-[12px] text-text">{commonStrings.today.counterHint}</div>
-          <div class="text-[10px] text-text-muted font-bold tracking-wide">{completeness} / 3</div>
+      {#if isPreview}
+        <!-- Future-day read-only "Naplánováno" preview -->
+        <div
+          class="bg-white border border-surface-dark rounded-2xl p-4"
+          data-testid="day-preview"
+        >
+          <div class="text-[10px] font-extrabold tracking-wider text-text-muted uppercase mb-1.5">
+            {commonStrings.dayPreview.badge}
+          </div>
+          <p class="text-[12px] text-text-muted">
+            {commonStrings.dayPreview.description}
+          </p>
         </div>
+      {:else}
+        {#if isToday}
+          <div class="bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between" data-testid="task-counter">
+            <div class="text-[12px] text-text">{commonStrings.today.counterHint}</div>
+            <div class="text-[10px] text-text-muted font-bold tracking-wide">{completeness} / 3</div>
+          </div>
 
-        {#each toleranceReminders as reminder (reminder.allergenId)}
-          {@const cat = getCategoryConfig(reminder.allergenId)}
-          <div class="bg-white border border-warning/40 rounded-2xl px-3.5 py-3 flex items-center gap-3" data-testid="tolerance-reminder">
-            <span class="text-xl shrink-0">{cat?.icon ?? '🍽'}</span>
-            <div class="flex-1 min-w-0">
-              <div class="text-[10px] font-extrabold tracking-wider text-warning uppercase mb-0.5">
-                {commonStrings.today.reminderLabel}
-              </div>
-              <div class="text-[12px] text-text">
-                {cat?.name ?? reminder.allergenId}
-                {#if reminder.daysSinceLastDose >= 999}
-                  — {commonStrings.today.reminderNeverDosed}
-                {:else}
-                  — {commonStrings.today.reminderOverdue} {dnyCs(reminder.daysSinceLastDose)}
-                {/if}
+          {#each toleranceReminders as reminder (reminder.allergenId)}
+            {@const cat = getCategoryConfig(reminder.allergenId)}
+            <div class="bg-white border border-warning/40 rounded-2xl px-3.5 py-3 flex items-center gap-3" data-testid="tolerance-reminder">
+              <span class="text-xl shrink-0">{cat?.icon ?? '🍽'}</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[10px] font-extrabold tracking-wider text-warning uppercase mb-0.5">
+                  {commonStrings.today.reminderLabel}
+                </div>
+                <div class="text-[12px] text-text">
+                  {cat?.name ?? reminder.allergenId}
+                  {#if reminder.daysSinceLastDose >= 999}
+                    — {commonStrings.today.reminderNeverDosed}
+                  {:else}
+                    — {commonStrings.today.reminderOverdue} {dnyCs(reminder.daysSinceLastDose)}
+                  {/if}
+                </div>
               </div>
             </div>
+          {/each}
+        {/if}
+
+        <!-- Skin observation card -->
+        <SkinObservationCard observations={skinObservations} />
+
+        <!-- Skin photo card -->
+        <SkinPhotoCard photos={photos} />
+
+        <!-- Smím / Vyhýbej se -->
+        <div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
+          <div class="grid grid-cols-2 divide-x divide-surface-dark">
+            <div class="p-3">
+              <div class="text-[9px] font-extrabold tracking-wider text-success uppercase mb-1.5">
+                {commonStrings.today.allowed}
+              </div>
+              {#if allowedProtocol.length > 0}
+                <div class="flex flex-wrap gap-1.5">
+                  {#each allowedProtocol as slug}
+                    <AllergenChip {slug} />
+                  {/each}
+                </div>
+              {:else}
+                <div class="text-[11px] text-text-muted">—</div>
+              {/if}
+            </div>
+            <div class="p-3">
+              <div class="text-[9px] font-extrabold tracking-wider text-danger uppercase mb-1.5">
+                {commonStrings.today.avoid}
+              </div>
+              {#if ctx.eliminatedToday.length > 0}
+                <div class="flex flex-wrap gap-1.5">
+                  {#each ctx.eliminatedToday as slug}
+                    <AllergenChip {slug} color="warning" />
+                  {/each}
+                </div>
+              {:else}
+                <div class="text-[11px] text-success">{commonStrings.today.noRestrictions}</div>
+              {/if}
+            </div>
           </div>
-        {/each}
+        </div>
+
+        <!-- Meal card -->
+        <MealCard date={selectedDate} meals={meals} eliminatedToday={ctx.eliminatedToday} />
+
+        <!-- Bottom hint -->
+        <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rotate-180">
+            <path d="M12 19V5M5 12l7-7 7 7"/>
+          </svg>
+          <span>{commonStrings.today.recordHint}</span>
+        </div>
       {/if}
-
-      <!-- Skin observation card -->
-      <SkinObservationCard observations={skinObservations} />
-
-      <!-- Skin photo card -->
-      <SkinPhotoCard photos={photos} />
-
-      <!-- Smím / Vyhýbej se -->
-      <div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
-        <div class="grid grid-cols-2 divide-x divide-surface-dark">
-          <div class="p-3">
-            <div class="text-[9px] font-extrabold tracking-wider text-success uppercase mb-1.5">
-              {commonStrings.today.allowed}
-            </div>
-            {#if allowedProtocol.length > 0}
-              <div class="flex flex-wrap gap-1.5">
-                {#each allowedProtocol as slug}
-                  <AllergenChip {slug} />
-                {/each}
-              </div>
-            {:else}
-              <div class="text-[11px] text-text-muted">—</div>
-            {/if}
-          </div>
-          <div class="p-3">
-            <div class="text-[9px] font-extrabold tracking-wider text-danger uppercase mb-1.5">
-              {commonStrings.today.avoid}
-            </div>
-            {#if ctx.eliminatedToday.length > 0}
-              <div class="flex flex-wrap gap-1.5">
-                {#each ctx.eliminatedToday as slug}
-                  <AllergenChip {slug} color="warning" />
-                {/each}
-              </div>
-            {:else}
-              <div class="text-[11px] text-success">{commonStrings.today.noRestrictions}</div>
-            {/if}
-          </div>
-        </div>
-      </div>
-
-      <!-- Meal card -->
-      <MealCard date={selectedDate} meals={meals} eliminatedToday={ctx.eliminatedToday} />
-
-      <!-- Bottom hint -->
-      <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rotate-180">
-          <path d="M12 19V5M5 12l7-7 7 7"/>
-        </svg>
-        <span>{commonStrings.today.recordHint}</span>
-      </div>
     {/if}
   </div>
 </div>
