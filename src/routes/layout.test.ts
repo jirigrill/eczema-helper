@@ -5,6 +5,8 @@ import { tick } from 'svelte';
 import { createRawSnippet } from 'svelte';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import { discardBuffer } from '$lib/stores/discard-buffer';
+import type { WorkingMeal } from '$lib/domain/working-meal';
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
@@ -15,6 +17,16 @@ vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }))
 vi.mock('$lib/stores/schedule-context', () => ({
   scheduleContext: { subscribe: mockScheduleContext.subscribe },
 }));
+
+/** Extract the numeric value from a Tailwind `z-N` (or `z-[N]`) utility class. */
+function zIndexOf(el: Element | null): number {
+  if (!el) return 0;
+  for (const cls of Array.from(el.classList)) {
+    const m = cls.match(/^z-(?:\[(\d+)\]|(\d+))$/);
+    if (m) return Number(m[1] ?? m[2]);
+  }
+  return 0;
+}
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -163,6 +175,70 @@ describe('+layout.svelte — bottom nav visibility', () => {
     await fireEvent.click(getByTestId('fab-meal-type-breakfast'));
     await tick();
     expect(mockGoto).toHaveBeenCalledWith('/meal?type=breakfast&date=2025-01-15&returnTo=/day/2025-01-15');
+  });
+});
+
+describe('+layout.svelte — FAB stacking (issue #324)', () => {
+  const sampleWorkingMeal: WorkingMeal = { families: [], notes: '' };
+
+  beforeEach(() => {
+    discardBuffer.set(null);
+  });
+
+  function fabButton(container: HTMLElement): HTMLButtonElement | null {
+    return container.querySelector('button[aria-label="Přidat záznam"]');
+  }
+
+  it('FAB sits above the discard toast when both are visible', async () => {
+    mockScheduleContext.set(readyContext);
+    discardBuffer.set({
+      kind: 'compose',
+      workingMeal: sampleWorkingMeal,
+      mealType: 'breakfast',
+      returnTo: `/day/${today}`,
+    });
+
+    const { container, getByRole } = await renderLayout();
+    await tick();
+
+    const fab = fabButton(container);
+    const toast = getByRole('alert');
+    expect(fab).not.toBeNull();
+    expect(toast).toBeInTheDocument();
+
+    expect(zIndexOf(fab)).toBeGreaterThan(zIndexOf(toast));
+  });
+
+  it('FAB sits above the bottom navigation it overhangs', async () => {
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+
+    const fab = fabButton(container);
+    const nav = container.querySelector('nav');
+    expect(fab).not.toBeNull();
+    expect(nav).not.toBeNull();
+
+    // The nav is the surface the FAB visually lifts above; the FAB must
+    // outrank it so its overhanging top edge is never clipped or covered.
+    expect(zIndexOf(fab)).toBeGreaterThan(zIndexOf(nav));
+  });
+
+  it('action sheet still covers the FAB when opened (modal layer outranks FAB)', async () => {
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+
+    const fab = fabButton(container)!;
+    fab.click();
+    await tick();
+
+    // The FabActionSheet's bottom-sheet panel uses role="dialog".
+    const sheet = container.ownerDocument.querySelector('[role="dialog"]');
+    expect(sheet).not.toBeNull();
+
+    // Action sheet is allowed to intentionally cover the FAB.
+    expect(zIndexOf(sheet)).toBeGreaterThan(zIndexOf(fab));
   });
 });
 
