@@ -1,4 +1,4 @@
-import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder, AllergenId, ProtocolAllergenId } from '$lib/domain/models';
+import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder, AllergenId, ProtocolAllergenId, AllergenOutcome } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import { addDays } from '$lib/utils/date';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
@@ -9,6 +9,9 @@ import {
   REINTRODUCTION_PHASE_DAYS,
   TRAINING_REMINDER_THRESHOLD_DAYS,
   NEVER_DOSED_SENTINEL_DAYS,
+  REST_PHASE_DAYS_MILD,
+  REST_PHASE_DAYS_CLEAR,
+  REST_PHASE_DAYS_SEVERE,
 } from '$lib/domain/policy';
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 
@@ -158,6 +161,33 @@ export function insertRestDays(
   const estimatedEndDate = lastNonTraining?.endDate ?? schedule.estimatedEndDate;
 
   return { ...schedule, phases, estimatedEndDate };
+}
+
+// ── Apply reintroduction verdict ─────────────────────────────
+
+/**
+ * Maps a reintroduction verdict to its schedule consequence (ADR-0016).
+ *
+ * `tolerated` returns the schedule unchanged. Any reaction inserts a `rest`
+ * phase after `phaseId` whose length is keyed to severity:
+ *   mild-reaction   → REST_PHASE_DAYS_MILD
+ *   clear-reaction  → REST_PHASE_DAYS_CLEAR
+ *   severe-reaction → REST_PHASE_DAYS_SEVERE
+ *
+ * Status (`reacted` vs `passed`) stays topology-derived — it follows
+ * automatically from whether a `rest` phase now sits after the reintroduction.
+ */
+export function applyReintroductionVerdict(
+  schedule: GeneratedSchedule,
+  phaseId: string,
+  outcome: AllergenOutcome,
+): GeneratedSchedule {
+  if (outcome === 'tolerated') return schedule;
+  const days =
+    outcome === 'mild-reaction' ? REST_PHASE_DAYS_MILD :
+    outcome === 'clear-reaction' ? REST_PHASE_DAYS_CLEAR :
+    REST_PHASE_DAYS_SEVERE;
+  return insertRestDays(schedule, phaseId, days);
 }
 
 // ── Schedule mutation: add training phase ────────────────────

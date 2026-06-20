@@ -9,6 +9,7 @@
   import { phaseConfig } from '$lib/config/phases';
   import { formatDateCs, formatDateLongCs, todayIso, daysBetween } from '$lib/utils/date';
   import { protocolSession } from '$lib/stores/protocol-session';
+  import { evaluationsStore } from '$lib/stores/evaluations-store';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -37,7 +38,7 @@
   let expandedPhaseId = $state<string | null>(null);
   let meals = $state<import('$lib/domain/models').Meal[]>([]);
   let skinObservations = $state<import('$lib/domain/models').SkinObservation[]>([]);
-  let evaluations = $state<import('$lib/domain/models').ReintroductionEvaluation[]>([]);
+  const evaluations = $derived($evaluationsStore);
 
   const catalog = new BundledCatalogAdapter();
 
@@ -592,7 +593,7 @@
                     <p class="font-medium {evalColor(phaseEval)}">{evalLabel(phaseEval)}{#if phaseEval.notes} <span class="font-normal text-text-muted">— {phaseEval.notes}</span>{/if}</p>
                   {:else}
                     <a
-                      href="/day?date={phase.endDate}"
+                      href="/evaluation?phase={encodeURIComponent(phase.id)}&date={phase.endDate}&returnTo=%2Fprogram"
                       class="inline-block text-primary font-medium no-underline"
                     >{actionStrings.evaluatePhase}</a>
                   {/if}

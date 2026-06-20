@@ -2,16 +2,18 @@ import { db } from '$lib/db/atopic-db';
 import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
-import { generateSchedule, appendReTestPhases, removeReTestPhase } from '$lib/domain/schedule-builder';
+import { DexieEvaluationRepository } from '$lib/adapters/dexie-evaluation-repository';
+import { generateSchedule, appendReTestPhases, removeReTestPhase, applyReintroductionVerdict } from '$lib/domain/schedule-builder';
 import { scheduleContext } from '$lib/stores/schedule-context';
 import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
-import type { ProtocolAllergenId, QuestionnaireAnswers } from '$lib/domain/models';
+import type { ProtocolAllergenId, QuestionnaireAnswers, ReintroductionEvaluation, AllergenOutcome } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import type { RetestRejection } from '$lib/domain/schedule-builder';
 
 const questionnaireRepo = new DexieQuestionnaireRepository(db);
 const scheduleRepo = new DexieScheduleRepository(db);
 const harvestRepo = new DexieHarvestCandidateRepository(db);
+const evaluationRepo = new DexieEvaluationRepository(db);
 
 async function startProtocol(answers: QuestionnaireAnswers): Promise<Result<void, string>> {
 	const schedule = generateSchedule(answers);
@@ -63,7 +65,30 @@ async function removeReTest(
 }
 
 async function reset(): Promise<void> {
-	await Promise.all([db.answers.clear(), db.schedule.clear()]);
+	await Promise.all([db.answers.clear(), db.schedule.clear(), db.evaluations.clear()]);
+}
+
+async function recordVerdict(
+	evaluation: ReintroductionEvaluation,
+): Promise<Result<void, string>> {
+	const saveEval = await evaluationRepo.save(evaluation);
+	if (!saveEval.ok) return saveEval;
+
+	if (evaluation.phaseType === 'allergen-test' && evaluation.outcome !== 'tolerated') {
+		const ctx = await _loadReadySchedule();
+		if (!ctx.ok) return ctx;
+		const updated = applyReintroductionVerdict(
+			ctx.data,
+			evaluation.phaseId,
+			evaluation.outcome as AllergenOutcome,
+		);
+		if (updated !== ctx.data) {
+			const saveSchedule = await scheduleRepo.save(updated);
+			if (!saveSchedule.ok) return saveSchedule;
+		}
+	}
+
+	return { ok: true, data: undefined };
 }
 
 async function _loadReadySchedule() {
@@ -78,5 +103,6 @@ export const protocolSession = {
 	startProtocol,
 	appendReTests,
 	removeReTest,
+	recordVerdict,
 	reset,
 };
