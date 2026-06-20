@@ -185,9 +185,9 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
   await page.getByRole('button', { name: 'Více' }).click();
   await page.getByRole('button', { name: 'Smazat jídlo' }).click();
 
-  // Lands on the day; the lunch row is gone.
+  // Lands on the day; the lunch slot is empty (no food rendered).
   await page.waitForURL(`**/day/${today}`);
-  await expect(page.getByTestId('meal-row-lunch')).toHaveCount(0);
+  await expect(page.getByTestId('meal-row-lunch')).not.toContainText('Kravské mléko');
 
   // The discard toast is offering undo. Tap "Zpět" → land back on /meal with
   // the original food rehydrated; tap Hotovo to re-persist the meal.
@@ -234,8 +234,9 @@ test('backfill a past day via the day-scoped FAB persists on that date, not toda
   await page.waitForURL(`**/day/${yesterday}`);
   await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
 
-  // The meal landed on yesterday only — today's lunch slot stays empty.
+  // The meal landed on yesterday only — today's lunch slot stays empty
+  // (the slot itself always renders in the 4-slot card; assert no food in it).
   await page.goto(`/day/${today}`);
   await page.waitForURL(`**/day/${today}`);
-  await expect(page.getByTestId('meal-row-lunch')).toHaveCount(0);
+  await expect(page.getByTestId('meal-row-lunch')).not.toContainText('Kravské mléko');
 });

@@ -1,14 +1,13 @@
 <script lang="ts">
   import type { Meal } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
+  import { categoryStrings } from '$lib/strings/categories';
   import { mealConfig } from '$lib/config/meals';
-  import { portionStrings } from '$lib/strings/portions';
-  import { preparationStrings } from '$lib/strings/preparations';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import DayCard from './DayCard.svelte';
 
   let {
-    date: _date,
+    date,
     meals,
     eliminatedToday,
   }: {
@@ -17,57 +16,79 @@
     eliminatedToday: string[];
   } = $props();
 
-  // `date` is intentionally unused here — meals are pre-filtered by the caller
-  // and the launcher (FAB submenu) lives outside this card. Kept in the props
-  // contract for the day-page integration test and future tap-to-edit (#265).
-
   const catalog = new BundledCatalogAdapter();
   const mealTypeOrder = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
 
-  const mealsSorted = $derived(
-    mealTypeOrder
-      .map((type) => meals.find((m) => m.mealType === type))
-      .filter((m): m is Meal => m !== undefined)
-  );
+  type SlotEntry = {
+    type: typeof mealTypeOrder[number];
+    meal: Meal | undefined;
+  };
 
+  const slots = $derived(
+    mealTypeOrder.map((type) => ({
+      type,
+      meal: meals.find((m) => m.mealType === type),
+    })) satisfies SlotEntry[]
+  );
 </script>
 
 <DayCard label={commonStrings.today.mealsLabel}>
-  {#if mealsSorted.length === 0}
-    <p class="body-muted">{commonStrings.today.mealsEmpty}</p>
-  {:else}
-    <div class="space-y-3">
-      {#each mealsSorted as meal (meal.id)}
-        {@const cfg = mealConfig[meal.mealType]}
-        {@const Icon = cfg.icon}
+  <div class="divide-y divide-surface-dark">
+    {#each slots as { type, meal } (type)}
+      {@const cfg = mealConfig[type]}
+      {@const Icon = cfg.icon}
+      {#if meal}
+        {@const conflictAllergens = [...new Set(
+          meal.items.flatMap((item) => catalog.allergensForFood(item.foodId))
+            .filter((a) => eliminatedToday.includes(a))
+        )]}
+        {@const isConflict = conflictAllergens.length > 0}
         <a
-          data-testid="meal-row-{meal.mealType}"
-          href="/meal?type={meal.mealType}&date={meal.date}&returnTo=/day/{meal.date}"
+          data-testid="meal-row-{type}"
+          href="/meal?type={type}&date={meal.date}&returnTo=/day/{meal.date}"
           class="block"
         >
-          <div class="flex items-center gap-1.5 mb-1">
-            <Icon class="w-4 h-4 text-text" />
-            <span class="text-[12px] font-semibold text-text">{cfg.label}</span>
-          </div>
-          <div class="flex flex-wrap gap-1">
-            {#each meal.items as item}
-              {@const triggers = catalog.allergensForFood(item.foodId)}
-              {@const isConflict = triggers.some(t => eliminatedToday.includes(t))}
-              <span
-                data-conflict={isConflict ? 'true' : undefined}
-                class="text-xs rounded-full px-2 py-0.5 {isConflict
-                  ? 'bg-warning/10 text-warning'
-                  : 'bg-surface text-text'}"
-              >
-                {item.name}
-                <span class="text-text-muted">
-                  {portionStrings[item.amount].label}{#if item.preparationMethod} · {preparationStrings[item.preparationMethod].label}{/if}
-                </span>
-              </span>
-            {/each}
+          <div class="py-2 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 {isConflict ? 'bg-danger/15 text-danger' : 'bg-white text-primary'}">
+              <Icon class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-sm font-semibold text-text">{cfg.label}</span>
+                {#each conflictAllergens as allergenId}
+                  <span class="text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-danger/15 text-danger">⚠ {categoryStrings[allergenId]?.name ?? allergenId}</span>
+                {/each}
+              </div>
+              <div class="text-[11px] text-text-muted truncate">
+                {#each meal.items as item, i}
+                  {#if i > 0}<span> · </span>{/if}
+                  {@const triggers = catalog.allergensForFood(item.foodId)}
+                  {@const itemConflict = triggers.some((t) => eliminatedToday.includes(t))}
+                  <span class={itemConflict ? 'text-danger font-medium' : ''}
+                    data-conflict={itemConflict ? 'true' : undefined}>{item.name}</span>
+                {/each}
+              </div>
+            </div>
+            <span class="text-text-muted text-sm">›</span>
           </div>
         </a>
-      {/each}
-    </div>
-  {/if}
+      {:else}
+        <a
+          data-testid="meal-row-{type}"
+          href="/meal?type={type}&date={date}&returnTo=/day/{date}"
+          class="block"
+        >
+          <div class="py-2 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-white text-text-muted/50 flex items-center justify-center shrink-0">
+              <Icon class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-text-muted/70">{cfg.label}</div>
+            </div>
+            <span class="text-primary text-lg leading-none">+</span>
+          </div>
+        </a>
+      {/if}
+    {/each}
+  </div>
 </DayCard>

@@ -25,12 +25,16 @@ describe('MealCard', () => {
     expect(getByText('Dnešní jídla')).toBeInTheDocument();
   });
 
-  it('shows empty-state text when meals array is empty', async () => {
-    const { getByText } = render(MealCard, {
+  it('shows all four unlogged slots (not empty-state text) when meals array is empty', async () => {
+    const { getByTestId, queryByText } = render(MealCard, {
       props: { date: '2026-05-31', meals: [], eliminatedToday: [] },
     });
     await tick();
-    expect(getByText('Zatím žádný záznam.')).toBeInTheDocument();
+    expect(getByTestId('meal-row-breakfast')).toBeInTheDocument();
+    expect(getByTestId('meal-row-lunch')).toBeInTheDocument();
+    expect(getByTestId('meal-row-snack')).toBeInTheDocument();
+    expect(getByTestId('meal-row-dinner')).toBeInTheDocument();
+    expect(queryByText('Zatím žádný záznam.')).not.toBeInTheDocument();
   });
 
   it('renders each meal item name', async () => {
@@ -126,59 +130,28 @@ describe('MealCard', () => {
     expect(attrs.find((a) => a.startsWith('data-swipe'))).toBeUndefined();
   });
 
-  it('the empty-state label is non-interactive (not a link or button)', async () => {
-    const { getByText } = render(MealCard, {
+  it('unlogged slot rows are anchor links (tappable to add meal)', async () => {
+    const { getByTestId } = render(MealCard, {
       props: { date: '2026-05-31', meals: [], eliminatedToday: [] },
     });
     await tick();
-    const label = getByText('Zatím žádný záznam.');
-    // The label itself is a plain element.
-    expect(['A', 'BUTTON']).not.toContain(label.tagName);
-    // No interactive ARIA role anywhere up the chain (would announce as button/link to screen readers).
-    let node: HTMLElement | null = label;
-    while (node) {
-      const role = node.getAttribute('role');
-      expect(role === 'button' || role === 'link').toBe(false);
-      // Stop once we've climbed past the card boundary.
-      if (node.tagName === 'BODY') break;
-      node = node.parentElement;
-    }
+    expect(getByTestId('meal-row-breakfast').tagName).toBe('A');
+    expect(getByTestId('meal-row-dinner').tagName).toBe('A');
   });
 
-  it('renders portion as full Czech label (e.g. "Lžíce"), not the raw key or short form', async () => {
+  it('does NOT render portion or preparation text on any logged row', async () => {
     const meal = makeMeal({
-      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon' }],
+      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon', preparationMethod: 'boiled' }],
     });
-    const { getByText, queryByText } = render(MealCard, {
+    const { queryByText } = render(MealCard, {
       props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
     });
     await tick();
-    expect(getByText(/Lžíce/)).toBeInTheDocument();
-    // Must not show the raw key or the short form.
-    expect(queryByText(/\bspoon\b/)).not.toBeInTheDocument();
-    expect(queryByText(/\blžíce\b/)).not.toBeInTheDocument(); // .short is lowercase 'lžíce'
-  });
-
-  it('appends "· {preparation label}" suffix only when preparationMethod is set', async () => {
-    const mealWithPrep = makeMeal({
-      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon', preparationMethod: 'boiled' }],
-    });
-    const { getByText, unmount } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [mealWithPrep], eliminatedToday: [] },
-    });
-    await tick();
-    // The full chip text reads "Jogurt Lžíce · Vařené" (whitespace-tolerant).
-    expect(getByText(/Lžíce\s*·\s*Vařené/)).toBeInTheDocument();
-    unmount();
-
-    const mealNoPrep = makeMeal({
-      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon' }],
-    });
-    const { queryByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [mealNoPrep], eliminatedToday: [] },
-    });
-    await tick();
-    // No middle-dot when preparation is unset.
+    // No portion labels
+    expect(queryByText(/Lžíce|Porce|Špetka|Čajová lžička/)).not.toBeInTheDocument();
+    // No preparation labels
+    expect(queryByText(/Vařené|Syrové|Pečené|Smažené/)).not.toBeInTheDocument();
+    // No middle-dot separator (would only appear from portion/prep)
     expect(queryByText(/·/)).not.toBeInTheDocument();
   });
 
@@ -213,5 +186,120 @@ describe('MealCard', () => {
     // The chip for a conflicting item carries a data-conflict attribute
     const chip = container.querySelector('[data-conflict="true"]');
     expect(chip).toBeInTheDocument();
+  });
+
+  // ── New design: 4-slot layout ──────────────────────────────────────────────
+
+  it('always renders all four meal-type slots in order regardless of logged meals', async () => {
+    // Only breakfast logged — other 3 slots must still appear
+    const meal = makeMeal({
+      mealType: 'breakfast',
+      items: [{ id: 'i1', name: 'Ovesná kaše', foodId: 'oves', amount: 'portion' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    expect(getByTestId('meal-row-breakfast')).toBeInTheDocument();
+    expect(getByTestId('meal-row-lunch')).toBeInTheDocument();
+    expect(getByTestId('meal-row-snack')).toBeInTheDocument();
+    expect(getByTestId('meal-row-dinner')).toBeInTheDocument();
+  });
+
+  it('unlogged slot links to /meal with type, date, and returnTo', async () => {
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-06-15', meals: [], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-lunch');
+    expect(row.tagName).toBe('A');
+    expect(row.getAttribute('href')).toBe(
+      '/meal?type=lunch&date=2026-06-15&returnTo=/day/2026-06-15'
+    );
+  });
+
+  it('unlogged slot shows "+" and muted meal label', async () => {
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-06-15', meals: [], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-snack');
+    expect(row.textContent).toMatch(/\+/);
+    expect(row.textContent).toMatch(/Svačina/);
+  });
+
+  it('clean logged row: food names joined by " · " with no portion or prep text', async () => {
+    const meal = makeMeal({
+      mealType: 'breakfast',
+      items: [
+        { id: 'i1', name: 'Ovesná kaše', foodId: 'oves', amount: 'portion' },
+        { id: 'i2', name: 'Banán', foodId: 'banan', amount: 'spoon' },
+      ],
+    });
+    const { getByTestId, queryByText } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-breakfast');
+    // Food names separated by ·
+    expect(row.textContent).toMatch(/Ovesná kaše\s*·\s*Banán/);
+    // No portion or prep strings
+    expect(queryByText(/Porce|Lžíce|Špetka|Vařené|Syrové|Pečené|Smažené/)).not.toBeInTheDocument();
+  });
+
+  it('conflict logged row: shows allergen pill with Czech name', async () => {
+    const meal = makeMeal({
+      mealType: 'lunch',
+      items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy'] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-lunch');
+    // Allergen pill with Czech name from categoryStrings
+    expect(row.textContent).toMatch(/⚠\s*Mléčné výrobky/);
+  });
+
+  it('conflict logged row: triggering food rendered with danger class', async () => {
+    const meal = makeMeal({
+      mealType: 'lunch',
+      items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy'] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-lunch');
+    // data-conflict="true" is on the food name span; it must also carry text-danger
+    const conflictSpan = row.querySelector('[data-conflict="true"]');
+    expect(conflictSpan).not.toBeNull();
+    expect(conflictSpan?.className).toMatch(/text-danger/);
+    expect(conflictSpan?.textContent).toMatch(/Máslo/);
+  });
+
+  it('multi-allergen conflict: one pill per distinct eliminated allergen, each triggering food in danger', async () => {
+    const meal = makeMeal({
+      mealType: 'dinner',
+      items: [
+        { id: 'i1', name: 'Jogurt', foodId: 'kravske-mleko', amount: 'portion' },
+        { id: 'i2', name: 'Sójové mléko', foodId: 'sojove-mleko', amount: 'portion' },
+        { id: 'i3', name: 'Rýže', foodId: 'ryze', amount: 'portion' },
+      ],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy', 'soy'] },
+    });
+    await tick();
+    const row = getByTestId('meal-row-dinner');
+    // Two allergen pills
+    expect(row.textContent).toMatch(/⚠\s*Mléčné výrobky/);
+    expect(row.textContent).toMatch(/⚠\s*Sója/);
+    // Two red foods, one clean food
+    const conflictSpans = row.querySelectorAll('[data-conflict="true"]');
+    const conflictTexts = Array.from(conflictSpans).map((s) => s.textContent ?? '');
+    expect(conflictTexts.some((t) => t.includes('Jogurt'))).toBe(true);
+    expect(conflictTexts.some((t) => t.includes('Sójové mléko'))).toBe(true);
+    expect(conflictTexts.some((t) => t.includes('Rýže'))).toBe(false);
   });
 });

@@ -81,15 +81,17 @@ test('liveQuery: meal saved on /meal appears on /day/<today> without reload', as
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
-  await expect(page.getByText('Zatím žádný záznam.')).toBeVisible();
+  // Lunch slot starts empty — no foods rendered in its row.
+  const lunchRow = page.getByTestId('meal-row-lunch');
+  await expect(lunchRow).toBeVisible();
+  await expect(lunchRow).not.toContainText('Brambory');
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await addBramboraAndCommit(page);
   await page.getByRole('button', { name: /Uložit Oběd/ }).click();
 
   await expect(page).toHaveURL(`/day/${today}`);
-  await expect(page.getByText('Oběd')).toBeVisible();
-  await expect(page.getByText('Brambory')).toBeVisible();
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Brambory');
 });
 
 // ── Save failure: surfaced, not silently lost ─────────────────────────────────
