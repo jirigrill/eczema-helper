@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDay } from './day-view';
+import { resolveDay, dailyCompleteness } from './day-view';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type {
+	GeneratedSchedule,
+	QuestionnaireAnswers,
+	Meal,
+	SkinObservation,
+	SkinPhoto,
+} from '$lib/domain/models';
 
 const protocolStart = '2025-05-01';
 const today = '2025-06-10';
@@ -112,5 +118,91 @@ describe('resolveDay', () => {
 			const result = resolveDay('2025-06-01', readyRaw, today);
 			expect(result).toEqual({ selectedDate: '2025-06-01', redirectTo: null });
 		});
+	});
+});
+
+describe('dailyCompleteness', () => {
+	const observation: SkinObservation = {
+		id: 'o1',
+		date: today,
+		createdAt: `${today}T08:00:00.000Z`,
+		status: 'unchanged',
+	};
+
+	const photo: SkinPhoto = {
+		id: 'p1',
+		date: today,
+		capturedAt: `${today}T08:00:00.000Z`,
+		blob: new Blob(),
+	};
+
+	const mealWithItems: Meal = {
+		id: `${today}:lunch`,
+		date: today,
+		mealType: 'lunch',
+		actor: 'mother',
+		items: [
+			{ id: 'i1', name: 'Rýže', foodId: 'rice:rice' as Meal['items'][number]['foodId'], amount: 'portion' },
+		],
+		createdAt: `${today}T12:00:00.000Z`,
+	};
+
+	const emptyMeal: Meal = {
+		id: `${today}:breakfast`,
+		date: today,
+		mealType: 'breakfast',
+		actor: 'mother',
+		items: [],
+		createdAt: `${today}T08:00:00.000Z`,
+	};
+
+	const noteOnlyMeal: Meal = {
+		id: `${today}:snack`,
+		date: today,
+		mealType: 'snack',
+		actor: 'mother',
+		items: [],
+		notes: 'kafe u babičky',
+		createdAt: `${today}T15:00:00.000Z`,
+	};
+
+	it('returns 0 when nothing is recorded', () => {
+		expect(dailyCompleteness({ observations: [], photos: [], meals: [] })).toBe(0);
+	});
+
+	it('counts a skin observation as one point', () => {
+		expect(dailyCompleteness({ observations: [observation], photos: [], meals: [] })).toBe(1);
+	});
+
+	it('counts a photo as one point', () => {
+		expect(dailyCompleteness({ observations: [], photos: [photo], meals: [] })).toBe(1);
+	});
+
+	it('counts a meal with at least one item as one point', () => {
+		expect(dailyCompleteness({ observations: [], photos: [], meals: [mealWithItems] })).toBe(1);
+	});
+
+	it('counts a notes-only meal as one point', () => {
+		expect(dailyCompleteness({ observations: [], photos: [], meals: [noteOnlyMeal] })).toBe(1);
+	});
+
+	it('does not count a meal that has no items and no notes', () => {
+		expect(dailyCompleteness({ observations: [], photos: [], meals: [emptyMeal] })).toBe(0);
+	});
+
+	it('returns 3 when all three record types are present', () => {
+		expect(
+			dailyCompleteness({ observations: [observation], photos: [photo], meals: [mealWithItems] }),
+		).toBe(3);
+	});
+
+	it('caps each record type at one point regardless of count', () => {
+		expect(
+			dailyCompleteness({
+				observations: [observation, observation],
+				photos: [photo, photo, photo],
+				meals: [mealWithItems, noteOnlyMeal],
+			}),
+		).toBe(3);
 	});
 });

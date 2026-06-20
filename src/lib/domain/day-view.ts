@@ -1,4 +1,5 @@
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
+import type { Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
 import { resolveRouteDate } from '$lib/utils/date';
 
 export type DayViewCore = {
@@ -20,4 +21,28 @@ export function resolveDay(param: string, raw: ScheduleRaw, today: string): DayV
 		return { selectedDate: today, redirectTo: result.to };
 	}
 	return { selectedDate: result.date, redirectTo: null };
+}
+
+export type DailyRecords = {
+	readonly observations: readonly SkinObservation[];
+	readonly photos: readonly SkinPhoto[];
+	readonly meals: readonly Meal[];
+};
+
+/**
+ * Daily Completeness — score 0-3 representing how many of the three core record
+ * types (skin observation, skin photo, meal-with-content) are present for a day.
+ * Each record type contributes at most one point regardless of how many entries
+ * exist. A meal counts only when it has at least one item or non-empty notes —
+ * an empty slot does not count.
+ */
+export function dailyCompleteness(records: DailyRecords): number {
+	const hasObservation = records.observations.length > 0 ? 1 : 0;
+	const hasPhoto = records.photos.length > 0 ? 1 : 0;
+	const hasMealContent = records.meals.some(
+		(m) => m.items.length > 0 || (m.notes != null && m.notes.trim().length > 0),
+	)
+		? 1
+		: 0;
+	return hasObservation + hasPhoto + hasMealContent;
 }

@@ -53,7 +53,6 @@ export const commonStrings = {
     avoid:             '✗ Vyhýbej se',
     noRestrictions:    'Žádná omezení',
     recordHint:        'Vše zapisuj přes + : foto · jídlo · stav',
-    statusCounts:      '0 / 3',
     reminderLabel:     'Trénink tolerance',
     reminderNeverDosed:'Ještě jsi nezkoušela.',
     reminderOverdue:   'Naposledy před',

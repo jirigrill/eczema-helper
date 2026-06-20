@@ -3,7 +3,13 @@ import { render } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers, Meal } from '$lib/domain/models';
+import type {
+  GeneratedSchedule,
+  QuestionnaireAnswers,
+  Meal,
+  SkinObservation,
+  SkinPhoto,
+} from '$lib/domain/models';
 
 // ── Navigation mock ───────────────────────────────────────────
 const mockGoto = vi.fn();
@@ -20,17 +26,25 @@ vi.mock('$lib/stores/schedule-context', () => ({
 }));
 
 // ── liveQuery mock ────────────────────────────────────────────
-// liveMeals is set per-test to control what liveQuery emits for meal queries.
+// Each session subscribes to a different table via createDateScopedSession.
+// The mock identifies the table by tag (set by the db mock below) and emits
+// the matching fixture array.
 let liveMeals: Meal[] = [];
+let liveObservations: SkinObservation[] = [];
+let livePhotos: SkinPhoto[] = [];
 
 vi.mock('dexie', async (importOriginal) => {
   const actual = await importOriginal<typeof import('dexie')>();
   return {
     ...actual,
-    liveQuery: vi.fn((_queryFn: () => unknown) => {
+    liveQuery: vi.fn((queryFn: () => { __tag?: string }) => {
       return {
         subscribe(observer: { next: (v: unknown[]) => void; error?: (e: unknown) => void }) {
-          observer.next(liveMeals);
+          let tag: string | undefined;
+          try { tag = queryFn().__tag; } catch { /* ignore */ }
+          if (tag === 'observations') observer.next(liveObservations);
+          else if (tag === 'photos') observer.next(livePhotos);
+          else observer.next(liveMeals);
           return { unsubscribe: () => {} };
         },
       };
@@ -38,7 +52,20 @@ vi.mock('dexie', async (importOriginal) => {
   };
 });
 
-vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
+// Each table returns a chain whose .toArray() carries an identifying tag, so
+// the liveQuery mock can route emissions per session.
+const tagged = (tag: string) => ({
+  where: () => ({
+    equals: () => ({ toArray: () => ({ __tag: tag }) }),
+  }),
+});
+vi.mock('$lib/db/atopic-db', () => ({
+  db: {
+    meals: tagged('meals'),
+    skin_observations: tagged('observations'),
+    photos: tagged('photos'),
+  },
+}));
 
 global.URL.createObjectURL = vi.fn(() => 'blob:mock');
 global.URL.revokeObjectURL = vi.fn();
@@ -153,6 +180,8 @@ beforeEach(() => {
   mockScheduleRaw.set({ status: 'loading' });
   mockPage.params.date = pastDate;
   liveMeals = [];
+  liveObservations = [];
+  livePhotos = [];
 });
 
 describe('/day/[date] page', () => {
@@ -329,6 +358,79 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     const { getByText } = render(DayPage);
     await tick();
     expect(getByText('Dnes ti chybí stav, foto a jídla.')).toBeInTheDocument();
+    expect(getByText('0 / 3')).toBeInTheDocument();
+  });
+
+  it('counter reflects records: 1 / 3 when only a meal with content is logged', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    liveMeals = [
+      {
+        id: `${today}:lunch`,
+        date: today,
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Rýže', foodId: 'rice:rice' as Meal['items'][number]['foodId'], amount: 'portion' }],
+        createdAt: `${today}T12:00:00.000Z`,
+      },
+    ];
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('1 / 3')).toBeInTheDocument();
+  });
+
+  it('counter reflects records: 3 / 3 when skin observation, photo, and meal are all logged', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    liveMeals = [
+      {
+        id: `${today}:lunch`,
+        date: today,
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'i1', name: 'Rýže', foodId: 'rice:rice' as Meal['items'][number]['foodId'], amount: 'portion' }],
+        createdAt: `${today}T12:00:00.000Z`,
+      },
+    ];
+    liveObservations = [
+      {
+        id: 'o1',
+        date: today,
+        createdAt: `${today}T08:00:00.000Z`,
+        status: 'unchanged',
+      },
+    ];
+    livePhotos = [
+      {
+        id: 'p1',
+        date: today,
+        capturedAt: `${today}T08:00:00.000Z`,
+        blob: new Blob(),
+      },
+    ];
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
+    expect(getByText('3 / 3')).toBeInTheDocument();
+  });
+
+  it('counter does not count an empty meal slot (no items, no notes)', async () => {
+    mockPage.params.date = today;
+    mockScheduleRaw.set(readyRawToday);
+    liveMeals = [
+      {
+        id: `${today}:breakfast`,
+        date: today,
+        mealType: 'breakfast',
+        actor: 'mother',
+        items: [],
+        createdAt: `${today}T08:00:00.000Z`,
+      },
+    ];
+    const { default: DayPage } = await import('./+page.svelte');
+    const { getByText } = render(DayPage);
+    await tick();
     expect(getByText('0 / 3')).toBeInTheDocument();
   });
 
