@@ -87,10 +87,22 @@
     if (ctx.status === 'loading') return;
     if (ctx.status === 'empty' && !isOnboarding) goto('/');
   });
+
+  // The shell scrolls inside <main>, not on window — so SvelteKit's default
+  // scroll-to-top has no effect here. Reset our own scroll region whenever
+  // the route changes (issue #325).
+  let mainEl: HTMLElement | undefined = $state();
+  $effect(() => {
+    void currentPath;
+    if (mainEl) {
+      mainEl.scrollTop = 0;
+      mainEl.scrollLeft = 0;
+    }
+  });
 </script>
 
 <div class="h-dvh flex flex-col bg-surface">
-  <main class="flex-1 min-h-0 overflow-y-auto">
+  <main bind:this={mainEl} class="flex-1 min-h-0 overflow-y-auto">
     {@render children()}
   </main>
 

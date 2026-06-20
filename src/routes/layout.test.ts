@@ -217,3 +217,44 @@ describe('+layout.svelte — active tab state', () => {
     expect(tydenLink?.classList).toContain('text-primary');
   });
 });
+
+describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
+  // The app shell wraps page content in <main> with `overflow-y-auto`, so the
+  // window doesn't scroll — that inner region does. Without an explicit reset,
+  // the scroll offset persists across route changes and new pages open
+  // mid-scroll. The layout must reset that container to the top on every
+  // navigation.
+  it('resets the main scroll container to top when the route changes', async () => {
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+
+    const main = container.querySelector('main') as HTMLElement;
+    expect(main).toBeInTheDocument();
+
+    // Simulate user scrolling down on the current page.
+    main.scrollTop = 250;
+    expect(main.scrollTop).toBe(250);
+
+    // Navigate to another route — the layout should reset the scroll.
+    mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
+    await tick();
+
+    expect(main.scrollTop).toBe(0);
+  });
+
+  it('resets scroll when navigating between two day routes', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/day/2025-01-15'), params: { date: '2025-01-15' }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+
+    const main = container.querySelector('main') as HTMLElement;
+    main.scrollTop = 400;
+
+    mockPageStore.set({ url: new URL('http://localhost/day/2025-01-16'), params: { date: '2025-01-16' }, data: {} });
+    await tick();
+
+    expect(main.scrollTop).toBe(0);
+  });
+});
