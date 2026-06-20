@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { createDayView } from '$lib/stores/day-view.svelte';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
+  import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { todayIso, formatDateLongCs, formatWeekdayLongCs, addDays } from '$lib/utils/date';
   import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
@@ -54,6 +55,10 @@
   );
 
   const isToday = $derived(selectedDate === today);
+
+  const completeness = $derived(
+    dailyCompleteness({ observations: skinObservations, photos, meals }),
+  );
 
   const weekStrip = $derived(
     ctx.status === 'ready'
@@ -157,7 +162,7 @@
       {#if isToday}
         <div class="bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between" data-testid="task-counter">
           <div class="text-[12px] text-text">{commonStrings.today.counterHint}</div>
-          <div class="text-[10px] text-text-muted font-bold tracking-wide">0 / 3</div>
+          <div class="text-[10px] text-text-muted font-bold tracking-wide">{completeness} / 3</div>
         </div>
 
         {#each toleranceReminders as reminder (reminder.allergenId)}

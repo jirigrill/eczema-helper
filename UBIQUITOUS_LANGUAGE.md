@@ -573,6 +573,13 @@ The data path is reactive per selected date (`buildScheduleContext(raw, selected
 date-scoped session-store factories), see [ADR-0009](docs/adr/0009-schedule-context-store.md)'s
 Slice-4 amendment. The main screen a user opens each day.
 
+### Daily Completeness
+
+The 0-3 score shown in today's task-counter row, derived live from the day's records:
+one point each for at least one `SkinObservation`, at least one `SkinPhoto`, and at
+least one `Meal` with content (≥1 `MealItem` or non-empty `notes`). An empty meal slot
+does not count. Computed by `dailyCompleteness` in `src/lib/domain/day-view.ts`.
+
 ### Program Screen (Postup)
 
 Read-only timeline of all protocol phases. Shows phase dates, current position,
