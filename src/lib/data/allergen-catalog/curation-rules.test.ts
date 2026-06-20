@@ -312,15 +312,28 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(byId('voda'), 'voda removed from catalog').toBeUndefined();
   });
 
-  it('dried spices & herbs aggregated into one koreni-bylinky tile (earned-granularity)', () => {
-    const f = byId('koreni-bylinky');
-    expect(f, 'koreni-bylinky must exist').toBeDefined();
-    expect(f?.familyId).toBe('spices-condiments');
-    expect(f?.allergenIds).toEqual([]);
-    // Individual dried spices no longer earn their own tiles.
-    for (const id of ['kmin', 'skorice', 'pepr', 'bazalka', 'oregano', 'mleta-paprika']) {
-      expect(byId(id), `individual spice '${id}' must be aggregated away`).toBeUndefined();
+  it('bylinky aggregated; common spices split into individual tiles (#338)', () => {
+    // koreni-bylinky tile retired — bylinky stays aggregated, spices each get their own tile.
+    expect(byId('koreni-bylinky'), 'koreni-bylinky must be removed').toBeUndefined();
+
+    const bylinky = byId('bylinky');
+    expect(bylinky, 'bylinky tile must exist').toBeDefined();
+    expect(bylinky?.familyId).toBe('spices-condiments');
+    expect(bylinky?.allergenIds).toEqual([]);
+
+    // Individual spices that frequently appear standalone get their own tiles.
+    for (const id of ['skorice', 'chilli', 'kmin', 'mleta-paprika']) {
+      const f = byId(id);
+      expect(f, `spice '${id}' must have its own tile`).toBeDefined();
+      expect(f?.familyId).toBe('spices-condiments');
+      expect(f?.allergenIds).toEqual([]);
     }
+
+    // Droždí carries the yeast allergen so reactions tie into the protocol.
+    const drozdi = byId('drozdi');
+    expect(drozdi, 'drozdi tile must exist').toBeDefined();
+    expect(drozdi?.familyId).toBe('spices-condiments');
+    expect(drozdi?.allergenIds).toEqual(['yeast']);
   });
 
   it('every spices-condiments food is form: none (flavorings, no preparation row)', () => {
