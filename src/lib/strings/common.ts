@@ -46,7 +46,6 @@ export const commonStrings = {
     photoLabel:        'Foto kůže',
     photoEmpty:        'Žádný snímek pro dnešek.',
     mealsLabel:        'Dnešní jídla',
-    mealsEmpty:        'Zatím žádný záznam.',
     eczemaStatusValue: 'neuložen',
     photoStatusValue:  'chybí',
     mealsStatusValue:  '0 záznamů',
