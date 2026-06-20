@@ -225,28 +225,33 @@ export function addTrainingPhase(
 // ── Append re-test phases for confirmed baby allergies ────────
 
 /**
- * Appends reintroduction phases for baby-confirmed allergens that are
- * eligible for a re-test.
+ * Appends reintroduction phases for allergens that are eligible for a re-test.
  *
- * Acceptance rule (ADR-0012): an id is accepted iff
- *   (a) it is in `schedule.permanentBaby`,
- *   (b) its current `AllergenStatus` as of `today` is exactly `permanent-baby`, and
- *   (c) no active or future `reintroduction` phase for that id already exists.
+ * Acceptance rule (ADR-0012, widened): an id is accepted iff
+ *   (a) its current `AllergenStatus` as of `today` is exactly `permanent-baby`
+ *       OR `reacted` (a reacted protocol allergen is retestable), and
+ *   (b) no active or future `reintroduction` phase for that id already exists.
  *
  * Rejection variants (checked in priority order):
- *   1. `not-baby-confirmed`      — id not in permanentBaby
- *   2. `retest-already-scheduled` — an active or future reintroduction phase exists
- *   3. `already-cleared`          — status is not `permanent-baby` (e.g. `passed`)
+ *   1. `not-baby-confirmed`        — id is a `permanent-mother` allergy (never retestable)
+ *   2. `retest-already-scheduled`  — an active or future reintroduction phase exists
+ *   3. `already-cleared`           — latest verdict is `passed` (no need to retest)
+ *
+ * Note: the `not-baby-confirmed` code name is preserved for caller stability;
+ * its semantic now narrows to "permanent-mother" only.
  */
 export function appendReTestPhases(
   schedule: GeneratedSchedule,
   ids: ProtocolAllergenId[],
   today: string,
 ): Result<GeneratedSchedule, RetestRejection> {
-  // 1. not-baby-confirmed
-  const notBaby = ids.filter(id => !schedule.permanentBaby.includes(id));
-  if (notBaby.length > 0) {
-    return { ok: false, error: { code: 'not-baby-confirmed', invalidIds: notBaby } };
+  const statuses = getAllergenStatuses(schedule, today);
+  const statusOf = (id: AllergenId) => statuses.find(s => s.allergenId === id)?.status;
+
+  // 1. not-baby-confirmed (mother allergy — never retestable)
+  const motherIds = ids.filter(id => statusOf(id) === 'permanent-mother');
+  if (motherIds.length > 0) {
+    return { ok: false, error: { code: 'not-baby-confirmed', invalidIds: motherIds } };
   }
 
   // 2. retest-already-scheduled (active or future reintroduction phase)
@@ -261,11 +266,11 @@ export function appendReTestPhases(
     return { ok: false, error: { code: 'retest-already-scheduled', invalidIds: alreadyScheduled } };
   }
 
-  // 3. already-cleared (status is not permanent-baby — e.g. passed a previous retest)
-  const statuses = getAllergenStatuses(schedule, today);
-  const notEligible = ids.filter(id =>
-    statuses.find(s => s.allergenId === id)?.status !== 'permanent-baby'
-  );
+  // 3. already-cleared (latest verdict was clean)
+  const notEligible = ids.filter(id => {
+    const status = statusOf(id);
+    return status !== 'permanent-baby' && status !== 'reacted';
+  });
   if (notEligible.length > 0) {
     return { ok: false, error: { code: 'already-cleared', invalidIds: notEligible } };
   }

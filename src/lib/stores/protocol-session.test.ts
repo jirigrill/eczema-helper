@@ -113,18 +113,19 @@ describe('protocolSession', () => {
     expect(result).toMatchObject({ ok: true });
   });
 
-  it('appendReTests returns Err when allergen is not baby-confirmed', async () => {
+  it('appendReTests returns Err when allergen is a mother allergy (not retestable)', async () => {
     const { protocolSession } = await import('./protocol-session');
 
-    await protocolSession.startProtocol(sampleAnswers);
+    // Mother allergies are 'permanent-mother' and never retestable. Per
+    // ADR-0012 (widened rule), `not-baby-confirmed` now narrows to that case.
+    const motherSampleAnswers: QuestionnaireAnswers = {
+      ...sampleAnswers,
+      motherAllergies: ['fish'],
+    };
+    await protocolSession.startProtocol(motherSampleAnswers);
     await tick();
 
-    // 'dairy' is NOT in babyConfirmedAllergies, but eggs is. appendReTests
-    // re-tests a baby-confirmed allergen — testing a non-confirmed one should fail.
-    // The domain function appendReTestPhases returns an Err for not-baby-confirmed.
-    // However 'dairy' might not be in babyConfirmedAllergies — confirm the domain
-    // rejects it with the right error code.
-    const result = await protocolSession.appendReTests(['dairy'], '2025-06-01');
+    const result = await protocolSession.appendReTests(['fish'], '2025-06-01');
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe('not-baby-confirmed');
