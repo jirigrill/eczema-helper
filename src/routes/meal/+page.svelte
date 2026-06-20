@@ -373,7 +373,7 @@
   function discardAndLeave(): void {
     const desc = editor.discardDescriptor();
     if (desc) {
-      writeBuffer({ ...desc, mealType: selectedMealType, returnTo });
+      writeBuffer({ ...desc, mealType: selectedMealType, date: targetDate, returnTo });
     }
     goto(returnTo);
   }
@@ -426,7 +426,7 @@
     if (drilledFamily) return;
     const desc = editor.discardDescriptor();
     if (desc) {
-      writeBuffer({ ...desc, mealType: selectedMealType, returnTo });
+      writeBuffer({ ...desc, mealType: selectedMealType, date: targetDate, returnTo });
     }
   });
 
@@ -522,7 +522,7 @@
       return;
     }
     if (desc) {
-      writeBuffer({ ...desc, mealType: selectedMealType, returnTo });
+      writeBuffer({ ...desc, mealType: selectedMealType, date: targetDate, returnTo });
     }
     goto(returnTo);
   }

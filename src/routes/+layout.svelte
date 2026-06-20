@@ -55,7 +55,7 @@
     // Don't clearBuffer here — meal page reads + clears it on mount.
     // Only navigate; onClose will be called by Toast after this, but we guard it.
     discardUndoFired = true;
-    goto(`/meal?returnTo=${encodeURIComponent(buf.returnTo)}&type=${buf.mealType}`);
+    goto(`/meal?type=${buf.mealType}&date=${buf.date}&returnTo=${encodeURIComponent(buf.returnTo)}`);
   }
 
   let discardUndoFired = $state(false);
