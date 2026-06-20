@@ -5,9 +5,9 @@
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
   import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-  import { todayIso, formatDateLongCs, addDays } from '$lib/utils/date';
-  import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
-  import WeekStrip from '$lib/components/WeekStrip/WeekStrip.svelte';
+  import { todayIso, formatDateLongCs } from '$lib/utils/date';
+  import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
+  import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import SkinObservationCard from '$lib/components/SkinObservationCard.svelte';
   import SkinPhotoCard from '$lib/components/SkinPhotoCard.svelte';
@@ -60,18 +60,21 @@
     dailyCompleteness({ observations: skinObservations, photos, meals }),
   );
 
-  const weekStrip = $derived(
+  const dayStrip = $derived(
     ctx.status === 'ready'
-      ? computeWeekStrip(selectedDate, ctx.schedule.startDate, today)
-      : computeWeekStrip(selectedDate, today, today)
+      ? computeDayStrip({
+          selectedDate,
+          protocolStart: ctx.schedule.startDate,
+          estimatedEnd: ctx.schedule.estimatedEndDate,
+          today,
+        })
+      : computeDayStrip({ selectedDate, protocolStart: today, estimatedEnd: today, today })
   );
+
+  const todayRecorded = $derived(isToday && completeness > 0);
 
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
-  }
-
-  function handlePageBack(): void {
-    goto(`/day/${addDays(selectedDate, -6)}`);
   }
 </script>
 
@@ -98,14 +101,12 @@
     </a>
   </div>
 
-  <!-- WeekStrip -->
-  <WeekStrip
-    cells={weekStrip.cells}
-    showDnesPill={weekStrip.showDnesPill}
-    canPageBack={weekStrip.canPageBack}
+  <!-- DayStrip -->
+  <DayStrip
+    cells={dayStrip.cells}
     {today}
+    {todayRecorded}
     onselectdate={handleSelectDate}
-    onpageback={handlePageBack}
   />
 
   <div class="px-4 pb-24 space-y-3">
