@@ -1181,6 +1181,35 @@ describe('meal/+page.svelte', () => {
       expect(label!.classList.contains('eyebrow')).toBe(true);
     });
 
+    // Issue #326: all section eyebrows on the meal edit page must use the
+    // same label-to-content gap so the screen reads with a single rhythm.
+    // The "Poznámka" label had drifted to mb-1; aligning to mb-2 matches
+    // "Všechny kategorie" + "Přidané potraviny".
+    it('all meal-edit section eyebrows share the same label-to-content margin', async () => {
+      setReady();
+      const { default: MealPage } = await import('./+page.svelte');
+      const { getByRole, getByText, container } = render(MealPage);
+      await tick();
+      // Confirm a food so the working-list section appears alongside the
+      // grid + notes labels.
+      await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+      await tick();
+      await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+      await tick();
+      await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+      await tick();
+      await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+      await tick();
+      const allCategories = getByText('Všechny kategorie');
+      const addedFoods = getByText('Přidané potraviny');
+      const notesLabel = container.querySelector('label[for="meal-notes"]');
+      expect(notesLabel).not.toBeNull();
+      // All three labels must use the same bottom margin utility.
+      expect(allCategories.classList.contains('mb-2')).toBe(true);
+      expect(addedFoods.classList.contains('mb-2')).toBe(true);
+      expect(notesLabel!.classList.contains('mb-2')).toBe(true);
+    });
+
     it('date in the top-right carries the larger body-muted utility, not the tiny caption', async () => {
       setReady();
       mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
