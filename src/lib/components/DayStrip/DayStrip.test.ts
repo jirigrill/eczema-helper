@@ -117,6 +117,21 @@ describe('DayStrip', () => {
     expect(fn).toHaveBeenCalledWith('2026-06-11');
   });
 
+  it('renders future cells faded', async () => {
+    const cells: DayStripCell[] = [
+      cell(today, { isToday: true, isSelected: true }),
+      cell('2026-06-11', { isFuture: true }),
+    ];
+    const { getAllByTestId } = render(DayStrip, {
+      props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
+    });
+    await tick();
+    const buttons = getAllByTestId('day-strip-cell');
+    // Future cell carries the muted/faded class; the non-future today cell does not.
+    expect(buttons[1].className).toContain('text-text-muted/50');
+    expect(buttons[0].className).not.toContain('text-text-muted/50');
+  });
+
   it('does not jump to today when a before-start cell is clicked (no jump-to-today behavior)', async () => {
     const fn = vi.fn();
     const cells: DayStripCell[] = [

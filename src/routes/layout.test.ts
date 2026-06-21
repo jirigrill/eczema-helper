@@ -284,6 +284,16 @@ describe('+layout.svelte — active tab state', () => {
     expect(dnesLink?.classList).toContain('text-text-muted');
   });
 
+  it('marks Dnes tab inactive when viewing a future date', async () => {
+    const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    mockPageStore.set({ url: new URL(`http://localhost/day/${futureDate}`), params: { date: futureDate }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
+    expect(dnesLink?.classList).toContain('text-text-muted');
+  });
+
   it('marks Týden tab active on /week', async () => {
     mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
     mockScheduleContext.set(readyContext);

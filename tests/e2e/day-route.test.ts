@@ -201,6 +201,81 @@ test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
   await expect(page.getByText('🥛 Mléčné výrobky')).toBeVisible();
 });
 
+// ── Decoupled scroll-then-tap: scrolling only browses ─────────────────────
+
+test('scrolling the strip only browses — URL and content stay until a tap', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  await seedSchedule(page, startDate);
+  await page.goto(`/day/${today}`);
+  await expect(page.getByTestId('day-strip')).toBeVisible();
+  // Today content is on screen (task counter only renders for today).
+  await expect(page.getByTestId('task-counter')).toBeVisible();
+
+  const scroller = page.getByTestId('day-strip-scroller');
+  // Scroll backwards through past days, then forward into future days.
+  await scroller.evaluate((el) => {
+    el.scrollLeft = 0;
+  });
+  await scroller.evaluate((el) => {
+    el.scrollLeft = el.scrollWidth;
+  });
+
+  // Decoupled model: passing over days changes nothing — still on today,
+  // today's content still shown, no flash of another day's view.
+  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page.getByTestId('task-counter')).toBeVisible();
+
+  // A deliberate tap is what commits selection and navigates.
+  const cells = page.getByTestId('day-strip-cell');
+  const total = await cells.count();
+  let target = '';
+  for (let i = 0; i < total; i++) {
+    const cell = cells.nth(i);
+    const date = await cell.getAttribute('data-date');
+    const isBeforeStart = await cell.getAttribute('data-before-start');
+    if (date && !isBeforeStart && date !== today) {
+      target = date;
+      await cell.click();
+      break;
+    }
+  }
+  expect(target).not.toBe('');
+  await expect(page).toHaveURL(`/day/${target}`);
+});
+
+// ── Browser back preserves navigation ─────────────────────────────────────
+
+test('browser back returns to the previous day after a strip tap', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  await seedSchedule(page, startDate);
+  await page.goto(`/day/${today}`);
+  await expect(page.getByTestId('day-strip')).toBeVisible();
+
+  // Tap an in-range, non-today cell → navigates to that day.
+  const cells = page.getByTestId('day-strip-cell');
+  const total = await cells.count();
+  let target = '';
+  for (let i = 0; i < total; i++) {
+    const cell = cells.nth(i);
+    const date = await cell.getAttribute('data-date');
+    const isBeforeStart = await cell.getAttribute('data-before-start');
+    if (date && !isBeforeStart && date !== today) {
+      target = date;
+      await cell.click();
+      break;
+    }
+  }
+  expect(target).not.toBe('');
+  await expect(page).toHaveURL(`/day/${target}`);
+
+  // Browser back returns to today, content intact.
+  await page.goBack();
+  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page.getByTestId('task-counter')).toBeVisible();
+});
+
 // ── Before-start cells remain selectable, no page-back behavior ────────────
 
 test('clicking a before-start cell selects that date (no jump-to-today)', async ({ page }) => {
@@ -215,9 +290,15 @@ test('clicking a before-start cell selects that date (no jump-to-today)', async 
   await expect(page.getByTestId('day-strip')).toBeVisible();
 
   const firstCell = page.getByTestId('day-strip-cell').nth(0);
-  const cellDate = await firstCell.getAttribute('data-date');
-  // The earliest cell should sit before the seeded protocol startDate.
-  expect(cellDate && cellDate < startDate).toBe(true);
+  // The schedule loads via liveQuery; until it resolves the strip uses a
+  // today-anchored fallback range. Poll until the strip reflects the seeded
+  // protocol so the earliest cell actually sits before startDate.
+  await expect
+    .poll(async () => {
+      const d = await firstCell.getAttribute('data-date');
+      return d != null && d < startDate;
+    })
+    .toBe(true);
   await firstCell.click();
   // The page redirects before-start dates to today (resolveRouteDate guard);
   // tapping the cell still issues navigation rather than the old "jump to today"
