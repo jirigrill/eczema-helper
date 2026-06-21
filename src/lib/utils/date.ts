@@ -4,21 +4,31 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
 }
 
+function localIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function todayIso(): string {
-  return new Date().toISOString().split('T')[0];
+  return localIsoDate(new Date());
 }
 
 export function addDays(iso: string, n: number): string {
   const [year, month, day] = iso.split('-').map(Number);
   const d = new Date(Date.UTC(year, month - 1, day));
   d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().split('T')[0];
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 }
 
 export function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().split('T')[0];
+  return localIsoDate(d);
 }
 
 export function isDateInRange(date: string, start: string, end: string): boolean {

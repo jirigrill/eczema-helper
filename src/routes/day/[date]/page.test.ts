@@ -205,22 +205,22 @@ describe('/day/[date] page', () => {
       expect(getByText('Stav ekzému')).toBeInTheDocument();
     });
 
-    it('renders week strip for a past date', async () => {
+    it('renders day strip for a past date', async () => {
       mockPage.params.date = pastDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
       const { getByTestId } = render(DayPage);
       await tick();
-      expect(getByTestId('week-strip')).toBeInTheDocument();
+      expect(getByTestId('day-strip')).toBeInTheDocument();
     });
 
-    it('shows Dnes pill when selected date is not today', async () => {
+    it('does not render a Dnes pill on past dates (it was removed)', async () => {
       mockPage.params.date = pastDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
-      const { getByTestId } = render(DayPage);
+      const { queryByTestId } = render(DayPage);
       await tick();
-      expect(getByTestId('dnes-pill')).toBeInTheDocument();
+      expect(queryByTestId('dnes-pill')).toBeNull();
     });
   });
 
@@ -254,7 +254,7 @@ describe('/day/[date] page', () => {
       expect(reminders).toHaveLength(0);
     });
 
-    it('does not show Dnes pill when selected date is today', async () => {
+    it('does not show Dnes pill when selected date is today (Dnes pill is removed)', async () => {
       mockPage.params.date = today;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
