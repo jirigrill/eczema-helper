@@ -935,6 +935,9 @@
 
   <!-- ─── DayStrip ──────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/DayStrip/DayStrip.svelte -->
+  <!-- Note: live component shows native thin scrollbar on desktop (pointer:fine)
+       and hides it on touch devices (pointer:coarse). Mocks here approximate the
+       mobile rendering with scrollbar-width:none. -->
   <div class="component-section" id="daystrip">
     <p class="component-label">▸ <span>DayStrip</span> — cells: DayStripCell[], today: string, todayRecorded: boolean, onselectdate: (date) => void</p>
 
