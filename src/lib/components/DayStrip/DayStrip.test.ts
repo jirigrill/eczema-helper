@@ -132,4 +132,33 @@ describe('DayStrip', () => {
     expect(fn).toHaveBeenCalledWith('2026-05-25');
     expect(fn).not.toHaveBeenCalledWith(today);
   });
+
+  // Regression: when the bottom-nav "Dnes" tab is clicked from a non-today
+  // page, the route changes but the DayStrip is not remounted. The scroll
+  // position must update to keep the newly-selected cell visible — a stale
+  // scroll position would leave today offscreen and only "selected" in markup.
+  it('rerenders cells when the selected date changes (selection follows the strip)', async () => {
+    const initialCells: DayStripCell[] = [
+      cell('2026-06-08'),
+      cell('2026-06-09', { isSelected: true }),
+      cell(today, { isToday: true }),
+    ];
+    const { getAllByTestId, rerender } = render(DayStrip, {
+      props: { cells: initialCells, today, todayRecorded: false, onselectdate: vi.fn() },
+    });
+    await tick();
+    expect(getAllByTestId('day-strip-cell')[1].getAttribute('aria-current')).toBe('date');
+
+    const updatedCells: DayStripCell[] = [
+      cell('2026-06-08'),
+      cell('2026-06-09'),
+      cell(today, { isToday: true, isSelected: true }),
+    ];
+    await rerender({ cells: updatedCells, today, todayRecorded: false, onselectdate: vi.fn() });
+    await tick();
+
+    const buttons = getAllByTestId('day-strip-cell');
+    expect(buttons[1].getAttribute('aria-current')).toBeNull();
+    expect(buttons[2].getAttribute('aria-current')).toBe('date');
+  });
 });

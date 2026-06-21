@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { tick } from 'svelte';
   import type { DayStripCell } from './day-strip';
   import { formatWeekdayShortCs } from '$lib/utils/date';
 
@@ -14,19 +14,36 @@
 
   let scrollerEl: HTMLDivElement | undefined = $state();
 
-  onMount(() => {
-    if (!scrollerEl) return;
-    const todayBtn = scrollerEl.querySelector<HTMLButtonElement>(
-      `[data-testid="day-strip-cell"][data-date="${today}"]`,
+  // Track which date is currently selected so we can re-scroll on changes.
+  // The cells array is recomputed whenever selectedDate changes, so reading
+  // the selected cell here makes the effect react to selection updates.
+  const selectedDate = $derived(cells.find((c) => c.isSelected)?.date);
+
+  // Initial mount anchors the strip near `today`; subsequent selection changes
+  // re-scroll so the selected cell is always visible. This covers the bottom
+  // "Dnes" nav-tab case where the route param changes but the component is
+  // not remounted, leaving the strip's scroll position stale.
+  function scrollDateIntoView(date: string | undefined): void {
+    if (!scrollerEl || !date) return;
+    const cellEl = scrollerEl.querySelector<HTMLButtonElement>(
+      `[data-testid="day-strip-cell"][data-date="${date}"]`,
     );
-    if (todayBtn) {
-      const offsetLeft = todayBtn.offsetLeft;
-      const targetScrollLeft = Math.max(
-        0,
-        offsetLeft - scrollerEl.clientWidth + todayBtn.clientWidth + 16,
-      );
-      scrollerEl.scrollLeft = targetScrollLeft;
-    }
+    if (!cellEl) return;
+    const offsetLeft = cellEl.offsetLeft;
+    // Align so the cell sits near the right edge with a small inset, matching
+    // the original onMount anchor for `today`.
+    const targetScrollLeft = Math.max(
+      0,
+      offsetLeft - scrollerEl.clientWidth + cellEl.clientWidth + 16,
+    );
+    scrollerEl.scrollLeft = targetScrollLeft;
+  }
+
+  $effect(() => {
+    void selectedDate;
+    void cells;
+    // Wait for the DOM to reflect the new cells array before measuring.
+    void tick().then(() => scrollDateIntoView(selectedDate ?? today));
   });
 </script>
 
