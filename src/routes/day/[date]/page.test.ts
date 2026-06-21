@@ -265,7 +265,7 @@ describe('/day/[date] page', () => {
   });
 
   describe('header de-duplication', () => {
-    it('shows "Dnes" heading and weekday · date eyebrow on today', async () => {
+    it('shows "Dnes" heading and date-only eyebrow on today', async () => {
       mockPage.params.date = today;
       mockScheduleRaw.set(readyRawToday);
       const { default: DayPage } = await import('./+page.svelte');
@@ -277,8 +277,9 @@ describe('/day/[date] page', () => {
 
       const eyebrow = container.querySelector('.eyebrow');
       const eyebrowText = eyebrow?.textContent ?? '';
-      // Eyebrow on today shows weekday · date (the divider with surrounding spaces).
-      expect(eyebrowText).toContain('·');
+      // Eyebrow on today shows the date only — no weekday, no divider.
+      expect(eyebrowText).not.toContain('·');
+      expect(eyebrowText.toLowerCase()).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
     });
 
     it('shows the date exactly once in the header on a non-today day', async () => {
@@ -296,22 +297,23 @@ describe('/day/[date] page', () => {
       const occurrences = headerText.split('1. června').length - 1;
       expect(occurrences).toBe(1);
 
-      // Heading carries the date; eyebrow does not repeat it.
+      // Heading carries the date; no eyebrow on non-today days.
       const heading = container.querySelector('h2.page-heading');
       expect(heading?.textContent ?? '').toContain('1. června');
 
       const eyebrow = container.querySelector('.eyebrow');
-      expect(eyebrow?.textContent ?? '').not.toContain('1. června');
+      expect(eyebrow).toBeNull();
     });
 
-    it('eyebrow on a non-today day still shows the weekday', async () => {
+    it('omits the weekday entirely on a non-today day', async () => {
       mockPage.params.date = pastDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
       const { container } = render(DayPage);
       await tick();
-      const eyebrow = container.querySelector('.eyebrow');
-      expect(eyebrow?.textContent?.toLowerCase() ?? '').toContain('neděle');
+      const headerBlock = container.querySelector('h2.page-heading')?.parentElement;
+      const headerText = (headerBlock?.textContent ?? '').toLowerCase();
+      expect(headerText).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
     });
   });
 
