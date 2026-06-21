@@ -17,6 +17,7 @@
   import { createMealSession } from '$lib/stores/meal-session';
   import type { SkinPhoto, MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+  import { pulseRecentreDayStrip } from '$lib/stores/day-strip-recentre';
 
   let { children } = $props();
 
@@ -112,6 +113,15 @@
         <a
           href="/day/{todayIso()}"
           class="flex flex-col items-center gap-0.5 {dnesActive ? 'text-primary' : 'text-text-muted'}"
+          onclick={() => {
+            // When already on /day/today the route does not change, so the
+            // strip's selection effect does not re-run — pulse the recentre
+            // signal so the strip jumps back to today regardless of where
+            // the user scrolled it. Always pulsing is safe: on a real route
+            // change the page-level effect already recentres before this
+            // signal lands.
+            pulseRecentreDayStrip();
+          }}
         >
           <TodayIcon class="w-[22px] h-[22px]" />
           <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}">{commonStrings.nav.today}</span>

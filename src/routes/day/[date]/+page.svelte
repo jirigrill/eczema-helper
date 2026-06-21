@@ -8,6 +8,7 @@
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
+  import { dayStripRecentreSignal } from '$lib/stores/day-strip-recentre';
   import ErrorAlert from '$lib/components/error-alert.svelte';
   import SkinObservationCard from '$lib/components/SkinObservationCard.svelte';
   import SkinPhotoCard from '$lib/components/SkinPhotoCard.svelte';
@@ -73,6 +74,15 @@
 
   const todayRecorded = $derived(isToday && completeness > 0);
 
+  // Imperative handle into the DayStrip — the bottom-nav "Dnes" tab pulses a
+  // signal store when clicked, and we forward it to the strip so it recentres
+  // on today even when the route param did not change.
+  let dayStripRef: { recentre: () => void } | undefined = $state();
+  $effect(() => {
+    void $dayStripRecentreSignal;
+    dayStripRef?.recentre();
+  });
+
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
   }
@@ -103,6 +113,7 @@
 
   <!-- DayStrip -->
   <DayStrip
+    bind:this={dayStripRef}
     cells={dayStrip.cells}
     {today}
     {todayRecorded}
