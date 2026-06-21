@@ -5,7 +5,7 @@
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
   import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-  import { todayIso, formatDateLongCs, formatWeekdayLongCs, addDays } from '$lib/utils/date';
+  import { todayIso, formatDateLongCs, addDays } from '$lib/utils/date';
   import { computeWeekStrip } from '$lib/components/WeekStrip/week-strip';
   import WeekStrip from '$lib/components/WeekStrip/WeekStrip.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
@@ -80,10 +80,12 @@
   <!-- Header -->
   <div class="px-4 pt-4 pb-2 flex items-end justify-between">
     <div>
-      <div class="eyebrow">
-        {formatWeekdayLongCs(selectedDate)} · {formatDateLongCs(selectedDate)}
-      </div>
-      <h2 class="page-heading">{isToday ? commonStrings.today.heading : formatDateLongCs(selectedDate)}</h2>
+      {#if isToday}
+        <div class="eyebrow">{formatDateLongCs(selectedDate)}</div>
+        <h2 class="page-heading">{commonStrings.today.heading}</h2>
+      {:else}
+        <h2 class="page-heading">{formatDateLongCs(selectedDate)}</h2>
+      {/if}
     </div>
     <a
       href="/settings"
