@@ -26,11 +26,26 @@
       `[data-testid="day-strip-cell"][data-date="${date}"]`,
     );
     if (!cellEl) return;
-    const targetScrollLeft = Math.max(
-      0,
-      cellEl.offsetLeft - scrollerEl.clientWidth / 2 + cellEl.clientWidth / 2,
-    );
-    scrollerEl.scrollLeft = targetScrollLeft;
+    // Measure with bounding rects, not `offsetLeft`: `offsetLeft` is relative to
+    // the nearest positioned ancestor (offsetParent), which on desktop includes
+    // the `max-w-lg mx-auto` column's left margin and overshoots the scroll. The
+    // rect delta is layout-position independent.
+    const scRect = scrollerEl.getBoundingClientRect();
+    const cellRect = cellEl.getBoundingClientRect();
+    const delta =
+      cellRect.left - scRect.left - (scrollerEl.clientWidth / 2 - cellRect.width / 2);
+    scrollerEl.scrollLeft += delta;
+  }
+
+  // Wait for Svelte to flush DOM updates AND for the browser to do layout
+  // before measuring `offsetLeft`. `tick()` alone returns after Svelte's
+  // microtask but before the next paint — on cold mount the scroller's
+  // children may still report offsetLeft=0, so we'd scroll to 0 and the
+  // selected day would land at the far left.
+  function scheduleCenter(date: string | undefined): void {
+    void tick().then(() => {
+      requestAnimationFrame(() => scrollDateIntoView(date));
+    });
   }
 
   // Re-anchor whenever the selection or cell list changes. Using $effect (vs
@@ -41,14 +56,14 @@
   $effect(() => {
     void selectedDate;
     void cells;
-    void tick().then(() => scrollDateIntoView(selectedDate ?? today));
+    scheduleCenter(selectedDate ?? today);
   });
 
   // Public hook: lets the parent imperatively recentre the strip when the
   // route param doesn't change but the user expects a "jump back to today"
   // gesture (bottom-nav Dnes tab while already on /day/today).
   export function recentre(): void {
-    void tick().then(() => scrollDateIntoView(selectedDate ?? today));
+    scheduleCenter(selectedDate ?? today);
   }
 </script>
 
@@ -57,8 +72,7 @@
   <div class="day-strip-mask">
     <div
       bind:this={scrollerEl}
-      class="flex gap-1 overflow-x-auto scroll-smooth snap-x"
-      style="scrollbar-width: none;"
+      class="day-strip-scroller flex gap-1 overflow-x-auto scroll-smooth snap-x"
       data-testid="day-strip-scroller"
     >
       {#each cells as cell (cell.date)}
@@ -109,6 +123,27 @@
 </div>
 
 <style>
+  /* Scrollbar visibility: desktop pointers (mouse) get a thin native bar so
+   * the strip's horizontal scrollability is discoverable. Touch devices hide
+   * it (no scrollbar UI exists there anyway and swipe is the obvious gesture).
+   * `pointer: coarse` matches phones/tablets; `pointer: fine` (mouse/trackpad)
+   * is the default and gets the visible bar. */
+  .day-strip-scroller {
+    scrollbar-width: thin;
+    /* End padding = half the scroller minus half a cell (w-10 = 2.5rem). Lets
+     * any cell — including today on a short, non-overflowing protocol — scroll
+     * to dead-centre instead of clamping against the left edge. */
+    padding-inline: calc(50% - 1.25rem);
+  }
+  @media (pointer: coarse) {
+    .day-strip-scroller {
+      scrollbar-width: none;
+    }
+    .day-strip-scroller::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
   /* The mask creates the "fade into the card-edge gutter" illusion: cells
    * scroll behind a soft alpha falloff at each end of the strip rather than
    * being abruptly clipped. The 12px ramp matches the visual gutter the
