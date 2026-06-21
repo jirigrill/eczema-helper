@@ -2,25 +2,36 @@ import type { ScheduleRaw } from '$lib/stores/schedule-context';
 import type { Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
 import { resolveRouteDate } from '$lib/utils/date';
 
+export type DayViewMode = 'editable' | 'preview';
+
 export type DayViewCore = {
 	selectedDate: string;
 	redirectTo: string | null;
+	viewMode: DayViewMode;
 };
 
 /**
  * Pure resolve core for the /day route.
- * Derives selectedDate and redirectTo from the URL param + schedule state.
+ * Derives selectedDate, redirectTo, and viewMode from the URL param + schedule state.
+ *
+ * viewMode is 'preview' when the selected date is in the future (read-only
+ * "Naplánováno" preview, no logging affordances). It is 'editable' for
+ * today, past, and not-ready states.
+ *
  * No reactive subscriptions — compose this inside a .svelte.ts shell.
  */
 export function resolveDay(param: string, raw: ScheduleRaw, today: string): DayViewCore {
 	if (raw.status !== 'ready') {
-		return { selectedDate: today, redirectTo: null };
+		return { selectedDate: today, redirectTo: null, viewMode: 'editable' };
 	}
 	const result = resolveRouteDate(param, raw.schedule.startDate, today);
 	if (result.type === 'redirect') {
-		return { selectedDate: today, redirectTo: result.to };
+		return { selectedDate: today, redirectTo: result.to, viewMode: 'editable' };
 	}
-	return { selectedDate: result.date, redirectTo: null };
+	if (result.type === 'preview') {
+		return { selectedDate: result.date, redirectTo: null, viewMode: 'preview' };
+	}
+	return { selectedDate: result.date, redirectTo: null, viewMode: 'editable' };
 }
 
 export type DailyRecords = {

@@ -27,10 +27,16 @@
   const isDetailScreen = $derived(
     currentPath.startsWith('/meal') || currentPath.startsWith('/settings') || currentPath.startsWith('/skin')
   );
+  const isDayRoute = $derived(currentPath.startsWith('/day/'));
+  const today = $derived(todayIso());
+  // Suppress the FAB on a future day — those days are read-only "Naplánováno"
+  // previews and must not expose meal/observation/photo entry points.
+  const isFutureDay = $derived(isDayRoute && typeof $page.params.date === 'string' && $page.params.date > today);
   const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
-  const dnesActive = $derived($page.params.date === todayIso());
+  const showFab = $derived(showNav && !isFutureDay);
+  const dnesActive = $derived($page.params.date === today);
 
-  const selectedDate = $derived($page.params.date ?? todayIso());
+  const selectedDate = $derived($page.params.date ?? today);
 
   // Day-scoped meal session — feeds the Meal-Type FAB Submenu so it can
   // mark already-logged slots with a ✓ for the current `selectedDate`.
@@ -127,11 +133,13 @@
           <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}">{commonStrings.nav.today}</span>
         </a>
         <div class="flex justify-center">
-          <button
-            class="relative z-50 -mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
-            aria-label={commonStrings.nav.addRecordAria}
-            onclick={() => (fabOpen = true)}
-          >+</button>
+          {#if showFab}
+            <button
+              class="relative z-50 -mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
+              aria-label={commonStrings.nav.addRecordAria}
+              onclick={() => (fabOpen = true)}
+            >+</button>
+          {/if}
         </div>
         <a
           href="/week"

@@ -1,6 +1,7 @@
 import { fromStore } from 'svelte/store';
 import { scheduleRaw } from '$lib/stores/schedule-context';
 import { resolveDay } from '$lib/domain/day-view';
+import type { DayViewMode } from '$lib/domain/day-view';
 import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
 import { createMealSession } from '$lib/stores/meal-session';
 import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
@@ -12,6 +13,7 @@ import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 export type DayView = {
 	readonly redirectTo: string | null;
 	readonly selectedDate: string;
+	readonly viewMode: DayViewMode;
 	readonly meals: Meal[];
 	readonly observations: SkinObservation[];
 	readonly photos: SkinPhoto[];
@@ -29,6 +31,7 @@ export function createDayView(getParam: () => string, today: string): DayView {
 	const resolved = $derived(resolveDay(getParam(), rawStore.current, today));
 	const selectedDate = $derived(resolved.selectedDate);
 	const redirectTo = $derived(resolved.redirectTo);
+	const viewMode = $derived(resolved.viewMode);
 
 	const mealSession = $derived(createMealSession(selectedDate));
 	const observationSession = $derived(createSkinObservationSession(selectedDate));
@@ -51,6 +54,7 @@ export function createDayView(getParam: () => string, today: string): DayView {
 	return {
 		get redirectTo() { return redirectTo; },
 		get selectedDate() { return selectedDate; },
+		get viewMode() { return viewMode; },
 		get meals() { return meals; },
 		get observations() { return observations; },
 		get photos() { return photos; },

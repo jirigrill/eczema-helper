@@ -318,13 +318,13 @@ describe('/day/[date] page', () => {
   });
 
   describe('redirect on invalid param', () => {
-    it('calls goto with today when param is a future date', async () => {
+    it('does NOT redirect for a future date — renders preview view', async () => {
       mockPage.params.date = futureDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
       render(DayPage);
       await tick();
-      expect(mockGoto).toHaveBeenCalledWith(expect.stringContaining('/day/'), expect.objectContaining({ replaceState: true }));
+      expect(mockGoto).not.toHaveBeenCalled();
     });
 
     it('calls goto with today when param is a malformed string', async () => {
@@ -352,6 +352,53 @@ describe('/day/[date] page', () => {
       render(DayPage);
       await tick();
       expect(mockGoto).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('future-day preview', () => {
+    it('renders the "Naplánováno" badge on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByText } = render(DayPage);
+      await tick();
+      expect(getByText('Naplánováno')).toBeInTheDocument();
+    });
+
+    it('does NOT render skin observation card on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText('Stav ekzému')).toBeNull();
+    });
+
+    it('does NOT render skin photo card on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText('Foto kůže')).toBeNull();
+    });
+
+    it('does NOT render meal card on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText('Dnešní jídla')).toBeNull();
+    });
+
+    it('does NOT render the bottom record-hint on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText(/Vše zapisuj přes/)).toBeNull();
     });
   });
 
