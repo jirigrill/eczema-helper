@@ -264,6 +264,59 @@ describe('/day/[date] page', () => {
     });
   });
 
+  describe('header de-duplication', () => {
+    it('shows "Dnes" heading and date-only eyebrow on today', async () => {
+      mockPage.params.date = today;
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+
+      const heading = container.querySelector('h2.page-heading');
+      expect(heading?.textContent?.trim()).toBe('Dnes');
+
+      const eyebrow = container.querySelector('.eyebrow');
+      const eyebrowText = eyebrow?.textContent ?? '';
+      // Eyebrow on today shows the date only — no weekday, no divider.
+      expect(eyebrowText).not.toContain('·');
+      expect(eyebrowText.toLowerCase()).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
+    });
+
+    it('shows the date exactly once in the header on a non-today day', async () => {
+      // Use a fixed past date so the long-format date is deterministic ("1. června").
+      mockPage.params.date = pastDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+
+      const headerBlock = container.querySelector('h2.page-heading')?.parentElement;
+      expect(headerBlock).toBeTruthy();
+      const headerText = headerBlock?.textContent ?? '';
+
+      const occurrences = headerText.split('1. června').length - 1;
+      expect(occurrences).toBe(1);
+
+      // Heading carries the date; no eyebrow on non-today days.
+      const heading = container.querySelector('h2.page-heading');
+      expect(heading?.textContent ?? '').toContain('1. června');
+
+      const eyebrow = container.querySelector('.eyebrow');
+      expect(eyebrow).toBeNull();
+    });
+
+    it('omits the weekday entirely on a non-today day', async () => {
+      mockPage.params.date = pastDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+      const headerBlock = container.querySelector('h2.page-heading')?.parentElement;
+      const headerText = (headerBlock?.textContent ?? '').toLowerCase();
+      expect(headerText).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
+    });
+  });
+
   describe('redirect on invalid param', () => {
     it('calls goto with today when param is a future date', async () => {
       mockPage.params.date = futureDate;
