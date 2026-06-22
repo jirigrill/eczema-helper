@@ -252,7 +252,7 @@ export const commonStrings = {
       tolerated:       'Toleruje',
       'mild-reaction': 'Mírná reakce',
       'clear-reaction':'Jasná reakce',
-      'strong-reaction':'Silná reakce',
+      'severe-reaction':'Silná reakce',
     } as Record<string, string>,
 
     // Toast messages (static)
@@ -270,6 +270,26 @@ export const commonStrings = {
   // ── Skin observation page ─────────────────────────────────
   skin: {
     heading: 'Záznam stavu kůže',
+  },
+
+  // ── Evaluation page (/evaluation) ──────────────────────────
+  evaluation: {
+    heading:           'Vyhodnocení testu',
+    recapHeading:      'Průběh testu',
+    recapEmpty:        'Bez záznamu',
+    outcomePrompt:     'Jak miminko alergen sneslo?',
+    notesPlaceholder:  'Poznámka (volitelné)',
+    saveButton:        'Uložit vyhodnocení',
+    saveButtonDisabled:'Vyber výsledek',
+    severeWarning:     'Po silné reakci přijde 14denní odpočinek. Alergen není trvale vyřazen — později ho znovu otestuješ.',
+    readonlyBadge:     'Vyhodnoceno',
+    toastSaved:        'Vyhodnocení uloženo.',
+    outcomeSubtitles: {
+      tolerated:        'Žádná reakce',
+      'mild-reaction':  'Zarudnutí, mírné svědění',
+      'clear-reaction': 'Zhoršení po podání',
+      'severe-reaction':'Otok, dušnost — k lékaři',
+    } as Record<string, string>,
   },
 
   // ── EczemaCheck component ──────────────────────────────────

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { generateSchedule, insertRestDays, addTrainingPhase, appendReTestPhases, removeReTestPhase, getToleranceBuildingRemindersForDate } from './schedule-builder';
+import { generateSchedule, insertRestDays, addTrainingPhase, appendReTestPhases, removeReTestPhase, getToleranceBuildingRemindersForDate, applyReintroductionVerdict } from './schedule-builder';
+import { getAllergenStatuses } from '$lib/domain/allergen-status';
+import { addDays } from '$lib/utils/date';
 import { getPermanentEliminations } from '$lib/domain/models';
 import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, Meal } from '$lib/domain/models';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -518,5 +520,64 @@ describe('getToleranceBuildingRemindersForDate', () => {
     expect(reminders).toHaveLength(2);
     expect(reminders.map(r => r.allergenId)).toContain('dairy');
     expect(reminders.map(r => r.allergenId)).toContain('eggs');
+  });
+});
+
+// ── applyReintroductionVerdict ───────────────────────────────
+
+describe('applyReintroductionVerdict', () => {
+  const verdictBase: GeneratedSchedule = {
+    permanentMother: [], permanentBaby: [],
+    startDate: '2026-05-01',
+    estimatedEndDate: '2026-05-27',
+    phases: [
+      phase({ id: 'reset',         type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
+      phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-19', allergenIds: ['dairy', 'eggs'] }),
+      phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-20', endDate: '2026-05-23', allergenIds: ['dairy'] }),
+      phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-05-24', endDate: '2026-05-27', allergenIds: ['eggs'] }),
+    ],
+  };
+
+  it('tolerated leaves the schedule unchanged', () => {
+    const result = applyReintroductionVerdict(verdictBase, 'reintro-dairy', 'tolerated');
+    expect(result).toBe(verdictBase);
+  });
+
+  it('mild-reaction inserts a 3-day rest after the phase', () => {
+    const result = applyReintroductionVerdict(verdictBase, 'reintro-dairy', 'mild-reaction');
+    const rest = result.phases.find(p => p.type === 'rest')!;
+    expect(rest.id).toBe('rest-after-reintro-dairy');
+    expect(rest.startDate).toBe('2026-05-24');
+    expect(rest.endDate).toBe(addDays('2026-05-24', 2));
+  });
+
+  it('clear-reaction inserts a 7-day rest after the phase', () => {
+    const result = applyReintroductionVerdict(verdictBase, 'reintro-dairy', 'clear-reaction');
+    const rest = result.phases.find(p => p.type === 'rest')!;
+    expect(rest.startDate).toBe('2026-05-24');
+    expect(rest.endDate).toBe(addDays('2026-05-24', 6));
+  });
+
+  it('severe-reaction inserts a 14-day rest after the phase', () => {
+    const result = applyReintroductionVerdict(verdictBase, 'reintro-dairy', 'severe-reaction');
+    const rest = result.phases.find(p => p.type === 'rest')!;
+    expect(rest.startDate).toBe('2026-05-24');
+    expect(rest.endDate).toBe(addDays('2026-05-24', 13));
+  });
+
+  it('any reaction yields status `reacted` at endDate + 1', () => {
+    for (const outcome of ['mild-reaction', 'clear-reaction', 'severe-reaction'] as const) {
+      const result = applyReintroductionVerdict(verdictBase, 'reintro-dairy', outcome);
+      const dayAfterPhaseEnd = addDays('2026-05-23', 1);
+      const statuses = getAllergenStatuses(result, dayAfterPhaseEnd);
+      const dairy = statuses.find(s => s.allergenId === 'dairy');
+      expect(dairy?.status).toBe('reacted');
+    }
+  });
+
+  it('shifts later phases when a rest is inserted', () => {
+    const result = applyReintroductionVerdict(verdictBase, 'reintro-dairy', 'severe-reaction');
+    const eggs = result.phases.find(p => p.id === 'reintro-eggs')!;
+    expect(eggs.startDate).toBe(addDays('2026-05-24', 14));
   });
 });

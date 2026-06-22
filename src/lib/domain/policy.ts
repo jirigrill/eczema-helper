@@ -44,3 +44,18 @@ export const TRAINING_REMINDER_THRESHOLD_DAYS = 3;
  * Large enough to guarantee the reminder always fires on the first day of training.
  */
 export const NEVER_DOSED_SENTINEL_DAYS = 999;
+
+// ── Recovery rest after a reaction ───────────────────────────
+
+/**
+ * Length of the rest phase inserted after a `mild-reaction` verdict (ADR-0016).
+ * Severity scales rest length, not permanence — protocol allergens are never
+ * permanently eliminated by a reaction, only rested before the protocol continues.
+ */
+export const REST_PHASE_DAYS_MILD = 3;
+
+/** Length of the rest phase inserted after a `clear-reaction` verdict. */
+export const REST_PHASE_DAYS_CLEAR = 7;
+
+/** Length of the rest phase inserted after a `severe-reaction` verdict. */
+export const REST_PHASE_DAYS_SEVERE = 14;

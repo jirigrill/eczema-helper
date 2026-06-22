@@ -2,6 +2,7 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { createDayView } from '$lib/stores/day-view.svelte';
+  import { evaluationsStore } from '$lib/stores/evaluations-store';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
   import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -57,6 +58,20 @@
   );
 
   const isToday = $derived(selectedDate === today);
+
+  const evaluations = $derived($evaluationsStore);
+  const phaseEvaluation = $derived(
+    phase ? evaluations.find((e) => e.phaseId === phase.id) ?? null : null
+  );
+  const phaseHeroHref = $derived.by(() => {
+    if (!phase) return '/program';
+    const isReintro = phase.type === 'reintroduction';
+    const isEvalDay = phase.endDate ? selectedDate === phase.endDate : false;
+    if (isReintro && (phaseEvaluation || isEvalDay)) {
+      return `/evaluation?phase=${encodeURIComponent(phase.id)}&date=${selectedDate}&returnTo=${encodeURIComponent(`/day/${selectedDate}`)}`;
+    }
+    return '/program';
+  });
 
   const completeness = $derived(
     dailyCompleteness({ observations: skinObservations, photos, meals }),
@@ -132,7 +147,7 @@
     {:else}
       <!-- Phase hero -->
       <a
-        href="/program"
+        href={phaseHeroHref}
         class="block bg-white rounded-2xl border border-surface-dark p-4 text-left"
       >
         <div class="flex items-center gap-2.5 mb-2">

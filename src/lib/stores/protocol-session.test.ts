@@ -156,4 +156,49 @@ describe('protocolSession', () => {
     const state = await waitForStatus(protocolSession, 'empty');
     expect(state.status).toBe('empty');
   });
+
+  it('recordVerdict persists the evaluation and returns Ok', async () => {
+    const { protocolSession } = await import('./protocol-session');
+    const { db } = await import('$lib/db/atopic-db');
+
+    await protocolSession.startProtocol(sampleAnswers);
+    await waitForStatus(protocolSession, 'ready');
+
+    const phaseId = 'reintro-soy';
+    const result = await protocolSession.recordVerdict({
+      phaseId,
+      phaseType: 'allergen-test',
+      outcome: 'tolerated',
+      allergenId: 'soy',
+      date: '2025-06-26',
+    });
+    expect(result).toMatchObject({ ok: true });
+
+    const stored = await db.evaluations.get(phaseId);
+    expect(stored?.outcome).toBe('tolerated');
+  });
+
+  it('recordVerdict with a reaction inserts a rest phase', async () => {
+    const { protocolSession } = await import('./protocol-session');
+    const { db } = await import('$lib/db/atopic-db');
+
+    await protocolSession.reset();
+    await protocolSession.startProtocol(sampleAnswers);
+    await waitForStatus(protocolSession, 'ready');
+
+    const phaseId = 'reintro-soy';
+    const result = await protocolSession.recordVerdict({
+      phaseId,
+      phaseType: 'allergen-test',
+      outcome: 'mild-reaction',
+      allergenId: 'soy',
+      date: '2025-06-26',
+    });
+    expect(result).toMatchObject({ ok: true });
+
+    const schedule = await db.schedule.get('singleton');
+    const restPhase = schedule?.phases.find((p) => p.id === `rest-after-${phaseId}`);
+    expect(restPhase).toBeDefined();
+    expect(restPhase?.type).toBe('rest');
+  });
 });
