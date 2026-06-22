@@ -51,13 +51,46 @@ of `eliminatedFoodIds`. See ADR-0018 and PRD issue #284.
 
 ### SkinObservation
 A timestamped record of what the parent observed about the baby's skin
-at a point in time: status (`improved` / `unchanged` / `worsened` /
-`new-lesions`), optional free-text notes. Multiple `SkinObservation`
-records may exist for the same calendar day (e.g. a routine morning
-check and a later reaction log). The form shape is identical on ordinary
-days and reintro-test days — a contextual pill in the UI is the only
-visual difference. There is no `suspectedCause` field; attribution is
-not recorded here. See ADR-0004.
+at a point in time: a set of per-region severities (`regions`) on a
+four-step absolute scale (`RegionLevel` 0/1/2/3 — klidné / mírné /
+střední / silné), plus optional free-text `notes`. Captured atomically
+with any photos taken in the same session via
+`SkinObservationRepository.save(observation, photos)`. Multiple
+`SkinObservation` records may exist for the same calendar day (e.g. a
+routine morning check and a later reaction log). The form shape is
+identical on ordinary days and reintro-test days. There is no
+`suspectedCause` field; attribution is not recorded here. Day-overall
+severity is derived as `max(regions)` via `overallSeverity()` and never
+persisted. See ADR-0004 (causation derived) and ADR-0021 (regional
+severity shape).
+
+### Region
+One of nine canonical body areas the parent can log on `/skin`: face,
+scalp, neck, belly, back, arms, elbow-folds, knee-folds, legs. The
+union is frozen for v1; new regions require an ADR. Identified by
+`RegionId` — a kebab-case English-rooted slug. Czech display labels
+live in `src/lib/strings/skin-regions.ts` keyed by `RegionId` (per
+ADR-0014).
+
+### RegionLevel
+The absolute severity of a single region, on a four-step scale: `0`
+klidné, `1` mírné, `2` střední, `3` silné. Klidné is the explicit
+default — a region the parent never touched is calm, not unknown.
+Czech labels and severity hex tokens live in the strings + config split
+under `src/lib/strings/skin-regions.ts` and
+`src/lib/config/skin-regions.ts`.
+
+### Active region
+On `/skin`, the region currently selected for tap-to-cycle. Tapping
+an inactive region only activates it; tapping the active region cycles
+its severity 0 → 1 → 2 → 3 → 0. Active is a UI-only concept — never
+persisted.
+
+### Logged region
+A region whose severity is greater than 0 (and, in the next slice, a
+region with at least one photo). The Uložit gate on `/skin` enables
+when at least one region is logged; an observation with zero logged
+regions cannot be saved.
 
 ### SkinPhoto
 A timestamped photo of the baby's skin, stored as a `Blob` in the
@@ -387,6 +420,14 @@ after data exists is a migration.
   app derives suspected patterns via a pattern detector over those
   logs. No `suspectedCause` field on `SkinObservation`.
   See [ADR-0004](docs/adr/0004-causation-derived-not-recorded.md).
+- **Skin observation is a per-region severity set, atomically saved
+  with photos.** `SkinObservation.regions` is a list of `{ id, level }`
+  pairs over nine canonical regions and four absolute severity levels
+  (klidné / mírné / střední / silné). Klidné is the explicit default.
+  Day-overall severity is derived as `max(regions)` and never persisted.
+  `SkinObservationRepository.save(observation, photos)` writes both in a
+  single Dexie transaction.
+  See [ADR-0021](docs/adr/0021-regional-severity-skin-observation.md).
 - **Photo encryption-at-rest deferred past v1** — with a shipping
   constraint: encryption must land before the app reaches any device
   other than the developer's own.

@@ -243,11 +243,14 @@ export const commonStrings = {
       'new-lesions':'Nová ložiska',
     } as Record<string, string>,
 
-    // Skin assessment count suffixes (e.g. "3× zlepšení")
-    skinImprovedSuffix:   '× zlepšení',
-    skinUnchangedSuffix:  '× beze změny',
-    skinWorsenedSuffix:   '× zhoršení',
-    skinNewLesionsSuffix: '× nová ložiska',
+    // Skin assessment count suffixes by severity tier (issue #361). Mapping to
+    // the strings layer from `$lib/strings/skin-regions`: 0 klidné / 1 mírné /
+    // 2 střední / 3 silné. Suffix style mirrors `× zlepšení` from the prior
+    // status-based copy.
+    skinCalmSuffix:    '× klidné',
+    skinMildSuffix:    '× mírné',
+    skinMediumSuffix:  '× střední',
+    skinSevereSuffix:  '× silné',
 
     // Reintroduction evaluation outcome labels
     reintroOutcomes: {
@@ -269,9 +272,22 @@ export const commonStrings = {
     reasonBaby:          'alergie miminka',
   },
 
-  // ── Skin observation page ─────────────────────────────────
+  // ── Skin observation page (/skin) ──────────────────────────
   skin: {
-    heading: 'Záznam stavu kůže',
+    /** PageHeader title — "Stav kůže" matches the prototype. */
+    heading:           'Stav kůže',
+    /** Eyebrow above the region grid. */
+    eyebrow:           'Kde a jak moc',
+    /** Caption next to the eyebrow telling the mother the tap rule. */
+    tapHint:           'ťukni = vyber · znovu = míra',
+    /** Caption shown below the grid before any region is active. */
+    helperEmpty:       'Ťukni na oblast, kde je ekzém.',
+    /** Optional per-observation note placeholder. */
+    notePlaceholder:   'Poznámka (nepovinné)',
+    /** Save CTA when nothing is logged yet. */
+    saveDisabled:      'Uložit stav',
+    /** Aria label for the save action; suffix is appended at render time. */
+    saveAriaLabel:     'Uložit stav kůže',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────
@@ -292,14 +308,6 @@ export const commonStrings = {
       'clear-reaction': 'Zhoršení po podání',
       'severe-reaction':'Otok, dušnost — k lékaři',
     } as Record<string, string>,
-  },
-
-  // ── EczemaCheck component ──────────────────────────────────
-  eczemaCheck: {
-    heading:             'Stav kůže miminka',
-    savedLabel:          '✓ Uloženo',
-    reactionInstruction: 'Zaznamenejte jakékoliv změny kůže po zavedení tohoto alergenu.',
-    notePlaceholder:     'Poznámka (volitelné) — např. zarudnutí na tváři…',
   },
 
 } as const;
@@ -416,9 +424,4 @@ export function deviationsMore(n: number): string {
 /** "🔬 Den {day} z {total}" — reintroduction day label in meal page */
 export function reintroDayLabel(day: number, total: number): string {
   return `🔬 Den ${day} z ${total}`;
-}
-
-/** "🔬 Sledujte reakci na {icon} {name}" — EczemaCheck reintro allergen banner */
-export function reactionBannerLabel(icon: string, name: string): string {
-  return `🔬 Sledujte reakci na ${icon} ${name}`;
 }

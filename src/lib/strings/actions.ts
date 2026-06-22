@@ -43,12 +43,6 @@ export const actionStrings = {
   startQuestionnaire: 'Spustit dotazník →',
   showDayOverview:    'Zobrazit přehled dne →',
 
-  /** EczemaCheck / assessment flow */
-  saveAssessment:     'Uložit hodnocení',
-  savedAssessment:    '✓ Uloženo',
-  addPhoto:           'Přidat fotku',
-  photoTaken:         'Fotka pořízena',
-
   /** Meal delete + overflow (issue #268, ADR-0018) */
   more:              'Více',            // aria-label for the ⋯ overflow trigger
   deleteMeal:        'Smazat jídlo',    // destructive button on the confirm sheet

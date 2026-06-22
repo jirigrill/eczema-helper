@@ -134,7 +134,7 @@ describe('dailyCompleteness', () => {
 		id: 'o1',
 		date: today,
 		createdAt: `${today}T08:00:00.000Z`,
-		status: 'unchanged',
+		regions: [{ id: 'face', level: 1 }],
 	};
 
 	const photo: SkinPhoto = {

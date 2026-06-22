@@ -17,7 +17,8 @@
   import Button from '$lib/components/Button.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
-  import type { AllergenOutcome, ProtocolAllergenId, ReintroductionEvaluation, SchedulePhase, SkinObservation } from '$lib/domain/models';
+  import type { AllergenOutcome, ProtocolAllergenId, RegionLevel, ReintroductionEvaluation, SchedulePhase, SkinObservation } from '$lib/domain/models';
+  import { severityStrings } from '$lib/strings/skin-regions';
 
   const phaseId = $derived(page.url.searchParams.get('phase') ?? '');
   const queryDate = $derived(page.url.searchParams.get('date') ?? todayIso());
@@ -77,19 +78,19 @@
 
   const isReadOnly = $derived(existing !== null);
 
-  function recapBadgeClass(status?: SkinObservation['status']): string {
-    switch (status) {
-      case 'improved':   return 'bg-success text-white';
-      case 'unchanged':  return 'bg-surface-dark text-text-muted';
-      case 'worsened':   return 'bg-warning text-text';
-      case 'new-lesions':return 'bg-danger text-white';
-      default:           return 'bg-surface-dark text-text-muted';
+  function recapBadgeClass(severity?: RegionLevel): string {
+    switch (severity) {
+      case 0:  return 'bg-success text-white';
+      case 1:  return 'bg-warning text-text';
+      case 2:  return 'bg-warning text-text';
+      case 3:  return 'bg-danger text-white';
+      default: return 'bg-surface-dark text-text-muted';
     }
   }
 
-  function recapStatusLabel(status?: SkinObservation['status']): string {
-    if (!status) return commonStrings.evaluation.recapEmpty;
-    return commonStrings.program.skinOutcomes[status] ?? status;
+  function recapStatusLabel(severity?: RegionLevel): string {
+    if (severity === undefined) return commonStrings.evaluation.recapEmpty;
+    return severityStrings[severity].label;
   }
 
   async function handleSave(): Promise<void> {
@@ -147,9 +148,9 @@
         <div class="space-y-1.5">
           {#each recap as row (row.date)}
             <div class="flex items-center gap-2 text-[11px]">
-              <span class="w-5 h-5 rounded-full {recapBadgeClass(row.skinStatus)} text-[10px] font-bold flex items-center justify-center shrink-0">{row.dayNumber}</span>
+              <span class="w-5 h-5 rounded-full {recapBadgeClass(row.severity)} text-[10px] font-bold flex items-center justify-center shrink-0">{row.dayNumber}</span>
               <span class="font-medium text-text">{formatDateLongCs(row.date)}</span>
-              <span class="text-text-muted ml-auto">{recapStatusLabel(row.skinStatus)}</span>
+              <span class="text-text-muted ml-auto">{recapStatusLabel(row.severity)}</span>
             </div>
           {/each}
         </div>
