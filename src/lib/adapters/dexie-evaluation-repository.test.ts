@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieEvaluationRepository } from './dexie-evaluation-repository';
 import { AtopicDb } from '$lib/db/atopic-db';
-import type { ReintroductionEvaluation } from '$lib/domain/models';
+import type { ReintroductionEvaluation, SkinEvaluationOutcome } from '$lib/domain/models';
 
 function makeEval(phaseId: string, overrides?: Partial<ReintroductionEvaluation>): ReintroductionEvaluation {
   return {
@@ -78,5 +78,22 @@ describe('DexieEvaluationRepository', () => {
     vi.spyOn(db.evaluations, 'get').mockRejectedValueOnce(new Error('read fail'));
     const result = await repo.loadByPhase('reintro-dairy');
     expect(result).toEqual({ ok: false, error: 'read fail' });
+  });
+
+  it('persists each of the four SkinEvaluationOutcome values for skin-status phases', async () => {
+    const outcomes: SkinEvaluationOutcome[] = ['improved', 'unchanged', 'worsened', 'new-lesions'];
+    for (const outcome of outcomes) {
+      const phaseId = `reset-${outcome}`;
+      const ev: ReintroductionEvaluation = {
+        phaseId,
+        phaseType: 'skin-status',
+        outcome,
+        date: '2026-06-22',
+      };
+      expect(await repo.save(ev)).toMatchObject({ ok: true });
+      const result = await repo.loadByPhase(phaseId);
+      expect(result).toMatchObject({ ok: true });
+      if (result.ok) expect(result.data?.outcome).toBe(outcome);
+    }
   });
 });
