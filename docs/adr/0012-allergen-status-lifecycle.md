@@ -96,8 +96,8 @@ one pass.
 
 ### `appendReTestPhases` enforces retest eligibility
 
-The operation that mutates the schedule to add baby-allergy retest phases
-gains domain-level validation. Its new signature:
+The operation that mutates the schedule to add allergen retest phases gains
+domain-level validation. Its new signature:
 
 ```ts
 appendReTestPhases(
@@ -112,20 +112,26 @@ type RetestRejection =
   | { code: 'retest-already-scheduled'; invalidIds: string[] };
 ```
 
-An id is accepted iff its current status (as of `today`) is exactly
-`permanent-baby` *and* the schedule does not already contain a future
-`reintroduction` phase for that id. The three rejection variants
-distinguish the failure modes so the calling UI can render specific
-copy:
+An id is accepted iff its current status (as of `today`) is `permanent-baby`
+*or* `reacted` *and* the schedule does not already contain an active or
+future `reintroduction` phase for that id. Both baby-confirmed allergies and
+reacted protocol allergens are retestable: there is one consistent way to
+retry any allergen. Protocol allergens are never permanently eliminated.
 
-- `not-baby-confirmed` — id is a mother allergy or a protocol-only
-  allergen; was never retestable.
-- `already-cleared` — id is a baby allergy whose latest retest came
-  back clean (status `passed`). Re-testing is not offered.
-- `retest-already-scheduled` — a future retest phase for this id
-  already exists (covers both "active retest in progress" and
-  "appended but not yet started"). A separate cancel/reschedule
-  operation is needed to change the date; tracked as a follow-up.
+The three rejection variants distinguish the failure modes so the calling
+UI can render specific copy:
+
+- `not-baby-confirmed` — id is a `permanent-mother` allergy. The code name
+  is preserved for caller stability; its semantic now narrows to
+  "permanent-mother (mother allergy, never retestable)" only.
+- `already-cleared` — id's latest verdict is `passed` (a clean
+  reintroduction with no rest follow-up). Re-testing a passed allergen is
+  not offered.
+- `retest-already-scheduled` — a future or active reintroduction phase for
+  this id already exists (covers "active retest in progress", "appended
+  but not yet started", and the initial protocol reintroduction phase
+  before its first run). A separate cancel/reschedule operation is needed
+  to change the date; tracked as a follow-up.
 
 The type lives next to its producer in `schedule-builder.ts`, not in
 `$lib/types/result.ts` — that module stays generic.

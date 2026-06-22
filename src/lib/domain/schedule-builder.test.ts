@@ -249,19 +249,52 @@ describe('appendReTestPhases — happy path', () => {
 });
 
 describe('appendReTestPhases — not-baby-confirmed', () => {
-  it('rejects a mother allergen (not retestable)', () => {
+  it('rejects a mother allergen (never retestable)', () => {
     const result = appendReTestPhases(retestBase, ['fish'], TODAY);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('not-baby-confirmed');
     expect(result.error.invalidIds).toContain('fish');
   });
+});
 
-  it('rejects a protocol-only allergen (not in permanentBaby)', () => {
+describe('appendReTestPhases — reacted protocol allergen accepted', () => {
+  // dairy is a protocol allergen whose reintro was followed by a rest phase
+  // → status is 'reacted'. Per ADR-0012 (widened rule), reacted protocol
+  // allergens are now retestable.
+  const scheduleWithReactedDairy: GeneratedSchedule = {
+    ...retestBase,
+    phases: [
+      phase({ id: 'reset',         type: 'reset',          startDate: '2026-05-01', endDate: '2026-05-05' }),
+      phase({ id: 'elimination',   type: 'elimination',    startDate: '2026-05-06', endDate: '2026-05-19', allergenIds: ['dairy', 'eggs'] }),
+      phase({ id: 'reintro-dairy', type: 'reintroduction', startDate: '2026-05-20', endDate: '2026-05-23', allergenIds: ['dairy'] }),
+      phase({ id: 'rest-after-reintro-dairy', type: 'rest', startDate: '2026-05-24', endDate: '2026-05-26' }),
+      phase({ id: 'reintro-eggs',  type: 'reintroduction', startDate: '2026-05-27', endDate: '2026-05-30', allergenIds: ['eggs'] }),
+    ],
+    estimatedEndDate: '2026-05-30',
+  };
+
+  it('accepts a reacted protocol allergen and appends a retest phase', () => {
+    const result = appendReTestPhases(scheduleWithReactedDairy, ['dairy'], TODAY);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const retestPhase = result.data.phases.find(
+      p => p.type === 'reintroduction' &&
+           p.allergenIds.includes('dairy') &&
+           p.startDate > scheduleWithReactedDairy.estimatedEndDate
+    );
+    expect(retestPhase).toBeDefined();
+  });
+});
+
+describe('appendReTestPhases — passed protocol allergen rejected as already-cleared', () => {
+  // dairy is a protocol allergen whose reintro was NOT followed by a rest
+  // phase → status is 'passed'. A passed allergen is not re-tested.
+  it('rejects a passed protocol allergen with already-cleared', () => {
     const result = appendReTestPhases(retestBase, ['dairy'], TODAY);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error.code).toBe('not-baby-confirmed');
+    expect(result.error.code).toBe('already-cleared');
     expect(result.error.invalidIds).toContain('dairy');
   });
 });
