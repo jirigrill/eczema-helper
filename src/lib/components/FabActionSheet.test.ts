@@ -189,28 +189,28 @@ describe('FabActionSheet', () => {
       expect(getByTestId('fab-action-evaluate')).toBeInTheDocument();
     });
 
-    it('tapping the evaluate row navigates to /evaluation with ?date= and ?returnTo=', async () => {
+    it('tapping the evaluate row navigates to /evaluation with ?phase=, ?date= and ?returnTo=', async () => {
       const onclose = vi.fn();
       const { getByTestId } = render(FabActionSheet, {
-        props: { date, onclose, showEvaluate: true },
+        props: { date, onclose, showEvaluate: true, evaluatePhaseId: 'reintro-soy' },
       });
       await fireEvent.click(getByTestId('fab-action-evaluate'));
       await tick();
       expect(gotoMock).toHaveBeenCalledWith(
-        `/evaluation?date=${date}&returnTo=/day/${date}`,
+        `/evaluation?phase=reintro-soy&date=${date}&returnTo=/day/${date}`,
       );
       expect(onclose).toHaveBeenCalledOnce();
     });
 
-    it('the evaluate row is day-scoped — uses the current `date` prop', async () => {
+    it('the evaluate row is day-scoped — uses the current `date` prop and phase id', async () => {
       const pastDate = '2025-04-01';
       const { getByTestId } = render(FabActionSheet, {
-        props: { date: pastDate, onclose: vi.fn(), showEvaluate: true },
+        props: { date: pastDate, onclose: vi.fn(), showEvaluate: true, evaluatePhaseId: 'reintro-wheat' },
       });
       await fireEvent.click(getByTestId('fab-action-evaluate'));
       await tick();
       expect(gotoMock).toHaveBeenCalledWith(
-        `/evaluation?date=${pastDate}&returnTo=/day/${pastDate}`,
+        `/evaluation?phase=reintro-wheat&date=${pastDate}&returnTo=/day/${pastDate}`,
       );
     });
 

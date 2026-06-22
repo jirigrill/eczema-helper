@@ -7,7 +7,7 @@
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
   import { scheduleContext } from '$lib/stores/schedule-context';
-  import { isPhaseEndForEvaluation } from '$lib/domain/schedule-queries';
+  import { isPhaseEndForEvaluation, getPhaseForDate } from '$lib/domain/schedule-queries';
   import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
   import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
@@ -48,6 +48,11 @@
   // of an evaluable phase (issue #331).
   const showEvaluate = $derived(
     ctx.status === 'ready' && isPhaseEndForEvaluation(ctx.schedule, selectedDate),
+  );
+  // Id of the phase ending on `selectedDate`, carried into `/evaluation` so the
+  // screen resolves which phase to evaluate. Only meaningful when showEvaluate.
+  const evaluatePhaseId = $derived(
+    ctx.status === 'ready' ? (getPhaseForDate(ctx.schedule, selectedDate)?.id ?? '') : '',
   );
 
   let fabOpen = $state(false);
@@ -174,6 +179,7 @@
     date={selectedDate}
     {loggedTypes}
     {showEvaluate}
+    {evaluatePhaseId}
     onclose={() => (fabOpen = false)}
     oncapturephoto={handleFabPhotoCapture}
   />
