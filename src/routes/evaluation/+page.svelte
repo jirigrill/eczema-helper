@@ -10,7 +10,6 @@
   import { buildPhaseRecap } from '$lib/domain/phase-recap';
   import { todayIso, formatDateLongCs } from '$lib/utils/date';
   import { commonStrings } from '$lib/strings/common';
-  import { actionStrings } from '$lib/strings/actions';
   import { categoryStrings } from '$lib/strings/categories';
   import { getCategoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
@@ -57,7 +56,8 @@
   let selectedOutcome = $state<AllergenOutcome | null>(null);
   let notes = $state('');
   let saving = $state(false);
-  let showToast = $state(false);
+  let savedToast = $state(false);
+  let saveError = $state<string | null>(null);
 
   const allergenSlug = $derived<ProtocolAllergenId | null>(
     phase && phase.type === 'reintroduction' ? (phase.allergenIds[0] ?? null) : null
@@ -106,10 +106,11 @@
     const result = await protocolSession.recordVerdict(evaluation);
     saving = false;
     if (!result.ok) {
-      showToast = true;
+      saveError = result.error;
       return;
     }
-    goto(returnTo);
+    // Confirm the save, then return to the day view when the toast clears.
+    savedToast = true;
   }
 </script>
 
@@ -217,10 +218,19 @@
   </div>
 </div>
 
-{#if showToast}
+{#if savedToast}
   <Toast
-    message={actionStrings.cancel}
+    message={commonStrings.evaluation.toastSaved}
+    type="success"
+    duration={1200}
+    onClose={() => goto(returnTo)}
+  />
+{/if}
+
+{#if saveError}
+  <Toast
+    message={saveError}
     type="error"
-    onClose={() => (showToast = false)}
+    onClose={() => (saveError = null)}
   />
 {/if}
