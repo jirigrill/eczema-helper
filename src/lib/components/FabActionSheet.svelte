@@ -137,7 +137,7 @@
       <span class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
         <FoodIcon class="w-[22px] h-[22px]" />
       </span>
-      <span class="flex-1 text-[15px] font-semibold text-text text-left">
+      <span class="flex-1 text-[15px] text-text-muted text-left">
         {commonStrings.fabSheet.addMeal}
       </span>
       <span class="text-text-muted text-sm">›</span>
@@ -191,10 +191,10 @@
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
         </span>
-        <span class="flex-1 text-[15px] font-semibold text-primary text-left">
+        <span class="flex-1 text-[15px] text-text-muted text-left">
           {commonStrings.fabSheet.addEvaluation}
         </span>
-        <span class="text-primary text-sm">›</span>
+        <span class="text-text-muted text-sm">›</span>
       </button>
     {/if}
 
