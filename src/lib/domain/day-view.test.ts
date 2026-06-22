@@ -50,73 +50,81 @@ describe('resolveDay', () => {
 	describe('schedule not ready (loading / empty)', () => {
 		it('returns today as selectedDate and no redirect when loading', () => {
 			const result = resolveDay('2025-06-05', { status: 'loading' }, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: null });
+			expect(result).toEqual({ selectedDate: today, redirectTo: null, viewMode: 'editable' });
 		});
 
 		it('returns today as selectedDate and no redirect when empty', () => {
 			const result = resolveDay('2025-06-05', { status: 'empty' }, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: null });
+			expect(result).toEqual({ selectedDate: today, redirectTo: null, viewMode: 'editable' });
 		});
 
 		it('returns today as selectedDate and no redirect when error', () => {
 			const result = resolveDay('not-a-date', { status: 'error', message: 'db error' }, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: null });
+			expect(result).toEqual({ selectedDate: today, redirectTo: null, viewMode: 'editable' });
 		});
 	});
 
 	describe('valid in-range param', () => {
-		it('returns param as selectedDate with no redirect', () => {
+		it('returns param as selectedDate with no redirect, viewMode editable', () => {
 			const result = resolveDay(validDate, readyRaw, today);
-			expect(result).toEqual({ selectedDate: validDate, redirectTo: null });
+			expect(result).toEqual({ selectedDate: validDate, redirectTo: null, viewMode: 'editable' });
 		});
 
-		it('accepts today itself as a valid date', () => {
+		it('accepts today itself as a valid date with editable viewMode', () => {
 			const result = resolveDay(today, readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: null });
+			expect(result).toEqual({ selectedDate: today, redirectTo: null, viewMode: 'editable' });
 		});
 
-		it('accepts protocolStart as a valid date', () => {
+		it('accepts protocolStart as a valid date with editable viewMode', () => {
 			const result = resolveDay(protocolStart, readyRaw, today);
-			expect(result).toEqual({ selectedDate: protocolStart, redirectTo: null });
+			expect(result).toEqual({ selectedDate: protocolStart, redirectTo: null, viewMode: 'editable' });
+		});
+	});
+
+	describe('future date within protocol range — preview view-mode', () => {
+		it('resolves a future date as the selected date with viewMode=preview (no redirect)', () => {
+			const result = resolveDay(futureDate, readyRaw, today);
+			expect(result).toEqual({ selectedDate: futureDate, redirectTo: null, viewMode: 'preview' });
+		});
+
+		it('day immediately after today resolves to preview', () => {
+			// today is 2025-06-10, tomorrow is 2025-06-11 — well before estimatedEndDate
+			const result = resolveDay('2025-06-11', readyRaw, today);
+			expect(result).toEqual({ selectedDate: '2025-06-11', redirectTo: null, viewMode: 'preview' });
 		});
 	});
 
 	describe('invalid / out-of-range param — triggers redirect to today', () => {
-		it('redirects to today for a future date', () => {
-			const result = resolveDay(futureDate, readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: today });
-		});
-
 		it('redirects to today for a malformed string', () => {
 			const result = resolveDay('not-a-date', readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: today });
+			expect(result).toEqual({ selectedDate: today, redirectTo: today, viewMode: 'editable' });
 		});
 
 		it('redirects to today for an empty string', () => {
 			const result = resolveDay('', readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: today });
+			expect(result).toEqual({ selectedDate: today, redirectTo: today, viewMode: 'editable' });
 		});
 
 		it('redirects to today for a date before protocolStart', () => {
 			const result = resolveDay('2025-04-30', readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: today });
+			expect(result).toEqual({ selectedDate: today, redirectTo: today, viewMode: 'editable' });
 		});
 
 		it('redirects to today for a partial date string', () => {
 			const result = resolveDay('2025-06', readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: today });
+			expect(result).toEqual({ selectedDate: today, redirectTo: today, viewMode: 'editable' });
 		});
 	});
 
 	describe('pre-start dates (guard against any path landing before protocolStart)', () => {
 		it('redirects to today for a date before protocolStart', () => {
 			const result = resolveDay('2025-04-25', readyRaw, today);
-			expect(result).toEqual({ selectedDate: today, redirectTo: today });
+			expect(result).toEqual({ selectedDate: today, redirectTo: today, viewMode: 'editable' });
 		});
 
 		it('does not redirect when date is within range', () => {
 			const result = resolveDay('2025-06-01', readyRaw, today);
-			expect(result).toEqual({ selectedDate: '2025-06-01', redirectTo: null });
+			expect(result).toEqual({ selectedDate: '2025-06-01', redirectTo: null, viewMode: 'editable' });
 		});
 	});
 });

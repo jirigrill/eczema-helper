@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { daysBetween, resolveRouteDate, formatWeekdayShortCs, formatWeekdayLongCs } from './date';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { daysBetween, resolveRouteDate, formatWeekdayShortCs, formatWeekdayLongCs, todayIso, daysAgo, addDays } from './date';
 
 describe('daysBetween', () => {
   it('same day returns 1 (inclusive convention)', () => {
@@ -45,9 +45,14 @@ describe('resolveRouteDate', () => {
     expect(result).toEqual({ type: 'redirect', to: today });
   });
 
-  it('returns redirect for a future date', () => {
+  it('returns preview for a future date within range', () => {
     const result = resolveRouteDate('2025-12-31', protocolStart, today);
-    expect(result).toEqual({ type: 'redirect', to: today });
+    expect(result).toEqual({ type: 'preview', date: '2025-12-31' });
+  });
+
+  it('returns preview for the day immediately after today', () => {
+    const result = resolveRouteDate('2025-06-11', protocolStart, today);
+    expect(result).toEqual({ type: 'preview', date: '2025-06-11' });
   });
 
   it('returns redirect for a date before protocolStart', () => {
@@ -97,5 +102,79 @@ describe('formatWeekdayLongCs', () => {
 
   it('returns Czech full weekday name for Sunday', () => {
     expect(formatWeekdayLongCs('2025-06-08')).toBe('neděle');
+  });
+});
+
+describe('todayIso', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('derives the date from local-clock components, not toISOString()', () => {
+    // Construct a Date whose UTC date differs from its local date when run in a
+    // non-UTC zone. We assert against the LOCAL fields directly so the test is
+    // valid in any zone — including UTC, where the two happen to coincide.
+    const fixed = new Date(2026, 5, 15, 1, 30, 0); // local 2026-06-15 01:30
+    vi.useFakeTimers();
+    vi.setSystemTime(fixed);
+    const expected = `${fixed.getFullYear()}-${String(fixed.getMonth() + 1).padStart(2, '0')}-${String(fixed.getDate()).padStart(2, '0')}`;
+    expect(todayIso()).toBe(expected);
+  });
+
+  it('does not call Date.prototype.toISOString (local-zone-correct path)', () => {
+    // todayIso() must not depend on UTC slicing. If it ever calls toISOString,
+    // the test fails — guarding the regression that motivated this fix.
+    const spy = vi.spyOn(Date.prototype, 'toISOString');
+    todayIso();
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe('daysAgo', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns the local-zone date n days ago, not toISOString-derived', () => {
+    const fixed = new Date(2026, 5, 15, 1, 30, 0);
+    vi.useFakeTimers();
+    vi.setSystemTime(fixed);
+    const today = `${fixed.getFullYear()}-${String(fixed.getMonth() + 1).padStart(2, '0')}-${String(fixed.getDate()).padStart(2, '0')}`;
+    expect(daysAgo(0)).toBe(today);
+
+    const minus7 = new Date(fixed);
+    minus7.setDate(minus7.getDate() - 7);
+    const expected7 = `${minus7.getFullYear()}-${String(minus7.getMonth() + 1).padStart(2, '0')}-${String(minus7.getDate()).padStart(2, '0')}`;
+    expect(daysAgo(7)).toBe(expected7);
+  });
+
+  it('does not call Date.prototype.toISOString', () => {
+    const spy = vi.spyOn(Date.prototype, 'toISOString');
+    daysAgo(3);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe('addDays', () => {
+  it('adds positive days', () => {
+    expect(addDays('2026-06-15', 3)).toBe('2026-06-18');
+  });
+
+  it('adds negative days', () => {
+    expect(addDays('2026-06-15', -3)).toBe('2026-06-12');
+  });
+
+  it('handles month boundary forward', () => {
+    expect(addDays('2026-06-30', 2)).toBe('2026-07-02');
+  });
+
+  it('handles month boundary backward', () => {
+    expect(addDays('2026-06-01', -1)).toBe('2026-05-31');
+  });
+
+  it('handles year boundary', () => {
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });

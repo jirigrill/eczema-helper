@@ -933,65 +933,62 @@
     </div>
   </div>
 
-  <!-- ─── WeekStrip ──────────────────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/WeekStrip/WeekStrip.svelte -->
-  <div class="component-section" id="weekstrip">
-    <p class="component-label">▸ <span>WeekStrip</span> — cells: WeekStripCell[], showDnesPill: boolean, today: string, onselectdate: (date) => void</p>
+  <!-- ─── DayStrip ──────────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/DayStrip/DayStrip.svelte -->
+  <!-- Note: live component shows native thin scrollbar on desktop (pointer:fine)
+       and hides it on touch devices (pointer:coarse). Mocks here approximate the
+       mobile rendering with scrollbar-width:none. -->
+  <div class="component-section" id="daystrip">
+    <p class="component-label">▸ <span>DayStrip</span> — cells: DayStripCell[], today: string, todayRecorded: boolean, onselectdate: (date) => void</p>
 
-    <!-- Variant: past day selected (showDnesPill = true) -->
+    <!-- Variant: today selected, today recorded -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">Past day selected — showDnesPill = true</p>
+      <p class="variant-name">Today selected — todayRecorded = true (filled centre dot)</p>
       <div class="px-3 pb-3">
-        <div class="grid grid-cols-7 gap-1">
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">So</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-        </div>
-        <div class="flex justify-center mt-2">
-          <button class="text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-3 py-1">Dnes</button>
+        <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
 
-    <!-- Variant: today selected (showDnesPill = false) -->
+    <!-- Variant: past day selected, today not yet recorded — permanent ring with hollow centre -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">Today selected — showDnesPill = false</p>
+      <p class="variant-name">Past day selected — today shows permanent ring with hollow centre dot (todayRecorded = false)</p>
       <div class="px-3 pb-3">
-        <div class="grid grid-cols-7 gap-1">
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
+        <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">So</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-primary bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
 
-    <!-- Variant: cells before protocol start (dimmed) -->
+    <!-- Variant: before-start cells dimmed but selectable; today selected (filled ring) -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">isBeforeStart cells — dimmed</p>
+      <p class="variant-name">isBeforeStart cells — dimmed but selectable; no jump-to-today</p>
       <div class="px-3 pb-3">
-        <div class="grid grid-cols-7 gap-1">
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">27</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Ne</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
-        </div>
-        <div class="flex justify-center mt-2">
-          <button class="text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-3 py-1">Dnes</button>
+        <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">27</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Ne</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white"></span></button>
         </div>
       </div>
     </div>
-  </div>
+    </div>
 
   <!-- ─── FabActionSheet ──────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FabActionSheet.svelte -->

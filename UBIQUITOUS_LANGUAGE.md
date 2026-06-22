@@ -563,12 +563,13 @@ baby confirmed allergies → program start date → summary.
 
 The single day layout, rendered for any date by `/day/[date]`. **Today** is just the
 instance where the selected date equals `todayIso()`; there is no separate past-day
-design. Contains: `WeekStrip`, phase hero, the allowed/avoid reference, the three record
+design. Contains: `DayStrip`, phase hero, the allowed/avoid reference, the three record
 cards (skin status, photos, meals), and an add affordance (the FAB). The mother reaches
-past days by paging the `WeekStrip` back; she can backfill or edit those days to the same
-parity as today (meals overwrite per slot; skin observations and photos add-only — no
-delete yet). **Action-prompt chrome** — tolerance-building reminders and the task counter
-— renders only when the selected date is today; past days show historical facts only.
+past days by scrolling the `DayStrip` and tapping a cell; she can backfill or edit those
+days to the same parity as today (meals overwrite per slot; skin observations and photos
+add-only — no delete yet). Return-to-today is the bottom-nav `Dnes` tab. **Action-prompt
+chrome** — tolerance-building reminders and the task counter — renders only when the
+selected date is today; past days show historical facts only.
 The data path is reactive per selected date (`buildScheduleContext(raw, selectedDate)` +
 date-scoped session-store factories), see [ADR-0009](docs/adr/0009-schedule-context-store.md)'s
 Slice-4 amendment. The main screen a user opens each day.
@@ -593,21 +594,23 @@ Read-only timeline of all protocol phases. Shows phase dates, current position,
 
 A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup scoped to a single file. Distinct from a *component* (its own `.svelte` file, importable, independently testable). Snippet props (`children`, `right`, `action`) are the mechanism for injecting varying markup into a component shell from the outside.
 
-### WeekStrip
-*Czech: 7-denní páska*
+### DayStrip
+*Czech: Pásek dní*
 
-A 7-column **sliding-window** strip: the selected day sits at the right edge with the six
-prior days to its left; tapping the left-most cell pages the window further back. Clamped
-to **[protocol start, today]** — no future days, nothing before the contextless pre-start
-range. A "Dnes" pill returns to today when the selected day is not today. Each cell shows:
-uppercase 2-char day abbreviation (`Po`, `Út` …), day number, and a `SeverityDot`. The
-selected cell is
-highlighted in the primary color.
+A horizontally scrollable, **continuous** strip of day cells covering a small buffer
+before `programStart` through `estimatedEnd` plus a small buffer. Selecting a day flags
+it **in place** — the strip does not reshuffle around the selection. **Today** carries a
+permanent ring marker in its own slot, with a hollow centre dot when today is not yet
+recorded and a filled dot once it is. There is no "Dnes" pill and no in-strip
+return-to-today control — return-to-today is the bottom-nav `Dnes` tab. Days **before**
+`programStart` are dimmed but remain selectable (no jump-to-today intercept). Future
+cells render faded. Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …),
+day number, and a `SeverityDot`. The selected cell is highlighted in the primary color.
 
 ### SeverityDot
 *Czech: Puntík závažnosti*
 
-A 6×6 px color-coded circle on a `WeekStrip` cell indicating the baby's recorded skin
+A 6×6 px color-coded circle on a `DayStrip` cell indicating the baby's recorded skin
 state for that day. Color maps to the 5-point severity scale (`sev-1` green → `sev-5`
 red). Empty if no assessment recorded.
 

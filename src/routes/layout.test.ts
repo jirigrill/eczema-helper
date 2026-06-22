@@ -150,6 +150,16 @@ describe('+layout.svelte — bottom nav visibility', () => {
     expect(fab).toBeInTheDocument();
   });
 
+  it('hides FAB when viewing a future /day/[date]', async () => {
+    const future = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    mockPageStore.set({ url: new URL(`http://localhost/day/${future}`), params: { date: future }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+    const fab = container.querySelector('button[aria-label="Přidat záznam"]');
+    expect(fab).toBeNull();
+  });
+
   it('clicking FAB opens action sheet', async () => {
     mockScheduleContext.set(readyContext);
     const { container, getByText } = await renderLayout();
@@ -267,6 +277,16 @@ describe('+layout.svelte — active tab state', () => {
   it('marks Dnes tab inactive when viewing a past date', async () => {
     const pastDate = '2025-01-01';
     mockPageStore.set({ url: new URL(`http://localhost/day/${pastDate}`), params: { date: pastDate }, data: {} });
+    mockScheduleContext.set(readyContext);
+    const { container } = await renderLayout();
+    await tick();
+    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
+    expect(dnesLink?.classList).toContain('text-text-muted');
+  });
+
+  it('marks Dnes tab inactive when viewing a future date', async () => {
+    const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    mockPageStore.set({ url: new URL(`http://localhost/day/${futureDate}`), params: { date: futureDate }, data: {} });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();

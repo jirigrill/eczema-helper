@@ -205,22 +205,22 @@ describe('/day/[date] page', () => {
       expect(getByText('Stav ekzému')).toBeInTheDocument();
     });
 
-    it('renders week strip for a past date', async () => {
+    it('renders day strip for a past date', async () => {
       mockPage.params.date = pastDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
       const { getByTestId } = render(DayPage);
       await tick();
-      expect(getByTestId('week-strip')).toBeInTheDocument();
+      expect(getByTestId('day-strip')).toBeInTheDocument();
     });
 
-    it('shows Dnes pill when selected date is not today', async () => {
+    it('does not render a Dnes pill on past dates (it was removed)', async () => {
       mockPage.params.date = pastDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
-      const { getByTestId } = render(DayPage);
+      const { queryByTestId } = render(DayPage);
       await tick();
-      expect(getByTestId('dnes-pill')).toBeInTheDocument();
+      expect(queryByTestId('dnes-pill')).toBeNull();
     });
   });
 
@@ -254,7 +254,7 @@ describe('/day/[date] page', () => {
       expect(reminders).toHaveLength(0);
     });
 
-    it('does not show Dnes pill when selected date is today', async () => {
+    it('does not show Dnes pill when selected date is today (Dnes pill is removed)', async () => {
       mockPage.params.date = today;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
@@ -264,14 +264,67 @@ describe('/day/[date] page', () => {
     });
   });
 
+  describe('header de-duplication', () => {
+    it('shows "Dnes" heading and date-only eyebrow on today', async () => {
+      mockPage.params.date = today;
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+
+      const heading = container.querySelector('h2.page-heading');
+      expect(heading?.textContent?.trim()).toBe('Dnes');
+
+      const eyebrow = container.querySelector('.eyebrow');
+      const eyebrowText = eyebrow?.textContent ?? '';
+      // Eyebrow on today shows the date only — no weekday, no divider.
+      expect(eyebrowText).not.toContain('·');
+      expect(eyebrowText.toLowerCase()).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
+    });
+
+    it('shows the date exactly once in the header on a non-today day', async () => {
+      // Use a fixed past date so the long-format date is deterministic ("1. června").
+      mockPage.params.date = pastDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+
+      const headerBlock = container.querySelector('h2.page-heading')?.parentElement;
+      expect(headerBlock).toBeTruthy();
+      const headerText = headerBlock?.textContent ?? '';
+
+      const occurrences = headerText.split('1. června').length - 1;
+      expect(occurrences).toBe(1);
+
+      // Heading carries the date; no eyebrow on non-today days.
+      const heading = container.querySelector('h2.page-heading');
+      expect(heading?.textContent ?? '').toContain('1. června');
+
+      const eyebrow = container.querySelector('.eyebrow');
+      expect(eyebrow).toBeNull();
+    });
+
+    it('omits the weekday entirely on a non-today day', async () => {
+      mockPage.params.date = pastDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { container } = render(DayPage);
+      await tick();
+      const headerBlock = container.querySelector('h2.page-heading')?.parentElement;
+      const headerText = (headerBlock?.textContent ?? '').toLowerCase();
+      expect(headerText).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
+    });
+  });
+
   describe('redirect on invalid param', () => {
-    it('calls goto with today when param is a future date', async () => {
+    it('does NOT redirect for a future date — renders preview view', async () => {
       mockPage.params.date = futureDate;
       mockScheduleRaw.set(readyRaw);
       const { default: DayPage } = await import('./+page.svelte');
       render(DayPage);
       await tick();
-      expect(mockGoto).toHaveBeenCalledWith(expect.stringContaining('/day/'), expect.objectContaining({ replaceState: true }));
+      expect(mockGoto).not.toHaveBeenCalled();
     });
 
     it('calls goto with today when param is a malformed string', async () => {
@@ -299,6 +352,53 @@ describe('/day/[date] page', () => {
       render(DayPage);
       await tick();
       expect(mockGoto).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('future-day preview', () => {
+    it('renders the "Naplánováno" badge on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByText } = render(DayPage);
+      await tick();
+      expect(getByText('Naplánováno')).toBeInTheDocument();
+    });
+
+    it('does NOT render skin observation card on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText('Stav ekzému')).toBeNull();
+    });
+
+    it('does NOT render skin photo card on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText('Foto kůže')).toBeNull();
+    });
+
+    it('does NOT render meal card on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText('Dnešní jídla')).toBeNull();
+    });
+
+    it('does NOT render the bottom record-hint on a future date', async () => {
+      mockPage.params.date = futureDate;
+      mockScheduleRaw.set(readyRaw);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByText } = render(DayPage);
+      await tick();
+      expect(queryByText(/Vše zapisuj přes/)).toBeNull();
     });
   });
 
