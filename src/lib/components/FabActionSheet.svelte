@@ -13,9 +13,28 @@
     oncapturephoto?: (blob: Blob) => void;
     /** Meal types already logged for `date`; renders a ✓ in the submenu. */
     loggedTypes?: MealType[];
+    /**
+     * Show the contextual fourth "evaluate test" row, gated by the caller on
+     * `isPhaseEndForEvaluation(schedule, date)` (issue #331). Defaults to
+     * `false` so ordinary days keep the three-action sheet.
+     */
+    showEvaluate?: boolean;
+    /**
+     * Id of the phase ending on `date`. Carried into `/evaluation` so the
+     * screen can resolve which phase to evaluate (issue #331). Required for
+     * the evaluate row to navigate to a usable screen.
+     */
+    evaluatePhaseId?: string;
   };
 
-  let { date, onclose, oncapturephoto, loggedTypes = [] }: Props = $props();
+  let {
+    date,
+    onclose,
+    oncapturephoto,
+    loggedTypes = [],
+    showEvaluate = false,
+    evaluatePhaseId = '',
+  }: Props = $props();
 
   let photoInput: HTMLInputElement | undefined = $state();
   /** When true, the bottom-sheet shows the four meal-type rows instead of the
@@ -31,6 +50,11 @@
 
   function navigate(path: string) {
     goto(`${path}?date=${date}&returnTo=/day/${date}`);
+    onclose();
+  }
+
+  function navigateToEvaluation() {
+    goto(`/evaluation?phase=${encodeURIComponent(evaluatePhaseId)}&date=${date}&returnTo=/day/${date}`);
     onclose();
   }
 
@@ -113,7 +137,7 @@
       <span class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
         <FoodIcon class="w-[22px] h-[22px]" />
       </span>
-      <span class="flex-1 text-[15px] font-semibold text-text text-left">
+      <span class="flex-1 text-[15px] text-text-muted text-left">
         {commonStrings.fabSheet.addMeal}
       </span>
       <span class="text-text-muted text-sm">›</span>
@@ -154,6 +178,25 @@
       </span>
       <span class="text-text-muted text-sm">›</span>
     </button>
+
+    {#if showEvaluate}
+      <button
+        data-testid="fab-action-evaluate"
+        class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
+        onclick={navigateToEvaluation}
+      >
+        <span class="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-primary">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+        </span>
+        <span class="flex-1 text-[15px] text-text-muted text-left">
+          {commonStrings.fabSheet.addEvaluation}
+        </span>
+        <span class="text-text-muted text-sm">›</span>
+      </button>
+    {/if}
 
     <button
       data-testid="fab-action-close"
