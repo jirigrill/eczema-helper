@@ -6,6 +6,7 @@ import {
   getReintroductionDayInfo,
   buildScheduleContext,
   detectConflicts,
+  isPhaseEndForEvaluation,
 } from "./schedule-queries";
 import { getAllergenStatuses } from "./allergen-status";
 import type {
@@ -793,5 +794,29 @@ describe("detectConflicts", () => {
     const result = detectConflicts(items, ["dairy"], catalog);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("conflict");
+  });
+});
+
+describe("isPhaseEndForEvaluation", () => {
+  // baseSchedule: reset 05-01→05-05, elimination 05-06→05-26, reintro-dairy 05-27→05-30
+  it("is true on the last day of a reset phase", () => {
+    expect(isPhaseEndForEvaluation(baseSchedule, "2026-05-05")).toBe(true);
+  });
+
+  it("is true on the last day of an elimination phase", () => {
+    expect(isPhaseEndForEvaluation(baseSchedule, "2026-05-26")).toBe(true);
+  });
+
+  it("is true on the last day of a reintroduction phase", () => {
+    expect(isPhaseEndForEvaluation(baseSchedule, "2026-05-30")).toBe(true);
+  });
+
+  it("is false mid-phase (not the last day)", () => {
+    expect(isPhaseEndForEvaluation(baseSchedule, "2026-05-10")).toBe(false);
+  });
+
+  it("is false on the last day of a rest phase (rest is not evaluated)", () => {
+    // scheduleWithRestPhase: rest-1 05-31→06-02
+    expect(isPhaseEndForEvaluation(scheduleWithRestPhase, "2026-06-02")).toBe(false);
   });
 });

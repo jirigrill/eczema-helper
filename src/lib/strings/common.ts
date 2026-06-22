@@ -337,6 +337,7 @@ export const commonStrings = {
     recapHeading:      'Průběh testu',
     recapEmpty:        'Bez záznamu',
     outcomePrompt:     'Jak miminko alergen sneslo?',
+    skinOutcomePrompt: 'Jak se kůže miminka měla?',
     notesPlaceholder:  'Poznámka (volitelné)',
     saveButton:        'Uložit vyhodnocení',
     saveButtonDisabled:'Vyber výsledek',
@@ -348,6 +349,12 @@ export const commonStrings = {
       'mild-reaction':  'Zarudnutí, mírné svědění',
       'clear-reaction': 'Zhoršení po podání',
       'severe-reaction':'Otok, dušnost — k lékaři',
+    } as Record<string, string>,
+    skinOutcomeSubtitles: {
+      improved:      'Kůže se zklidnila',
+      unchanged:     'Bez výrazné změny',
+      worsened:      'Zhoršení během fáze',
+      'new-lesions': 'Objevila se nová ložiska',
     } as Record<string, string>,
   },
 
