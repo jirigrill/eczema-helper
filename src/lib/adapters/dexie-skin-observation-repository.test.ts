@@ -140,6 +140,36 @@ describe('DexieSkinObservationRepository', () => {
     expect(photos[0].id).toBe('photo-1');
   });
 
+  // ── Atomicity under partial-write failure ────────────────────
+  //
+  // The save seam is shaped for slice 2 (photos arm). The contract from #361
+  // is that the observation and its photos either both land or neither does.
+  // Force the photos write to fail mid-transaction and assert the observation
+  // row is rolled back — a regression here would silently desync the two
+  // tables, which is exactly what the wrapping `db.transaction(...)` exists
+  // to prevent.
+
+  it('save rolls back the observation when the photos write throws', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-tx' });
+    const photo = {
+      id: 'photo-tx',
+      date: '2026-05-27',
+      capturedAt: '2026-05-27T08:00:00.000Z',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+    };
+    vi.spyOn(db.photos, 'bulkPut').mockRejectedValueOnce(new Error('photos boom'));
+
+    const result = await repo.save(obs, [photo]);
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('photos boom');
+
+    // Both tables must be empty — no orphan observation row, no orphan photo.
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) expect(list.data).toHaveLength(0);
+    expect(await db.photos.toArray()).toHaveLength(0);
+  });
+
   // ── Error paths ───────────────────────────────────────────────
 
   it('save returns Err when DB throws', async () => {
