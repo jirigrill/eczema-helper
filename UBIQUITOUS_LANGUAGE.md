@@ -529,9 +529,19 @@ reintroduction phase. The only place causation is explicitly recorded.
 
 ### AllergenOutcome
 
-The four possible verdicts in a `ReintroductionEvaluation`:
-`'tolerated'` (Toleruje) · `'mild-reaction'` (Mírná reakce) ·
-`'clear-reaction'` (Jasná reakce) · `'severe-reaction'` (Silná reakce).
+The four possible verdicts in a `ReintroductionEvaluation` when
+`phaseType: 'allergen-test'`: `'tolerated'` (Toleruje) ·
+`'mild-reaction'` (Mírná reakce) · `'clear-reaction'` (Jasná reakce) ·
+`'severe-reaction'` (Silná reakce).
+
+### SkinEvaluationOutcome
+
+The four possible verdicts in a `ReintroductionEvaluation` when
+`phaseType: 'skin-status'` (end-of-phase verdict for `reset` and
+`elimination` phases): `'improved'` (Zlepšilo se) · `'unchanged'`
+(Beze změny) · `'worsened'` (Zhoršilo se) · `'new-lesions'` (Nové
+ložisko). A pure record; per [ADR-0016](docs/adr/0016-verdict-drives-schedule-not-status.md)
+it changes no schedule and no status.
 
 ### Insight
 → Defined in `CONTEXT.md`. A derived pattern card computed over `(Meal, SkinObservation)`
