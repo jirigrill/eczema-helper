@@ -67,6 +67,17 @@ vi.mock('$lib/db/atopic-db', () => ({
   },
 }));
 
+// skin-photo-session is a stub (photos are now written via observation save).
+// Mock it to emit livePhotos so the day-view completeness counter stays testable.
+vi.mock('$lib/stores/skin-photo-session', () => ({
+  createSkinPhotoSession: (_date: string) => ({
+    subscribe: (cb: (v: SkinPhoto[]) => void) => { cb(livePhotos); return () => {}; },
+  }),
+  skinPhotoSession: {
+    subscribe: (cb: (v: SkinPhoto[]) => void) => { cb(livePhotos); return () => {}; },
+  },
+}));
+
 global.URL.createObjectURL = vi.fn(() => 'blob:mock');
 global.URL.revokeObjectURL = vi.fn();
 
@@ -504,7 +515,8 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     livePhotos = [
       {
         id: 'p1',
-        date: today,
+        observationId: 'obs-1',
+        region: 'face' as const,
         capturedAt: `${today}T08:00:00.000Z`,
         blob: new Blob(),
       },

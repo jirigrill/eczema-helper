@@ -139,7 +139,8 @@ describe('scheduleContext', () => {
 
     const photo: SkinPhoto = {
       id: 'photo-1',
-      date: '2025-06-01',
+      observationId: 'obs-1',
+      region: 'face',
       capturedAt: '2025-06-01T12:00:00.000Z',
       blob: new Blob(['x'], { type: 'image/jpeg' }),
     };

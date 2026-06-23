@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
 import { AtopicDb } from '$lib/db/atopic-db';
-import type { SkinObservation, SkinRegionRecord, RegionLevel } from '$lib/domain/models';
+import type { SkinObservation, SkinPhotoInput, RegionLevel, SkinRegionRecord } from '$lib/domain/models';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -12,6 +12,14 @@ function makeObservation(date: string, overrides?: Partial<SkinObservation>): Sk
     date,
     createdAt: `${date}T08:00:00.000Z`,
     regions: [{ id: 'face', level: 1 }],
+    ...overrides,
+  };
+}
+
+function makePhotoInput(overrides?: Partial<SkinPhotoInput>): SkinPhotoInput {
+  return {
+    region: 'face',
+    blob: new Blob(['x'], { type: 'image/jpeg' }),
     ...overrides,
   };
 }
@@ -126,40 +134,57 @@ describe('DexieSkinObservationRepository', () => {
     expect(photos).toHaveLength(0);
   });
 
-  it('save with photos persists all of them transactionally', async () => {
-    const obs = makeObservation('2026-05-27');
-    const photo = {
-      id: 'photo-1',
-      date: '2026-05-27',
-      capturedAt: '2026-05-27T08:00:00.000Z',
-      blob: new Blob(['x'], { type: 'image/jpeg' }),
-    };
-    await repo.save(obs, [photo]);
+  it('save with inputs persists all photos transactionally', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-tx' });
+    const inputs: SkinPhotoInput[] = [
+      makePhotoInput({ region: 'face' }),
+      makePhotoInput({ region: 'arms' }),
+    ];
+    await repo.save(obs, inputs);
     const photos = await db.photos.toArray();
-    expect(photos).toHaveLength(1);
-    expect(photos[0].id).toBe('photo-1');
+    expect(photos).toHaveLength(2);
+  });
+
+  // ── FK minting ───────────────────────────────────────────────
+
+  it('save mints observationId FK on each stored photo', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-fk' });
+    await repo.save(obs, [makePhotoInput({ region: 'face' })]);
+    const photos = await db.photos.toArray();
+    expect(photos[0].observationId).toBe('obs-fk');
+  });
+
+  it('save mints a unique non-empty id on each stored photo', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-id' });
+    const inputs = [makePhotoInput({ region: 'face' }), makePhotoInput({ region: 'arms' })];
+    await repo.save(obs, inputs);
+    const photos = await db.photos.toArray();
+    expect(photos[0].id).toBeTruthy();
+    expect(photos[1].id).toBeTruthy();
+    expect(photos[0].id).not.toBe(photos[1].id);
+  });
+
+  it('save stores the region from SkinPhotoInput on the stored photo', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-region' });
+    await repo.save(obs, [makePhotoInput({ region: 'belly' })]);
+    const photos = await db.photos.toArray();
+    expect(photos[0].region).toBe('belly');
+  });
+
+  it('save mints capturedAt as an ISO datetime string', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-cat' });
+    await repo.save(obs, [makePhotoInput()]);
+    const photos = await db.photos.toArray();
+    expect(photos[0].capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   // ── Atomicity under partial-write failure ────────────────────
-  //
-  // The save seam is shaped for slice 2 (photos arm). The contract from #361
-  // is that the observation and its photos either both land or neither does.
-  // Force the photos write to fail mid-transaction and assert the observation
-  // row is rolled back — a regression here would silently desync the two
-  // tables, which is exactly what the wrapping `db.transaction(...)` exists
-  // to prevent.
 
   it('save rolls back the observation when the photos write throws', async () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-tx' });
-    const photo = {
-      id: 'photo-tx',
-      date: '2026-05-27',
-      capturedAt: '2026-05-27T08:00:00.000Z',
-      blob: new Blob(['x'], { type: 'image/jpeg' }),
-    };
     vi.spyOn(db.photos, 'bulkPut').mockRejectedValueOnce(new Error('photos boom'));
 
-    const result = await repo.save(obs, [photo]);
+    const result = await repo.save(obs, [makePhotoInput()]);
     expect(result).toMatchObject({ ok: false });
     if (!result.ok) expect(result.error).toContain('photos boom');
 

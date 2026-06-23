@@ -176,8 +176,15 @@ export function overallSeverity(observation: SkinObservation): RegionLevel {
 
 export type SkinPhoto = {
   id: string;
-  date: string; // ISO date
+  observationId: string;
+  region: RegionId;
   capturedAt: string; // ISO datetime
+  blob: Blob;
+};
+
+/** Unsaved photo shape — callers never mint id/observationId/capturedAt. */
+export type SkinPhotoInput = {
+  region: RegionId;
   blob: Blob;
 };
 

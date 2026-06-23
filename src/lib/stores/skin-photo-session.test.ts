@@ -1,131 +1,41 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import type { SkinPhoto } from '$lib/domain/models';
 
-// fake-indexeddb is loaded globally in test-setup.ts; Dexie works without setup.
+// Photos are now saved atomically through DexieSkinObservationRepository.save.
+// skin-photo-session is a read-only stub that returns an empty array while
+// the day-view photo panel awaits re-wiring in the final slice.
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function waitForPhotos(
-  store: { subscribe: (cb: (v: SkinPhoto[]) => void) => () => void },
-  predicate: (rows: SkinPhoto[]) => boolean,
-  timeoutMs = 500,
-): Promise<SkinPhoto[]> {
-  return new Promise((resolve, reject) => {
-    let unsub: (() => void) | undefined;
-    const timer = setTimeout(() => {
-      unsub?.();
-      reject(new Error('Timed out waiting for photos predicate'));
-    }, timeoutMs);
-    unsub = store.subscribe((rows) => {
-      if (predicate(rows)) {
-        clearTimeout(timer);
-        Promise.resolve().then(() => unsub?.());
-        resolve(rows);
-      }
-    });
-  });
-}
-
-// ── Fixtures ──────────────────────────────────────────────────────────────────
-
-const today = new Date().toISOString().slice(0, 10);
-
-function makePhoto(overrides: Partial<SkinPhoto> = {}): SkinPhoto {
-  return {
-    id: `photo-${today}`,
-    date: today,
-    capturedAt: new Date().toISOString(),
-    blob: new Blob(['img'], { type: 'image/jpeg' }),
-    ...overrides,
-  };
-}
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
-describe('skinPhotoSession (default export — today singleton)', () => {
-  it('exports subscribe and save', async () => {
+describe('skinPhotoSession (stub)', () => {
+  it('exports subscribe', async () => {
     const mod = await import('./skin-photo-session');
     expect(mod.skinPhotoSession).toBeDefined();
     expect(typeof mod.skinPhotoSession.subscribe).toBe('function');
-    expect(typeof mod.skinPhotoSession.save).toBe('function');
   });
 
-  it('initial store value is an array', async () => {
+  it('initial store value is an empty array', async () => {
     const { skinPhotoSession } = await import('./skin-photo-session');
     const rows = get(skinPhotoSession);
     expect(Array.isArray(rows)).toBe(true);
-  });
-
-  it('save returns ok:true for a valid photo', async () => {
-    const { skinPhotoSession } = await import('./skin-photo-session');
-    const result = await skinPhotoSession.save(makePhoto());
-    expect(result).toMatchObject({ ok: true });
-  });
-
-  it('after save, subscribe emits an array containing the saved photo', async () => {
-    const { skinPhotoSession } = await import('./skin-photo-session');
-    const photo = makePhoto({ id: `photo-${today}-extra` });
-    await skinPhotoSession.save(photo);
-    const rows = await waitForPhotos(
-      skinPhotoSession,
-      (rs) => rs.some((r) => r.id === photo.id),
-    );
-    expect(rows.some((r) => r.id === photo.id)).toBe(true);
-  });
-
-  it('photos for other dates are excluded from the subscription', async () => {
-    const { skinPhotoSession } = await import('./skin-photo-session');
-    const pastPhoto = makePhoto({ id: 'photo-past', date: '2000-01-01' });
-    await skinPhotoSession.save(pastPhoto);
-    const rows = await waitForPhotos(skinPhotoSession, () => true);
-    expect(rows.some((r) => r.id === 'photo-past')).toBe(false);
+    expect(rows).toHaveLength(0);
   });
 });
 
-describe('createSkinPhotoSession (factory)', () => {
+describe('createSkinPhotoSession (factory stub)', () => {
   it('exports createSkinPhotoSession function', async () => {
     const mod = await import('./skin-photo-session');
     expect(typeof mod.createSkinPhotoSession).toBe('function');
   });
 
-  it('factory returns a store with subscribe and save', async () => {
+  it('factory returns a store with subscribe', async () => {
     const { createSkinPhotoSession } = await import('./skin-photo-session');
     const session = createSkinPhotoSession('2024-01-15');
     expect(typeof session.subscribe).toBe('function');
-    expect(typeof session.save).toBe('function');
   });
 
-  it('factory store is scoped to the given date', async () => {
+  it('factory store always returns an empty array (stub)', async () => {
     const { createSkinPhotoSession } = await import('./skin-photo-session');
-    const date = '2024-07-04';
-    const session = createSkinPhotoSession(date);
-    const photo: SkinPhoto = {
-      id: `photo-factory-${date}`,
-      date,
-      capturedAt: new Date().toISOString(),
-      blob: new Blob(['img'], { type: 'image/jpeg' }),
-    };
-    await session.save(photo);
-    const rows = await waitForPhotos(session, (rs) => rs.some((r) => r.id === photo.id));
-    expect(rows.some((r) => r.id === photo.id)).toBe(true);
-  });
-
-  it('factory store for one date does not show photos from a different date', async () => {
-    const { createSkinPhotoSession } = await import('./skin-photo-session');
-    const dateA = '2024-08-01';
-    const dateB = '2024-08-02';
-    const sessionA = createSkinPhotoSession(dateA);
-    const photo: SkinPhoto = {
-      id: `photo-factory-${dateA}`,
-      date: dateA,
-      capturedAt: new Date().toISOString(),
-      blob: new Blob(['img'], { type: 'image/jpeg' }),
-    };
-    await sessionA.save(photo);
-    const sessionB = createSkinPhotoSession(dateB);
-    await new Promise((r) => setTimeout(r, 100));
-    const rowsB = get(sessionB);
-    expect(rowsB.some((r) => r.id === photo.id)).toBe(false);
+    const session = createSkinPhotoSession('2024-07-04');
+    const rows = get(session);
+    expect(rows).toEqual([]);
   });
 });

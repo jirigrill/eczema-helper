@@ -1,6 +1,5 @@
 <script lang="ts">
   import '../app.css';
-  import { randomUUID } from '$lib/utils/uuid';
   import { page } from '$app/stores';
   import { useRegisterSW } from 'virtual:pwa-register/svelte';
 
@@ -14,9 +13,8 @@
   import Toast from '$lib/components/Toast.svelte';
   import { commonStrings } from '$lib/strings/common';
   import { todayIso } from '$lib/utils/date';
-  import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
   import { createMealSession } from '$lib/stores/meal-session';
-  import type { SkinPhoto, MealType } from '$lib/domain/models';
+  import type { MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
   import { pulseRecentreDayStrip } from '$lib/stores/day-strip-recentre';
 
@@ -57,16 +55,9 @@
 
   let fabOpen = $state(false);
 
-  async function handleFabPhotoCapture(blob: Blob): Promise<void> {
-    const session = createSkinPhotoSession(selectedDate);
-    const photo: SkinPhoto = {
-      id: randomUUID(),
-      date: selectedDate,
-      capturedAt: new Date().toISOString(),
-      blob,
-    };
-    await session.save(photo);
-  }
+  // Photo capture is now handled atomically inside the skin observation flow.
+  // This FAB path is a no-op until the final slice re-wires it.
+  async function handleFabPhotoCapture(_blob: Blob): Promise<void> {}
 
   function handleDiscardUndo(): void {
     const buf = $discardBuffer;
