@@ -2,14 +2,17 @@
 
 **Status:** Accepted
 **Date:** 2026-05-11
+**Amended:** 2026-06-22 — `SkinObservation` shape replaced with per-region severities (see [ADR-0021](0021-regional-severity-skin-observation.md)). The "user records only ground truth, app derives patterns" decision is unchanged; only the *shape* of the ground truth changed.
 
 ## Context
 
-A daily skin observation in the prototype carries: status (improved /
-unchanged / worsened / new-lesions), optional free-text notes, optional
-photo. It does *not* carry a "suspected cause" field, and the prototype
-deliberately uses the same form shape on ordinary days and reintro-test
-days (`docs/design/redesign-prototype.html:2640–2700`).
+A daily skin observation in the prototype carries: ~~status (improved /
+unchanged / worsened / new-lesions)~~ a set of per-region severities on a
+four-step absolute scale (klidné / mírné / střední / silné), optional
+free-text notes, optional photo. It does *not* carry a "suspected cause"
+field, and the prototype deliberately uses the same form shape on ordinary
+days and reintro-test days (`docs/design/redesign-prototype.html:2640–2700`,
+`src/routes/skin-prototype/+page.svelte`).
 
 Causal reasoning lives in two other places:
 
@@ -34,8 +37,9 @@ Three shapes were considered:
 **(c).** The user records only what they observe:
 
 - What was eaten (`Meal`).
-- What the skin looks like today (`SkinObservation`: status, optional
-  notes, optional photo).
+- What the skin looks like today (`SkinObservation`: per-region
+  severities on a four-step scale, optional notes, optional photo —
+  see ADR-0021 for the shape).
 - The allergen verdict at the end of a reintro phase
   (`ReintroductionEvaluation`).
 
@@ -46,8 +50,9 @@ query result and may be regenerated on demand.
 ## Consequences
 
 - `SkinObservation` does not gain a `suspectedCause` field. Bad-day
-  logging stays low-friction: pick status, optionally jot a note,
-  optionally take a photo. The same form on every day.
+  logging stays low-friction: tap the affected regions and their
+  severity, optionally jot a note, optionally take a photo. The same
+  form on every day.
 - A new domain concept `Insight` is introduced as **derived data**: a
   pure function `insights(meals, assessments, schedule) → Insight[]`.
   Insights are not persisted as records to be edited; they are

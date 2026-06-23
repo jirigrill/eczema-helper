@@ -508,8 +508,9 @@ have been a hidden delete path. (Formerly "Empty-Hotovo Guard"; renamed with the
 
 ### SkinObservation
 → Defined in `CONTEXT.md`. The parent's observation of the baby's skin on a calendar
-day: `id`, `date`, `createdAt`, `AssessmentStatus`, optional notes. Multiple
-`SkinObservation` records may exist for the same day. No FK to `SkinPhoto`.
+day: `id`, `date`, `createdAt`, `regions: SkinRegionRecord[]`, optional `notes`.
+Multiple `SkinObservation` records may exist for the same day. No FK to `SkinPhoto`,
+but `SkinObservationRepository.save(observation, photos)` writes both atomically.
 
 ### SkinPhoto
 → Defined in `CONTEXT.md`. A photo of the baby's skin captured on a calendar day:
@@ -517,11 +518,40 @@ day: `id`, `date`, `createdAt`, `AssessmentStatus`, optional notes. Multiple
 `SkinObservation` — a photo does not require an accompanying observation and vice
 versa. Multiple `SkinPhoto` records may exist for the same day.
 
-### AssessmentStatus
-*Czech: Stav kůže*
+### Region / RegionId
+*Czech: Oblast*
 
-One of: `'improved'` (Zlepšení) · `'unchanged'` (Beze změny) · `'worsened'`
-(Zhoršení) · `'new-lesions'` (Nová ložiska). Selected by the parent daily.
+→ Defined in `CONTEXT.md`. One of nine canonical body areas the parent can log on
+`/skin`: `face` (Tváře), `scalp` (Vlasová část), `neck` (Krk), `belly` (Břicho),
+`back` (Záda), `arms` (Paže), `elbow-folds` (Loketní jamky), `knee-folds`
+(Podkolení), `legs` (Nohy). `RegionId` is the canonical kebab-case slug; Czech
+display labels live in `src/lib/strings/skin-regions.ts`.
+
+### RegionLevel
+*Czech: Míra*
+
+→ Defined in `CONTEXT.md`. Per-region severity on a four-step absolute scale:
+`0` klidné · `1` mírné · `2` střední · `3` silné. Klidné is the explicit default —
+a region the parent never touched is calm, not unknown. See ADR-0021.
+
+### SkinRegionRecord
+The pair `{ id: RegionId; level: RegionLevel }` stored in `SkinObservation.regions`.
+
+### Active region
+On `/skin`, the region currently selected for tap-to-cycle. Tapping an inactive
+region only activates it; tapping the active region cycles its severity 0 → 1 → 2
+→ 3 → 0. UI-only — never persisted.
+
+### Logged region
+A region whose severity is greater than 0. The Uložit gate on `/skin` enables
+once at least one region is logged. (When photos arrive in the next slice, "logged"
+widens to `level > 0 OR photo for region`.)
+
+### Day-overall severity
+The maximum `RegionLevel` across an observation's `regions`. Computed via
+`overallSeverity(observation)` from `$lib/domain/models`. Never persisted —
+the read-side derives it at every render site (week strip, day card, evaluation
+recap).
 
 ### ReintroductionEvaluation
 → Defined in `CONTEXT.md`. The allergen-attributed verdict at the end of a
@@ -636,12 +666,15 @@ Component that renders a colored badge for a `PhaseType`. Color and label are
 mapped by `getPhaseDisplay()`: Reset (gray) · Eliminace (danger) · Reintrodukce (teal)
 · Odpočinek (warning) · Trénink (success).
 
-### EczemaCheck
+### EczemaCheck *(removed)*
 
-The daily skin assessment form component. Props: `date`, `assessment` (existing or
-null), `reintroductionAllergenId` (non-null during a reintro phase, triggers contextual
-pill), `onSave`. Renders the 4-button `AssessmentStatus` picker, notes textarea, and
-photo toggle.
+Replaced in slice 1 of the regional severity redesign (issue #361, ADR-0021)
+by an inline implementation in `src/routes/skin/+page.svelte`: a 3×3 region
+grid using `RegionId` and `RegionLevel`, an optional note, and a gated
+Uložit button. The standalone component, its tests, and the
+`reintroductionAllergenId` reintro-context pill are gone — `/skin` is its
+only consumer and the redesign moved the reintroduction context to
+`/day` and `/meal`.
 
 ### AllergenChip
 

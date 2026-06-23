@@ -243,12 +243,6 @@ export const commonStrings = {
       'new-lesions':'Nová ložiska',
     } as Record<string, string>,
 
-    // Legacy status-based suffixes (deprecated; deleted with EczemaCheck in #361 follow-up)
-    skinImprovedSuffix:   '× zlepšení',
-    skinUnchangedSuffix:  '× beze změny',
-    skinWorsenedSuffix:   '× zhoršení',
-    skinNewLesionsSuffix: '× nová ložiska',
-
     // Reintroduction evaluation outcome labels
     reintroOutcomes: {
       tolerated:       'Toleruje',
@@ -287,14 +281,6 @@ export const commonStrings = {
     saveAriaLabel:     'Uložit stav kůže',
     /** Toast shown when persistence fails. */
     saveError:         'Uložení se nezdařilo. Zkus to znovu.',
-  },
-
-  // ── EczemaCheck component (deprecated; deleted in #361 follow-up) ──
-  eczemaCheck: {
-    heading:             'Stav kůže miminka',
-    savedLabel:          '✓ Uloženo',
-    reactionInstruction: 'Zaznamenejte jakékoliv změny kůže po zavedení tohoto alergenu.',
-    notePlaceholder:     'Poznámka (volitelné) — např. zarudnutí na tváři…',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────
@@ -438,9 +424,4 @@ export function deviationsMore(n: number): string {
 /** "🔬 Den {day} z {total}" — reintroduction day label in meal page */
 export function reintroDayLabel(day: number, total: number): string {
   return `🔬 Den ${day} z ${total}`;
-}
-
-/** "🔬 Sledujte reakci na {icon} {name}" — EczemaCheck reintro allergen banner (deprecated) */
-export function reactionBannerLabel(icon: string, name: string): string {
-  return `🔬 Sledujte reakci na ${icon} ${name}`;
 }
