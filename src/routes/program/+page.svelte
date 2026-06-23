@@ -29,6 +29,7 @@
     deviationsCount,
     deviationsMore,
   } from '$lib/strings/common';
+  import { severityCountSuffix } from '$lib/strings/skin-regions';
 
   let showToast = $state(false);
   let toastMessage = $state(commonStrings.program.toastComingSoon);
@@ -254,10 +255,10 @@
   {@const medium   = observations.filter(o => overallSeverity(o) === 2).length}
   {@const severe   = observations.filter(o => overallSeverity(o) === 3).length}
   <div class="flex flex-wrap gap-2 text-text-muted">
-    {#if calm > 0}<span class="text-success font-medium">✓ {calm}{commonStrings.program.skinCalmSuffix}</span>{/if}
-    {#if mild > 0}<span class="text-warning font-medium">— {mild}{commonStrings.program.skinMildSuffix}</span>{/if}
-    {#if medium > 0}<span class="text-warning font-medium">! {medium}{commonStrings.program.skinMediumSuffix}</span>{/if}
-    {#if severe > 0}<span class="text-danger font-medium">!! {severe}{commonStrings.program.skinSevereSuffix}</span>{/if}
+    {#if calm > 0}<span class="text-success font-medium">✓ {calm}{severityCountSuffix(0)}</span>{/if}
+    {#if mild > 0}<span class="text-warning font-medium">— {mild}{severityCountSuffix(1)}</span>{/if}
+    {#if medium > 0}<span class="text-warning font-medium">! {medium}{severityCountSuffix(2)}</span>{/if}
+    {#if severe > 0}<span class="text-danger font-medium">!! {severe}{severityCountSuffix(3)}</span>{/if}
   </div>
 {/snippet}
 

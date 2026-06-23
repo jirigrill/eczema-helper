@@ -243,15 +243,6 @@ export const commonStrings = {
       'new-lesions':'Nová ložiska',
     } as Record<string, string>,
 
-    // Skin assessment count suffixes by severity tier (issue #361). Mapping to
-    // the strings layer from `$lib/strings/skin-regions`: 0 klidné / 1 mírné /
-    // 2 střední / 3 silné. Suffix style mirrors `× zlepšení` from the prior
-    // status-based copy.
-    skinCalmSuffix:    '× klidné',
-    skinMildSuffix:    '× mírné',
-    skinMediumSuffix:  '× střední',
-    skinSevereSuffix:  '× silné',
-
     // Legacy status-based suffixes (deprecated; deleted with EczemaCheck in #361 follow-up)
     skinImprovedSuffix:   '× zlepšení',
     skinUnchangedSuffix:  '× beze změny',

@@ -34,3 +34,12 @@ export const severityStrings = {
   2: { label: 'střední' },
   3: { label: 'silné' },
 } as const satisfies Record<RegionLevel, SeverityStrings>;
+
+/**
+ * Renders the per-severity count suffix shown in /program's skin recap, e.g.
+ * "× klidné", "× mírné". Built from `severityStrings[lvl].label` so adding a
+ * new severity tier is a single-source change.
+ */
+export function severityCountSuffix(lvl: RegionLevel): string {
+  return `× ${severityStrings[lvl].label}`;
+}

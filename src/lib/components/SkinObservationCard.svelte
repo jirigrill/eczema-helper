@@ -37,8 +37,7 @@
     <div class="space-y-2">
       <div class="flex items-center gap-2" data-testid="skin-observation-summary">
         <span
-          class="w-3 h-3 rounded-full shrink-0"
-          style="background:{severityConfig[dayLevel].hex}"
+          class="w-3 h-3 rounded-full shrink-0 {severityConfig[dayLevel].dot}"
           aria-hidden="true"
         ></span>
         <span class="text-[12px] font-semibold text-text">{severityStrings[dayLevel].label}</span>

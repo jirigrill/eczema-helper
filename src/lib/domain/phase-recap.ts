@@ -16,12 +16,21 @@ export type RecapRow = {
 };
 
 /**
- * Pure join of a phase's dose days with the skin observations logged in
- * that window — the "Průběh testu" recap shown on `/evaluation`.
+ * Builds the "Průběh testu" recap shown on `/evaluation` after a reintroduction
+ * phase ends — one row per dose day in the phase window with the day's
+ * 1-indexed number, date, and overall skin severity.
  *
- * Days with no observation render with `severity: undefined`. When a day
- * has multiple observations, the latest by `createdAt` wins; severity is
- * derived from its regions array (`overallSeverity`), never persisted.
+ * Recap-specific shape; not a general-purpose daily-severity dataset. The
+ * dayNumber and gap-day fill (severity: undefined for unmonitored days) are
+ * UI concerns of the recap strip.
+ *
+ * Rules:
+ *   - One row per day in [startDate, endDate], inclusive — gap days kept.
+ *   - Observations outside the window are dropped.
+ *   - Multi-obs days: latest by createdAt wins.
+ *   - Severity is derived as max(regions[].level), never persisted.
+ *
+ * Returns [] when phase.endDate is missing (incomplete schedule).
  */
 export function buildPhaseRecap(
   phase: SchedulePhase,
