@@ -236,7 +236,7 @@ test('skin save: the day card reflects the saved observation\'s overall severity
   await page.getByTestId('skin-save').click();
   await expect(page).toHaveURL(`/day/${today}`);
 
-  await expect(page.getByTestId('skin-observation-summary')).toContainText('silné');
+  await expect(page.getByTestId('skin-observation-summary')).toContainText(/\bsilné\b/);
 });
 
 // ── Reload (live Dexie query) ───────────────────────────────────────────
@@ -251,7 +251,7 @@ test('skin save: observation survives reload via live Dexie query', async ({ pag
   await expect(page).toHaveURL(`/day/${today}`);
 
   await page.reload();
-  await expect(page.getByTestId('skin-observation-summary')).toContainText('mírné');
+  await expect(page.getByTestId('skin-observation-summary')).toContainText(/\bmírné\b/);
 });
 
 // ── returnTo navigation ─────────────────────────────────────────────────

@@ -24,8 +24,11 @@ vi.mock('$app/state', () => ({ page: mockPage }));
 
 const today = new Date().toISOString().split('T')[0];
 
-beforeEach(() => {
+beforeEach(async () => {
   mockSave.mockClear();
+  mockSave.mockResolvedValue({ ok: true, data: undefined });
+  const { goto } = await import('$app/navigation');
+  vi.mocked(goto).mockClear();
   mockPage.url = new URL('http://localhost/skin');
 });
 
@@ -282,5 +285,78 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(goto).toHaveBeenCalledWith('/program');
+  });
+
+  // ── Failure + double-submit guards ────────────────────────
+
+  it('does not navigate when save returns { ok: false } and surfaces an error toast', async () => {
+    mockSave.mockResolvedValueOnce({ ok: false, error: 'boom' });
+    const SkinPage = await loadPage();
+    const { goto } = await import('$app/navigation');
+    const { getByTestId, findByText } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate
+    await fireEvent.click(face); // 0→1
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(goto).not.toHaveBeenCalled();
+    // Toast renders the strings-layer error message.
+    expect(await findByText('Uložení se nezdařilo. Zkus to znovu.')).toBeInTheDocument();
+
+    // Save button is re-enabled so the user can retry.
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+  });
+
+  it('double-clicking Uložit only triggers one save call', async () => {
+    // Use a never-resolving promise so `saving` stays true between clicks.
+    let resolve: ((value: { ok: true; data: undefined }) => void) | undefined;
+    mockSave.mockImplementationOnce(
+      () => new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
+    await tick();
+
+    const save = getByTestId('skin-save');
+    await fireEvent.click(save);
+    await fireEvent.click(save);
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    resolve?.({ ok: true, data: undefined });
+  });
+
+  // ── A11y ──────────────────────────────────────────────────
+
+  it('aria-pressed reflects active state on each tile', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    expect(face.getAttribute('aria-pressed')).toBe('false');
+
+    await fireEvent.click(face);
+    await tick();
+    expect(face.getAttribute('aria-pressed')).toBe('true');
+
+    const arms = getByTestId('skin-region-arms');
+    await fireEvent.click(arms);
+    await tick();
+    expect(face.getAttribute('aria-pressed')).toBe('false');
+    expect(arms.getAttribute('aria-pressed')).toBe('true');
   });
 });

@@ -285,6 +285,8 @@ export const commonStrings = {
     saveDisabled:      'Uložit stav',
     /** Aria label for the save action; suffix is appended at render time. */
     saveAriaLabel:     'Uložit stav kůže',
+    /** Toast shown when persistence fails. */
+    saveError:         'Uložení se nezdařilo. Zkus to znovu.',
   },
 
   // ── EczemaCheck component (deprecated; deleted in #361 follow-up) ──
@@ -365,6 +367,13 @@ export function zaznamyCs(n: number): string {
   if (n === 1) return '1 záznam';
   if (n >= 2 && n <= 4) return `${n} záznamy`;
   return `${n} záznamů`;
+}
+
+/** Czech pluralisation: body region count — "1 oblast", "2 oblasti", "5 oblastí" */
+export function oblastiCs(n: number): string {
+  if (n === 1) return '1 oblast';
+  if (n >= 2 && n <= 4) return `${n} oblasti`;
+  return `${n} oblastí`;
 }
 
 /** Czech pluralisation: photo count — "1 snímek", "2 snímky", "5 snímků" */

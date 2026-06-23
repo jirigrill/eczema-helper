@@ -10,34 +10,36 @@
   } from '$lib/domain/models';
   import { randomUUID } from '$lib/utils/uuid';
   import { parseDayQuery } from '$lib/utils/day-query';
-  import { commonStrings } from '$lib/strings/common';
+  import { commonStrings, oblastiCs } from '$lib/strings/common';
   import { regionStrings, severityStrings } from '$lib/strings/skin-regions';
   import { severityConfig } from '$lib/config/skin-regions';
   import { skinObservationSession } from '$lib/stores/skin-observation-session';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import Toast from '$lib/components/Toast.svelte';
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
+
+  function initialLevels(): Record<RegionId, RegionLevel> {
+    return Object.fromEntries(REGION_IDS.map((id) => [id, 0])) as Record<RegionId, RegionLevel>;
+  }
 
   // Per-region severity, defaulting every region to klidné (0). The mother
   // explicitly cycles back through klidné when retiring a region — there is
   // no "unknown" state.
-  let levels = $state<Record<RegionId, RegionLevel>>(
-    REGION_IDS.reduce(
-      (acc, id) => ({ ...acc, [id]: 0 as RegionLevel }),
-      {} as Record<RegionId, RegionLevel>,
-    ),
-  );
+  let levels = $state<Record<RegionId, RegionLevel>>(initialLevels());
   let active = $state<RegionId | null>(null);
   let note = $state('');
   let saving = $state(false);
+  let saveError = $state<string | null>(null);
 
   const loggedRegions = $derived(REGION_IDS.filter((id) => levels[id] > 0));
   const canSave = $derived(loggedRegions.length > 0);
 
   function tapRegion(r: RegionId): void {
+    // First tap activates without changing level. Subsequent taps on the
+    // already-active region cycle 0→1→2→3→0. Activate-first prevents stray
+    // taps from bumping severity when the user is hopping between regions.
     if (active !== r) {
-      // Activate only — the level stays put so a calm region tapped by mistake
-      // keeps reading klidné.
       active = r;
     } else {
       const next = ((levels[r] + 1) % 4) as RegionLevel;
@@ -48,39 +50,31 @@
   async function handleSave(): Promise<void> {
     if (saving || !canSave) return;
     saving = true;
+    saveError = null;
     const regions: SkinRegionRecord[] = loggedRegions.map((id) => ({
       id,
       level: levels[id],
     }));
+    const trimmed = note.trim();
     const observation: SkinObservation = {
       id: randomUUID(),
       date,
       createdAt: new Date().toISOString(),
       regions,
-      ...(note.trim() ? { notes: note.trim() } : {}),
+      ...(trimmed ? { notes: trimmed } : {}),
     };
     const result = await skinObservationSession.save(observation, []);
     saving = false;
-    if (result.ok) goto(returnTo);
-  }
-
-  function tileBorderClass(id: RegionId): string {
-    if (active === id) return 'border-primary';
-    return severityConfig[levels[id]].tileBorder;
-  }
-
-  function tileBackgroundClass(id: RegionId): string {
-    return severityConfig[levels[id]].tileBg;
-  }
-
-  function tileDotClass(id: RegionId): string {
-    return severityConfig[levels[id]].dot;
+    if (result.ok) {
+      goto(returnTo);
+    } else {
+      saveError = commonStrings.skin.saveError;
+    }
   }
 
   function saveButtonLabel(count: number): string {
     if (count === 0) return commonStrings.skin.saveDisabled;
-    const noun = count === 1 ? 'oblast' : 'oblasti';
-    return `Uložit stav · ${count} ${noun}`;
+    return `Uložit stav · ${oblastiCs(count)}`;
   }
 </script>
 
@@ -98,6 +92,8 @@
         {#each REGION_IDS as id (id)}
           {@const isActive = active === id}
           {@const lvl = levels[id]}
+          {@const cfg = severityConfig[lvl]}
+          {@const borderClass = isActive ? 'border-primary' : cfg.tileBorder}
           <button
             type="button"
             data-testid="skin-region-{id}"
@@ -106,11 +102,9 @@
             data-level={lvl}
             aria-pressed={isActive}
             onclick={() => tapRegion(id)}
-            class="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 p-1 transition-all {isActive ? 'border-[3px]' : 'border-2'} {tileBorderClass(id)} {tileBackgroundClass(id)}"
+            class="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 p-1 transition-all border-2 {borderClass} {cfg.tileBg} {isActive ? 'ring-2 ring-primary ring-offset-1' : ''}"
           >
-            <span
-              class="w-4 h-4 rounded-full {tileDotClass(id)}"
-            ></span>
+            <span class="w-4 h-4 rounded-full {cfg.dot}"></span>
             <span class="text-[11px] font-medium text-text text-center leading-tight">{regionStrings[id].label}</span>
             <span class="text-[9px] text-text-muted">{severityStrings[lvl].label}</span>
           </button>
@@ -142,3 +136,11 @@
     </div>
   </div>
 </div>
+
+{#if saveError}
+  <Toast
+    message={saveError}
+    type="error"
+    onClose={() => (saveError = null)}
+  />
+{/if}
