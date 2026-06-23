@@ -147,12 +147,12 @@ export type ReintroductionDayInfo = {
 export type AllergenOutcome = 'tolerated' | 'mild-reaction' | 'clear-reaction' | 'severe-reaction';
 
 // Skin status change — used for reset and elimination phases
-export type SkinStatusOutcome = 'improved' | 'unchanged' | 'worsened' | 'new-lesions';
+export type SkinEvaluationOutcome = 'improved' | 'unchanged' | 'worsened' | 'new-lesions';
 
 export type ReintroductionEvaluation = {
   phaseId: string; // links to SchedulePhase.id
   phaseType: 'allergen-test' | 'skin-status'; // determines which outcome vocabulary applies
-  outcome: AllergenOutcome | SkinStatusOutcome;
+  outcome: AllergenOutcome | SkinEvaluationOutcome;
   allergenId?: ProtocolAllergenId; // only set for allergen-test evaluations
   notes?: string;
   date: string; // ISO date when evaluation was made
