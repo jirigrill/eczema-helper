@@ -22,7 +22,8 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 const mockPage = { url: new URL('http://localhost/skin') };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
-const today = new Date().toISOString().split('T')[0];
+const d = new Date();
+const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 beforeEach(async () => {
   mockSave.mockClear();
@@ -423,5 +424,150 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
     expect(face.getAttribute('aria-pressed')).toBe('false');
     expect(arms.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  // ── Photo staging ─────────────────────────────────────────
+
+  it('photo button is absent when no region is active', async () => {
+    const SkinPage = await loadPage();
+    const { queryByTestId } = render(SkinPage);
+    await tick();
+    expect(queryByTestId('skin-add-photo')).toBeNull();
+  });
+
+  it('photo button appears when a region is active', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-region-face')); // activate
+    await tick();
+
+    const btn = getByTestId('skin-add-photo');
+    expect(btn).toBeInTheDocument();
+  });
+
+  it('photo button label includes the active region Czech name', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-region-face'));
+    await tick();
+
+    // regionStrings.face.label = 'Tváře'
+    expect(getByTestId('skin-add-photo').textContent).toContain('Tváře');
+  });
+
+  it('photo button has no capture attribute', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId, container } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-region-face'));
+    await tick();
+
+    // The file input linked to the button must not have a capture attribute.
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+    expect(fileInput!.hasAttribute('capture')).toBe(false);
+  });
+
+  it('adding files stages them with the currently active region', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId, container } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-region-arms')); // activate arms
+    await tick();
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    await fireEvent.change(fileInput, { target: { files: [file] } });
+    await tick();
+
+    // Gallery should now show the photo with the arms region label
+    expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="skin-photo-thumb-0"]')).toBeInTheDocument();
+  });
+
+  it('klidné region (level 0) with ≥1 staged photo enables Uložit', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId, container } = render(SkinPage);
+    await tick();
+
+    // Activate face but do NOT cycle its level — it stays at klidné (0)
+    await fireEvent.click(getByTestId('skin-region-face'));
+    await tick();
+
+    const saveBtn = getByTestId('skin-save') as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(true); // no level > 0, no photos yet
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    await fireEvent.change(fileInput, { target: { files: [file] } });
+    await tick();
+
+    expect(saveBtn.disabled).toBe(false); // klidné + photo → canSave
+  });
+
+  it('Uložit passes staged photos to save', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId, container } = render(SkinPage);
+    await tick();
+
+    // Stage a photo on 'face' (level stays 0)
+    await fireEvent.click(getByTestId('skin-region-face'));
+    await tick();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    await fireEvent.change(fileInput, { target: { files: [file] } });
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    const [, photos] = mockSave.mock.calls[0];
+    expect(photos).toHaveLength(1);
+    expect((photos as Array<{ region: string }>)[0].region).toBe('face');
+  });
+
+  it('deleting a staged photo removes it from the gallery', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId, container } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-region-face'));
+    await tick();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    await fireEvent.change(fileInput, { target: { files: [file] } });
+    await tick();
+    expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeInTheDocument();
+
+    // Delete it
+    await fireEvent.click(container.querySelector('[data-testid="skin-photo-delete-0"]') as HTMLElement);
+    await tick();
+
+    expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeNull();
+  });
+
+  it('Uložit triggers save with regions and empty photos when no photos staged', async () => {
+    // Existing behaviour must not regress: empty array when no photos staged.
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face); // 0→1
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    const [, photos] = mockSave.mock.calls[0];
+    expect(photos).toEqual([]);
   });
 });

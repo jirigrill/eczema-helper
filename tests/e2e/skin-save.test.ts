@@ -15,10 +15,15 @@ async function clearDb(page: Page) {
   });
 }
 
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 async function completeOnboarding(page: Page) {
   // Seed a post-onboarding state directly into IndexedDB; faster than
   // clicking through the wizard and the wizard itself is covered elsewhere.
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
   await page.evaluate(async (start) => {
     const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
     const path = '/src/lib/db/atopic-db.ts';
@@ -136,7 +141,7 @@ test('skin save: button enables once any region has level > 0', async ({ page })
 
 test('skin save: persists regions array atomically with empty photos', async ({ page }) => {
   await completeOnboarding(page);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
   await page.goto('/skin');
 
   await tapRegion(page, 'face'); // activate
@@ -201,7 +206,7 @@ test('skin save: whitespace-only note persists as undefined', async ({ page }) =
 // ── Abandon path ────────────────────────────────────────────────────────
 
 test('skin abandon: back chevron without Uložit persists nothing', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
   await completeOnboarding(page);
   await page.goto(`/skin?returnTo=/day/${today}`);
 
@@ -221,7 +226,7 @@ test('skin abandon: back chevron without Uložit persists nothing', async ({ pag
 // ── Day stub reads derived overall severity ─────────────────────────────
 
 test('skin save: the day card reflects the saved observation\'s overall severity', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
   await completeOnboarding(page);
   await page.goto('/skin');
 
@@ -243,7 +248,7 @@ test('skin save: the day card reflects the saved observation\'s overall severity
 
 test('skin save: observation survives reload via live Dexie query', async ({ page }) => {
   await completeOnboarding(page);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'face');
   await tapRegion(page, 'face'); // 1
@@ -263,4 +268,129 @@ test('skin returnTo: custom returnTo param is honoured after Uložit', async ({ 
   await tapRegion(page, 'face');
   await page.getByTestId('skin-save').click();
   await expect(page).toHaveURL('/program');
+});
+
+// ── Photo staging ─────────────────────────────────────────────────────────
+
+test('photo button absent when no region active', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await expect(page.getByTestId('skin-add-photo')).not.toBeVisible();
+});
+
+test('photo button appears with active region label when region is tapped', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await tapRegion(page, 'face'); // activate
+  const btn = page.getByTestId('skin-add-photo');
+  await expect(btn).toBeVisible();
+  await expect(btn).toContainText('Tváře');
+});
+
+test('photo button has no capture attribute', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await tapRegion(page, 'face');
+  const fileInput = page.locator('input[type="file"]');
+  await expect(fileInput).not.toHaveAttribute('capture');
+});
+
+test('photos staged via file input appear in gallery with correct region label', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await tapRegion(page, 'arms'); // activate arms → 'Paže'
+
+  // Upload two photos
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+    { name: 'b.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('b') },
+  ]);
+
+  await expect(page.locator('[data-testid="skin-photo-gallery"]')).toBeVisible();
+  await expect(page.locator('[data-testid="skin-photo-thumb-0"]')).toBeVisible();
+  await expect(page.locator('[data-testid="skin-photo-thumb-1"]')).toBeVisible();
+  // Both thumbs should show the arms label 'Paže'
+  const labels = page.locator('[data-testid="skin-photo-gallery"] span');
+  await expect(labels.first()).toContainText('Paže');
+});
+
+test('klidné region with staged photo enables Uložit', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await tapRegion(page, 'face'); // activate but NOT cycle — stays klidné (0)
+
+  await expect(page.getByTestId('skin-save')).toBeDisabled();
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') },
+  ]);
+
+  await expect(page.getByTestId('skin-save')).toBeEnabled();
+});
+
+test('deleting a staged photo before Uložit means it never persists', async ({ page }) => {
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+  await tapRegion(page, 'face');
+
+  // Stage two photos
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+    { name: 'b.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('b') },
+  ]);
+  await expect(page.locator('[data-testid="skin-photo-thumb-1"]')).toBeVisible();
+
+  // Delete the first staged photo
+  await page.locator('[data-testid="skin-photo-delete-0"]').click();
+  await expect(page.locator('[data-testid="skin-photo-thumb-1"]')).not.toBeVisible();
+  await expect(page.locator('[data-testid="skin-photo-thumb-0"]')).toBeVisible(); // second becomes index 0
+
+  // Cycle face to mírné so save is enabled even without photos
+  await tapRegion(page, 'face'); // 0→1
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  const photoCount = await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    return db.photos.count();
+  });
+  // Only the second photo (b.jpg) survived — the deleted first never persisted.
+  expect(photoCount).toBe(1);
+});
+
+test('Uložit saves observation and staged photos atomically; photos have correct observationId and region', async ({ page }) => {
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+  await tapRegion(page, 'arms'); // activate
+  await tapRegion(page, 'arms'); // 0→1
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') },
+  ]);
+
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  const result = await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    const obs = await db.skin_observations.toArray();
+    const photos = await db.photos.toArray();
+    return {
+      obsId: obs[0]?.id as string,
+      photoRegion: photos[0]?.region as string,
+      photoObsId: photos[0]?.observationId as string,
+    };
+  });
+
+  expect(result.obsId).toBeTruthy();
+  expect(result.photoRegion).toBe('arms');
+  expect(result.photoObsId).toBe(result.obsId);
 });

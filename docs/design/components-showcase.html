@@ -87,6 +87,7 @@
   <a href="#progress-bar">ProgressBar</a>
   <a href="#skin-observation-card">SkinObservationCard</a>
   <a href="#skin-photo-card">SkinPhotoCard</a>
+  <a href="#skin-photo-gallery">SkinPhotoGallery</a>
   <a href="#questionnaire-summary-row">QuestionnaireSummaryRow</a>
   <a href="#toast">Toast</a>
   <a href="#family-grid">FamilyGrid</a>
@@ -674,6 +675,70 @@
           </div>
         </div>
         <p class="variant-name">onDelete provided</p>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── SkinPhotoGallery ─────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/SkinPhotoGallery.svelte -->
+  <div class="component-section" id="skin-photo-gallery">
+    <p class="component-label">▸ <span>SkinPhotoGallery</span> — photos: SkinPhotoInput[], onDelete: (index: number) =&gt; void</p>
+    <div class="variant-row">
+
+      <div class="variant-tile" style="width:280px">
+        <p class="variant-name">empty (renders nothing)</p>
+        <div class="bg-surface h-6 rounded-lg flex items-center justify-center">
+          <span class="text-[10px] text-text-muted">— no output —</span>
+        </div>
+      </div>
+
+      <div class="variant-tile" style="width:280px">
+        <p class="variant-name">3 photos (face × 2, arms × 1)</p>
+        <div class="grid grid-cols-3 gap-2">
+          <!-- thumb 0 -->
+          <div class="flex flex-col items-center gap-1">
+            <div class="relative w-full aspect-square">
+              <div class="w-full h-full bg-surface-dark rounded-xl flex items-center justify-center">
+                <span class="text-2xl opacity-30">🖼</span>
+              </div>
+              <button class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
+            </div>
+            <span class="text-[10px] text-text-muted">Tváře</span>
+          </div>
+          <!-- thumb 1 -->
+          <div class="flex flex-col items-center gap-1">
+            <div class="relative w-full aspect-square">
+              <div class="w-full h-full bg-surface-dark rounded-xl flex items-center justify-center">
+                <span class="text-2xl opacity-30">🖼</span>
+              </div>
+              <button class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
+            </div>
+            <span class="text-[10px] text-text-muted">Tváře</span>
+          </div>
+          <!-- thumb 2 -->
+          <div class="flex flex-col items-center gap-1">
+            <div class="relative w-full aspect-square">
+              <div class="w-full h-full bg-surface-dark rounded-xl flex items-center justify-center">
+                <span class="text-2xl opacity-30">🖼</span>
+              </div>
+              <button class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
+            </div>
+            <span class="text-[10px] text-text-muted">Paže</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="variant-tile" style="width:180px">
+        <p class="variant-name">lightbox (modal overlay)</p>
+        <div class="relative bg-black/90 rounded-xl overflow-hidden" style="aspect-ratio:1">
+          <div class="flex items-center justify-center h-full">
+            <span class="text-3xl opacity-40">🖼</span>
+          </div>
+          <button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-base flex items-center justify-center">×</button>
+        </div>
       </div>
 
     </div>

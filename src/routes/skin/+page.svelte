@@ -6,6 +6,7 @@
     type RegionId,
     type RegionLevel,
     type SkinObservation,
+    type SkinPhotoInput,
     type SkinRegionRecord,
   } from '$lib/domain/models';
   import { randomUUID } from '$lib/utils/uuid';
@@ -16,6 +17,7 @@
   import { skinObservationSession } from '$lib/stores/skin-observation-session';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Toast from '$lib/components/Toast.svelte';
+  import SkinPhotoGallery from '$lib/components/SkinPhotoGallery.svelte';
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
 
@@ -31,9 +33,11 @@
   let note = $state('');
   let saving = $state(false);
   let saveError = $state<string | null>(null);
+  let stagedPhotos = $state<SkinPhotoInput[]>([]);
 
   const loggedRegions = $derived(REGION_IDS.filter((id) => levels[id] > 0));
-  const canSave = $derived(loggedRegions.length > 0);
+  // A klidné region with ≥1 staged photo also counts as logged.
+  const canSave = $derived(loggedRegions.length > 0 || stagedPhotos.length > 0);
 
   function tapRegion(r: RegionId): void {
     // First tap activates without changing level. Subsequent taps on the
@@ -63,7 +67,7 @@
       regions,
       ...(trimmed ? { notes: trimmed } : {}),
     };
-    const result = await skinObservationSession.save(observation, []);
+    const result = await skinObservationSession.save(observation, stagedPhotos);
     saving = false;
     if (result.ok) {
       goto(returnTo);
@@ -75,6 +79,21 @@
   function saveButtonLabel(count: number): string {
     if (count === 0) return commonStrings.skin.saveDisabled;
     return `Uložit stav · ${oblastiCs(count)}`;
+  }
+
+  function handleFileInput(e: Event): void {
+    if (!active) return;
+    const files = (e.target as HTMLInputElement).files;
+    if (!files) return;
+    const region = active;
+    const newPhotos: SkinPhotoInput[] = Array.from(files).map((blob) => ({ region, blob }));
+    stagedPhotos = [...stagedPhotos, ...newPhotos];
+    // Reset the input so the same file can be added again if needed.
+    (e.target as HTMLInputElement).value = '';
+  }
+
+  function deletePhoto(index: number): void {
+    stagedPhotos = stagedPhotos.filter((_, i) => i !== index);
   }
 </script>
 
@@ -113,6 +132,24 @@
 
       {#if !active}
         <p class="caption text-center">{commonStrings.skin.helperEmpty}</p>
+      {:else}
+        <label
+          data-testid="skin-add-photo"
+          class="flex items-center justify-center py-2 px-4 rounded-xl border-2 border-primary bg-white text-primary font-semibold text-sm cursor-pointer"
+        >
+          {commonStrings.skin.addPhotoPrefix}{regionStrings[active].label}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            class="sr-only"
+            onchange={handleFileInput}
+          />
+        </label>
+      {/if}
+
+      {#if stagedPhotos.length > 0}
+        <SkinPhotoGallery photos={stagedPhotos} onDelete={deletePhoto} />
       {/if}
 
       <textarea
