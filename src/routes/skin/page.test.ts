@@ -339,6 +339,71 @@ describe('skin/+page.svelte — region grid', () => {
     resolve?.({ ok: true, data: undefined });
   });
 
+  // ── Severity-coloured border (AC4) ───────────────────────
+  //
+  // The strict visual claim from #361: a logged-but-inactive region shows its
+  // severity-colour border; a never-touched calm region shows the hairline
+  // (surface-dark); active beats both with `border-primary`. We assert the
+  // exact `tileBorder` token from `severityConfig` per level so a token rename
+  // breaks the test, not just the look.
+
+  it('inactive tiles render the severity-colour border that matches their level', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    const arms = getByTestId('skin-region-arms');
+    const belly = getByTestId('skin-region-belly');
+    const legs = getByTestId('skin-region-legs');
+
+    // Cycle face to mírné (1), arms to střední (2), belly to silné (3),
+    // leaving legs at klidné (0). Switch active off all of them onto a
+    // sentinel region so each tile under test is "logged but inactive".
+    await fireEvent.click(face); // activate
+    await fireEvent.click(face); // 0→1
+    await fireEvent.click(arms); // activate
+    await fireEvent.click(arms); // 0→1
+    await fireEvent.click(arms); // 1→2
+    await fireEvent.click(belly); // activate
+    await fireEvent.click(belly); // 0→1
+    await fireEvent.click(belly); // 1→2
+    await fireEvent.click(belly); // 2→3
+    // Park active on legs (still level 0) so the other three tiles are
+    // logged-but-inactive — the case AC4 is about.
+    await fireEvent.click(legs);
+    await tick();
+
+    // Hairline for the never-touched calm region. legs is currently active
+    // so it picks up `border-primary`; pick a different never-touched tile.
+    const neck = getByTestId('skin-region-neck');
+    expect(neck.className).toContain('border-surface-dark');
+    expect(neck.dataset.level).toBe('0');
+
+    expect(face.className).toContain('border-warning/50');
+    expect(arms.className).toContain('border-severity-4/50');
+    expect(belly.className).toContain('border-danger/50');
+  });
+
+  it('active tile uses border-primary regardless of its level', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate at level 0
+    await tick();
+    expect(face.className).toContain('border-primary');
+    // The level-coloured token must not also be present — `border-primary`
+    // is the override, not an additional border.
+    expect(face.className).not.toContain('border-surface-dark');
+
+    await fireEvent.click(face); // 0→1, still active
+    await tick();
+    expect(face.className).toContain('border-primary');
+    expect(face.className).not.toContain('border-warning/50');
+  });
+
   // ── A11y ──────────────────────────────────────────────────
 
   it('aria-pressed reflects active state on each tile', async () => {

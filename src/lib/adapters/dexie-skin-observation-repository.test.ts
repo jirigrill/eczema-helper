@@ -195,7 +195,6 @@ describe('DexieSkinObservationRepository', () => {
     expect(await db.photos.toArray()).toHaveLength(0);
   });
 
-
   // ── Error paths ───────────────────────────────────────────────
 
   it('save returns Err when DB throws', async () => {
