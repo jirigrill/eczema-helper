@@ -1,4 +1,4 @@
-import type { SkinObservation } from '$lib/domain/models';
+import type { SkinObservation, SkinPhoto } from '$lib/domain/models';
 import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
 import type { Result } from '$lib/types/result';
 import type { AtopicDb } from '$lib/db/atopic-db';
@@ -6,9 +6,24 @@ import type { AtopicDb } from '$lib/db/atopic-db';
 export class DexieSkinObservationRepository implements SkinObservationRepository {
   constructor(private readonly db: AtopicDb) {}
 
-  async save(observation: SkinObservation): Promise<Result<void, string>> {
+  async save(
+    observation: SkinObservation,
+    photos: SkinPhoto[],
+  ): Promise<Result<void, string>> {
     try {
-      await this.db.skin_observations.put(observation);
+      // Single transaction so the observation and any captured photos either
+      // both land or neither does — the save seam shaped for slice 2.
+      await this.db.transaction(
+        'rw',
+        this.db.skin_observations,
+        this.db.photos,
+        async () => {
+          await this.db.skin_observations.put(observation);
+          if (photos.length > 0) {
+            await this.db.photos.bulkPut(photos);
+          }
+        },
+      );
       return { ok: true, data: undefined };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };

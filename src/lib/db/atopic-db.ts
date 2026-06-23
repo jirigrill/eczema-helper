@@ -65,6 +65,23 @@ export class AtopicDb extends Dexie {
       harvest_candidates: '&normalizedKey, status',
       evaluations: '&phaseId, date',
     });
+    // v7: SkinObservation drops `status` and gains `regions: SkinRegionRecord[]`
+    // (issue #361). Same indexes; the schema bump wipes existing skin_observation
+    // rows on upgrade so the old shape never reaches the new readers — pre-launch
+    // wipe per ADR-0012/0016.
+    this.version(7)
+      .stores({
+        answers: '&id',
+        schedule: '&id',
+        meals: '&id, date',
+        skin_observations: '&id, date',
+        photos: '&id, date',
+        harvest_candidates: '&normalizedKey, status',
+        evaluations: '&phaseId, date',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('skin_observations').clear();
+      });
   }
 }
 

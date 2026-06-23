@@ -9,7 +9,7 @@ function makeObservation(overrides?: Partial<SkinObservation>): SkinObservation 
     id: 'obs-1',
     date: '2026-05-31',
     createdAt: '2026-05-31T08:00:00.000Z',
-    status: 'unchanged',
+    regions: [{ id: 'face', level: 1 }],
     ...overrides,
   };
 }
@@ -23,12 +23,34 @@ describe('SkinObservationCard', () => {
     expect(getByText('Zatím není záznam pro dnešek.')).toBeInTheDocument();
   });
 
-  it('renders a saved observation status label', async () => {
+  it('renders the derived day-overall severity label', async () => {
     const { getByText } = render(SkinObservationCard, {
-      props: { observations: [makeObservation({ status: 'improved' })] },
+      props: { observations: [makeObservation({ regions: [{ id: 'face', level: 2 }] })] },
     });
     await tick();
-    expect(getByText('Zlepšení')).toBeInTheDocument();
+    expect(getByText('střední')).toBeInTheDocument();
+  });
+
+  it('day-overall severity is max across regions and observations', async () => {
+    const obs1 = makeObservation({
+      id: 'obs-1',
+      regions: [
+        { id: 'face', level: 1 },
+        { id: 'arms', level: 2 },
+      ],
+    });
+    const obs2 = makeObservation({
+      id: 'obs-2',
+      regions: [
+        { id: 'belly', level: 3 },
+        { id: 'legs', level: 1 },
+      ],
+    });
+    const { getByText } = render(SkinObservationCard, {
+      props: { observations: [obs1, obs2] },
+    });
+    await tick();
+    expect(getByText('silné')).toBeInTheDocument();
   });
 
   it('renders observation notes when present', async () => {
@@ -37,20 +59,6 @@ describe('SkinObservationCard', () => {
     });
     await tick();
     expect(getByText('rash on left arm')).toBeInTheDocument();
-  });
-
-  it('renders multiple observations', async () => {
-    const { getByText } = render(SkinObservationCard, {
-      props: {
-        observations: [
-          makeObservation({ id: 'obs-1', status: 'improved' }),
-          makeObservation({ id: 'obs-2', status: 'worsened' }),
-        ],
-      },
-    });
-    await tick();
-    expect(getByText('Zlepšení')).toBeInTheDocument();
-    expect(getByText('Zhoršení')).toBeInTheDocument();
   });
 
   it('shows the section label "Stav ekzému"', async () => {

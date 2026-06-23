@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
 import { AtopicDb } from '$lib/db/atopic-db';
-import type { SkinObservation } from '$lib/domain/models';
+import type { SkinObservation, SkinRegionRecord, RegionLevel } from '$lib/domain/models';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -11,7 +11,7 @@ function makeObservation(date: string, overrides?: Partial<SkinObservation>): Sk
     id: `obs-${date}`,
     date,
     createdAt: `${date}T08:00:00.000Z`,
-    status: 'unchanged',
+    regions: [{ id: 'face', level: 1 }],
     ...overrides,
   };
 }
@@ -31,7 +31,7 @@ describe('DexieSkinObservationRepository', () => {
 
   it('save() persists and listByDate() returns the observation', async () => {
     const obs = makeObservation('2026-05-27');
-    expect(await repo.save(obs)).toMatchObject({ ok: true });
+    expect(await repo.save(obs, [])).toMatchObject({ ok: true });
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
@@ -47,10 +47,10 @@ describe('DexieSkinObservationRepository', () => {
   // ── Multiple observations same date ──────────────────────────
 
   it('multiple observations for same date all appear in listByDate', async () => {
-    const first = makeObservation('2026-05-27', { id: 'obs-1', status: 'improved' });
-    const second = makeObservation('2026-05-27', { id: 'obs-2', status: 'worsened' });
-    await repo.save(first);
-    await repo.save(second);
+    const first = makeObservation('2026-05-27', { id: 'obs-1', regions: [{ id: 'face', level: 1 }] });
+    const second = makeObservation('2026-05-27', { id: 'obs-2', regions: [{ id: 'arms', level: 3 }] });
+    await repo.save(first, []);
+    await repo.save(second, []);
 
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
@@ -61,22 +61,22 @@ describe('DexieSkinObservationRepository', () => {
   });
 
   it('observations for different date do not appear', async () => {
-    await repo.save(makeObservation('2026-05-27', { id: 'obs-other' }));
+    await repo.save(makeObservation('2026-05-27', { id: 'obs-other' }), []);
     const result = await repo.listByDate('2026-05-28');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data).toHaveLength(0);
   });
 
-  // ── Scalar field preservation ────────────────────────────────
+  // ── Regions array preservation ───────────────────────────────
 
-  it('persists all scalar fields exactly', async () => {
-    const obs = makeObservation('2026-05-27', {
-      id: 'obs-full',
-      status: 'new-lesions',
-      notes: 'rash on left arm',
-      createdAt: '2026-05-27T09:15:30.000Z',
-    });
-    await repo.save(obs);
+  it('persists the regions array exactly', async () => {
+    const regions: SkinRegionRecord[] = [
+      { id: 'face', level: 2 },
+      { id: 'arms', level: 1 },
+      { id: 'belly', level: 3 },
+    ];
+    const obs = makeObservation('2026-05-27', { id: 'obs-full', regions, notes: 'rash on left arm' });
+    await repo.save(obs, []);
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data[0]).toEqual(obs);
@@ -84,45 +84,69 @@ describe('DexieSkinObservationRepository', () => {
 
   it('observation without notes loads with notes absent', async () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-no-notes' });
-    await repo.save(obs);
+    await repo.save(obs, []);
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data[0].notes).toBeUndefined();
   });
 
-  it.each(['improved', 'unchanged', 'worsened', 'new-lesions'] as SkinObservation['status'][])(
-    'status "%s" round-trips',
-    async (status) => {
-      const obs = makeObservation('2026-05-27', { id: `obs-${status}`, status });
-      await repo.save(obs);
-      const result = await repo.listByDate('2026-05-27');
-      expect(result).toMatchObject({ ok: true });
-      if (result.ok) expect(result.data[0].status).toBe(status);
-    }
-  );
+  it.each([1, 2, 3] as RegionLevel[])('region level %i round-trips', async (level) => {
+    const obs = makeObservation('2026-05-27', {
+      id: `obs-level-${level}`,
+      regions: [{ id: 'face', level }],
+    });
+    await repo.save(obs, []);
+    const result = await repo.listByDate('2026-05-27');
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) expect(result.data[0].regions[0].level).toBe(level);
+  });
 
   // ── Upsert by id ─────────────────────────────────────────────
 
   it('second save for same id overwrites and does not duplicate', async () => {
-    const first = makeObservation('2026-05-27', { id: 'obs-1', status: 'improved' });
-    const second = makeObservation('2026-05-27', { id: 'obs-1', status: 'worsened' });
-    await repo.save(first);
-    await repo.save(second);
+    const first = makeObservation('2026-05-27', { id: 'obs-1', regions: [{ id: 'face', level: 1 }] });
+    const second = makeObservation('2026-05-27', { id: 'obs-1', regions: [{ id: 'face', level: 3 }] });
+    await repo.save(first, []);
+    await repo.save(second, []);
 
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].status).toBe('worsened');
+      expect(result.data[0].regions[0].level).toBe(3);
     }
+  });
+
+  // ── Atomic save with photos ──────────────────────────────────
+
+  it('save with empty photos array writes only the observation', async () => {
+    const obs = makeObservation('2026-05-27');
+    await repo.save(obs, []);
+    const photos = await db.photos.toArray();
+    expect(photos).toHaveLength(0);
+  });
+
+  it('save with photos persists all of them transactionally', async () => {
+    const obs = makeObservation('2026-05-27');
+    const photo = {
+      id: 'photo-1',
+      date: '2026-05-27',
+      capturedAt: '2026-05-27T08:00:00.000Z',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+    };
+    await repo.save(obs, [photo]);
+    const photos = await db.photos.toArray();
+    expect(photos).toHaveLength(1);
+    expect(photos[0].id).toBe('photo-1');
   });
 
   // ── Error paths ───────────────────────────────────────────────
 
   it('save returns Err when DB throws', async () => {
     vi.spyOn(db.skin_observations, 'put').mockRejectedValueOnce(new Error('write fail'));
-    const result = await repo.save(makeObservation('2026-05-27'));
-    expect(result).toEqual({ ok: false, error: 'write fail' });
+    const result = await repo.save(makeObservation('2026-05-27'), []);
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('write fail');
   });
 
   it('listByDate returns Err when DB throws', async () => {

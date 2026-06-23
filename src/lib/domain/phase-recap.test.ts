@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { buildPhaseRecap } from './phase-recap';
-import type { SchedulePhase, SkinObservation } from '$lib/domain/models';
+import type { SchedulePhase, SkinObservation, RegionLevel } from '$lib/domain/models';
 
-function obs(date: string, status: SkinObservation['status'] = 'unchanged', overrides?: Partial<SkinObservation>): SkinObservation {
+function obs(date: string, level: RegionLevel = 0, overrides?: Partial<SkinObservation>): SkinObservation {
   return {
     id: `obs-${date}`,
     date,
     createdAt: `${date}T08:00:00.000Z`,
-    status,
+    regions: level === 0 ? [{ id: 'face', level: 0 }] : [{ id: 'face', level }],
     ...overrides,
   };
 }
@@ -32,27 +32,42 @@ describe('buildPhaseRecap', () => {
     expect(rows.map(r => r.dayNumber)).toEqual([1, 2, 3, 4]);
   });
 
-  it('joins each day with the skin observation status logged that day', () => {
-    const obs1 = obs('2026-05-20', 'unchanged');
-    const obs2 = obs('2026-05-22', 'worsened');
-    const rows = buildPhaseRecap(reintroPhase, [obs1, obs2]);
-    expect(rows.find(r => r.date === '2026-05-20')?.skinStatus).toBe('unchanged');
-    expect(rows.find(r => r.date === '2026-05-21')?.skinStatus).toBeUndefined();
-    expect(rows.find(r => r.date === '2026-05-22')?.skinStatus).toBe('worsened');
-    expect(rows.find(r => r.date === '2026-05-23')?.skinStatus).toBeUndefined();
+  it('joins each day with the day-overall severity derived from regions', () => {
+    const calm = obs('2026-05-20', 0);
+    const severe = obs('2026-05-22', 3);
+    const rows = buildPhaseRecap(reintroPhase, [calm, severe]);
+    expect(rows.find(r => r.date === '2026-05-20')?.severity).toBe(0);
+    expect(rows.find(r => r.date === '2026-05-21')?.severity).toBeUndefined();
+    expect(rows.find(r => r.date === '2026-05-22')?.severity).toBe(3);
+    expect(rows.find(r => r.date === '2026-05-23')?.severity).toBeUndefined();
+  });
+
+  it('severity is the max across regions for a day', () => {
+    const obsMixed: SkinObservation = {
+      id: 'obs-mixed',
+      date: '2026-05-20',
+      createdAt: '2026-05-20T08:00:00.000Z',
+      regions: [
+        { id: 'face', level: 1 },
+        { id: 'belly', level: 3 },
+        { id: 'arms', level: 2 },
+      ],
+    };
+    const rows = buildPhaseRecap(reintroPhase, [obsMixed]);
+    expect(rows.find(r => r.date === '2026-05-20')?.severity).toBe(3);
   });
 
   it('ignores observations outside the phase window', () => {
-    const before = obs('2026-05-19', 'improved');
-    const after = obs('2026-05-24', 'worsened');
+    const before = obs('2026-05-19', 1);
+    const after = obs('2026-05-24', 3);
     const rows = buildPhaseRecap(reintroPhase, [before, after]);
-    expect(rows.every(r => r.skinStatus === undefined)).toBe(true);
+    expect(rows.every(r => r.severity === undefined)).toBe(true);
   });
 
   it('uses the latest observation when a day has more than one', () => {
-    const earlier: SkinObservation = obs('2026-05-20', 'unchanged', { id: 'a', createdAt: '2026-05-20T08:00:00.000Z' });
-    const later: SkinObservation = obs('2026-05-20', 'worsened', { id: 'b', createdAt: '2026-05-20T18:00:00.000Z' });
+    const earlier: SkinObservation = obs('2026-05-20', 1, { id: 'a', createdAt: '2026-05-20T08:00:00.000Z' });
+    const later: SkinObservation = obs('2026-05-20', 3, { id: 'b', createdAt: '2026-05-20T18:00:00.000Z' });
     const rows = buildPhaseRecap(reintroPhase, [earlier, later]);
-    expect(rows.find(r => r.date === '2026-05-20')?.skinStatus).toBe('worsened');
+    expect(rows.find(r => r.date === '2026-05-20')?.severity).toBe(3);
   });
 });

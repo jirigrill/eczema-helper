@@ -2,7 +2,7 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Unified Program Page
   // ═══════════════════════════════════════════════════════════
-  import type { AllergenStatusValue, ProtocolAllergenId, SchedulePhase } from '$lib/domain/models';
+  import type { AllergenStatusValue, ProtocolAllergenId, SchedulePhase, SkinObservation } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
   import { getPhaseVerdictStatuses, filterProtocolStatuses } from '$lib/domain/allergen-status';
   import { getCategoryConfig } from '$lib/config/categories';
@@ -48,7 +48,7 @@
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const currentPhase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
   const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
-  import { getPermanentEliminations } from '$lib/domain/models';
+  import { getPermanentEliminations, overallSeverity } from '$lib/domain/models';
   const permanentSlugs = $derived(schedule ? getPermanentEliminations(schedule) : []);
   const protocolEliminated = $derived(eliminatedToday.filter(s => !permanentSlugs.includes(s)));
   const progress = $derived(ctx.status === 'ready' ? ctx.progress : null);
@@ -248,16 +248,16 @@
   }
 </script>
 
-{#snippet skinOutcomes(assessments: { status: string }[])}
-  {@const improved   = assessments.filter(a => a.status === 'improved').length}
-  {@const unchanged  = assessments.filter(a => a.status === 'unchanged').length}
-  {@const worsened   = assessments.filter(a => a.status === 'worsened').length}
-  {@const newLesions = assessments.filter(a => a.status === 'new-lesions').length}
+{#snippet skinOutcomes(observations: SkinObservation[])}
+  {@const calm     = observations.filter(o => overallSeverity(o) === 0).length}
+  {@const mild     = observations.filter(o => overallSeverity(o) === 1).length}
+  {@const medium   = observations.filter(o => overallSeverity(o) === 2).length}
+  {@const severe   = observations.filter(o => overallSeverity(o) === 3).length}
   <div class="flex flex-wrap gap-2 text-text-muted">
-    {#if improved > 0}<span class="text-success font-medium">✓ {improved}{commonStrings.program.skinImprovedSuffix}</span>{/if}
-    {#if unchanged > 0}<span>— {unchanged}{commonStrings.program.skinUnchangedSuffix}</span>{/if}
-    {#if worsened > 0}<span class="text-warning font-medium">! {worsened}{commonStrings.program.skinWorsenedSuffix}</span>{/if}
-    {#if newLesions > 0}<span class="text-danger font-medium">!! {newLesions}{commonStrings.program.skinNewLesionsSuffix}</span>{/if}
+    {#if calm > 0}<span class="text-success font-medium">✓ {calm}{commonStrings.program.skinCalmSuffix}</span>{/if}
+    {#if mild > 0}<span class="text-warning font-medium">— {mild}{commonStrings.program.skinMildSuffix}</span>{/if}
+    {#if medium > 0}<span class="text-warning font-medium">! {medium}{commonStrings.program.skinMediumSuffix}</span>{/if}
+    {#if severe > 0}<span class="text-danger font-medium">!! {severe}{commonStrings.program.skinSevereSuffix}</span>{/if}
   </div>
 {/snippet}
 
@@ -556,7 +556,7 @@
                     <p class="text-text-muted">{commonStrings.program.noSkinRecords}</p>
                   {:else}
                     {@render skinOutcomes(phaseAssessments)}
-                    {#if (phaseAssessments.filter((a: { status: string }) => a.status === 'worsened').length > 0 || phaseAssessments.filter((a: { status: string }) => a.status === 'new-lesions').length > 0) && phase.type === 'reintroduction'}
+                    {#if phaseAssessments.some((o: SkinObservation) => overallSeverity(o) >= 2) && phase.type === 'reintroduction'}
                       {@const phaseCat = getCategoryConfig(phase.allergenIds[0])}
                       <p class="text-text-muted mt-1">{commonStrings.program.possibleCausePrefix} {phaseCat?.icon} {phaseCat?.name ?? phase.allergenIds[0]}</p>
                     {/if}

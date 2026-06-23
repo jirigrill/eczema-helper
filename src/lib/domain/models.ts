@@ -121,13 +121,58 @@ export type Meal = {
   updatedAt?: string;
 };
 
+/**
+ * Body region the mother taps on the /skin grid. Canonical kebab-case slugs;
+ * Czech labels live in `$lib/strings/skin-regions` keyed by `RegionId`.
+ */
+export type RegionId =
+  | 'face'
+  | 'scalp'
+  | 'neck'
+  | 'belly'
+  | 'back'
+  | 'arms'
+  | 'elbow-folds'
+  | 'knee-folds'
+  | 'legs';
+
+export const REGION_IDS: readonly RegionId[] = [
+  'face',
+  'scalp',
+  'neck',
+  'belly',
+  'back',
+  'arms',
+  'elbow-folds',
+  'knee-folds',
+  'legs',
+] as const;
+
+/** Per-region severity. 0 = klidné (explicit default), 1 = mírné, 2 = střední, 3 = silné. */
+export type RegionLevel = 0 | 1 | 2 | 3;
+
+export type SkinRegionRecord = { id: RegionId; level: RegionLevel };
+
 export type SkinObservation = {
   id: string;
   date: string; // ISO date
   createdAt: string; // ISO datetime
-  status: 'improved' | 'unchanged' | 'worsened' | 'new-lesions';
+  /** Per-region severities. A region absent from the array is treated as klidné (0). */
+  regions: SkinRegionRecord[];
   notes?: string;
 };
+
+/**
+ * Day-overall severity = max(level over the observation's regions). Never
+ * persisted — derive at every read site. Returns 0 when no region is logged.
+ */
+export function overallSeverity(observation: SkinObservation): RegionLevel {
+  let max: RegionLevel = 0;
+  for (const r of observation.regions) {
+    if (r.level > max) max = r.level;
+  }
+  return max;
+}
 
 export type SkinPhoto = {
   id: string;

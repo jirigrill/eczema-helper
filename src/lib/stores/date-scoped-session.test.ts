@@ -32,7 +32,7 @@ async function waitForRows<T>(
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function makeObs(id: string, date: string): SkinObservation {
-	return { id, date, createdAt: new Date().toISOString(), status: 'unchanged' };
+	return { id, date, createdAt: new Date().toISOString(), regions: [{ id: 'face', level: 1 }] };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
