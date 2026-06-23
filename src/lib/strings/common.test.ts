@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dnyCs } from './common';
+import { dnyCs, oblastiCs } from './common';
 
 describe('dnyCs', () => {
   it('returns "1 den" for 1', () => {
@@ -20,5 +20,26 @@ describe('dnyCs', () => {
 
   it('returns dní form for 0', () => {
     expect(dnyCs(0)).toBe('0 dní');
+  });
+});
+
+describe('oblastiCs', () => {
+  it('returns "1 oblast" for 1', () => {
+    expect(oblastiCs(1)).toBe('1 oblast');
+  });
+
+  it('returns oblasti form for 2–4', () => {
+    expect(oblastiCs(2)).toBe('2 oblasti');
+    expect(oblastiCs(3)).toBe('3 oblasti');
+    expect(oblastiCs(4)).toBe('4 oblasti');
+  });
+
+  it('returns oblastí form for 5 and above (covers 5–9 region grid)', () => {
+    expect(oblastiCs(5)).toBe('5 oblastí');
+    expect(oblastiCs(9)).toBe('9 oblastí');
+  });
+
+  it('returns oblastí form for 0', () => {
+    expect(oblastiCs(0)).toBe('0 oblastí');
   });
 });

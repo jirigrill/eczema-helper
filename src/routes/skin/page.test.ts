@@ -1,150 +1,253 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import type { SkinObservation } from '$lib/domain/models';
 
-// ── Schedule raw mock ─────────────────────────────────────────
-const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
-
-vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
+// ── Skin observation session mock ─────────────────────────────
+const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+vi.mock('$lib/stores/skin-observation-session', () => ({
+  skinObservationSession: {
+    subscribe: () => () => {},
+    save: mockSave,
+  },
+  createSkinObservationSession: () => ({
+    subscribe: () => () => {},
+    save: mockSave,
+  }),
 }));
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
-
-// ── SkinObservationRepository mock ───────────────────────────
-const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
-vi.mock('$lib/adapters/dexie-skin-observation-repository', () => ({
-  DexieSkinObservationRepository: vi.fn().mockImplementation(function () {
-    return {
-      save: mockSave,
-      listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-    };
-  }),
-}));
-
-// ── SkinPhotoStore mock ──────────────────────────────────────
-const mockPhotoSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
-vi.mock('$lib/adapters/dexie-skin-photo-store', () => ({
-  DexieSkinPhotoStore: vi.fn().mockImplementation(function () {
-    return {
-      save: mockPhotoSave,
-      listByDate: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-    };
-  }),
-}));
-
-vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
 // ── Mutable page mock — lets tests control ?date= and ?returnTo= ──
 const mockPage = { url: new URL('http://localhost/skin') };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
-function makeFile(name = 'photo.jpg'): File {
-  return new File(['image-data'], name, { type: 'image/jpeg' });
-}
-
 const today = new Date().toISOString().split('T')[0];
-const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
 
-const sampleAnswers: QuestionnaireAnswers = {
-  babyBirthDate: '2025-01-01',
-  eczemaSeverity: 'moderate',
-  motherAllergies: [],
-  babyConfirmedAllergies: [],
-  programStartDate: today,
-  completedAt: new Date().toISOString(),
-  testedAllergens: ['dairy'],
-};
-
-const emptySchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: future,
-  phases: [{ id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future }],
-};
-
-function setReady() {
-  mockScheduleRaw.set({ status: 'ready', schedule: emptySchedule, answers: sampleAnswers });
-}
-
-/** Day 2 of a 4-day dairy reintroduction starting yesterday */
-function setReadyWithReintro() {
-  const d1 = new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0];
-  const d4 = new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0];
-  const reintroSchedule: GeneratedSchedule = {
-    permanentMother: [], permanentBaby: [],
-    startDate: d1,
-    estimatedEndDate: future,
-    phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: d1, endDate: d4 }],
-  };
-  mockScheduleRaw.set({ status: 'ready', schedule: reintroSchedule, answers: sampleAnswers });
-}
-
-beforeEach(() => {
-  mockScheduleRaw.set({ status: 'loading' });
+beforeEach(async () => {
   mockSave.mockClear();
-  mockPhotoSave.mockClear();
+  mockSave.mockResolvedValue({ ok: true, data: undefined });
+  const { goto } = await import('$app/navigation');
+  vi.mocked(goto).mockClear();
   mockPage.url = new URL('http://localhost/skin');
 });
 
-describe('skin/+page.svelte', () => {
-  // ── Issue spec: Tier 1 tests ──────────────────────────────
+async function loadPage() {
+  const { default: SkinPage } = await import('./+page.svelte');
+  return SkinPage;
+}
 
-  it('tapping "Uložit" with a status selected calls SkinObservationRepository.save', async () => {
-    setReady();
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByText } = render(SkinPage);
+describe('skin/+page.svelte — region grid', () => {
+  it('renders nine region tiles with their Czech labels', async () => {
+    const SkinPage = await loadPage();
+    const { getByText, container } = render(SkinPage);
     await tick();
 
-    // Select a status
-    await fireEvent.click(getByText('Zlepšení'));
+    expect(container.querySelectorAll('[data-region]')).toHaveLength(9);
+
+    for (const label of ['Tváře', 'Vlasová část', 'Krk', 'Břicho', 'Záda', 'Paže', 'Loketní jamky', 'Podkolení', 'Nohy']) {
+      expect(getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it('every region starts at klidné (level 0) by default', async () => {
+    const SkinPage = await loadPage();
+    const { container } = render(SkinPage);
     await tick();
 
-    // Click Uložit
-    await fireEvent.click(getByText('Uložit hodnocení'));
+    const tiles = container.querySelectorAll<HTMLElement>('[data-region]');
+    for (const tile of tiles) {
+      expect(tile.dataset.level).toBe('0');
+    }
+  });
+
+  it('tapping an inactive region only activates it (level stays 0)', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    expect(face.dataset.active).toBe('false');
+    expect(face.dataset.level).toBe('0');
+
+    await fireEvent.click(face);
+    await tick();
+
+    expect(face.dataset.active).toBe('true');
+    expect(face.dataset.level).toBe('0');
+  });
+
+  it('tapping the active region cycles 0→1→2→3→0', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate
+    await tick();
+    expect(face.dataset.level).toBe('0');
+
+    await fireEvent.click(face); // 0 → 1
+    await tick();
+    expect(face.dataset.level).toBe('1');
+
+    await fireEvent.click(face); // 1 → 2
+    await tick();
+    expect(face.dataset.level).toBe('2');
+
+    await fireEvent.click(face); // 2 → 3
+    await tick();
+    expect(face.dataset.level).toBe('3');
+
+    await fireEvent.click(face); // 3 → 0
+    await tick();
+    expect(face.dataset.level).toBe('0');
+  });
+
+  it('tapping a different region transfers activation, leaves the previous one logged', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    const arms = getByTestId('skin-region-arms');
+
+    // Activate face and bring it to mírné (level 1).
+    await fireEvent.click(face);
+    await fireEvent.click(face);
+    await tick();
+    expect(face.dataset.level).toBe('1');
+    expect(face.dataset.active).toBe('true');
+
+    // Switching to arms keeps face's level recorded but transfers active marker.
+    await fireEvent.click(arms);
+    await tick();
+    expect(arms.dataset.active).toBe('true');
+    expect(face.dataset.active).toBe('false');
+    expect(face.dataset.level).toBe('1');
+  });
+
+  it('Uložit is disabled when no region has level > 0', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+  });
+
+  it('Uložit becomes enabled once any region is logged', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate
+    await fireEvent.click(face); // 0→1
+    await tick();
+
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+  });
+
+  it('Uložit triggers save with regions array and an empty photos array', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate
+    await fireEvent.click(face); // 0→1
+    await tick();
+    const save = getByTestId('skin-save');
+    await fireEvent.click(save);
     await tick();
 
     expect(mockSave).toHaveBeenCalledOnce();
-    const saved = mockSave.mock.calls[0][0];
-    expect(saved.status).toBe('improved');
-    expect(saved.date).toBe(today);
+    const [observation, photos] = mockSave.mock.calls[0];
+    expect(photos).toEqual([]);
+    const obs = observation as SkinObservation;
+    expect(obs.regions).toEqual([{ id: 'face', level: 1 }]);
+    expect(obs.date).toBe(today);
   });
 
-  it('"Uložit" is disabled without a status selected', async () => {
-    setReady();
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { queryByText } = render(SkinPage);
+  it('persists multiple regions in the saved observation', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    // The save button only appears after selecting a status in EczemaCheck
-    expect(queryByText('Uložit hodnocení')).not.toBeInTheDocument();
+    // face = mírné (1), arms = silné (3)
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate
+    await fireEvent.click(face); // 1
+    await tick();
+    const arms = getByTestId('skin-region-arms');
+    await fireEvent.click(arms); // activate (face level stays 1)
+    await fireEvent.click(arms); // 1
+    await fireEvent.click(arms); // 2
+    await fireEvent.click(arms); // 3
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    const [obs] = mockSave.mock.calls[0];
+    const o = obs as SkinObservation;
+    expect(o.regions).toContainEqual({ id: 'face', level: 1 });
+    expect(o.regions).toContainEqual({ id: 'arms', level: 3 });
   });
 
-  it('reintro context pill renders when reintroductionAllergenId is set', async () => {
-    setReadyWithReintro();
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByText } = render(SkinPage);
+  it('persists the optional note', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    // EczemaCheck renders the allergen watch pill with this text pattern
-    expect(getByText(/Sledujte reakci na/)).toBeInTheDocument();
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
+    await tick();
+
+    const note = getByTestId('skin-note') as HTMLTextAreaElement;
+    await fireEvent.input(note, { target: { value: 'svědí' } });
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    const [obs] = mockSave.mock.calls[0];
+    const o = obs as SkinObservation;
+    expect(o.notes).toBe('svědí');
+  });
+
+  it('omits notes when textarea is blank', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
+    await tick();
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    const [obs] = mockSave.mock.calls[0];
+    expect((obs as SkinObservation).notes).toBeUndefined();
   });
 
   // ── Navigation: returnTo ──────────────────────────────────
 
-  it('after save, goto is called with /day/<today> when no returnTo param and no date param', async () => {
-    setReady();
+  it('after save, goto is called with /day/<today> when no returnTo or date param', async () => {
+    const SkinPage = await loadPage();
     const { goto } = await import('$app/navigation');
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByText } = render(SkinPage);
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    await fireEvent.click(getByText('Zlepšení'));
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
     await tick();
-    await fireEvent.click(getByText('Uložit hodnocení'));
+    await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
     expect(goto).toHaveBeenCalledWith(`/day/${today}`);
@@ -152,15 +255,16 @@ describe('skin/+page.svelte', () => {
 
   it('returnTo defaults to /day/<date> when ?date= is set but ?returnTo= is absent', async () => {
     mockPage.url = new URL('http://localhost/skin?date=2025-01-10');
-    setReady();
+    const SkinPage = await loadPage();
     const { goto } = await import('$app/navigation');
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByText } = render(SkinPage);
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    await fireEvent.click(getByText('Zlepšení'));
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
     await tick();
-    await fireEvent.click(getByText('Uložit hodnocení'));
+    await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
     expect(goto).toHaveBeenCalledWith('/day/2025-01-10');
@@ -168,71 +272,91 @@ describe('skin/+page.svelte', () => {
 
   it('after save, goto is called with custom returnTo when param is present', async () => {
     mockPage.url = new URL('http://localhost/skin?returnTo=/program');
-    setReady();
+    const SkinPage = await loadPage();
     const { goto } = await import('$app/navigation');
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByText } = render(SkinPage);
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    await fireEvent.click(getByText('Zlepšení'));
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
     await tick();
-    await fireEvent.click(getByText('Uložit hodnocení'));
+    await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
     expect(goto).toHaveBeenCalledWith('/program');
   });
 
-  // ── ?date= param defaults to today ───────────────────────
+  // ── Failure + double-submit guards ────────────────────────
 
-  it('saved observation uses today when no ?date= param', async () => {
-    setReady();
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByText } = render(SkinPage);
+  it('does not navigate when save returns { ok: false } and surfaces an error toast', async () => {
+    mockSave.mockResolvedValueOnce({ ok: false, error: 'boom' });
+    const SkinPage = await loadPage();
+    const { goto } = await import('$app/navigation');
+    const { getByTestId, findByText } = render(SkinPage);
     await tick();
 
-    await fireEvent.click(getByText('Zlepšení'));
-    await tick();
-    await fireEvent.click(getByText('Uložit hodnocení'));
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face); // activate
+    await fireEvent.click(face); // 0→1
     await tick();
 
-    const saved = mockSave.mock.calls[0][0];
-    expect(saved.date).toBe(today);
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(goto).not.toHaveBeenCalled();
+    // Toast renders the strings-layer error message.
+    expect(await findByText('Uložení se nezdařilo. Zkus to znovu.')).toBeInTheDocument();
+
+    // Save button is re-enabled so the user can retry.
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
   });
 
-  // ── Photo capture (Slice 3c) ──────────────────────────────
-
-  it('capturing a file calls SkinPhotoStore.save with a non-null Blob', async () => {
-    setReady();
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByLabelText } = render(SkinPage);
+  it('double-clicking Uložit only triggers one save call', async () => {
+    // Use a never-resolving promise so `saving` stays true between clicks.
+    let resolve: ((value: { ok: true; data: undefined }) => void) | undefined;
+    mockSave.mockImplementationOnce(
+      () => new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    const input = getByLabelText('Přidat fotku') as HTMLInputElement;
-    const file = makeFile();
-    await fireEvent.change(input, { target: { files: [file] } });
+    const face = getByTestId('skin-region-face');
+    await fireEvent.click(face);
+    await fireEvent.click(face);
     await tick();
 
-    expect(mockPhotoSave).toHaveBeenCalledOnce();
-    const saved = mockPhotoSave.mock.calls[0][0];
-    expect(saved.blob).not.toBeNull();
-    expect(saved.blob).toBeInstanceOf(Blob);
+    const save = getByTestId('skin-save');
+    await fireEvent.click(save);
+    await fireEvent.click(save);
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    resolve?.({ ok: true, data: undefined });
   });
 
-  it('two captures in one session both persist', async () => {
-    setReady();
-    const { default: SkinPage } = await import('./+page.svelte');
-    const { getByLabelText } = render(SkinPage);
+  // ── A11y ──────────────────────────────────────────────────
+
+  it('aria-pressed reflects active state on each tile', async () => {
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
     await tick();
 
-    const input = getByLabelText('Přidat fotku') as HTMLInputElement;
+    const face = getByTestId('skin-region-face');
+    expect(face.getAttribute('aria-pressed')).toBe('false');
 
-    await fireEvent.change(input, { target: { files: [makeFile('a.jpg')] } });
+    await fireEvent.click(face);
     await tick();
-    await fireEvent.change(input, { target: { files: [makeFile('b.jpg')] } });
-    await tick();
+    expect(face.getAttribute('aria-pressed')).toBe('true');
 
-    expect(mockPhotoSave).toHaveBeenCalledTimes(2);
-    expect(mockPhotoSave.mock.calls[0][0].blob).toBeInstanceOf(Blob);
-    expect(mockPhotoSave.mock.calls[1][0].blob).toBeInstanceOf(Blob);
+    const arms = getByTestId('skin-region-arms');
+    await fireEvent.click(arms);
+    await tick();
+    expect(face.getAttribute('aria-pressed')).toBe('false');
+    expect(arms.getAttribute('aria-pressed')).toBe('true');
   });
 });
