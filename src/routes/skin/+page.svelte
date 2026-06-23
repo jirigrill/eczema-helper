@@ -64,21 +64,17 @@
     if (result.ok) goto(returnTo);
   }
 
-  function tileBorderStyle(id: RegionId): string {
-    if (active === id) return 'border-color:#8B4557';
-    const lvl = levels[id];
-    if (lvl > 0) return `border-color:${severityConfig[lvl].hex}80`;
-    return 'border-color:#EDE8E9';
+  function tileBorderClass(id: RegionId): string {
+    if (active === id) return 'border-primary';
+    return severityConfig[levels[id]].tileBorder;
   }
 
-  function tileBackgroundStyle(id: RegionId): string {
-    const lvl = levels[id];
-    return lvl > 0 ? `background:${severityConfig[lvl].hex}22` : 'background:#fff';
+  function tileBackgroundClass(id: RegionId): string {
+    return severityConfig[levels[id]].tileBg;
   }
 
-  function tileDotColor(id: RegionId): string {
-    const lvl = levels[id];
-    return lvl > 0 ? severityConfig[lvl].hex : '#EDE8E9';
+  function tileDotClass(id: RegionId): string {
+    return severityConfig[levels[id]].dot;
   }
 
   function saveButtonLabel(count: number): string {
@@ -110,12 +106,10 @@
             data-level={lvl}
             aria-pressed={isActive}
             onclick={() => tapRegion(id)}
-            class="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 p-1 transition-all {isActive ? 'border-[3px]' : 'border-2'}"
-            style="{tileBorderStyle(id)};{tileBackgroundStyle(id)}"
+            class="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 p-1 transition-all {isActive ? 'border-[3px]' : 'border-2'} {tileBorderClass(id)} {tileBackgroundClass(id)}"
           >
             <span
-              class="w-4 h-4 rounded-full"
-              style="background:{tileDotColor(id)}"
+              class="w-4 h-4 rounded-full {tileDotClass(id)}"
             ></span>
             <span class="text-[11px] font-medium text-text text-center leading-tight">{regionStrings[id].label}</span>
             <span class="text-[9px] text-text-muted">{severityStrings[lvl].label}</span>
