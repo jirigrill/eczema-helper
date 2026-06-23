@@ -15,10 +15,10 @@
   // Stub summary (issue #361): show the day's worst severity dot + label.
   // The full per-region drill-in lives in a later slice.
   const dayLevel: RegionLevel = $derived(
-    observations.reduce<RegionLevel>(
-      (max, o) => (overallSeverity(o) > max ? overallSeverity(o) : max),
-      0,
-    ),
+    observations.reduce<RegionLevel>((max, o) => {
+      const level = overallSeverity(o);
+      return level > max ? level : max;
+    }, 0),
   );
 
   const countSnippet = $derived(

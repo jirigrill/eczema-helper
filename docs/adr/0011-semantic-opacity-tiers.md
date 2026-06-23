@@ -2,6 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-05-24  
+**Amended:** 2026-06-23 — `EczemaCheck.svelte` was deleted in #367 / [ADR-0021](0021-regional-severity-skin-observation.md). The `bg-success/20` exemption it carried no longer applies to any live file; the `[data-state]` banner-scale rule it illustrated is unchanged.  
 **Closes:** #80
 
 ## Context
@@ -13,7 +14,7 @@ The `[data-state]` CSS block in `app.css` standardises **banner-strength** tints
 | **Subtle tint** | `/5` | Severity-choice cards (not-selected), training-band background (`program/+page.svelte:437`), non-selected meal item (`meal/+page.svelte:239`), `card-empty-cta` background, `task-tile-done` surface |
 | **Icon/selection background** | `/15` | Phase step-number circles (`phase-display.ts:7–10`), meal-type avatars, selected chips (`AllergenDrillIn.svelte`), insight tag pills (per DESIGN.md §Insight Cards) |
 
-Note: `EczemaCheck.svelte:104` uses `bg-success/20` for the saved-button state — this is slightly above the `/15` icon tier; it is canonically `/20` (part of the `[data-state]` banner scale) and should not be migrated.
+Note: ~~`EczemaCheck.svelte:104` uses `bg-success/20` for the saved-button state — this is slightly above the `/15` icon tier; it is canonically `/20` (part of the `[data-state]` banner scale) and should not be migrated.~~ *(File deleted in #367 / ADR-0021. Rule retained: `bg-*/20` belongs to the `[data-state]` banner scale, not the `/15` icon tier — apply the same exemption to any future analogous sites.)*
 
 ## Decision
 
@@ -43,4 +44,4 @@ Border opacity follows a 3× formula relative to background opacity (rounded to 
 
 - `DESIGN.md §Color Usage Rules` is updated to name and define these tiers.
 - A follow-up AFK migration issue (#82 or equivalent) will audit every `/5` and `/15` site against this definition and fix any outliers.
-- `EczemaCheck.svelte:104` (`bg-success/20`) is confirmed correct and excluded from migration.
+- ~~`EczemaCheck.svelte:104` (`bg-success/20`) is confirmed correct and excluded from migration.~~ *(File deleted in #367 / ADR-0021; the rule itself stands — see Note above.)*

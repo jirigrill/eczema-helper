@@ -172,7 +172,7 @@
     return daysBetween(phase.startDate, today);
   }
 
-  import type { ReintroductionEvaluation } from '$lib/domain/models';
+  import type { ReintroductionEvaluation, AllergenOutcome, SkinEvaluationOutcome } from '$lib/domain/models';
 
   function evalLabel(ev: ReintroductionEvaluation): string {
     if (ev.phaseType === 'skin-status') {
@@ -181,11 +181,26 @@
     return commonStrings.program.reintroOutcomes[ev.outcome] ?? ev.outcome;
   }
 
+  // Outcome → tailwind text-color, split by vocabulary. Lookup objects keep
+  // each vocabulary readable in isolation; an exhaustive `Record<...>` would
+  // force every key on every change to the union (and there are two unions).
+  const skinOutcomeColor: Record<SkinEvaluationOutcome, string> = {
+    improved: 'text-success',
+    unchanged: 'text-text-muted',
+    worsened: 'text-warning',
+    'new-lesions': 'text-danger',
+  };
+  const allergenOutcomeColor: Record<AllergenOutcome, string> = {
+    tolerated: 'text-success',
+    'mild-reaction': 'text-warning',
+    'clear-reaction': 'text-danger',
+    'severe-reaction': 'text-danger',
+  };
+
   function evalColor(ev: ReintroductionEvaluation): string {
-    if (ev.phaseType === 'skin-status') {
-      return ev.outcome === 'improved' ? 'text-success' : ev.outcome === 'unchanged' ? 'text-text-muted' : ev.outcome === 'worsened' ? 'text-warning' : 'text-danger';
-    }
-    return ev.outcome === 'tolerated' ? 'text-success' : ev.outcome === 'mild-reaction' ? 'text-warning' : 'text-danger';
+    return ev.phaseType === 'skin-status'
+      ? skinOutcomeColor[ev.outcome as SkinEvaluationOutcome]
+      : allergenOutcomeColor[ev.outcome as AllergenOutcome];
   }
 
   function nodeColor(phaseEval: ReintroductionEvaluation | undefined): string {
