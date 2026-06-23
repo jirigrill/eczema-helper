@@ -43,7 +43,7 @@ export const actionStrings = {
   startQuestionnaire: 'Spustit dotazník →',
   showDayOverview:    'Zobrazit přehled dne →',
 
-  /** EczemaCheck / assessment flow */
+  /** EczemaCheck / assessment flow (deprecated; deleted with EczemaCheck in #361 follow-up) */
   saveAssessment:     'Uložit hodnocení',
   savedAssessment:    '✓ Uloženo',
   addPhoto:           'Přidat fotku',

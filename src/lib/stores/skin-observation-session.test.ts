@@ -36,7 +36,7 @@ function makeObservation(overrides: Partial<SkinObservation> = {}): SkinObservat
     id: `obs-${today}`,
     date: today,
     createdAt: new Date().toISOString(),
-    status: 'unchanged',
+    regions: [{ id: 'face', level: 1 }],
     ...overrides,
   };
 }
@@ -59,14 +59,20 @@ describe('skinObservationSession (default export — today singleton)', () => {
 
   it('save returns ok:true for a valid observation', async () => {
     const { skinObservationSession } = await import('./skin-observation-session');
+    const result = await skinObservationSession.save(makeObservation(), []);
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it('save defaults photos arg to [] when omitted', async () => {
+    const { skinObservationSession } = await import('./skin-observation-session');
     const result = await skinObservationSession.save(makeObservation());
     expect(result).toMatchObject({ ok: true });
   });
 
   it('after save, subscribe emits an array containing the saved observation', async () => {
     const { skinObservationSession } = await import('./skin-observation-session');
-    const obs = makeObservation({ id: `obs-${today}-improved`, status: 'improved' });
-    await skinObservationSession.save(obs);
+    const obs = makeObservation({ id: `obs-${today}-mild`, regions: [{ id: 'arms', level: 2 }] });
+    await skinObservationSession.save(obs, []);
     const rows = await waitForObservations(
       skinObservationSession,
       (rs) => rs.some((r) => r.id === obs.id),
@@ -77,7 +83,7 @@ describe('skinObservationSession (default export — today singleton)', () => {
   it('observations for other dates are excluded from the subscription', async () => {
     const { skinObservationSession } = await import('./skin-observation-session');
     const pastObs = makeObservation({ id: 'obs-past', date: '2000-01-01' });
-    await skinObservationSession.save(pastObs);
+    await skinObservationSession.save(pastObs, []);
     const rows = await waitForObservations(skinObservationSession, () => true);
     expect(rows.some((r) => r.id === 'obs-past')).toBe(false);
   });
@@ -104,9 +110,9 @@ describe('createSkinObservationSession (factory)', () => {
       id: `obs-factory-${date}`,
       date,
       createdAt: new Date().toISOString(),
-      status: 'worsened',
+      regions: [{ id: 'belly', level: 3 }],
     };
-    await session.save(obs);
+    await session.save(obs, []);
     const rows = await waitForObservations(session, (rs) => rs.some((r) => r.id === obs.id));
     expect(rows.some((r) => r.id === obs.id)).toBe(true);
   });
@@ -120,9 +126,9 @@ describe('createSkinObservationSession (factory)', () => {
       id: `obs-factory-${dateA}`,
       date: dateA,
       createdAt: new Date().toISOString(),
-      status: 'improved',
+      regions: [{ id: 'face', level: 1 }],
     };
-    await sessionA.save(obs);
+    await sessionA.save(obs, []);
     const sessionB = createSkinObservationSession(dateB);
     await new Promise((r) => setTimeout(r, 100));
     const rowsB = get(sessionB);

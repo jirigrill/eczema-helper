@@ -498,7 +498,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
         id: 'o1',
         date: today,
         createdAt: `${today}T08:00:00.000Z`,
-        status: 'unchanged',
+        regions: [{ id: 'face', level: 1 }],
       },
     ];
     livePhotos = [

@@ -116,7 +116,9 @@ test('FAB skin action opens skin observation page', async ({ page }) => {
   await completeOnboarding(page);
   await openFabSheet(page);
   await page.getByTestId('fab-action-skin').click();
-  await expect(page.getByText('Záznam stavu kůže')).toBeVisible();
+  // PageHeader title is "Stav kůže" (commonStrings.skin.heading); changed
+  // from "Záznam stavu kůže" in #361 to match the prototype.
+  await expect(page.getByRole('heading', { name: 'Stav kůže' })).toBeVisible();
 });
 
 test('FAB cancel closes the sheet and stays on current page', async ({ page }) => {
