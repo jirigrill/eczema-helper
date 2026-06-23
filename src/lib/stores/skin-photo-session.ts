@@ -1,20 +1,11 @@
-import { db } from '$lib/db/atopic-db';
-import { DexieSkinPhotoStore } from '$lib/adapters/dexie-skin-photo-store';
-import { todayIso } from '$lib/utils/date';
-import { createDateScopedSession } from '$lib/stores/date-scoped-session';
+import { readable, type Readable } from 'svelte/store';
 import type { SkinPhoto } from '$lib/domain/models';
-import type { Result } from '$lib/types/result';
 
-const store = new DexieSkinPhotoStore(db);
-
-export function createSkinPhotoSession(date: string) {
-	const photos = createDateScopedSession(db.photos, date);
-
-	async function save(photo: SkinPhoto): Promise<Result<void, string>> {
-		return store.save(photo);
-	}
-
-	return { subscribe: photos.subscribe, save };
+// Photos are now written atomically via DexieSkinObservationRepository.save.
+// A standalone photo save path no longer exists. The day view's photo panel
+// will show zero until the final slice re-wires it via listByObservationId.
+export function createSkinPhotoSession(_date: string): Readable<SkinPhoto[]> {
+	return readable<SkinPhoto[]>([]);
 }
 
-export const skinPhotoSession = createSkinPhotoSession(todayIso());
+export const skinPhotoSession: Readable<SkinPhoto[]> = createSkinPhotoSession('');

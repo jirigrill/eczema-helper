@@ -11,7 +11,8 @@ global.URL.revokeObjectURL = vi.fn();
 function makePhoto(overrides?: Partial<SkinPhoto>): SkinPhoto {
   return {
     id: 'photo-1',
-    date: '2026-05-31',
+    observationId: 'obs-1',
+    region: 'face',
     capturedAt: '2026-05-31T08:00:00.000Z',
     blob: new Blob(['img'], { type: 'image/jpeg' }),
     ...overrides,

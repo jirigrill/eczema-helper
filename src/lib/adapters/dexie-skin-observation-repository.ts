@@ -1,4 +1,5 @@
-import type { SkinObservation, SkinPhoto } from '$lib/domain/models';
+import { randomUUID } from '$lib/utils/uuid';
+import type { SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
 import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
 import type { Result } from '$lib/types/result';
 import type { AtopicDb } from '$lib/db/atopic-db';
@@ -8,11 +9,18 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
 
   async save(
     observation: SkinObservation,
-    photos: SkinPhoto[],
+    inputs: SkinPhotoInput[],
   ): Promise<Result<void, string>> {
     try {
-      // Single transaction so the observation and any captured photos either
-      // both land or neither does — the save seam shaped for slice 2.
+      const now = new Date().toISOString();
+      const photos: SkinPhoto[] = inputs.map((input) => ({
+        id: randomUUID(),
+        observationId: observation.id,
+        region: input.region,
+        capturedAt: now,
+        blob: input.blob,
+      }));
+
       await this.db.transaction(
         'rw',
         this.db.skin_observations,

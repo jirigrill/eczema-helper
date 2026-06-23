@@ -504,7 +504,8 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     livePhotos = [
       {
         id: 'p1',
-        date: today,
+        observationId: 'obs-1',
+        region: 'face' as const,
         capturedAt: `${today}T08:00:00.000Z`,
         blob: new Blob(),
       },

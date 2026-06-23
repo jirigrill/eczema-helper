@@ -6,18 +6,9 @@ import type { AtopicDb } from '$lib/db/atopic-db';
 export class DexieSkinPhotoStore implements SkinPhotoStore {
   constructor(private readonly db: AtopicDb) {}
 
-  async save(photo: SkinPhoto): Promise<Result<void, string>> {
+  async listByObservationId(observationId: string): Promise<Result<SkinPhoto[], string>> {
     try {
-      await this.db.photos.put(photo);
-      return { ok: true, data: undefined };
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) };
-    }
-  }
-
-  async listByDate(date: string): Promise<Result<SkinPhoto[], string>> {
-    try {
-      const rows = await this.db.photos.where('date').equals(date).toArray();
+      const rows = await this.db.photos.where('observationId').equals(observationId).toArray();
       return { ok: true, data: rows };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };

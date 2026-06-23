@@ -139,7 +139,8 @@ describe('dailyCompleteness', () => {
 
 	const photo: SkinPhoto = {
 		id: 'p1',
-		date: today,
+		observationId: 'obs-1',
+		region: 'face',
 		capturedAt: `${today}T08:00:00.000Z`,
 		blob: new Blob(),
 	};

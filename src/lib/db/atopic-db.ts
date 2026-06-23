@@ -82,6 +82,22 @@ export class AtopicDb extends Dexie {
       .upgrade(async (tx) => {
         await tx.table('skin_observations').clear();
       });
+    // v8: SkinPhoto drops `date`, gains `observationId` (FK) and `region`.
+    // Index changes from `&id, date` to `&id, observationId`. Photos table wiped
+    // on upgrade — pre-launch policy, same as v7 for skin_observations.
+    this.version(8)
+      .stores({
+        answers: '&id',
+        schedule: '&id',
+        meals: '&id, date',
+        skin_observations: '&id, date',
+        photos: '&id, observationId',
+        harvest_candidates: '&normalizedKey, status',
+        evaluations: '&phaseId, date',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('photos').clear();
+      });
   }
 }
 
