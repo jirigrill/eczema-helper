@@ -281,6 +281,8 @@ export const commonStrings = {
     saveAriaLabel:     'Uložit stav kůže',
     /** Toast shown when persistence fails. */
     saveError:         'Uložení se nezdařilo. Zkus to znovu.',
+    /** Prefix for the contextual photo-add button; region label is appended. */
+    addPhotoPrefix:    'Přidat fotku · ',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────
