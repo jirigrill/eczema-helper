@@ -24,7 +24,6 @@ export const commonStrings = {
   fabSheet: {
     heading:        'Co chceš přidat?',
     addMeal:        'Přidat jídlo',
-    addPhoto:       'Přidat fotku',
     addSkin:        'Zaznamenat stav kůže',
     cancel:         'Zrušit',
     /** Heading shown on the second-level meal-type submenu. */

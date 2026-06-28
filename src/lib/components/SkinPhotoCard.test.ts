@@ -48,6 +48,30 @@ describe('SkinPhotoCard', () => {
     expect(container.querySelector('.grid-cols-3')).toBeInTheDocument();
   });
 
+  // Region label appears beneath each thumb — matches the gallery layout
+  // shown on /skin so a user sees the same wording in both places (issue #371).
+  it('renders the Czech region label beneath each thumb', async () => {
+    const { getByText } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ id: 'p-face', region: 'face' })] },
+    });
+    await tick();
+    expect(getByText('Tváře')).toBeInTheDocument();
+  });
+
+  it('renders distinct region labels for photos with different regions', async () => {
+    const { getByText } = render(SkinPhotoCard, {
+      props: {
+        photos: [
+          makePhoto({ id: 'p-arms', region: 'arms' }),
+          makePhoto({ id: 'p-belly', region: 'belly' }),
+        ],
+      },
+    });
+    await tick();
+    expect(getByText('Paže')).toBeInTheDocument();
+    expect(getByText('Břicho')).toBeInTheDocument();
+  });
+
   // Guards against the frozen-snippet bug class: the `right` count must track
   // the photos prop reactively, not freeze at its first-render value.
   it('photo count in the header updates when the photos prop changes', async () => {
