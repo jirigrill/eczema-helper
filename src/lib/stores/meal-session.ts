@@ -1,7 +1,7 @@
 import { db } from '$lib/db/atopic-db';
+import { createDateScopedSession } from '$lib/adapters/date-scoped-session';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { todayIso } from '$lib/utils/date';
-import { createDateScopedSession } from '$lib/stores/date-scoped-session';
 import type { Meal, MealType } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 
