@@ -94,12 +94,12 @@ test('FAB not visible on onboarding route', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Přidat záznam' })).not.toBeVisible();
 });
 
-test('FAB opens action sheet with three actions', async ({ page }) => {
+test('FAB opens action sheet with two actions; photo row is absent (issue #371)', async ({ page }) => {
   await completeOnboarding(page);
   await openFabSheet(page);
   await expect(page.getByTestId('fab-action-meal')).toBeVisible();
   await expect(page.getByTestId('fab-action-skin')).toBeVisible();
-  await expect(page.getByTestId('fab-action-photo')).toBeVisible();
+  await expect(page.getByTestId('fab-action-photo')).toHaveCount(0);
 });
 
 test('FAB meal action opens the meal-type submenu, then a row navigates to /meal', async ({ page }) => {
@@ -138,20 +138,6 @@ test('FAB backdrop click closes the sheet and stays on current page', async ({ p
   await openFabSheet(page);
   await page.mouse.click(10, 10);
   await expect(page.getByText('Co chceš přidat?')).not.toBeVisible();
-  await expect(page).toHaveURL(`/day/${today}`);
-});
-
-test('FAB photo action opens file chooser without navigating away', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
-  await expect(page).toHaveURL(`/day/${today}`);
-
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await openFabSheet(page);
-  await page.getByTestId('fab-action-photo').click();
-  const fileChooser = await fileChooserPromise;
-  expect(fileChooser).toBeTruthy();
-  // URL must not change — no navigation to /photo or /skin
   await expect(page).toHaveURL(`/day/${today}`);
 });
 

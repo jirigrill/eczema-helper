@@ -94,10 +94,16 @@ regions cannot be saved.
 
 ### SkinPhoto
 A timestamped photo of the baby's skin, stored as a `Blob` in the
-`photos` table (plaintext per ADR-0005). Independent from
-`SkinObservation` — a photo does not require an accompanying observation
-and vice versa. Multiple `SkinPhoto` records may exist for the same
-calendar day. Linked to a day by `date` only; no FK to `SkinObservation`.
+`photos` table (plaintext per ADR-0005). Every photo belongs to one
+`SkinObservation` via a required `observationId` FK and carries the
+`region: RegionId` it documents. Photos have no `date` field of their
+own — the day they were captured is the date of the parent observation.
+Writes go through `SkinObservationRepository.save(observation, photos)`,
+which inserts observation + photos atomically; there is no standalone
+photo write path. Day-scoped reads join `skin_observations` (by date)
+with `photos` (by `observationId`). Multiple `SkinPhoto` records may
+exist for the same observation (one per captured frame) and for the
+same calendar day (across multiple observations).
 
 ### ReintroductionEvaluation
 The verdict recorded at the end of a phase, keyed by `phaseId` (one

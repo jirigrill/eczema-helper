@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import FoodIcon from '$lib/components/icons/FoodIcon.svelte';
-  import CameraIcon from '$lib/components/icons/CameraIcon.svelte';
   import PersonIcon from '$lib/components/icons/PersonIcon.svelte';
   import { commonStrings } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
@@ -10,7 +9,6 @@
   type Props = {
     date: string;
     onclose: () => void;
-    oncapturephoto?: (blob: Blob) => void;
     /** Meal types already logged for `date`; renders a ✓ in the submenu. */
     loggedTypes?: MealType[];
     /**
@@ -30,13 +28,11 @@
   let {
     date,
     onclose,
-    oncapturephoto,
     loggedTypes = [],
     showEvaluate = false,
     evaluatePhaseId = '',
   }: Props = $props();
 
-  let photoInput: HTMLInputElement | undefined = $state();
   /** When true, the bottom-sheet shows the four meal-type rows instead of the
    *  top-level action list. (Meal-Type FAB Submenu, ADR-0018.) */
   let mealSubmenuOpen = $state(false);
@@ -56,14 +52,6 @@
   function navigateToEvaluation() {
     goto(`/evaluation?phase=${encodeURIComponent(evaluatePhaseId)}&date=${date}&returnTo=/day/${date}`);
     onclose();
-  }
-
-  function handleFileChange(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    oncapturephoto?.(file);
-    onclose();
-    (e.target as HTMLInputElement).value = '';
   }
 </script>
 
@@ -139,28 +127,6 @@
       </span>
       <span class="flex-1 text-[15px] text-text-muted text-left">
         {commonStrings.fabSheet.addMeal}
-      </span>
-      <span class="text-text-muted text-sm">›</span>
-    </button>
-
-    <input
-      bind:this={photoInput}
-      type="file"
-      accept="image/*"
-      capture="environment"
-      class="sr-only"
-      onchange={handleFileChange}
-    />
-    <button
-      data-testid="fab-action-photo"
-      class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
-      onclick={() => photoInput?.click()}
-    >
-      <span class="w-10 h-10 rounded-full bg-text-muted/8 flex items-center justify-center shrink-0 text-text-muted">
-        <CameraIcon class="w-[22px] h-[22px]" />
-      </span>
-      <span class="flex-1 text-[15px] text-text-muted text-left">
-        {commonStrings.fabSheet.addPhoto}
       </span>
       <span class="text-text-muted text-sm">›</span>
     </button>

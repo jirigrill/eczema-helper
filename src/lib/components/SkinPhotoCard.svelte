@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createRawSnippet } from 'svelte';
   import { commonStrings, snimkyCs } from '$lib/strings/common';
+  import { regionStrings } from '$lib/strings/skin-regions';
   import type { SkinPhoto } from '$lib/domain/models';
   import DayCard from './DayCard.svelte';
 
@@ -31,11 +32,16 @@
   {:else}
     <div class="grid grid-cols-3 gap-2">
       {#each photos as photo, i (photo.id)}
-        <img
-          src={objectUrls[i]}
-          alt="Snímek kůže"
-          class="w-full aspect-square object-cover rounded-xl"
-        />
+        <div class="flex flex-col items-center gap-1">
+          <img
+            src={objectUrls[i]}
+            alt="Snímek kůže"
+            class="w-full aspect-square object-cover rounded-xl"
+          />
+          <span class="text-[10px] text-text-muted text-center leading-tight">
+            {regionStrings[photo.region].label}
+          </span>
+        </div>
       {/each}
     </div>
   {/if}

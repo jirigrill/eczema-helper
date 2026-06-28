@@ -316,12 +316,13 @@ boundary rule). A `todayIso()`-bound instance remains the default for today-only
 ### skinPhotoSession
 
 The store module (`src/lib/stores/skin-photo-session.ts`) that is the **sole seam** for
-reading and writing today's `SkinPhoto` records. Shaped like `mealSession`: a
-`readable<SkinPhoto[]>` backed by `liveQuery` over today's rows, plus a `save` method
-delegating to `DexieSkinPhotoStore`. It is the only place that imports `db` and
-constructs the adapter for skin photos. Routes subscribe to `$skinPhotoSession` for
-reactive reads and call `skinPhotoSession.save()` for writes; they do not instantiate
-adapters directly.
+reading a day's `SkinPhoto` records on `/day`. Shaped as a `readable<SkinPhoto[]>` backed
+by a `liveQuery` that joins `skin_observations` (where date matches) with `photos`
+(where `observationId` is one of the day's observation ids). Read-only — writes go
+through `SkinObservationRepository.save(observation, photos)`, which inserts observation
+plus photos atomically. Routes subscribe to `$skinPhotoSession` (or to the factory
+`createSkinPhotoSession(date)` for a non-today date) for reactive reads; they do not
+instantiate adapters or query Dexie directly.
 
 ### EczemaSeverity
 *Czech: Závažnost ekzému*
@@ -509,14 +510,17 @@ have been a hidden delete path. (Formerly "Empty-Hotovo Guard"; renamed with the
 ### SkinObservation
 → Defined in `CONTEXT.md`. The parent's observation of the baby's skin on a calendar
 day: `id`, `date`, `createdAt`, `regions: SkinRegionRecord[]`, optional `notes`.
-Multiple `SkinObservation` records may exist for the same day. No FK to `SkinPhoto`,
-but `SkinObservationRepository.save(observation, photos)` writes both atomically.
+Multiple `SkinObservation` records may exist for the same day. `SkinPhoto` records FK
+*to* `SkinObservation` via `observationId`; `SkinObservationRepository.save(observation,
+photos)` writes the observation and its photos atomically.
 
 ### SkinPhoto
-→ Defined in `CONTEXT.md`. A photo of the baby's skin captured on a calendar day:
-`id`, `date`, `capturedAt`, `blob` (Blob stored in IndexedDB). Independent of
-`SkinObservation` — a photo does not require an accompanying observation and vice
-versa. Multiple `SkinPhoto` records may exist for the same day.
+→ Defined in `CONTEXT.md`. A photo of the baby's skin captured during a skin
+observation: `id`, `observationId` (required FK to `SkinObservation`), `region: RegionId`,
+`capturedAt`, `blob` (Blob stored in IndexedDB). Photos have no `date` field of their own
+— the day is the date of the parent observation. Writes go through
+`SkinObservationRepository.save(observation, photos)`, which inserts observation + photos
+atomically; there is no standalone photo write path.
 
 ### Region / RegionId
 *Czech: Oblast*

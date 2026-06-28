@@ -58,3 +58,19 @@ review (after real usage signal).
   developer-only build.
 - We *do not* claim "E2E encrypted photos" in any user-facing copy or
   marketing surface until (b) ships.
+
+## Update — issue #371 (2026-06-28)
+
+The `SkinPhoto` shape ships in v1 as `{ id, observationId, region,
+capturedAt, blob }`. `observationId` is a required FK to a
+`SkinObservation`; there is no standalone photo-write path, and the
+"Přidat fotku" row on the FAB action sheet has been removed. Photos are
+written atomically with their observation by
+`SkinObservationRepository.save(observation, photos)`. The `date` field
+the original shape carried is gone — day-scoped reads join
+`skin_observations` (by date) with `photos` (by `observationId`).
+
+This change does not affect the encryption posture above: payload bytes
+are still plaintext `Blob` references in IndexedDB. When option (b)
+ships, encryption wraps the `blob` field with no impact on the FK or
+`region` scalars.

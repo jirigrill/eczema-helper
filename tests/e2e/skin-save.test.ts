@@ -394,3 +394,51 @@ test('Uložit saves observation and staged photos atomically; photos have correc
   expect(result.photoRegion).toBe('arms');
   expect(result.photoObsId).toBe(result.obsId);
 });
+
+// ── Day card joins photos via observationId (issue #371) ───────────────────
+
+test('saved photos appear on /day/<today> Foto kůže card with region labels and correct count', async ({ page }) => {
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+
+  // Stage two arms photos, then cycle arms to mírné and save.
+  await tapRegion(page, 'arms'); // activate → 'Paže'
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+    { name: 'b.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('b') },
+  ]);
+  await tapRegion(page, 'arms'); // 0→1 so Uložit is unambiguously enabled
+
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  // The Foto kůže card lists both photos with the region label beneath.
+  await expect(page.getByText('Foto kůže')).toBeVisible();
+  // Count suffix from snimkyCs(2) is "2 snímky" (Czech grammar).
+  await expect(page.getByText('2 snímky')).toBeVisible();
+  // Region label appears under each thumb — at least two 'Paže' labels visible.
+  const labels = page.locator('text=Paže');
+  await expect(labels).toHaveCount(2);
+});
+
+test('day card photo panel survives reload via live Dexie query (join through observationId)', async ({ page }) => {
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+  await tapRegion(page, 'belly');
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'belly.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('belly') },
+  ]);
+  await tapRegion(page, 'belly'); // 0→1
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  await page.reload();
+  // Foto kůže card still shows the photo + the Břicho label after reload.
+  await expect(page.getByText('Foto kůže')).toBeVisible();
+  await expect(page.getByText('1 snímek')).toBeVisible();
+  await expect(page.getByText('Břicho')).toBeVisible();
+});

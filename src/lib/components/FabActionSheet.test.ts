@@ -14,13 +14,20 @@ describe('FabActionSheet', () => {
     gotoMock.mockReset();
   });
 
-  it('renders three action buttons', () => {
-    const { getByTestId } = render(FabActionSheet, {
+  it('renders two action buttons (meal + skin); photo row is gone (issue #371)', () => {
+    const { getByTestId, queryByTestId } = render(FabActionSheet, {
       props: { date, onclose: vi.fn() },
     });
     expect(getByTestId('fab-action-meal')).toBeInTheDocument();
     expect(getByTestId('fab-action-skin')).toBeInTheDocument();
-    expect(getByTestId('fab-action-photo')).toBeInTheDocument();
+    expect(queryByTestId('fab-action-photo')).not.toBeInTheDocument();
+  });
+
+  it('renders no <input type="file"> (the orphan-photo capture path is removed)', () => {
+    const { container } = render(FabActionSheet, {
+      props: { date, onclose: vi.fn() },
+    });
+    expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 
   it('tapping "Přidat jídlo" opens the meal-type submenu (does NOT navigate immediately)', async () => {
@@ -102,25 +109,6 @@ describe('FabActionSheet', () => {
     expect(gotoMock).toHaveBeenCalledWith(
       `/skin?date=${date}&returnTo=/day/${date}`,
     );
-  });
-
-  it('photo button triggers file input; oncapturephoto called with selected file; onclose called', async () => {
-    const onCapture = vi.fn();
-    const onclose = vi.fn();
-    const { container } = render(FabActionSheet, {
-      props: { date, onclose, oncapturephoto: onCapture },
-    });
-    await tick();
-
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
-    await fireEvent.change(fileInput, { target: { files: [file] } });
-    await tick();
-
-    expect(onCapture).toHaveBeenCalledOnce();
-    expect(onCapture.mock.calls[0][0]).toBeInstanceOf(File);
-    expect(onclose).toHaveBeenCalledOnce();
-    expect(gotoMock).not.toHaveBeenCalled();
   });
 
   it('skin action calls onclose after navigating', async () => {

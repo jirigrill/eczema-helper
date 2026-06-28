@@ -55,10 +55,6 @@
 
   let fabOpen = $state(false);
 
-  // Photo capture is now handled atomically inside the skin observation flow.
-  // This FAB path is a no-op until the final slice re-wires it.
-  async function handleFabPhotoCapture(_blob: Blob): Promise<void> {}
-
   function handleDiscardUndo(): void {
     const buf = $discardBuffer;
     if (!buf) return;
@@ -172,6 +168,5 @@
     {showEvaluate}
     {evaluatePhaseId}
     onclose={() => (fabOpen = false)}
-    oncapturephoto={handleFabPhotoCapture}
   />
 {/if}
