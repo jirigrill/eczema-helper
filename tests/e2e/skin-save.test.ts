@@ -442,3 +442,47 @@ test('day card photo panel survives reload via live Dexie query (join through ob
   await expect(page.getByText('1 snímek')).toBeVisible();
   await expect(page.getByText('Břicho')).toBeVisible();
 });
+
+// ── Lightbox open/close (issue #362 AC5) ──────────────────────────────────
+
+test('tapping a staged thumb opens the lightbox; × button closes it', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await tapRegion(page, 'face');
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+  ]);
+  await expect(page.getByTestId('skin-photo-thumb-0')).toBeVisible();
+  await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
+
+  await page.getByTestId('skin-photo-thumb-0').click();
+  await expect(page.getByTestId('skin-photo-lightbox')).toBeVisible();
+
+  await page.getByTestId('skin-lightbox-close').click();
+  await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
+});
+
+test('tapping the lightbox backdrop dismisses it', async ({ page }) => {
+  await completeOnboarding(page);
+  await page.goto('/skin');
+  await tapRegion(page, 'face');
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+  ]);
+
+  await page.getByTestId('skin-photo-thumb-0').click();
+  const lightbox = page.getByTestId('skin-photo-lightbox');
+  await expect(lightbox).toBeVisible();
+
+  // Backdrop closes only when e.target === e.currentTarget — click the
+  // top-left corner of the dialog, outside the centered image.
+  const box = await lightbox.boundingBox();
+  if (!box) throw new Error('lightbox has no bounding box');
+  await page.mouse.click(box.x + 5, box.y + 5);
+
+  await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
+});
