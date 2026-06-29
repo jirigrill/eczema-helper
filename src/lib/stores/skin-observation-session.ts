@@ -1,7 +1,7 @@
 import { db } from '$lib/db/atopic-db';
 import { DexieSkinObservationRepository } from '$lib/adapters/dexie-skin-observation-repository';
 import { todayIso } from '$lib/utils/date';
-import { createDateScopedSession } from '$lib/stores/date-scoped-session';
+import { createDateScopedSession } from '$lib/adapters/date-scoped-session';
 import type { SkinObservation, SkinPhotoInput } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 
