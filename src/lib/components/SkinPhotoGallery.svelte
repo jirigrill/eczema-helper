@@ -36,31 +36,35 @@
 </script>
 
 {#if photos.length > 0}
+  <!--
+    Visual treatment matches issue #380: thumbs sit in a 3-col grid with
+    a black-overlay region label pinned to the bottom of each thumb
+    (replaces the older caption-under-thumb approach). No photo count
+    label — that lives on the per-day card, not the staging gallery.
+  -->
   <div data-testid="skin-photo-gallery" class="grid grid-cols-3 gap-2">
     {#each photos as photo, i (i)}
-      <div class="flex flex-col items-center gap-1">
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div
-          role="button"
-          tabindex="0"
-          data-testid="skin-photo-thumb-{i}"
-          class="relative w-full aspect-square cursor-pointer"
-          onclick={() => openLightbox(i)}
-        >
-          <img
-            src={objectUrls[i]}
-            alt="Snímek kůže"
-            class="w-full h-full object-cover rounded-xl"
-          />
-          <button
-            type="button"
-            data-testid="skin-photo-delete-{i}"
-            class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center leading-none"
-            aria-label="Smazat snímek"
-            onclick={(e) => { e.stopPropagation(); onDelete(i); }}
-          >×</button>
-        </div>
-        <span class="text-[10px] text-text-muted text-center leading-tight">
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div
+        role="button"
+        tabindex="0"
+        data-testid="skin-photo-thumb-{i}"
+        class="relative aspect-square cursor-pointer"
+        onclick={() => openLightbox(i)}
+      >
+        <img
+          src={objectUrls[i]}
+          alt="Snímek kůže"
+          class="w-full h-full object-cover rounded-xl"
+        />
+        <button
+          type="button"
+          data-testid="skin-photo-delete-{i}"
+          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center leading-none"
+          aria-label="Smazat snímek"
+          onclick={(e) => { e.stopPropagation(); onDelete(i); }}
+        >×</button>
+        <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">
           {regionStrings[photo.region].label}
         </span>
       </div>

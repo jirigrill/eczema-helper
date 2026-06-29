@@ -270,14 +270,28 @@ export const commonStrings = {
     eyebrow:           'Kde a jak moc',
     /** Caption next to the eyebrow telling the mother the tap rule. */
     tapHint:           'ťukni = vyber · znovu = míra',
-    /** Caption shown below the grid before any region is active. */
-    helperEmpty:       'Ťukni na oblast, kde je ekzém.',
-    /** Optional per-observation note placeholder. */
-    notePlaceholder:   'Poznámka (nepovinné)',
-    /** Save CTA when nothing is logged yet. */
-    saveDisabled:      'Uložit stav',
-    /** Aria label for the save action; suffix is appended at render time. */
-    saveAriaLabel:     'Uložit stav kůže',
+    /**
+     * Optional per-observation note placeholder. Mirrors `/meal`'s editorial
+     * pattern: `(volitelné, např. <concrete example>)` — the example teaches
+     * the kind of observation worth keeping (a time-bound symptom that the
+     * mother might not think to log on her own).
+     */
+    notePlaceholder:   'Poznámka (volitelné, např. svědí v noci)',
+    /**
+     * Save CTA label. Constant — does not change based on the number of
+     * logged regions. The previous count-based label
+     * (`Uložit stav · 1 oblast`) accidentally surfaced an implementation
+     * detail: klidné (level 0) regions are excluded from the persisted
+     * observation, so the count differed from the user's mental model
+     * ("all nine regions were checked, not just one"). Using the domain
+     * term `pozorování` reframes the action as "save what I observed"
+     * rather than "save N specific areas", which sidesteps the leak. See
+     * issue #379 for whether klidné should be persisted as positive
+     * evidence.
+     */
+    saveLabel:         'Uložit pozorování',
+    /** Aria label for the save action. */
+    saveAriaLabel:     'Uložit pozorování kůže',
     /** Toast shown when persistence fails. */
     saveError:         'Uložení se nezdařilo. Zkus to znovu.',
     /** Prefix for the contextual photo-add button; region label is appended. */
@@ -354,13 +368,6 @@ export function zaznamyCs(n: number): string {
   if (n === 1) return '1 záznam';
   if (n >= 2 && n <= 4) return `${n} záznamy`;
   return `${n} záznamů`;
-}
-
-/** Czech pluralisation: body region count — "1 oblast", "2 oblasti", "5 oblastí" */
-export function oblastiCs(n: number): string {
-  if (n === 1) return '1 oblast';
-  if (n >= 2 && n <= 4) return `${n} oblasti`;
-  return `${n} oblastí`;
 }
 
 /** Czech pluralisation: photo count — "1 snímek", "2 snímky", "5 snímků" */
