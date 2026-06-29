@@ -51,15 +51,7 @@ function makePhoto(id: string, observationId: string, region: SkinPhoto['region'
 	};
 }
 
-// ── Shape (kept after the join — the day view still consumes a Readable<SkinPhoto[]>) ──
-
-describe('skinPhotoSession (module-level default export)', () => {
-	it('exports subscribe', async () => {
-		const mod = await import('./skin-photo-session');
-		expect(mod.skinPhotoSession).toBeDefined();
-		expect(typeof mod.skinPhotoSession.subscribe).toBe('function');
-	});
-});
+// ── Shape (the day view consumes a Readable<SkinPhoto[]> via the factory) ────
 
 describe('createSkinPhotoSession (factory)', () => {
 	it('exports createSkinPhotoSession function', async () => {

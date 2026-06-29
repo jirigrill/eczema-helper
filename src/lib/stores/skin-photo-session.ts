@@ -33,5 +33,3 @@ export function createSkinPhotoSession(date: string): Readable<SkinPhoto[]> {
 		return () => subscription.unsubscribe();
 	});
 }
-
-export const skinPhotoSession: Readable<SkinPhoto[]> = createSkinPhotoSession('');
