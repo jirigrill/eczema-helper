@@ -17,6 +17,7 @@
   import { formatDateLongCs } from '$lib/utils/date';
   import { skinObservationSession } from '$lib/stores/skin-observation-session';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import SkinPhotoGallery from '$lib/components/SkinPhotoGallery.svelte';
   import Toast from '$lib/components/Toast.svelte';
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
@@ -94,17 +95,6 @@
   function handleBack(): void {
     goto(returnTo);
   }
-
-  // Object URLs for thumbnail rendering. Re-created whenever the staged
-  // list mutates; revoked on cleanup to release blob references.
-  let objectUrls = $state<string[]>([]);
-  $effect(() => {
-    const urls = stagedPhotos.map((p) => URL.createObjectURL(p.blob));
-    objectUrls = urls;
-    return () => {
-      for (const url of urls) URL.revokeObjectURL(url);
-    };
-  });
 </script>
 
 <div class="page-container pb-28">
@@ -195,26 +185,8 @@
       {/if}
 
       {#if stagedPhotos.length > 0}
-        <div data-testid="skin-photo-gallery" class="grid grid-cols-3 gap-2 mt-3">
-          {#each stagedPhotos as photo, i (i)}
-            <div data-testid="skin-photo-thumb-{i}" class="relative aspect-square">
-              <img
-                src={objectUrls[i]}
-                alt="Snímek kůže"
-                class="w-full h-full object-cover rounded-xl"
-              />
-              <button
-                type="button"
-                data-testid="skin-photo-delete-{i}"
-                class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center leading-none"
-                aria-label="Smazat snímek"
-                onclick={() => deletePhoto(i)}
-              >×</button>
-              <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">
-                {regionStrings[photo.region].label}
-              </span>
-            </div>
-          {/each}
+        <div class="mt-3">
+          <SkinPhotoGallery photos={stagedPhotos} onDelete={deletePhoto} />
         </div>
       {/if}
     </section>
