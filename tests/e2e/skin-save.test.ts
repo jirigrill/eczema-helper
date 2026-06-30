@@ -202,8 +202,10 @@ test('skin save: no-tap Uložit persists 9 klidné regions and day card shows kl
   await page.getByTestId('skin-save').click();
   await expect(page).toHaveURL(`/day/${today}`);
 
-  // Day-view distinction: at least one row renders with the "Klidné" label.
-  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Klidné' })).toHaveCount(1);
+  // Day-view distinction: at least one row renders with the klidné chip
+  // ("Vše klidné"), which only appears when an observation has zero
+  // bumped regions — i.e. a klidné witness was saved.
+  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Vše klidné' })).toHaveCount(1);
   // Empty-state copy must NOT appear — an observation exists.
   await expect(page.getByText('Zatím není záznam pro dnešek')).toHaveCount(0);
 
@@ -257,14 +259,14 @@ test('skin abandon: back chevron without Uložit persists nothing', async ({ pag
   expect(count).toBe(0);
 });
 
-// ── Day stub reads derived overall severity ─────────────────────────────
+// ── Day card joins the saved observation via Dexie live query ───────────
 
-test('skin save: the day card reflects the saved observation\'s overall severity', async ({ page }) => {
+test('skin save: the day card renders one chip per bumped region of the saved observation', async ({ page }) => {
   const today = localToday();
   await completeOnboarding(page);
   await page.goto('/skin');
 
-  // face mírné, belly silné — derived overall = silné
+  // face mírné, belly silné — two bumped regions, two chips on the row.
   await tapRegion(page, 'face');
   await tapRegion(page, 'face'); // 1
   await tapRegion(page, 'belly'); // activate
@@ -275,7 +277,11 @@ test('skin save: the day card reflects the saved observation\'s overall severity
   await page.getByTestId('skin-save').click();
   await expect(page).toHaveURL(`/day/${today}`);
 
-  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Silné' })).toHaveCount(1);
+  // Both chip texts are present on the saved observation row.
+  const row = page.getByTestId('skin-observation-row');
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('Tváře');
+  await expect(row).toContainText('Břicho');
 });
 
 // ── Reload (live Dexie query) ───────────────────────────────────────────
@@ -290,7 +296,8 @@ test('skin save: observation survives reload via live Dexie query', async ({ pag
   await expect(page).toHaveURL(`/day/${today}`);
 
   await page.reload();
-  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Mírné' })).toHaveCount(1);
+  // Reloaded row carries the Tváře chip.
+  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Tváře' })).toHaveCount(1);
 });
 
 // ── returnTo navigation ─────────────────────────────────────────────────

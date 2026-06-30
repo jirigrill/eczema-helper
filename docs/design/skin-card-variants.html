@@ -94,59 +94,47 @@
   <div class="canvas-eyebrow">Atopic Helper · Návrh karty</div>
   <div class="canvas-heading">Stav ekzému — kde žije závažnost?</div>
   <div class="canvas-sub">
-    Karta <em>Stav ekzému</em> na <code>/day</code> v podobě časové linie pozorování. Vlevo je neutrální čas (kdy záznam vznikl), vpravo klinický obsah (závažnost, oblasti, případná poznámka). Tři podvariantní podoby závažnosti: <strong>α2 dot before label</strong> · <strong>α3 label-color</strong> · <strong>α4 left border</strong>. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable, poznámka má vlastní řádek, klidné záznamy bez bumpu jsou jednořádkové. Každá varianta v 3 stavech: <strong>prázdno</strong> · <strong>1 záznam (mírné)</strong> · <strong>3 záznamy (klidné, střední s poznámkou, mírné)</strong>.
+    Karta <em>Stav ekzému</em> na <code>/day</code> v podobě časové linie pozorování. Vlevo neutrální čas (kdy záznam vznikl), vpravo klinický obsah po regionech. Doménový kontrakt po proběhlém prototypování: severita je <strong>per-region</strong> (ADR-0021), takže řádek <strong>nenese celkový label</strong> — každá oblast je vlastní chip vybarvený podle vlastní závažnosti. Klidné záznamy (ADR-0022) mají vlastní neutrální chip <em>„Vše klidné"</em>, aby zůstaly ve stejném vizuálním jazyce jako řádky s bumpovanými oblastmi. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable, poznámka má vlastní řádek.
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
-     SECTION — STAV EKZÉMU CARD · varianty s neutrálním časem
-     Time is neutral metadata on the left; severity gets its own
-     visual home explored across three sub-variants:
-       α2 — colored dot before the severity label
-       α3 — the severity label itself rendered in severity color
-       α4 — a left-edge severity-colored accent border on the row
+     SECTION — STAV EKZÉMU CARD · per-region chips
+     Final converged shape after the α/β prototype exploration:
+       * No row-overall severity label — chips ARE the severity
+         claim, one per region with level > 0.
+       * Klidné observation = single neutral "Vše klidné" chip
+         (level-0 token), so it matches the chip language and
+         doesn't visually drop back into the old dot+label idiom.
+       * Notes (when present) live in an italic third line below
+         the chip cluster.
      ════════════════════════════════════════════════════════════════ -->
 <div class="canvas">
-  <div class="section-eyebrow">Karta · varianty</div>
-  <div class="section-heading">Neutrální čas vlevo — kde žije závažnost?</div>
+  <div class="section-eyebrow">Karta · finální tvar</div>
+  <div class="section-heading">Per-region chipy bez celkového labelu</div>
   <div class="section-desc">
-    Čas je teď čistá temporální informace v tlumené barvě vlevo; závažnost potřebuje vlastní vizuální místo. Tři podvariantní podoby: <strong>α2</strong> — barevná tečka před labelem, <strong>α3</strong> — label sám v barvě závažnosti, <strong>α4</strong> — barevný pruh vlevo na řádku. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable. Každá varianta ve 3 stavech: <strong>prázdno</strong>, <strong>1 záznam (mírné)</strong>, <strong>3 záznamy (klidné, střední, mírné — záznam střední má poznámku)</strong>.
+    Jedno pozorování může nést více oblastí s různou závažností (např. <code>tváře = silné, břicho = mírné, paže = klidné</code>). Předchozí prototyp ukazoval celkový label <em>worst-of-row</em> (<code>● Silné</code>) a pod ním seznam oblastí, což čtenář přečte jako <em>„silné platí pro obě oblasti"</em> — doménový leak (ADR-0021 dělá závažnost regionální, ne řádkovou). Finální tvar tedy <strong>celkový label vypouští úplně</strong>: každá oblast je vlastní chip vybarvený podle vlastní závažnosti. Klidný záznam (žádná oblast > 0) se nevrací do dot + label idiomu — má svůj vlastní chip <em>„Vše klidné"</em> v neutrálním tónu (<code>severityConfig[0].dot</code>), aby vizuální jazyk řádku zůstal jednotný. Tři stavy: <strong>1 záznam smíšený</strong> (tváře silné, břicho mírné) · <strong>3 záznamy (smíšený den)</strong> · <strong>1 záznam jednolitý</strong> (obě silné).
   </div>
 
   <!-- ╔══════════════════════════════════════════════════════════╗
-       ║ α2 — Severity dot before the label                       ║
-       ║ Time: neutral muted text on the left.                    ║
-       ║ Severity: small colored dot before the Czech label.      ║
+       ║ Final β4 — Chips ARE the row's voice                     ║
+       ║ Drop the row-overall severity label entirely. Each       ║
+       ║ region with level > 0 appears as a chip tinted by its    ║
+       ║ own severity (15% alpha per severityConfig.tileBg).      ║
+       ║ Klidné observation renders a single "Vše klidné" chip    ║
+       ║ in the neutral level-0 tone so the row stays in the      ║
+       ║ same visual language as bumped rows.                     ║
        ╚══════════════════════════════════════════════════════════╝ -->
   <div style="margin-top: 8px;">
-    <div class="section-eyebrow" style="margin-bottom: 4px;">α2 · dot before label</div>
-    <div class="section-heading">Tečka před labelem</div>
-    <div class="section-desc">Závažnost se vrací jako malá barevná tečka před českým labelem (<code>● Mírné</code>). Známý vzorec ze stávající karty; nyní oprávněný, protože levá zóna je neutrální a žádná jiná barva s tečkou nesoupeří.</div>
+    <div class="section-eyebrow" style="margin-bottom: 4px;">chosen · per-region chips</div>
+    <div class="section-heading">Stav ekzému card — finální shape</div>
+    <div class="section-desc">Čtyři stavy řádku: <strong>vícenásobné regiony</strong> (chipy podle své závažnosti), <strong>jeden region</strong> (jediný chip), <strong>klidné</strong> (chip <em>„Vše klidné"</em> v neutrálním tónu), a <strong>smíšený den</strong> (tři pozorování pod sebou). Poznámka, pokud existuje, sedí v třetím řádku italikou pod chipy.</div>
 
     <div class="phone-row">
 
-      <!-- empty -->
+      <!-- 1 obs · mixed -->
       <div class="phone-wrap">
-        <div class="phase-label">▸ 0 záznamů</div>
-        <div class="phone"><div class="phone-screen">
-          <div class="island"></div>
-          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
-          <div class="screen-content" style="padding: 16px;">
-            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
-              </div>
-              <a href="#" class="text-[12px] text-text-muted hover:text-primary block py-1">
-                Zatím není záznam pro dnešek — <span class="text-primary font-medium">zaznamenat stav kůže</span>.
-              </a>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <!-- 1 observation, mírné -->
-      <div class="phone-wrap">
-        <div class="phase-label">▸ 1 záznam · mírné</div>
+        <div class="phase-label">▸ 1 záznam · smíšený</div>
         <div class="phone"><div class="phone-screen">
           <div class="island"></div>
           <div class="status-bar"><span class="time">10:24</span><span class="icons">●●● ◐</span></div>
@@ -156,14 +144,13 @@
                 <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
               </div>
               <div class="divide-y divide-surface-dark">
-                <div class="py-2 flex items-start gap-3">
+                <div class="py-2 flex items-center gap-3">
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #C9A227;"></span>
-                      <span class="text-sm font-semibold text-text">Mírné</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.15); color:#3D2B2F">Tváře</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,162,39,0.15); color:#3D2B2F">Břicho</span>
                     </div>
-                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
                   </div>
                 </div>
               </div>
@@ -172,9 +159,9 @@
         </div></div>
       </div>
 
-      <!-- 3 observations -->
+      <!-- 3 obs · mixed day (klidné · střední with note · mírné) -->
       <div class="phone-wrap">
-        <div class="phase-label">▸ 3 záznamy · smíšené</div>
+        <div class="phase-label">▸ 3 záznamy · den</div>
         <div class="phone"><div class="phone-screen">
           <div class="island"></div>
           <div class="status-bar"><span class="time">19:45</span><span class="icons">●●● ◐</span></div>
@@ -184,37 +171,33 @@
                 <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
               </div>
               <div class="divide-y divide-surface-dark">
-                <!-- klidné, single line -->
+                <!-- klidné: single neutral chip "Vše klidné" -->
                 <div class="py-2 flex items-center gap-3">
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #EDE8E9;"></span>
-                      <span class="text-sm font-semibold text-text">Klidné</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:#EDE8E9; color:#3D2B2F">Vše klidné</span>
                     </div>
                   </div>
                 </div>
-                <!-- střední with note -->
+                <!-- střední row: chips (elbow-folds=střední, neck=mírné) + italic note -->
                 <div class="py-2 flex items-start gap-3">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">14:30</div>
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted mt-1">14:30</div>
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #C97027;"></span>
-                      <span class="text-sm font-semibold text-text">Střední</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,112,39,0.15); color:#3D2B2F">Loketní jamky</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,162,39,0.15); color:#3D2B2F">Krk</span>
                     </div>
-                    <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
-                    <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
+                    <div class="text-[11px] text-text-muted/80 italic truncate mt-1">„po obědě"</div>
                   </div>
                 </div>
-                <!-- mírné -->
-                <div class="py-2 flex items-start gap-3">
+                <!-- mírné row: single chip (face=mírné) -->
+                <div class="py-2 flex items-center gap-3">
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">19:45</div>
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #C9A227;"></span>
-                      <span class="text-sm font-semibold text-text">Mírné</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,162,39,0.15); color:#3D2B2F">Tváře</span>
                     </div>
-                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
                   </div>
                 </div>
               </div>
@@ -223,42 +206,9 @@
         </div></div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- ╔══════════════════════════════════════════════════════════╗
-       ║ α3 — Severity label rendered in severity color           ║
-       ║ Time: neutral muted. Severity: only the word, in color.  ║
-       ╚══════════════════════════════════════════════════════════╝ -->
-  <div style="margin-top: 28px;">
-    <div class="section-eyebrow" style="margin-bottom: 4px;">α3 · label-color</div>
-    <div class="section-heading">Label v barvě závažnosti</div>
-    <div class="section-desc">Závažnost = barva samotného slova. Bez tečky, bez chipu, bez pruhu — jen typografická vlastnost. Nejmenší ink na řádku, ale klade nároky na čitelnost (oranžová na bílé pozadí má slabší kontrast).</div>
-
-    <div class="phone-row">
-
-      <!-- empty -->
+      <!-- 1 obs · uniform silné (face & belly both silné) -->
       <div class="phone-wrap">
-        <div class="phase-label">▸ 0 záznamů</div>
-        <div class="phone"><div class="phone-screen">
-          <div class="island"></div>
-          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
-          <div class="screen-content" style="padding: 16px;">
-            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
-              </div>
-              <a href="#" class="text-[12px] text-text-muted hover:text-primary block py-1">
-                Zatím není záznam pro dnešek — <span class="text-primary font-medium">zaznamenat stav kůže</span>.
-              </a>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <!-- 1 observation -->
-      <div class="phone-wrap">
-        <div class="phase-label">▸ 1 záznam · mírné</div>
+        <div class="phase-label">▸ 1 záznam · jednolité (silné)</div>
         <div class="phone"><div class="phone-screen">
           <div class="island"></div>
           <div class="status-bar"><span class="time">10:24</span><span class="icons">●●● ◐</span></div>
@@ -268,11 +218,13 @@
                 <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
               </div>
               <div class="divide-y divide-surface-dark">
-                <div class="py-2 flex items-start gap-3">
+                <div class="py-2 flex items-center gap-3">
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold" style="color: #C9A227;">Mírné</div>
-                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.15); color:#3D2B2F">Tváře</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.15); color:#3D2B2F">Břicho</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -281,12 +233,12 @@
         </div></div>
       </div>
 
-      <!-- 3 observations -->
+      <!-- 1 obs · klidné only (no bumped regions — neutral "Vše klidné" chip) -->
       <div class="phone-wrap">
-        <div class="phase-label">▸ 3 záznamy · smíšené</div>
+        <div class="phase-label">▸ 1 záznam · klidné</div>
         <div class="phone"><div class="phone-screen">
           <div class="island"></div>
-          <div class="status-bar"><span class="time">19:45</span><span class="icons">●●● ◐</span></div>
+          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
           <div class="screen-content" style="padding: 16px;">
             <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
               <div class="flex items-center justify-between mb-2">
@@ -296,119 +248,9 @@
                 <div class="py-2 flex items-center gap-3">
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-text-muted">Klidné</div>
-                  </div>
-                </div>
-                <div class="py-2 flex items-start gap-3">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">14:30</div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold" style="color: #C97027;">Střední</div>
-                    <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
-                    <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
-                  </div>
-                </div>
-                <div class="py-2 flex items-start gap-3">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">19:45</div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold" style="color: #C9A227;">Mírné</div>
-                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ╔══════════════════════════════════════════════════════════╗
-       ║ α4 — Severity as left-edge accent border on the row      ║
-       ║ Time + label both neutral. Severity = 3px colored bar.   ║
-       ╚══════════════════════════════════════════════════════════╝ -->
-  <div style="margin-top: 28px;">
-    <div class="section-eyebrow" style="margin-bottom: 4px;">α4 · left border</div>
-    <div class="section-heading">Pruh vlevo — řádek jako událost na časové ose</div>
-    <div class="section-desc">Závažnost je 3px barevný pruh u levého okraje řádku. Čas i label zůstávají neutrální, žádná barva nesoutěží s textem. Vizuálně silně říká „toto je událost v čase" — řádky tečou jako stream. Cena: pruh přidá horizontální posun, který se musí kompenzovat odsazením.</div>
-
-    <div class="phone-row">
-
-      <!-- empty -->
-      <div class="phone-wrap">
-        <div class="phase-label">▸ 0 záznamů</div>
-        <div class="phone"><div class="phone-screen">
-          <div class="island"></div>
-          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
-          <div class="screen-content" style="padding: 16px;">
-            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
-              </div>
-              <a href="#" class="text-[12px] text-text-muted hover:text-primary block py-1">
-                Zatím není záznam pro dnešek — <span class="text-primary font-medium">zaznamenat stav kůže</span>.
-              </a>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <!-- 1 observation -->
-      <div class="phone-wrap">
-        <div class="phase-label">▸ 1 záznam · mírné</div>
-        <div class="phone"><div class="phone-screen">
-          <div class="island"></div>
-          <div class="status-bar"><span class="time">10:24</span><span class="icons">●●● ◐</span></div>
-          <div class="screen-content" style="padding: 16px;">
-            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
-              </div>
-              <div class="divide-y divide-surface-dark">
-                <div class="py-2 pl-3 flex items-start gap-3 border-l-[3px]" style="border-left-color: #C9A227;">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-text">Mírné</div>
-                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <!-- 3 observations -->
-      <div class="phone-wrap">
-        <div class="phase-label">▸ 3 záznamy · smíšené</div>
-        <div class="phone"><div class="phone-screen">
-          <div class="island"></div>
-          <div class="status-bar"><span class="time">19:45</span><span class="icons">●●● ◐</span></div>
-          <div class="screen-content" style="padding: 16px;">
-            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
-              </div>
-              <div class="divide-y divide-surface-dark">
-                <div class="py-2 pl-3 flex items-center gap-3 border-l-[3px]" style="border-left-color: #EDE8E9;">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-text">Klidné</div>
-                  </div>
-                </div>
-                <div class="py-2 pl-3 flex items-start gap-3 border-l-[3px]" style="border-left-color: #C97027;">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">14:30</div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-text">Střední</div>
-                    <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
-                    <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
-                  </div>
-                </div>
-                <div class="py-2 pl-3 flex items-start gap-3 border-l-[3px]" style="border-left-color: #C9A227;">
-                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">19:45</div>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-text">Mírné</div>
-                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:#EDE8E9; color:#3D2B2F">Vše klidné</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -421,7 +263,7 @@
   </div>
 
 </div>
-<!-- END SECTION -->
+<!-- END β SECTION -->
 
 </body>
 </html>

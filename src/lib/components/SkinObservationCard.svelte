@@ -1,11 +1,11 @@
 <script lang="ts">
   import { commonStrings } from '$lib/strings/common';
-  import { severityStrings, regionStrings } from '$lib/strings/skin-regions';
+  import { regionStrings } from '$lib/strings/skin-regions';
   import { severityConfig } from '$lib/config/skin-regions';
   import {
-    overallSeverity,
+    REGION_IDS,
     type SkinObservation,
-    type RegionLevel,
+    type SkinRegionRecord,
   } from '$lib/domain/models';
   import DayCard from './DayCard.svelte';
 
@@ -28,17 +28,14 @@
     return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
-  /** Lowercase severity string → capitalized for rendering on this card. */
-  function capitalize(s: string): string {
-    return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
-  }
-
-  /** Czech region labels for regions with level > 0, joined by " · ". */
-  function bumpedRegions(obs: SkinObservation): string {
+  /**
+   * Regions with `level > 0`, sorted in canonical `REGION_IDS` order so chip
+   * order is stable regardless of input array order.
+   */
+  function bumpedRegions(obs: SkinObservation): SkinRegionRecord[] {
     return obs.regions
       .filter((r) => r.level > 0)
-      .map((r) => regionStrings[r.id].label)
-      .join(' · ');
+      .sort((a, b) => REGION_IDS.indexOf(a.id) - REGION_IDS.indexOf(b.id));
   }
 </script>
 
@@ -53,30 +50,33 @@
   {:else}
     <div class="divide-y divide-surface-dark">
       {#each sortedObservations as obs (obs.id)}
-        {@const level = overallSeverity(obs) as RegionLevel}
-        {@const regions = bumpedRegions(obs)}
+        {@const bumped = bumpedRegions(obs)}
         {@const hasNotes = !!obs.notes && obs.notes.length > 0}
-        {@const multiLine = regions.length > 0 || hasNotes}
         <div
           data-testid="skin-observation-row"
-          class="py-2 flex gap-3 {multiLine ? 'items-start' : 'items-center'}"
+          class="py-2 flex gap-3 {hasNotes ? 'items-start' : 'items-center'}"
         >
           <div
-            class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted {multiLine ? 'mt-0.5' : ''}"
+            class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted {hasNotes ? 'mt-1' : ''}"
           >{formatTime(obs.createdAt)}</div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-1.5">
-              <span
-                class="w-2 h-2 rounded-full shrink-0 {severityConfig[level].dot}"
-                aria-hidden="true"
-              ></span>
-              <span class="text-sm font-semibold text-text">{capitalize(severityStrings[level].label)}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              {#if bumped.length === 0}
+                <span
+                  data-testid="skin-chip"
+                  class="text-[12px] font-medium rounded-full px-2 py-0.5 {severityConfig[0].dot}"
+                >{commonStrings.today.eczemaAllCalmChip}</span>
+              {:else}
+                {#each bumped as region (region.id)}
+                  <span
+                    data-testid="skin-chip"
+                    class="text-[12px] font-medium rounded-full px-2 py-0.5 {severityConfig[region.level].tileBg}"
+                  >{regionStrings[region.id].label}</span>
+                {/each}
+              {/if}
             </div>
-            {#if regions.length > 0}
-              <div class="text-[11px] text-text-muted truncate">{regions}</div>
-            {/if}
             {#if hasNotes}
-              <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„{obs.notes}"</div>
+              <div class="text-[11px] text-text-muted/80 italic truncate mt-1">„{obs.notes}"</div>
             {/if}
           </div>
         </div>

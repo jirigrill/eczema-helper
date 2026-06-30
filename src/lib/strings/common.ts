@@ -45,6 +45,15 @@ export const commonStrings = {
     eczemaStatusLabel: 'Stav ekzému',
     eczemaStatusEmpty: 'Zatím není záznam pro dnešek — ',
     eczemaStatusEmptyCta: 'zaznamenat stav kůže',
+    /**
+     * Card-specific copy: the chip rendered on a SkinObservationCard row when
+     * the observation has zero regions with `level > 0` (i.e. a klidné
+     * observation per ADR-0022). Lives in `common.today.*` rather than on
+     * `severityStrings` because it's card-only copy with no equivalent
+     * surface for levels 1–3 — the severity word `klidné` (lowercase) stays
+     * unchanged for /skin tiles, /program recap, and /evaluation.
+     */
+    eczemaAllCalmChip: 'Vše klidné',
     photoLabel:        'Foto kůže',
     photoEmpty:        'Žádný snímek pro dnešek.',
     mealsLabel:        'Dnešní jídla',

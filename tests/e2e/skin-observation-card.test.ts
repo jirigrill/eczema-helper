@@ -93,7 +93,7 @@ test.beforeEach(async ({ page }) => {
 
 // ─────────────────────────────────────────────────────────────────────────
 
-test('three observations render in ascending time order, středn­í row shows the italic note', async ({ page }) => {
+test('three observations render in ascending time order as per-region chips; středn­í row shows the italic note', async ({ page }) => {
   await completeOnboarding(page);
   await seedThreeMixedObservations(page);
   const today = localToday();
@@ -102,13 +102,22 @@ test('three observations render in ascending time order, středn­í row shows t
   const rows = page.getByTestId('skin-observation-row');
   await expect(rows).toHaveCount(3);
 
-  // Top-to-bottom Czech severity labels.
-  await expect(rows.nth(0)).toContainText('Klidné');
-  await expect(rows.nth(1)).toContainText('Střední');
-  await expect(rows.nth(2)).toContainText('Mírné');
+  // Row 0 (klidné, 9:12) — neutral "Vše klidné" chip, no capitalized
+  // severity word (the standalone "Klidné" label is gone — the chip is
+  // the entire severity claim).
+  await expect(rows.nth(0)).toContainText('Vše klidné');
+  await expect(rows.nth(0)).not.toContainText('Klidné');
 
-  // The středn­í row carries the italic note.
+  // Row 1 (střední, 14:30) — chips for the bumped regions (in canonical
+  // REGION_IDS order: neck=2 before elbow-folds=6) + italic note.
+  await expect(rows.nth(1)).toContainText('Krk');
+  await expect(rows.nth(1)).toContainText('Loketní jamky');
+  await expect(rows.nth(1)).not.toContainText('Střední');
   await expect(rows.nth(1)).toContainText('„po obědě"');
+
+  // Row 2 (mírné, 19:45) — single chip for face.
+  await expect(rows.nth(2)).toContainText('Tváře');
+  await expect(rows.nth(2)).not.toContainText('Mírné');
 });
 
 test('empty state CTA links to /skin with date + returnTo', async ({ page }) => {
