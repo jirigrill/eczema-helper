@@ -48,7 +48,7 @@ export const commonStrings = {
     /**
      * Card-specific copy: the chip rendered on a SkinObservationCard row when
      * the observation has zero regions with `level > 0` (i.e. a klidné
-     * observation per ADR-0022). Lives in `common.today.*` rather than on
+     * observation per ADR-0021, klidné amendment). Lives in `common.today.*` rather than on
      * `severityStrings` because it's card-only copy with no equivalent
      * surface for levels 1–3 — the severity word `klidné` (lowercase) stays
      * unchanged for /skin tiles, /program recap, and /evaluation.

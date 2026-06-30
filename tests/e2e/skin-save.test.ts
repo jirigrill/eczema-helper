@@ -122,7 +122,7 @@ test('skin grid: switching active region preserves the previous region\'s level'
 // ── Save gating ─────────────────────────────────────────────────────────
 
 test('skin save: button enabled on page load — every visit can save a no-change klidné observation', async ({ page }) => {
-  // Issue #379 / ADR-0022: klidné is positive evidence. Opening /skin and
+  // Issue #379 / ADR-0021 (klidné amendment): klidné is positive evidence. Opening /skin and
   // tapping Uložit immediately must save a "checked, all calm" observation.
   await completeOnboarding(page);
   await page.goto('/skin');
@@ -141,7 +141,7 @@ test('skin save: button enables once any region has level > 0', async ({ page })
 // ── Persist ─────────────────────────────────────────────────────────────
 
 test('skin save: persists all 9 regions atomically with empty photos', async ({ page }) => {
-  // Issue #379 / ADR-0022: every save writes all nine regions. The mother
+  // Issue #379 / ADR-0021 (klidné amendment): every save writes all nine regions. The mother
   // bumps face → mírné, arms → silné; the other seven stay klidné but are
   // recorded as positive evidence ("I checked, those are calm").
   await completeOnboarding(page);

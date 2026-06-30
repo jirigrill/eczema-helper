@@ -2,6 +2,8 @@
 
 **Status:** Accepted
 **Date:** 2026-06-22
+**Amended:** 2026-06-29 — Klidné is positive evidence; every save witnesses all nine regions. Folds in the former ADR-0022. See "Amendment — klidné as positive evidence" below.
+**Amended:** 2026-06-30 — Day-card rendering: `SkinObservationCard` reads observations as a per-region chip timeline (PR #381 / #385), not the stub "overall-severity dot + label" sketched in the original Decision. See "Amendment — day-card chip rendering" below.
 
 ## Context
 
@@ -11,7 +13,7 @@
 2. **How bad** it is *now*, on an absolute scale she can compare across days without remembering yesterday's record.
 3. **Whether** there is a photographic baseline to look back at.
 
-The redesign prototype (`docs/design/redesign-prototype.html`, `src/routes/skin-prototype/+page.svelte`) reframes the screen as a 3×3 region grid with four absolute severity levels (klidné / mírné / střední / silné). Tapping an inactive region only activates it (so a calm region tapped by mistake stays calm); tapping the active region cycles its level. Photos move out of the save flow into a deferred slice.
+The redesign prototype (`docs/design/redesign-prototype.html`) reframes the screen as a 3×3 region grid with four absolute severity levels (klidné / mírné / střední / silné). Tapping an inactive region only activates it (so a calm region tapped by mistake stays calm); tapping the active region cycles its level. Photos move out of the save flow into a deferred slice. *(A throwaway Svelte prototype at `src/routes/skin-prototype/+page.svelte` was committed in PR #359 and deleted once the real `/skin` route was authored against this ADR.)*
 
 The wire-up forces decisions:
 
@@ -67,7 +69,7 @@ The Dexie schema bumps to `version(7)`. Same indexes as v6, with an `upgrade(tx)
 ### Out of scope this slice
 
 - **Photos.** Persistence shape ready, UI flow lives in the next slice (parent #358).
-- **Per-region drill-in cards.** `SkinObservationCard` and `SkinPhotoCard` recompile against the new shape with a stub summary (overall-severity dot + label). Their full redesign is a separate slice.
+- **Per-region drill-in cards.** `SkinObservationCard` and `SkinPhotoCard` recompile against the new shape with a stub summary (overall-severity dot + label). Their full redesign is a separate slice. *(Shipped: see "Amendment — day-card chip rendering" below.)*
 - **Reintroduction-allergen banner on `/skin`.** Removed; the mother already has the reintroduction context on `/day` and `/meal`. If it returns, it returns as a separate observation-cards slice.
 
 ## Consequences
@@ -82,8 +84,87 @@ The Dexie schema bumps to `version(7)`. Same indexes as v6, with an `upgrade(tx)
 
 - Issue #361 — feat(skin): per-region severity observation (no photos)
 - Parent #358 — feat(skin): regional severity logging with deferred photos
-- PR #359 — committed prototype (`src/routes/skin-prototype/+page.svelte`)
+- PR #359 — committed prototype (deleted once `/skin` was authored)
+- PR #381 / #385 — `SkinObservationCard` chip-timeline redesign (see amendment below)
+- Issue #379 — fix(skin): klidné regions should persist as positive evidence (folded in as amendment below; previously ADR-0022)
 - ADR-0004 — Causation is derived, not recorded (amended for the model cut)
 - ADR-0012 — Allergen status lifecycle (pre-launch wipe pattern)
 - ADR-0014 — Presentation strings and domain keys (strings + config split)
 - ADR-0016 — Verdict drives schedule, not status (paired evaluation/observation domains)
+
+---
+
+## Amendment — klidné as positive evidence (2026-06-29)
+
+*Folds in the former ADR-0022. Issue #379 / PR #382.*
+
+### Context
+
+The original Decision above kept the legacy "logged means `level > 0`" gate. `/skin` only persisted regions the mother had cycled past klidné; the other regions were dropped from the saved `SkinObservation.regions` array.
+
+That model leaks. Absence in the array could mean either:
+
+- the region is currently calm (klidné) — but the mother *did* check it, or
+- the mother never looked at this region today.
+
+For an elimination-protocol tracker — where the question is *did anything change today vs yesterday* — "checked, looked clear" and "didn't check" must be distinguishable. They are different evidence:
+
+- A region disappearing across days could mean improvement (was logged at level > 0 yesterday, klidné now) or oversight (mother forgot to check). The original shape made these indistinguishable.
+- Pattern detection (planned for v1.1, [ADR-0007](0007-v1-scope.md)) cannot see negative evidence — it can only count flares, not calm baselines.
+- The Uložit CTA's "save N specific areas" framing contradicted the mother's mental model ("all nine were checked"). The label was hot-fixed to a constant `Uložit pozorování` in the /skin visual-alignment work, but the underlying model still treated klidné as absence.
+
+The symptom that surfaced this: when the CTA label read `Uložit stav · 1 oblast`, the mother could reasonably believe only the bumped region would be saved while the other eight klidné regions would be discarded. That was literally true under the original persistence shape.
+
+### Decision (amendment)
+
+**A `SkinObservation` is a witness that the mother checked all nine regions on that day. Every saved observation persists all nine `SkinRegionRecord`s, with level 0 (klidné) for any region she did not explicitly bump.** Uložit is enabled the moment `/skin` loads — no engagement gesture required, because the act of opening the page and pressing save is itself the witness.
+
+#### Persistence shape
+
+```ts
+// On save, regardless of tap history:
+const regions: SkinRegionRecord[] = REGION_IDS.map((id) => ({
+  id,
+  level: levels[id], // defaults to 0
+}));
+```
+
+`regions.length === 9` after every save. A bumped region carries its level (1–3); every other region carries 0. The Dexie schema is unchanged; the only change is that more rows in the array are now level 0.
+
+#### `canSave` gate
+
+Removed. `canSave = true` always — the save button is enabled on page load and stays enabled. The only disable condition is the in-flight `saving` flag (double-submit guard).
+
+### Consequences (amendment)
+
+- **Pattern detection (v1.1) can read negative evidence.** A region appearing across consecutive days at level 0 is data, not noise.
+- **Storage cost is negligible.** A `SkinRegionRecord` is `{ id: string; level: 0|1|2|3 }`. Nine per observation vs the previous variable count is ~200 extra bytes per day. Across a year that is ~73 KB — within IndexedDB norms.
+- **Backward compatibility is one-way safe.** Reading pre-#379 observations (with `regions.length < 9`) still works: `overallSeverity` falls back to 0 for absent regions, and the strings/config layers treat absence the same as klidné. Writes always produce the new shape; the reader needs no migration.
+- **The `loggedRegions` derivation is dead.** It was only used by the old `canSave` gate. Removed from `/skin/+page.svelte`.
+- **The "klidné region + photo enables Uložit" behaviour from the original Decision is gone.** It was a workaround for the old gate — once `canSave` is always true, the photo path is no longer a gate, just a side effect.
+- **Test asymmetry with severity > 0:** the bumped-region test still asserts `toContainEqual({ id: 'face', level: 1 })`; the all-klidné test asserts every record has `level === 0`. Both must hold; the persistence shape is identical, only the levels differ.
+
+---
+
+## Amendment — day-card chip rendering (2026-06-30)
+
+*Resolves the "stub summary" placeholder in the original Decision. PR #381 + PR #385.*
+
+### Context
+
+The original Decision deferred `SkinObservationCard`'s redesign to a later slice and shipped a stub (overall-severity dot + label + record count). That stub leaked the same "row-overall severity" framing this ADR rejected for `/skin`: an observation with `tváře=silné, břicho=mírné` rendered `● Silné`, which a reader correctly understood to mean *"silné applies to both regions"* — a domain leak (severity is regional, not row-level).
+
+### Decision (amendment)
+
+**`SkinObservationCard` reads each observation as a timeline row with one chip per bumped region, each chip tinted by its own severity. No row-overall label.** A klidné observation (zero bumped regions) renders a single neutral "Vše klidné" chip in the level-0 token, so the row stays in the same chip-language as bumped rows rather than dropping back to a dot+label idiom. Notes live in an italic third line below the chips.
+
+The day-card header drops the "N záznam(y/ů)" record count — the chip cluster already conveys multiplicity.
+
+The empty state ("no observation today") still distinguishes itself: it renders a muted prefix plus a CTA link to `/skin?date=…&returnTo=/day/…`.
+
+### Consequences (amendment)
+
+- **`overallSeverity()` survives** as a derived read-helper for sites that legitimately need a single-value collapse: the `/program` phase-recap dot per dose day, the phase-recap severity-bucket counts, and the "possible cause" threshold on a reintroduction phase. The `SkinObservationCard` on `/day` no longer calls it.
+- **Severity gradient on chips is calibrated as a non-linear alpha staircase:** `warning/15` (mírné) → `severity-4/45` (střední) → `danger/60` (silné). The earlier uniform `/15` ramp washed warm-family hues together at chip size; the louder upper stops give "střední vs silné" a perceptible gap on the small chips and the larger `/skin` region tiles alike. Encoded in `src/lib/config/skin-regions.ts`.
+- **Chip language is uniform across observation states.** A bumped observation, an all-klidné observation, and a single-region observation all render as one or more chips on the same row geometry — no special-case dot or label for any of them.
+- **Day-card semantics sharpen vs the prior stub.** Empty state means "she didn't visit /skin today"; "Vše klidné" chip means "she visited and everything was calm"; per-region chips mean "she visited and these specific regions are bumped." The three states are now visually distinct in their content, not just by accident.

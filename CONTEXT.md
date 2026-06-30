@@ -66,7 +66,8 @@ identical on ordinary days and reintro-test days. There is no
 `suspectedCause` field; attribution is not recorded here. Day-overall
 severity is derived as `max(regions)` via `overallSeverity()` and never
 persisted. See ADR-0004 (causation derived), ADR-0021 (regional
-severity shape), and ADR-0022 (klidné as positive evidence).
+severity shape), and ADR-0021 (klidné as positive evidence — formerly
+ADR-0022, merged in 2026-06-30).
 
 ### Region
 One of nine canonical body areas the parent can log on `/skin`: face,
@@ -91,7 +92,8 @@ its severity 0 → 1 → 2 → 3 → 0. Active is a UI-only concept — never
 persisted.
 
 ### Logged region
-Historical term, retired by ADR-0022. The Uložit gate on `/skin` no
+Historical term, retired by ADR-0021 (klidné-as-positive-evidence
+amendment, originally filed as ADR-0022). The Uložit gate on `/skin` no
 longer requires "at least one region with `level > 0`" — every page
 visit can save, and every save witnesses all nine regions. A region
 with `level > 0` is now simply called a *bumped region*; the term
@@ -444,7 +446,8 @@ after data exists is a migration.
   "didn't check"; an observation with every region at level 0 means
   "checked, all calm". The Uložit gate is removed — every `/skin` visit
   can save.
-  See [ADR-0022](docs/adr/0022-klidne-as-positive-evidence.md).
+  See [ADR-0021, klidné amendment](docs/adr/0021-regional-severity-skin-observation.md#amendment--klidné-as-positive-evidence-2026-06-29)
+  (originally filed as ADR-0022; merged 2026-06-30).
 - **Photo encryption-at-rest deferred past v1** — with a shipping
   constraint: encryption must land before the app reaches any device
   other than the developer's own.

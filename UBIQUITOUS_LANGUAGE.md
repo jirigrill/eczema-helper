@@ -510,7 +510,7 @@ have been a hidden delete path. (Formerly "Empty-Hotovo Guard"; renamed with the
 ### SkinObservation
 → Defined in `CONTEXT.md`. The parent's observation of the baby's skin on a calendar
 day: `id`, `date`, `createdAt`, `regions: SkinRegionRecord[]`, optional `notes`.
-**`regions.length === 9` after every save** (ADR-0022) — klidné regions persist as
+**`regions.length === 9` after every save** (ADR-0021, klidné amendment) — klidné regions persist as
 positive evidence, not absence. Multiple `SkinObservation` records may exist for
 the same day. `SkinPhoto` records FK *to* `SkinObservation` via `observationId`;
 `SkinObservationRepository.save(observation, photos)` writes the observation and
@@ -549,7 +549,7 @@ region only activates it; tapping the active region cycles its severity 0 → 1 
 → 3 → 0. UI-only — never persisted.
 
 ### Logged region
-*Historical term, retired by ADR-0022.* The Uložit gate on `/skin` no longer requires
+*Historical term, retired by the klidné-as-positive-evidence amendment to ADR-0021 (originally filed as ADR-0022).* The Uložit gate on `/skin` no longer requires
 "at least one region with `level > 0`" — every page visit can save, and every save
 witnesses all nine regions. A region with `level > 0` is now called a *bumped region*;
 the term "logged region" is no longer used in code or copy.

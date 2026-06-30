@@ -36,7 +36,7 @@
   let saveError = $state<string | null>(null);
   let stagedPhotos = $state<SkinPhotoInput[]>([]);
 
-  // Issue #379, ADR-0022: every /skin visit can save. Klidné is positive
+  // Issue #379, ADR-0021 (klidné amendment): every /skin visit can save. Klidné is positive
   // evidence — opening the page and tapping Uložit records "I checked, all
   // calm" for all nine regions. No engagement gate.
   const canSave = true;
@@ -57,7 +57,7 @@
     if (saving) return;
     saving = true;
     saveError = null;
-    // Issue #379 / ADR-0022: persist every region as positive evidence. A
+    // Issue #379 / ADR-0021 (klidné amendment): persist every region as positive evidence. A
     // region the mother never bumped is klidné (level 0), not unknown.
     // Saving witnesses "I checked all nine" — absent ≡ unchecked, which we
     // never want to write.

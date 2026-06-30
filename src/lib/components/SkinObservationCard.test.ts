@@ -122,7 +122,7 @@ describe('SkinObservationCard', () => {
   // ── One klidné observation — single neutral "Vše klidné" chip ──
   it('klidné observation (zero bumped regions): single neutral "Vše klidné" chip, no severity-tinted chip, no standalone "Klidné" label', async () => {
     const klidne = makeObservation({
-      // All 9 regions at klidné — the persisted shape per ADR-0022.
+      // All 9 regions at klidné — the persisted shape per ADR-0021 (klidné amendment).
       regions: [
         { id: 'face', level: 0 },
         { id: 'scalp', level: 0 },
