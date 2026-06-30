@@ -121,11 +121,12 @@ test('skin grid: switching active region preserves the previous region\'s level'
 
 // ── Save gating ─────────────────────────────────────────────────────────
 
-test('skin save: button disabled when no region is logged', async ({ page }) => {
+test('skin save: button enabled on page load — every visit can save a no-change klidné observation', async ({ page }) => {
+  // Issue #379 / ADR-0022: klidné is positive evidence. Opening /skin and
+  // tapping Uložit immediately must save a "checked, all calm" observation.
   await completeOnboarding(page);
   await page.goto('/skin');
-  const save = page.getByTestId('skin-save');
-  await expect(save).toBeDisabled();
+  await expect(page.getByTestId('skin-save')).toBeEnabled();
 });
 
 test('skin save: button enables once any region has level > 0', async ({ page }) => {
@@ -139,7 +140,10 @@ test('skin save: button enables once any region has level > 0', async ({ page })
 
 // ── Persist ─────────────────────────────────────────────────────────────
 
-test('skin save: persists regions array atomically with empty photos', async ({ page }) => {
+test('skin save: persists all 9 regions atomically with empty photos', async ({ page }) => {
+  // Issue #379 / ADR-0022: every save writes all nine regions. The mother
+  // bumps face → mírné, arms → silné; the other seven stay klidné but are
+  // recorded as positive evidence ("I checked, those are calm").
   await completeOnboarding(page);
   const today = localToday();
   await page.goto('/skin');
@@ -176,12 +180,42 @@ test('skin save: persists regions array atomically with empty photos', async ({ 
   const o = result.obs[0];
   expect(o.id).toMatch(/^[0-9a-f-]{36}$/);
   expect(o.date).toBe(today);
+  // All 9 regions present; face=1, arms=3, the other 7 at klidné (0).
+  expect((o.regions as unknown[]).length).toBe(9);
   expect(o.regions).toEqual(expect.arrayContaining([
     { id: 'face', level: 1 },
     { id: 'arms', level: 3 },
   ]));
-  expect((o.regions as unknown[]).length).toBe(2);
+  const calm = (o.regions as Array<{ level: number }>).filter((r) => r.level === 0);
+  expect(calm).toHaveLength(7);
   expect(o.notes).toBe('svědí');
+});
+
+test('skin save: no-tap Uložit persists 9 klidné regions and day card shows klidné, not empty state', async ({ page }) => {
+  // Issue #379 AC: 'no observation today' ≠ 'observation: all klidné'.
+  // Page-load Uložit writes a 9-region all-klidné witness; /day shows the
+  // klidné severity label + record count, NOT the empty-state copy.
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  // Day-view distinction: severity summary visible with "klidné" label.
+  await expect(page.getByTestId('skin-observation-summary')).toContainText(/(?:^|\s)klidné(?:\s|$)/);
+  // Empty-state copy must NOT appear — an observation exists.
+  await expect(page.getByText('Zatím není záznam pro dnešek.')).toHaveCount(0);
+
+  // Persistence shape: 9 records, all level 0.
+  const result = await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    const obs = await db.skin_observations.toArray();
+    return obs[0]?.regions as Array<{ id: string; level: number }>;
+  });
+  expect(result).toHaveLength(9);
+  expect(result.every((r) => r.level === 0)).toBe(true);
 });
 
 test('skin save: whitespace-only note persists as undefined', async ({ page }) => {
@@ -315,12 +349,14 @@ test('photos staged via file input appear in gallery with correct region label',
   await expect(labels.first()).toContainText('Paže');
 });
 
-test('klidné region with staged photo enables Uložit', async ({ page }) => {
+test('klidné region with staged photo keeps Uložit enabled', async ({ page }) => {
+  // Issue #379: under option 2 Uložit is always enabled. This test pins the
+  // photo path — staging on a klidné region must not regress the enabled state.
   await completeOnboarding(page);
   await page.goto('/skin');
   await tapRegion(page, 'face'); // activate but NOT cycle — stays klidné (0)
 
-  await expect(page.getByTestId('skin-save')).toBeDisabled();
+  await expect(page.getByTestId('skin-save')).toBeEnabled();
 
   const fileInput = page.locator('input[type="file"]');
   await fileInput.setInputFiles([

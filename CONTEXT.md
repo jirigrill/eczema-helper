@@ -53,16 +53,20 @@ of `eliminatedFoodIds`. See ADR-0018 and PRD issue #284.
 A timestamped record of what the parent observed about the baby's skin
 at a point in time: a set of per-region severities (`regions`) on a
 four-step absolute scale (`RegionLevel` 0/1/2/3 — klidné / mírné /
-střední / silné), plus optional free-text `notes`. Captured atomically
-with any photos taken in the same session via
+střední / silné), plus optional free-text `notes`. **Every saved
+observation witnesses all nine regions** — regions the parent did not
+explicitly bump persist at level 0 (klidné), not as absent rows. This
+makes "checked, looked clear" distinguishable from "didn't check"
+(absent observation for the day). Captured atomically with any photos
+taken in the same session via
 `SkinObservationRepository.save(observation, photos)`. Multiple
 `SkinObservation` records may exist for the same calendar day (e.g. a
 routine morning check and a later reaction log). The form shape is
 identical on ordinary days and reintro-test days. There is no
 `suspectedCause` field; attribution is not recorded here. Day-overall
 severity is derived as `max(regions)` via `overallSeverity()` and never
-persisted. See ADR-0004 (causation derived) and ADR-0021 (regional
-severity shape).
+persisted. See ADR-0004 (causation derived), ADR-0021 (regional
+severity shape), and ADR-0022 (klidné as positive evidence).
 
 ### Region
 One of nine canonical body areas the parent can log on `/skin`: face,
@@ -87,10 +91,11 @@ its severity 0 → 1 → 2 → 3 → 0. Active is a UI-only concept — never
 persisted.
 
 ### Logged region
-A region whose severity is greater than 0 (and, in the next slice, a
-region with at least one photo). The Uložit gate on `/skin` enables
-when at least one region is logged; an observation with zero logged
-regions cannot be saved.
+Historical term, retired by ADR-0022. The Uložit gate on `/skin` no
+longer requires "at least one region with `level > 0`" — every page
+visit can save, and every save witnesses all nine regions. A region
+with `level > 0` is now simply called a *bumped region*; the term
+"logged" is no longer used in code or copy.
 
 ### SkinPhoto
 A timestamped photo of the baby's skin, stored as a `Blob` in the
@@ -434,6 +439,12 @@ after data exists is a migration.
   `SkinObservationRepository.save(observation, photos)` writes both in a
   single Dexie transaction.
   See [ADR-0021](docs/adr/0021-regional-severity-skin-observation.md).
+- **Klidné regions persist as positive evidence; every save witnesses
+  all nine regions.** Absence of an observation for the day means
+  "didn't check"; an observation with every region at level 0 means
+  "checked, all calm". The Uložit gate is removed — every `/skin` visit
+  can save.
+  See [ADR-0022](docs/adr/0022-klidne-as-positive-evidence.md).
 - **Photo encryption-at-rest deferred past v1** — with a shipping
   constraint: encryption must land before the app reaches any device
   other than the developer's own.

@@ -128,13 +128,15 @@ describe('skin/+page.svelte — region grid', () => {
     expect(face.dataset.level).toBe('1');
   });
 
-  it('Uložit is disabled when no region has level > 0', async () => {
+  it('Uložit is enabled on page load — every page open can save a no-change klidné observation', async () => {
+    // Issue #379: klidné regions are positive evidence. A bare page-open + Uložit
+    // saves a "checked, all calm" observation. No taps required.
     const SkinPage = await loadPage();
     const { getByTestId } = render(SkinPage);
     await tick();
 
     const save = getByTestId('skin-save') as HTMLButtonElement;
-    expect(save.disabled).toBe(true);
+    expect(save.disabled).toBe(false);
   });
 
   it('Uložit becomes enabled once any region is logged', async () => {
@@ -151,7 +153,31 @@ describe('skin/+page.svelte — region grid', () => {
     expect(save.disabled).toBe(false);
   });
 
-  it('Uložit triggers save with regions array and an empty photos array', async () => {
+  it('Uložit on a freshly-opened page writes all 9 regions at level 0', async () => {
+    // Issue #379 / ADR-0022: every saved observation is a witness over all
+    // nine regions. A no-tap save is "I checked, everything is klidné" —
+    // 9 records, every level 0.
+    const SkinPage = await loadPage();
+    const { getByTestId } = render(SkinPage);
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(mockSave).toHaveBeenCalledOnce();
+    const [observation] = mockSave.mock.calls[0];
+    const obs = observation as SkinObservation;
+    expect(obs.regions).toHaveLength(9);
+    expect(obs.regions.every((r) => r.level === 0)).toBe(true);
+    // All nine canonical region ids must be present.
+    const ids = obs.regions.map((r) => r.id).sort();
+    expect(ids).toEqual([
+      'arms', 'back', 'belly', 'elbow-folds', 'face',
+      'knee-folds', 'legs', 'neck', 'scalp',
+    ]);
+  });
+
+  it('Uložit triggers save with all 9 regions (one bumped) and an empty photos array', async () => {
     const SkinPage = await loadPage();
     const { getByTestId } = render(SkinPage);
     await tick();
@@ -168,7 +194,11 @@ describe('skin/+page.svelte — region grid', () => {
     const [observation, photos] = mockSave.mock.calls[0];
     expect(photos).toEqual([]);
     const obs = observation as SkinObservation;
-    expect(obs.regions).toEqual([{ id: 'face', level: 1 }]);
+    // Issue #379: all 9 regions persist; face = mírné (1), other 8 = klidné (0).
+    expect(obs.regions).toHaveLength(9);
+    expect(obs.regions).toContainEqual({ id: 'face', level: 1 });
+    const calmCount = obs.regions.filter((r) => r.level === 0).length;
+    expect(calmCount).toBe(8);
     expect(obs.date).toBe(today);
   });
 
@@ -491,7 +521,11 @@ describe('skin/+page.svelte — region grid', () => {
     expect(container.querySelector('[data-testid="skin-photo-thumb-0"]')).toBeInTheDocument();
   });
 
-  it('klidné region (level 0) with ≥1 staged photo enables Uložit', async () => {
+  it('Uložit stays enabled when a klidné region has ≥1 staged photo', async () => {
+    // Issue #379: under option 2 Uložit is always enabled. This test pins the
+    // photo path specifically — staging a photo on a klidné region must not
+    // regress Uložit's enabled state. (Pre-#379 this guarded the
+    // klidné+photo branch of the gate; that gate is gone now.)
     const SkinPage = await loadPage();
     const { getByTestId, container } = render(SkinPage);
     await tick();
@@ -501,14 +535,14 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     const saveBtn = getByTestId('skin-save') as HTMLButtonElement;
-    expect(saveBtn.disabled).toBe(true); // no level > 0, no photos yet
+    expect(saveBtn.disabled).toBe(false); // klidné observation alone is savable
 
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
     await fireEvent.change(fileInput, { target: { files: [file] } });
     await tick();
 
-    expect(saveBtn.disabled).toBe(false); // klidné + photo → canSave
+    expect(saveBtn.disabled).toBe(false); // still savable with photo attached
   });
 
   it('Uložit passes staged photos to save', async () => {

@@ -510,9 +510,11 @@ have been a hidden delete path. (Formerly "Empty-Hotovo Guard"; renamed with the
 ### SkinObservation
 → Defined in `CONTEXT.md`. The parent's observation of the baby's skin on a calendar
 day: `id`, `date`, `createdAt`, `regions: SkinRegionRecord[]`, optional `notes`.
-Multiple `SkinObservation` records may exist for the same day. `SkinPhoto` records FK
-*to* `SkinObservation` via `observationId`; `SkinObservationRepository.save(observation,
-photos)` writes the observation and its photos atomically.
+**`regions.length === 9` after every save** (ADR-0022) — klidné regions persist as
+positive evidence, not absence. Multiple `SkinObservation` records may exist for
+the same day. `SkinPhoto` records FK *to* `SkinObservation` via `observationId`;
+`SkinObservationRepository.save(observation, photos)` writes the observation and
+its photos atomically.
 
 ### SkinPhoto
 → Defined in `CONTEXT.md`. A photo of the baby's skin captured during a skin
@@ -547,9 +549,10 @@ region only activates it; tapping the active region cycles its severity 0 → 1 
 → 3 → 0. UI-only — never persisted.
 
 ### Logged region
-A region whose severity is greater than 0. The Uložit gate on `/skin` enables
-once at least one region is logged. (When photos arrive in the next slice, "logged"
-widens to `level > 0 OR photo for region`.)
+*Historical term, retired by ADR-0022.* The Uložit gate on `/skin` no longer requires
+"at least one region with `level > 0`" — every page visit can save, and every save
+witnesses all nine regions. A region with `level > 0` is now called a *bumped region*;
+the term "logged region" is no longer used in code or copy.
 
 ### Day-overall severity
 The maximum `RegionLevel` across an observation's `regions`. Computed via
