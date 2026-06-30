@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stav ekzému · varianty karty</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    primary: '#8B4557', 'primary-light': '#C4A4AB',
+    surface: '#FAF8F8', 'surface-dark': '#EDE8E9',
+    text: '#3D2B2F', 'text-muted': '#7A6468',
+    danger: '#B84444', success: '#5A8B5A', warning: '#C9A227',
+    'sev-1':'#5A8B5A','sev-2':'#8B9B5A','sev-3':'#C9A227','sev-4':'#C97027','sev-5':'#B84444',
+  }}}}
+</script>
+<script src="https://unpkg.com/react@18.2.0/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.2/babel.min.js" crossorigin></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #E8E4E5; min-height: 100vh; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #3D2B2F; }
+
+  .canvas { width: 100%; padding: 36px 32px 96px; }
+
+  /* Document chrome — typography.variant-label (mono 12 / 400 / +0.4px) */
+  .canvas-eyebrow { color: #7A6468; font-size: 12px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 400; margin-bottom: 4px; font-family: ui-monospace, SFMono-Regular, "SF Mono", monospace; }
+  .canvas-heading { color: #3D2B2F; font-size: 24px; font-weight: 800; line-height: 1.2; letter-spacing: -0.2px; margin-bottom: 6px; }
+  .canvas-sub { color: #7A6468; font-size: 13px; line-height: 1.6; margin-bottom: 36px; max-width: 920px; }
+
+  /* Section chrome — same family, +weight for hierarchy */
+  .section-eyebrow { color: #7A6468; font-size: 12px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; font-family: ui-monospace, SFMono-Regular, "SF Mono", monospace; }
+  .section-heading { color: #3D2B2F; font-size: 17px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }
+  .section-desc { color: #7A6468; font-size: 12px; line-height: 1.6; margin-bottom: 22px; max-width: 720px; }
+
+  .phone-row { display: flex; gap: 20px; overflow-x: auto; padding: 4px 0 14px; align-items: flex-start; flex-wrap: nowrap; }
+  .phone-row::-webkit-scrollbar { height: 6px; }
+  .phone-row::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+  .phone-wrap { flex: 0 0 320px; }
+  /* Frame tag — typography.frame-tag (mono 10 / 500 / +0.8px) */
+  .phase-label { color: #7A6468; font-size: 10px; font-weight: 500; margin-bottom: 8px; letter-spacing: 0.8px; text-transform: uppercase; font-family: ui-monospace, SFMono-Regular, "SF Mono", monospace; }
+
+  /* Program phone shell — components.device-bezel (320×680, #000, 44/34, 10pad) */
+  .phone-outer {
+    width: 320px; height: 680px; background: #000; border-radius: 44px; padding: 10px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.30), 0 8px 20px -8px rgba(0,0,0,0.15);
+    position: relative; flex-shrink: 0;
+  }
+  .phone-outer::after { content: ""; position: absolute; inset: 10px; border-radius: 34px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); pointer-events: none; }
+  .phone-shell {
+    width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden;
+    display: flex; flex-direction: column; position: relative;
+  }
+
+  /* Nav phone shell (Tailwind, 320×680 — for nav/Týden showcase) */
+  .phone { width: 320px; height: 680px; background: #000; border-radius: 44px; padding: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.15); position: relative; flex-shrink: 0; }
+  .phone-screen { width: 100%; height: 100%; background: #FAF8F8; border-radius: 34px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .phone::after { content: ""; position: absolute; inset: 10px; border-radius: 34px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); pointer-events: none; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 32px; background: #000; border-radius: 20px; z-index: 50; }
+  .status-bar { flex-shrink: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 14px; font-weight: 600; color: #000; z-index: 40; }
+  .status-bar .time { padding-top: 14px; }
+  .status-bar .icons { padding-top: 14px; display: flex; gap: 5px; align-items: center; }
+  .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; background: #000; border-radius: 2px; opacity: 0.85; z-index: 60; }
+  .screen-content { flex: 1; min-height: 0; overflow-y: auto; }
+  .screen-content::-webkit-scrollbar { display: none; }
+  .insight-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 99px; }
+  .photo-thumb { background: linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4)); }
+  /* Status bar — components.status-bar (52px, 28px gutters, transparent on surface) */
+  .phone-status { height: 52px; background: #FAF8F8; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: relative; flex-shrink: 0; }
+  /* Dynamic island — components.dynamic-island (110×32, #000, 20px radius) */
+  .phone-island { width: 110px; height: 32px; background: #000; border-radius: 20px; position: absolute; left: 50%; transform: translateX(-50%); top: 6px; }
+  .phone-time { font-size: 13px; font-weight: 700; color: #3D2B2F; }
+  .phone-battery { font-size: 11px; color: #3D2B2F; }
+  .phone-content { flex: 1; min-height: 0; overflow-y: auto; background: #FAF8F8; }
+  .phone-content::-webkit-scrollbar { display: none; }
+  /* Bottom nav — components.bottom-nav-2col (paddingTop 8, paddingBottom 20) */
+  .phone-nav { background: rgba(250,248,248,0.97); border-top: 1px solid #EDE8E9; display: flex; padding-top: 8px; padding-bottom: 20px; flex-shrink: 0; }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 0; gap: 3px; font-size: 10px; color: #7A6468; font-weight: 500; border: none; background: none; cursor: pointer; }
+  .nav-btn.active { color: #8B4557; font-weight: 600; }
+  .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+
+  .divider { height: 1px; background: rgba(61,43,47,0.1); margin: 48px 0; }
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE HEADER
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas" style="padding-bottom: 8px;">
+  <div class="canvas-eyebrow">Atopic Helper · Návrh karty</div>
+  <div class="canvas-heading">Stav ekzému — kde žije závažnost?</div>
+  <div class="canvas-sub">
+    Karta <em>Stav ekzému</em> na <code>/day</code> v podobě časové linie pozorování. Vlevo je neutrální čas (kdy záznam vznikl), vpravo klinický obsah (závažnost, oblasti, případná poznámka). Tři podvariantní podoby závažnosti: <strong>α2 dot before label</strong> · <strong>α3 label-color</strong> · <strong>α4 left border</strong>. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable, poznámka má vlastní řádek, klidné záznamy bez bumpu jsou jednořádkové. Každá varianta v 3 stavech: <strong>prázdno</strong> · <strong>1 záznam (mírné)</strong> · <strong>3 záznamy (klidné, střední s poznámkou, mírné)</strong>.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SECTION — STAV EKZÉMU CARD · varianty s neutrálním časem
+     Time is neutral metadata on the left; severity gets its own
+     visual home explored across three sub-variants:
+       α2 — colored dot before the severity label
+       α3 — the severity label itself rendered in severity color
+       α4 — a left-edge severity-colored accent border on the row
+     ════════════════════════════════════════════════════════════════ -->
+<div class="canvas">
+  <div class="section-eyebrow">Karta · varianty</div>
+  <div class="section-heading">Neutrální čas vlevo — kde žije závažnost?</div>
+  <div class="section-desc">
+    Čas je teď čistá temporální informace v tlumené barvě vlevo; závažnost potřebuje vlastní vizuální místo. Tři podvariantní podoby: <strong>α2</strong> — barevná tečka před labelem, <strong>α3</strong> — label sám v barvě závažnosti, <strong>α4</strong> — barevný pruh vlevo na řádku. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable. Každá varianta ve 3 stavech: <strong>prázdno</strong>, <strong>1 záznam (mírné)</strong>, <strong>3 záznamy (klidné, střední, mírné — záznam střední má poznámku)</strong>.
+  </div>
+
+  <!-- ╔══════════════════════════════════════════════════════════╗
+       ║ α2 — Severity dot before the label                       ║
+       ║ Time: neutral muted text on the left.                    ║
+       ║ Severity: small colored dot before the Czech label.      ║
+       ╚══════════════════════════════════════════════════════════╝ -->
+  <div style="margin-top: 8px;">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">α2 · dot before label</div>
+    <div class="section-heading">Tečka před labelem</div>
+    <div class="section-desc">Závažnost se vrací jako malá barevná tečka před českým labelem (<code>● Mírné</code>). Známý vzorec ze stávající karty; nyní oprávněný, protože levá zóna je neutrální a žádná jiná barva s tečkou nesoupeří.</div>
+
+    <div class="phone-row">
+
+      <!-- empty -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 0 záznamů</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <a href="#" class="text-[12px] text-text-muted hover:text-primary block py-1">
+                Zatím není záznam pro dnešek — <span class="text-primary font-medium">zaznamenat stav kůže</span>.
+              </a>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 1 observation, mírné -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 1 záznam · mírné</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">10:24</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <div class="divide-y divide-surface-dark">
+                <div class="py-2 flex items-start gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #C9A227;"></span>
+                      <span class="text-sm font-semibold text-text">Mírné</span>
+                    </div>
+                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 3 observations -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 3 záznamy · smíšené</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">19:45</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <div class="divide-y divide-surface-dark">
+                <!-- klidné, single line -->
+                <div class="py-2 flex items-center gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #EDE8E9;"></span>
+                      <span class="text-sm font-semibold text-text">Klidné</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- střední with note -->
+                <div class="py-2 flex items-start gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">14:30</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #C97027;"></span>
+                      <span class="text-sm font-semibold text-text">Střední</span>
+                    </div>
+                    <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
+                    <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
+                  </div>
+                </div>
+                <!-- mírné -->
+                <div class="py-2 flex items-start gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">19:45</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full shrink-0" style="background: #C9A227;"></span>
+                      <span class="text-sm font-semibold text-text">Mírné</span>
+                    </div>
+                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════════════════════════════════╗
+       ║ α3 — Severity label rendered in severity color           ║
+       ║ Time: neutral muted. Severity: only the word, in color.  ║
+       ╚══════════════════════════════════════════════════════════╝ -->
+  <div style="margin-top: 28px;">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">α3 · label-color</div>
+    <div class="section-heading">Label v barvě závažnosti</div>
+    <div class="section-desc">Závažnost = barva samotného slova. Bez tečky, bez chipu, bez pruhu — jen typografická vlastnost. Nejmenší ink na řádku, ale klade nároky na čitelnost (oranžová na bílé pozadí má slabší kontrast).</div>
+
+    <div class="phone-row">
+
+      <!-- empty -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 0 záznamů</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <a href="#" class="text-[12px] text-text-muted hover:text-primary block py-1">
+                Zatím není záznam pro dnešek — <span class="text-primary font-medium">zaznamenat stav kůže</span>.
+              </a>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 1 observation -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 1 záznam · mírné</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">10:24</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <div class="divide-y divide-surface-dark">
+                <div class="py-2 flex items-start gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold" style="color: #C9A227;">Mírné</div>
+                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 3 observations -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 3 záznamy · smíšené</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">19:45</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <div class="divide-y divide-surface-dark">
+                <div class="py-2 flex items-center gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-text-muted">Klidné</div>
+                  </div>
+                </div>
+                <div class="py-2 flex items-start gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">14:30</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold" style="color: #C97027;">Střední</div>
+                    <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
+                    <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
+                  </div>
+                </div>
+                <div class="py-2 flex items-start gap-3">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">19:45</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold" style="color: #C9A227;">Mírné</div>
+                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════════════════════════════════╗
+       ║ α4 — Severity as left-edge accent border on the row      ║
+       ║ Time + label both neutral. Severity = 3px colored bar.   ║
+       ╚══════════════════════════════════════════════════════════╝ -->
+  <div style="margin-top: 28px;">
+    <div class="section-eyebrow" style="margin-bottom: 4px;">α4 · left border</div>
+    <div class="section-heading">Pruh vlevo — řádek jako událost na časové ose</div>
+    <div class="section-desc">Závažnost je 3px barevný pruh u levého okraje řádku. Čas i label zůstávají neutrální, žádná barva nesoutěží s textem. Vizuálně silně říká „toto je událost v čase" — řádky tečou jako stream. Cena: pruh přidá horizontální posun, který se musí kompenzovat odsazením.</div>
+
+    <div class="phone-row">
+
+      <!-- empty -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 0 záznamů</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">9:12</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <a href="#" class="text-[12px] text-text-muted hover:text-primary block py-1">
+                Zatím není záznam pro dnešek — <span class="text-primary font-medium">zaznamenat stav kůže</span>.
+              </a>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 1 observation -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 1 záznam · mírné</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">10:24</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <div class="divide-y divide-surface-dark">
+                <div class="py-2 pl-3 flex items-start gap-3 border-l-[3px]" style="border-left-color: #C9A227;">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-text">Mírné</div>
+                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 3 observations -->
+      <div class="phone-wrap">
+        <div class="phase-label">▸ 3 záznamy · smíšené</div>
+        <div class="phone"><div class="phone-screen">
+          <div class="island"></div>
+          <div class="status-bar"><span class="time">19:45</span><span class="icons">●●● ◐</span></div>
+          <div class="screen-content" style="padding: 16px;">
+            <div class="bg-white border border-surface-dark rounded-2xl p-3.5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-text-muted uppercase tracking-wide font-semibold">Stav ekzému</div>
+              </div>
+              <div class="divide-y divide-surface-dark">
+                <div class="py-2 pl-3 flex items-center gap-3 border-l-[3px]" style="border-left-color: #EDE8E9;">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-text">Klidné</div>
+                  </div>
+                </div>
+                <div class="py-2 pl-3 flex items-start gap-3 border-l-[3px]" style="border-left-color: #C97027;">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">14:30</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-text">Střední</div>
+                    <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
+                    <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
+                  </div>
+                </div>
+                <div class="py-2 pl-3 flex items-start gap-3 border-l-[3px]" style="border-left-color: #C9A227;">
+                  <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">19:45</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-text">Mírné</div>
+                    <div class="text-[11px] text-text-muted truncate">Tváře</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+<!-- END SECTION -->
+
+</body>
+</html>

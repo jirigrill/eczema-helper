@@ -231,7 +231,7 @@
         {/if}
 
         <!-- Skin observation card -->
-        <SkinObservationCard observations={skinObservations} />
+        <SkinObservationCard observations={skinObservations} date={selectedDate} />
 
         <!-- Skin photo card -->
         <SkinPhotoCard photos={photos} />
