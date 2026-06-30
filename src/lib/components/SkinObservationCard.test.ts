@@ -67,6 +67,40 @@ describe('SkinObservationCard', () => {
     expect(getByText('Stav ekzému')).toBeInTheDocument();
   });
 
+  // Issue #379 AC: distinguish "no observation today" from "observation: all klidné".
+  // Empty → text-only empty-state copy. All-klidné observation → severity dot +
+  // "klidné" label + record count. The empty-state copy must NOT appear in
+  // the latter case.
+  it('renders the severity dot + "klidné" label for an all-klidné observation (not the empty state)', async () => {
+    const allKlidne = makeObservation({
+      regions: [
+        { id: 'face', level: 0 },
+        { id: 'scalp', level: 0 },
+        { id: 'neck', level: 0 },
+        { id: 'belly', level: 0 },
+        { id: 'back', level: 0 },
+        { id: 'arms', level: 0 },
+        { id: 'elbow-folds', level: 0 },
+        { id: 'knee-folds', level: 0 },
+        { id: 'legs', level: 0 },
+      ],
+    });
+    const { getByText, queryByText, getByTestId } = render(SkinObservationCard, {
+      props: { observations: [allKlidne] },
+    });
+    await tick();
+
+    // Empty-state copy must NOT render when an observation exists, even if
+    // every region is klidné. The presence of the observation IS the signal
+    // that the mother checked.
+    expect(queryByText('Zatím není záznam pro dnešek.')).toBeNull();
+
+    // The summary block renders with the klidné severity label + record count.
+    expect(getByTestId('skin-observation-summary')).toBeInTheDocument();
+    expect(getByText('klidné')).toBeInTheDocument();
+    expect(getByTestId('day-card-right').textContent).toContain('1 záznam');
+  });
+
   // Guards against the frozen-snippet bug class: the `right` count must track
   // the observations prop reactively, not freeze at its first-render value.
   it('record count in the header updates when the observations prop changes', async () => {

@@ -36,9 +36,10 @@
   let saveError = $state<string | null>(null);
   let stagedPhotos = $state<SkinPhotoInput[]>([]);
 
-  const loggedRegions = $derived(REGION_IDS.filter((id) => levels[id] > 0));
-  // A klidné region with ≥1 staged photo also counts as logged.
-  const canSave = $derived(loggedRegions.length > 0 || stagedPhotos.length > 0);
+  // Issue #379, ADR-0022: every /skin visit can save. Klidné is positive
+  // evidence — opening the page and tapping Uložit records "I checked, all
+  // calm" for all nine regions. No engagement gate.
+  const canSave = true;
 
   function tapRegion(r: RegionId): void {
     // First tap activates without changing level. Subsequent taps on the
@@ -53,10 +54,14 @@
   }
 
   async function handleSave(): Promise<void> {
-    if (saving || !canSave) return;
+    if (saving) return;
     saving = true;
     saveError = null;
-    const regions: SkinRegionRecord[] = loggedRegions.map((id) => ({
+    // Issue #379 / ADR-0022: persist every region as positive evidence. A
+    // region the mother never bumped is klidné (level 0), not unknown.
+    // Saving witnesses "I checked all nine" — absent ≡ unchecked, which we
+    // never want to write.
+    const regions: SkinRegionRecord[] = REGION_IDS.map((id) => ({
       id,
       level: levels[id],
     }));
