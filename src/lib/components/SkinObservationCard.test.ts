@@ -36,7 +36,7 @@ describe('SkinObservationCard', () => {
   });
 
   // ── One mírné observation ───────────────────────────────────
-  it('one mírné observation: time column, severity dot, capitalized label, region secondary line', async () => {
+  it('one mírné observation: time column + single Tváře chip with severity-1 tint; no row-overall label', async () => {
     const obs = makeObservation({
       createdAt: `${DATE}T10:24:00.000`,
       regions: [{ id: 'face', level: 1 }],
@@ -50,29 +50,77 @@ describe('SkinObservationCard', () => {
     const rows = container.querySelectorAll('[data-testid="skin-observation-row"]');
     expect(rows).toHaveLength(1);
 
-    // Time column: tabular-nums, matches "10:24" (no leading zero in spec for 1-digit hours).
+    // Time column: tabular-nums, matches "10:24".
     const timeCol = rows[0].querySelector('.tabular-nums');
-    expect(timeCol).not.toBeNull();
     expect(timeCol?.textContent?.trim()).toMatch(/^10:24$/);
 
-    // Severity dot uses severityConfig[1].dot (bg-warning).
-    const dot = rows[0].querySelector('span.bg-warning');
-    expect(dot).not.toBeNull();
+    // Exactly one chip in the row, text "Tváře".
+    const chips = rows[0].querySelectorAll('[data-testid="skin-chip"]');
+    expect(chips).toHaveLength(1);
+    expect(chips[0].textContent?.trim()).toBe('Tváře');
 
-    // Primary line: capitalized "Mírné".
-    expect(getByText('Mírné')).toBeInTheDocument();
+    // Chip carries severity-1 tint (bg-warning/15 from severityConfig[1].tileBg).
+    expect(chips[0].className).toContain('bg-warning/15');
 
-    // Secondary line: region label.
-    expect(getByText('Tváře')).toBeInTheDocument();
+    // No row-overall severity label leaked: the capitalized word "Mírné"
+    // must not appear in the row.
+    expect(queryByText('Mírné')).toBeNull();
+    // bumpedRegions-style joined text must not appear either (regions are
+    // chips now, not a secondary line).
+    expect(rows[0].textContent).not.toContain('Tváře ·');
 
     // No italic third line (no notes).
     expect(rows[0].querySelector('.italic')).toBeNull();
     // Sanity: no empty-state text leaked in.
     expect(queryByText(commonStrings.today.eczemaStatusEmpty)).toBeNull();
+
+    // Single-chip, no-note row uses items-center alignment (per issue spec).
+    expect(rows[0].className).toContain('items-center');
+
+    // getByText used to confirm the chip is reachable by its visible text.
+    expect(getByText('Tváře')).toBeInTheDocument();
   });
 
-  // ── One klidné observation — single line, items-center ──────
-  it('one klidné observation: single-line row (items-center), no secondary line, klidné label', async () => {
+  // ── Mixed-severity observation: per-region chips, canonical order ──
+  it('mixed-severity observation (face=silné, belly=mírné): two chips in REGION_IDS order, each per-region tinted; no row-overall label', async () => {
+    // Input deliberately reverses canonical order (belly index 3, face index 0)
+    // so the test pins that chips render in REGION_IDS order regardless.
+    const obs = makeObservation({
+      regions: [
+        { id: 'belly', level: 1 },
+        { id: 'face', level: 3 },
+      ],
+    });
+    const { container, queryByText } = render(SkinObservationCard, {
+      props: { observations: [obs], date: DATE },
+    });
+    await tick();
+
+    const rows = container.querySelectorAll('[data-testid="skin-observation-row"]');
+    expect(rows).toHaveLength(1);
+
+    const chips = rows[0].querySelectorAll('[data-testid="skin-chip"]');
+    expect(chips).toHaveLength(2);
+
+    // REGION_IDS order: face (0) comes before belly (3).
+    expect(chips[0].textContent?.trim()).toBe('Tváře');
+    expect(chips[1].textContent?.trim()).toBe('Břicho');
+
+    // Per-region tint: face=silné (level 3 → bg-danger/60),
+    //                  belly=mírné (level 1 → bg-warning/15).
+    // (Severity-tier alphas: /15 mírné · /45 střední · /60 silné — the
+    // gradient is calibrated so chips read at a glance against white.)
+    expect(chips[0].className).toContain('bg-danger/60');
+    expect(chips[1].className).toContain('bg-warning/15');
+
+    // No row-overall label: neither "Silné" nor "Mírné" capitalized appears
+    // as standalone text outside the chips.
+    expect(queryByText('Silné')).toBeNull();
+    expect(queryByText('Mírné')).toBeNull();
+  });
+
+  // ── One klidné observation — single neutral "Vše klidné" chip ──
+  it('klidné observation (zero bumped regions): single neutral "Vše klidné" chip, no severity-tinted chip, no standalone "Klidné" label', async () => {
     const klidne = makeObservation({
       // All 9 regions at klidné — the persisted shape per ADR-0022.
       regions: [
@@ -87,7 +135,7 @@ describe('SkinObservationCard', () => {
         { id: 'legs', level: 0 },
       ],
     });
-    const { container, getByText } = render(SkinObservationCard, {
+    const { container, queryByText } = render(SkinObservationCard, {
       props: { observations: [klidne], date: DATE },
     });
     await tick();
@@ -95,21 +143,30 @@ describe('SkinObservationCard', () => {
     const rows = container.querySelectorAll<HTMLElement>('[data-testid="skin-observation-row"]');
     expect(rows).toHaveLength(1);
 
-    // Single-line shape → items-center, no items-start.
+    // Exactly one chip; text is the new card-specific copy.
+    const chips = rows[0].querySelectorAll('[data-testid="skin-chip"]');
+    expect(chips).toHaveLength(1);
+    expect(chips[0].textContent?.trim()).toBe(commonStrings.today.eczemaAllCalmChip);
+    expect(chips[0].textContent?.trim()).toBe('Vše klidné');
+
+    // Klidné chip uses severityConfig[0].dot (bg-surface-dark) as its
+    // neutral background, NOT any of the severity 1/2/3 tints.
+    expect(chips[0].className).toContain('bg-surface-dark');
+    expect(chips[0].className).not.toContain('bg-warning');
+    expect(chips[0].className).not.toContain('bg-severity-4');
+    expect(chips[0].className).not.toContain('bg-danger');
+
+    // No standalone capitalized "Klidné" text (the chip carries the meaning,
+    // and "Vše klidné" is the only Czech surface).
+    expect(queryByText('Klidné')).toBeNull();
+
+    // No-notes klidné row → items-center alignment.
     expect(rows[0].className).toContain('items-center');
     expect(rows[0].className).not.toContain('items-start');
-
-    // Klidné label (capitalized).
-    expect(getByText('Klidné')).toBeInTheDocument();
-
-    // No secondary region line — the row's inner column has only the primary
-    // line wrapper. Assert by querying inside the row's content column.
-    const secondary = rows[0].querySelector('.text-\\[11px\\]:not(.italic)');
-    expect(secondary).toBeNull();
   });
 
-  // ── Three mixed observations — sort ascending ───────────────
-  it('three mixed observations: sorted ascending by createdAt; klidné single-line; střední has region + italic note', async () => {
+  // ── Three mixed observations — sort ascending, chip shapes per row ──
+  it('three mixed observations: sorted ascending by createdAt; klidné = neutral chip; střední = two chips in canonical order + italic note; mírné = single chip', async () => {
     const mirne = makeObservation({
       id: 'mirne',
       createdAt: `${DATE}T19:45:00.000`,
@@ -126,7 +183,7 @@ describe('SkinObservationCard', () => {
       regions: [{ id: 'elbow-folds', level: 2 }, { id: 'neck', level: 2 }],
       notes: 'po obědě',
     });
-    const { container, getByText } = render(SkinObservationCard, {
+    const { container, queryByText } = render(SkinObservationCard, {
       // Intentionally NON-ascending input order.
       props: { observations: [mirne, klidne, stredni], date: DATE },
     });
@@ -141,24 +198,37 @@ describe('SkinObservationCard', () => {
     );
     expect(times).toEqual(['9:12', '14:30', '19:45']);
 
-    // Row 1 (klidné, 9:12): items-center, no secondary line.
+    // Row 1 (klidné, 9:12): items-center, single neutral "Vše klidné" chip.
     expect(rows[0].className).toContain('items-center');
-    expect(rows[0].querySelector('.text-\\[11px\\]:not(.italic)')).toBeNull();
+    const row0Chips = rows[0].querySelectorAll('[data-testid="skin-chip"]');
+    expect(row0Chips).toHaveLength(1);
+    expect(row0Chips[0].textContent?.trim()).toBe('Vše klidné');
+    expect(row0Chips[0].className).toContain('bg-surface-dark');
 
-    // Row 2 (střední, 14:30): secondary region line + italic note.
+    // Row 2 (střední, 14:30): items-start (has notes); two chips in canonical
+    // REGION_IDS order — neck (index 2) before elbow-folds (index 6) — both
+    // tinted with severity-4 (level 2); italic note line.
     expect(rows[1].className).toContain('items-start');
-    const secondary = rows[1].querySelector('.text-\\[11px\\]:not(.italic)');
-    expect(secondary?.textContent).toBe('Loketní jamky · Krk');
+    const row1Chips = rows[1].querySelectorAll('[data-testid="skin-chip"]');
+    expect(row1Chips).toHaveLength(2);
+    expect(row1Chips[0].textContent?.trim()).toBe('Krk');
+    expect(row1Chips[1].textContent?.trim()).toBe('Loketní jamky');
+    expect(row1Chips[0].className).toContain('bg-severity-4/45');
+    expect(row1Chips[1].className).toContain('bg-severity-4/45');
     const note = rows[1].querySelector('.italic');
     expect(note?.textContent).toBe('„po obědě"');
 
-    // Row 3 (mírné, 19:45): items-start (has region secondary line).
-    expect(rows[2].className).toContain('items-start');
+    // Row 3 (mírné, 19:45): items-center (no notes); single warning-tinted chip.
+    expect(rows[2].className).toContain('items-center');
+    const row2Chips = rows[2].querySelectorAll('[data-testid="skin-chip"]');
+    expect(row2Chips).toHaveLength(1);
+    expect(row2Chips[0].textContent?.trim()).toBe('Tváře');
+    expect(row2Chips[0].className).toContain('bg-warning/15');
 
-    // Sanity: capitalized severity labels still appear.
-    expect(getByText('Klidné')).toBeInTheDocument();
-    expect(getByText('Střední')).toBeInTheDocument();
-    expect(getByText('Mírné')).toBeInTheDocument();
+    // No capitalized row-overall labels anywhere in the card.
+    expect(queryByText('Klidné')).toBeNull();
+    expect(queryByText('Střední')).toBeNull();
+    expect(queryByText('Mírné')).toBeNull();
   });
 
   // ── Header has no record count ─────────────────────────────

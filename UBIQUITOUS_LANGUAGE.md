@@ -557,8 +557,13 @@ the term "logged region" is no longer used in code or copy.
 ### Day-overall severity
 The maximum `RegionLevel` across an observation's `regions`. Computed via
 `overallSeverity(observation)` from `$lib/domain/models`. Never persisted —
-the read-side derives it at every render site (week strip, day card, evaluation
-recap).
+the read-side derives it at every render site that needs a single-value
+collapse (week strip, /program phase recap, evaluation recap). The
+SkinObservationCard on `/day` does **not** use this collapse — it renders one
+chip per bumped region (per ADR-0021, severity is regional, not row-level),
+so an observation with multiple severities reads honestly. A klidné
+observation (zero bumped regions) renders a neutral "Vše klidné" chip — UI
+copy keyed at `commonStrings.today.eczemaAllCalmChip`.
 
 ### ReintroductionEvaluation
 → Defined in `CONTEXT.md`. The allergen-attributed verdict at the end of a
