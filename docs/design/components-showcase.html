@@ -599,46 +599,87 @@
   <!-- ─── SkinObservationCard ──────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/SkinObservationCard.svelte -->
   <div class="component-section" id="skin-observation-card">
-    <p class="component-label">▸ <span>SkinObservationCard</span> — observations: SkinObservation[]</p>
+    <p class="component-label">▸ <span>SkinObservationCard</span> — observations: SkinObservation[], date: string</p>
     <div class="variant-row">
 
+      <!-- Empty state — prefix text + CTA link to /skin -->
       <div class="variant-tile w-card">
-        <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Stav ekzému</p>
+        <div class="bg-white rounded-xl border border-surface-dark p-4">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Stav ekzému</p>
           </div>
-          <p class="text-sm text-text-muted">Zatím není záznam pro dnešek.</p>
+          <p class="text-[12px] text-text-muted">
+            Zatím není záznam pro dnešek — <a class="text-primary font-medium" href="#">zaznamenat stav kůže</a>
+          </p>
         </div>
         <p class="variant-name">empty</p>
       </div>
 
+      <!-- One mírné observation, single record at 10:24 -->
       <div class="variant-tile w-card">
-        <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Stav ekzému</p>
-            <span class="text-[10px] text-text-muted">1 záznam</span>
+        <div class="bg-white rounded-xl border border-surface-dark p-4">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Stav ekzému</p>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full shrink-0" style="background:#D9A82E"></span>
-            <span class="text-[12px] font-semibold text-text">mírné</span>
+          <div class="divide-y divide-surface-dark">
+            <div class="py-2 flex items-start gap-3">
+              <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted mt-0.5">10:24</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full shrink-0" style="background:#C9A227"></span>
+                  <span class="text-sm font-semibold text-text">Mírné</span>
+                </div>
+                <div class="text-[11px] text-text-muted truncate">Tváře</div>
+              </div>
+            </div>
           </div>
         </div>
-        <p class="variant-name">level=1 (mírné)</p>
+        <p class="variant-name">1 obs · mírné</p>
       </div>
 
+      <!-- Three mixed observations: klidné · střední (note) · mírné -->
       <div class="variant-tile w-card">
-        <div class="bg-white rounded-xl border border-surface-dark p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide">Stav ekzému</p>
-            <span class="text-[10px] text-text-muted">1 záznam</span>
+        <div class="bg-white rounded-xl border border-surface-dark p-4">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Stav ekzému</p>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full shrink-0" style="background:#B84444"></span>
-            <span class="text-[12px] font-semibold text-text">silné</span>
+          <div class="divide-y divide-surface-dark">
+            <!-- klidné: single-line, items-center -->
+            <div class="py-2 flex items-center gap-3">
+              <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">9:12</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full shrink-0" style="background:#EDE8E9"></span>
+                  <span class="text-sm font-semibold text-text">Klidné</span>
+                </div>
+              </div>
+            </div>
+            <!-- střední with note -->
+            <div class="py-2 flex items-start gap-3">
+              <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted mt-0.5">14:30</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full shrink-0" style="background:#C97027"></span>
+                  <span class="text-sm font-semibold text-text">Střední</span>
+                </div>
+                <div class="text-[11px] text-text-muted truncate">Loketní jamky · Krk</div>
+                <div class="text-[11px] text-text-muted/80 italic truncate mt-0.5">„po obědě"</div>
+              </div>
+            </div>
+            <!-- mírné -->
+            <div class="py-2 flex items-start gap-3">
+              <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted mt-0.5">19:45</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full shrink-0" style="background:#C9A227"></span>
+                  <span class="text-sm font-semibold text-text">Mírné</span>
+                </div>
+                <div class="text-[11px] text-text-muted truncate">Tváře</div>
+              </div>
+            </div>
           </div>
-          <span class="text-[11px] text-text-muted">Vyrážka na levé paži</span>
         </div>
-        <p class="variant-name">level=3 (silné), notes</p>
+        <p class="variant-name">3 obs · mixed</p>
       </div>
 
     </div>

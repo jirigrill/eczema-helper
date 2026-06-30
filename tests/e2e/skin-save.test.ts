@@ -202,10 +202,10 @@ test('skin save: no-tap Uložit persists 9 klidné regions and day card shows kl
   await page.getByTestId('skin-save').click();
   await expect(page).toHaveURL(`/day/${today}`);
 
-  // Day-view distinction: severity summary visible with "klidné" label.
-  await expect(page.getByTestId('skin-observation-summary')).toContainText(/(?:^|\s)klidné(?:\s|$)/);
+  // Day-view distinction: at least one row renders with the "Klidné" label.
+  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Klidné' })).toHaveCount(1);
   // Empty-state copy must NOT appear — an observation exists.
-  await expect(page.getByText('Zatím není záznam pro dnešek.')).toHaveCount(0);
+  await expect(page.getByText('Zatím není záznam pro dnešek')).toHaveCount(0);
 
   // Persistence shape: 9 records, all level 0.
   const result = await page.evaluate(async () => {
@@ -275,7 +275,7 @@ test('skin save: the day card reflects the saved observation\'s overall severity
   await page.getByTestId('skin-save').click();
   await expect(page).toHaveURL(`/day/${today}`);
 
-  await expect(page.getByTestId('skin-observation-summary')).toContainText(/(?:^|\s)silné(?:\s|$)/);
+  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Silné' })).toHaveCount(1);
 });
 
 // ── Reload (live Dexie query) ───────────────────────────────────────────
@@ -290,7 +290,7 @@ test('skin save: observation survives reload via live Dexie query', async ({ pag
   await expect(page).toHaveURL(`/day/${today}`);
 
   await page.reload();
-  await expect(page.getByTestId('skin-observation-summary')).toContainText(/(?:^|\s)mírné(?:\s|$)/);
+  await expect(page.getByTestId('skin-observation-row').filter({ hasText: 'Mírné' })).toHaveCount(1);
 });
 
 // ── returnTo navigation ─────────────────────────────────────────────────
@@ -455,8 +455,11 @@ test('saved photos appear on /day/<today> Foto kůže card with region labels an
   // Count suffix from snimkyCs(2) is "2 snímky" (Czech grammar).
   await expect(page.getByText('2 snímky')).toBeVisible();
   // Region label appears under each thumb — at least two 'Paže' labels visible.
-  const labels = page.locator('text=Paže');
-  await expect(labels).toHaveCount(2);
+  // The photo-card thumb labels are rendered as <span class="text-[10px]"…>,
+  // which distinguishes them from the SkinObservationCard secondary line
+  // (class="text-[11px]") so the same region word doesn't strict-mode collide.
+  const photoLabels = page.locator('span.text-\\[10px\\]', { hasText: 'Paže' });
+  await expect(photoLabels).toHaveCount(2);
 });
 
 test('day card photo panel survives reload via live Dexie query (join through observationId)', async ({ page }) => {
@@ -476,7 +479,9 @@ test('day card photo panel survives reload via live Dexie query (join through ob
   // Foto kůže card still shows the photo + the Břicho label after reload.
   await expect(page.getByText('Foto kůže')).toBeVisible();
   await expect(page.getByText('1 snímek')).toBeVisible();
-  await expect(page.getByText('Břicho')).toBeVisible();
+  // Scope to the photo-card thumb label (text-[10px]) so it doesn't strict-
+  // mode collide with the SkinObservationCard secondary line (text-[11px]).
+  await expect(page.locator('span.text-\\[10px\\]', { hasText: 'Břicho' })).toBeVisible();
 });
 
 // ── Lightbox open/close (issue #362 AC5) ──────────────────────────────────
