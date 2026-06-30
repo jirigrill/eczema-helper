@@ -94,7 +94,7 @@
   <div class="canvas-eyebrow">Atopic Helper · Návrh karty</div>
   <div class="canvas-heading">Stav ekzému — kde žije závažnost?</div>
   <div class="canvas-sub">
-    Karta <em>Stav ekzému</em> na <code>/day</code> v podobě časové linie pozorování. Vlevo neutrální čas (kdy záznam vznikl), vpravo klinický obsah po regionech. Doménový kontrakt po proběhlém prototypování: severita je <strong>per-region</strong> (ADR-0021), takže řádek <strong>nenese celkový label</strong> — každá oblast je vlastní chip vybarvený podle vlastní závažnosti. Klidné záznamy (ADR-0022) mají vlastní neutrální chip <em>„Vše klidné"</em>, aby zůstaly ve stejném vizuálním jazyce jako řádky s bumpovanými oblastmi. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable, poznámka má vlastní řádek.
+    Karta <em>Stav ekzému</em> na <code>/day</code> v podobě časové linie pozorování. Vlevo neutrální čas (kdy záznam vznikl), vpravo klinický obsah po regionech. Doménový kontrakt po proběhlém prototypování: severita je <strong>per-region</strong> (ADR-0021), takže řádek <strong>nenese celkový label</strong> — každá oblast je vlastní chip vybarvený podle vlastní závažnosti. <strong>Severitní gradient</strong>: <code>warning/15</code> (mírné) → <code>severity-4/45</code> (střední) → <code>danger/60</code> (silné) — alpha-progrese zajišťuje, že úroveň lze rozeznat letmým pohledem na pixely chip-pozadí, ne až přečtením názvu regionu. Klidné záznamy (ADR-0022) mají vlastní neutrální chip <em>„Vše klidné"</em>, aby zůstaly ve stejném vizuálním jazyce jako řádky s bumpovanými oblastmi. Společný kontrakt: 1 řádek = 1 <code>SkinObservation</code>, řádky nejsou tappable, poznámka má vlastní řádek.
   </div>
 </div>
 
@@ -148,7 +148,7 @@
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.15); color:#3D2B2F">Tváře</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.60); color:#3D2B2F">Tváře</span>
                       <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,162,39,0.15); color:#3D2B2F">Břicho</span>
                     </div>
                   </div>
@@ -185,7 +185,7 @@
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted mt-1">14:30</div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,112,39,0.15); color:#3D2B2F">Loketní jamky</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,112,39,0.45); color:#3D2B2F">Loketní jamky</span>
                       <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(201,162,39,0.15); color:#3D2B2F">Krk</span>
                     </div>
                     <div class="text-[11px] text-text-muted/80 italic truncate mt-1">„po obědě"</div>
@@ -222,8 +222,8 @@
                   <div class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted">10:24</div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.15); color:#3D2B2F">Tváře</span>
-                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.15); color:#3D2B2F">Břicho</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.60); color:#3D2B2F">Tváře</span>
+                      <span class="text-[12px] font-medium rounded-full px-2 py-0.5" style="background:rgba(184,68,68,0.60); color:#3D2B2F">Břicho</span>
                     </div>
                   </div>
                 </div>

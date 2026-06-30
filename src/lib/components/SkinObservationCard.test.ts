@@ -106,9 +106,11 @@ describe('SkinObservationCard', () => {
     expect(chips[0].textContent?.trim()).toBe('Tváře');
     expect(chips[1].textContent?.trim()).toBe('Břicho');
 
-    // Per-region tint: face=silné (level 3 → bg-danger/15),
+    // Per-region tint: face=silné (level 3 → bg-danger/60),
     //                  belly=mírné (level 1 → bg-warning/15).
-    expect(chips[0].className).toContain('bg-danger/15');
+    // (Severity-tier alphas: /15 mírné · /45 střední · /60 silné — the
+    // gradient is calibrated so chips read at a glance against white.)
+    expect(chips[0].className).toContain('bg-danger/60');
     expect(chips[1].className).toContain('bg-warning/15');
 
     // No row-overall label: neither "Silné" nor "Mírné" capitalized appears
@@ -211,8 +213,8 @@ describe('SkinObservationCard', () => {
     expect(row1Chips).toHaveLength(2);
     expect(row1Chips[0].textContent?.trim()).toBe('Krk');
     expect(row1Chips[1].textContent?.trim()).toBe('Loketní jamky');
-    expect(row1Chips[0].className).toContain('bg-severity-4/15');
-    expect(row1Chips[1].className).toContain('bg-severity-4/15');
+    expect(row1Chips[0].className).toContain('bg-severity-4/45');
+    expect(row1Chips[1].className).toContain('bg-severity-4/45');
     const note = rows[1].querySelector('.italic');
     expect(note?.textContent).toBe('„po obědě"');
 
