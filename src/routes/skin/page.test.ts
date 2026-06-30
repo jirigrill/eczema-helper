@@ -154,7 +154,7 @@ describe('skin/+page.svelte — region grid', () => {
   });
 
   it('Uložit on a freshly-opened page writes all 9 regions at level 0', async () => {
-    // Issue #379 / ADR-0022: every saved observation is a witness over all
+    // Issue #379 / ADR-0021 (klidné amendment): every saved observation is a witness over all
     // nine regions. A no-tap save is "I checked, everything is klidné" —
     // 9 records, every level 0.
     const SkinPage = await loadPage();
