@@ -4,6 +4,7 @@
 **Date:** 2026-06-22
 **Amended:** 2026-06-29 — Klidné is positive evidence; every save witnesses all nine regions. Folds in the former ADR-0022. See "Amendment — klidné as positive evidence" below.
 **Amended:** 2026-06-30 — Day-card rendering: `SkinObservationCard` reads observations as a per-region chip timeline (PR #381 / #385), not the stub "overall-severity dot + label" sketched in the original Decision. See "Amendment — day-card chip rendering" below.
+**Amended:** 2026-06-30 — Observations are editable and deletable. Edits preserve `id` and `createdAt` (the witnessing moment is immutable); the port grows to `save` / `update` / `remove` / `listByDate`. See "Amendment — edit and delete preserve identity" below.
 
 ## Context
 
@@ -168,3 +169,43 @@ The empty state ("no observation today") still distinguishes itself: it renders 
 - **Severity gradient on chips is calibrated as a non-linear alpha staircase:** `warning/15` (mírné) → `severity-4/45` (střední) → `danger/60` (silné). The earlier uniform `/15` ramp washed warm-family hues together at chip size; the louder upper stops give "střední vs silné" a perceptible gap on the small chips and the larger `/skin` region tiles alike. Encoded in `src/lib/config/skin-regions.ts`.
 - **Chip language is uniform across observation states.** A bumped observation, an all-klidné observation, and a single-region observation all render as one or more chips on the same row geometry — no special-case dot or label for any of them.
 - **Day-card semantics sharpen vs the prior stub.** Empty state means "she didn't visit /skin today"; "Vše klidné" chip means "she visited and everything was calm"; per-region chips mean "she visited and these specific regions are bumped." The three states are now visually distinct in their content, not just by accident.
+
+---
+
+## Amendment — edit and delete preserve identity (2026-06-30)
+
+*Brings observations into parity with meals for edit and delete affordances.*
+
+### Context
+
+The original Decision said "save observation now, save photos later" and shaped the port as a single `save(observation, photos)`. There was no read-for-edit path, no update path, no delete path. Compose was the only verb. The day card's `SkinObservationCard` rendered each observation as an inert `<div>` row — a row of evidence, not a tap target.
+
+That asymmetry with `/meal` (which has supported edit and delete since PRD #265) became the live question once the chip-timeline amendment landed: each row now visibly *is* a discrete record, but the mother had no way to reach it. The shape of the verb she needed — edit a specific persisted row — also forced a question the original Decision had not answered: **what is the identity of an observation?** The id is the only primary key; `createdAt` is what the day card sorts on and shows ("9:12"); regions and notes are content. If an edit can change `createdAt`, the row's position on the timeline is mutable — and the timeline stops being a faithful record of *when the skin was witnessed*.
+
+### Decision (amendment)
+
+**An observation's `id` and `createdAt` are immutable across edit, delete, and undo-after-delete.** `createdAt` represents the witnessing moment; the mother editing a typo in the note tomorrow does not retroactively change *when* she looked at the skin. Edits overwrite `regions`, `notes`, and the photo set (additions and removals committed atomically with the observation row in a single Dexie `'rw'` transaction). Delete is a hard delete cascading to all `SkinPhoto` rows for that observation. Undo-after-delete restores the same record — same `id`, same `createdAt`, same photo blobs — via the in-memory discard buffer.
+
+The `SkinObservationRepository` port grows to four methods, speaking domain verbs:
+
+```ts
+type SkinObservationRepository = {
+  save(observation, addPhotos): Promise<Result<void, string>>;       // compose
+  update(observation, { addPhotos, removePhotoIds }): Promise<Result<void, string>>;  // edit
+  remove(id): Promise<Result<void, string>>;                         // delete (cascades to photos)
+  listByDate(date): Promise<Result<SkinObservation[], string>>;
+};
+```
+
+The port surface is intentionally not collapsed into an overloaded `save(observation, addPhotos, removePhotoIds = [])`. Two reasons: (1) the port is a domain interface, not a Dexie pass-through — it should speak compose/edit/delete, not upsert/bulk-write; (2) `update`'s named-options object resists positional-argument confusion at call sites.
+
+The `/skin` route handles compose and edit in the same file, discriminated by the presence of `?id=` in the URL — same shape as `/meal?type=...&date=...`. A missing or unknown `id` bounces to `returnTo` rather than silently falling through to compose, to prevent stale links from creating duplicate observations. Edit mode disables Uložit on a clean edit (state equals load snapshot, including staged photo adds/removals); compose mode keeps `canSave = true` per the klidné amendment.
+
+### Consequences (amendment)
+
+- **The day card's observation rows become tap targets** (link to `/skin?date={date}&id={obs.id}&returnTo=/day/{date}`). `SkinObservationCard` changes wrapper element from `<div>` to `<a>`; chip layout is unchanged.
+- **Photo edit is staged on `/skin`, committed on Uložit.** A persisted photo marked for deletion is greyed with an Undo X in the gallery; the Dexie `bulkDelete` only fires on Uložit. Back-out drops the staging.
+- **Discard-buffer parity with `/meal`.** Both arms ship: dirty-edit back-out preserves staged state for re-entry; post-delete undo captures the observation + photo blobs before the Dexie remove and rehydrates on re-entry. The buffer keys observations by `id` (not by a slot like meals), reflecting that observations have no natural key beyond their uuid.
+- **`ConfirmSheet` is extracted as `lib/components/ConfirmSheet.svelte`** in this slice and used by both `/skin` and `/meal`. The CLAUDE.md "second use triggers extraction" rule applies — `/meal`'s inline bottom sheet migrates to it.
+- **Pattern detection (v1.1) treats edits as point-in-time corrections, not new evidence.** Because `createdAt` is preserved, an edit does not look like "two observations close in time" — it looks like the same observation, refined. This matters for the future insight engine's de-duplication.
+- **Photo blobs survive in memory for the undo buffer's lifetime.** A deleted observation with three photos holds those Blobs until the buffer is overwritten or the session ends. Memory ceiling is bounded by "one observation's photos at a time" — single-device single-session, so no concurrent-buffer hazard.

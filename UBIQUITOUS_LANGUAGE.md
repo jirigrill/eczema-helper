@@ -301,11 +301,12 @@ directly. Routes that only read may still import `scheduleContext`.
 
 The store module (`src/lib/stores/skin-observation-session.ts`) that is the **sole seam**
 for reading and writing today's `SkinObservation` records. Shaped like `mealSession`:
-a `readable<SkinObservation[]>` backed by `liveQuery` over today's rows, plus a `save`
-method delegating to `DexieSkinObservationRepository`. It is the only place that imports
-`db` and constructs the adapter for skin observations. Routes subscribe to
-`$skinObservationSession` for reactive reads and call `skinObservationSession.save()`
-for writes; they do not instantiate adapters directly.
+a `readable<SkinObservation[]>` backed by `liveQuery` over today's rows, plus `save`
+(compose), `update` (edit; `{ addPhotos, removePhotoIds }`), and `remove` (delete by
+`id`, cascades to photos) methods delegating to `DexieSkinObservationRepository`. It is
+the only place that imports `db` and constructs the adapter for skin observations.
+Routes subscribe to `$skinObservationSession` for reactive reads and call the verbs
+on `skinObservationSession` for writes; they do not instantiate adapters directly.
 
 [Slice 4](docs/adr/0008-tracer-bullet-slices.md) converts this (and `mealSession` /
 `skinPhotoSession`) into a **date factory** — `createSkinObservationSession(date)` returns
@@ -645,6 +646,10 @@ Read-only timeline of all protocol phases. Shows phase dates, current position,
 ### Snippet
 
 A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup scoped to a single file. Distinct from a *component* (its own `.svelte` file, importable, independently testable). Snippet props (`children`, `right`, `action`) are the mechanism for injecting varying markup into a component shell from the outside.
+
+### ConfirmSheet
+
+A bottom-sheet component (`src/lib/components/ConfirmSheet.svelte`) for destructive confirmation: shaded backdrop + sheet panel with a heading, body copy, a primary action button (typically `bg-primary`, sometimes `bg-danger` via the `confirmVariant` prop), and a secondary cancel button. Used by `/meal` (delete a meal) and `/skin` (delete an observation). Extracted from `/meal`'s previously-inline sheet per the CLAUDE.md "second use triggers extraction" rule when `/skin` edit/delete shipped (2026-06-30). Caller controls open/close state and supplies copy + handlers as props.
 
 ### DayStrip
 *Czech: Pásek dní*

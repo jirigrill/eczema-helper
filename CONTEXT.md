@@ -65,9 +65,23 @@ routine morning check and a later reaction log). The form shape is
 identical on ordinary days and reintro-test days. There is no
 `suspectedCause` field; attribution is not recorded here. Day-overall
 severity is derived as `max(regions)` via `overallSeverity()` and never
-persisted. See ADR-0004 (causation derived), ADR-0021 (regional
-severity shape), and ADR-0021 (klidné as positive evidence — formerly
-ADR-0022, merged in 2026-06-30).
+persisted.
+
+**Identity and mutability.** `id` and `createdAt` are immutable across
+edit, delete, and undo-after-delete — `createdAt` represents the
+witnessing moment, not the row's last-write timestamp. Edits overwrite
+`regions`, `notes`, and the photo set atomically; delete is a hard
+delete cascading to all `SkinPhoto` rows for that observation. The
+`/skin` route handles compose and edit in the same file, discriminated
+by the presence of `?id=` in the URL. The
+`SkinObservationRepository` port exposes four verbs: `save` (compose),
+`update(obs, { addPhotos, removePhotoIds })` (edit), `remove(id)`
+(delete, cascades to photos), and `listByDate(date)` (read).
+
+See ADR-0004 (causation derived), ADR-0021 (regional
+severity shape), ADR-0021 (klidné as positive evidence — formerly
+ADR-0022, merged in 2026-06-30), and ADR-0021 (edit and delete
+preserve identity, 2026-06-30).
 
 ### Region
 One of nine canonical body areas the parent can log on `/skin`: face,
@@ -448,6 +462,14 @@ after data exists is a migration.
   can save.
   See [ADR-0021, klidné amendment](docs/adr/0021-regional-severity-skin-observation.md#amendment--klidné-as-positive-evidence-2026-06-29)
   (originally filed as ADR-0022; merged 2026-06-30).
+- **Observation `id` and `createdAt` are immutable across edit, delete,
+  and undo-after-delete.** `createdAt` represents the *witnessing
+  moment*, not the row's last-write timestamp; an edit (typo in a note,
+  bumped severity) does not retroactively change when the parent looked
+  at the skin. Delete is a hard delete cascading to all `SkinPhoto` rows
+  for that observation. The repository port exposes `save` (compose),
+  `update` (edit), `remove` (delete), `listByDate` (read).
+  See [ADR-0021, edit-and-delete amendment](docs/adr/0021-regional-severity-skin-observation.md#amendment--edit-and-delete-preserve-identity-2026-06-30).
 - **Photo encryption-at-rest deferred past v1** — with a shipping
   constraint: encryption must land before the app reaches any device
   other than the developer's own.
