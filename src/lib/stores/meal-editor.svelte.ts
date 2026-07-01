@@ -9,7 +9,7 @@ import {
 import type { WorkingMeal } from '$lib/domain/working-meal';
 import type { Meal, MealType, MealItem, AllergenId, PortionKind } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
-import type { DiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
+import type { MealDiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
 import { detectConflicts } from '$lib/domain/schedule-queries';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
@@ -129,11 +129,11 @@ export type MealEditor = {
 	 * Decide what (if anything) the next discard buffer should contain.
 	 *
 	 * Without a hint, infers from the editor's own state:
-	 *  - Compose-new with any confirmed/editing food → `{ kind: 'compose', workingMeal }`.
-	 *  - Dirty edit                                  → `{ kind: 'edit', workingMeal }`.
+	 *  - Compose-new with any confirmed/editing food → `{ kind: 'meal-compose', workingMeal }`.
+	 *  - Dirty edit                                  → `{ kind: 'meal-edit', workingMeal }`.
 	 *  - Clean edit / empty compose                  → `null` (nothing to discard).
 	 *
-	 * With `'delete'`, returns `{ kind: 'delete', workingMeal }` regardless of
+	 * With `'delete'`, returns `{ kind: 'meal-delete', workingMeal }` regardless of
 	 * dirtiness — delete is an explicit user action the editor cannot infer
 	 * (the route calls this after `mealSession.remove()` succeeds, threading
 	 * the captured working meal into the buffer for undo).
@@ -143,18 +143,18 @@ export type MealEditor = {
 	 * discard. The route pairs this descriptor with `mealType`/`returnTo`
 	 * before calling `writeBuffer(...)` — the route still owns *when*.
 	 */
-	discardDescriptor(intent?: 'delete'): { kind: DiscardKind; workingMeal: WorkingMeal } | null;
+	discardDescriptor(intent?: 'delete'): { kind: MealDiscardKind; workingMeal: WorkingMeal } | null;
 	/**
 	 * Overlay editor state from a discard-buffer undo. The buffer's `kind`
 	 * decides how `finalize()` will frame the next save:
-	 *  - `'edit'`   → re-fetch the persisted Meal, take the load snapshot from
+	 *  - `'meal-edit'`    → re-fetch the persisted Meal, take the load snapshot from
 	 *                 it (the *original* clean baseline), then overlay the
 	 *                 buffer's working meal. The restored edit therefore reads
 	 *                 as **dirty** — `Uložit změny` is enabled and a second
 	 *                 back-out re-buffers (issue #299).
-	 *  - `'delete'` → the persisted row is gone; treat the next save as a
+	 *  - `'meal-delete'` → the persisted row is gone; treat the next save as a
 	 *                 fresh compose-new (mints a new `createdAt`).
-	 *  - `'compose'`→ slot was empty before; still compose-new.
+	 *  - `'meal-compose'`→ slot was empty before; still compose-new.
 	 *
 	 * `eliminatedToday` is the same value the route passes to `open` and
 	 * repopulates `eliminatedFoodIds` / `hasConflicts` on the undo mount, so
@@ -253,17 +253,17 @@ export function createMealEditor(): MealEditor {
 
 	function discardDescriptor(
 		intent?: 'delete',
-	): { kind: DiscardKind; workingMeal: WorkingMeal } | null {
+	): { kind: MealDiscardKind; workingMeal: WorkingMeal } | null {
 		// Snapshot the live `notes` into the working meal so the buffer
 		// rehydrates whatever the user had typed at the moment of discard.
 		const snapshot: WorkingMeal = { ...workingMeal, notes };
 		if (intent === 'delete') {
-			return { kind: 'delete', workingMeal: snapshot };
+			return { kind: 'meal-delete', workingMeal: snapshot };
 		}
 		if (editingExisting) {
-			return dirty ? { kind: 'edit', workingMeal: snapshot } : null;
+			return dirty ? { kind: 'meal-edit', workingMeal: snapshot } : null;
 		}
-		return isNonEmpty(workingMeal) ? { kind: 'compose', workingMeal: snapshot } : null;
+		return isNonEmpty(workingMeal) ? { kind: 'meal-compose', workingMeal: snapshot } : null;
 	}
 
 	async function applyUndo(
@@ -275,7 +275,7 @@ export function createMealEditor(): MealEditor {
 		eliminatedToday = eliminatedTodayArg;
 		workingMeal = buffer.workingMeal;
 		notes = buffer.workingMeal.notes;
-		if (buffer.kind === 'edit') {
+		if (buffer.kind === 'meal-edit') {
 			// The persisted row is still in Dexie — re-fetch it and use IT as the
 			// load snapshot, so the buffer's (dirty) working meal compares
 			// against the *original* clean baseline. Without this, the editor
@@ -294,7 +294,7 @@ export function createMealEditor(): MealEditor {
 				loadSnapshot = null;
 			}
 		} else {
-			// `delete` (row is gone) and `compose` (was empty) both finalize as
+			// `meal-delete` (row is gone) and `meal-compose` (was empty) both finalize as
 			// fresh compose-new on next save.
 			editingExisting = false;
 			loadedCreatedAt = null;

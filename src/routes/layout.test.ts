@@ -202,7 +202,7 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
   it('FAB sits above the discard toast when both are visible', async () => {
     mockScheduleContext.set(readyContext);
     discardBuffer.set({
-      kind: 'compose',
+      kind: 'meal-compose',
       workingMeal: sampleWorkingMeal,
       mealType: 'breakfast',
       date: today,
@@ -370,7 +370,7 @@ describe('+layout.svelte — discard toast undo', () => {
     });
     mockScheduleContext.set(readyContext);
     writeBuffer({
-      kind: 'delete',
+      kind: 'meal-delete',
       workingMeal: emptyWorkingMeal(),
       mealType: 'breakfast',
       date: pastDate,

@@ -1,22 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
+import { writable } from 'svelte/store';
 import type { SkinObservation } from '$lib/domain/models';
 
 // ── Skin observation session mock ─────────────────────────────
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+const mockUpdate = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+const mockRemove = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+const mockLoadPhotos = vi.fn().mockResolvedValue({ ok: true, data: [] });
+const mockSessionStore = writable<import('$lib/domain/models').SkinObservation[]>([]);
 vi.mock('$lib/stores/skin-observation-session', () => ({
   skinObservationSession: {
-    subscribe: () => () => {},
+    subscribe: mockSessionStore.subscribe,
     save: mockSave,
+    update: mockUpdate,
+    remove: mockRemove,
+    loadPhotos: mockLoadPhotos,
   },
   createSkinObservationSession: () => ({
-    subscribe: () => () => {},
+    subscribe: mockSessionStore.subscribe,
     save: mockSave,
+    update: mockUpdate,
+    remove: mockRemove,
+    loadPhotos: mockLoadPhotos,
   }),
 }));
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({
+  goto: vi.fn(),
+  beforeNavigate: vi.fn(),
+}));
+
+// Discard-buffer mock — the /skin page reads it on mount and writes to it
+// on dirty back-out. Tests observe writeBuffer / clearBuffer calls.
+const mockDiscardBuffer = writable<import('$lib/stores/discard-buffer').DiscardDescriptor | null>(null);
+const mockWriteBuffer = vi.fn((snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) => {
+  mockDiscardBuffer.set(snapshot);
+});
+const mockClearBuffer = vi.fn(() => {
+  mockDiscardBuffer.set(null);
+});
+vi.mock('$lib/stores/discard-buffer', () => ({
+  get discardBuffer() { return mockDiscardBuffer; },
+  writeBuffer: (snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) => mockWriteBuffer(snapshot),
+  clearBuffer: () => mockClearBuffer(),
+}));
 
 // ── Mutable page mock — lets tests control ?date= and ?returnTo= ──
 const mockPage = { url: new URL('http://localhost/skin') };
@@ -28,6 +57,16 @@ const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-$
 beforeEach(async () => {
   mockSave.mockClear();
   mockSave.mockResolvedValue({ ok: true, data: undefined });
+  mockUpdate.mockClear();
+  mockUpdate.mockResolvedValue({ ok: true, data: undefined });
+  mockRemove.mockClear();
+  mockRemove.mockResolvedValue({ ok: true, data: undefined });
+  mockLoadPhotos.mockClear();
+  mockLoadPhotos.mockResolvedValue({ ok: true, data: [] });
+  mockSessionStore.set([]);
+  mockDiscardBuffer.set(null);
+  mockWriteBuffer.mockClear();
+  mockClearBuffer.mockClear();
   const { goto } = await import('$app/navigation');
   vi.mocked(goto).mockClear();
   mockPage.url = new URL('http://localhost/skin');
@@ -603,5 +642,325 @@ describe('skin/+page.svelte — region grid', () => {
 
     const [, photos] = mockSave.mock.calls[0];
     expect(photos).toEqual([]);
+  });
+
+  // ── Edit mode (issue #393) ────────────────────────────────
+
+  function makeObs(overrides: Partial<SkinObservation> = {}): SkinObservation {
+    return {
+      id: 'obs-1',
+      date: today,
+      createdAt: '2026-06-30T09:12:00.000Z',
+      regions: [
+        { id: 'face', level: 2 },
+        { id: 'arms', level: 0 },
+        { id: 'back', level: 0 },
+        { id: 'belly', level: 0 },
+        { id: 'elbow-folds', level: 0 },
+        { id: 'knee-folds', level: 0 },
+        { id: 'legs', level: 0 },
+        { id: 'neck', level: 0 },
+        { id: 'scalp', level: 0 },
+      ],
+      notes: 'itchy',
+      ...overrides,
+    };
+  }
+
+  it('pre-fills regions and note from the loaded observation when ?id= is valid', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await tick();
+    await tick();
+
+    const face = getByTestId('skin-region-face');
+    expect(face.dataset.level).toBe('2');
+    await findByDisplayValue('itchy');
+  });
+
+  it('bounces to returnTo when ?id= names an unknown observation', async () => {
+    mockSessionStore.set([]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=nope&returnTo=/day/${today}`);
+    const { goto } = await import('$app/navigation');
+    const SkinPage = await loadPage();
+    render(SkinPage);
+    await waitFor(
+      () => expect(goto).toHaveBeenCalledWith(`/day/${today}`, { replaceState: true }),
+      { timeout: 2000 },
+    );
+  });
+
+  it('Uložit is disabled on a clean edit (matches load snapshot)', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(save.getAttribute('aria-disabled')).toBe('true');
+    // Edit-mode CTA reads "Uložit změny", not "Uložit pozorování".
+    expect(save.textContent?.trim()).toBe('Uložit změny');
+  });
+
+  it('bumping a region flips dirty=true and enables Uložit', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    // arms starts at level 0 in the fixture; activate + cycle to 1 dirties.
+    const arms = getByTestId('skin-region-arms');
+    await fireEvent.click(arms); // activate
+    await fireEvent.click(arms); // 0→1
+    await tick();
+
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    expect(save.getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it('Uložit calls update() with the preserved id/createdAt and staging options', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    const arms = getByTestId('skin-region-arms');
+    await fireEvent.click(arms);
+    await fireEvent.click(arms); // 0→1
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(mockUpdate).toHaveBeenCalledOnce();
+    const [observation, options] = mockUpdate.mock.calls[0];
+    const obs = observation as SkinObservation;
+    expect(obs.id).toBe('obs-1');
+    expect(obs.createdAt).toBe('2026-06-30T09:12:00.000Z');
+    expect(obs.regions).toContainEqual({ id: 'arms', level: 1 });
+    expect(options).toEqual({ addPhotos: [], removePhotoIds: [] });
+  });
+
+  it('renders persisted photos in the gallery on edit-mode load', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockLoadPhotos.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'photo-a',
+          observationId: 'obs-1',
+          region: 'face' as const,
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: new Blob(['a'], { type: 'image/jpeg' }),
+        },
+      ],
+    });
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { container, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="skin-photo-thumb-0"]')).toBeInTheDocument();
+  });
+
+  it('tapping × on a persisted photo greys it and reveals an Undo affordance', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockLoadPhotos.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'photo-a',
+          observationId: 'obs-1',
+          region: 'face' as const,
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: new Blob(['a'], { type: 'image/jpeg' }),
+        },
+      ],
+    });
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { container, findByDisplayValue, getByTestId } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    // × on the persisted photo enters the "marked for removal" state.
+    await fireEvent.click(getByTestId('skin-photo-delete-0'));
+    await tick();
+
+    const thumb = getByTestId('skin-photo-thumb-0');
+    expect(thumb.dataset.markedForRemoval).toBe('true');
+    // Undo affordance is now present; × is not.
+    expect(container.querySelector('[data-testid="skin-photo-undo-0"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="skin-photo-delete-0"]')).toBeNull();
+    // Save flips to enabled — a staged removal is a dirty edit.
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+  });
+
+  it('tapping Undo restores a persisted photo to active state', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockLoadPhotos.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'photo-a',
+          observationId: 'obs-1',
+          region: 'face' as const,
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: new Blob(['a'], { type: 'image/jpeg' }),
+        },
+      ],
+    });
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { container, findByDisplayValue, getByTestId } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-photo-delete-0')); // mark
+    await tick();
+    await fireEvent.click(getByTestId('skin-photo-undo-0')); // undo
+    await tick();
+
+    const thumb = getByTestId('skin-photo-thumb-0');
+    expect(thumb.dataset.markedForRemoval).toBe('false');
+    expect(container.querySelector('[data-testid="skin-photo-delete-0"]')).toBeInTheDocument();
+    // Save flips back to disabled — undoing the removal restores clean.
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+  });
+
+  it('Uložit forwards addPhotos + removePhotoIds when both are staged', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockLoadPhotos.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'photo-a',
+          observationId: 'obs-1',
+          region: 'face' as const,
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: new Blob(['a'], { type: 'image/jpeg' }),
+        },
+      ],
+    });
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { container, findByDisplayValue, getByTestId } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    // Stage a removal on the persisted photo.
+    await fireEvent.click(getByTestId('skin-photo-delete-0'));
+    await tick();
+    // Stage an add — activate face first (already at level 2 in the fixture).
+    await fireEvent.click(getByTestId('skin-region-face'));
+    await tick();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    await fireEvent.change(fileInput, { target: { files: [file] } });
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(mockUpdate).toHaveBeenCalledOnce();
+    const [, options] = mockUpdate.mock.calls[0];
+    expect(options.addPhotos).toHaveLength(1);
+    expect(options.removePhotoIds).toEqual(['photo-a']);
+  });
+
+  it('back arrow on a dirty edit writes a skin-edit descriptor to the discard buffer', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, getByRole, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    // Dirty the edit.
+    const arms = getByTestId('skin-region-arms');
+    await fireEvent.click(arms);
+    await fireEvent.click(arms); // 0→1
+    await tick();
+
+    // PageHeader renders the back chevron as a plain button with the ‹ glyph.
+    const back = getByRole('button', { name: '‹' });
+    await fireEvent.click(back);
+    await tick();
+
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    const buf = mockWriteBuffer.mock.calls[0][0];
+    if (buf.kind !== 'skin-edit') throw new Error('expected skin-edit descriptor');
+    expect(buf.observationId).toBe('obs-1');
+  });
+
+  it('back arrow on a clean edit does NOT write to the discard buffer', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByRole, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    const back = getByRole('button', { name: '‹' });
+    await fireEvent.click(back);
+    await tick();
+
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+  });
+
+  it('re-entry with a matching skin-edit buffer rehydrates the dirty state and clears the buffer', async () => {
+    // Seed the persisted row + a matching buffer that carries a bumped level.
+    mockSessionStore.set([makeObs()]);
+    mockDiscardBuffer.set({
+      kind: 'skin-edit',
+      observationId: 'obs-1',
+      observation: {
+        ...makeObs(),
+        regions: [
+          { id: 'face', level: 2 },
+          { id: 'arms', level: 3 }, // dirtied vs load snapshot (arms was 0)
+          { id: 'back', level: 0 },
+          { id: 'belly', level: 0 },
+          { id: 'elbow-folds', level: 0 },
+          { id: 'knee-folds', level: 0 },
+          { id: 'legs', level: 0 },
+          { id: 'neck', level: 0 },
+          { id: 'scalp', level: 0 },
+        ],
+      },
+      addPhotos: [],
+      removePhotoIds: [],
+      date: today,
+      returnTo: `/day/${today}`,
+    });
+
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    // Buffered dirty state is applied — arms shows level 3, not 0.
+    const arms = getByTestId('skin-region-arms');
+    expect(arms.dataset.level).toBe('3');
+    // Uložit is enabled because live !== load snapshot.
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    // The buffer was cleared on re-entry.
+    expect(mockClearBuffer).toHaveBeenCalled();
   });
 });

@@ -1,11 +1,14 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
+  import { goto, beforeNavigate } from '$app/navigation';
   import { page } from '$app/state';
   import {
     REGION_IDS,
     type RegionId,
     type RegionLevel,
     type SkinObservation,
+    type SkinPhoto,
     type SkinPhotoInput,
     type SkinRegionRecord,
   } from '$lib/domain/models';
@@ -15,16 +18,24 @@
   import { regionStrings, severityStrings } from '$lib/strings/skin-regions';
   import { severityConfig } from '$lib/config/skin-regions';
   import { formatDateLongCs } from '$lib/utils/date';
-  import { skinObservationSession } from '$lib/stores/skin-observation-session';
+  import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
+  import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import SkinPhotoGallery from '$lib/components/SkinPhotoGallery.svelte';
+  import SkinPhotoGallery, { type SkinPhotoGalleryItem } from '$lib/components/SkinPhotoGallery.svelte';
   import Toast from '$lib/components/Toast.svelte';
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
+  const observationIdParam = $derived(page.url.searchParams.get('id'));
+  const mode = $derived<'compose' | 'edit'>(observationIdParam ? 'edit' : 'compose');
 
   function initialLevels(): Record<RegionId, RegionLevel> {
     return Object.fromEntries(REGION_IDS.map((id) => [id, 0])) as Record<RegionId, RegionLevel>;
   }
+
+  // The date-scoped session drives the same live query the day card uses;
+  // reading the observation for `?id=` from that store keeps edit mode in
+  // sync with the same Dexie writes and lets tests inject a mock cleanly.
+  const session = $derived(createSkinObservationSession(date));
 
   // Per-region severity, defaulting every region to klidné (0). The mother
   // explicitly cycles back through klidné when retiring a region — there is
@@ -34,12 +45,48 @@
   let note = $state('');
   let saving = $state(false);
   let saveError = $state<string | null>(null);
-  let stagedPhotos = $state<SkinPhotoInput[]>([]);
+  // Compose mode collects new photos as `SkinPhotoInput[]`. Edit mode carries
+  // the same list AND a set of persisted-photo ids marked for removal. Both
+  // land in the update() call on Uložit; back-out preserves them for undo.
+  let stagedPhotoAdds = $state<SkinPhotoInput[]>([]);
+  let stagedPhotoRemovals = $state<Set<string>>(new Set());
 
-  // Issue #379, ADR-0021 (klidné amendment): every /skin visit can save. Klidné is positive
-  // evidence — opening the page and tapping Uložit records "I checked, all
-  // calm" for all nine regions. No engagement gate.
-  const canSave = true;
+  // Edit-mode load state — populated by `hydrate()` on mount. `null` on
+  // compose. `loadedObservation` preserves the `id`/`createdAt` that Uložit
+  // must round-trip so the row keeps its timeline position (ADR-0021).
+  let loadedObservation = $state<SkinObservation | null>(null);
+  let persistedPhotos = $state<SkinPhoto[]>([]);
+  /** Snapshot for the dirty gate. `null` on compose. */
+  let loadSnapshot = $state<{
+    levels: Record<RegionId, RegionLevel>;
+    note: string;
+    persistedPhotoIds: string[];
+  } | null>(null);
+
+  function levelsEqual(a: Record<RegionId, RegionLevel>, b: Record<RegionId, RegionLevel>): boolean {
+    return REGION_IDS.every((id) => a[id] === b[id]);
+  }
+
+  const dirty = $derived.by(() => {
+    if (loadSnapshot === null) return false;
+    if (!levelsEqual(levels, loadSnapshot.levels)) return true;
+    if (note.trim() !== loadSnapshot.note) return true;
+    if (stagedPhotoAdds.length > 0) return true;
+    if (stagedPhotoRemovals.size > 0) return true;
+    return false;
+  });
+
+  // Issue #379 / ADR-0021 (klidné amendment): compose keeps Uložit always
+  // enabled — klidné is positive evidence and every page open can save
+  // "I checked, all calm". Edit gates on dirtiness: a clean edit has
+  // nothing to persist and the back arrow is the right exit.
+  const canSave = $derived(mode === 'compose' ? true : dirty);
+  const saveLabel = $derived(
+    mode === 'edit' ? commonStrings.skin.updateLabel : commonStrings.skin.saveLabel,
+  );
+  const saveAriaLabel = $derived(
+    mode === 'edit' ? commonStrings.skin.updateAriaLabel : commonStrings.skin.saveAriaLabel,
+  );
 
   function tapRegion(r: RegionId): void {
     // First tap activates without changing level. Subsequent taps on the
@@ -54,18 +101,42 @@
   }
 
   async function handleSave(): Promise<void> {
-    if (saving) return;
+    if (saving || !canSave) return;
     saving = true;
     saveError = null;
-    // Issue #379 / ADR-0021 (klidné amendment): persist every region as positive evidence. A
-    // region the mother never bumped is klidné (level 0), not unknown.
-    // Saving witnesses "I checked all nine" — absent ≡ unchecked, which we
-    // never want to write.
+    // Persist every region as positive evidence (issue #379 / ADR-0021 klidné
+    // amendment). A region the mother never bumped is klidné (level 0), not
+    // unknown. Saving witnesses "I checked all nine".
     const regions: SkinRegionRecord[] = REGION_IDS.map((id) => ({
       id,
       level: levels[id],
     }));
     const trimmed = note.trim();
+
+    if (mode === 'edit' && loadedObservation) {
+      // Preserve id + createdAt (the witnessing moment is immutable per
+      // ADR-0021 amendment). The adapter also defensively re-reads createdAt
+      // from Dexie, but sending the loaded value keeps the domain call honest.
+      const updated: SkinObservation = {
+        ...loadedObservation,
+        regions,
+        ...(trimmed ? { notes: trimmed } : {}),
+      };
+      if (!trimmed) delete (updated as { notes?: string }).notes;
+      const result = await session.update(updated, {
+        addPhotos: stagedPhotoAdds,
+        removePhotoIds: [...stagedPhotoRemovals],
+      });
+      saving = false;
+      if (result.ok) {
+        // Clean-edit-gate is satisfied — nothing to discard on the way out.
+        goto(returnTo);
+      } else {
+        saveError = commonStrings.skin.saveError;
+      }
+      return;
+    }
+
     const observation: SkinObservation = {
       id: randomUUID(),
       date,
@@ -73,7 +144,7 @@
       regions,
       ...(trimmed ? { notes: trimmed } : {}),
     };
-    const result = await skinObservationSession.save(observation, stagedPhotos);
+    const result = await session.save(observation, stagedPhotoAdds);
     saving = false;
     if (result.ok) {
       goto(returnTo);
@@ -88,18 +159,181 @@
     if (!files) return;
     const region = active;
     const newPhotos: SkinPhotoInput[] = Array.from(files).map((blob) => ({ region, blob }));
-    stagedPhotos = [...stagedPhotos, ...newPhotos];
+    stagedPhotoAdds = [...stagedPhotoAdds, ...newPhotos];
     // Reset the input so the same file can be added again if needed.
     (e.target as HTMLInputElement).value = '';
   }
 
-  function deletePhoto(index: number): void {
-    stagedPhotos = stagedPhotos.filter((_, i) => i !== index);
+  /**
+   * Gallery items concat: persisted photos first (so the index of a staged
+   * add is `persistedPhotos.length + i`), then staged adds. A persisted
+   * photo whose id sits in `stagedPhotoRemovals` renders greyed out — the
+   * gallery repurposes its × as Undo and calls back into `handleGalleryDelete`
+   * with the same index.
+   */
+  const galleryItems = $derived<SkinPhotoGalleryItem[]>([
+    ...persistedPhotos.map((p) => ({
+      blob: p.blob,
+      region: p.region,
+      markedForRemoval: stagedPhotoRemovals.has(p.id),
+    })),
+    ...stagedPhotoAdds.map((p) => ({ blob: p.blob, region: p.region })),
+  ]);
+
+  function handleGalleryDelete(index: number): void {
+    if (index < persistedPhotos.length) {
+      const persisted = persistedPhotos[index];
+      const next = new Set(stagedPhotoRemovals);
+      if (next.has(persisted.id)) {
+        next.delete(persisted.id); // Undo affordance
+      } else {
+        next.add(persisted.id);
+      }
+      stagedPhotoRemovals = next;
+      return;
+    }
+    const stagedIdx = index - persistedPhotos.length;
+    stagedPhotoAdds = stagedPhotoAdds.filter((_, i) => i !== stagedIdx);
+  }
+
+  /**
+   * Load an observation by id from the day session, take the load snapshot,
+   * pre-fill live state. Called once on mount when the URL carries `?id=`.
+   * Unknown id → forgiving bounce (matches /meal's unknown-slot guard).
+   */
+  async function hydrate(): Promise<void> {
+    if (mode !== 'edit' || !observationIdParam) return;
+
+    // Buffer takes precedence when the user is re-entering after a dirty
+    // back-out. If the buffer descriptor targets this exact observation id,
+    // rehydrate live state from it and clear it. The load snapshot is still
+    // taken from the persisted row so the restored dirty edit stays dirty
+    // and Uložit stays enabled (matches /meal's issue #299 pattern).
+    const buf = get(discardBuffer);
+    if (buf && buf.kind === 'skin-edit' && buf.observationId === observationIdParam) {
+      clearBuffer();
+      // Fall through to seed the load snapshot below; then overlay buffered
+      // live state on top.
+      const rest = await loadFromSession(observationIdParam);
+      if (!rest) return;
+      // Buffered edits win over the persisted values.
+      levels = observationRegionsToLevels(buf.observation.regions);
+      note = buf.observation.notes ?? '';
+      stagedPhotoAdds = buf.addPhotos;
+      stagedPhotoRemovals = new Set(buf.removePhotoIds);
+      return;
+    }
+
+    await loadFromSession(observationIdParam);
+  }
+
+  async function loadFromSession(id: string): Promise<boolean> {
+    // The session is Dexie-liveQuery backed and hasn't necessarily emitted
+    // yet on mount — its initial value is `[]`. Wait for the first emission
+    // that contains the target id, or give the query a fair chance to run
+    // and confirm the id genuinely doesn't exist. This avoids a race where
+    // freshly-navigated edit URLs bounce back to the day view even though
+    // the observation is in Dexie.
+    const observations = await waitForObservations(id);
+    const found = observations.find((o) => o.id === id);
+    if (!found) {
+      goto(returnTo, { replaceState: true });
+      return false;
+    }
+    loadedObservation = found;
+    levels = observationRegionsToLevels(found.regions);
+    note = found.notes ?? '';
+    const photosResult = await session.loadPhotos(id);
+    persistedPhotos = photosResult.ok ? photosResult.data : [];
+    loadSnapshot = {
+      levels: { ...levels },
+      note: note.trim(),
+      persistedPhotoIds: persistedPhotos.map((p) => p.id).sort(),
+    };
+    return true;
+  }
+
+  /**
+   * Resolve on the first liveQuery emission that contains the target id, or
+   * on the first emission after a short grace window if it never appears.
+   * The grace window keeps the unknown-id bounce responsive while giving a
+   * real load enough time to populate the store on first mount.
+   */
+  function waitForObservations(id: string): Promise<SkinObservation[]> {
+    // Fast path: the store already carries the target.
+    const current = get(session);
+    if (current.some((r) => r.id === id)) return Promise.resolve(current);
+    return new Promise((resolve) => {
+      let lastValue: SkinObservation[] = current;
+      let resolved = false;
+      const unsubscribe = session.subscribe((rows) => {
+        lastValue = rows;
+        if (rows.some((r) => r.id === id) && !resolved) {
+          resolved = true;
+          unsubscribe();
+          resolve(rows);
+        }
+      });
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          unsubscribe();
+          resolve(lastValue);
+        }
+      }, 500);
+    });
+  }
+
+  function observationRegionsToLevels(
+    regions: readonly SkinRegionRecord[],
+  ): Record<RegionId, RegionLevel> {
+    const next = initialLevels();
+    for (const r of regions) next[r.id] = r.level;
+    return next;
+  }
+
+  onMount(() => {
+    void hydrate();
+  });
+
+  /**
+   * When the user backs out with pending edits, snapshot the live state into
+   * the discard buffer so re-entry can restore it. The route decides *when*
+   * to write; the layout's undo toast decides *how* to navigate back.
+   */
+  function bufferSnapshotIfDirty(): void {
+    if (mode !== 'edit' || !loadedObservation || !dirty) return;
+    const regions: SkinRegionRecord[] = REGION_IDS.map((id) => ({ id, level: levels[id] }));
+    const trimmed = note.trim();
+    const observationSnapshot: SkinObservation = {
+      ...loadedObservation,
+      regions,
+      ...(trimmed ? { notes: trimmed } : {}),
+    };
+    if (!trimmed) delete (observationSnapshot as { notes?: string }).notes;
+    writeBuffer({
+      kind: 'skin-edit',
+      observationId: loadedObservation.id,
+      observation: observationSnapshot,
+      addPhotos: stagedPhotoAdds,
+      removePhotoIds: [...stagedPhotoRemovals],
+      date,
+      returnTo,
+    });
   }
 
   function handleBack(): void {
+    bufferSnapshotIfDirty();
     goto(returnTo);
   }
+
+  // Popstate guard (system back gesture): the explicit back arrow above
+  // arrives as a `goto`, so we act only on `popstate` — writing the buffer
+  // by exactly one path per navigation.
+  beforeNavigate((nav) => {
+    if (nav.type !== 'popstate') return;
+    bufferSnapshotIfDirty();
+  });
 </script>
 
 <div class="page-container pb-28">
@@ -189,9 +423,9 @@
         </div>
       {/if}
 
-      {#if stagedPhotos.length > 0}
+      {#if galleryItems.length > 0}
         <div class="mt-3">
-          <SkinPhotoGallery photos={stagedPhotos} onDelete={deletePhoto} />
+          <SkinPhotoGallery photos={galleryItems} onDelete={handleGalleryDelete} />
         </div>
       {/if}
     </section>
@@ -220,13 +454,14 @@
     <button
       type="button"
       data-testid="skin-save"
-      aria-label={commonStrings.skin.saveAriaLabel}
+      aria-label={saveAriaLabel}
+      aria-disabled={(!canSave || saving) ? 'true' : 'false'}
       disabled={!canSave || saving}
       onclick={handleSave}
       class="w-full py-3 rounded-xl font-semibold text-sm transition-all
         {canSave ? 'bg-primary text-white' : 'bg-surface-dark text-text-muted cursor-default'}"
     >
-      {commonStrings.skin.saveLabel}
+      {saveLabel}
     </button>
   </div>
 </div>

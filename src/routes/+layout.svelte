@@ -58,9 +58,15 @@
   function handleDiscardUndo(): void {
     const buf = $discardBuffer;
     if (!buf) return;
-    // Don't clearBuffer here — meal page reads + clears it on mount.
+    // Don't clearBuffer here — the target page reads + clears it on mount.
     // Only navigate; onClose will be called by Toast after this, but we guard it.
     discardUndoFired = true;
+    if (buf.kind === 'skin-edit' || buf.kind === 'skin-delete') {
+      goto(
+        `/skin?date=${buf.date}&id=${buf.observationId}&returnTo=${encodeURIComponent(buf.returnTo)}`,
+      );
+      return;
+    }
     goto(`/meal?type=${buf.mealType}&date=${buf.date}&returnTo=${encodeURIComponent(buf.returnTo)}`);
   }
 
@@ -73,19 +79,20 @@
     discardUndoFired = false;
   }
 
-  // ── Discard toast routing (issue #277) ─────────────────────
-  // The layout doesn't know what just happened on /meal — that context is
-  // carried in the buffer's `kind` discriminator. Map each kind to the
-  // matching Czech-grammar-correct string; the back-out paths and the
-  // delete path each set their own kind, so we never have to reverse-engineer
-  // here.
+  // ── Discard toast routing (issue #277, extended for /skin per ADR-0021) ─
+  // The layout doesn't know what just happened on the source page — that
+  // context is carried in the buffer's `kind` discriminator. Map each kind
+  // to the matching Czech-grammar-correct string; the back-out paths and the
+  // delete path each set their own kind, so we never reverse-engineer here.
   const discardMessage = $derived(() => {
     const buf = $discardBuffer;
     if (!buf) return '';
     switch (buf.kind) {
-      case 'compose': return commonStrings.meal.discardedComposeToast;
-      case 'edit':    return commonStrings.meal.discardedEditToast;
-      case 'delete':  return commonStrings.meal.deletedToast;
+      case 'meal-compose': return commonStrings.meal.discardedComposeToast;
+      case 'meal-edit':    return commonStrings.meal.discardedEditToast;
+      case 'meal-delete':  return commonStrings.meal.deletedToast;
+      case 'skin-edit':    return commonStrings.skin.discardedEditToast;
+      case 'skin-delete':  return commonStrings.skin.deletedToast;
     }
   });
 
