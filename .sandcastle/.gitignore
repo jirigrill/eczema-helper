@@ -1,3 +1,6 @@
 .env
 logs/
 worktrees/
+# staged by `just sandcastle-build` for the Dockerfile's warmup step; cleaned up on exit
+package.json
+bun.lock

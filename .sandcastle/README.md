@@ -6,7 +6,7 @@ Autonomous coding agents that work through GitHub issues, open PRs, and verify w
 
 - Docker Desktop running
 - `.sandcastle/.env` configured (copy from `.env.example`)
-- `sandcastle:eczema-helper` Docker image built
+- `sandcastle:atopic_helper` Docker image built
 
 ## Setup
 
@@ -14,17 +14,19 @@ Autonomous coding agents that work through GitHub issues, open PRs, and verify w
 cp .sandcastle/.env.example .sandcastle/.env
 # fill in ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY, GH_TOKEN
 
-npx sandcastle docker build-image
+just sandcastle-build
 ```
+
+The image bakes a warm Bun install cache from `bun.lock` (see `Dockerfile` `warmup` step). Rebuild the image any time you add/remove dependencies — the cache tracks the lockfile snapshot, not the live lockfile. `just sandcastle-build` stages `package.json` + `bun.lock` into `.sandcastle/` for Docker's build context and cleans up on exit.
 
 ## Commands
 
 ```bash
 # Run agents for a PRD (planner + parallel workers)
-npx tsx .sandcastle/main.ts <prd-issue-number>
+bunx tsx .sandcastle/main.ts <prd-issue-number>
 
 # Example
-npx tsx .sandcastle/main.ts 284
+bunx tsx .sandcastle/main.ts 284
 
 # Watch a worker's live output
 tail -f .sandcastle/logs/<logfile>.log
@@ -70,13 +72,13 @@ git branch -D agent/ralph-issue-<N>  # delete stale branches
 ## Troubleshooting
 
 **`bun: not found` inside container**
-Dockerfile missing Bun install. Rebuild: `npx sandcastle docker build-image`
+Dockerfile missing Bun install. Rebuild: `just sandcastle-build`
 
 **`gh auth login` error / GH_TOKEN missing**
-Add `GH_TOKEN=<token>` to `.sandcastle/.env`. Get token: `ghp auth token`
+Add `GH_TOKEN=<token>` to `.sandcastle/.env`. Get a token via `gh auth token` (or `ghp auth token` on machines where the wrapper unsets `GH_HOST`/`GH_TOKEN` for enterprise auth). Sandcastle injects the value into the container, bypassing whatever your host shell has set — so a mis-set `GH_TOKEN` env var on your host doesn't affect worker auth as long as `.sandcastle/.env` is correct.
 
-**`Image 'sandcastle:eczema-helper' not found`**
-Run `npx sandcastle docker build-image` first.
+**`Image 'sandcastle:atopic_helper' not found`**
+Run `just sandcastle-build` first.
 
 **Planner returns no actionable issues**
 Issues may reference closed blockers — planner checks `gh issue view <N>` to confirm. If still empty, verify open issues reference the PRD number in their body.
@@ -95,3 +97,19 @@ Safe to delete — only failed runs leave branches behind:
 ```bash
 git branch | grep agent/ralph | xargs git branch -D
 ```
+
+**`CopyToWorktreeTimeoutError: Copying files to worktree timed out after 60000ms`**
+Sandcastle was copying `node_modules` (~250 MB) into each worker's worktree. Fixed: `copyToWorktree` was removed from `main.ts` — the container's `onSandboxReady: bun install` hook rebuilds `node_modules` correctly for Linux (macOS-native binaries would fail in-container anyway).
+
+**`bun install` hook fails with "Fail extracting tarball for X" (e.g. `lightningcss-linux-arm64-musl`)**
+Transient tarball extraction race — often hits one of three parallel workers when they all fetch from `registry.npmjs.org` simultaneously. Fixed by baking the Bun install cache into the Docker image (see Dockerfile `warmup` step). Cache lives at `/home/agent/.bun/install/cache` — outside the worktree bind mount, so it survives runtime. If a new dep is added and this recurs, rebuild the image (see below).
+
+**Rebuilding the image after `bun.lock` changes**
+The Dockerfile bakes tarballs for every entry in the current `bun.lock` at build time. Any `bun add`/`bun remove` that mutates the lockfile leaves the image cache stale — the next worker run will hit the network for the missing dep. Rebuild the image so the cache tracks the new lockfile:
+```bash
+just sandcastle-build
+```
+Skip if you've only added/removed devDependencies you don't need in the container (rare).
+
+**Hook timed out after 60000ms**
+Sandcastle's default hook timeout is 60 s. `bun install` and `playwright install chromium` on a cold cache easily exceed this. Fixed: hooks in `main.ts` explicitly set `timeoutMs: 300_000` (5 min) for `bun install` and `600_000` (10 min) for Playwright.

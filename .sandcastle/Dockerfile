@@ -43,6 +43,18 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Add Claude to PATH
 ENV PATH="/home/agent/.local/bin:$PATH"
 
+# Warm the Bun install cache at /home/agent/.bun/install/cache by installing
+# dependencies once in a scratch directory. The bind-mounted worktree at
+# /home/agent/workspace overlays anything at that path at runtime, so we
+# populate the *cache* (which lives outside the mount) rather than a bakeable
+# node_modules. `bun install` in the hook then hydrates from the local cache,
+# eliminating network flakes like lightningcss tarball extraction failures.
+# Files staged into .sandcastle/ by `just sandcastle-build`; see justfile.
+# Rebuild the image after any change to package.json or bun.lock.
+RUN mkdir -p /home/agent/warmup
+COPY --chown=agent:agent package.json bun.lock /home/agent/warmup/
+RUN cd /home/agent/warmup && bun install && rm -rf node_modules
+
 WORKDIR /home/agent
 
 # In worktree sandbox mode, Sandcastle bind-mounts the git worktree at /home/agent/workspace
