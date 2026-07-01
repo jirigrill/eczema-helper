@@ -52,8 +52,9 @@
       {#each sortedObservations as obs (obs.id)}
         {@const bumped = bumpedRegions(obs)}
         {@const hasNotes = !!obs.notes && obs.notes.length > 0}
-        <div
+        <a
           data-testid="skin-observation-row"
+          href="/skin?date={obs.date}&id={obs.id}&returnTo=/day/{date}"
           class="py-2 flex gap-3 {hasNotes ? 'items-start' : 'items-center'}"
         >
           <div
@@ -79,7 +80,7 @@
               <div class="text-[11px] text-text-muted/80 italic truncate mt-1">„{obs.notes}"</div>
             {/if}
           </div>
-        </div>
+        </a>
       {/each}
     </div>
   {/if}

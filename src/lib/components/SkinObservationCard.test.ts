@@ -247,23 +247,36 @@ describe('SkinObservationCard', () => {
     expect(queryByTestId('day-card-right')).toBeNull();
   });
 
-  // ── Rows are read-only ──────────────────────────────────────
-  it('observation rows are not wrapped in anchors (read-only)', async () => {
-    const obs = makeObservation({ regions: [{ id: 'face', level: 1 }] });
+  // ── Rows are edit-mode links ────────────────────────────────
+  it('observation rows are <a> elements linking to /skin with date, id, and returnTo', async () => {
+    const obsA = makeObservation({ id: 'obs-a', regions: [{ id: 'face', level: 1 }] });
+    const obsB = makeObservation({
+      id: 'obs-b',
+      createdAt: `${DATE}T11:00:00.000`,
+      regions: [{ id: 'belly', level: 2 }],
+    });
     const { container } = render(SkinObservationCard, {
-      props: { observations: [obs], date: DATE },
+      props: { observations: [obsA, obsB], date: DATE },
     });
     await tick();
 
     const rows = container.querySelectorAll<HTMLElement>('[data-testid="skin-observation-row"]');
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
     for (const row of rows) {
-      // No <a> may be an ancestor of an observation row.
-      expect(row.closest('a')).toBeNull();
+      // The row IS the anchor (testid moved onto the <a>).
+      expect(row.tagName).toBe('A');
     }
-    // And since observations exist, the empty-state CTA must be gone too →
-    // there are zero <a> elements anywhere in the card.
-    expect(container.querySelectorAll('a')).toHaveLength(0);
+    // Each anchor points to /skin with the observation's own date + id +
+    // a returnTo pointing back to the day it was rendered on.
+    expect(rows[0].getAttribute('href')).toBe(
+      `/skin?date=${DATE}&id=obs-a&returnTo=/day/${DATE}`
+    );
+    expect(rows[1].getAttribute('href')).toBe(
+      `/skin?date=${DATE}&id=obs-b&returnTo=/day/${DATE}`
+    );
+    // Empty-state CTA must be gone (observations exist), so the only anchors
+    // in the card are the observation rows themselves.
+    expect(container.querySelectorAll('a')).toHaveLength(2);
   });
 
   // ── Notes optional ─────────────────────────────────────────
