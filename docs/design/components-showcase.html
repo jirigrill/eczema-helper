@@ -720,7 +720,7 @@
   <!-- ─── SkinPhotoGallery ─────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/SkinPhotoGallery.svelte -->
   <div class="component-section" id="skin-photo-gallery">
-    <p class="component-label">▸ <span>SkinPhotoGallery</span> — photos: SkinPhotoInput[], onDelete: (index: number) =&gt; void</p>
+    <p class="component-label">▸ <span>SkinPhotoGallery</span> — photos: SkinPhotoGalleryItem[], onDelete: (index: number) =&gt; void</p>
     <div class="variant-row">
 
       <div class="variant-tile" style="width:280px">
@@ -756,6 +756,36 @@
             </div>
             <button class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
             <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">Paže</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="variant-tile" style="width:280px">
+        <p class="variant-name">edit mode: mixed active + marked-for-removal</p>
+        <div class="grid grid-cols-3 gap-2">
+          <!-- active persisted -->
+          <div class="relative aspect-square">
+            <div class="w-full h-full bg-surface-dark rounded-xl flex items-center justify-center">
+              <span class="text-2xl opacity-30">🖼</span>
+            </div>
+            <button class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
+            <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">Tváře</span>
+          </div>
+          <!-- marked for removal — greyed with undo affordance -->
+          <div class="relative aspect-square opacity-40">
+            <div class="w-full h-full bg-surface-dark rounded-xl flex items-center justify-center">
+              <span class="text-2xl opacity-30">🖼</span>
+            </div>
+            <button class="absolute top-1 right-1 h-5 rounded-full bg-black/60 text-white text-[10px] font-medium px-1.5 flex items-center leading-none">↺</button>
+            <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">Paže</span>
+          </div>
+          <!-- staged add -->
+          <div class="relative aspect-square">
+            <div class="w-full h-full bg-surface-dark rounded-xl flex items-center justify-center">
+              <span class="text-2xl opacity-30">🖼</span>
+            </div>
+            <button class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
+            <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">Krk</span>
           </div>
         </div>
       </div>

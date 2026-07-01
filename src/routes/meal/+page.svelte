@@ -98,18 +98,21 @@
     if (editorMounted) return;
     editorMounted = true;
     const buf = get(discardBuffer);
-    if (buf && buf.mealType === selectedMealType) {
+    const isMealBuf =
+      buf !== null &&
+      (buf.kind === 'meal-compose' || buf.kind === 'meal-edit' || buf.kind === 'meal-delete');
+    if (isMealBuf && buf.mealType === selectedMealType) {
       // Undo: we navigated back to the slot the buffer was captured for.
       // The buffer is captured for back-out (compose or edit) AND post-delete
       // restores. The right edit-vs-compose framing depends on `kind`:
-      //  - `delete`: the persisted meal is gone from Dexie → finalize must
+      //  - `meal-delete`: the persisted meal is gone from Dexie → finalize must
       //    mint a fresh record (compose-new), so `editingExisting = false`.
-      //  - `edit`:   the persisted meal is still in Dexie → re-treat as edit;
+      //  - `meal-edit`:   the persisted meal is still in Dexie → re-treat as edit;
       //    finalize updates in place. The load snapshot is taken from the
       //    persisted record so the rehydrated dirty edit still reads dirty
       //    (issue #299): Uložit změny stays enabled and a second back-out
       //    re-buffers rather than silently dropping the user's restored work.
-      //  - `compose`: the slot was empty before, still empty → compose-new.
+      //  - `meal-compose`: the slot was empty before, still empty → compose-new.
       // `eliminatedToday` is threaded so per-food danger styling and the red
       // CTA reappear after undo.
       clearBuffer();

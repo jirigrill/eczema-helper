@@ -1,23 +1,28 @@
 import { writable } from 'svelte/store';
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import type { MealType } from '$lib/domain/models';
+import type {
+  MealType,
+  SkinObservation,
+  SkinPhoto,
+  SkinPhotoInput,
+} from '$lib/domain/models';
 
 /**
- * What kind of action produced this discard buffer (issue #277, ADR-0018).
+ * Discriminated union of everything that can land in the in-memory discard
+ * buffer (issue #277 / ADR-0018 / ADR-0021 amendment). Each `kind` names both
+ * the domain (`meal-*` vs `skin-*`) and the action (compose / edit / delete)
+ * so the layout-level toast, the meal route, and the skin route can each
+ * ignore descriptors that don't belong to them without runtime shape checks.
  *
- * The layout-level toast picks its message from `kind`, not from anything it
- * could derive on its own — by the time the toast renders, the meal page is
- * already unmounted and the only context the layout has is what the buffer
- * carries.
- *
- * - `compose` → "Jídlo neuloženo" (a fresh draft was discarded)
- * - `edit`    → "Změny neuloženy" (unsaved edits to a saved meal were dropped)
- * - `delete`  → "Jídlo smazáno"   (the saved meal was removed; undo re-saves)
+ * Store still holds at most one descriptor at a time — writing a new one
+ * discards whatever was there before.
  */
-export type DiscardKind = 'compose' | 'edit' | 'delete';
+export type MealDiscardKind = 'meal-compose' | 'meal-edit' | 'meal-delete';
+export type SkinDiscardKind = 'skin-edit' | 'skin-delete';
+export type DiscardKind = MealDiscardKind | SkinDiscardKind;
 
 export type DiscardedMeal = {
-  kind: DiscardKind;
+  kind: MealDiscardKind;
   workingMeal: WorkingMeal;
   mealType: MealType;
   /**
@@ -30,9 +35,37 @@ export type DiscardedMeal = {
   returnTo: string;
 };
 
-export const discardBuffer = writable<DiscardedMeal | null>(null);
+export type DiscardedSkinEdit = {
+  kind: 'skin-edit';
+  observationId: string;
+  observation: SkinObservation;
+  addPhotos: SkinPhotoInput[];
+  removePhotoIds: string[];
+  date: string;
+  returnTo: string;
+};
 
-export function writeBuffer(snapshot: DiscardedMeal): void {
+export type DiscardedSkinDelete = {
+  kind: 'skin-delete';
+  observationId: string;
+  observation: SkinObservation;
+  addPhotos: SkinPhotoInput[];
+  removePhotoIds: string[];
+  /**
+   * Full photo rows (blob + metadata) captured at the moment of delete so an
+   * undo re-materializes the observation with every original photo. Kept in
+   * memory only for the buffer's lifetime — see ADR-0021 amendment.
+   */
+  photoBlobs: SkinPhoto[];
+  date: string;
+  returnTo: string;
+};
+
+export type DiscardDescriptor = DiscardedMeal | DiscardedSkinEdit | DiscardedSkinDelete;
+
+export const discardBuffer = writable<DiscardDescriptor | null>(null);
+
+export function writeBuffer(snapshot: DiscardDescriptor): void {
   discardBuffer.set(snapshot);
 }
 

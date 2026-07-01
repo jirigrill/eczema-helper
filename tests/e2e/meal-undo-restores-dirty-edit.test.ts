@@ -191,7 +191,7 @@ test('edit: a SECOND back-out after Zpět writes a fresh discard buffer (no sile
   });
   expect(bufState).not.toBeNull();
   const buf = bufState as { kind: string; workingMeal: { families: { foods: { foodId: string }[] }[] } };
-  expect(buf.kind).toBe('edit');
+  expect(buf.kind).toBe('meal-edit');
   const foodIds = buf.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId)).sort();
   expect(foodIds).toContain('kravske-mleko');
   expect(foodIds).toContain('brambory');

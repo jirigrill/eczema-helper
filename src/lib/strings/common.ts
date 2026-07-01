@@ -306,6 +306,22 @@ export const commonStrings = {
     saveError:         'Uložení se nezdařilo. Zkus to znovu.',
     /** Prefix for the contextual photo-add button; region label is appended. */
     addPhotoPrefix:    'Přidat fotku · ',
+    /**
+     * CTA label in edit mode. Named the change rather than the observation
+     * type so `Uložit změny` reads consistently across /meal and /skin.
+     */
+    updateLabel:       'Uložit změny',
+    /** Aria label paired with `updateLabel`. */
+    updateAriaLabel:   'Uložit změny pozorování',
+    /**
+     * Toast shown when a dirty edit is discarded via back-out. Silent on a
+     * clean edit — nothing changed, so no message is warranted.
+     */
+    discardedEditToast: 'Změny neuloženy',
+    /** Toast shown after an explicit delete (undo restores the observation). */
+    deletedToast:      'Pozorování smazáno',
+    /** Aria label for the undo action on a greyed-out persisted-photo tile. */
+    undoPhotoRemoval:  'Vrátit snímek',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────

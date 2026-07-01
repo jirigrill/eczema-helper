@@ -274,7 +274,7 @@ describe('createMealEditor — discardDescriptor()', () => {
 
     const desc = editor.discardDescriptor();
     expect(desc).not.toBeNull();
-    expect(desc!.kind).toBe('compose');
+    expect(desc!.kind).toBe('meal-compose');
     expect(desc!.workingMeal.notes).toBe('compose draft notes');
     expect(desc!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId))).toEqual([
       'brambory',
@@ -304,7 +304,7 @@ describe('createMealEditor — discardDescriptor()', () => {
 
     const desc = editor.discardDescriptor();
     expect(desc).not.toBeNull();
-    expect(desc!.kind).toBe('edit');
+    expect(desc!.kind).toBe('meal-edit');
     expect(desc!.workingMeal.notes).toBe('changed mid-edit');
   });
 
@@ -321,7 +321,7 @@ describe('createMealEditor — discardDescriptor()', () => {
 
     const desc = editor.discardDescriptor('delete');
     expect(desc).not.toBeNull();
-    expect(desc!.kind).toBe('delete');
+    expect(desc!.kind).toBe('meal-delete');
     expect(desc!.workingMeal.notes).toBe('will be removed');
     expect(desc!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId))).toEqual([
       'brambory',
@@ -349,13 +349,13 @@ describe('createMealEditor — applyUndo()', () => {
     editor1.update((m) => confirmFood(m, 'vegetables', 'mrkev'));
     editor1.notes = 'dirty edit notes';
     const desc = editor1.discardDescriptor();
-    expect(desc?.kind).toBe('edit');
+    expect(desc?.kind).toBe('meal-edit');
 
     // Fresh editor (page remounted on undo navigation): apply the buffer.
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'lunch', date, returnTo: '/day/2024-10-06' },
+      { kind: 'meal-edit', workingMeal: desc!.workingMeal, mealType: 'lunch', date, returnTo: '/day/2024-10-06' },
     );
 
     expect(editor2.finalizeKind).toBe('edit');
@@ -386,13 +386,13 @@ describe('createMealEditor — applyUndo()', () => {
     editor1.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
     expect(editor1.hasConflicts).toBe(true);
     const desc = editor1.discardDescriptor();
-    expect(desc?.kind).toBe('edit');
+    expect(desc?.kind).toBe('meal-edit');
 
     // Fresh editor on undo navigation: applyUndo with eliminatedToday.
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'breakfast' },
-      { kind: 'edit', workingMeal: desc!.workingMeal, mealType: 'breakfast', date, returnTo: `/day/${date}` },
+      { kind: 'meal-edit', workingMeal: desc!.workingMeal, mealType: 'breakfast', date, returnTo: `/day/${date}` },
       ['dairy'],
     );
 
@@ -416,14 +416,14 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: 'edit', workingMeal: desc.workingMeal, mealType: 'lunch', date, returnTo: `/day/${date}` },
+      { kind: 'meal-edit', workingMeal: desc.workingMeal, mealType: 'lunch', date, returnTo: `/day/${date}` },
     );
 
     // Second back-out: editor must report a non-null descriptor with the
     // restored mrkev still in the working meal.
     const desc2 = editor2.discardDescriptor();
     expect(desc2).not.toBeNull();
-    expect(desc2!.kind).toBe('edit');
+    expect(desc2!.kind).toBe('meal-edit');
     expect(
       desc2!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId)).sort(),
     ).toEqual(['brambory', 'mrkev']);
@@ -466,7 +466,7 @@ describe('createMealEditor — applyUndo()', () => {
     await editor.applyUndo(
       { date, mealType: 'lunch' },
       {
-        kind: 'delete',
+        kind: 'meal-delete',
         workingMeal: {
           notes: 'restored',
           families: [
@@ -505,7 +505,7 @@ describe('createMealEditor — applyUndo()', () => {
     await editor.applyUndo(
       { date, mealType: 'breakfast' },
       {
-        kind: 'compose',
+        kind: 'meal-compose',
         workingMeal: {
           notes: 'draft',
           families: [
