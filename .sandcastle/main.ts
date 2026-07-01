@@ -91,12 +91,11 @@ for (const [batchIdx, batch] of batches.entries()) {
             type: "branch",
             branch: `agent/ralph-issue-${issue.number}`,
           },
-          copyToWorktree: ["node_modules"],
           hooks: {
             sandbox: {
               onSandboxReady: [
-                { command: "bun install" },
-                { command: "bunx playwright install chromium" },
+                { command: "bun install", timeoutMs: 300_000 },
+                { command: "bunx playwright install chromium", timeoutMs: 600_000 },
               ],
             },
           },
