@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
 import { AtopicDb } from '$lib/db/atopic-db';
-import type { SkinObservation, SkinPhotoInput, RegionLevel, SkinRegionRecord } from '$lib/domain/models';
+import type {
+  SkinObservation,
+  SkinPhoto,
+  SkinPhotoInput,
+  RegionLevel,
+  SkinRegionRecord,
+} from '$lib/domain/models';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -400,5 +406,101 @@ describe('DexieSkinObservationRepository', () => {
     const result = await repo.remove('obs-nonexistent');
     expect(result).toMatchObject({ ok: false });
     if (!result.ok) expect(result.error).toContain('delete fail');
+  });
+
+  // ── restore() ────────────────────────────────────────────────
+
+  function makePhotoRow(overrides?: Partial<SkinPhoto>): SkinPhoto {
+    return {
+      id: 'photo-id',
+      observationId: 'obs-restore',
+      region: 'face',
+      capturedAt: '2026-06-30T09:12:00.000Z',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+      ...overrides,
+    };
+  }
+
+  it('restore reinserts observation with id and createdAt intact', async () => {
+    const obs = makeObservation('2026-05-27', {
+      id: 'obs-restore',
+      createdAt: '2026-05-27T08:00:00.000Z',
+      notes: 'restored',
+    });
+    const result = await repo.restore(obs, []);
+    expect(result).toMatchObject({ ok: true });
+
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) {
+      expect(list.data).toHaveLength(1);
+      expect(list.data[0].id).toBe('obs-restore');
+      expect(list.data[0].createdAt).toBe('2026-05-27T08:00:00.000Z');
+      expect(list.data[0].notes).toBe('restored');
+    }
+  });
+
+  it('restore inserts photos verbatim (id, region, capturedAt round-trip)', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-restore' });
+    const photo = makePhotoRow({
+      id: 'photo-preserved',
+      observationId: 'obs-restore',
+      region: 'belly',
+      capturedAt: '2026-05-27T09:12:00.000Z',
+    });
+    const result = await repo.restore(obs, [photo]);
+    expect(result).toMatchObject({ ok: true });
+
+    const rows = await db.photos.where('observationId').equals('obs-restore').toArray();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('photo-preserved');
+    expect(rows[0].region).toBe('belly');
+    expect(rows[0].capturedAt).toBe('2026-05-27T09:12:00.000Z');
+  });
+
+  it('restore rejects when a photo id already belongs to a different observation', async () => {
+    // Seed a different observation that owns the photo id we will try to reuse.
+    const other = makeObservation('2026-05-27', { id: 'obs-other' });
+    await repo.save(other, []);
+    await db.photos.put({
+      id: 'photo-collide',
+      observationId: 'obs-other',
+      region: 'face',
+      capturedAt: '2026-05-27T08:00:00.000Z',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+    });
+
+    const obs = makeObservation('2026-05-27', { id: 'obs-restore' });
+    const result = await repo.restore(obs, [
+      makePhotoRow({ id: 'photo-collide', observationId: 'obs-restore' }),
+    ]);
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toMatch(/photo/i);
+
+    // Neither the observation nor its photo landed.
+    const list = await repo.listByDate('2026-05-27');
+    if (list.ok) expect(list.data.some((o) => o.id === 'obs-restore')).toBe(false);
+    const photo = await db.photos.get('photo-collide');
+    expect(photo?.observationId).toBe('obs-other');
+  });
+
+  it('restore rolls back the observation when the photos write throws', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-restore-rb' });
+    vi.spyOn(db.photos, 'bulkPut').mockRejectedValueOnce(new Error('photos boom'));
+
+    const result = await repo.restore(obs, [makePhotoRow({ id: 'photo-a', observationId: 'obs-restore-rb' })]);
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('photos boom');
+
+    const list = await repo.listByDate('2026-05-27');
+    if (list.ok) expect(list.data.some((o) => o.id === 'obs-restore-rb')).toBe(false);
+    expect(await db.photos.get('photo-a')).toBeUndefined();
+  });
+
+  it('restore returns Err when DB throws', async () => {
+    vi.spyOn(db.skin_observations, 'put').mockRejectedValueOnce(new Error('restore fail'));
+    const result = await repo.restore(makeObservation('2026-05-27', { id: 'obs-err' }), []);
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('restore fail');
   });
 });

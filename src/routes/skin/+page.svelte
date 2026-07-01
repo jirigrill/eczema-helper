@@ -20,11 +20,21 @@
   import { severityConfig } from '$lib/config/skin-regions';
   import { formatDateLongCs } from '$lib/utils/date';
   import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
-  import { discardBuffer, writeBuffer, clearBuffer, type DiscardedSkinDelete } from '$lib/stores/discard-buffer';
+  import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+  import type { DiscardedSkinDelete } from '$lib/stores/discard-buffer';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SkinPhotoGallery, { type SkinPhotoGalleryItem } from '$lib/components/SkinPhotoGallery.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
+
+  /**
+   * Grace window `waitForObservations` gives the Dexie liveQuery to emit an
+   * observation whose id is in the URL before treating it as unknown. Trade-off:
+   * shorter = more responsive on typo'd urls; longer = fewer false bounces on
+   * cold-PWA-boot cache misses. 500 ms is comfortable on a warm cache and
+   * short enough that a wrong id still bounces almost immediately.
+   */
+  const UNKNOWN_ID_TIMEOUT_MS = 500;
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
   const observationIdParam = $derived(page.url.searchParams.get('id'));
@@ -66,6 +76,12 @@
    * the original id/createdAt.
    */
   let restoredFromDeleteBuffer = $state(false);
+  /**
+   * Full photo rows captured at delete time, kept id-intact so the restore
+   * verb can round-trip photo ids verbatim (see PRD #389 photo-id preservation
+   * promise). Only populated on the post-delete-undo path; empty otherwise.
+   */
+  let restorePhotos = $state<SkinPhoto[]>([]);
   /** Snapshot for the dirty gate. `null` on compose. */
   let loadSnapshot = $state<{
     levels: Record<RegionId, RegionLevel>;
@@ -130,7 +146,7 @@
     if (!result.ok) {
       deleting = false;
       overflowOpen = false;
-      saveError = commonStrings.skin.saveError;
+      saveError = commonStrings.skin.deleteError;
       return;
     }
     writeBuffer(captured);
@@ -167,16 +183,18 @@
       // Preserve id + createdAt (the witnessing moment is immutable per
       // ADR-0021 amendment). The adapter also defensively re-reads createdAt
       // from Dexie, but sending the loaded value keeps the domain call honest.
+      const { notes: _drop, ...base } = loadedObservation;
       const updated: SkinObservation = {
-        ...loadedObservation,
+        ...base,
         regions,
         ...(trimmed ? { notes: trimmed } : {}),
       };
-      if (!trimmed) delete (updated as { notes?: string }).notes;
-      const result = await session.update(updated, {
-        addPhotos: stagedPhotoAdds,
-        removePhotoIds: [...stagedPhotoRemovals],
-      });
+      const result = restoredFromDeleteBuffer
+        ? await session.restore(updated, restorePhotos)
+        : await session.update(updated, {
+            addPhotos: stagedPhotoAdds,
+            removePhotoIds: [...stagedPhotoRemovals],
+          });
       saving = false;
       if (result.ok) {
         // Post-delete-undo path: the descriptor is what kept the form alive
@@ -290,15 +308,13 @@
       loadedObservation = buf.observation;
       levels = observationRegionsToLevels(buf.observation.regions);
       note = buf.observation.notes ?? '';
-      // The captured photo rows become the addPhotos payload for update().
-      // Photo ids are minted afresh by the adapter — SkinPhotoInput only
-      // carries region + blob, and only the observation's id/createdAt is
-      // treated as immutable across delete + undo (ADR-0021 amendment).
-      persistedPhotos = [];
-      stagedPhotoAdds = buf.photoBlobs.map((p) => ({
-        region: p.region,
-        blob: p.blob,
-      }));
+      // Post-delete undo preserves photo identity: the captured SkinPhoto rows
+      // carry their original id/observationId/capturedAt and land verbatim via
+      // the `restore` verb (ADR-0021 amendment). Gallery renders them from
+      // `persistedPhotos` so the user sees them without a staged-adds indirection.
+      restorePhotos = buf.photoBlobs;
+      persistedPhotos = buf.photoBlobs;
+      stagedPhotoAdds = [];
       stagedPhotoRemovals = new Set();
       // Dirty from the moment of rehydration: Uložit must always be live so
       // the mother can commit the restore without touching anything else.
@@ -366,7 +382,7 @@
           unsubscribe();
           resolve(lastValue);
         }
-      }, 500);
+      }, UNKNOWN_ID_TIMEOUT_MS);
     });
   }
 
@@ -396,12 +412,12 @@
     if (restoredFromDeleteBuffer) return;
     const regions: SkinRegionRecord[] = REGION_IDS.map((id) => ({ id, level: levels[id] }));
     const trimmed = note.trim();
+    const { notes: _drop, ...base } = loadedObservation;
     const observationSnapshot: SkinObservation = {
-      ...loadedObservation,
+      ...base,
       regions,
       ...(trimmed ? { notes: trimmed } : {}),
     };
-    if (!trimmed) delete (observationSnapshot as { notes?: string }).notes;
     writeBuffer({
       kind: 'skin-edit',
       observationId: loadedObservation.id,
