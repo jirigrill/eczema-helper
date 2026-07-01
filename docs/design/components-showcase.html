@@ -1055,6 +1055,61 @@
 
   <hr class="section-hr">
 
+  <!-- ─── ConfirmSheet ─────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/ConfirmSheet.svelte -->
+  <div class="component-section" id="confirm-sheet">
+    <p class="component-label">▸ <span>ConfirmSheet</span> — open: boolean, heading, body, confirmLabel, cancelLabel, confirmVariant?: 'primary' | 'danger' (default primary), onConfirm, onCancel</p>
+    <div class="flex flex-wrap gap-6 items-start">
+
+      <!-- Closed state — nothing renders -->
+      <div>
+        <p class="variant-label">Closed (open=false)</p>
+        <div class="phone-shell" style="position:relative;width:320px;height:420px;background:#FAF8F8;border-radius:12px;overflow:hidden">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#7A6468;font-size:12px;font-style:italic">nothing rendered</div>
+        </div>
+      </div>
+
+      <!-- Open, primary variant -->
+      <div>
+        <p class="variant-label">Open, primary confirm</p>
+        <div class="phone-shell" style="position:relative;width:320px;height:420px;background:#FAF8F8;border-radius:12px;overflow:hidden">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:10"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;background:#FFFFFF;border-radius:20px 20px 0 0;padding-bottom:16px">
+            <div style="padding:20px 20px 12px">
+              <p style="font-size:16px;font-weight:600;color:#3D2B2F;margin-bottom:4px">Uložit změny?</p>
+              <p style="font-size:14px;color:#7A6468">Změny budou uloženy do jídla.</p>
+            </div>
+            <div style="padding:4px 20px 8px;display:flex;flex-direction:column;gap:8px">
+              <button style="width:100%;padding:12px 0;border-radius:12px;font-weight:600;font-size:14px;background:#8B4557;color:#FFFFFF">Uložit</button>
+              <button style="width:100%;padding:12px 0;border-radius:12px;font-weight:600;font-size:14px;background:#F4EFEF;color:#3D2B2F">Zrušit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Open, danger variant -->
+      <div>
+        <p class="variant-label">Open, danger confirm</p>
+        <div class="phone-shell" style="position:relative;width:320px;height:420px;background:#FAF8F8;border-radius:12px;overflow:hidden">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:10"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;background:#FFFFFF;border-radius:20px 20px 0 0;padding-bottom:16px">
+            <div style="padding:20px 20px 12px">
+              <p style="font-size:16px;font-weight:600;color:#3D2B2F;margin-bottom:4px">Smazat jídlo?</p>
+              <p style="font-size:14px;color:#7A6468">Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.</p>
+            </div>
+            <div style="padding:4px 20px 8px;display:flex;flex-direction:column;gap:8px">
+              <button style="width:100%;padding:12px 0;border-radius:12px;font-weight:600;font-size:14px;background:#DC2626;color:#FFFFFF">Smazat jídlo</button>
+              <button style="width:100%;padding:12px 0;border-radius:12px;font-weight:600;font-size:14px;background:#F4EFEF;color:#3D2B2F">Zrušit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
   <!-- ─── FamilyGrid ─────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyGrid.svelte -->
   <div class="component-section" id="family-grid">
