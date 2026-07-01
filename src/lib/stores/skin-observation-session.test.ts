@@ -44,11 +44,13 @@ function makeObservation(overrides: Partial<SkinObservation> = {}): SkinObservat
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('skinObservationSession (default export — today singleton)', () => {
-  it('exports subscribe and save', async () => {
+  it('exports subscribe, save, update, and remove', async () => {
     const mod = await import('./skin-observation-session');
     expect(mod.skinObservationSession).toBeDefined();
     expect(typeof mod.skinObservationSession.subscribe).toBe('function');
     expect(typeof mod.skinObservationSession.save).toBe('function');
+    expect(typeof mod.skinObservationSession.update).toBe('function');
+    expect(typeof mod.skinObservationSession.remove).toBe('function');
   });
 
   it('initial store value is an array', async () => {
@@ -95,11 +97,13 @@ describe('createSkinObservationSession (factory)', () => {
     expect(typeof mod.createSkinObservationSession).toBe('function');
   });
 
-  it('factory returns a store with subscribe and save', async () => {
+  it('factory returns a store with subscribe, save, update, and remove', async () => {
     const { createSkinObservationSession } = await import('./skin-observation-session');
     const session = createSkinObservationSession('2024-01-15');
     expect(typeof session.subscribe).toBe('function');
     expect(typeof session.save).toBe('function');
+    expect(typeof session.update).toBe('function');
+    expect(typeof session.remove).toBe('function');
   });
 
   it('factory store is scoped to the given date', async () => {
@@ -133,5 +137,76 @@ describe('createSkinObservationSession (factory)', () => {
     await new Promise((r) => setTimeout(r, 100));
     const rowsB = get(sessionB);
     expect(rowsB.some((r) => r.id === obs.id)).toBe(false);
+  });
+
+  it('update through session overwrites regions and notes', async () => {
+    const { createSkinObservationSession } = await import('./skin-observation-session');
+    const date = '2024-07-01';
+    const session = createSkinObservationSession(date);
+    const obs: SkinObservation = {
+      id: `obs-update-${date}`,
+      date,
+      createdAt: `${date}T08:00:00.000Z`,
+      regions: [{ id: 'face', level: 1 }],
+      notes: 'before',
+    };
+    await session.save(obs, []);
+    const revised: SkinObservation = { ...obs, regions: [{ id: 'face', level: 3 }], notes: 'after' };
+    const result = await session.update(revised, { addPhotos: [], removePhotoIds: [] });
+    expect(result).toMatchObject({ ok: true });
+
+    const rows = await waitForObservations(
+      session,
+      (rs) => rs.some((r) => r.id === obs.id && r.notes === 'after'),
+    );
+    const found = rows.find((r) => r.id === obs.id);
+    expect(found?.regions[0].level).toBe(3);
+    expect(found?.notes).toBe('after');
+  });
+
+  it('remove through session hard-deletes the observation', async () => {
+    const { createSkinObservationSession } = await import('./skin-observation-session');
+    const date = '2024-07-02';
+    const session = createSkinObservationSession(date);
+    const obs: SkinObservation = {
+      id: `obs-remove-${date}`,
+      date,
+      createdAt: `${date}T08:00:00.000Z`,
+      regions: [{ id: 'face', level: 1 }],
+    };
+    await session.save(obs, []);
+    await waitForObservations(session, (rs) => rs.some((r) => r.id === obs.id));
+
+    const result = await session.remove(obs.id);
+    expect(result).toMatchObject({ ok: true });
+
+    const rows = await waitForObservations(session, (rs) => !rs.some((r) => r.id === obs.id));
+    expect(rows.some((r) => r.id === obs.id)).toBe(false);
+  });
+
+  it('update passes options (addPhotos, removePhotoIds) through to the adapter unchanged', async () => {
+    const { createSkinObservationSession } = await import('./skin-observation-session');
+    const date = '2024-07-03';
+    const session = createSkinObservationSession(date);
+    const obs: SkinObservation = {
+      id: `obs-args-${date}`,
+      date,
+      createdAt: `${date}T08:00:00.000Z`,
+      regions: [{ id: 'face', level: 1 }],
+    };
+    await session.save(obs, []);
+
+    // Adding a photo and removing a (nonexistent) id should succeed and produce the added photo.
+    const addPhoto = { region: 'face' as const, blob: new Blob(['x'], { type: 'image/jpeg' }) };
+    const result = await session.update(obs, {
+      addPhotos: [addPhoto],
+      removePhotoIds: ['nonexistent-id'],
+    });
+    expect(result).toMatchObject({ ok: true });
+
+    const { db } = await import('$lib/db/atopic-db');
+    const photos = await db.photos.where('observationId').equals(obs.id).toArray();
+    expect(photos).toHaveLength(1);
+    expect(photos[0].region).toBe('face');
   });
 });
