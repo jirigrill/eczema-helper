@@ -15,14 +15,16 @@
   import { randomUUID } from '$lib/utils/uuid';
   import { parseDayQuery } from '$lib/utils/day-query';
   import { commonStrings } from '$lib/strings/common';
+  import { actionStrings } from '$lib/strings/actions';
   import { regionStrings, severityStrings } from '$lib/strings/skin-regions';
   import { severityConfig } from '$lib/config/skin-regions';
   import { formatDateLongCs } from '$lib/utils/date';
   import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
-  import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+  import { discardBuffer, writeBuffer, clearBuffer, type DiscardedSkinDelete } from '$lib/stores/discard-buffer';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SkinPhotoGallery, { type SkinPhotoGalleryItem } from '$lib/components/SkinPhotoGallery.svelte';
   import Toast from '$lib/components/Toast.svelte';
+  import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
 
   const { date, returnTo } = $derived(parseDayQuery(page.url));
   const observationIdParam = $derived(page.url.searchParams.get('id'));
@@ -56,6 +58,14 @@
   // must round-trip so the row keeps its timeline position (ADR-0021).
   let loadedObservation = $state<SkinObservation | null>(null);
   let persistedPhotos = $state<SkinPhoto[]>([]);
+  /**
+   * True when a post-delete undo rehydrated the form from a skin-delete
+   * descriptor. In that state, Dexie has no row for `?id=` but the buffer
+   * carries the original observation + photo blobs. Uložit calls update()
+   * with those blobs as `addPhotos` (not save()), so the row lands back at
+   * the original id/createdAt.
+   */
+  let restoredFromDeleteBuffer = $state(false);
   /** Snapshot for the dirty gate. `null` on compose. */
   let loadSnapshot = $state<{
     levels: Record<RegionId, RegionLevel>;
@@ -87,6 +97,46 @@
   const saveAriaLabel = $derived(
     mode === 'edit' ? commonStrings.skin.updateAriaLabel : commonStrings.skin.saveAriaLabel,
   );
+  /**
+   * True when the page is in edit mode AND a load has completed (either from
+   * Dexie or from a skin-delete descriptor). Guards edit-only chrome (the
+   * ⋯ overflow) so a still-loading edit URL doesn't briefly render it, and
+   * an unknown-id bounce never shows it at all.
+   */
+  const editingExisting = $derived(mode === 'edit' && loadedObservation !== null);
+
+  // ── Delete + post-delete undo (issue #394) ─────────────────
+  let overflowOpen = $state(false);
+  let deleting = $state(false);
+
+  async function handleDeleteConfirm(): Promise<void> {
+    if (deleting || !loadedObservation) return;
+    deleting = true;
+    // Capture the descriptor BEFORE the remove call so the buffer is
+    // populated even if the mother backs out during the transition (issue
+    // #394). The load snapshot captured the persisted photos; carrying them
+    // as `photoBlobs` lets undo re-materialize the observation faithfully.
+    const captured: DiscardedSkinDelete = {
+      kind: 'skin-delete',
+      observationId: loadedObservation.id,
+      observation: loadedObservation,
+      addPhotos: [],
+      removePhotoIds: [],
+      photoBlobs: persistedPhotos,
+      date,
+      returnTo,
+    };
+    const result = await session.remove(loadedObservation.id);
+    if (!result.ok) {
+      deleting = false;
+      overflowOpen = false;
+      saveError = commonStrings.skin.saveError;
+      return;
+    }
+    writeBuffer(captured);
+    overflowOpen = false;
+    goto(returnTo);
+  }
 
   function tapRegion(r: RegionId): void {
     // First tap activates without changing level. Subsequent taps on the
@@ -129,6 +179,10 @@
       });
       saving = false;
       if (result.ok) {
+        // Post-delete-undo path: the descriptor is what kept the form alive
+        // through the delete → re-entry roundtrip. Clear it now that the row
+        // is back in Dexie, so a later back-out doesn't rehydrate a phantom.
+        if (restoredFromDeleteBuffer) clearBuffer();
         // Clean-edit-gate is satisfied — nothing to discard on the way out.
         goto(returnTo);
       } else {
@@ -224,6 +278,38 @@
       return;
     }
 
+    // Post-delete undo (issue #394). Dexie has no row for `?id=`, but the
+    // buffer holds a skin-delete descriptor for it. Rehydrate everything —
+    // observation + photos — from the descriptor without touching Dexie.
+    // The buffer stays populated until Uložit succeeds (so a second back-out
+    // still lets the user retry). Domain invariant (ADR-0021 amendment):
+    // id + createdAt are immutable across delete + undo, which is why we
+    // preserve `loadedObservation` verbatim from the descriptor.
+    if (buf && buf.kind === 'skin-delete' && buf.observationId === observationIdParam) {
+      restoredFromDeleteBuffer = true;
+      loadedObservation = buf.observation;
+      levels = observationRegionsToLevels(buf.observation.regions);
+      note = buf.observation.notes ?? '';
+      // The captured photo rows become the addPhotos payload for update().
+      // Photo ids are minted afresh by the adapter — SkinPhotoInput only
+      // carries region + blob, and only the observation's id/createdAt is
+      // treated as immutable across delete + undo (ADR-0021 amendment).
+      persistedPhotos = [];
+      stagedPhotoAdds = buf.photoBlobs.map((p) => ({
+        region: p.region,
+        blob: p.blob,
+      }));
+      stagedPhotoRemovals = new Set();
+      // Dirty from the moment of rehydration: Uložit must always be live so
+      // the mother can commit the restore without touching anything else.
+      loadSnapshot = {
+        levels: initialLevels(),
+        note: '',
+        persistedPhotoIds: [],
+      };
+      return;
+    }
+
     await loadFromSession(observationIdParam);
   }
 
@@ -303,6 +389,11 @@
    */
   function bufferSnapshotIfDirty(): void {
     if (mode !== 'edit' || !loadedObservation || !dirty) return;
+    // Post-delete-restore back-out (issue #394): keep the original
+    // skin-delete descriptor in the buffer so a second undo still works.
+    // Overwriting to skin-edit would leave undo pointing at a row that no
+    // longer exists in Dexie.
+    if (restoredFromDeleteBuffer) return;
     const regions: SkinRegionRecord[] = REGION_IDS.map((id) => ({ id, level: levels[id] }));
     const trimmed = note.trim();
     const observationSnapshot: SkinObservation = {
@@ -345,6 +436,15 @@
     <PageHeader title={commonStrings.skin.heading} variant="large" onBack={handleBack} bordered={false}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(date)}</p>
+        {#if editingExisting}
+          <button
+            type="button"
+            data-testid="skin-overflow"
+            aria-label={actionStrings.more}
+            class="ml-1 text-text-muted text-lg leading-none px-2 -mr-2"
+            onclick={() => (overflowOpen = true)}
+          >⋯</button>
+        {/if}
       {/snippet}
     </PageHeader>
   </div>
@@ -473,3 +573,19 @@
     onClose={() => (saveError = null)}
   />
 {/if}
+
+<!--
+  Destructive-confirm bottom sheet (issue #394). Reuses ConfirmSheet from
+  /meal so the two destructive verbs share their entire visual/interaction
+  shape.
+-->
+<ConfirmSheet
+  open={overflowOpen}
+  heading={commonStrings.skin.deleteConfirmHeading}
+  body={commonStrings.skin.deleteConfirmBody}
+  confirmLabel={actionStrings.deleteObservation}
+  cancelLabel={actionStrings.cancel}
+  confirmVariant="danger"
+  onConfirm={handleDeleteConfirm}
+  onCancel={() => (overflowOpen = false)}
+/>

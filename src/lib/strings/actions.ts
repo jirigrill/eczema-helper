@@ -48,4 +48,7 @@ export const actionStrings = {
   deleteMeal:        'Smazat jídlo',    // destructive button on the confirm sheet
   confirmDelete:     'Potvrdit smazání', // future-proof; not currently rendered (deleteMeal is itself the confirm verb)
 
+  /** Skin observation delete (issue #394, ADR-0021 amendment) */
+  deleteObservation: 'Smazat pozorování', // destructive button on the /skin confirm sheet
+
 } as const;
