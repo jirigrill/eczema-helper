@@ -161,6 +161,16 @@ check:
 clean:
     rm -rf build .svelte-kit node_modules/.cache
 
+# ========== SANDCASTLE ==========
+
+# Rebuild sandcastle Docker image (warm-cache Dockerfile needs package.json + bun.lock in build context)
+sandcastle-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'rm -f .sandcastle/package.json .sandcastle/bun.lock' EXIT
+    cp package.json bun.lock .sandcastle/
+    bunx sandcastle docker build-image
+
 # ========== DEPLOYMENT ==========
 
 # Normal deploys happen automatically via CI on merge to main.
