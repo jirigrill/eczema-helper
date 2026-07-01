@@ -963,4 +963,237 @@ describe('skin/+page.svelte — region grid', () => {
     // The buffer was cleared on re-entry.
     expect(mockClearBuffer).toHaveBeenCalled();
   });
+
+  // ── Delete + post-delete undo (issue #394) ────────────────
+
+  it('overflow button is absent in compose mode', async () => {
+    const SkinPage = await loadPage();
+    const { queryByTestId } = render(SkinPage);
+    await tick();
+    expect(queryByTestId('skin-overflow')).toBeNull();
+  });
+
+  it('overflow button appears in edit mode', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    expect(getByTestId('skin-overflow')).toBeInTheDocument();
+  });
+
+  it('tapping overflow opens the ConfirmSheet with danger-variant confirm', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue, container } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-overflow'));
+    await tick();
+
+    // ConfirmSheet renders backdrop + dialog with the delete heading.
+    expect(container.querySelector('[data-testid="confirm-sheet-backdrop"]')).toBeInTheDocument();
+    // Danger-variant confirm button.
+    const confirm = container.querySelector('[data-variant="danger"]');
+    expect(confirm).toBeInTheDocument();
+    expect(confirm?.textContent?.trim()).toBe('Smazat pozorování');
+  });
+
+  it('cancelling the ConfirmSheet closes it with no navigation and no side effect', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const { goto } = await import('$app/navigation');
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue, getByText, container } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-overflow'));
+    await tick();
+
+    // Cancel via the visible Zrušit button.
+    await fireEvent.click(getByText('Zrušit'));
+    await tick();
+
+    expect(container.querySelector('[data-testid="confirm-sheet-backdrop"]')).toBeNull();
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockWriteBuffer).not.toHaveBeenCalled();
+    expect(goto).not.toHaveBeenCalled();
+  });
+
+  it('confirming delete captures the skin-delete descriptor, calls remove, then navigates', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockLoadPhotos.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'photo-a',
+          observationId: 'obs-1',
+          region: 'face' as const,
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: new Blob(['a'], { type: 'image/jpeg' }),
+        },
+      ],
+    });
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const { goto } = await import('$app/navigation');
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue, container } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-overflow'));
+    await tick();
+
+    const confirm = container.querySelector('[data-variant="danger"]') as HTMLButtonElement;
+    await fireEvent.click(confirm);
+    await tick();
+    await tick();
+
+    // Descriptor written before remove; both must have happened.
+    expect(mockWriteBuffer).toHaveBeenCalledOnce();
+    const desc = mockWriteBuffer.mock.calls[0][0];
+    if (desc.kind !== 'skin-delete') throw new Error('expected skin-delete descriptor');
+    expect(desc.observationId).toBe('obs-1');
+    expect(desc.observation.id).toBe('obs-1');
+    expect(desc.observation.createdAt).toBe('2026-06-30T09:12:00.000Z');
+    expect(desc.photoBlobs).toHaveLength(1);
+    expect(desc.photoBlobs[0].id).toBe('photo-a');
+    expect(desc.date).toBe(today);
+    expect(desc.returnTo).toBe(`/day/${today}`);
+
+    expect(mockRemove).toHaveBeenCalledWith('obs-1');
+    expect(goto).toHaveBeenCalledWith(`/day/${today}`);
+  });
+
+  it('remove failure leaves the sheet closed and does not navigate', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockRemove.mockResolvedValueOnce({ ok: false, error: 'boom' });
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const { goto } = await import('$app/navigation');
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue, container } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-overflow'));
+    await tick();
+
+    const confirm = container.querySelector('[data-variant="danger"]') as HTMLButtonElement;
+    await fireEvent.click(confirm);
+    await tick();
+
+    expect(goto).not.toHaveBeenCalled();
+  });
+
+  it('re-entry with a skin-delete descriptor rehydrates as edit mode from the buffer', async () => {
+    // Dexie has no row for this id (the observation was hard-deleted). Only
+    // the buffer holds its state.
+    mockSessionStore.set([]);
+    const deletedObs = makeObs({ id: 'obs-deleted', regions: [
+      { id: 'face', level: 2 },
+      { id: 'arms', level: 1 },
+      { id: 'back', level: 0 },
+      { id: 'belly', level: 0 },
+      { id: 'elbow-folds', level: 0 },
+      { id: 'knee-folds', level: 0 },
+      { id: 'legs', level: 0 },
+      { id: 'neck', level: 0 },
+      { id: 'scalp', level: 0 },
+    ], notes: 'restore me' });
+    const savedBlob = new Blob(['x'], { type: 'image/jpeg' });
+    mockDiscardBuffer.set({
+      kind: 'skin-delete',
+      observationId: 'obs-deleted',
+      observation: deletedObs,
+      addPhotos: [],
+      removePhotoIds: [],
+      photoBlobs: [
+        {
+          id: 'photo-x',
+          observationId: 'obs-deleted',
+          region: 'face',
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: savedBlob,
+        },
+      ],
+      date: today,
+      returnTo: `/day/${today}`,
+    });
+
+    mockPage.url = new URL(
+      `http://localhost/skin?date=${today}&id=obs-deleted&returnTo=/day/${today}`,
+    );
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue, container } = render(SkinPage);
+    await findByDisplayValue('restore me');
+    await tick();
+
+    // Regions restored from the descriptor.
+    expect(getByTestId('skin-region-face').dataset.level).toBe('2');
+    expect(getByTestId('skin-region-arms').dataset.level).toBe('1');
+    // Edit-mode chrome — overflow shows.
+    expect(getByTestId('skin-overflow')).toBeInTheDocument();
+    // Uložit enabled, and CTA reads "Uložit změny".
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    expect(save.textContent?.trim()).toBe('Uložit změny');
+    // Photos rehydrated.
+    expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeInTheDocument();
+  });
+
+  it('post-delete Uložit calls update() with original id/createdAt and staged photo blobs', async () => {
+    mockSessionStore.set([]);
+    const deletedObs = makeObs({
+      id: 'obs-deleted',
+      createdAt: '2026-06-30T09:12:00.000Z',
+      notes: 'restore me',
+    });
+    const savedBlob = new Blob(['x'], { type: 'image/jpeg' });
+    mockDiscardBuffer.set({
+      kind: 'skin-delete',
+      observationId: 'obs-deleted',
+      observation: deletedObs,
+      addPhotos: [],
+      removePhotoIds: [],
+      photoBlobs: [
+        {
+          id: 'photo-x',
+          observationId: 'obs-deleted',
+          region: 'face',
+          capturedAt: '2026-06-30T09:12:00.000Z',
+          blob: savedBlob,
+        },
+      ],
+      date: today,
+      returnTo: `/day/${today}`,
+    });
+
+    mockPage.url = new URL(
+      `http://localhost/skin?date=${today}&id=obs-deleted&returnTo=/day/${today}`,
+    );
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('restore me');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-save'));
+    await tick();
+
+    expect(mockUpdate).toHaveBeenCalledOnce();
+    const [observation, options] = mockUpdate.mock.calls[0];
+    const obs = observation as SkinObservation;
+    expect(obs.id).toBe('obs-deleted');
+    expect(obs.createdAt).toBe('2026-06-30T09:12:00.000Z');
+    expect(options.addPhotos).toHaveLength(1);
+    expect(options.addPhotos[0].region).toBe('face');
+    expect(options.addPhotos[0].blob).toBe(savedBlob);
+    expect(options.removePhotoIds).toEqual([]);
+    // Buffer cleared after successful save.
+    expect(mockClearBuffer).toHaveBeenCalled();
+  });
 });

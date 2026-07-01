@@ -322,6 +322,11 @@ export const commonStrings = {
     deletedToast:      'Pozorování smazáno',
     /** Aria label for the undo action on a greyed-out persisted-photo tile. */
     undoPhotoRemoval:  'Vrátit snímek',
+    // ── Issue #394: explicit delete + post-delete undo ────────
+    /** Heading on the destructive-confirm sheet in edit mode. */
+    deleteConfirmHeading: 'Smazat pozorování?',
+    /** Body warning that photos will be removed alongside the observation. */
+    deleteConfirmBody:    'Pozorování i všechny jeho fotky budou odstraněny. Můžeš to vzít zpět hned po smazání.',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────
