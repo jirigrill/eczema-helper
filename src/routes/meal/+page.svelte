@@ -21,6 +21,7 @@
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
+  import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
@@ -691,37 +692,14 @@
 
 <!--
   Destructive-confirm bottom sheet (issue #268, ADR-0018).
-  Inline rather than extracted: this is the only confirm-sheet in the app
-  today — extract to lib/components/ConfirmSheet.svelte if a second screen
-  needs the same shape (CLAUDE.md component-reuse rule).
+  Extracted to ConfirmSheet (issue #390) so /skin can reuse the same shape.
 -->
-{#if overflowOpen}
-  <div
-    role="presentation"
-    class="fixed inset-0 bg-black/35 z-40"
-    onclick={() => (overflowOpen = false)}
-  ></div>
-  <div
-    role="dialog"
-    aria-label={commonStrings.meal.deleteConfirmHeading}
-    class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[20px] pb-safe"
-    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
-  >
-    <div class="px-5 pt-5 pb-3">
-      <p class="body-bold mb-1">{commonStrings.meal.deleteConfirmHeading}</p>
-      <p class="body-muted">{commonStrings.meal.deleteConfirmBody}</p>
-    </div>
-    <div class="px-5 pt-1 pb-2 space-y-2">
-      <button
-        type="button"
-        class="w-full py-3 rounded-xl font-semibold text-sm bg-primary text-white"
-        onclick={handleDeleteConfirm}
-      >{actionStrings.deleteMeal}</button>
-      <button
-        type="button"
-        class="w-full py-3 rounded-xl font-semibold text-sm bg-surface text-text"
-        onclick={() => (overflowOpen = false)}
-      >{actionStrings.cancel}</button>
-    </div>
-  </div>
-{/if}
+<ConfirmSheet
+  open={overflowOpen}
+  heading={commonStrings.meal.deleteConfirmHeading}
+  body={commonStrings.meal.deleteConfirmBody}
+  confirmLabel={actionStrings.deleteMeal}
+  cancelLabel={actionStrings.cancel}
+  onConfirm={handleDeleteConfirm}
+  onCancel={() => (overflowOpen = false)}
+/>
