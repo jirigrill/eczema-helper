@@ -211,4 +211,194 @@ describe('DexieSkinObservationRepository', () => {
     const result = await repo.listByDate('2026-05-27');
     expect(result).toEqual({ ok: false, error: 'index fail' });
   });
+
+  // ── update() ─────────────────────────────────────────────────
+
+  it('update overwrites regions and notes on an existing observation', async () => {
+    const original = makeObservation('2026-05-27', {
+      id: 'obs-upd',
+      regions: [{ id: 'face', level: 1 }],
+      notes: 'before',
+    });
+    await repo.save(original, []);
+
+    const revised: SkinObservation = {
+      ...original,
+      regions: [{ id: 'face', level: 3 }, { id: 'arms', level: 2 }],
+      notes: 'after',
+    };
+    const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+    expect(result).toMatchObject({ ok: true });
+
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) {
+      expect(list.data).toHaveLength(1);
+      expect(list.data[0].regions).toEqual(revised.regions);
+      expect(list.data[0].notes).toBe('after');
+    }
+  });
+
+  it('update preserves id and createdAt from the persisted row', async () => {
+    const original = makeObservation('2026-05-27', {
+      id: 'obs-preserve',
+      createdAt: '2026-05-27T08:00:00.000Z',
+      regions: [{ id: 'face', level: 1 }],
+    });
+    await repo.save(original, []);
+
+    const revised: SkinObservation = {
+      ...original,
+      // Attempt to pass a different createdAt — adapter must keep the original.
+      createdAt: '2099-12-31T23:59:59.000Z',
+      regions: [{ id: 'face', level: 2 }],
+    };
+    await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) {
+      expect(list.data[0].id).toBe('obs-preserve');
+      expect(list.data[0].createdAt).toBe('2026-05-27T08:00:00.000Z');
+    }
+  });
+
+  it('update inserts photos from addPhotos with correct FK and minted id/capturedAt', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-add-photos' });
+    await repo.save(obs, []);
+
+    await repo.update(obs, {
+      addPhotos: [makePhotoInput({ region: 'face' }), makePhotoInput({ region: 'arms' })],
+      removePhotoIds: [],
+    });
+
+    const photos = await db.photos.where('observationId').equals('obs-add-photos').toArray();
+    expect(photos).toHaveLength(2);
+    expect(photos.every((p) => p.observationId === 'obs-add-photos')).toBe(true);
+    expect(photos.every((p) => !!p.id)).toBe(true);
+    expect(new Set(photos.map((p) => p.id)).size).toBe(2);
+    expect(photos.every((p) => /^\d{4}-\d{2}-\d{2}T/.test(p.capturedAt))).toBe(true);
+    expect(photos.map((p) => p.region).sort()).toEqual(['arms', 'face']);
+  });
+
+  it('update removes photos whose id is in removePhotoIds', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-remove-photos' });
+    await repo.save(obs, [makePhotoInput({ region: 'face' }), makePhotoInput({ region: 'arms' })]);
+    const beforePhotos = await db.photos.where('observationId').equals('obs-remove-photos').toArray();
+    expect(beforePhotos).toHaveLength(2);
+    const [toRemove, toKeep] = beforePhotos;
+
+    await repo.update(obs, { addPhotos: [], removePhotoIds: [toRemove.id] });
+
+    const afterPhotos = await db.photos.where('observationId').equals('obs-remove-photos').toArray();
+    expect(afterPhotos).toHaveLength(1);
+    expect(afterPhotos[0].id).toBe(toKeep.id);
+  });
+
+  it('update rolls back the observation row when the photos write throws', async () => {
+    const original = makeObservation('2026-05-27', {
+      id: 'obs-rollback',
+      regions: [{ id: 'face', level: 1 }],
+      notes: 'before',
+    });
+    await repo.save(original, []);
+
+    vi.spyOn(db.photos, 'bulkPut').mockRejectedValueOnce(new Error('photos boom'));
+
+    const revised: SkinObservation = {
+      ...original,
+      regions: [{ id: 'face', level: 3 }],
+      notes: 'after',
+    };
+    const result = await repo.update(revised, {
+      addPhotos: [makePhotoInput({ region: 'face' })],
+      removePhotoIds: [],
+    });
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('photos boom');
+
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) {
+      expect(list.data).toHaveLength(1);
+      expect(list.data[0].regions[0].level).toBe(1);
+      expect(list.data[0].notes).toBe('before');
+    }
+  });
+
+  it('update returns Err when DB throws', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-err' });
+    await repo.save(obs, []);
+
+    vi.spyOn(db.skin_observations, 'put').mockRejectedValueOnce(new Error('update fail'));
+
+    const result = await repo.update(obs, { addPhotos: [], removePhotoIds: [] });
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('update fail');
+  });
+
+  // ── remove() ─────────────────────────────────────────────────
+
+  it('remove hard-deletes the observation', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-rm' });
+    await repo.save(obs, []);
+    const result = await repo.remove('obs-rm');
+    expect(result).toMatchObject({ ok: true });
+
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) expect(list.data).toHaveLength(0);
+  });
+
+  it('remove cascades to all SkinPhoto rows for that observation', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-rm-photos' });
+    await repo.save(obs, [
+      makePhotoInput({ region: 'face' }),
+      makePhotoInput({ region: 'arms' }),
+      makePhotoInput({ region: 'belly' }),
+    ]);
+    expect(await db.photos.where('observationId').equals('obs-rm-photos').count()).toBe(3);
+
+    await repo.remove('obs-rm-photos');
+
+    expect(await db.photos.where('observationId').equals('obs-rm-photos').count()).toBe(0);
+  });
+
+  it('remove does not affect photos belonging to a different observation', async () => {
+    const kept = makeObservation('2026-05-27', { id: 'obs-keep' });
+    const doomed = makeObservation('2026-05-27', { id: 'obs-doomed' });
+    await repo.save(kept, [makePhotoInput({ region: 'face' })]);
+    await repo.save(doomed, [makePhotoInput({ region: 'arms' })]);
+
+    await repo.remove('obs-doomed');
+
+    expect(await db.photos.where('observationId').equals('obs-keep').count()).toBe(1);
+    expect(await db.photos.where('observationId').equals('obs-doomed').count()).toBe(0);
+  });
+
+  it('remove rolls back the observation when the photos delete throws', async () => {
+    const obs = makeObservation('2026-05-27', { id: 'obs-rm-rollback' });
+    await repo.save(obs, [makePhotoInput({ region: 'face' })]);
+
+    vi.spyOn(db.photos, 'where').mockImplementationOnce(() => {
+      throw new Error('photos delete boom');
+    });
+
+    const result = await repo.remove('obs-rm-rollback');
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('photos delete boom');
+
+    // Pre-remove state: observation row and its photo still there.
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) expect(list.data).toHaveLength(1);
+    expect(await db.photos.where('observationId').equals('obs-rm-rollback').count()).toBe(1);
+  });
+
+  it('remove returns Err when DB throws', async () => {
+    vi.spyOn(db.skin_observations, 'delete').mockRejectedValueOnce(new Error('delete fail'));
+    const result = await repo.remove('obs-nonexistent');
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toContain('delete fail');
+  });
 });

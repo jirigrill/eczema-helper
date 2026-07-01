@@ -1,6 +1,9 @@
 import { randomUUID } from '$lib/utils/uuid';
 import type { SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
-import type { SkinObservationRepository } from '$lib/domain/ports/skin-observation-repository';
+import type {
+  SkinObservationRepository,
+  SkinObservationUpdateOptions,
+} from '$lib/domain/ports/skin-observation-repository';
 import type { Result } from '$lib/types/result';
 import type { AtopicDb } from '$lib/db/atopic-db';
 
@@ -12,14 +15,7 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     inputs: SkinPhotoInput[],
   ): Promise<Result<void, string>> {
     try {
-      const now = new Date().toISOString();
-      const photos: SkinPhoto[] = inputs.map((input) => ({
-        id: randomUUID(),
-        observationId: observation.id,
-        region: input.region,
-        capturedAt: now,
-        blob: input.blob,
-      }));
+      const photos = mintPhotos(observation.id, inputs);
 
       await this.db.transaction(
         'rw',
@@ -38,6 +34,55 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     }
   }
 
+  async update(
+    observation: SkinObservation,
+    options: SkinObservationUpdateOptions,
+  ): Promise<Result<void, string>> {
+    try {
+      const photosToAdd = mintPhotos(observation.id, options.addPhotos);
+
+      await this.db.transaction(
+        'rw',
+        this.db.skin_observations,
+        this.db.photos,
+        async () => {
+          const existing = await this.db.skin_observations.get(observation.id);
+          const merged: SkinObservation = {
+            ...observation,
+            createdAt: existing?.createdAt ?? observation.createdAt,
+          };
+          await this.db.skin_observations.put(merged);
+          if (options.removePhotoIds.length > 0) {
+            await this.db.photos.bulkDelete(options.removePhotoIds);
+          }
+          if (photosToAdd.length > 0) {
+            await this.db.photos.bulkPut(photosToAdd);
+          }
+        },
+      );
+      return { ok: true, data: undefined };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  async remove(id: string): Promise<Result<void, string>> {
+    try {
+      await this.db.transaction(
+        'rw',
+        this.db.skin_observations,
+        this.db.photos,
+        async () => {
+          await this.db.photos.where('observationId').equals(id).delete();
+          await this.db.skin_observations.delete(id);
+        },
+      );
+      return { ok: true, data: undefined };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
   async listByDate(date: string): Promise<Result<SkinObservation[], string>> {
     try {
       const rows = await this.db.skin_observations.where('date').equals(date).toArray();
@@ -46,4 +91,15 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
+}
+
+function mintPhotos(observationId: string, inputs: SkinPhotoInput[]): SkinPhoto[] {
+  const now = new Date().toISOString();
+  return inputs.map((input) => ({
+    id: randomUUID(),
+    observationId,
+    region: input.region,
+    capturedAt: now,
+    blob: input.blob,
+  }));
 }
