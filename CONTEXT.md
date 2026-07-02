@@ -38,6 +38,9 @@ Three invariants live here (the home ADR-0018 lacked):
 - Dirtiness is snapshot-relative — compose-new is dirty iff any food is
   confirmed/editing; an edit is dirty iff live foods or trimmed notes
   differ from the load snapshot (order-independent food comparison).
+  The comparison itself (`snapshotOf` / `snapshotsEqual`) lives in the
+  pure domain module `src/lib/domain/meal-dirtiness.ts`; `MealEditor`
+  owns *when* dirtiness is computed and reaches into the module for *how*.
 
 **Conflict responsibility:** `MealEditor` exposes which of its foods touch
 today's elimination window (`eliminatedFoodIds`, `hasConflicts`) by calling

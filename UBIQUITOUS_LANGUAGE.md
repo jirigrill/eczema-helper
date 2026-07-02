@@ -448,6 +448,8 @@ captures the **load snapshot** for dirtiness, exposes `dirty` / `canFinalize` /
 `createMealSession`. The `/meal` route delegates load/save/dirty/finalize-state
 to it; view state (drill-in, grid edit) and navigation stay in the route.
 Mirrors `day-view.svelte.ts`, extended from read-only to read-write.
+The pure snapshot/comparison logic (`snapshotOf`, `snapshotsEqual`, `MealSnapshot`)
+lives in `src/lib/domain/meal-dirtiness.ts`; `MealEditor` imports it.
 → See PRD [issue #284](https://github.com/jirigrill/eczema-helper/issues/284) and ADR-0018.
 
 ### Active Edit Slot
