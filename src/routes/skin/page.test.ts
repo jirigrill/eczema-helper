@@ -1246,7 +1246,13 @@ describe('skin/+page.svelte — region grid', () => {
     expect(photos[0].id).toBe('photo-x');
     expect(photos[0].observationId).toBe('obs-deleted');
     expect(photos[0].capturedAt).toBe('2026-06-30T09:12:00.000Z');
-    expect(photos[0].blob).toBe(savedBlob);
+    // Route passes photos through `$state.snapshot` before `restore` (Svelte
+    // proxies would otherwise trip IndexedDB structured-clone). In jsdom the
+    // snapshot strips the Blob prototype, so we cannot assert reference or
+    // instanceof identity here — id/observationId/capturedAt above already
+    // prove the correct row was forwarded. Real DataCloneError coverage lives
+    // at the adapter layer.
+    expect(photos[0].blob).toBeDefined();
     // Buffer cleared after successful restore.
     expect(mockClearBuffer).toHaveBeenCalled();
   });
