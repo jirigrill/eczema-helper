@@ -4,11 +4,11 @@ import {
 	emptyWorkingMeal,
 	fromMealItems,
 	allConfirmedFoods,
-	toMealItems,
 	isNonEmpty,
+	finalizeWorkingMeal,
 } from '$lib/domain/working-meal';
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import type { Meal, MealType, MealItem, AllergenId, PortionKind } from '$lib/domain/models';
+import type { MealType, MealItem, AllergenId, PortionKind } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import type { MealDiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
 import { detectConflicts } from '$lib/domain/schedule-queries';
@@ -272,25 +272,11 @@ export function createMealEditor(): MealEditor {
 
 	async function finalize(opts: FinalizeOptions = {}): Promise<Result<void, string>> {
 		if (!slot) return { ok: false, error: 'finalize: open(slot) was never called' };
-		const items = toMealItems(workingMeal);
-		if (items.length === 0) return { ok: true, data: undefined };
-
-		const now = new Date().toISOString();
 		// Prefer the editor's own `notes` state; opts.notes is honoured for
 		// callers that still thread their own bindable (will go away once
 		// every caller binds to `editor.notes`).
-		const rawNotes = opts.notes ?? notes;
-		const trimmedNotes = rawNotes.trim();
-		const meal: Meal = {
-			id: `${slot.date}:${slot.mealType}`,
-			date: slot.date,
-			mealType: slot.mealType,
-			actor: 'mother',
-			items,
-			notes: trimmedNotes || undefined,
-			createdAt: loadedCreatedAt ?? now,
-			...(loadedCreatedAt !== null ? { updatedAt: now } : {}),
-		};
+		const meal = finalizeWorkingMeal(slot, workingMeal, opts.notes ?? notes, loadedCreatedAt);
+		if (meal === null) return { ok: true, data: undefined };
 		return meals.save(meal);
 	}
 

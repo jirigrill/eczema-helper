@@ -16,6 +16,7 @@ import {
   fromMealItems,
   removeFood,
   isNonEmpty,
+  finalizeWorkingMeal,
 } from './working-meal';
 import type { WorkingMeal } from './working-meal';
 
@@ -398,5 +399,58 @@ describe('isNonEmpty', () => {
   it('returns true when at least one food is currently editing', () => {
     const meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     expect(isNonEmpty(meal)).toBe(true);
+  });
+});
+
+// ── finalizeWorkingMeal ──────────────────────────────────────
+
+describe('finalizeWorkingMeal', () => {
+  const SLOT = { date: '2026-05-27', mealType: 'lunch' as const };
+  const NOW = '2026-05-27T12:00:00.000Z';
+
+  it('returns null when the working meal has no confirmed items (empty no-op)', () => {
+    const meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'Kravské mléko');
+    // Food is only in editing state, not confirmed → toMealItems yields [].
+    expect(finalizeWorkingMeal(SLOT, meal, '', null, NOW)).toBeNull();
+  });
+
+  it('compose-new mints a fresh createdAt and omits updatedAt', () => {
+    const meal = mealWithConfirmed();
+    const result = finalizeWorkingMeal(SLOT, meal, '', null, NOW);
+    expect(result).not.toBeNull();
+    expect(result!.createdAt).toBe(NOW);
+    expect(result!.updatedAt).toBeUndefined();
+  });
+
+  it('edit preserves the loaded createdAt and stamps updatedAt with now', () => {
+    const meal = mealWithConfirmed();
+    const originalCreatedAt = '2026-05-20T09:00:00.000Z';
+    const result = finalizeWorkingMeal(SLOT, meal, '', originalCreatedAt, NOW);
+    expect(result).not.toBeNull();
+    expect(result!.createdAt).toBe(originalCreatedAt);
+    expect(result!.updatedAt).toBe(NOW);
+  });
+
+  it('sets id to `${date}:${mealType}` composite key', () => {
+    const meal = mealWithConfirmed();
+    const result = finalizeWorkingMeal(SLOT, meal, '', null, NOW);
+    expect(result!.id).toBe('2026-05-27:lunch');
+  });
+
+  it('carries date, mealType, and actor=mother', () => {
+    const meal = mealWithConfirmed();
+    const result = finalizeWorkingMeal(SLOT, meal, '', null, NOW);
+    expect(result).toMatchObject({
+      date: '2026-05-27',
+      mealType: 'lunch',
+      actor: 'mother',
+    });
+  });
+
+  it('trims notes and drops purely-whitespace notes to undefined', () => {
+    const meal = mealWithConfirmed();
+    expect(finalizeWorkingMeal(SLOT, meal, '  hello  ', null, NOW)!.notes).toBe('hello');
+    expect(finalizeWorkingMeal(SLOT, meal, '   ', null, NOW)!.notes).toBeUndefined();
+    expect(finalizeWorkingMeal(SLOT, meal, '', null, NOW)!.notes).toBeUndefined();
   });
 });
