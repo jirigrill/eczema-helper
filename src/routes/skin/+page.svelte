@@ -190,7 +190,10 @@
         ...(trimmed ? { notes: trimmed } : {}),
       };
       const result = restoredFromDeleteBuffer
-        ? await session.restore(updated, restorePhotos)
+        ? // Snapshot proxied $state photo rows — IndexedDB structured-cloning
+          // rejects Svelte proxies with DataCloneError, and restore forwards
+          // rows verbatim (unlike update, which mints fresh photos).
+          await session.restore(updated, $state.snapshot(restorePhotos) as SkinPhoto[])
         : await session.update(updated, {
             addPhotos: stagedPhotoAdds,
             removePhotoIds: [...stagedPhotoRemovals],
