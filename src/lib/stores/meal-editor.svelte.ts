@@ -1,4 +1,5 @@
-import { createMealSession } from '$lib/stores/meal-session';
+import { db } from '$lib/db/atopic-db';
+import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import {
 	emptyWorkingMeal,
 	fromMealItems,
@@ -55,7 +56,8 @@ function snapshotsEqual(a: MealSnapshot, b: MealSnapshot): boolean {
  *
  * Mirrors the shape of `day-view.svelte.ts` (`createDayView`), extended from
  * read-only projection to read-write editing. Persistence reaches Dexie via
- * an internally-created `createMealSession(date)`; no port is injected.
+ * a `DexieMealRepository` constructed inside `createMealEditor()`; no port
+ * is injected.
  *
  * Notes-on-meal (#277) live inside `WorkingMeal.notes` — the editor never
  * touches notes directly; `finalize({notes})` writes whatever the route
@@ -135,7 +137,7 @@ export type MealEditor = {
 	 *
 	 * With `'delete'`, returns `{ kind: 'meal-delete', workingMeal }` regardless of
 	 * dirtiness — delete is an explicit user action the editor cannot infer
-	 * (the route calls this after `mealSession.remove()` succeeds, threading
+	 * (the route calls this after `meals.remove()` succeeds, threading
 	 * the captured working meal into the buffer for undo).
 	 *
 	 * The returned `workingMeal` always carries the live `editor.notes` so
@@ -173,6 +175,7 @@ export type MealEditor = {
 
 export function createMealEditor(): MealEditor {
 	const catalog = new BundledCatalogAdapter();
+	const meals = new DexieMealRepository(db);
 	let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
 	let editingExisting = $state(false);
 	let slot = $state<MealSlot | null>(null);
@@ -226,8 +229,7 @@ export function createMealEditor(): MealEditor {
 	async function open(next: MealSlot, eliminatedTodayArg: AllergenId[] = []): Promise<void> {
 		slot = next;
 		eliminatedToday = eliminatedTodayArg;
-		const session = createMealSession(next.date);
-		const result = await session.loadBySlot(next.date, next.mealType);
+		const result = await meals.loadBySlot(next.date, next.mealType);
 		if (result.ok && result.data) {
 			workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
 			editingExisting = true;
@@ -283,8 +285,7 @@ export function createMealEditor(): MealEditor {
 			// disabling save and silently dropping the food on the next back-out
 			// (issue #299).
 			editingExisting = true;
-			const session = createMealSession(next.date);
-			const res = await session.loadBySlot(next.date, next.mealType);
+			const res = await meals.loadBySlot(next.date, next.mealType);
 			if (res.ok && res.data) {
 				loadedCreatedAt = res.data.createdAt;
 				const persistedMeal = fromMealItems(res.data.items, res.data.notes ?? '');
@@ -323,8 +324,7 @@ export function createMealEditor(): MealEditor {
 			createdAt: loadedCreatedAt ?? now,
 			...(loadedCreatedAt !== null ? { updatedAt: now } : {}),
 		};
-		const session = createMealSession(slot.date);
-		return session.save(meal);
+		return meals.save(meal);
 	}
 
 	return {
