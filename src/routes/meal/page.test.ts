@@ -975,7 +975,8 @@ describe('meal/+page.svelte', () => {
   // The remove-call / discard-buffer / navigate / failure-toast lifecycle
   // around `Smazat jídlo` is exercised by `meal-editor.test.ts`
   // (`discardDescriptor('delete')`) and the e2e specs in
-  // `tests/e2e/meal-delete.test.ts`.
+  // `tests/e2e/meal-lifecycle.test.ts` (happy-path delete + undo, and the
+  // delete-failure toast).
 
   it('empty-meal hint visible when editing an existing meal with zero foods', async () => {
     setReady();

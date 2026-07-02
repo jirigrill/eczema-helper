@@ -201,6 +201,54 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
   await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
 });
 
+test('meal delete failure: shows an error toast, stays on /meal, no undo offered (#400)', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+
+  // Seed a lunch with one food via the FAB launcher.
+  await page.getByRole('button', { name: 'Přidat záznam' }).click();
+  await page.getByTestId('fab-action-meal').click();
+  await page.getByTestId('fab-meal-type-lunch').click();
+  await page.waitForURL(/\/meal\?type=lunch/);
+
+  await page.getByRole('button', { name: /Mléko/ }).click();
+  await page.getByRole('button', { name: 'Kravské mléko', exact: true }).click();
+  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
+  await page.getByRole('button', { name: /Uložit Oběd/ }).click();
+
+  await page.waitForURL(`**/day/${today}`);
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Kravské mléko');
+
+  // Tap the lunch row → land on /meal in edit mode.
+  await page.getByTestId('meal-row-lunch').click();
+  await page.waitForURL(/\/meal\?type=lunch/);
+  await expect(page.getByText('Kravské mléko')).toBeVisible();
+
+  // Force the next persistence delete to throw, driving DexieMealRepository.remove
+  // into its catch branch (Result.ok === false). The meal page imports the same
+  // db singleton, so patching db.meals.delete here affects the real remove path.
+  await page.evaluate(async () => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    db.meals.delete = () => Promise.reject(new Error('QuotaExceededError'));
+  });
+
+  // Open the ⋯ overflow and confirm "Smazat jídlo".
+  await page.getByRole('button', { name: 'Více' }).click();
+  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+
+  // Error surfaced and the user is NOT navigated away — the meal is not treated
+  // as deleted.
+  await expect(page.getByRole('alert')).toContainText('QuotaExceededError');
+  await expect(page).toHaveURL(/\/meal/);
+  await expect(page.getByText('Kravské mléko')).toBeVisible();
+
+  // No discard-buffer write happened, so no undo toast is offered — the meal
+  // was never treated as deleted.
+  await expect(page.getByRole('button', { name: 'Zpět' })).not.toBeVisible();
+});
+
 test('backfill a past day via the day-scoped FAB persists on that date, not today (#265 story 19)', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
