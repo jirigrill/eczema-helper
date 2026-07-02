@@ -8,6 +8,7 @@ import type { SkinObservation } from '$lib/domain/models';
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockUpdate = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockRemove = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+const mockRestore = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockLoadPhotos = vi.fn().mockResolvedValue({ ok: true, data: [] });
 const mockSessionStore = writable<import('$lib/domain/models').SkinObservation[]>([]);
 vi.mock('$lib/stores/skin-observation-session', () => ({
@@ -16,6 +17,7 @@ vi.mock('$lib/stores/skin-observation-session', () => ({
     save: mockSave,
     update: mockUpdate,
     remove: mockRemove,
+    restore: mockRestore,
     loadPhotos: mockLoadPhotos,
   },
   createSkinObservationSession: () => ({
@@ -23,6 +25,7 @@ vi.mock('$lib/stores/skin-observation-session', () => ({
     save: mockSave,
     update: mockUpdate,
     remove: mockRemove,
+    restore: mockRestore,
     loadPhotos: mockLoadPhotos,
   }),
 }));
@@ -61,6 +64,8 @@ beforeEach(async () => {
   mockUpdate.mockResolvedValue({ ok: true, data: undefined });
   mockRemove.mockClear();
   mockRemove.mockResolvedValue({ ok: true, data: undefined });
+  mockRestore.mockClear();
+  mockRestore.mockResolvedValue({ ok: true, data: undefined });
   mockLoadPhotos.mockClear();
   mockLoadPhotos.mockResolvedValue({ ok: true, data: [] });
   mockSessionStore.set([]);
@@ -751,6 +756,29 @@ describe('skin/+page.svelte — region grid', () => {
     expect(options).toEqual({ addPhotos: [], removePhotoIds: [] });
   });
 
+  it('editing the note textarea propagates to update() (issue #408 item 8)', async () => {
+    mockSessionStore.set([makeObs({ notes: 'staré' })]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue } = render(SkinPage);
+    await findByDisplayValue('staré');
+    await tick();
+
+    const textarea = getByTestId('skin-note') as HTMLTextAreaElement;
+    await fireEvent.input(textarea, { target: { value: 'nové' } });
+    await tick();
+
+    const save = getByTestId('skin-save') as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+
+    await fireEvent.click(save);
+    await tick();
+
+    expect(mockUpdate).toHaveBeenCalledOnce();
+    const [observation] = mockUpdate.mock.calls[0];
+    expect((observation as SkinObservation).notes).toBe('nové');
+  });
+
   it('renders persisted photos in the gallery on edit-mode load', async () => {
     mockSessionStore.set([makeObs()]);
     mockLoadPhotos.mockResolvedValue({
@@ -1003,6 +1031,24 @@ describe('skin/+page.svelte — region grid', () => {
     expect(confirm?.textContent?.trim()).toBe('Smazat pozorování');
   });
 
+  it('ConfirmSheet body mentions that photos will be removed (issue #408 item 9)', async () => {
+    mockSessionStore.set([makeObs()]);
+    mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
+    const SkinPage = await loadPage();
+    const { getByTestId, findByDisplayValue, findByText } = render(SkinPage);
+    await findByDisplayValue('itchy');
+    await tick();
+
+    await fireEvent.click(getByTestId('skin-overflow'));
+    await tick();
+
+    // Body copy must reference fotky — the mother needs to see photos are
+    // included in the destructive scope before confirming.
+    const { commonStrings } = await import('$lib/strings/common');
+    expect(commonStrings.skin.deleteConfirmBody).toMatch(/fotky/i);
+    await findByText(commonStrings.skin.deleteConfirmBody);
+  });
+
   it('cancelling the ConfirmSheet closes it with no navigation and no side effect', async () => {
     mockSessionStore.set([makeObs()]);
     mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
@@ -1076,7 +1122,7 @@ describe('skin/+page.svelte — region grid', () => {
     mockPage.url = new URL(`http://localhost/skin?date=${today}&id=obs-1&returnTo=/day/${today}`);
     const { goto } = await import('$app/navigation');
     const SkinPage = await loadPage();
-    const { getByTestId, findByDisplayValue, container } = render(SkinPage);
+    const { getByTestId, findByDisplayValue, container, findByText } = render(SkinPage);
     await findByDisplayValue('itchy');
     await tick();
 
@@ -1088,6 +1134,10 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(goto).not.toHaveBeenCalled();
+    // Toast surfaces the delete-verb error copy, not the save-verb copy —
+    // the mother tapped Smazat, not Uložit (issue #408 item 2).
+    const { commonStrings } = await import('$lib/strings/common');
+    await findByText(commonStrings.skin.deleteError);
   });
 
   it('re-entry with a skin-delete descriptor rehydrates as edit mode from the buffer', async () => {
@@ -1146,7 +1196,7 @@ describe('skin/+page.svelte — region grid', () => {
     expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeInTheDocument();
   });
 
-  it('post-delete Uložit calls update() with original id/createdAt and staged photo blobs', async () => {
+  it('post-delete Uložit calls restore() with original id/createdAt and preserved photo ids', async () => {
     mockSessionStore.set([]);
     const deletedObs = makeObs({
       id: 'obs-deleted',
@@ -1184,16 +1234,26 @@ describe('skin/+page.svelte — region grid', () => {
     await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
-    expect(mockUpdate).toHaveBeenCalledOnce();
-    const [observation, options] = mockUpdate.mock.calls[0];
+    // Update path is NOT used for post-delete-undo — restore is.
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockRestore).toHaveBeenCalledOnce();
+    const [observation, photos] = mockRestore.mock.calls[0];
     const obs = observation as SkinObservation;
     expect(obs.id).toBe('obs-deleted');
     expect(obs.createdAt).toBe('2026-06-30T09:12:00.000Z');
-    expect(options.addPhotos).toHaveLength(1);
-    expect(options.addPhotos[0].region).toBe('face');
-    expect(options.addPhotos[0].blob).toBe(savedBlob);
-    expect(options.removePhotoIds).toEqual([]);
-    // Buffer cleared after successful save.
+    // Photo id is preserved verbatim — this is the whole point of the new verb.
+    expect(photos).toHaveLength(1);
+    expect(photos[0].id).toBe('photo-x');
+    expect(photos[0].observationId).toBe('obs-deleted');
+    expect(photos[0].capturedAt).toBe('2026-06-30T09:12:00.000Z');
+    // Route passes photos through `$state.snapshot` before `restore` (Svelte
+    // proxies would otherwise trip IndexedDB structured-clone). In jsdom the
+    // snapshot strips the Blob prototype, so we cannot assert reference or
+    // instanceof identity here — id/observationId/capturedAt above already
+    // prove the correct row was forwarded. Real DataCloneError coverage lives
+    // at the adapter layer.
+    expect(photos[0].blob).toBeDefined();
+    // Buffer cleared after successful restore.
     expect(mockClearBuffer).toHaveBeenCalled();
   });
 });

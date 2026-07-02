@@ -302,8 +302,10 @@ directly. Routes that only read may still import `scheduleContext`.
 The store module (`src/lib/stores/skin-observation-session.ts`) that is the **sole seam**
 for reading and writing today's `SkinObservation` records. Shaped like `mealSession`:
 a `readable<SkinObservation[]>` backed by `liveQuery` over today's rows, plus `save`
-(compose), `update` (edit; `{ addPhotos, removePhotoIds }`), and `remove` (delete by
-`id`, cascades to photos) methods delegating to `DexieSkinObservationRepository`. It is
+(compose), `update` (edit; `{ addPhotos, removePhotoIds }`), `remove` (delete by
+`id`, cascades to photos), and `restore` (reinsert observation with preserved identity
+after a `remove` — post-delete-undo path; ids and `createdAt` round-trip verbatim,
+including photo ids) methods delegating to `DexieSkinObservationRepository`. It is
 the only place that imports `db` and constructs the adapter for skin observations.
 Routes subscribe to `$skinObservationSession` for reactive reads and call the verbs
 on `skinObservationSession` for writes; they do not instantiate adapters directly.

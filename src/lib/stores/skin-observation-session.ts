@@ -1,3 +1,4 @@
+import type { Readable } from 'svelte/store';
 import { db } from '$lib/db/atopic-db';
 import { DexieSkinObservationRepository } from '$lib/adapters/dexie-skin-observation-repository';
 import { DexieSkinPhotoStore } from '$lib/adapters/dexie-skin-photo-store';
@@ -10,7 +11,19 @@ import type { Result } from '$lib/types/result';
 const repo = new DexieSkinObservationRepository(db);
 const photoStore = new DexieSkinPhotoStore(db);
 
-export function createSkinObservationSession(date: string) {
+export type SkinObservationSession = {
+	subscribe: Readable<SkinObservation[]>['subscribe'];
+	save(observation: SkinObservation, photos?: SkinPhotoInput[]): Promise<Result<void, string>>;
+	update(
+		observation: SkinObservation,
+		options: SkinObservationUpdateOptions,
+	): Promise<Result<void, string>>;
+	remove(id: string): Promise<Result<void, string>>;
+	restore(observation: SkinObservation, photos: SkinPhoto[]): Promise<Result<void, string>>;
+	loadPhotos(observationId: string): Promise<Result<SkinPhoto[], string>>;
+};
+
+export function createSkinObservationSession(date: string): SkinObservationSession {
 	const observations = createDateScopedSession(db.skin_observations, date);
 
 	async function save(
@@ -31,12 +44,18 @@ export function createSkinObservationSession(date: string) {
 		return repo.remove(id);
 	}
 
-	/** Fetch every photo belonging to an observation, keyed by observationId. */
+	async function restore(
+		observation: SkinObservation,
+		photos: SkinPhoto[],
+	): Promise<Result<void, string>> {
+		return repo.restore(observation, photos);
+	}
+
 	async function loadPhotos(observationId: string): Promise<Result<SkinPhoto[], string>> {
 		return photoStore.listByObservationId(observationId);
 	}
 
-	return { subscribe: observations.subscribe, save, update, remove, loadPhotos };
+	return { subscribe: observations.subscribe, save, update, remove, restore, loadPhotos };
 }
 
-export const skinObservationSession = createSkinObservationSession(todayIso());
+export const skinObservationSession: SkinObservationSession = createSkinObservationSession(todayIso());

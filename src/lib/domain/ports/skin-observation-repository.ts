@@ -1,4 +1,4 @@
-import type { SkinObservation, SkinPhotoInput } from '$lib/domain/models';
+import type { SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 
 export type SkinObservationUpdateOptions = {
@@ -28,5 +28,13 @@ export type SkinObservationRepository = {
    * transaction. Partial failure leaves the tables in their pre-remove state.
    */
   remove(id: string): Promise<Result<void, string>>;
+  /**
+   * Reinsert an observation with preserved identity (post-delete-undo path).
+   * Unlike `save`, photos carry their original `id`, `observationId`, and
+   * `capturedAt` — nothing is minted. Rejects if any incoming photo id
+   * already belongs to a different observation (defensive guard against
+   * caller-side bugs). Both tables commit or neither does.
+   */
+  restore(observation: SkinObservation, photos: SkinPhoto[]): Promise<Result<void, string>>;
   listByDate(date: string): Promise<Result<SkinObservation[], string>>;
 };

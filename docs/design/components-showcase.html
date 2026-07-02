@@ -598,6 +598,7 @@
 
   <!-- ─── SkinObservationCard ──────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/SkinObservationCard.svelte -->
+  <!-- note: since PR #399, each observation row is an <a href="/skin?date=…&id=…&returnTo=…"> — tap the row to enter edit mode. Visual is unchanged; the semantic shift is intentional and not reflected in the static mock below. -->
   <div class="component-section" id="skin-observation-card">
     <p class="component-label">▸ <span>SkinObservationCard</span> — observations: SkinObservation[], date: string</p>
     <div class="variant-row">

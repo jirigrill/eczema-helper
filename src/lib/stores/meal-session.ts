@@ -1,3 +1,4 @@
+import type { Readable } from 'svelte/store';
 import { db } from '$lib/db/atopic-db';
 import { createDateScopedSession } from '$lib/adapters/date-scoped-session';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
@@ -7,7 +8,14 @@ import type { Result } from '$lib/types/result';
 
 const repo = new DexieMealRepository(db);
 
-export function createMealSession(date: string) {
+export type MealSession = {
+	subscribe: Readable<Meal[]>['subscribe'];
+	save(meal: Meal): Promise<Result<void, string>>;
+	loadBySlot(d: string, mealType: MealType): Promise<Result<Meal | null, string>>;
+	remove(d: string, mealType: MealType): Promise<Result<void, string>>;
+};
+
+export function createMealSession(date: string): MealSession {
 	const meals = createDateScopedSession(db.meals, date);
 
 	async function save(meal: Meal): Promise<Result<void, string>> {
@@ -25,4 +33,4 @@ export function createMealSession(date: string) {
 	return { subscribe: meals.subscribe, save, loadBySlot, remove };
 }
 
-export const mealSession = createMealSession(todayIso());
+export const mealSession: MealSession = createMealSession(todayIso());

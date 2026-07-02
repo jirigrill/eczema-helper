@@ -83,6 +83,36 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     }
   }
 
+  async restore(
+    observation: SkinObservation,
+    photos: SkinPhoto[],
+  ): Promise<Result<void, string>> {
+    try {
+      await this.db.transaction(
+        'rw',
+        this.db.skin_observations,
+        this.db.photos,
+        async () => {
+          for (const photo of photos) {
+            const existing = await this.db.photos.get(photo.id);
+            if (existing && existing.observationId !== observation.id) {
+              throw new Error(
+                `photo id ${photo.id} already belongs to a different observation`,
+              );
+            }
+          }
+          await this.db.skin_observations.put(observation);
+          if (photos.length > 0) {
+            await this.db.photos.bulkPut(photos);
+          }
+        },
+      );
+      return { ok: true, data: undefined };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
   async listByDate(date: string): Promise<Result<SkinObservation[], string>> {
     try {
       const rows = await this.db.skin_observations.where('date').equals(date).toArray();

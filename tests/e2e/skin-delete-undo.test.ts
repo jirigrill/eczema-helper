@@ -172,4 +172,18 @@ test('delete → undo restores observation with original id, createdAt, regions,
     seeded.id,
   );
   expect(photoCount).toBe(1);
+
+  // Photo id preservation across delete + undo (issue #408 item 1 / PRD #389
+  // promise). The `restore` verb must reinsert the photo verbatim, not mint
+  // a fresh id.
+  const photoIds = await page.evaluate(
+    async (id) => {
+      const path = '/src/lib/db/atopic-db.ts';
+      const { db } = await import(/* @vite-ignore */ path);
+      const rows = await db.photos.where('observationId').equals(id).toArray();
+      return rows.map((r: { id: string }) => r.id);
+    },
+    seeded.id,
+  );
+  expect(photoIds).toEqual([seeded.photoId]);
 });

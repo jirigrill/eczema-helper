@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import type { SkinObservation } from '$lib/domain/models';
+import type { SkinObservation, SkinPhoto } from '$lib/domain/models';
 
 // fake-indexeddb is loaded globally in test-setup.ts; Dexie works without setup.
 
@@ -44,13 +44,14 @@ function makeObservation(overrides: Partial<SkinObservation> = {}): SkinObservat
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('skinObservationSession (default export — today singleton)', () => {
-  it('exports subscribe, save, update, and remove', async () => {
+  it('exports subscribe, save, update, remove, and restore', async () => {
     const mod = await import('./skin-observation-session');
     expect(mod.skinObservationSession).toBeDefined();
     expect(typeof mod.skinObservationSession.subscribe).toBe('function');
     expect(typeof mod.skinObservationSession.save).toBe('function');
     expect(typeof mod.skinObservationSession.update).toBe('function');
     expect(typeof mod.skinObservationSession.remove).toBe('function');
+    expect(typeof mod.skinObservationSession.restore).toBe('function');
   });
 
   it('initial store value is an array', async () => {
@@ -97,13 +98,14 @@ describe('createSkinObservationSession (factory)', () => {
     expect(typeof mod.createSkinObservationSession).toBe('function');
   });
 
-  it('factory returns a store with subscribe, save, update, and remove', async () => {
+  it('factory returns a store with subscribe, save, update, remove, and restore', async () => {
     const { createSkinObservationSession } = await import('./skin-observation-session');
     const session = createSkinObservationSession('2024-01-15');
     expect(typeof session.subscribe).toBe('function');
     expect(typeof session.save).toBe('function');
     expect(typeof session.update).toBe('function');
     expect(typeof session.remove).toBe('function');
+    expect(typeof session.restore).toBe('function');
   });
 
   it('factory store is scoped to the given date', async () => {
@@ -208,5 +210,52 @@ describe('createSkinObservationSession (factory)', () => {
     const photos = await db.photos.where('observationId').equals(obs.id).toArray();
     expect(photos).toHaveLength(1);
     expect(photos[0].region).toBe('face');
+  });
+
+  it('restore through session reinserts observation with preserved id/createdAt', async () => {
+    const { createSkinObservationSession } = await import('./skin-observation-session');
+    const date = '2024-07-04';
+    const session = createSkinObservationSession(date);
+    const obs: SkinObservation = {
+      id: `obs-restore-${date}`,
+      date,
+      createdAt: `${date}T08:00:00.000Z`,
+      regions: [{ id: 'face', level: 2 }],
+      notes: 'restored',
+    };
+    const result = await session.restore(obs, []);
+    expect(result).toMatchObject({ ok: true });
+
+    const rows = await waitForObservations(session, (rs) => rs.some((r) => r.id === obs.id));
+    const found = rows.find((r) => r.id === obs.id);
+    expect(found?.createdAt).toBe(`${date}T08:00:00.000Z`);
+    expect(found?.notes).toBe('restored');
+  });
+
+  it('restore through session preserves photo ids verbatim', async () => {
+    const { createSkinObservationSession } = await import('./skin-observation-session');
+    const { db } = await import('$lib/db/atopic-db');
+    const date = '2024-07-05';
+    const session = createSkinObservationSession(date);
+    const obs: SkinObservation = {
+      id: `obs-restore-photos-${date}`,
+      date,
+      createdAt: `${date}T08:00:00.000Z`,
+      regions: [{ id: 'face', level: 1 }],
+    };
+    const photo: SkinPhoto = {
+      id: `photo-preserved-${date}`,
+      observationId: obs.id,
+      region: 'face',
+      capturedAt: `${date}T09:00:00.000Z`,
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+    };
+    const result = await session.restore(obs, [photo]);
+    expect(result).toMatchObject({ ok: true });
+
+    const rows = await db.photos.where('observationId').equals(obs.id).toArray();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(photo.id);
+    expect(rows[0].capturedAt).toBe(photo.capturedAt);
   });
 });

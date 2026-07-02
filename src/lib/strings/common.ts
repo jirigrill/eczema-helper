@@ -304,6 +304,8 @@ export const commonStrings = {
     saveAriaLabel:     'Uložit pozorování kůže',
     /** Toast shown when persistence fails. */
     saveError:         'Uložení se nezdařilo. Zkus to znovu.',
+    /** Toast shown when a delete fails after the mother confirms Smazat. */
+    deleteError:       'Nepodařilo se smazat pozorování.',
     /** Prefix for the contextual photo-add button; region label is appended. */
     addPhotoPrefix:    'Přidat fotku · ',
     /**
