@@ -31,18 +31,17 @@ vi.mock('$lib/stores/discard-buffer', () => ({
 const mockLoadBySlot = vi.fn().mockResolvedValue({ ok: true, data: null });
 const mockMealSessionStore = writable<Meal[]>([]);
 vi.mock('$lib/stores/meal-session', () => ({
-  mealSession: {
-    subscribe: mockMealSessionStore.subscribe,
-    save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
-    loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
-    remove: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
-  },
   createMealSession: () => ({
     subscribe: mockMealSessionStore.subscribe,
-    save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
-    loadBySlot: (...args: unknown[]) => mockLoadBySlot(...args),
-    remove: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
   }),
+}));
+vi.mock('$lib/adapters/dexie-meal-repository', () => ({
+  DexieMealRepository: class {
+    save = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+    loadBySlot = (...args: unknown[]) => mockLoadBySlot(...args);
+    remove = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+    listByDate = vi.fn().mockResolvedValue({ ok: true, data: [] });
+  },
 }));
 vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
@@ -343,7 +342,7 @@ describe('meal/+page.svelte', () => {
     expect(queryByText('Množství')).not.toBeInTheDocument();
   });
 
-  // ── mealSession.save call site is covered in MealEditor unit tests ───────
+  // ── save call site is covered in MealEditor unit tests ──────────────────
   // (`createMealEditor — finalize() compose-new`/`finalize() on edit`).
 
   // ── Grid: confirmed-foods summary + notes ────────────────

@@ -287,7 +287,7 @@ export function foodsForFamily(meal: WorkingMeal, familyId: FamilyId): WorkingFo
 }
 
 /**
- * Convert the working meal's confirmed foods to MealItem[] for mealSession.save.
+ * Convert the working meal's confirmed foods to MealItem[] for persistence.
  */
 export function toMealItems(meal: WorkingMeal): MealItem[] {
   return allConfirmedFoods(meal).map(f => {

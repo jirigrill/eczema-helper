@@ -29,7 +29,8 @@
 
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
-  import { mealSession } from '$lib/stores/meal-session';
+  import { db } from '$lib/db/atopic-db';
+  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
@@ -80,11 +81,13 @@
 
   // ── Editor + slot hydration on mount ─────────────────────
   // The MealEditor (PRD #284) owns the meal lifecycle from open to finalize:
-  // load, hydration, working-meal mutation, and save. It internally creates
-  // its own `createMealSession(date)` — no port is injected. View state
-  // (drill-in, grid edit), navigation, dirtiness, and the discard buffer
-  // stay in the route and are deferred to later slices of #284.
+  // load, hydration, working-meal mutation, and save. Persistence for
+  // route-owned actions (delete) goes through a `DexieMealRepository`
+  // constructed here. View state (drill-in, grid edit), navigation,
+  // dirtiness, and the discard buffer stay in the route and are deferred to
+  // later slices of #284.
   const editor = createMealEditor();
+  const mealRepo = new DexieMealRepository(db);
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Splitting the buffer-vs-load
@@ -520,7 +523,7 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await mealSession.remove(targetDate, selectedMealType);
+    const result = await mealRepo.remove(targetDate, selectedMealType);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
