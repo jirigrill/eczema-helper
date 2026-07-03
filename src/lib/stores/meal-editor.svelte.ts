@@ -13,41 +13,8 @@ import type { Result } from '$lib/types/result';
 import type { MealDiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
 import { detectConflicts } from '$lib/domain/schedule-queries';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-
-type ComparableItem = {
-	name: string;
-	foodId: string;
-	amount: string;
-	preparationMethod?: string;
-};
-type MealSnapshot = { items: ComparableItem[]; notes: string };
-
-/**
- * Project a working meal + notes into a stable shape suitable for deep-equality.
- * Strips ephemeral state (UUIDs minted on each `toMealItems` call) and trims
- * notes so leading/trailing whitespace is not "dirty".
- */
-function snapshotOf(meal: WorkingMeal, notes: string): MealSnapshot {
-	const items: ComparableItem[] = toMealItems(meal).map((i: MealItem) => ({
-		name: i.name,
-		foodId: i.foodId,
-		amount: i.amount,
-		preparationMethod: i.preparationMethod,
-	}));
-	return { items, notes: notes.trim() };
-}
-
-function snapshotsEqual(a: MealSnapshot, b: MealSnapshot): boolean {
-	if (a.notes !== b.notes) return false;
-	if (a.items.length !== b.items.length) return false;
-	// Order-independent: editing reorders foods; same set of foodIds with
-	// same amounts/preparations is "clean" regardless of order.
-	const key = (i: ComparableItem) =>
-		`${i.foodId}${i.name}${i.amount}${i.preparationMethod ?? ''}`;
-	const av = a.items.map(key).sort();
-	const bv = b.items.map(key).sort();
-	return av.every((k, idx) => k === bv[idx]);
-}
+import { snapshotOf, snapshotsEqual } from '$lib/domain/meal-dirtiness';
+import type { MealSnapshot } from '$lib/domain/meal-dirtiness';
 
 /**
  * MealEditor (PRD #284, slice #285) — owns the meal editing lifecycle from
