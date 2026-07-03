@@ -1,6 +1,7 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { MealItem, PortionKind, PreparationMethod } from '$lib/domain/models';
+import type { Meal, MealItem, MealType, PortionKind, PreparationMethod } from '$lib/domain/models';
+import { mealId } from '$lib/domain/models';
 import { randomUUID } from '$lib/utils/uuid';
 
 export type FoodEditState =
@@ -345,5 +346,34 @@ export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
   return {
     families: [...familyMap.entries()].map(([familyId, foods]) => ({ familyId, foods })),
     notes,
+  };
+}
+
+/**
+ * Assemble a persistable `Meal` from a working meal + slot + notes, enforcing
+ * the createdAt/updatedAt rule from ADR-0018: a compose-new write mints a
+ * fresh `createdAt` and omits `updatedAt`; an edit-update preserves the loaded
+ * `createdAt` and stamps `updatedAt`. Returns `null` when the working meal
+ * has no confirmed items (empty-meal no-op).
+ */
+export function finalizeWorkingMeal(
+  slot: { date: string; mealType: MealType },
+  meal: WorkingMeal,
+  notes: string,
+  loadedCreatedAt: string | null,
+  now: string = new Date().toISOString(),
+): Meal | null {
+  const items = toMealItems(meal);
+  if (items.length === 0) return null;
+  const trimmedNotes = notes.trim();
+  return {
+    id: mealId(slot.date, slot.mealType),
+    date: slot.date,
+    mealType: slot.mealType,
+    actor: 'mother',
+    items,
+    notes: trimmedNotes || undefined,
+    createdAt: loadedCreatedAt ?? now,
+    ...(loadedCreatedAt !== null ? { updatedAt: now } : {}),
   };
 }

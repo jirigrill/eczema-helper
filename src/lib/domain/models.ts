@@ -104,6 +104,15 @@ export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 /** Composite key enforcing the one-meal-per-slot invariant: `"${date}:${mealType}"` */
 export type MealId = `${string}:${MealType}`;
 
+export function mealId(date: string, mealType: MealType): MealId {
+  return `${date}:${mealType}`;
+}
+
+export function parseMealId(id: MealId): { date: string; mealType: MealType } {
+  const [date, mealType] = id.split(':') as [string, MealType];
+  return { date, mealType };
+}
+
 export type Meal = {
   id: MealId; // deterministic composite key — e.g. "2026-05-27:lunch"
   date: string; // ISO date

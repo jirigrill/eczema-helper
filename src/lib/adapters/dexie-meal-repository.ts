@@ -1,4 +1,5 @@
 import type { Meal, MealType } from '$lib/domain/models';
+import { mealId } from '$lib/domain/models';
 import type { MealRepository } from '$lib/domain/ports/meal-repository';
 import type { Result } from '$lib/types/result';
 import type { AtopicDb } from '$lib/db/atopic-db';
@@ -17,8 +18,7 @@ export class DexieMealRepository implements MealRepository {
 
   async loadBySlot(date: string, mealType: MealType): Promise<Result<Meal | null, string>> {
     try {
-      const id = `${date}:${mealType}` as Meal['id'];
-      const row = await this.db.meals.get(id);
+      const row = await this.db.meals.get(mealId(date, mealType));
       return { ok: true, data: row ?? null };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -36,8 +36,7 @@ export class DexieMealRepository implements MealRepository {
 
   async remove(date: string, mealType: MealType): Promise<Result<void, string>> {
     try {
-      const id = `${date}:${mealType}` as Meal['id'];
-      await this.db.meals.delete(id);
+      await this.db.meals.delete(mealId(date, mealType));
       return { ok: true, data: undefined };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
