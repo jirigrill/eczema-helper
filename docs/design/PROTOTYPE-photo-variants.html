@@ -1,0 +1,434 @@
+<meta charset="utf-8">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#E8E4E5; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto; }
+  .screen { background:#FAF8F8; border-radius:20px; width:320px; }
+  .card { background:#fff; border:1px solid #EDE8E9; border-radius:16px; }
+  .frame-tag { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size:10px; letter-spacing:0.8px; color:#7A6468; }
+  .thumb { background: linear-gradient(135deg, #C4A4AB, rgba(139,69,87,0.4)); }
+  .chip { font-size:12px; font-weight:500; border-radius:9999px; padding:2px 8px; color:#3D2B2F; white-space:nowrap; }
+  .chip-0 { background:#EDE8E9; }
+  .chip-1 { background:rgba(201,162,39,0.15); }
+  .chip-2 { background:rgba(201,112,39,0.45); }
+  .chip-3 { background:rgba(184,68,68,0.60); }
+</style>
+
+<div class="max-w-[2200px] mx-auto p-10">
+  <h1 class="text-[24px] font-extrabold text-[#3D2B2F] mb-1">Foto kůže — 4 layout variant × 3 hustoty dne</h1>
+  <p class="text-[13px] text-[#7A6468] mb-8">Chipy = skutečný vzhled ze <code>SkinObservationCard</code> (barevná pilulka per region, žádný sev-dot+text řádek). Sloupce: pár záznamů · středně · hodně záznamů (flare day).</p>
+
+  <div id="root" class="space-y-16"></div>
+</div>
+
+<!-- shared read-only lightbox (no delete/undo — this is /day glance mode, not the /skin edit gallery) -->
+<div id="lightbox" class="fixed inset-0 z-50 bg-black/90 hidden flex-col items-center justify-center gap-3" onclick="closeLightbox()">
+  <div id="lightbox-body" class="flex flex-wrap gap-3 justify-center max-w-[90vw]" onclick="event.stopPropagation()"></div>
+  <button class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 text-white text-lg flex items-center justify-center" onclick="closeLightbox()">×</button>
+</div>
+
+<!-- toast simulating "row tap -> navigates to /skin edit" (no real navigation in this static prototype) -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#3D2B2F] text-white text-[12px] rounded-full px-4 py-2 opacity-0 pointer-events-none transition-opacity z-50"></div>
+
+<script>
+const SEV = { 0: 'chip-0', 1: 'chip-1', 2: 'chip-2', 3: 'chip-3' };
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1400);
+}
+
+function openLightbox(photosJson) {
+  const photos = JSON.parse(decodeURIComponent(photosJson));
+  const body = document.getElementById('lightbox-body');
+  body.innerHTML = photos.map(p => `
+    <div class="flex flex-col items-center gap-1">
+      <div class="w-52 h-52 rounded-xl thumb"></div>
+      <span class="text-white text-[11px]">${p.region} · ${p.time}</span>
+    </div>`).join('');
+  document.getElementById('lightbox').classList.remove('hidden');
+  document.getElementById('lightbox').classList.add('flex');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.add('hidden');
+  document.getElementById('lightbox').classList.remove('flex');
+}
+function encPhotos(photos) { return encodeURIComponent(JSON.stringify(photos)); }
+
+// ---- sample datasets -------------------------------------------------
+const datasets = {
+  few: {
+    label: 'PÁR ZÁZNAMŮ (typický den)',
+    observations: [
+      { time: '9:10', chips: [{ label: 'Ruce', level: 1 }], photos: [{ region: 'Ruce', time: '9:10' }] },
+    ],
+  },
+  middle: {
+    label: 'STŘEDNĚ (2 vyšetření, mix foto/bez foto)',
+    observations: [
+      { time: '8:30', chips: [{ label: 'Klidný', level: 0 }], photos: [] },
+      { time: '15:00', chips: [{ label: 'Lokty', level: 2 }, { label: 'Tváře', level: 1 }], photos: [{ region: 'Lokty', time: '15:00' }] },
+    ],
+  },
+  many: {
+    label: 'HODNĚ (flare day, opakovaný region)',
+    observations: [
+      { time: '7:00', chips: [{ label: 'Klidný', level: 0 }], photos: [] },
+      { time: '10:15', chips: [{ label: 'Ruce', level: 1 }], photos: [{ region: 'Ruce', time: '10:15' }] },
+      { time: '12:00', chips: [{ label: 'Tváře', level: 3 }, { label: 'Lokty', level: 2 }], photos: [{ region: 'Tváře', time: '12:00' }, { region: 'Lokty', time: '12:00' }] },
+      { time: '16:40', chips: [{ label: 'Tváře', level: 2 }], photos: [{ region: 'Tváře', time: '16:40' }] },
+      { time: '20:15', chips: [{ label: 'Tváře', level: 3 }, { label: 'Krk', level: 1 }, { label: 'Ruce', level: 1 }], photos: [{ region: 'Tváře', time: '20:15' }, { region: 'Krk', time: '20:15' }] },
+    ],
+  },
+};
+
+
+// ==========================================================================
+// BIG PHOTO DIRECTION — real user (primary caregiver) asked for bigger
+// photos, full stop. All the C-family work above used 36px evidence chips;
+// that's *smaller* than today's shipped SkinPhotoCard (~90px, 3-col grid),
+// not bigger. These variants use a 2-col grid (~140px tiles) and explicitly
+// treat same-region-multiple-times-a-day as the headline case, not an edge
+// case to bound.
+// ==========================================================================
+
+const SEV_DOT = { 0: '#EDE8E9', 1: '#C9A227', 2: '#C97027', 3: '#B84444' };
+
+function findLevel(obs, region) {
+  const chip = obs.chips.find((c) => c.label === region);
+  return chip ? chip.level : 0;
+}
+
+function bigTile(region, time, level) {
+  return `<div class="relative aspect-square rounded-xl thumb cursor-zoom-in" onclick="event.stopPropagation(); openLightbox('${encPhotos([{ region, time }])}')">
+    <span class="absolute top-2 right-2 w-3 h-3 rounded-full ring-2 ring-white" style="background:${SEV_DOT[level]}"></span>
+    <span class="absolute bottom-2 left-2 right-2 text-[11px] text-white text-center leading-tight bg-black/45 rounded px-1.5 py-1">${region} · ${time}</span>
+  </div>`;
+}
+
+// BIG-A — big grid, grouped by observation (own card, sub-header per checkup)
+function bigA(obs) {
+  const withPhotos = obs.filter((o) => o.photos.length > 0);
+  const groups = withPhotos.length === 0
+    ? `<p class="text-[12px] text-[#7A6468]">Zatím žádné foto.</p>`
+    : withPhotos.map((o, i) => `
+      <div class="${i > 0 ? 'border-t border-[#EDE8E9] pt-3 mt-3' : ''}">
+        <div class="text-[11px] text-[#7A6468] font-semibold mb-2">${o.time}</div>
+        <div class="grid grid-cols-2 gap-2">${o.photos.map((p) => bigTile(p.region, p.time, findLevel(o, p.region))).join('')}</div>
+      </div>`).join('');
+  const n = obs.reduce((n, o) => n + o.photos.length, 0);
+  return `<div class="card p-3.5">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold">Foto kůže</div>
+      ${n > 0 ? `<span class="text-[10px] text-[#7A6468]">${n} snímky</span>` : ''}
+    </div>
+    ${groups}
+  </div>`;
+}
+
+// BIG-B — big grid, flat (no grouping), each tile self-labels region+time+severity
+function bigB(obs) {
+  const allPhotos = obs.flatMap((o) => o.photos.map((p) => ({ ...p, level: findLevel(o, p.region) })));
+  const n = allPhotos.length;
+  const grid = n === 0
+    ? `<p class="text-[12px] text-[#7A6468]">Zatím žádné foto.</p>`
+    : `<div class="grid grid-cols-2 gap-2">${allPhotos.map((p) => bigTile(p.region, p.time, p.level)).join('')}</div>`;
+  return `<div class="card p-3.5">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold">Foto kůže</div>
+      ${n > 0 ? `<span class="text-[10px] text-[#7A6468]">${n} snímky</span>` : ''}
+    </div>
+    ${grid}
+  </div>`;
+}
+
+// BIG-C — grouped by REGION, not by observation. Same-region-repeated-in-a-day
+// becomes the headline structure: one row per photographed region, all of
+// that region's shots laid out left-to-right in chronological order so the
+// progression across the day is the primary thing you see, not something
+// hidden behind a "+N" tap.
+function bigC(obs) {
+  const byRegion = new Map();
+  for (const o of obs) {
+    for (const p of o.photos) {
+      const arr = byRegion.get(p.region) || [];
+      arr.push({ region: p.region, time: p.time, level: findLevel(o, p.region) });
+      byRegion.set(p.region, arr);
+    }
+  }
+  const entries = [...byRegion.entries()];
+  const n = entries.reduce((n, [, shots]) => n + shots.length, 0);
+  const rows = entries.length === 0
+    ? `<p class="text-[12px] text-[#7A6468]">Zatím žádné foto.</p>`
+    : entries.map(([region, shots], i) => `
+      <div class="${i > 0 ? 'border-t border-[#EDE8E9] pt-3 mt-3' : ''}">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-[12px] font-semibold text-[#3D2B2F]">${region}</div>
+          ${shots.length > 1 ? `<span class="text-[10px] text-[#7A6468]">${shots.length}× dnes</span>` : ''}
+        </div>
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          ${shots.map((s) => `<div class="w-[110px] shrink-0">${bigTile(s.region, s.time, s.level)}</div>`).join('')}
+        </div>
+      </div>`).join('');
+  return `<div class="card p-3.5">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold">Foto kůže</div>
+      ${n > 0 ? `<span class="text-[10px] text-[#7A6468]">${n} snímky</span>` : ''}
+    </div>
+    ${rows}
+  </div>`;
+}
+
+const bigVariants = [
+  { key: 'BIG-A', title: 'VELKÁ MŘÍŽKA, SESKUPENO PODLE VYŠETŘENÍ', render: bigA,
+    note: '2-sloupcová mřížka (~140px dlaždice, výrazně větší než dnešní 3-sloupcová ~90px) uvnitř samostatné karty Foto kůže, s mini-hlavičkou (čas) na vyšetření. Řeší i velikost, i atribuci — bez zásahu do <code>SkinObservationCard</code> řádků.' },
+  { key: 'BIG-B', title: 'VELKÁ MŘÍŽKA, PLOCHÁ (bez seskupení)', render: bigB,
+    note: 'Stejná velká mřížka, ale bez hlaviček vyšetření — každá dlaždice nese vlastní region+čas+sev-dot overlay. Levnější (žádné group headers), ale atribuce spoléhá jen na overlay text, ne na strukturu.' },
+  { key: 'BIG-C', title: 'SESKUPENO PODLE REGIONU — PROGRESE DNE', render: bigC,
+    note: 'Řádek na region, ne na vyšetření. Region vyfocený víckrát za den (Tváře 3×) se zobrazí jako celá chronologická řada vedle sebe — postup zánětu během dne je hlavní věc, kterou vidíš, ne něco schované za "+N".' },
+];
+
+const bigSection = document.createElement('div');
+bigSection.innerHTML = `
+  <h2 class="text-[16px] font-semibold text-[#3D2B2F] mb-1">BIG PHOTO SMĚR — velké dlaždice (~140px), samostatná karta Foto kůže</h2>
+  <p class="text-[12px] text-[#7A6468] mb-4 max-w-[900px] leading-relaxed">Reakce na reálnou zpětnou vazbu: "chci jen větší fotky". Žádný zásah do <code>SkinObservationCard</code> řádků — foto karta zůstává oddělená (jako dnes), jen výrazně větší dlaždice + řešení atribuce uvnitř té karty. Sloupce: pár záznamů · středně · flare day (Tváře fotografováno 3× za den — hlavní stress case pro BIG-C).</p>
+  <div class="grid grid-cols-3 gap-x-8 gap-y-10">${bigVariants.map((v, vi) => ['few','middle','many'].map((key) => `<div>
+    <div class="frame-tag mb-2">▸ ${v.key} — ${datasets[key].label}</div>
+    <div class="screen p-4">${v.render(datasets[key].observations)}</div>
+    ${key === 'few' ? `<p class="text-[11px] text-[#7A6468] mt-2 max-w-[280px] leading-relaxed">${v.note}</p>` : ''}
+  </div>`).join('')).join('')}</div>
+`;
+root.appendChild(bigSection);
+
+// ==========================================================================
+// NO OBSERVATION LIST — real usage report: she goes straight to photos and
+// ignores the Stav ekzému chip list entirely. These variants drop that card
+// altogether and make ONE unified "Stav kůže" card (region-grouped, BIG-C
+// style) the sole skin-status surface on /day.
+//
+// Gap to solve: a photo-less check (e.g. 7:00 "Klidný", no photo) has nowhere
+// to live if the chip list is gone. Handled here as a plain single-line
+// status row — no chip pill, no severity color, just the fact "checked, all
+// calm" — kept minimal since it carries much less information than a photo.
+//
+// Also resolves the open severity-label question by building both: NL-1
+// keeps the dot only (assumes color fluency); NL-2 adds the Czech severity
+// word next to the dot so the tile is self-sufficient without ever having
+// seen the chip list.
+// ==========================================================================
+
+const SEV_WORD = { 0: 'Klidná', 1: 'Mírná', 2: 'Střední', 3: 'Silná' };
+
+function bigTileWithWord(region, time, level, showWord) {
+  const label = showWord ? `${region} · ${time} · ${SEV_WORD[level]}` : `${region} · ${time}`;
+  return `<div class="relative aspect-square rounded-xl thumb cursor-zoom-in" onclick="event.stopPropagation(); openLightbox('${encPhotos([{ region, time }])}')">
+    <span class="absolute top-2 right-2 w-3 h-3 rounded-full ring-2 ring-white" style="background:${SEV_DOT[level]}"></span>
+    <span class="absolute bottom-2 left-2 right-2 text-[11px] text-white text-center leading-tight bg-black/45 rounded px-1.5 py-1">${label}</span>
+  </div>`;
+}
+
+function unifiedStavKuze(obs, showWord) {
+  const calmNoPhoto = obs.filter((o) => o.photos.length === 0);
+  const byRegion = new Map();
+  for (const o of obs) {
+    for (const p of o.photos) {
+      const arr = byRegion.get(p.region) || [];
+      arr.push({ region: p.region, time: p.time, level: findLevel(o, p.region) });
+      byRegion.set(p.region, arr);
+    }
+  }
+  const entries = [...byRegion.entries()];
+  const n = entries.reduce((n, [, shots]) => n + shots.length, 0);
+
+  // Display-only — no tap target. Editing a photo-less "Klidný" check from
+  // /day is rare enough that routing through /skin directly (its own entry
+  // point) is fine; this row doesn't need to duplicate that navigation.
+  const calmLines = calmNoPhoto.map((o) => `
+    <div class="flex items-center gap-2 py-1">
+      <span class="text-[10px] text-[#7A6468] tabular-nums w-9 shrink-0">${o.time}</span>
+      <span class="text-[12px] text-[#7A6468]">Klidný (bez foto)</span>
+    </div>`).join('');
+
+  const regionRows = entries.length === 0 ? '' : entries.map(([region, shots], i) => `
+    <div class="${i > 0 || calmLines ? 'border-t border-[#EDE8E9] pt-3 mt-3' : ''}">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-[12px] font-semibold text-[#3D2B2F]">${region}</div>
+        ${shots.length > 1 ? `<span class="text-[10px] text-[#7A6468]">${shots.length}× dnes</span>` : ''}
+      </div>
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        ${shots.map((s) => `<div class="w-[110px] shrink-0">${bigTileWithWord(s.region, s.time, s.level, showWord)}</div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const empty = entries.length === 0 && calmNoPhoto.length === 0
+    ? `<p class="text-[12px] text-[#7A6468]">Dnes zatím žádný záznam.</p>` : '';
+
+  return `<div class="card p-3.5">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold">Stav kůže</div>
+      ${n > 0 ? `<span class="text-[10px] text-[#7A6468]">${n} snímky</span>` : ''}
+    </div>
+    ${calmLines}${regionRows}${empty}
+  </div>`;
+}
+
+const nlVariants = [
+  { key: 'NL-1', showWord: false, title: 'BEZ SLOVNÍHO OZNAČENÍ ZÁVAŽNOSTI (jen barva)',
+    note: 'Sev-dot barva bez textu. Předpokládá, že už zná barevnou škálu zpaměti — bez chip listu vedle sebe teď nemá kde si ji "přečíst".' },
+  { key: 'NL-2', showWord: true, title: 'SE SLOVNÍM OZNAČENÍM ZÁVAŽNOSTI (dot + slovo)',
+    note: 'Overlay nese i slovo ("Mírná") — dlaždice je soběstačná bez ohledu na to, jestli chip list vůbec kdy viděla. O něco delší popisek, ale nic nechybí.' },
+];
+
+const nlSection = document.createElement('div');
+nlSection.innerHTML = `
+  <h2 class="text-[16px] font-semibold text-[#3D2B2F] mb-1">NO-LIST SMĚR — jedna sjednocená karta "Stav kůže", žádný samostatný seznam vyšetření</h2>
+  <p class="text-[12px] text-[#7A6468] mb-4 max-w-[900px] leading-relaxed">Reakce na reálné pozorování: chodí rovnou na fotky, chip list ignoruje. <code>SkinObservationCard</code> mizí úplně; jediná karta na /day pro stav kůže je region-seskupená (BIG-C styl). Fotoméně "Klidný" záznam (7:00, bez foto) dostává jen tenký textový řádek — ne plný chip, protože nese mnohem méně informace než foto.</p>
+  <div class="grid grid-cols-3 gap-x-8 gap-y-10">${nlVariants.map((v) => ['few','middle','many'].map((key) => `<div>
+    <div class="frame-tag mb-2">▸ ${v.key} — ${datasets[key].label}</div>
+    <div class="screen p-4">${unifiedStavKuze(datasets[key].observations, v.showWord)}</div>
+    ${key === 'few' ? `<p class="text-[11px] text-[#7A6468] mt-2 max-w-[280px] leading-relaxed">${v.note}</p>` : ''}
+  </div>`).join('')).join('')}</div>
+`;
+root.appendChild(nlSection);
+// ==========================================================================
+// UNIFIED ADAPTIVE — one card per day, shape adapts to content.
+// Calm days: chip-list style rows (severity-labeled), photos zero.
+// Flare days: region-grouped photo strips.
+// Mixed days: three shapes tested (UA-1 split, UA-2 mixed feed, UA-3 chronological).
+// ==========================================================================
+
+function calmRow(o) {
+  return '<div class="flex items-center gap-3 py-2 cursor-pointer" onclick="showToast(\'→ otevřít /skin?id=… (editor záznamu)\')">' +
+    '<div class="w-9 shrink-0 text-sm font-semibold tabular-nums text-[#7A6468]">' + o.time + '</div>' +
+    '<div class="flex-1 flex items-center gap-2">' +
+      '<span class="w-2.5 h-2.5 rounded-full" style="background:' + SEV_DOT[0] + '"></span>' +
+      '<span class="text-[13px] text-[#3D2B2F]">Klidná (9/9 regionů)</span>' +
+    '</div>' +
+    '<span class="text-[#7A6468] text-xs shrink-0">›</span>' +
+  '</div>';
+}
+
+function checkupSummaryRow(o) {
+  if (o.chips.length === 0 || (o.chips.length === 1 && o.chips[0].level === 0)) return calmRow(o);
+  var maxLevel = Math.max.apply(null, o.chips.map(function(c){ return c.level; }));
+  var names = o.chips.map(function(c){ return c.label; }).join(', ');
+  return '<div class="flex items-center gap-3 py-2 cursor-pointer" onclick="showToast(\'→ otevřít /skin?id=… (editor záznamu)\')">' +
+    '<div class="w-9 shrink-0 text-sm font-semibold tabular-nums text-[#7A6468]">' + o.time + '</div>' +
+    '<div class="flex-1 min-w-0 flex items-center gap-2">' +
+      '<span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:' + SEV_DOT[maxLevel] + '"></span>' +
+      '<span class="text-[13px] text-[#3D2B2F] truncate">' + names + '</span>' +
+    '</div>' +
+    '<span class="text-[#7A6468] text-xs shrink-0">›</span>' +
+  '</div>';
+}
+
+function regionStrip(region, shots) {
+  var header = '<div class="flex items-center justify-between mb-2">' +
+    '<div class="text-[12px] font-semibold text-[#3D2B2F]">' + region + '</div>' +
+    (shots.length > 1 ? '<span class="text-[10px] text-[#7A6468]">' + shots.length + '× dnes</span>' : '') +
+  '</div>';
+  var tiles = shots.map(function(s){
+    return '<div class="w-[110px] shrink-0">' + bigTileWithWord(s.region, s.time, s.level, true) + '</div>';
+  }).join('');
+  return header + '<div class="flex gap-2 overflow-x-auto pb-1">' + tiles + '</div>';
+}
+
+function groupPhotosByRegion(obs) {
+  var byRegion = new Map();
+  for (var i = 0; i < obs.length; i++) {
+    var o = obs[i];
+    for (var j = 0; j < o.photos.length; j++) {
+      var p = o.photos[j];
+      var arr = byRegion.get(p.region) || [];
+      arr.push({ region: p.region, time: p.time, level: findLevel(o, p.region) });
+      byRegion.set(p.region, arr);
+    }
+  }
+  return [].slice.call(byRegion.entries());
+}
+
+// UA-1 — split within card: KONTROLY + FOTO PRŮBĚH
+function unifiedSplit(obs) {
+  var checkupRows = obs.map(function(o){
+    return o.photos.length === 0 ? calmRow(o) : checkupSummaryRow(o);
+  }).join('');
+  var entries = groupPhotosByRegion(obs);
+  var strips = entries.map(function(e, i){
+    return '<div class="' + (i > 0 ? 'border-t border-[#EDE8E9] pt-3 mt-3' : '') + '">' + regionStrip(e[0], e[1]) + '</div>';
+  }).join('');
+  var photoBlock = entries.length === 0 ? '' :
+    '<div class="border-t border-[#EDE8E9] pt-3 mt-3">' +
+      '<div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold mb-2">Foto průběh</div>' +
+      strips +
+    '</div>';
+  return '<div class="card p-3.5">' +
+    '<div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold mb-2">Kontroly</div>' +
+    '<div class="divide-y divide-[#EDE8E9]">' + checkupRows + '</div>' +
+    photoBlock +
+  '</div>';
+}
+
+// UA-2 — one mixed feed: calm rows top-level (time-ordered) + region strips
+function unifiedMixedFeed(obs) {
+  var calmObs = obs.filter(function(o){ return o.photos.length === 0; });
+  var calmRows = calmObs.map(calmRow).join('');
+  var entries = groupPhotosByRegion(obs);
+  var strips = entries.map(function(e, i){
+    var isFirst = i === 0 && calmRows === '';
+    return '<div class="' + (isFirst ? '' : 'border-t border-[#EDE8E9] pt-3 mt-3') + '">' + regionStrip(e[0], e[1]) + '</div>';
+  }).join('');
+  var empty = calmRows === '' && entries.length === 0
+    ? '<p class="text-[12px] text-[#7A6468]">Dnes zatím žádný záznam.</p>' : '';
+  return '<div class="card p-3.5">' +
+    '<div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold mb-2">Stav kůže</div>' +
+    calmRows + strips + empty +
+  '</div>';
+}
+
+// UA-3 — chronological: photos inline under each checkup
+function unifiedChronological(obs) {
+  var rows = obs.map(function(o){
+    if (o.photos.length === 0) return calmRow(o);
+    var summary = checkupSummaryRow(o);
+    var tiles = o.photos.map(function(p){
+      return '<div class="w-[110px] shrink-0">' + bigTileWithWord(p.region, p.time, findLevel(o, p.region), true) + '</div>';
+    }).join('');
+    return '<div class="py-1">' + summary +
+      '<div class="flex gap-2 overflow-x-auto pb-2 pl-12 pt-1">' + tiles + '</div>' +
+    '</div>';
+  }).join('');
+  return '<div class="card p-3.5">' +
+    '<div class="text-[10px] text-[#7A6468] uppercase tracking-wide font-semibold mb-2">Stav kůže</div>' +
+    '<div class="divide-y divide-[#EDE8E9]">' + rows + '</div>' +
+  '</div>';
+}
+
+var uaVariants = [
+  { key: 'UA-1', render: unifiedSplit, title: 'SPLIT V RÁMCI KARTY (Kontroly / Foto průběh)',
+    note: 'Dvě sekce v jedné kartě. Nahoře chronologický seznam kontrol (klidné i flare, plné severity + jméno). Dole region-seskupené foto strips. Klidný den = jen horní sekce.' },
+  { key: 'UA-2', render: unifiedMixedFeed, title: 'JEDEN MÍCHANÝ FEED',
+    note: 'Klidné kontroly jako top-level řádek, region strips na stejné úrovni. Žádná explicitní hlavička nad kontrolami — klidné kontroly dostávají stejnou váhu jako region strip.' },
+  { key: 'UA-3', render: unifiedChronological, title: 'CHRONOLOGICKY (foto pod každou kontrolou)',
+    note: 'Každá kontrola svůj blok. Foto se objevují inline pod souhrnem své kontroly, ne region-seskupené. Nejblíž současnému SkinObservationCard, jen s velkými foto inline. Ztrácí region progression (Tváře 3× dnes není vidět jako řada).' }
+];
+
+var uaSection = document.createElement('div');
+uaSection.innerHTML =
+  '<h2 class="text-[16px] font-semibold text-[#3D2B2F] mb-1">UNIFIED ADAPTIVE — jedna karta, tvar podle obsahu</h2>' +
+  '<p class="text-[12px] text-[#7A6468] mb-4 max-w-[900px] leading-relaxed">Chip list zachován jako plnohodnotný povrch pro klidné dny (bez foto). Foto povrch region-seskupený pro flare dny. Tři kandidáti na spojení obou v jednu kartu pro míchaný den. Sloupce: pár záznamů · středně · flare day.</p>' +
+  '<div class="grid grid-cols-3 gap-x-8 gap-y-10">' +
+  uaVariants.map(function(v){
+    return ['few','middle','many'].map(function(key){
+      return '<div>' +
+        '<div class="frame-tag mb-2">▸ ' + v.key + ' — ' + datasets[key].label + '</div>' +
+        '<div class="screen p-4">' + v.render(datasets[key].observations) + '</div>' +
+        (key === 'few' ? '<p class="text-[11px] text-[#7A6468] mt-2 max-w-[280px] leading-relaxed">' + v.note + '</p>' : '') +
+      '</div>';
+    }).join('');
+  }).join('') +
+  '</div>';
+root.appendChild(uaSection);
+</script>
