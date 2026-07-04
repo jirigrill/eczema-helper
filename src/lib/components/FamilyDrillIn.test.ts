@@ -416,7 +416,7 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
       props: { ...baseProps, familyId: 'fruit' as const },
     });
     const names = namesInGroup(container as HTMLElement, 'Tropické');
-    expect(names).toEqual(['Ananas', 'Avokádo', 'Banán', 'Kiwi', 'Mango', 'Meloun']);
+    expect(names).toEqual(['Ananas', 'Avokádo', 'Banán', 'Granátové jablko' ,'Kiwi', 'Mango', 'Meloun']);
   });
 
   it('fish-seafood · sladkovodní sorted alphabetically (Kapr → Pangas → Pstruh → Sumec)', () => {
