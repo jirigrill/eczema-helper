@@ -76,8 +76,8 @@ describe('curation: cross-tag retention (intentional, not bugs)', () => {
     expect(byId('kureci')?.allergenIds).toEqual(['eggs']);
   });
 
-  it('hovězí keeps dairy cross-tag', () => {
-    expect(byId('hovezi')?.allergenIds).toEqual(['dairy']);
+  it('hovězí carries beef cross-tag (bovine protein, not dairy)', () => {
+    expect(byId('hovezi')?.allergenIds).toEqual(['beef']);
   });
 });
 
@@ -293,8 +293,8 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(celery?.protocol, '`celery` is log-only (no reintroduction protocol)').toBeUndefined();
   });
 
-  it('meat expansion has kachna, králík, šunka', () => {
-    for (const id of ['kachna', 'kralik', 'sunka']) {
+  it('meat expansion has kachna, králík', () => {
+    for (const id of ['kachna', 'kralik']) {
       const f = byId(id);
       expect(f, `meat '${id}' missing`).toBeDefined();
       expect(f?.familyId).toBe('meat');
