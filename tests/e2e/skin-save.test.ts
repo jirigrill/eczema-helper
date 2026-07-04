@@ -533,3 +533,54 @@ test('tapping the lightbox backdrop dismisses it', async ({ page }) => {
 
   await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
 });
+
+// ── Day-card lightbox (SkinPhotoCard on /day) ─────────────────────────────
+
+test('tapping a day-card photo thumb opens the lightbox', async ({ page }) => {
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+  await tapRegion(page, 'face');
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+  ]);
+  await tapRegion(page, 'face'); // 0→1 so save is enabled
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
+  await page.getByTestId('skin-photo-thumb-0').click();
+  await expect(page.getByTestId('skin-photo-lightbox')).toBeVisible();
+});
+
+test('day-card lightbox closes via × button and backdrop', async ({ page }) => {
+  await completeOnboarding(page);
+  const today = localToday();
+  await page.goto('/skin');
+  await tapRegion(page, 'face');
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles([
+    { name: 'a.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('a') },
+  ]);
+  await tapRegion(page, 'face'); // 0→1
+  await page.getByTestId('skin-save').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  // Close via × button
+  await page.getByTestId('skin-photo-thumb-0').click();
+  await expect(page.getByTestId('skin-photo-lightbox')).toBeVisible();
+  await page.getByTestId('skin-lightbox-close').click();
+  await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
+
+  // Re-open, close via backdrop corner click
+  await page.getByTestId('skin-photo-thumb-0').click();
+  const lightbox2 = page.getByTestId('skin-photo-lightbox');
+  await expect(lightbox2).toBeVisible();
+  const box2 = await lightbox2.boundingBox();
+  if (!box2) throw new Error('lightbox has no bounding box');
+  await page.mouse.click(box2.x + 5, box2.y + 5);
+  await expect(page.getByTestId('skin-photo-lightbox')).toHaveCount(0);
+});

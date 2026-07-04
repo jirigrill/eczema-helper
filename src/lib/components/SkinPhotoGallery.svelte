@@ -2,6 +2,7 @@
   import type { RegionId } from '$lib/domain/models';
   import { regionStrings } from '$lib/strings/skin-regions';
   import { commonStrings } from '$lib/strings/common';
+  import PhotoLightbox from './PhotoLightbox.svelte';
 
   /**
    * A displayable photo — a blob to preview, a region to label, and (in edit
@@ -47,10 +48,6 @@
 
   function closeLightbox(): void {
     lightboxIndex = null;
-  }
-
-  function handleBackdropClick(e: MouseEvent): void {
-    if (e.target === e.currentTarget) closeLightbox();
   }
 </script>
 
@@ -105,27 +102,5 @@
 {/if}
 
 {#if lightboxIndex !== null}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div
-    role="dialog"
-    tabindex="-1"
-    aria-modal="true"
-    aria-label="Náhled snímku"
-    data-testid="skin-photo-lightbox"
-    class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-    onclick={handleBackdropClick}
-  >
-    <img
-      src={objectUrls[lightboxIndex]}
-      alt="Snímek kůže"
-      class="max-w-full max-h-full object-contain rounded-xl"
-    />
-    <button
-      type="button"
-      data-testid="skin-lightbox-close"
-      class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 text-white text-lg flex items-center justify-center"
-      aria-label="Zavřít"
-      onclick={closeLightbox}
-    >×</button>
-  </div>
+  <PhotoLightbox src={objectUrls[lightboxIndex]} onClose={closeLightbox} />
 {/if}

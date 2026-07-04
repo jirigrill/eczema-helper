@@ -88,6 +88,7 @@
   <a href="#skin-observation-card">SkinObservationCard</a>
   <a href="#skin-photo-card">SkinPhotoCard</a>
   <a href="#skin-photo-gallery">SkinPhotoGallery</a>
+  <a href="#photo-lightbox">PhotoLightbox</a>
   <a href="#questionnaire-summary-row">QuestionnaireSummaryRow</a>
   <a href="#toast">Toast</a>
   <a href="#family-grid">FamilyGrid</a>
@@ -811,6 +812,27 @@
             <span class="text-3xl opacity-40">🖼</span>
           </div>
           <button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-base flex items-center justify-center">×</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
+  <!-- ─── PhotoLightbox ────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/PhotoLightbox.svelte -->
+  <div class="component-section" id="photo-lightbox">
+    <p class="component-label">▸ <span>PhotoLightbox</span> — src: string, onClose: () =&gt; void</p>
+    <div class="variant-row">
+
+      <div class="variant-tile" style="width:200px">
+        <p class="variant-name">overlay (fixed, z-50)</p>
+        <div class="relative bg-black/90 rounded-xl overflow-hidden" style="aspect-ratio:1">
+          <div class="flex items-center justify-center h-full">
+            <span class="text-3xl opacity-40">🖼</span>
+          </div>
+          <button class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white text-lg flex items-center justify-center">×</button>
         </div>
       </div>
 
