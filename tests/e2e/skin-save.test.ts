@@ -461,11 +461,10 @@ test('saved photos appear on /day/<today> Foto kůže card with region labels an
   await expect(page.getByText('Foto kůže')).toBeVisible();
   // Count suffix from snimkyCs(2) is "2 snímky" (Czech grammar).
   await expect(page.getByText('2 snímky')).toBeVisible();
-  // Region label appears under each thumb — at least two 'Paže' labels visible.
-  // The photo-card thumb labels are rendered as <span class="text-[10px]"…>,
-  // which distinguishes them from the SkinObservationCard secondary line
-  // (class="text-[11px]") so the same region word doesn't strict-mode collide.
-  const photoLabels = page.locator('span.text-\\[10px\\]', { hasText: 'Paže' });
+  // Region label appears in the caption pill of each thumb — at least two
+  // 'Paže' captions visible. Use data-testid="skin-photo-caption" to scope
+  // away from the SkinObservationCard region chips.
+  const photoLabels = page.getByTestId('skin-photo-caption').filter({ hasText: 'Paže' });
   await expect(photoLabels).toHaveCount(2);
 });
 
@@ -486,9 +485,9 @@ test('day card photo panel survives reload via live Dexie query (join through ob
   // Foto kůže card still shows the photo + the Břicho label after reload.
   await expect(page.getByText('Foto kůže')).toBeVisible();
   await expect(page.getByText('1 snímek')).toBeVisible();
-  // Scope to the photo-card thumb label (text-[10px]) so it doesn't strict-
-  // mode collide with the SkinObservationCard secondary line (text-[11px]).
-  await expect(page.locator('span.text-\\[10px\\]', { hasText: 'Břicho' })).toBeVisible();
+  // Scope to the caption pill (data-testid="skin-photo-caption") so it doesn't
+  // collide with the SkinObservationCard region chips.
+  await expect(page.getByTestId('skin-photo-caption').filter({ hasText: 'Břicho' })).toBeVisible();
 });
 
 // ── Lightbox open/close (issue #362 AC5) ──────────────────────────────────
