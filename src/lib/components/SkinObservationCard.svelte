@@ -7,6 +7,7 @@
     type SkinObservation,
     type SkinRegionRecord,
   } from '$lib/domain/models';
+  import { formatObservationTime } from '$lib/utils/date';
   import DayCard from './DayCard.svelte';
 
   let {
@@ -21,12 +22,6 @@
   const sortedObservations = $derived(
     [...observations].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
   );
-
-  /** "9:12" — local hour (no leading zero), minute padded. */
-  function formatTime(iso: string): string {
-    const d = new Date(iso);
-    return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-  }
 
   /**
    * Regions with `level > 0`, sorted in canonical `REGION_IDS` order so chip
@@ -59,7 +54,7 @@
         >
           <div
             class="w-12 shrink-0 text-sm font-semibold tabular-nums text-text-muted {hasNotes ? 'mt-1' : ''}"
-          >{formatTime(obs.createdAt)}</div>
+          >{formatObservationTime(obs.createdAt)}</div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
               {#if bumped.length === 0}

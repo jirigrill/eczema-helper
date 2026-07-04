@@ -570,11 +570,33 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
   it('SkinObservationCard and SkinPhotoCard are rendered', async () => {
     mockPage.params.date = today;
     mockScheduleRaw.set(readyRawToday);
+    // Seed a matching observation + photo so the overlay time (H:MM derived
+    // from the observation's local createdAt) reaches the DOM. Building the
+    // ISO string from a local Date keeps the assertion timezone-independent.
+    const createdAt = new Date(2026, 4, 15, 9, 12).toISOString();
+    liveObservations = [
+      {
+        id: 'obs-morning',
+        date: today,
+        createdAt,
+        regions: [],
+      },
+    ];
+    livePhotos = [
+      {
+        id: 'photo-1',
+        observationId: 'obs-morning',
+        region: 'face',
+        capturedAt: createdAt,
+        blob: new Blob(['img'], { type: 'image/jpeg' }),
+      },
+    ];
     const { default: DayPage } = await import('./+page.svelte');
-    const { getByText } = render(DayPage);
+    const { getByText, getByTestId } = render(DayPage);
     await tick();
     expect(getByText('Stav ekzému')).toBeInTheDocument();
     expect(getByText('Foto kůže')).toBeInTheDocument();
+    expect(getByTestId('skin-photo-time').textContent).toBe('9:12');
   });
 
   it('shows bottom hint when schedule is ready', async () => {

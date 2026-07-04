@@ -4,7 +4,19 @@
   import type { SkinPhoto } from '$lib/domain/models';
   import DayCard from './DayCard.svelte';
 
-  let { photos }: { photos: SkinPhoto[] } = $props();
+  let {
+    photos,
+    observationTimes = new Map(),
+  }: {
+    photos: SkinPhoto[];
+    /**
+     * Map from `SkinPhoto.observationId` → formatted H:MM Czech time of the
+     * parent observation. Photos whose id is not in the map render without a
+     * time overlay — orphan photos shouldn't happen given the FK relationship,
+     * but we degrade silently rather than showing a broken pill.
+     */
+    observationTimes?: Map<string, string>;
+  } = $props();
 
   // Keyed by photo.id so URLs stay attached to their photo if the array is
   // ever filtered or reordered (index-keyed lookups would desync).
@@ -32,12 +44,21 @@
   {:else}
     <div class="grid grid-cols-3 gap-2">
       {#each photos as photo (photo.id)}
+        {@const time = observationTimes.get(photo.observationId)}
         <div class="flex flex-col items-center gap-1">
-          <img
-            src={objectUrls[photo.id]}
-            alt="Snímek kůže"
-            class="w-full aspect-square object-cover rounded-xl"
-          />
+          <div class="relative w-full">
+            <img
+              src={objectUrls[photo.id]}
+              alt="Snímek kůže"
+              class="w-full aspect-square object-cover rounded-xl"
+            />
+            {#if time}
+              <span
+                data-testid="skin-photo-time"
+                class="absolute top-1 left-1 text-[9px] text-white bg-black/45 rounded px-1 py-0.5 leading-tight tabular-nums"
+              >{time}</span>
+            {/if}
+          </div>
           <span class="text-[10px] text-text-muted text-center leading-tight">
             {regionStrings[photo.region].label}
           </span>

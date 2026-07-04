@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { daysBetween, resolveRouteDate, formatWeekdayShortCs, formatWeekdayLongCs, todayIso, daysAgo, addDays } from './date';
+import { daysBetween, resolveRouteDate, formatWeekdayShortCs, formatWeekdayLongCs, todayIso, daysAgo, addDays, formatObservationTime } from './date';
 
 describe('daysBetween', () => {
   it('same day returns 1 (inclusive convention)', () => {
@@ -176,5 +176,32 @@ describe('addDays', () => {
 
   it('handles year boundary', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+  });
+});
+
+describe('formatObservationTime', () => {
+  // Build ISO strings from local-time Date objects so the assertions match the
+  // formatter's local-clock readout regardless of the test runner's timezone.
+  const isoAt = (y: number, mo: number, d: number, h: number, m: number): string =>
+    new Date(y, mo - 1, d, h, m).toISOString();
+
+  it('formats a mid-morning time as H:MM with no leading zero on hour', () => {
+    expect(formatObservationTime(isoAt(2026, 5, 15, 9, 12))).toBe('9:12');
+  });
+
+  it('zero-pads minutes below ten', () => {
+    expect(formatObservationTime(isoAt(2026, 5, 15, 9, 5))).toBe('9:05');
+  });
+
+  it('renders midnight as 0:00', () => {
+    expect(formatObservationTime(isoAt(2026, 5, 15, 0, 0))).toBe('0:00');
+  });
+
+  it('renders top-of-hour minute as :00', () => {
+    expect(formatObservationTime(isoAt(2026, 5, 15, 14, 0))).toBe('14:00');
+  });
+
+  it('preserves two-digit hours', () => {
+    expect(formatObservationTime(isoAt(2026, 5, 15, 23, 47))).toBe('23:47');
   });
 });

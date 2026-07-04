@@ -91,4 +91,60 @@ describe('SkinPhotoCard', () => {
     await tick();
     expect(getByTestId('day-card-right').textContent).toContain('3 snímky');
   });
+
+  // Time overlay — a top-left pill on each thumb showing the parent
+  // observation's H:MM so two photos of the same region taken at different
+  // evaluations on the same day are visually distinguishable.
+  it('renders the observation time overlay for each photo', async () => {
+    const { getAllByTestId } = render(SkinPhotoCard, {
+      props: {
+        photos: [makePhoto({ id: 'p-1', observationId: 'obs-1' })],
+        observationTimes: new Map([['obs-1', '9:12']]),
+      },
+    });
+    await tick();
+    const pills = getAllByTestId('skin-photo-time');
+    expect(pills).toHaveLength(1);
+    expect(pills[0].textContent).toBe('9:12');
+  });
+
+  it('renders distinct times for two photos of the same region taken at different observations', async () => {
+    const { getAllByTestId } = render(SkinPhotoCard, {
+      props: {
+        photos: [
+          makePhoto({ id: 'p-morning', observationId: 'obs-morning', region: 'face' }),
+          makePhoto({ id: 'p-evening', observationId: 'obs-evening', region: 'face' }),
+        ],
+        observationTimes: new Map([
+          ['obs-morning', '9:12'],
+          ['obs-evening', '19:47'],
+        ]),
+      },
+    });
+    await tick();
+    const texts = getAllByTestId('skin-photo-time').map((el) => el.textContent);
+    expect(texts).toEqual(['9:12', '19:47']);
+  });
+
+  it('renders no time overlay when observationTimes has no entry for the photo (orphan photo)', async () => {
+    const { container, queryAllByTestId } = render(SkinPhotoCard, {
+      props: {
+        photos: [makePhoto({ id: 'p-orphan', observationId: 'obs-missing' })],
+        observationTimes: new Map(),
+      },
+    });
+    await tick();
+    // Thumb still renders; only the pill is absent.
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(queryAllByTestId('skin-photo-time')).toHaveLength(0);
+  });
+
+  it('renders no time overlay when observationTimes prop is omitted entirely', async () => {
+    const { container, queryAllByTestId } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto()] },
+    });
+    await tick();
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(queryAllByTestId('skin-photo-time')).toHaveLength(0);
+  });
 });
