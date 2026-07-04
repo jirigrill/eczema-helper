@@ -37,8 +37,8 @@ describe('singleAllergenFamily', () => {
     expect(singleAllergenFamily('eggs')).toBe('eggs');
   });
 
-  it('returns allergen id for meat (single-allergen family)', () => {
-    expect(singleAllergenFamily('meat')).toBe('meat');
+  it('returns null for meat (multi-allergen: meat + beef)', () => {
+    expect(singleAllergenFamily('meat')).toBeNull();
   });
 
   it('returns null for legumes (multi-allergen: soy + legumes)', () => {

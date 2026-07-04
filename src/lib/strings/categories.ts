@@ -32,6 +32,7 @@ export const categoryStrings = {
   celery:                { name: 'Celer'                     },
   'other-vegetables':    { name: 'Ostatní zelenina'          },
   meat:                  { name: 'Maso'                      },
+  beef:                  { name: 'Hovězí bílkovina' },
   mustard:               { name: 'Hořčice'                   },
   'sulphites-additives': { name: 'Siřičitany a aditiva'      },
   'vinegar-fermented':   { name: 'Ocet a kvašené potraviny'  },

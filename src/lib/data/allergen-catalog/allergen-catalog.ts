@@ -229,6 +229,7 @@ export const ALLERGENS = [
   { id: 'celery',             familyId: 'vegetables' as FamilyId,        icon: '🥬', aliases: ['celery', 'celer'] },
   { id: 'other-vegetables',   familyId: 'vegetables' as FamilyId,        icon: '🥒', aliases: ['vegetables', 'zelenina', 'paprika', 'cucumber', 'okurka', 'cuketa', 'zucchini'] },
   { id: 'meat',               familyId: 'meat' as FamilyId,              icon: '🥩', aliases: ['meat', 'maso'] },
+  { id: 'beef',               familyId: 'meat' as FamilyId,              icon: '🐄', aliases: ['beef', 'hovězí', 'telecí', 'cow protein', 'BSA'] },
   { id: 'mustard',            familyId: 'spices-condiments' as FamilyId, icon: '🌿', aliases: ['mustard', 'hořčice'] },
   { id: 'sulphites-additives',familyId: 'spices-condiments' as FamilyId, icon: '⚗️', aliases: ['sulphites', 'additives', 'siřičitany', 'aditiva'] },
   { id: 'vinegar-fermented',  familyId: 'spices-condiments' as FamilyId, icon: '🫙', aliases: ['vinegar', 'fermented', 'ocet', 'kvašené'] },
@@ -361,6 +362,7 @@ export const FOODS = [
   { id: 'mango',             familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
   { id: 'ananas',            familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke' },
   { id: 'avokado',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke', aliases: ['avokádo'] },
+  { id: 'granatove-jablko',  familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'tropicke', aliases: ['granátové jablko', 'pomegranate'] },
   { id: 'citron',            familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
   { id: 'mandarinka',        familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
   { id: 'grapefruit',        familyId: 'fruit' as FamilyId,       allergenIds: ['citrus'],       form: 'cookable', sourceGroup: 'citrusy' },
@@ -370,15 +372,14 @@ export const FOODS = [
   { id: 'angrest',           familyId: 'fruit' as FamilyId,       allergenIds: [],               form: 'cookable', sourceGroup: 'bobuloviny', aliases: ['angrešt'] },
   // Meat
   { id: 'kureci',            familyId: 'meat' as FamilyId,        allergenIds: ['eggs'],         form: 'cookable' },
-  { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable' },
-  { id: 'teleci',            familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable', aliases: ['telecí'] },
+  { id: 'hovezi',            familyId: 'meat' as FamilyId,        allergenIds: ['beef'],         form: 'cookable' },
+  { id: 'teleci',            familyId: 'meat' as FamilyId,        allergenIds: ['beef'],         form: 'cookable', aliases: ['telecí'] },
   { id: 'veprove',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'kruti',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'jehnneci',          familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'kachna',            familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable' },
   { id: 'kralik',            familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['králík'] },
   { id: 'zverina',           familyId: 'meat' as FamilyId,        allergenIds: ['dairy'],        form: 'cookable', aliases: ['zvěřina', 'jelení', 'srnčí', 'divočák'] },
-  { id: 'sunka',             familyId: 'meat' as FamilyId,        allergenIds: [],               form: 'cookable', aliases: ['šunka', 'uzeniny'] },
   // Note: sádlo (rendered pork fat) lives in `fats-oils` family — it's a cooking fat, not meat.
   // Fish/seafood
   { id: 'treska',            familyId: 'fish-seafood' as FamilyId,allergenIds: ['fish'],         form: 'cookable', sourceGroup: 'morske' },
