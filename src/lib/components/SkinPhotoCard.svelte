@@ -3,6 +3,7 @@
   import { regionStrings } from '$lib/strings/skin-regions';
   import type { SkinPhoto } from '$lib/domain/models';
   import DayCard from './DayCard.svelte';
+  import PhotoLightbox from './PhotoLightbox.svelte';
 
   let {
     photos,
@@ -21,6 +22,8 @@
   // Keyed by photo.id so URLs stay attached to their photo if the array is
   // ever filtered or reordered (index-keyed lookups would desync).
   let objectUrls = $state<Record<string, string>>({});
+
+  let lightboxPhotoId = $state<string | null>(null);
 
   $effect(() => {
     const next: Record<string, string> = {};
@@ -43,10 +46,17 @@
     <p class="body-muted">{commonStrings.today.photoEmpty}</p>
   {:else}
     <div class="grid grid-cols-3 gap-2">
-      {#each photos as photo (photo.id)}
+      {#each photos as photo, i (photo.id)}
         {@const time = observationTimes.get(photo.observationId)}
         {@const regionLabel = regionStrings[photo.region].label}
-        <div class="relative aspect-square">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div
+          role="button"
+          tabindex="0"
+          data-testid="skin-photo-thumb-{i}"
+          class="relative aspect-square cursor-pointer"
+          onclick={() => lightboxPhotoId = photo.id}
+        >
           <img
             src={objectUrls[photo.id]}
             alt="Snímek kůže"
@@ -61,3 +71,7 @@
     </div>
   {/if}
 </DayCard>
+
+{#if lightboxPhotoId !== null}
+  <PhotoLightbox src={objectUrls[lightboxPhotoId]} onClose={() => lightboxPhotoId = null} />
+{/if}

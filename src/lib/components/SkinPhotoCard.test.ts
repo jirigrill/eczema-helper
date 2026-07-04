@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { SkinPhoto } from '$lib/domain/models';
 import SkinPhotoCard from './SkinPhotoCard.svelte';
@@ -148,5 +148,58 @@ describe('SkinPhotoCard', () => {
     const pill = getByTestId('skin-photo-caption');
     expect(pill.textContent).toBe('Tváře');
     expect(pill.textContent).not.toContain('·');
+  });
+});
+
+// ── Lightbox ───────────────────────────────────────────────────────────────
+
+describe('SkinPhotoCard — lightbox', () => {
+  it('lightbox is not visible initially', async () => {
+    const { container } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ id: 'photo-1' })] },
+    });
+    await tick();
+    expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
+  });
+
+  it('tapping thumb at index 0 opens the lightbox', async () => {
+    const { container } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ id: 'photo-1' })] },
+    });
+    await tick();
+
+    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await tick();
+
+    expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeInTheDocument();
+  });
+
+  it('× button closes the lightbox', async () => {
+    const { container } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ id: 'photo-1' })] },
+    });
+    await tick();
+
+    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await tick();
+    expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeInTheDocument();
+
+    await fireEvent.click(container.querySelector('[data-testid="skin-lightbox-close"]') as HTMLElement);
+    await tick();
+    expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
+  });
+
+  it('tapping the backdrop closes the lightbox', async () => {
+    const { container } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ id: 'photo-1' })] },
+    });
+    await tick();
+
+    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await tick();
+
+    await fireEvent.click(container.querySelector('[data-testid="skin-photo-lightbox"]') as HTMLElement);
+    await tick();
+    expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
   });
 });
