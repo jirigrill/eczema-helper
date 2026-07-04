@@ -596,7 +596,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     await tick();
     expect(getByText('Stav ekzému')).toBeInTheDocument();
     expect(getByText('Foto kůže')).toBeInTheDocument();
-    expect(getByTestId('skin-photo-time').textContent).toBe('9:12');
+    expect(getByTestId('skin-photo-caption').textContent).toBe('Tváře · 9:12');
   });
 
   it('shows bottom hint when schedule is ready', async () => {

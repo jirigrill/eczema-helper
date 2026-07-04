@@ -45,23 +45,17 @@
     <div class="grid grid-cols-3 gap-2">
       {#each photos as photo (photo.id)}
         {@const time = observationTimes.get(photo.observationId)}
-        <div class="flex flex-col items-center gap-1">
-          <div class="relative w-full">
-            <img
-              src={objectUrls[photo.id]}
-              alt="Snímek kůže"
-              class="w-full aspect-square object-cover rounded-xl"
-            />
-            {#if time}
-              <span
-                data-testid="skin-photo-time"
-                class="absolute top-1 left-1 text-[9px] text-white bg-black/45 rounded px-1 py-0.5 leading-tight tabular-nums"
-              >{time}</span>
-            {/if}
-          </div>
-          <span class="text-[10px] text-text-muted text-center leading-tight">
-            {regionStrings[photo.region].label}
-          </span>
+        {@const regionLabel = regionStrings[photo.region].label}
+        <div class="relative aspect-square">
+          <img
+            src={objectUrls[photo.id]}
+            alt="Snímek kůže"
+            class="w-full h-full object-cover rounded-xl"
+          />
+          <span
+            data-testid="skin-photo-caption"
+            class="absolute bottom-1 left-1 right-1 text-[11px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5 tabular-nums"
+          >{regionLabel}{#if time}{' · '}{time}{/if}</span>
         </div>
       {/each}
     </div>

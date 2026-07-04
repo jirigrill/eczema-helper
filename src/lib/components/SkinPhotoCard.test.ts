@@ -92,20 +92,20 @@ describe('SkinPhotoCard', () => {
     expect(getByTestId('day-card-right').textContent).toContain('3 snímky');
   });
 
-  // Time overlay — a top-left pill on each thumb showing the parent
-  // observation's H:MM so two photos of the same region taken at different
-  // evaluations on the same day are visually distinguishable.
-  it('renders the observation time overlay for each photo', async () => {
+  // Time overlay — the caption pill merges the region label with the parent
+  // observation's H:MM (separator `·`) so two photos of the same region taken
+  // at different evaluations on the same day are visually distinguishable.
+  it('renders a caption pill combining region label and observation time', async () => {
     const { getAllByTestId } = render(SkinPhotoCard, {
       props: {
-        photos: [makePhoto({ id: 'p-1', observationId: 'obs-1' })],
+        photos: [makePhoto({ id: 'p-1', observationId: 'obs-1', region: 'face' })],
         observationTimes: new Map([['obs-1', '9:12']]),
       },
     });
     await tick();
-    const pills = getAllByTestId('skin-photo-time');
+    const pills = getAllByTestId('skin-photo-caption');
     expect(pills).toHaveLength(1);
-    expect(pills[0].textContent).toBe('9:12');
+    expect(pills[0].textContent).toBe('Tváře · 9:12');
   });
 
   it('renders distinct times for two photos of the same region taken at different observations', async () => {
@@ -122,29 +122,31 @@ describe('SkinPhotoCard', () => {
       },
     });
     await tick();
-    const texts = getAllByTestId('skin-photo-time').map((el) => el.textContent);
-    expect(texts).toEqual(['9:12', '19:47']);
+    const texts = getAllByTestId('skin-photo-caption').map((el) => el.textContent);
+    expect(texts).toEqual(['Tváře · 9:12', 'Tváře · 19:47']);
   });
 
-  it('renders no time overlay when observationTimes has no entry for the photo (orphan photo)', async () => {
-    const { container, queryAllByTestId } = render(SkinPhotoCard, {
+  it('omits the time portion when observationTimes has no entry for the photo (orphan photo)', async () => {
+    const { getByTestId } = render(SkinPhotoCard, {
       props: {
-        photos: [makePhoto({ id: 'p-orphan', observationId: 'obs-missing' })],
+        photos: [makePhoto({ id: 'p-orphan', observationId: 'obs-missing', region: 'arms' })],
         observationTimes: new Map(),
       },
     });
     await tick();
-    // Thumb still renders; only the pill is absent.
-    expect(container.querySelectorAll('img')).toHaveLength(1);
-    expect(queryAllByTestId('skin-photo-time')).toHaveLength(0);
+    // Caption still renders — just without the ` · H:MM` suffix.
+    const pill = getByTestId('skin-photo-caption');
+    expect(pill.textContent).toBe('Paže');
+    expect(pill.textContent).not.toContain('·');
   });
 
-  it('renders no time overlay when observationTimes prop is omitted entirely', async () => {
-    const { container, queryAllByTestId } = render(SkinPhotoCard, {
-      props: { photos: [makePhoto()] },
+  it('omits the time portion when observationTimes prop is omitted entirely', async () => {
+    const { getByTestId } = render(SkinPhotoCard, {
+      props: { photos: [makePhoto({ region: 'face' })] },
     });
     await tick();
-    expect(container.querySelectorAll('img')).toHaveLength(1);
-    expect(queryAllByTestId('skin-photo-time')).toHaveLength(0);
+    const pill = getByTestId('skin-photo-caption');
+    expect(pill.textContent).toBe('Tváře');
+    expect(pill.textContent).not.toContain('·');
   });
 });
