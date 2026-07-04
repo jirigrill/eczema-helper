@@ -6,7 +6,7 @@
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
   import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-  import { todayIso, formatDateLongCs } from '$lib/utils/date';
+  import { todayIso, formatDateLongCs, formatObservationTime } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
   import { dayStripRecentreSignal } from '$lib/stores/day-strip-recentre';
@@ -34,6 +34,9 @@
   const meals = $derived(view.meals);
   const skinObservations = $derived(view.observations);
   const photos = $derived(view.photos);
+  const observationTimes = $derived(
+    new Map(skinObservations.map((o) => [o.id, formatObservationTime(o.createdAt)]))
+  );
   const ctx = $derived(view.ctx);
   const selectedDate = $derived(view.selectedDate);
   const phase = $derived(view.phase);
@@ -234,7 +237,7 @@
         <SkinObservationCard observations={skinObservations} date={selectedDate} />
 
         <!-- Skin photo card -->
-        <SkinPhotoCard photos={photos} />
+        <SkinPhotoCard photos={photos} {observationTimes} />
 
         <!-- Smím / Vyhýbej se -->
         <div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
