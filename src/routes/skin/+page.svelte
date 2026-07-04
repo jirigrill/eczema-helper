@@ -13,6 +13,7 @@
     type SkinRegionRecord,
   } from '$lib/domain/models';
   import { randomUUID } from '$lib/utils/uuid';
+  import { sharePhotosToRoll } from '$lib/utils/share-photos';
   import { parseDayQuery } from '$lib/utils/day-query';
   import { commonStrings } from '$lib/strings/common';
   import { actionStrings } from '$lib/strings/actions';
@@ -189,6 +190,7 @@
         regions,
         ...(trimmed ? { notes: trimmed } : {}),
       };
+      const newBlobs = stagedPhotoAdds.map((p) => p.blob);
       const result = restoredFromDeleteBuffer
         ? // Snapshot proxied $state photo rows — IndexedDB structured-cloning
           // rejects Svelte proxies with DataCloneError, and restore forwards
@@ -204,6 +206,7 @@
         // through the delete → re-entry roundtrip. Clear it now that the row
         // is back in Dexie, so a later back-out doesn't rehydrate a phantom.
         if (restoredFromDeleteBuffer) clearBuffer();
+        sharePhotosToRoll(newBlobs);
         // Clean-edit-gate is satisfied — nothing to discard on the way out.
         goto(returnTo);
       } else {
@@ -222,6 +225,7 @@
     const result = await session.save(observation, stagedPhotoAdds);
     saving = false;
     if (result.ok) {
+      sharePhotosToRoll(stagedPhotoAdds.map((p) => p.blob));
       goto(returnTo);
     } else {
       saveError = commonStrings.skin.saveError;
