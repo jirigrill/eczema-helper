@@ -1,9 +1,10 @@
 # 0023 — Dose-escalation ladder as first-class domain data
 
-**Status:** Accepted — informs v1.1; no implementation yet. Feeds the ladder domain-model PRD.
+**Status:** Accepted — informs v1.1; no implementation yet. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
-**Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table).
+**Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table), [ADR-0014](0014-presentation-strings-and-domain-keys.md) (per-rung Czech text lives in `strings/`, never inline on the catalog record).
+**Supersedes (on PRD #421 PR B merge):** the day-scripted `AllergenProtocol` / `ProtocolDay` shape on the ADR-0017 catalog record — the ladder is the sole per-allergen dose-progression data.
 
 ## Context
 
@@ -69,7 +70,7 @@ The ladder is pure/deterministic and LLM-independent, so it is sequenced **first
 in the §5 worklist — it de-risks everything above it and is testable on its own
 (F3/F4 deterministic default with no proposer wired).
 
-## Open question — the rung scale
+## Open question — the rung scale — RESOLVED 2026-07-05
 
 `PortionKind` may **not** suffice as the rung scale. A "pinch" of egg is not a
 "pinch" of celery as an escalation step — `PortionKind` is food-agnostic, and a
@@ -77,6 +78,52 @@ ladder step is allergen-specific. The ladder likely needs either an
 allergen-specific dose scale or a per-allergen `PortionKind → rung` mapping. This
 is a **PRD-level modeling question**, not an architectural fork; the ladder ADR
 records that the scale is unresolved and must be sized in the domain-model PRD.
+
+### Rung-scale resolution (2026-07-05)
+
+Resolved by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421):
+**each `LadderStep` is anchored to an existing `PortionKind` and carries an
+`isEvaluationCheckpoint` flag; per-rung Czech dose descriptor lives in
+`lib/strings/ladder.ts` (ADR-0014).** No new allergen-specific dose scale is
+introduced.
+
+Indicative shape (final types land with PR A):
+
+```ts
+type LadderStep = {
+  id: string;
+  anchor: PortionKind;               // ordered within the ladder
+  isEvaluationCheckpoint: boolean;   // prompt reaction capture at this rung
+};
+type Ladder = { allergenId: ProtocolAllergenId; steps: LadderStep[] };
+```
+
+Reasoning:
+
+- **Order is per-allergen, unit vocabulary is shared.** The
+  "pinch-of-egg ≠ pinch-of-celery" problem is solved by making *sequence* per-allergen
+  while reusing `PortionKind` as the anchor. A pinch is the same unit; egg's ladder
+  advances through pinches differently than celery's.
+- **No allergen-specific numeric scale.** Curation surfaced no allergen where
+  `PortionKind` is too coarse. If one appears, a step gains an allergen-specific
+  dose descriptor without changing the derivation or the domain module's contract.
+- **Evaluation checkpoint is authored, not derived (Option A).** Every existing
+  `ProtocolDay.isEvaluationDay: true` maps 1:1 to `isEvaluationCheckpoint: true`
+  on the corresponding rung. Option B (rule: "top rung is always evaluation") was
+  rejected — user story #16 requires curators to mark mid-ladder evaluation
+  checkpoints; a rule can't express that.
+
+### Consequences of Option A
+
+- `LadderStep` grows a boolean field. Every ladder record must set it explicitly
+  (`satisfies` clause per ADR-0014 will catch omissions at compile time).
+- Consumers derive `isEvaluationDay` from `LadderStep.isEvaluationCheckpoint` at
+  the *current rung* — not from a day index. The concept "day N is evaluation
+  day" is replaced by "rung R is evaluation checkpoint" system-wide.
+- The legacy `ProtocolDay.isEvaluationDay` and its consumer sites
+  (`schedule-queries.ts`, `program/+page.svelte`) are migrated in PRD #421 PR B
+  and deleted on final merge. See PRD #421 for the exact migration and parity
+  test.
 
 ## Consequences
 
@@ -88,5 +135,8 @@ records that the scale is unresolved and must be sized in the domain-model PRD.
   the default ladder; added to the export snapshot (ADR-0002).
 - Ladder versioning + migration on default-ladder improvement is deferred to the
   PRD.
-- The rung scale is an open modeling question (above) — the PRD must resolve it
-  before the ladder is authored.
+- The rung scale is **resolved** — see [Rung-scale resolution](#rung-scale-resolution-2026-07-05).
+- **`AllergenProtocol` / `ProtocolDay` retired on PRD #421 PR B merge.** The
+  ladder is the sole per-allergen dose-progression shape; `getProtocolForAllergen`
+  and inline `instructionCs` are deleted. Per-rung Czech text lives in
+  `lib/strings/ladder.ts` (ADR-0014).
