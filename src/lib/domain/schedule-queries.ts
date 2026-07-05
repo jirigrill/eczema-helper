@@ -86,8 +86,9 @@ export function detectConflicts(
 }
 
 // ── Reintroduction day info ───────────────────────────────────
-// Dosing instructions are per-allergen; see the catalog records' protocol field (ADR-0017).
-// isEvaluationDay is derived from the protocol config for the current allergen + day.
+// Dosing instructions are per-allergen; see the catalog records' ladder field (ADR-0023).
+// isEvaluationDay derives from the current rung's isEvaluationCheckpoint flag —
+// the rung whose index in the ladder corresponds to `dayInPhase`.
 
 export function getReintroductionDayInfo(
   schedule: GeneratedSchedule,
@@ -103,9 +104,8 @@ export function getReintroductionDayInfo(
   const dayInPhase = daysBetween(phase.startDate, date);
   const totalDays = daysBetween(phase.startDate, phase.endDate);
 
-  const protocol = catalog.get(allergenId)?.protocol;
-  const protocolDay = protocol?.days[dayInPhase - 1];
-  const isEvaluationDay = protocolDay?.isEvaluationDay ?? (dayInPhase === totalDays);
+  const rung = catalog.get(allergenId)?.ladder?.stages.breastfed?.[dayInPhase - 1];
+  const isEvaluationDay = rung?.isEvaluationCheckpoint ?? (dayInPhase === totalDays);
 
   return { dayInPhase, totalDays, allergenId, isEvaluationDay };
 }
