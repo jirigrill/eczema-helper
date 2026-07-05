@@ -1,7 +1,19 @@
 # 0001 — Single-device for v1
 
-**Status:** Accepted
+**Status:** Accepted (amended by [ADR-0026](0026-llm-schedule-proposer.md) — a stateless BFF is introduced for v1.1)
 **Date:** 2026-05-11
+
+> **Amendment (ADR-0026, 2026-07-05):** v1.1 introduces an LLM schedule proposer
+> reached through a **stateless edge-function BFF** (prompt + schema + key only,
+> no storage bindings, client-redacted payloads). "No server" is refined to **"no
+> server *holding user data*"** — the BFF is PII-free in transit and at rest, so
+> the GDPR-controller and multi-device-sync reasoning below is **unchanged**;
+> user data still lives only in IndexedDB on the mother's phone. Connectivity
+> becomes **operation-tiered** (reads / deterministic mutations / event logging /
+> export stay offline; only proposal *generation* is online). The BFF is an
+> unauthenticated proxy to a paid key and therefore requires **endpoint-abuse
+> protection** (origin allowlist, per-`device_id` rate limit, attestation, hard
+> spend cap). Multi-device sync remains rejected.
 
 ## Context
 

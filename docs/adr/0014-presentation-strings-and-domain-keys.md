@@ -1,6 +1,6 @@
 # 0014 — Presentation Strings and Domain Keys
 
-**Status:** Accepted (amended by [ADR-0017](0017-allergen-catalog-storage-and-harvest.md))
+**Status:** Accepted (amended by [ADR-0017](0017-allergen-catalog-storage-and-harvest.md); edge case noted by [ADR-0026](0026-llm-schedule-proposer.md))
 **Date:** 2026-05-25
 
 > **Amendment (ADR-0017):** the allergen catalog structure inverts from
@@ -9,6 +9,14 @@
 > id unions are *derived* from the records). `icon`, `subitems`, `protocol`,
 > and `aliases` co-locate onto the record; the `strings/` Czech-text
 > separation described below is **preserved**.
+
+> **Edge case (ADR-0026, 2026-07-05):** a v1.1 LLM proposal's `rationale` is
+> **generated per-instance Czech prose**, not keyable strings-layer text — the one
+> place display text is *produced at runtime* rather than authored. It does not
+> live in `strings/`; the prompt emits Czech directly. This is a bounded exception
+> to "all human-readable text lives in the display layer", not a repeal: the
+> generated prose is constrained to explanatory-not-prescriptive (ADR-0024) and no
+> domain record carries it inline.
 
 ## Context
 

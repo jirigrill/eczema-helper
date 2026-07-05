@@ -1,7 +1,17 @@
 # 0006 — Dexie/IndexedDB with normalized tables
 
-**Status:** Accepted
+**Status:** Accepted (extended by ADR-0023 / ADR-0025 / ADR-0026 — new v1.1 tables)
 **Date:** 2026-05-11
+
+> **Extension (v1.1 program engine, 2026-07-05):** the normalized-table decision
+> extends without conflict to the program-engine tables — `events`
+> ([ADR-0025](0025-event-domain-model.md)), `proposals` (write-only audit,
+> [ADR-0026](0026-llm-schedule-proposer.md)), and a **ladder-override** table
+> ([ADR-0023](0023-dose-escalation-ladder.md)). Same `version().stores()` pattern,
+> same `liveQuery` reactivity, each added to the ADR-0002 export snapshot. The
+> `proposals` table is append-only and **never read by any schedule derivation**
+> (topology stays the truth), so it does not reopen the event-log question (§ "Why
+> not the event log").
 
 ## Context
 
