@@ -16,6 +16,7 @@ export type {
   ProtocolAllergenId3 as ProtocolAllergenId,
   CatalogFoodId,
   FoodId,
+  LadderStepId,
 } from './allergen-catalog';
 
 import { ALLERGENS } from './allergen-catalog';

@@ -3,6 +3,7 @@ export { portionStrings } from './portions';
 export { mealStrings } from './meals';
 export { categoryStrings, subitemStrings } from './categories';
 export { actionStrings } from './actions';
+export { ladderStepStrings } from './ladder';
 export { familySources, ostatniLabel } from './family-sources';
 export {
   commonStrings,

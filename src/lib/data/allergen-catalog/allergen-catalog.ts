@@ -1,7 +1,7 @@
 // Three-collection catalog — families, allergens, foods (ADR-0017 slice 2 / issue #227).
 // Ids derive from the data; types are structurally enforced at compile time.
 
-import type { AllergenProtocol } from '$lib/domain/canonical-allergen';
+import type { AllergenProtocol, Ladder } from '$lib/domain/canonical-allergen';
 
 // ── Families ──────────────────────────────────────────────────
 
@@ -37,6 +37,7 @@ type AllergenRecord = {
   icon: string;
   aliases: readonly string[];
   protocol?: AllergenProtocol;
+  ladder?: Ladder;
 };
 
 export const ALLERGENS = [
@@ -55,6 +56,16 @@ export const ALLERGENS = [
         { day: 5, instructionCs: 'Neomezeně mléčných výrobků — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'dairy',
+      steps: [
+        { id: 'dairy-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'dairy-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'dairy-3', anchor: 'package', isEvaluationCheckpoint: false },
+        { id: 'dairy-4', anchor: 'package', isEvaluationCheckpoint: false },
+        { id: 'dairy-5', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'eggs',
@@ -66,6 +77,14 @@ export const ALLERGENS = [
         { day: 1, instructionCs: '1 vejce (vařené)', isEvaluationDay: false },
         { day: 2, instructionCs: '2 vejce nebo větší porce vaječných výrobků', isEvaluationDay: false },
         { day: 3, instructionCs: 'Neomezeně vajec — večer vyhodnoťte reakci', isEvaluationDay: true },
+      ],
+    },
+    ladder: {
+      allergenId: 'eggs',
+      steps: [
+        { id: 'eggs-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'eggs-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'eggs-3', anchor: 'package', isEvaluationCheckpoint: true  },
       ],
     },
   },
@@ -82,6 +101,15 @@ export const ALLERGENS = [
         { day: 4, instructionCs: 'Neomezeně pšeničných výrobků — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'wheat',
+      steps: [
+        { id: 'wheat-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'wheat-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'wheat-3', anchor: 'package', isEvaluationCheckpoint: false },
+        { id: 'wheat-4', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'soy',
@@ -93,6 +121,14 @@ export const ALLERGENS = [
         { day: 1, instructionCs: '100 ml sójového mléka nebo malá porce tofu', isEvaluationDay: false },
         { day: 2, instructionCs: '200 ml sójového mléka nebo střední porce tofu', isEvaluationDay: false },
         { day: 3, instructionCs: 'Neomezeně sójových výrobků — večer vyhodnoťte reakci', isEvaluationDay: true },
+      ],
+    },
+    ladder: {
+      allergenId: 'soy',
+      steps: [
+        { id: 'soy-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'soy-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'soy-3', anchor: 'package', isEvaluationCheckpoint: true  },
       ],
     },
   },
@@ -109,6 +145,15 @@ export const ALLERGENS = [
         { day: 4, instructionCs: 'Neomezeně ořechů — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'nuts',
+      steps: [
+        { id: 'nuts-1', anchor: 'pinch',   isEvaluationCheckpoint: false },
+        { id: 'nuts-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'nuts-3', anchor: 'package', isEvaluationCheckpoint: false },
+        { id: 'nuts-4', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'fish',
@@ -120,6 +165,14 @@ export const ALLERGENS = [
         { day: 1, instructionCs: '1 malá porce ryby (cca 50 g)', isEvaluationDay: false },
         { day: 2, instructionCs: 'Střední porce ryby (cca 100 g)', isEvaluationDay: false },
         { day: 3, instructionCs: 'Neomezeně ryb — večer vyhodnoťte reakci', isEvaluationDay: true },
+      ],
+    },
+    ladder: {
+      allergenId: 'fish',
+      steps: [
+        { id: 'fish-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'fish-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'fish-3', anchor: 'package', isEvaluationCheckpoint: true  },
       ],
     },
   },
@@ -135,6 +188,14 @@ export const ALLERGENS = [
         { day: 3, instructionCs: 'Neomezeně korýšů a měkkýšů — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'shellfish',
+      steps: [
+        { id: 'shellfish-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'shellfish-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'shellfish-3', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'citrus',
@@ -148,6 +209,14 @@ export const ALLERGENS = [
         { day: 3, instructionCs: 'Neomezeně citrusů — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'citrus',
+      steps: [
+        { id: 'citrus-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'citrus-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'citrus-3', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'chocolate',
@@ -159,6 +228,14 @@ export const ALLERGENS = [
         { day: 1, instructionCs: '2–3 kostičky hořké čokolády (min. 70 % kakaa)', isEvaluationDay: false },
         { day: 2, instructionCs: 'Polovina tabulky čokolády', isEvaluationDay: false },
         { day: 3, instructionCs: 'Neomezeně čokolády — večer vyhodnoťte reakci', isEvaluationDay: true },
+      ],
+    },
+    ladder: {
+      allergenId: 'chocolate',
+      steps: [
+        { id: 'chocolate-1', anchor: 'pinch',   isEvaluationCheckpoint: false },
+        { id: 'chocolate-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'chocolate-3', anchor: 'package', isEvaluationCheckpoint: true  },
       ],
     },
   },
@@ -175,6 +252,15 @@ export const ALLERGENS = [
         { day: 4, instructionCs: 'Neomezeně rajčat nebo paprik — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'tomatoes',
+      steps: [
+        { id: 'tomatoes-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'tomatoes-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'tomatoes-3', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'tomatoes-4', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'strawberries',
@@ -186,6 +272,14 @@ export const ALLERGENS = [
         { day: 1, instructionCs: 'Hrst jahod (cca 100 g)', isEvaluationDay: false },
         { day: 2, instructionCs: 'Větší porce jahod (cca 200 g)', isEvaluationDay: false },
         { day: 3, instructionCs: 'Neomezeně jahod — večer vyhodnoťte reakci', isEvaluationDay: true },
+      ],
+    },
+    ladder: {
+      allergenId: 'strawberries',
+      steps: [
+        { id: 'strawberries-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'strawberries-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'strawberries-3', anchor: 'package', isEvaluationCheckpoint: true  },
       ],
     },
   },
@@ -201,6 +295,14 @@ export const ALLERGENS = [
         { day: 3, instructionCs: 'Neomezeně kukuřičných výrobků — večer vyhodnoťte reakci', isEvaluationDay: true },
       ],
     },
+    ladder: {
+      allergenId: 'corn',
+      steps: [
+        { id: 'corn-1', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'corn-2', anchor: 'portion', isEvaluationCheckpoint: false },
+        { id: 'corn-3', anchor: 'package', isEvaluationCheckpoint: true  },
+      ],
+    },
   },
   {
     id: 'sesame',
@@ -212,6 +314,14 @@ export const ALLERGENS = [
         { day: 1, instructionCs: '1 lžička sezamových semínek nebo tahini', isEvaluationDay: false },
         { day: 2, instructionCs: '2–3 lžíce tahini nebo větší porce sezamu', isEvaluationDay: false },
         { day: 3, instructionCs: 'Neomezeně sezamových výrobků — večer vyhodnoťte reakci', isEvaluationDay: true },
+      ],
+    },
+    ladder: {
+      allergenId: 'sesame',
+      steps: [
+        { id: 'sesame-1', anchor: 'teaspoon', isEvaluationCheckpoint: false },
+        { id: 'sesame-2', anchor: 'spoon',    isEvaluationCheckpoint: false },
+        { id: 'sesame-3', anchor: 'package',  isEvaluationCheckpoint: true  },
       ],
     },
   },
@@ -244,6 +354,16 @@ export type CatalogAllergenId3 = typeof ALLERGENS[number]['id'];
 export type AllergenId = CatalogAllergenId3 | `other:${string}`;
 /** Allergens with a reintroduction protocol */
 export type ProtocolAllergenId3 = Extract<typeof ALLERGENS[number], { protocol: object }>['id'];
+
+/**
+ * Ids of every rung on every ladder authored in `ALLERGENS`. Derived from the
+ * data so per-step Czech captions in `strings/ladder.ts` fail `tsc` via a
+ * `satisfies Record<LadderStepId, ...>` clause when a rung is added but its
+ * caption is missing (ADR-0014).
+ */
+export type LadderStepId = NonNullable<
+  Extract<typeof ALLERGENS[number], { ladder: object }>['ladder']
+>['steps'][number]['id'];
 
 // ── Foods ─────────────────────────────────────────────────────
 
