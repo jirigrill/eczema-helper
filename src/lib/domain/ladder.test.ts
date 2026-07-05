@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate } from "./ladder";
 import type { LadderStep } from "./ladder";
-import type { Meal } from "$lib/domain/models";
+import type { Meal, SkinObservation } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -125,6 +125,20 @@ describe("currentRung", () => {
     expect(currentRung("eggs", meals, eggsSteps)).toBeNull();
   });
 
+  it("surfaces isEvaluationCheckpoint=false on a non-checkpoint resolved rung", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+    ];
+    const rung = currentRung("eggs", meals, eggsSteps);
+    expect(rung?.id).toBe("rung-1");
+    expect(rung?.isEvaluationCheckpoint).toBe(false);
+  });
+
   it("preserves the highest rung reached even when a smaller dose is logged afterwards", () => {
     // Reacted-history shape: mother reached the top rung, then dropped to a smaller
     // dose on a later meal. The derivation is monotone in the ordered history —
@@ -190,6 +204,107 @@ describe("nextLegalStep", () => {
     const returned = nextLegalStep(eggsSteps[0], eggsSteps);
     const idx = eggsSteps.findIndex((s) => s.id === returned?.id);
     expect(idx).toBe(1);
+  });
+
+  it("returns null when the allergen is permanently eliminated, regardless of rung", () => {
+    // Permanent elimination (permanent-mother / permanent-baby per ADR-0012)
+    // refuses advancement outright — the ladder is inert for that allergen.
+    expect(nextLegalStep(null, eggsSteps, { isPermanentlyEliminated: true })).toBeNull();
+    expect(nextLegalStep(eggsSteps[0], eggsSteps, { isPermanentlyEliminated: true })).toBeNull();
+    expect(nextLegalStep(eggsSteps[1], eggsSteps, { isPermanentlyEliminated: true })).toBeNull();
+  });
+});
+
+// ── cadenceGate ───────────────────────────────────────────────
+
+describe("cadenceGate", () => {
+  it("blocks escalation when the last matching dose is fewer than the cadence threshold days ago", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+    ];
+    // Threshold is 3 days; two days elapsed → blocked.
+    const result = cadenceGate("eggs", meals, "2026-06-03");
+    expect(result.allowed).toBe(false);
+    expect(result.daysSinceLastDose).toBe(2);
+  });
+
+  it("unblocks once the cadence threshold has elapsed since the last dose", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+    ];
+    // 3 days elapsed → threshold met.
+    const result = cadenceGate("eggs", meals, "2026-06-04");
+    expect(result.allowed).toBe(true);
+    expect(result.daysSinceLastDose).toBe(3);
+  });
+
+  it("imposes no delay when the allergen has never been dosed", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Rýže", foodId: "ryze", amount: "portion" }],
+      }),
+    ];
+    const result = cadenceGate("eggs", meals, "2026-06-04");
+    expect(result.allowed).toBe(true);
+    expect(result.daysSinceLastDose).toBeNull();
+  });
+});
+
+// ── skinCalmGate ──────────────────────────────────────────────
+
+function obs(date: string, level: 0 | 1 | 2 | 3, overrides?: Partial<SkinObservation>): SkinObservation {
+  return {
+    id: overrides?.id ?? `obs-${date}`,
+    date,
+    createdAt: overrides?.createdAt ?? `${date}T12:00:00Z`,
+    regions: level === 0 ? [] : [{ id: "face", level }],
+    ...(overrides ?? {}),
+  };
+}
+
+describe("skinCalmGate", () => {
+  it("holds escalation when the latest observation shows any active region (flare)", () => {
+    const observations: SkinObservation[] = [
+      obs("2026-06-01", 0),
+      obs("2026-06-02", 2), // flare
+    ];
+    const result = skinCalmGate(observations, "2026-06-02");
+    expect(result.allowed).toBe(false);
+    expect(result.isFlare).toBe(true);
+  });
+
+  it("releases escalation once the latest observation returns to klidné", () => {
+    const observations: SkinObservation[] = [
+      obs("2026-06-01", 2), // earlier flare
+      obs("2026-06-03", 0), // calm
+    ];
+    const result = skinCalmGate(observations, "2026-06-03");
+    expect(result.allowed).toBe(true);
+    expect(result.isFlare).toBe(false);
+    expect(result.latestSeverity).toBe(0);
+  });
+
+  it("ignores observations after `today` — future observations do not gate a past date", () => {
+    const observations: SkinObservation[] = [
+      obs("2026-06-01", 0),
+      obs("2026-06-05", 3),
+    ];
+    const result = skinCalmGate(observations, "2026-06-02");
+    expect(result.allowed).toBe(true);
+    expect(result.isFlare).toBe(false);
   });
 });
 

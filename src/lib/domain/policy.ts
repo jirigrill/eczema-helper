@@ -45,6 +45,15 @@ export const TRAINING_REMINDER_THRESHOLD_DAYS = 3;
  */
 export const NEVER_DOSED_SENTINEL_DAYS = 999;
 
+// ── Ladder cadence ───────────────────────────────────────────
+
+/**
+ * Minimum days that must elapse between doses at the current ladder rung
+ * before escalation to the next rung is offered. Mirrors ADR-0026: the
+ * dose-nudge is "3 days since last dose **and** skin calm → suggest bump."
+ */
+export const LADDER_CADENCE_DAYS = 3;
+
 // ── Recovery rest after a reaction ───────────────────────────
 
 /**
