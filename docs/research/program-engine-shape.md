@@ -317,6 +317,13 @@ unknown-unknowns after F4?"
 
 ## 5. ADR / artifact worklist (deliverable 6)
 
+> **Written 2026-07-05:** new ADRs [0023](../adr/0023-dose-escalation-ladder.md)
+> (ladder), [0024](../adr/0024-medical-scope-boundary.md) (medical-scope boundary),
+> [0025](../adr/0025-event-domain-model.md) (Event model),
+> [0026](../adr/0026-llm-schedule-proposer.md) (LLM proposer + BFF, amends 0001);
+> amendments applied to ADR-0001, 0006, 0007, 0012, 0014, 0016. PRDs still
+> outstanding.
+
 | Existing ADR | Relationship | Action |
 |---|---|---|
 | ADR-0001 single-device/no-server | **Conflict** (BFF added) | **Amend**: tiered connectivity; "no server" → "no server *holding user data*"; BFF stateless + client-redacted + **endpoint-abuse protection** (origin allowlist, per-device rate limit, attestation, spend cap) |

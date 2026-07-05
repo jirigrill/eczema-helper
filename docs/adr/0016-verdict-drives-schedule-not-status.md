@@ -1,7 +1,19 @@
 # 0016 — Reintroduction verdict drives the schedule, not the status
 
-**Status:** Accepted
+**Status:** Accepted (extended by [ADR-0026](0026-llm-schedule-proposer.md) — proposals inherit the audit-fact rule)
 **Date:** 2026-06-08
+
+> **Extension (ADR-0026, 2026-07-05):** the v1.1 `proposals` table inherits this
+> ADR's **audit-fact-never-read-by-derivation** rule — it is append-only, stores
+> rejected proposals too, and no schedule derivation reads it (topology stays the
+> truth). Storing an LLM-authored `rationale` is not a spine violation: the record
+> is authoritative *as an audit fact about what the LLM proposed*, not as domain
+> truth. Critically, the **reaction verdict stays parent-attributed**: a
+> `derived-signal` from the engine (its read of meals + skin) yields a proposal the
+> mother confirms, *never* an auto-verdict. Auto-evaluated verdicts — the engine
+> confirming the verdict itself — would require a deliberate **revision of this
+> ADR** (dropping the parent-attribution mandate) and are explicitly **not v1.1**;
+> the seam is merely built to allow the confirm step to become optional later.
 
 ## Context
 

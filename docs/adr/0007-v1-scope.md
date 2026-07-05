@@ -1,7 +1,21 @@
 # 0007 — v1 scope is the Protocol Executor
 
-**Status:** Accepted — v1-alpha shipped (onboarding, today, meal, program, skin+photo). Three in-scope features remain: day-detail, end-of-reintro verdict, encrypted export/import. See [ADR-0008](0008-tracer-bullet-slices.md) slices 4–6.
+**Status:** Accepted — v1-alpha shipped (onboarding, today, meal, program, skin+photo). Three in-scope features remain: day-detail, end-of-reintro verdict, encrypted export/import. See [ADR-0008](0008-tracer-bullet-slices.md) slices 4–6. **v1.1 roadmap revised 2026-07-05 (below).**
 **Date:** 2026-05-11
+
+> **Revision (2026-07-05) — v1.1 roadmap reconciliation.** This ADR framed v1.1 as
+> "the derived insight engine" (Shape B — the app *talks to the mother*). The
+> [Program Engine Shape audit](../research/program-engine-shape.md) split v1.1
+> into **Shape A first** (make the *schedule* smarter — baseline tolerances,
+> external-event adjustment, dose escalation) then Shape B. v1.1 therefore now
+> leads with the program-engine work, sequenced across five ADRs:
+> [ADR-0023](0023-dose-escalation-ladder.md) (ladder, LLM-independent, ships
+> first) → [ADR-0024](0024-medical-scope-boundary.md) (medical-scope boundary,
+> safety before capability) → [ADR-0025](0025-event-domain-model.md) (Event model)
+> → [ADR-0026](0026-llm-schedule-proposer.md) (LLM proposer + BFF, amends
+> ADR-0001). The insight engine (Shape B) is **deferred behind** Shape A, not
+> dropped. The "does the app help an elimination protocol succeed?" hypothesis and
+> the dogfood-first stance are unchanged.
 
 ## Context
 

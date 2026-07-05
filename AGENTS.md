@@ -14,7 +14,7 @@ Eczema Tracker PWA — personal app for tracking a breastfed newborn's atopic ec
 
 - `UBIQUITOUS_LANGUAGE.md` — shared vocabulary for all domain, UI, and architecture terms; the first place to look up or define a term
 - `CONTEXT.md` — deep definitions and invariants for core domain concepts (linked from `UBIQUITOUS_LANGUAGE.md`)
-- `docs/adr/` — numbered architectural decision records (ADR-0001 … ADR-0021 so far; ADR-0022 was merged into ADR-0021 on 2026-06-30 and now redirects)
+- `docs/adr/` — numbered architectural decision records (ADR-0001 … ADR-0026 so far; ADR-0022 was merged into ADR-0021 on 2026-06-30 and now redirects; ADR-0023–0026 are the v1.1 program-engine set — ladder, medical-scope boundary, Event model, LLM proposer — sourced from `docs/research/program-engine-shape.md`)
 - `docs/README.md` — project status + structure overview
 - `docs/architecture/tech-stack.md` — framework and runtime choices
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture, current ports/adapters around Dexie

@@ -1,7 +1,13 @@
 # 0012 — AllergenStatus as the authoritative per-allergen lifecycle
 
-**Status:** Accepted
+**Status:** Accepted (extended by [ADR-0023](0023-dose-escalation-ladder.md) — the ladder rung is derived the same way)
 **Date:** 2026-05-24
+
+> **Extension (ADR-0023, 2026-07-05):** the v1.1 dose-escalation **ladder** applies
+> this ADR's derive-don't-store principle to dose position. An allergen's
+> **current rung** is derived — `rung = f(meal-history amounts × ladder)` — never a
+> stored field, exactly as `AllergenStatus` is derived from schedule topology
+> here. No conflict; the record set stays single-sourced and self-describing.
 
 ## Context
 
