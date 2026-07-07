@@ -1345,7 +1345,7 @@ export const FOODS = [
   {
     id: "oves",
     familyId: "grains" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["oats"],
     form: "cookable",
     sourceGroup: "gluten",
   },
@@ -1441,14 +1441,14 @@ export const FOODS = [
   {
     id: "mrkev",
     familyId: "vegetables" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["carrot-root-veg"],
     form: "cookable",
     sourceGroup: "korenova",
   },
   {
     id: "pastynak",
     familyId: "vegetables" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["carrot-root-veg"],
     form: "cookable",
     sourceGroup: "korenova",
     aliases: ["pastyňák"],
@@ -1463,7 +1463,7 @@ export const FOODS = [
   {
     id: "redkev",
     familyId: "vegetables" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["carrot-root-veg"],
     form: "raw-only",
     sourceGroup: "korenova",
     aliases: ["ředkev", "ředkvička"],
@@ -1471,7 +1471,7 @@ export const FOODS = [
   {
     id: "brambory",
     familyId: "vegetables" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["potato"],
     form: "cookable",
     sourceGroup: "hlizova",
   },
@@ -1516,7 +1516,7 @@ export const FOODS = [
   {
     id: "repa",
     familyId: "vegetables" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["carrot-root-veg"],
     form: "cookable",
     sourceGroup: "korenova",
     aliases: ["řepa"],
@@ -1524,7 +1524,7 @@ export const FOODS = [
   {
     id: "bataty",
     familyId: "vegetables" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["carrot-root-veg"],
     form: "cookable",
     sourceGroup: "hlizova",
     aliases: ["batáty"],
@@ -1604,14 +1604,14 @@ export const FOODS = [
   {
     id: "maliny",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["raspberries"],
     form: "cookable",
     sourceGroup: "bobuloviny",
   },
   {
     id: "rybiz",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["raspberries"],
     form: "cookable",
     sourceGroup: "bobuloviny",
     aliases: ["rybíz"],
@@ -1619,35 +1619,35 @@ export const FOODS = [
   {
     id: "banan",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["exotic-fruit"],
     form: "cookable",
     sourceGroup: "tropicke",
   },
   {
     id: "kiwi",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["exotic-fruit"],
     form: "cookable",
     sourceGroup: "tropicke",
   },
   {
     id: "mango",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["exotic-fruit"],
     form: "cookable",
     sourceGroup: "tropicke",
   },
   {
     id: "ananas",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["exotic-fruit"],
     form: "cookable",
     sourceGroup: "tropicke",
   },
   {
     id: "avokado",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["exotic-fruit"],
     form: "cookable",
     sourceGroup: "tropicke",
     aliases: ["avokádo"],
@@ -1655,7 +1655,7 @@ export const FOODS = [
   {
     id: "granatove-jablko",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["exotic-fruit"],
     form: "cookable",
     sourceGroup: "tropicke",
     aliases: ["granátové jablko", "pomegranate"],
@@ -1698,7 +1698,7 @@ export const FOODS = [
   {
     id: "ostruziny",
     familyId: "fruit" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["raspberries"],
     form: "cookable",
     sourceGroup: "bobuloviny",
     aliases: ["ostružiny"],
@@ -1715,7 +1715,7 @@ export const FOODS = [
   {
     id: "kureci",
     familyId: "meat" as FamilyId,
-    allergenIds: ["eggs"],
+    allergenIds: ["chicken"],
     form: "cookable",
   },
   {
@@ -1943,7 +1943,7 @@ export const FOODS = [
   {
     id: "arasidy",
     familyId: "nuts-seeds" as FamilyId,
-    allergenIds: ["nuts"],
+    allergenIds: ["peanuts"],
     form: "raw-only",
     sourceGroup: "orechy",
     aliases: ["arašídy", "peanuts"],
@@ -2119,7 +2119,7 @@ export const FOODS = [
   {
     id: "med",
     familyId: "sweet" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["honey"],
     form: "none",
     sourceGroup: "sweetener",
   },
@@ -2183,7 +2183,7 @@ export const FOODS = [
   {
     id: "bylinky",
     familyId: "spices-condiments" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["spices-herbs"],
     form: "none",
     aliases: [
       "bylinky",
@@ -2201,28 +2201,28 @@ export const FOODS = [
   {
     id: "skorice",
     familyId: "spices-condiments" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["spices-herbs"],
     form: "none",
     aliases: ["skořice", "cinnamon"],
   },
   {
     id: "chilli",
     familyId: "spices-condiments" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["spices-herbs"],
     form: "none",
     aliases: ["chilli", "chili", "kajenský pepř", "cayenne"],
   },
   {
     id: "kmin",
     familyId: "spices-condiments" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["spices-herbs"],
     form: "none",
     aliases: ["kmín", "caraway"],
   },
   {
     id: "mleta-paprika",
     familyId: "spices-condiments" as FamilyId,
-    allergenIds: [],
+    allergenIds: ["spices-herbs"],
     form: "none",
     aliases: [
       "mletá paprika",

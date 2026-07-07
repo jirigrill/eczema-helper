@@ -72,8 +72,8 @@ describe('curation: precision-biased allergenIds', () => {
 });
 
 describe('curation: cross-tag retention (intentional, not bugs)', () => {
-  it('kuřecí keeps eggs cross-tag', () => {
-    expect(byId('kureci')?.allergenIds).toEqual(['eggs']);
+  it('kuřecí carries the chicken allergen', () => {
+    expect(byId('kureci')?.allergenIds).toEqual(['chicken']);
   });
 
   it('hovězí carries beef cross-tag (bovine protein, not dairy)', () => {
@@ -168,9 +168,12 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(byId('psenice')?.familyId).toBe('grains');
     expect(byId('psenice')?.allergenIds).toEqual(['wheat']);
     expect(byId('psenice')?.sourceGroup).toBe('gluten');
-    // Other gluten cereals: gluten in `sourceGroup` but no per-Food allergen
-    // (they trigger no specific tracked allergen besides the gluten axis).
-    for (const id of ['oves', 'jecmen', 'zito']) {
+    // Other gluten cereals: gluten in `sourceGroup`. `oves` additionally carries
+    // the tracked `oats` allergen (its own ladder); `jecmen`/`zito` trigger no
+    // specific tracked allergen besides the gluten axis.
+    expect(byId('oves')?.allergenIds).toEqual(['oats']);
+    expect(byId('oves')?.sourceGroup).toBe('gluten');
+    for (const id of ['jecmen', 'zito']) {
       expect(byId(id), `gluten cereal '${id}' missing`).toBeDefined();
       expect(byId(id)?.familyId).toBe('grains');
       expect(byId(id)?.allergenIds).toEqual([]);
@@ -189,12 +192,15 @@ describe('per-family expansion (issue #319 scope)', () => {
   });
 
   it('nuts-seeds expansion has lískové, kešu, para, chia', () => {
-    for (const id of ['liskove', 'kesu', 'para', 'arasidy', 'pekanove', 'pistacie', 'makadamove']) {
+    for (const id of ['liskove', 'kesu', 'para', 'pekanove', 'pistacie', 'makadamove']) {
       const f = byId(id);
       expect(f, `nut '${id}' missing`).toBeDefined();
       expect(f?.allergenIds).toEqual(['nuts']);
       expect(f?.sourceGroup).toBe('orechy');
     }
+    // Peanuts are their own tracked allergen (split from tree nuts).
+    expect(byId('arasidy')?.allergenIds).toEqual(['peanuts']);
+    expect(byId('arasidy')?.sourceGroup).toBe('orechy');
     expect(byId('chia')?.allergenIds).toEqual([]);
     expect(byId('chia')?.sourceGroup).toBe('seminka');
     expect(byId('mak')?.allergenIds).toEqual(['seeds']);
@@ -233,10 +239,11 @@ describe('per-family expansion (issue #319 scope)', () => {
     }
     // Celer carries the (newly tracked) `celery` allergen — EU regulatory allergen #9.
     expect(byId('celer')?.allergenIds).toEqual(['celery']);
-    // Other three carry no tracked allergen.
-    expect(byId('pastynak')?.allergenIds).toEqual([]);
+    // Pastyňák/ředkev are root vegetables — carry the `carrot-root-veg` allergen.
+    expect(byId('pastynak')?.allergenIds).toEqual(['carrot-root-veg']);
+    expect(byId('redkev')?.allergenIds).toEqual(['carrot-root-veg']);
+    // Listový salát carries no tracked allergen.
     expect(byId('listovy-salat')?.allergenIds).toEqual([]);
-    expect(byId('redkev')?.allergenIds).toEqual([]);
   });
 
   it('vegetables: every food has a sourceGroup matching the kořenová/listová/plodová/cibulová/hlízová/košťálová axis (houby → ostatní)', () => {
@@ -319,14 +326,15 @@ describe('per-family expansion (issue #319 scope)', () => {
     const bylinky = byId('bylinky');
     expect(bylinky, 'bylinky tile must exist').toBeDefined();
     expect(bylinky?.familyId).toBe('spices-condiments');
-    expect(bylinky?.allergenIds).toEqual([]);
+    expect(bylinky?.allergenIds).toEqual(['spices-herbs']);
 
-    // Individual spices that frequently appear standalone get their own tiles.
+    // Individual spices that frequently appear standalone get their own tiles,
+    // and carry the same tracked `spices-herbs` allergen as bylinky.
     for (const id of ['skorice', 'chilli', 'kmin', 'mleta-paprika']) {
       const f = byId(id);
       expect(f, `spice '${id}' must have its own tile`).toBeDefined();
       expect(f?.familyId).toBe('spices-condiments');
-      expect(f?.allergenIds).toEqual([]);
+      expect(f?.allergenIds).toEqual(['spices-herbs']);
     }
 
     // Droždí carries the yeast allergen so reactions tie into the protocol.
