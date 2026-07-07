@@ -1,6 +1,16 @@
-import type { Meal, PortionKind, ProtocolAllergenId } from '$lib/domain/models';
+import type {
+  Meal,
+  PortionKind,
+  ProtocolAllergenId,
+  SkinObservation,
+  RegionLevel,
+  ReintroductionEvaluation,
+  AllergenOutcome
+} from '$lib/domain/models';
+import { overallSeverity } from '$lib/domain/models';
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+import { REST_PHASE_DAYS_MILD, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_SEVERE } from '$lib/domain/policy';
 
 export type { FeedingStage, Ladder, LadderStep };
 
@@ -57,14 +67,143 @@ export function currentRung(
  * The single next legal step above `rung` on `steps`, or `null` at the top.
  * Passing `null` returns the first step. Advancing more than one step is
  * impossible to express — the function returns a step or nothing.
+ *
+ * `opts.isPermanentlyEliminated` — when true (allergen is `permanent-mother`
+ * or `permanent-baby` per ADR-0012), the ladder is inert: return `null`
+ * regardless of the current rung. The permanent-elimination refusal is
+ * absolute; no other gate can override it.
  */
 export function nextLegalStep(
   rung: LadderStep | null,
-  steps: readonly LadderStep[]
+  steps: readonly LadderStep[],
+  opts?: { isPermanentlyEliminated?: boolean }
 ): LadderStep | null {
+  if (opts?.isPermanentlyEliminated) return null;
   if (rung === null) return steps[0] ?? null;
   const idx = steps.findIndex((s) => s.id === rung.id);
   if (idx === -1) return null;
   return steps[idx + 1] ?? null;
+}
+
+// ── Gates ─────────────────────────────────────────────────────
+
+export type CadenceGateResult = {
+  /** Whether the cadence threshold has elapsed since the last matching dose. */
+  allowed: boolean;
+  /**
+   * Integer days between the most recent matching meal date and `today`.
+   * `null` when the allergen has never been dosed — in that case the gate
+   * imposes no delay (there is nothing to wait for).
+   */
+  daysSinceLastDose: number | null;
+};
+
+function daysSince(fromIsoDate: string, toIsoDate: string): number {
+  return Math.round(
+    (new Date(toIsoDate + 'T00:00:00').getTime() - new Date(fromIsoDate + 'T00:00:00').getTime()) / 86400000
+  );
+}
+
+/**
+ * Cadence gate — whether enough days have elapsed since the last dose of
+ * `allergenId` for escalation to be legal on `today`. Pure over the meal
+ * history; `cadenceDays` is the minimum spacing to enforce, sourced by the
+ * caller from the phase/protocol context (F3 accepted-allergen growth and
+ * F4 active reintroduction use different rhythms — see ADR-0023).
+ */
+export function cadenceGate(
+  allergenId: ProtocolAllergenId,
+  meals: Meal[],
+  today: string,
+  cadenceDays: number
+): CadenceGateResult {
+  const matching = meals.filter((m) => mealHitsAllergen(m, allergenId));
+  if (matching.length === 0) return { allowed: true, daysSinceLastDose: null };
+
+  const lastDate = matching.map((m) => m.date).sort().at(-1) as string;
+  const elapsed = daysSince(lastDate, today);
+  return { allowed: elapsed >= cadenceDays, daysSinceLastDose: elapsed };
+}
+
+export type SkinCalmGateResult = {
+  /** Whether escalation is allowed — false while the baby is currently flaring. */
+  allowed: boolean;
+  /** True when the latest observation on or before `today` shows any active region. */
+  isFlare: boolean;
+  /** Day-overall severity of the most recent observation, or `null` when none exists. */
+  latestSeverity: RegionLevel | null;
+};
+
+/**
+ * Skin-calm gate — holds escalation while the baby is currently flaring.
+ * A flare is defined as `overallSeverity > 0` on the most recent observation
+ * on or before `today`. With no observation the gate is permissive (nothing
+ * to hold against); consumers that require positive confirmation of calm
+ * should combine this with a "did the mother log skin today?" check.
+ */
+export function skinCalmGate(
+  observations: SkinObservation[],
+  today: string
+): SkinCalmGateResult {
+  const eligible = observations.filter((o) => o.date <= today);
+  if (eligible.length === 0) return { allowed: true, isFlare: false, latestSeverity: null };
+
+  eligible.sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+  const latest = eligible[eligible.length - 1];
+  const severity = overallSeverity(latest);
+  return { allowed: severity === 0, isFlare: severity > 0, latestSeverity: severity };
+}
+
+export type CheckpointVerdictGateResult = {
+  /** Whether escalation past the checkpoint rung is allowed. */
+  allowed: boolean;
+  /** True when a reaction verdict was recorded and a rest phase should follow. */
+  requiresRest: boolean;
+  /** Rest length keyed to reaction severity (ADR-0016), or `null` when no rest is due. */
+  restDays: number | null;
+};
+
+/**
+ * Checkpoint-verdict gate — the phase-level evaluation, distinct from the
+ * day-to-day `skinCalmGate`. Holds escalation at an `isEvaluationCheckpoint`
+ * rung until a verdict is recorded for `allergenId`; permissive at any
+ * non-checkpoint rung (nothing to evaluate there).
+ *
+ * Unlike `skinCalmGate`, an unrecorded verdict blocks — a checkpoint is a
+ * deliberate decision point, not a background signal to default open on.
+ *
+ * `evaluations` is the mother's full `ReintroductionEvaluation` history;
+ * filtered here to `allergen-test` rows for `allergenId` and reduced to the
+ * latest by date — mirrors the "latest wins" rule `allergen-status.ts` uses
+ * for reintroduction phases (ADR-0012). No new storage: this reuses the same
+ * append-only evaluation log the legacy `ProtocolDay.isEvaluationDay` flow
+ * already wrote one row per evaluation day into.
+ */
+export function checkpointVerdictGate(
+  rung: LadderStep | null,
+  allergenId: ProtocolAllergenId,
+  evaluations: readonly ReintroductionEvaluation[]
+): CheckpointVerdictGateResult {
+  if (rung === null || !rung.isEvaluationCheckpoint) {
+    return { allowed: true, requiresRest: false, restDays: null };
+  }
+
+  const matching = evaluations.filter(
+    (e) => e.phaseType === 'allergen-test' && e.allergenId === allergenId
+  );
+  if (matching.length === 0) return { allowed: false, requiresRest: false, restDays: null };
+
+  const latest = [...matching].sort((a, b) => a.date.localeCompare(b.date)).at(-1) as ReintroductionEvaluation;
+  const outcome = latest.outcome as AllergenOutcome;
+  if (outcome === 'tolerated') return { allowed: true, requiresRest: false, restDays: null };
+
+  const restDays =
+    outcome === 'mild-reaction' ? REST_PHASE_DAYS_MILD :
+    outcome === 'clear-reaction' ? REST_PHASE_DAYS_CLEAR :
+    REST_PHASE_DAYS_SEVERE;
+  return { allowed: false, requiresRest: true, restDays };
 }
 
