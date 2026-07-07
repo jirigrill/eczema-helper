@@ -1,0 +1,12 @@
+type,allergen,day,instructions
+plne kojene dite (bez prikrmu),Jahody | Maliny | Rajčata/Papriky,1. den,maminka: 50 g jahod | malin | rajčat/paprik
+plne kojene dite (bez prikrmu),Jahody | Maliny | Rajčata/Papriky,2. den,maminka: 70—100 g jahod | malin | rajčat/paprik
+plne kojene dite (bez prikrmu),Jahody | Maliny | Rajčata/Papriky,3. den,maminka: neomezené množství jahod | malin | rajčat/paprik
+kojene dite + prikrmy,Jahody | Maliny | Rajčata/Papriky,1. den,maminka: 50 g jahod | malin | rajčat/paprik; dítě: pouze hypoalergenní příkrmy
+kojene dite + prikrmy,Jahody | Maliny | Rajčata/Papriky,2. den,maminka: 70—100 g jahod | malin | rajčat/paprik; dítě: 1 lžička jahodové | malinové přesnídávky | polovina cherry rajčátka
+kojene dite + prikrmy,Jahody | Maliny | Rajčata/Papriky,3. den,maminka: neomezené množství jahod | malin | rajčat/paprik; dítě: 2 lžičky jahodové | malinové přesnídávky | cherry rajčátko
+kojene dite + prikrmy,Jahody | Maliny | Rajčata/Papriky,4. den,maminka: neomezené množství jahod | malin | rajčat/paprik; dítě: neomezené množství jahod | malin | rajčat/paprik
+dite plne na prikrmech,Jahody | Maliny | Rajčata/Papriky,1. den,dítě: čtvrt lžičky jahodové | malinové přesnídávky | čtvrt cherry rajčátka
+dite plne na prikrmech,Jahody | Maliny | Rajčata/Papriky,2. den,dítě: 1 lžička jahodové | malinové přesnídávky | půl cherry rajčátka
+dite plne na prikrmech,Jahody | Maliny | Rajčata/Papriky,3. den,dítě: 2 lžičky jahodové | malinové přesnídávky | cherry rajčátko
+dite plne na prikrmech,Jahody | Maliny | Rajčata/Papriky,4. den,dítě: neomezená dávka jahodové | malinové přesnídávky | cherry rajčátek

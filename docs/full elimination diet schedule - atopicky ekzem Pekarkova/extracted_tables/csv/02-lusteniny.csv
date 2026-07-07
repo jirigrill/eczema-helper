@@ -1,0 +1,12 @@
+type,allergen,day,instructions
+plne kojene dite (bez prikrmu),Luštěniny,1. den,"maminka: např. červená čočka, 30 g (červená čočka nejméně nadýmá, proto je k testu luštěnin nejvýhodnější)"
+plne kojene dite (bez prikrmu),Luštěniny,2. den,"maminka: např. červená čočka, 50—100 g"
+plne kojene dite (bez prikrmu),Luštěniny,3. den,"maminka: neomezené množství červené čočky, případně cizrny, hrachu či fazolí (lze kombinovat vícero druhů luštěnin)"
+kojene dite + prikrmy,Luštěniny,1. den,"maminka: např. červená čočka, 30 g; dítě: hypoalergenní příkrmy (žádné luštěniny)"
+kojene dite + prikrmy,Luštěniny,2. den,"maminka: např. červená čočka, 50—100 g; dítě: 1 lžička červené čočky"
+kojene dite + prikrmy,Luštěniny,3. den,maminka: neomezené množství luštěnin; dítě: 2—3 lžičky červené čočky
+kojene dite + prikrmy,Luštěniny,4. den,maminka: neomezené množství luštěnin; dítě: neomezené množství luštěnin
+dite plne na prikrmech,Luštěniny,1. den,dítě: půl lžičky červené čočky
+dite plne na prikrmech,Luštěniny,2. den,dítě: 1 lžička červené čočky
+dite plne na prikrmech,Luštěniny,3. den,dítě: 2—3 lžičky červené čočky
+dite plne na prikrmech,Luštěniny,4. den,dítě: neomezené množství luštěnin

@@ -1,0 +1,21 @@
+type,allergen,day,instructions
+plne kojene dite (bez prikrmu),Mléčné výrobky,1. den,"maminka: minimálně 2 plné čajové lžičky másla, maximum je 10 čajových lžiček másla"
+plne kojene dite (bez prikrmu),Mléčné výrobky,2. den,"maminka: 50—75 g bílého jogurtu, případně 2 plátky tvrdého sýra (eidam, ementál, gouda a podobně)"
+plne kojene dite (bez prikrmu),Mléčné výrobky,3. den,"maminka: 150 g jogurtu, případně 3—5 plátků tvrdého sýra"
+plne kojene dite (bez prikrmu),Mléčné výrobky,4. den,"maminka: 100 g sušenek, buchty, koláče či jiného výrobku, který obsahuje mléko"
+plne kojene dite (bez prikrmu),Mléčné výrobky,5. den,"maminka: 150 g sušenek, buchty, koláče či jiného výrobku, který obsahuje mléko"
+plne kojene dite (bez prikrmu),Mléčné výrobky,6. den,"maminka: pokud do tohoto dne nenastalo jakékoli zhoršení stavu kůže či stolice ani jiná trávicí obtíž (zvracení atd.), můžete zkusit mléčnou zátěžovou zkoušku, která spočívá v neomezené konzumaci mléčných výrobků; mohou být podány jakékoli mléčné výrobky včetně nezakysaných v nepečené formě; v tento den si můžete dopřát například jogurt k snídani, k obědu jídlo s omáčkou obsahující smetanu, po obědě si dát cappuccino s klasickým mlékem a k večeři smetanový zákusek či buchtu s tvarohem"
+kojene dite + prikrmy,Mléčné výrobky,1. den,maminka: 1—2 čajové lžičky másla; dítě: pouze hypoalergenní příkrmy
+kojene dite + prikrmy,Mléčné výrobky,2. den,"maminka: 50—75 g bílého jogurtu, případně 2 plátky tvrdého sýra (eidam, ementál, gouda atd.); dítě: půlku sušenky podle receptu „Sušenky pro eliminační dietu“"
+kojene dite + prikrmy,Mléčné výrobky,3. den,"maminka: 150 g jogurtu, případně 3—5 plátků tvrdého sýra; dítě: 1 ks sušenky podle receptu „Sušenky pro eliminační dietu“"
+kojene dite + prikrmy,Mléčné výrobky,4. den,"maminka: 100 g sušenek, buchty, koláče či jiného výrobku, který obsahuje mléko; dítě: 2—3 sušenky podle receptu „Sušenky pro eliminační dietu“"
+kojene dite + prikrmy,Mléčné výrobky,5. den,"maminka: 150 g sušenek, buchty, koláče či jiného výrobku, který obsahuje mléko; dítě: 4—7 lžiček jogurtu, případně 7—10 sušenek"
+kojene dite + prikrmy,Mléčné výrobky,6. den,maminka: neomezené množství jakéhokoli mléčného výrobku; dítě: 50—70 g jogurtu
+kojene dite + prikrmy,Mléčné výrobky,7. den,"maminka: neomezené množství jakéhokoli mléčného výrobku; dítě: libovolné množství jogurtu, libovolné množství „pečeného“ mléka, můžeme podat i mléčnou kaši, v tento den již v neomezené dávce; nedoporučuji podávat ani v tento den klasické kravské mléko ani tvarohové krémy typu lipánku nebo pribináčku — s těmito výrobky opatrně i v budoucnu"
+dite plne na prikrmech,Mléčné výrobky,1. den,dítě: čtvrt sušenky podle receptu „Sušenky pro eliminační dietu“ — postupujte extrémně opatrně!
+dite plne na prikrmech,Mléčné výrobky,2. den,dítě: polovina sušenky podle receptu „Sušenky pro eliminační dietu“
+dite plne na prikrmech,Mléčné výrobky,3. den,dítě: 1 ks sušenky podle receptu „Sušenky pro eliminační dietu“
+dite plne na prikrmech,Mléčné výrobky,4. den,dítě: 2—3 sušenky podle receptu „Sušenky pro eliminační dietu“
+dite plne na prikrmech,Mléčné výrobky,5. den,dítě: 4—7 lžiček jogurtu nebo 7—10 sušenek
+dite plne na prikrmech,Mléčné výrobky,6. den,dítě: 50—70 g jogurtu
+dite plne na prikrmech,Mléčné výrobky,7. den,"dítě: libovolné množství jogurtu (kolik dítě sní), případně libovolné množství „pečeného“ mléka; můžeme podat i mléčnou kaši, v tento den již v neomezené dávce; naopak nedoporučuji ani v tento den klasické kravské mléko ani tvarohové krémy typu lipánku nebo pribináčku — s těmito výrobky opatrně i do budoucna"
