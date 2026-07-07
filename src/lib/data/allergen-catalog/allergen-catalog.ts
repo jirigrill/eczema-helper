@@ -1185,7 +1185,7 @@ export const FOODS = [
   {
     id: "kukurice",
     familyId: "grains" as FamilyId,
-    allergenIds: ["corn"],
+    allergenIds: [],
     form: "cookable",
     sourceGroup: "gluten-free",
   },
@@ -1199,7 +1199,7 @@ export const FOODS = [
   {
     id: "horka-cokolada",
     familyId: "sweet" as FamilyId,
-    allergenIds: ["chocolate"],
+    allergenIds: ["cocoa"],
     form: "raw-only",
     sourceGroup: "chocolate",
     aliases: ["hořká čokoláda", "dark chocolate"],
@@ -1286,7 +1286,7 @@ export const FOODS = [
   {
     id: "mlecna-cokolada",
     familyId: "sweet" as FamilyId,
-    allergenIds: ["chocolate", "dairy"],
+    allergenIds: ["cocoa", "dairy"],
     form: "raw-only",
     sourceGroup: "chocolate",
     aliases: ["mléčná čokoláda", "milk chocolate"],
@@ -1294,7 +1294,7 @@ export const FOODS = [
   {
     id: "oriskova-cokolada",
     familyId: "sweet" as FamilyId,
-    allergenIds: ["chocolate", "dairy", "nuts"],
+    allergenIds: ["cocoa", "dairy", "nuts"],
     form: "raw-only",
     sourceGroup: "chocolate",
     aliases: ["oříšková čokoláda", "hazelnut chocolate"],
@@ -2103,7 +2103,7 @@ export const FOODS = [
   {
     id: "kakao",
     familyId: "sweet" as FamilyId,
-    allergenIds: ["chocolate"],
+    allergenIds: ["cocoa"],
     form: "none",
     sourceGroup: "chocolate",
     aliases: ["kakao", "cocoa", "kakaový prášek"],

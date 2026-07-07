@@ -27,16 +27,16 @@ describe('curation: precision-biased allergenIds', () => {
     expect(byId('mandlove-mleko')?.allergenIds).toEqual(['nuts']);
   });
 
-  it('mléčná čokoláda carries [chocolate, dairy] — no nuts', () => {
+  it('mléčná čokoláda carries [cocoa, dairy] — no nuts', () => {
     const f = byId('mlecna-cokolada');
     expect(f).toBeDefined();
-    expect([...(f?.allergenIds ?? [])].sort()).toEqual(['chocolate', 'dairy'].sort());
+    expect([...(f?.allergenIds ?? [])].sort()).toEqual(['cocoa', 'dairy'].sort());
   });
 
-  it('oříšková čokoláda is a separate Food carrying [chocolate, dairy, nuts]', () => {
+  it('oříšková čokoláda is a separate Food carrying [cocoa, dairy, nuts]', () => {
     const f = byId('oriskova-cokolada');
     expect(f, 'oříšková čokoláda must exist as its own Food').toBeDefined();
-    expect([...(f?.allergenIds ?? [])].sort()).toEqual(['chocolate', 'dairy', 'nuts'].sort());
+    expect([...(f?.allergenIds ?? [])].sort()).toEqual(['cocoa', 'dairy', 'nuts'].sort());
   });
 
   it('olivový olej (cooking fat) is form: cookable with no allergens', () => {
@@ -512,8 +512,8 @@ describe('vegetables family: form coherence (Q6: only the genuinely raw-only sta
 });
 
 describe('sweet family: cocoa/carob + syrup expansion + source split', () => {
-  it('kakao carries [chocolate]; karob is a cocoa-free substitute with no allergens', () => {
-    expect(byId('kakao')?.allergenIds).toEqual(['chocolate']);
+  it('kakao carries [cocoa]; karob is a cocoa-free substitute with no allergens', () => {
+    expect(byId('kakao')?.allergenIds).toEqual(['cocoa']);
     expect(byId('karob')?.allergenIds, 'carob has no cocoa → no chocolate trigger').toEqual([]);
   });
 
