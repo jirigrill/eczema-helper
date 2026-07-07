@@ -8,7 +8,6 @@ import type {
 import { overallSeverity } from '$lib/domain/models';
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
-import { LADDER_CADENCE_DAYS } from '$lib/domain/policy';
 
 export type { FeedingStage, Ladder, LadderStep };
 
@@ -105,19 +104,22 @@ function daysSince(fromIsoDate: string, toIsoDate: string): number {
 /**
  * Cadence gate — whether enough days have elapsed since the last dose of
  * `allergenId` for escalation to be legal on `today`. Pure over the meal
- * history; threshold sourced from `policy.LADDER_CADENCE_DAYS`.
+ * history; `cadenceDays` is the minimum spacing to enforce, sourced by the
+ * caller from the phase/protocol context (F3 accepted-allergen growth and
+ * F4 active reintroduction use different rhythms — see ADR-0023).
  */
 export function cadenceGate(
   allergenId: ProtocolAllergenId,
   meals: Meal[],
-  today: string
+  today: string,
+  cadenceDays: number
 ): CadenceGateResult {
   const matching = meals.filter((m) => mealHitsAllergen(m, allergenId));
   if (matching.length === 0) return { allowed: true, daysSinceLastDose: null };
 
   const lastDate = matching.map((m) => m.date).sort().at(-1) as string;
   const elapsed = daysSince(lastDate, today);
-  return { allowed: elapsed >= LADDER_CADENCE_DAYS, daysSinceLastDose: elapsed };
+  return { allowed: elapsed >= cadenceDays, daysSinceLastDose: elapsed };
 }
 
 export type SkinCalmGateResult = {

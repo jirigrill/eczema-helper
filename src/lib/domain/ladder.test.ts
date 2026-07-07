@@ -228,7 +228,7 @@ describe("cadenceGate", () => {
       }),
     ];
     // Threshold is 3 days; two days elapsed → blocked.
-    const result = cadenceGate("eggs", meals, "2026-06-03");
+    const result = cadenceGate("eggs", meals, "2026-06-03", 3);
     expect(result.allowed).toBe(false);
     expect(result.daysSinceLastDose).toBe(2);
   });
@@ -243,7 +243,7 @@ describe("cadenceGate", () => {
       }),
     ];
     // 3 days elapsed → threshold met.
-    const result = cadenceGate("eggs", meals, "2026-06-04");
+    const result = cadenceGate("eggs", meals, "2026-06-04", 3);
     expect(result.allowed).toBe(true);
     expect(result.daysSinceLastDose).toBe(3);
   });
@@ -257,9 +257,24 @@ describe("cadenceGate", () => {
         items: [{ id: "i1", name: "Rýže", foodId: "ryze", amount: "portion" }],
       }),
     ];
-    const result = cadenceGate("eggs", meals, "2026-06-04");
+    const result = cadenceGate("eggs", meals, "2026-06-04", 3);
     expect(result.allowed).toBe(true);
     expect(result.daysSinceLastDose).toBeNull();
+  });
+
+  it("blocks a same-day second dose regardless of cadence value", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+    ];
+    // F4 daily cadence (cadenceDays = 1): same-day re-check is still blocked.
+    const result = cadenceGate("eggs", meals, "2026-06-01", 1);
+    expect(result.allowed).toBe(false);
+    expect(result.daysSinceLastDose).toBe(0);
   });
 });
 
