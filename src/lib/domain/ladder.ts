@@ -3,11 +3,14 @@ import type {
   PortionKind,
   ProtocolAllergenId,
   SkinObservation,
-  RegionLevel
+  RegionLevel,
+  ReintroductionEvaluation,
+  AllergenOutcome
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+import { REST_PHASE_DAYS_MILD, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_SEVERE } from '$lib/domain/policy';
 
 export type { FeedingStage, Ladder, LadderStep };
 
@@ -152,5 +155,55 @@ export function skinCalmGate(
   const latest = eligible[eligible.length - 1];
   const severity = overallSeverity(latest);
   return { allowed: severity === 0, isFlare: severity > 0, latestSeverity: severity };
+}
+
+export type CheckpointVerdictGateResult = {
+  /** Whether escalation past the checkpoint rung is allowed. */
+  allowed: boolean;
+  /** True when a reaction verdict was recorded and a rest phase should follow. */
+  requiresRest: boolean;
+  /** Rest length keyed to reaction severity (ADR-0016), or `null` when no rest is due. */
+  restDays: number | null;
+};
+
+/**
+ * Checkpoint-verdict gate — the phase-level evaluation, distinct from the
+ * day-to-day `skinCalmGate`. Holds escalation at an `isEvaluationCheckpoint`
+ * rung until a verdict is recorded for `allergenId`; permissive at any
+ * non-checkpoint rung (nothing to evaluate there).
+ *
+ * Unlike `skinCalmGate`, an unrecorded verdict blocks — a checkpoint is a
+ * deliberate decision point, not a background signal to default open on.
+ *
+ * `evaluations` is the mother's full `ReintroductionEvaluation` history;
+ * filtered here to `allergen-test` rows for `allergenId` and reduced to the
+ * latest by date — mirrors the "latest wins" rule `allergen-status.ts` uses
+ * for reintroduction phases (ADR-0012). No new storage: this reuses the same
+ * append-only evaluation log the legacy `ProtocolDay.isEvaluationDay` flow
+ * already wrote one row per evaluation day into.
+ */
+export function checkpointVerdictGate(
+  rung: LadderStep | null,
+  allergenId: ProtocolAllergenId,
+  evaluations: readonly ReintroductionEvaluation[]
+): CheckpointVerdictGateResult {
+  if (rung === null || !rung.isEvaluationCheckpoint) {
+    return { allowed: true, requiresRest: false, restDays: null };
+  }
+
+  const matching = evaluations.filter(
+    (e) => e.phaseType === 'allergen-test' && e.allergenId === allergenId
+  );
+  if (matching.length === 0) return { allowed: false, requiresRest: false, restDays: null };
+
+  const latest = [...matching].sort((a, b) => a.date.localeCompare(b.date)).at(-1) as ReintroductionEvaluation;
+  const outcome = latest.outcome as AllergenOutcome;
+  if (outcome === 'tolerated') return { allowed: true, requiresRest: false, restDays: null };
+
+  const restDays =
+    outcome === 'mild-reaction' ? REST_PHASE_DAYS_MILD :
+    outcome === 'clear-reaction' ? REST_PHASE_DAYS_CLEAR :
+    REST_PHASE_DAYS_SEVERE;
+  return { allowed: false, requiresRest: true, restDays };
 }
 

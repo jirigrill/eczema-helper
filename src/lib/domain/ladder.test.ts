@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate } from "./ladder";
 import type { LadderStep } from "./ladder";
-import type { Meal, SkinObservation } from "$lib/domain/models";
+import type { Meal, SkinObservation, ReintroductionEvaluation } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -320,6 +320,65 @@ describe("skinCalmGate", () => {
     const result = skinCalmGate(observations, "2026-06-02");
     expect(result.allowed).toBe(true);
     expect(result.isFlare).toBe(false);
+  });
+});
+
+// ── checkpointVerdictGate ─────────────────────────────────────
+
+function evaluation(
+  overrides: Partial<ReintroductionEvaluation> & Pick<ReintroductionEvaluation, "date" | "outcome">,
+): ReintroductionEvaluation {
+  return {
+    phaseId: "phase-1",
+    phaseType: "allergen-test",
+    allergenId: "eggs",
+    ...overrides,
+  };
+}
+
+describe("checkpointVerdictGate", () => {
+  it("is permissive at a non-checkpoint rung — nothing to evaluate there", () => {
+    const result = checkpointVerdictGate(eggsSteps[0], "eggs", []);
+    expect(result.allowed).toBe(true);
+  });
+
+  it("blocks at a checkpoint rung when no verdict has been recorded yet", () => {
+    const result = checkpointVerdictGate(eggsSteps[2], "eggs", []);
+    expect(result.allowed).toBe(false);
+    expect(result.requiresRest).toBe(false);
+  });
+
+  it("allows past a checkpoint once the latest verdict for the allergen is tolerated", () => {
+    const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+    const result = checkpointVerdictGate(eggsSteps[2], "eggs", evaluations);
+    expect(result.allowed).toBe(true);
+    expect(result.requiresRest).toBe(false);
+  });
+
+  it("holds and requires rest when the latest verdict is a reaction", () => {
+    const evaluations = [evaluation({ date: "2026-06-03", outcome: "clear-reaction" })];
+    const result = checkpointVerdictGate(eggsSteps[2], "eggs", evaluations);
+    expect(result.allowed).toBe(false);
+    expect(result.requiresRest).toBe(true);
+    expect(result.restDays).toBe(7);
+  });
+
+  it("uses only the latest verdict by date, not an earlier stale one", () => {
+    const evaluations = [
+      evaluation({ date: "2026-06-01", outcome: "severe-reaction" }),
+      evaluation({ date: "2026-06-05", outcome: "tolerated" }),
+    ];
+    const result = checkpointVerdictGate(eggsSteps[2], "eggs", evaluations);
+    expect(result.allowed).toBe(true);
+  });
+
+  it("ignores evaluations for a different allergen or a skin-status phase", () => {
+    const evaluations = [
+      evaluation({ date: "2026-06-03", outcome: "tolerated", allergenId: "dairy" }),
+      evaluation({ date: "2026-06-04", outcome: "improved", phaseType: "skin-status", allergenId: "eggs" }),
+    ];
+    const result = checkpointVerdictGate(eggsSteps[2], "eggs", evaluations);
+    expect(result.allowed).toBe(false);
   });
 });
 
