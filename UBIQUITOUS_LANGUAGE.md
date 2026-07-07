@@ -81,6 +81,35 @@ A single day's entry within an `AllergenProtocol`:
 `instructionCs` is Czech dosing text (e.g. "50 g červené čočky"). `isEvaluationDay`
 drives whether the verdict UI appears — it is a domain flag, not display state.
 
+### Ladder / LadderStep / FeedingStage
+
+The dose-escalation model that replaces `AllergenProtocol` (retiring on PRD #421
+PR B merge, per [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)).
+
+- **`Ladder`** — `{ allergenId: string, stages: Partial<Record<FeedingStage,
+  readonly LadderStep[]>> }` on the optional `ladder` field of a
+  `CanonicalAllergen`. `allergenId` is typed `string`, not `ProtocolAllergenId`,
+  to avoid a circular type (`ProtocolAllergenId` is inferred from the catalog
+  the ladder lives inside).
+- **`FeedingStage`** — `'breastfed' | 'mixed' | 'solids'`, mirroring the three
+  table variants in the source protocols (Pekárková, Matoušková): "plně kojené
+  dítě (bez příkrmů)" / "kojené dítě + příkrmy" / "dítě plně na příkrmech". Not
+  every allergen has data for every stage.
+- **`LadderStep`** (a "rung") — `{ id: string, anchor: PortionKind,
+  isEvaluationCheckpoint: boolean, dose: string }`. `anchor` reuses the shared
+  `PortionKind` vocabulary; *order within the ladder*, not the anchor value
+  alone, makes one step higher than another (anchors may repeat, e.g. dairy has
+  three `package` rungs). `isEvaluationCheckpoint` mirrors the legacy
+  `ProtocolDay.isEvaluationDay`. `dose` is the Czech caption for that rung,
+  **inlined on the domain record** — a deliberate deviation from ADR-0014 for
+  this Czech-only single-tenant v1 (single-file catalog review beats a
+  cross-file `strings/ladder.ts` lookup); see the ADR-0023 amendment.
+- **`currentRung(allergenId, meals, steps)`** / **`nextLegalStep(rung, steps)`**
+  (`src/lib/domain/ladder.ts`) — pure derivation, mirroring `AllergenStatus`:
+  the rung is never persisted, and skipping a rung is impossible to express
+  through the function signature. The caller resolves `ladder.stages[stage]`
+  before passing `steps` in.
+
 ---
 
 ## Allergens & Elimination
@@ -99,10 +128,12 @@ The typed shape of an allergen slug. Per [ADR-0017](docs/adr/0017-allergen-catal
 these are **derived** from the data-first catalog rather than hand-written unions:
 
 - `CatalogAllergenId = typeof ALLERGENS[number]['id']` — every canonical allergen slug
-  in the bundled catalog (32 records as of ADR-0017 slice 6).
+  in the bundled catalog (38 records as of PR #430's ladder expansion).
 - `ProtocolAllergenId = Extract<typeof ALLERGENS[number], { protocol: object }>['id']`
-  — the 13-record subset whose record carries a reintroduction `protocol`. Only
-  allergens in this set can enter a reintroduction phase.
+  — the 22-record subset whose record carries a reintroduction `protocol` (up from
+  13 pre-#430; the same 22 also carry a `ladder`, see [Ladder / LadderStep /
+  FeedingStage](#ladder--ladderstep--feedingstage)). Only allergens in this set can
+  enter a reintroduction phase.
 - `CustomAllergenId = \`other:${string}\`` — free-text allergen slugs the mother
   defines herself (e.g. `'other:Paprika'`). Participates in elimination logs, never
   enters a protocol phase. Unknown free-text input is also captured as a
@@ -216,10 +247,13 @@ user saves a meal.
 ### CanonicalAllergen / Canonical Catalog
 → Defined in `CONTEXT.md`. The curated, data-first catalog record for one
 allergen (`id`, `icon`, `subitems`, `aliases`, optional `source`,
-optional `protocol`). The `ALLERGEN_CATALOG` array of these records (in
-`src/lib/data/allergen-catalog/`) is the source of truth from which `AllergenId`
-/ `ProtocolAllergenId` are derived. Bundled, build-time, JSON-serializable, read
-through `CanonicalCatalogPort`. See ADR-0017.
+optional `protocol`, optional `ladder` — see [Ladder / LadderStep /
+FeedingStage](#ladder--ladderstep--feedingstage) — and optional `allergenOrder`,
+its position in Matoušková's 20-allergen testing sequence). The `ALLERGEN_CATALOG`
+array of these records (in `src/lib/data/allergen-catalog/`) is the source of
+truth from which `AllergenId` / `ProtocolAllergenId` are derived; it is sorted by
+`allergenOrder`. Bundled, build-time, JSON-serializable, read through
+`CanonicalCatalogPort`. See ADR-0017, ADR-0023.
 
 ### HarvestCandidate
 → Defined in `CONTEXT.md`. A runtime Dexie record for an unknown food the

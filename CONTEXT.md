@@ -248,15 +248,38 @@ See [ADR-0012](docs/adr/0012-allergen-status-lifecycle.md).
 ### CanonicalAllergen
 A curated catalog record describing one allergen — its stable `id`, `icon`,
 `subitems`, `aliases` (normalized surface forms), optional `source` provenance,
-and an **optional** reintroduction
-`protocol`. The records are the data-first source of truth: `AllergenId` is
-derived as `typeof ALLERGEN_CATALOG[number]['id']`, and `ProtocolAllergenId` as
-the subset of records that carry a `protocol`. A record without a protocol is
-canonical and loggable but **not reintroducible** — the honest state of most
-long-tail foods. Czech display `name` is not on the record; it lives in
-`strings/` (ADR-0014). Records are bundled, build-time, and JSON-serializable,
-read through `CanonicalCatalogPort`. See
+optional `allergenOrder` (position in Matoušková's 20-allergen testing
+sequence), an **optional** reintroduction `protocol`, and an **optional**
+`ladder` (see [Ladder](#ladder) below). The records are the data-first source
+of truth: `AllergenId` is derived as `typeof ALLERGEN_CATALOG[number]['id']`,
+and `ProtocolAllergenId` as the subset of records that carry a `protocol` (the
+same subset also carries a `ladder`). A record without a protocol is canonical
+and loggable but **not reintroducible** — the honest state of most long-tail
+foods. Czech display `name` is not on the record; it lives in `strings/`
+(ADR-0014) — **except** `LadderStep.dose`, which is inlined on the ladder as a
+deliberate ADR-0014 deviation (see [Ladder](#ladder)). Records are bundled,
+build-time, and JSON-serializable, read through `CanonicalCatalogPort`. See
 [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+
+### Ladder
+The dose-escalation replacement for `AllergenProtocol`, retiring on PRD #421 PR
+B merge (see [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)). Shape:
+`{ allergenId: string, stages: Partial<Record<FeedingStage, readonly
+LadderStep[]>> }`. `FeedingStage` is `'breastfed' | 'mixed' | 'solids'`,
+mirroring the three source-protocol table variants; not every allergen has
+data for every stage. Each `LadderStep` ("rung") is `{ id, anchor: PortionKind,
+isEvaluationCheckpoint: boolean, dose: string }` — `anchor` reuses the shared
+`PortionKind` vocabulary, and *order within the ladder* (not the anchor value
+alone) is what makes one step higher than another, since anchors may repeat
+across rungs. `isEvaluationCheckpoint` mirrors the legacy
+`ProtocolDay.isEvaluationDay`.
+
+The current rung is **derived, never persisted** — mirroring `AllergenStatus`
+(above): `currentRung(allergenId, meals, steps)` in `src/lib/domain/ladder.ts`
+walks meal history against one feeding stage's `steps` array
+(`ladder.stages[stage]`, chosen by the caller). `nextLegalStep(rung, steps)`
+returns the single next step or `null` — skipping a rung is impossible to
+express through the function signature.
 
 ### Family / Allergen / Food — the three-level catalog
 
@@ -495,7 +518,10 @@ after data exists is a migration.
   tokens live in `src/lib/strings/` (pure text) and `src/lib/config/`
   (text + visual tokens combined), resolved at render time. Baking
   a display string onto a domain record violates this invariant.
-  See [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md).
+  **Exception:** `LadderStep.dose` (Czech dose caption) is inlined on the
+  catalog record — a deliberate, documented deviation for the Czech-only
+  single-tenant v1. See [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md)
+  and the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
 - **Allergen catalog is data-first, bundled, and port-fronted.** Each allergen
   is one curated JSON-serializable `CanonicalAllergen` record; `AllergenId` and
   `ProtocolAllergenId` are *derived* from the records, not hand-written unions.
@@ -504,3 +530,9 @@ after data exists is a migration.
   `HarvestCandidate` in Dexie, never mutates the bundled catalog. Cross-user
   aggregation and server-push are deferred behind `CanonicalCatalogPort`.
   See [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+- **Ladder rung is derived, never persisted; skipping a rung is
+  unrepresentable.** `currentRung`/`nextLegalStep` (`src/lib/domain/ladder.ts`)
+  mirror the `AllergenStatus` derivation pattern over per-stage
+  `LadderStep[]` arrays on the optional `ladder` field of a `CanonicalAllergen`.
+  `AllergenProtocol`/`ProtocolDay` retire once the ladder fully replaces them
+  (PRD #421 PR B). See [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).

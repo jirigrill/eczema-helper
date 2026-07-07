@@ -1,9 +1,9 @@
 # 0023 — Dose-escalation ladder as first-class domain data
 
-**Status:** Accepted — informs v1.1; no implementation yet. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below.
+**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
-**Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table), [ADR-0014](0014-presentation-strings-and-domain-keys.md) (per-rung Czech text lives in `strings/`, never inline on the catalog record).
+**Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table).
 **Supersedes (on PRD #421 PR B merge):** the day-scripted `AllergenProtocol` / `ProtocolDay` shape on the ADR-0017 catalog record — the ladder is the sole per-allergen dose-progression data.
 
 ## Context
@@ -83,19 +83,29 @@ records that the scale is unresolved and must be sized in the domain-model PRD.
 
 Resolved by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421):
 **each `LadderStep` is anchored to an existing `PortionKind` and carries an
-`isEvaluationCheckpoint` flag; per-rung Czech dose descriptor lives in
-`lib/strings/ladder.ts` (ADR-0014).** No new allergen-specific dose scale is
+`isEvaluationCheckpoint` flag.** No new allergen-specific dose scale is
 introduced.
 
-Indicative shape (final types land with PR A):
+**Amendment (PR #430, 2026-07-07):** the per-rung Czech dose descriptor is
+**not** in `lib/strings/ladder.ts`. It is inlined as `LadderStep.dose` on the
+catalog record instead — a deliberate deviation from ADR-0014 for the
+Czech-only single-tenant v1: single-file review of the catalog beats
+cross-file lookup for the person auditing the schedule. `lib/strings/ladder.ts`
+was deleted along with its test. See `src/lib/domain/canonical-allergen.ts`.
+
+Indicative shape (as landed):
 
 ```ts
 type LadderStep = {
   id: string;
   anchor: PortionKind;               // ordered within the ladder
   isEvaluationCheckpoint: boolean;   // prompt reaction capture at this rung
+  dose: string;                      // Czech caption, inlined (see amendment above)
 };
-type Ladder = { allergenId: ProtocolAllergenId; steps: LadderStep[] };
+type Ladder = {
+  allergenId: string;
+  stages: Partial<Record<FeedingStage, readonly LadderStep[]>>;
+};
 ```
 
 Reasoning:
@@ -138,5 +148,6 @@ Reasoning:
 - The rung scale is **resolved** — see [Rung-scale resolution](#rung-scale-resolution-2026-07-05).
 - **`AllergenProtocol` / `ProtocolDay` retired on PRD #421 PR B merge.** The
   ladder is the sole per-allergen dose-progression shape; `getProtocolForAllergen`
-  and inline `instructionCs` are deleted. Per-rung Czech text lives in
-  `lib/strings/ladder.ts` (ADR-0014).
+  and inline `instructionCs` are deleted. Per-rung Czech text lives on
+  `LadderStep.dose` (inlined on the catalog record — see amendment above), not
+  in `lib/strings/`.
