@@ -201,9 +201,11 @@ describe('per-family expansion (issue #319 scope)', () => {
     // Peanuts are their own tracked allergen (split from tree nuts).
     expect(byId('arasidy')?.allergenIds).toEqual(['peanuts']);
     expect(byId('arasidy')?.sourceGroup).toBe('orechy');
-    expect(byId('chia')?.allergenIds).toEqual([]);
+    // Chia, slunečnicová semínka, and mák are explicitly named in the sesame
+    // protocol's day-by-day instructions — they carry the `sesame` allergen.
+    expect(byId('chia')?.allergenIds).toEqual(['sesame']);
     expect(byId('chia')?.sourceGroup).toBe('seminka');
-    expect(byId('mak')?.allergenIds).toEqual(['seeds']);
+    expect(byId('mak')?.allergenIds).toEqual(['sesame']);
     expect(byId('mak')?.sourceGroup).toBe('seminka');
     expect(byId('konopna-seminka')?.allergenIds).toEqual(['seeds']);
     expect(byId('konopna-seminka')?.sourceGroup).toBe('seminka');
