@@ -1,8 +1,8 @@
 import type { Meal, PortionKind, ProtocolAllergenId } from '$lib/domain/models';
-import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 
-export type { Ladder, LadderStep };
+export type { FeedingStage, Ladder, LadderStep };
 
 function foodTriggers(foodId: string): readonly string[] {
   const food = (FOODS as readonly { id: string; allergenIds: readonly string[] }[]).find(
@@ -21,12 +21,15 @@ function mealHitsAllergen(meal: Meal, allergenId: ProtocolAllergenId): boolean {
  * Highest ladder rung whose anchor has been logged and not reacted-against.
  * Derived from meal history — never persisted (ADR-0012).
  *
+ * `steps` is one feeding stage's rungs (`ladder.stages[stage]`) — the caller
+ * picks the stage that matches the child's current feeding pattern.
+ *
  * Returns `null` when the mother has not yet logged the ladder's first step.
  */
 export function currentRung(
   allergenId: ProtocolAllergenId,
   meals: Meal[],
-  ladder: Ladder
+  steps: readonly LadderStep[]
 ): LadderStep | null {
   const anchors: PortionKind[] = [];
   const ordered = [...meals].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -41,7 +44,7 @@ export function currentRung(
 
   let reached: LadderStep | null = null;
   let cursor = 0;
-  for (const step of ladder.steps) {
+  for (const step of steps) {
     const idx = anchors.indexOf(step.anchor, cursor);
     if (idx === -1) break;
     reached = step;
@@ -51,17 +54,17 @@ export function currentRung(
 }
 
 /**
- * The single next legal step above `rung` on `ladder`, or `null` at the top.
+ * The single next legal step above `rung` on `steps`, or `null` at the top.
  * Passing `null` returns the first step. Advancing more than one step is
  * impossible to express — the function returns a step or nothing.
  */
 export function nextLegalStep(
   rung: LadderStep | null,
-  ladder: Ladder
+  steps: readonly LadderStep[]
 ): LadderStep | null {
-  if (rung === null) return ladder.steps[0] ?? null;
-  const idx = ladder.steps.findIndex((s) => s.id === rung.id);
+  if (rung === null) return steps[0] ?? null;
+  const idx = steps.findIndex((s) => s.id === rung.id);
   if (idx === -1) return null;
-  return ladder.steps[idx + 1] ?? null;
+  return steps[idx + 1] ?? null;
 }
 
