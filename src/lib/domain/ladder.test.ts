@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate } from "./ladder";
-import type { LadderStep } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder } from "./ladder";
+import type { Ladder, LadderStep } from "./ladder";
 import type { Meal, SkinObservation, ReintroductionEvaluation } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 
@@ -419,5 +419,61 @@ describe("ALLERGENS ladders", () => {
         ).toBe(rec.protocol.days[i].isEvaluationDay);
       }
     }
+  });
+});
+
+// ── resolveLadder (override merge) ────────────────────────────
+
+describe("resolveLadder", () => {
+  const defaultLadder: Ladder = {
+    allergenId: "eggs",
+    stages: {
+      breastfed: [
+        { id: "default-1", anchor: "pinch", isEvaluationCheckpoint: false, dose: "default" },
+      ],
+    },
+  };
+
+  const overrideLadder: Ladder = {
+    allergenId: "eggs",
+    stages: {
+      breastfed: [
+        { id: "override-1", anchor: "teaspoon", isEvaluationCheckpoint: true, dose: "override" },
+      ],
+    },
+  };
+
+  it("returns the default ladder when no override is present", () => {
+    expect(resolveLadder(defaultLadder, null)).toBe(defaultLadder);
+  });
+
+  it("returns the default ladder when the override is undefined", () => {
+    expect(resolveLadder(defaultLadder, undefined)).toBe(defaultLadder);
+  });
+
+  it("returns the override ladder when one is present", () => {
+    expect(resolveLadder(defaultLadder, overrideLadder)).toBe(overrideLadder);
+  });
+
+  it("currentRung on the resolved ladder uses the override steps", () => {
+    const resolved = resolveLadder(defaultLadder, overrideLadder);
+    const steps = resolved.stages.breastfed ?? [];
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "teaspoon" }],
+      }),
+    ];
+    // The default first rung anchors on `pinch`; the override anchors on `teaspoon`.
+    // A `teaspoon` meal advances the override's first rung, not the default's.
+    expect(currentRung("eggs", meals, steps)?.id).toBe("override-1");
+  });
+
+  it("nextLegalStep on the resolved ladder walks the override rungs", () => {
+    const resolved = resolveLadder(defaultLadder, overrideLadder);
+    const steps = resolved.stages.breastfed ?? [];
+    expect(nextLegalStep(null, steps)?.id).toBe("override-1");
   });
 });

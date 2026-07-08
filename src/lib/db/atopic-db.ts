@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Meal, QuestionnaireAnswers, GeneratedSchedule, SkinObservation, SkinPhoto, ReintroductionEvaluation } from '$lib/domain/models';
+import type { Meal, QuestionnaireAnswers, GeneratedSchedule, SkinObservation, SkinPhoto, ReintroductionEvaluation, Ladder } from '$lib/domain/models';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 
 type AnswersRow = QuestionnaireAnswers & { id: string };
@@ -15,6 +15,7 @@ export class AtopicDb extends Dexie {
   photos!: EntityTable<SkinPhoto, 'id'>;
   harvest_candidates!: EntityTable<HarvestCandidate, 'normalizedKey'>;
   evaluations!: EntityTable<ReintroductionEvaluation, 'phaseId'>;
+  ladder_overrides!: EntityTable<Ladder, 'allergenId'>;
 
   constructor(options?: { indexedDB?: IDBFactory; IDBKeyRange?: typeof IDBKeyRange }) {
     super('atopic-helper', options);
@@ -98,6 +99,19 @@ export class AtopicDb extends Dexie {
       .upgrade(async (tx) => {
         await tx.table('photos').clear();
       });
+    // v9: adds ladder_overrides table (ADR-0023, issue #427). Primary key
+    // &allergenId — one override per protocol allergen replaces its default
+    // ladder from the catalog. No data migration needed — table is new.
+    this.version(9).stores({
+      answers: '&id',
+      schedule: '&id',
+      meals: '&id, date',
+      skin_observations: '&id, date',
+      photos: '&id, observationId',
+      harvest_candidates: '&normalizedKey, status',
+      evaluations: '&phaseId, date',
+      ladder_overrides: '&allergenId',
+    });
   }
 }
 

@@ -85,6 +85,23 @@ export function nextLegalStep(
   return steps[idx + 1] ?? null;
 }
 
+/**
+ * Return the ladder in effect for an allergen: the override when present,
+ * otherwise the default from the catalog. The override — a stored `Ladder`
+ * record (issue #427, ADR-0023) — replaces the default outright; consumers
+ * pass the resolved ladder's `stages[stage]` to `currentRung` and
+ * `nextLegalStep`, so the override supersedes the catalog end-to-end.
+ *
+ * Included in the ADR-0002 export snapshot so a device restore preserves the
+ * clinician's individualized plan.
+ */
+export function resolveLadder(
+  defaultLadder: Ladder,
+  override: Ladder | null | undefined
+): Ladder {
+  return override ?? defaultLadder;
+}
+
 // ── Gates ─────────────────────────────────────────────────────
 
 export type CadenceGateResult = {
