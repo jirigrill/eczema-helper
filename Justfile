@@ -111,6 +111,10 @@ setup-hooks:
 dev:
     bun run dev -- --host 0.0.0.0
 
+# Run allergen ladder simulator (edit scripts/simulate.ts scenario, then rerun)
+simulate:
+    bun run scripts/simulate.ts
+
 # Run all tests (unit + e2e)
 test:
     just test-unit
