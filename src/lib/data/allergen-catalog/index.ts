@@ -10,10 +10,10 @@ export {
 export type {
   FamilyId,
   CatalogFamily,
-  CatalogAllergenId3 as CatalogAllergenId,
+  CatalogAllergenId,
   AllergenId,
   CustomAllergenId,
-  ProtocolAllergenId3 as ProtocolAllergenId,
+  LadderAllergenId as ProtocolAllergenId,
   CatalogFoodId,
   FoodId,
   LadderStepId,

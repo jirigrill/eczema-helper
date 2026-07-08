@@ -825,11 +825,11 @@ export const ALLERGENS = [
   },
 ] as const satisfies readonly AllergenRecord[];
 
-export type CatalogAllergenId3 = (typeof ALLERGENS)[number]["id"];
+export type CatalogAllergenId = (typeof ALLERGENS)[number]["id"];
 /** Re-export as AllergenId for consumer convenience */
-export type AllergenId = CatalogAllergenId3 | `other:${string}`;
+export type AllergenId = CatalogAllergenId | `other:${string}`;
 /** Allergens with a reintroduction ladder */
-export type ProtocolAllergenId3 = Extract<
+export type LadderAllergenId = Extract<
   (typeof ALLERGENS)[number],
   { ladder: object }
 >["id"];
@@ -869,7 +869,7 @@ export type FoodForm = (typeof FOOD_FORMS)[number];
 type FoodRecord = {
   id: string;
   familyId: FamilyId;
-  allergenIds: readonly CatalogAllergenId3[];
+  allergenIds: readonly CatalogAllergenId[];
   form: FoodForm;
   aliases?: readonly string[];
   /**
