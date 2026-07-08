@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate } from "./ladder";
-import type { LadderStep } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder } from "./ladder";
+import type { Ladder, LadderStep } from "./ladder";
 import type { Meal, SkinObservation, ReintroductionEvaluation } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 
@@ -37,12 +37,17 @@ const eggsSteps: readonly LadderStep[] = [
   },
 ];
 
+const eggsLadder: Ladder = {
+  allergenId: "eggs",
+  stages: { breastfed: eggsSteps },
+};
+
 // ── currentRung ───────────────────────────────────────────────
 
 describe("currentRung", () => {
   it("returns null when the meal history has no matching allergen items", () => {
     const meals: Meal[] = [];
-    expect(currentRung("eggs", meals, eggsSteps)).toBeNull();
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed")).toBeNull();
   });
 
   it("returns the first rung when only the first-rung anchor has been logged", () => {
@@ -56,7 +61,7 @@ describe("currentRung", () => {
         ],
       }),
     ];
-    expect(currentRung("eggs", meals, eggsSteps)?.id).toBe("rung-1");
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed")?.id).toBe("rung-1");
   });
 
   it("advances to the second rung once a second matching anchor is logged on a later meal", () => {
@@ -78,7 +83,7 @@ describe("currentRung", () => {
         ],
       }),
     ];
-    expect(currentRung("eggs", meals, eggsSteps)?.id).toBe("rung-2");
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed")?.id).toBe("rung-2");
   });
 
   it("reaches the top rung when the final anchor is logged after the earlier anchors", () => {
@@ -108,7 +113,7 @@ describe("currentRung", () => {
         ],
       }),
     ];
-    const rung = currentRung("eggs", meals, eggsSteps);
+    const rung = currentRung("eggs", meals, eggsLadder, "breastfed");
     expect(rung?.id).toBe("rung-3");
     expect(rung?.isEvaluationCheckpoint).toBe(true);
   });
@@ -122,7 +127,7 @@ describe("currentRung", () => {
         items: [{ id: "i1", name: "Rýže", foodId: "ryze", amount: "portion" }],
       }),
     ];
-    expect(currentRung("eggs", meals, eggsSteps)).toBeNull();
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed")).toBeNull();
   });
 
   it("surfaces isEvaluationCheckpoint=false on a non-checkpoint resolved rung", () => {
@@ -134,7 +139,7 @@ describe("currentRung", () => {
         items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
       }),
     ];
-    const rung = currentRung("eggs", meals, eggsSteps);
+    const rung = currentRung("eggs", meals, eggsLadder, "breastfed");
     expect(rung?.id).toBe("rung-1");
     expect(rung?.isEvaluationCheckpoint).toBe(false);
   });
@@ -177,7 +182,7 @@ describe("currentRung", () => {
         ],
       }),
     ];
-    expect(currentRung("eggs", meals, eggsSteps)?.id).toBe("rung-3");
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed")?.id).toBe("rung-3");
   });
 });
 
@@ -185,23 +190,23 @@ describe("currentRung", () => {
 
 describe("nextLegalStep", () => {
   it("returns the first step when the current rung is null", () => {
-    expect(nextLegalStep(null, eggsSteps)?.id).toBe("rung-1");
+    expect(nextLegalStep(null, eggsLadder, "breastfed")?.id).toBe("rung-1");
   });
 
   it("returns the next single step above the current rung", () => {
-    expect(nextLegalStep(eggsSteps[0], eggsSteps)?.id).toBe("rung-2");
-    expect(nextLegalStep(eggsSteps[1], eggsSteps)?.id).toBe("rung-3");
+    expect(nextLegalStep(eggsSteps[0], eggsLadder, "breastfed")?.id).toBe("rung-2");
+    expect(nextLegalStep(eggsSteps[1], eggsLadder, "breastfed")?.id).toBe("rung-3");
   });
 
   it("returns null once the top of the ladder is reached", () => {
     const top = eggsSteps[eggsSteps.length - 1];
-    expect(nextLegalStep(top, eggsSteps)).toBeNull();
+    expect(nextLegalStep(top, eggsLadder, "breastfed")).toBeNull();
   });
 
   it("cannot express a multi-step advance — the return is a single step or null", () => {
     // The signature itself precludes returning two steps at once. This test
     // documents that guarantee: `nextLegalStep` walks exactly one rung.
-    const returned = nextLegalStep(eggsSteps[0], eggsSteps);
+    const returned = nextLegalStep(eggsSteps[0], eggsLadder, "breastfed");
     const idx = eggsSteps.findIndex((s) => s.id === returned?.id);
     expect(idx).toBe(1);
   });
@@ -209,9 +214,9 @@ describe("nextLegalStep", () => {
   it("returns null when the allergen is permanently eliminated, regardless of rung", () => {
     // Permanent elimination (permanent-mother / permanent-baby per ADR-0012)
     // refuses advancement outright — the ladder is inert for that allergen.
-    expect(nextLegalStep(null, eggsSteps, { isPermanentlyEliminated: true })).toBeNull();
-    expect(nextLegalStep(eggsSteps[0], eggsSteps, { isPermanentlyEliminated: true })).toBeNull();
-    expect(nextLegalStep(eggsSteps[1], eggsSteps, { isPermanentlyEliminated: true })).toBeNull();
+    expect(nextLegalStep(null, eggsLadder, "breastfed", undefined, { isPermanentlyEliminated: true })).toBeNull();
+    expect(nextLegalStep(eggsSteps[0], eggsLadder, "breastfed", undefined, { isPermanentlyEliminated: true })).toBeNull();
+    expect(nextLegalStep(eggsSteps[1], eggsLadder, "breastfed", undefined, { isPermanentlyEliminated: true })).toBeNull();
   });
 });
 
@@ -419,5 +424,86 @@ describe("ALLERGENS ladders", () => {
         ).toBe(rec.protocol.days[i].isEvaluationDay);
       }
     }
+  });
+});
+
+// ── resolveLadder (override merge) ────────────────────────────
+
+describe("resolveLadder", () => {
+  const defaultLadder: Ladder = {
+    allergenId: "eggs",
+    stages: {
+      breastfed: [
+        { id: "default-b-1", anchor: "pinch", isEvaluationCheckpoint: false, dose: "default breastfed" },
+      ],
+      mixed: [
+        { id: "default-m-1", anchor: "teaspoon", isEvaluationCheckpoint: false, dose: "default mixed" },
+      ],
+      solids: [
+        { id: "default-s-1", anchor: "portion", isEvaluationCheckpoint: false, dose: "default solids" },
+      ],
+    },
+  };
+
+  const overrideLadder: Ladder = {
+    allergenId: "eggs",
+    stages: {
+      breastfed: [
+        { id: "override-b-1", anchor: "teaspoon", isEvaluationCheckpoint: true, dose: "override breastfed" },
+      ],
+    },
+  };
+
+  it("returns the default ladder when no override is present", () => {
+    expect(resolveLadder(defaultLadder, null)).toBe(defaultLadder);
+  });
+
+  it("returns the default ladder when the override is undefined", () => {
+    expect(resolveLadder(defaultLadder, undefined)).toBe(defaultLadder);
+  });
+
+  it("replaces the default stage's rungs with the override's when the override defines that stage", () => {
+    const resolved = resolveLadder(defaultLadder, overrideLadder);
+    expect(resolved.stages.breastfed?.[0].id).toBe("override-b-1");
+  });
+
+  it("preserves default stages the override does not define — a breastfed-only override keeps mixed/solids", () => {
+    // Regression guard: an override customising just one stage must not
+    // silently erase the other stages. The child would find an empty ladder
+    // on transition into mixed/solids otherwise (issue #427 review).
+    const resolved = resolveLadder(defaultLadder, overrideLadder);
+    expect(resolved.stages.mixed?.[0].id).toBe("default-m-1");
+    expect(resolved.stages.solids?.[0].id).toBe("default-s-1");
+  });
+
+  it("currentRung uses the override rungs when an override is passed", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "teaspoon" }],
+      }),
+    ];
+    // The default first rung anchors on `pinch`; the override anchors on `teaspoon`.
+    // A `teaspoon` meal advances the override's first rung, not the default's.
+    expect(currentRung("eggs", meals, defaultLadder, "breastfed", overrideLadder)?.id).toBe("override-b-1");
+  });
+
+  it("nextLegalStep walks the override rungs when an override is passed", () => {
+    expect(nextLegalStep(null, defaultLadder, "breastfed", overrideLadder)?.id).toBe("override-b-1");
+  });
+
+  it("currentRung falls back to the default stage when the override does not define that stage", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:lunch",
+        date: "2026-06-01",
+        mealType: "lunch",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+    ];
+    // Override only defines breastfed; asking about solids must use the default.
+    expect(currentRung("eggs", meals, defaultLadder, "solids", overrideLadder)?.id).toBe("default-s-1");
   });
 });

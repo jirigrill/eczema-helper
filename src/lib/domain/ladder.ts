@@ -28,19 +28,48 @@ function mealHitsAllergen(meal: Meal, allergenId: ProtocolAllergenId): boolean {
 }
 
 /**
- * Highest ladder rung whose anchor has been logged and not reacted-against.
- * Derived from meal history — never persisted (ADR-0012).
+ * Return the ladder in effect for an allergen: the default merged with the
+ * override at stage granularity. When the override defines rungs for a stage,
+ * those replace the default's rungs for that stage; stages the override does
+ * not touch keep the default (issue #427, ADR-0023). A missing/undefined
+ * override returns the default identity.
  *
- * `steps` is one feeding stage's rungs (`ladder.stages[stage]`) — the caller
- * picks the stage that matches the child's current feeding pattern.
+ * Stage-level merge matters because `Ladder.stages` is `Partial<Record<...>>`:
+ * a clinician who customizes only `breastfed` must not silently erase
+ * `mixed`/`solids` when the child transitions stages.
  *
- * Returns `null` when the mother has not yet logged the ladder's first step.
+ * Included in the ADR-0002 export so a device restore preserves the plan.
+ */
+export function resolveLadder(
+  defaultLadder: Ladder,
+  override: Ladder | null | undefined
+): Ladder {
+  if (!override) return defaultLadder;
+  return {
+    ...defaultLadder,
+    ...override,
+    stages: { ...defaultLadder.stages, ...override.stages },
+  };
+}
+
+/**
+ * Highest ladder rung whose anchor has been logged and not reacted-against,
+ * for the given `stage` on the effective ladder (default merged with any
+ * override — see `resolveLadder`). Derived from meal history — never
+ * persisted (ADR-0012).
+ *
+ * Returns `null` when the mother has not yet logged the first step of the
+ * effective ladder for `stage`, or when the effective ladder has no rungs
+ * defined for `stage`.
  */
 export function currentRung(
   allergenId: ProtocolAllergenId,
   meals: Meal[],
-  steps: readonly LadderStep[]
+  defaultLadder: Ladder,
+  stage: FeedingStage,
+  override?: Ladder | null
 ): LadderStep | null {
+  const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
   const anchors: PortionKind[] = [];
   const ordered = [...meals].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   for (const meal of ordered) {
@@ -64,9 +93,10 @@ export function currentRung(
 }
 
 /**
- * The single next legal step above `rung` on `steps`, or `null` at the top.
- * Passing `null` returns the first step. Advancing more than one step is
- * impossible to express — the function returns a step or nothing.
+ * The single next legal step above `rung` on the effective ladder's `stage`,
+ * or `null` at the top. Passing `null` for `rung` returns the first step.
+ * Advancing more than one step is impossible to express — the function
+ * returns a step or nothing.
  *
  * `opts.isPermanentlyEliminated` — when true (allergen is `permanent-mother`
  * or `permanent-baby` per ADR-0012), the ladder is inert: return `null`
@@ -75,10 +105,13 @@ export function currentRung(
  */
 export function nextLegalStep(
   rung: LadderStep | null,
-  steps: readonly LadderStep[],
+  defaultLadder: Ladder,
+  stage: FeedingStage,
+  override?: Ladder | null,
   opts?: { isPermanentlyEliminated?: boolean }
 ): LadderStep | null {
   if (opts?.isPermanentlyEliminated) return null;
+  const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
   if (rung === null) return steps[0] ?? null;
   const idx = steps.findIndex((s) => s.id === rung.id);
   if (idx === -1) return null;
