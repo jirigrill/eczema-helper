@@ -9,6 +9,7 @@ import type {
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import { REST_PHASE_DAYS_MILD, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_SEVERE } from '$lib/domain/policy';
 
@@ -119,6 +120,24 @@ export function nextLegalStep(
 }
 
 // ── Gates ─────────────────────────────────────────────────────
+
+/**
+ * Rung at position `dayInPhase` (1-indexed) on the allergen's `stage` ladder,
+ * or `null` if the allergen carries no ladder for that stage or the day is
+ * out of range. Hides the four-hop walk `catalog → allergen → ladder →
+ * stages[stage] → [i]` from templates and callers; the meal page and the
+ * ladder-driven fields on `ReintroductionDayInfo` share this single walk.
+ */
+export function rungAtDayInPhase(
+  catalog: CanonicalCatalogPort,
+  allergenId: ProtocolAllergenId,
+  dayInPhase: number,
+  stage: FeedingStage
+): LadderStep | null {
+  const steps = catalog.get(allergenId)?.ladder?.stages[stage];
+  if (!steps) return null;
+  return steps[dayInPhase - 1] ?? null;
+}
 
 export type CadenceGateResult = {
   /** Whether the cadence threshold has elapsed since the last matching dose. */

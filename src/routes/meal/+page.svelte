@@ -16,6 +16,7 @@
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext } from '$lib/domain/schedule-queries';
+  import { rungAtDayInPhase } from '$lib/domain/ladder';
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -555,7 +556,7 @@
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
       {@const cat = getCategoryConfig(reintroInfo.allergenId)}
-      {@const rung = catalog.get(reintroInfo.allergenId)?.ladder?.stages.breastfed?.[reintroInfo.dayInPhase - 1]}
+      {@const rung = rungAtDayInPhase(catalog, reintroInfo.allergenId, reintroInfo.dayInPhase, 'breastfed')}
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">
           <p class="eyebrow text-success">
