@@ -1,4 +1,4 @@
-import type { AllergenProtocol } from '$lib/domain/canonical-allergen';
+import type { AllergenProtocol, Ladder } from '$lib/domain/canonical-allergen';
 import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
 
 type CatalogAllergen = {
@@ -7,6 +7,7 @@ type CatalogAllergen = {
   icon: string;
   aliases: readonly string[];
   protocol?: AllergenProtocol;
+  ladder?: Ladder;
 };
 
 type CatalogFood = {

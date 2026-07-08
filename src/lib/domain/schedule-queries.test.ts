@@ -15,6 +15,8 @@ import type {
   MealItem,
 } from "$lib/domain/models";
 import { BundledCatalogAdapter } from "$lib/adapters/bundled-catalog-adapter";
+import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
+import { addDays } from "$lib/utils/date";
 
 const catalog = new BundledCatalogAdapter();
 
@@ -515,6 +517,55 @@ describe("getReintroductionDayInfo", () => {
     expect("label" in info!).toBe(false);
     expect("guidance" in info!).toBe(false);
   });
+});
+
+// ── getReintroductionDayInfo — ladder-parity across every protocol allergen ──
+// Frozen pre-migration values sourced from `ALLERGENS[*].protocol.days[i].isEvaluationDay`.
+// After the switch to `LadderStep.isEvaluationCheckpoint`, output must be identical for
+// every protocol allergen and every day-in-phase.
+
+describe('getReintroductionDayInfo — ladder parity with legacy protocol', () => {
+  type ProtocolRecord = {
+    id: string;
+    protocol: { days: readonly { isEvaluationDay: boolean }[] };
+  };
+  const protocolAllergens = ALLERGENS.filter(
+    (a): a is typeof a & ProtocolRecord => 'protocol' in a && a.protocol !== undefined
+  );
+
+  it('covers every protocol allergen in the catalog', () => {
+    expect(protocolAllergens.length).toBeGreaterThan(0);
+  });
+
+  for (const allergen of protocolAllergens) {
+    const totalDays = allergen.protocol.days.length;
+    const startDate = '2026-05-01';
+    const endDate = addDays(startDate, totalDays - 1);
+    const schedule: GeneratedSchedule = {
+      permanentMother: [], permanentBaby: [],
+      startDate,
+      estimatedEndDate: addDays(startDate, totalDays + 30),
+      phases: [
+        phase({
+          id: `reintro-${allergen.id}`,
+          type: 'reintroduction',
+          startDate,
+          endDate,
+          allergenIds: [allergen.id as SchedulePhase['allergenIds'][number]],
+        }),
+      ],
+    };
+
+    for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+      const date = addDays(startDate, dayIndex);
+      const expected = allergen.protocol.days[dayIndex].isEvaluationDay;
+      it(`${allergen.id} day ${dayIndex + 1}/${totalDays} → isEvaluationDay=${expected}`, () => {
+        const info = getReintroductionDayInfo(schedule, date, catalog);
+        expect(info).not.toBeNull();
+        expect(info!.isEvaluationDay).toBe(expected);
+      });
+    }
+  }
 });
 
 // ── buildScheduleContext ──────────────────────────────────────
