@@ -67,55 +67,9 @@ describe('DexieLadderOverrideRepo', () => {
 
     const loaded = await repo.loadByAllergen('vejce');
     expect(loaded).toMatchObject({ ok: true, data: second });
-
-    const list = await repo.listAll();
-    if (list.ok) expect(list.data).toHaveLength(1);
   });
 
-  // ── Slice 3: listAll ─────────────────────────────────────────
-
-  it('listAll returns every stored override regardless of allergen', async () => {
-    await repo.save(makeLadder('vejce'));
-    await repo.save(makeLadder('sojove-mleko'));
-
-    const result = await repo.listAll();
-    expect(result).toMatchObject({ ok: true });
-    if (result.ok) {
-      expect(result.data.map((o) => o.allergenId).sort()).toEqual([
-        'sojove-mleko',
-        'vejce',
-      ]);
-    }
-  });
-
-  it('listAll returns empty array when nothing is stored', async () => {
-    expect(await repo.listAll()).toEqual({ ok: true, data: [] });
-  });
-
-  // ── Slice 4: remove ──────────────────────────────────────────
-
-  it('remove deletes the stored override', async () => {
-    await repo.save(makeLadder('vejce'));
-    expect(await repo.remove('vejce')).toEqual({ ok: true, data: undefined });
-    expect(await repo.loadByAllergen('vejce')).toEqual({ ok: true, data: null });
-  });
-
-  it('remove only affects the targeted allergen', async () => {
-    await repo.save(makeLadder('vejce'));
-    await repo.save(makeLadder('sojove-mleko'));
-    await repo.remove('vejce');
-
-    const vejce = await repo.loadByAllergen('vejce');
-    const soy = await repo.loadByAllergen('sojove-mleko');
-    expect(vejce).toEqual({ ok: true, data: null });
-    expect(soy.ok && soy.data?.allergenId).toBe('sojove-mleko');
-  });
-
-  it('remove on an unknown allergen is a no-op Ok', async () => {
-    expect(await repo.remove('nothing-here')).toEqual({ ok: true, data: undefined });
-  });
-
-  // ── Slice 5: preserves Ladder shape exactly ──────────────────
+  // ── Slice 3: preserves Ladder shape exactly ──────────────────
 
   it('persists a multi-stage ladder with all stages preserved', async () => {
     const ladder: Ladder = {
@@ -137,7 +91,7 @@ describe('DexieLadderOverrideRepo', () => {
     expect(await repo.loadByAllergen('vejce')).toEqual({ ok: true, data: ladder });
   });
 
-  // ── Slice 6: error paths ─────────────────────────────────────
+  // ── Slice 4: error paths ─────────────────────────────────────
 
   it('save returns Err when DB throws', async () => {
     vi.spyOn(db.ladder_overrides, 'put').mockRejectedValueOnce(new Error('write fail'));
@@ -149,17 +103,5 @@ describe('DexieLadderOverrideRepo', () => {
     vi.spyOn(db.ladder_overrides, 'get').mockRejectedValueOnce(new Error('read fail'));
     const result = await repo.loadByAllergen('vejce');
     expect(result).toEqual({ ok: false, error: 'read fail' });
-  });
-
-  it('listAll returns Err when DB throws', async () => {
-    vi.spyOn(db.ladder_overrides, 'toArray').mockRejectedValueOnce(new Error('list fail'));
-    const result = await repo.listAll();
-    expect(result).toEqual({ ok: false, error: 'list fail' });
-  });
-
-  it('remove returns Err when DB throws', async () => {
-    vi.spyOn(db.ladder_overrides, 'delete').mockRejectedValueOnce(new Error('delete fail'));
-    const result = await repo.remove('vejce');
-    expect(result).toEqual({ ok: false, error: 'delete fail' });
   });
 });

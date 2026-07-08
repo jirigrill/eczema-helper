@@ -23,22 +23,4 @@ export class DexieLadderOverrideRepo implements LadderOverrideRepository {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
-
-  async listAll(): Promise<Result<Ladder[], string>> {
-    try {
-      const rows = await this.db.ladder_overrides.toArray();
-      return { ok: true, data: rows };
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) };
-    }
-  }
-
-  async remove(allergenId: string): Promise<Result<void, string>> {
-    try {
-      await this.db.ladder_overrides.delete(allergenId);
-      return { ok: true, data: undefined };
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) };
-    }
-  }
 }
