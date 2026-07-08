@@ -110,24 +110,24 @@ describe('collection counts', () => {
   });
 });
 
-// ── Protocol allergens ────────────────────────────────────────
+// ── Protocol (ladder-bearing) allergens ───────────────────────
 
 describe('protocol allergens', () => {
-  it('dairy has a protocol', () => {
+  it('dairy has a ladder', () => {
     const dairy = ALLERGENS.find((a) => a.id === 'dairy');
-    expect(dairy?.protocol).toBeDefined();
+    expect(dairy?.ladder).toBeDefined();
   });
 
-  it('meat has no protocol', () => {
-    const meat = ALLERGENS.find((a) => a.id === 'meat') as { id: string; protocol?: unknown } | undefined;
+  it('meat has no ladder', () => {
+    const meat = ALLERGENS.find((a) => a.id === 'meat') as { id: string; ladder?: unknown } | undefined;
     expect(meat).toBeDefined();
-    expect((meat as Record<string, unknown>).protocol).toBeUndefined();
+    expect((meat as Record<string, unknown>).ladder).toBeUndefined();
   });
 
-  it('coffee-tea has no protocol', () => {
-    const coffeeTea = ALLERGENS.find((a) => a.id === 'coffee-tea') as { id: string; protocol?: unknown } | undefined;
+  it('coffee-tea has no ladder', () => {
+    const coffeeTea = ALLERGENS.find((a) => a.id === 'coffee-tea') as { id: string; ladder?: unknown } | undefined;
     expect(coffeeTea).toBeDefined();
-    expect((coffeeTea as Record<string, unknown>).protocol).toBeUndefined();
+    expect((coffeeTea as Record<string, unknown>).ladder).toBeUndefined();
   });
 });
 

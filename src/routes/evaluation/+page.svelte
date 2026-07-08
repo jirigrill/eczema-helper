@@ -17,7 +17,7 @@
   import Button from '$lib/components/Button.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
-  import type { AllergenOutcome, ProtocolAllergenId, RegionLevel, ReintroductionEvaluation, SchedulePhase, SkinObservation } from '$lib/domain/models';
+  import type { AllergenOutcome, LadderAllergenId, RegionLevel, ReintroductionEvaluation, SchedulePhase, SkinObservation } from '$lib/domain/models';
   import { severityStrings } from '$lib/strings/skin-regions';
 
   const phaseId = $derived(page.url.searchParams.get('phase') ?? '');
@@ -60,7 +60,7 @@
   let savedToast = $state(false);
   let saveError = $state<string | null>(null);
 
-  const allergenSlug = $derived<ProtocolAllergenId | null>(
+  const allergenSlug = $derived<LadderAllergenId | null>(
     phase && phase.type === 'reintroduction' ? (phase.allergenIds[0] ?? null) : null
   );
   const allergenName = $derived(

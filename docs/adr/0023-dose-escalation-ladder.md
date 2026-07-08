@@ -1,6 +1,6 @@
 # 0023 — Dose-escalation ladder as first-class domain data
 
-**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section.
+**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
 **Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table).

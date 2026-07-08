@@ -41,9 +41,9 @@ describe('BundledCatalogAdapter — three-collection methods', () => {
     expect(adapter.listAllergens()).toHaveLength(ALLERGENS.length);
   });
 
-  it('listAllergens() dairy has a protocol', () => {
+  it('listAllergens() dairy has a ladder', () => {
     const dairy = adapter.listAllergens().find((a) => a.id === 'dairy');
-    expect(dairy?.protocol).toBeDefined();
+    expect(dairy?.ladder).toBeDefined();
   });
 
   it('listFoods() returns all food records', () => {

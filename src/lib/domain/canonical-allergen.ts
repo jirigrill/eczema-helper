@@ -1,15 +1,5 @@
 import type { PortionKind } from "$lib/domain/models";
 
-export type ProtocolDay = {
-  day: number;
-  instructionCs: string;
-  isEvaluationDay: boolean;
-};
-
-export type AllergenProtocol = {
-  days: ProtocolDay[];
-};
-
 /**
  * Feeding stage a ladder's dose steps apply to, mirroring the three table
  * variants in the source protocols (Pekárková, Matoušková):
@@ -25,7 +15,7 @@ export type FeedingStage = (typeof FEEDING_STAGES)[number];
  * `anchor` reuses the shared `PortionKind` vocabulary; *order within the
  * ladder* — not the anchor value on its own — is what makes a step "higher"
  * than another. `isEvaluationCheckpoint` marks rungs whose reaction the mother
- * should record (mirrors the legacy `ProtocolDay.isEvaluationDay`).
+ * should record.
  *
  * `dose` is the Czech caption shown at that rung — sourced from the source
  * protocol tables under `docs/full elimination diet schedule - atopicky
@@ -46,8 +36,8 @@ export type LadderStep = {
  * data for every stage — e.g. a source table tested in the child only leaves
  * `breastfed` absent.
  *
- * `allergenId` is typed `string` (rather than the derived `ProtocolAllergenId`)
- * to break a circular type: `ProtocolAllergenId` is inferred from the catalog
+ * `allergenId` is typed `string` (rather than the derived `LadderAllergenId`)
+ * to break a circular type: `LadderAllergenId` is inferred from the catalog
  * which now embeds `Ladder` records. Consumers that need the narrow type read
  * the parent allergen record's `id` directly.
  */
@@ -56,7 +46,7 @@ export type Ladder = {
   stages: Partial<Record<FeedingStage, readonly LadderStep[]>>;
 };
 
-/** A single self-contained allergen record. `protocol` presence determines reintroducibility. */
+/** A single self-contained allergen record. `ladder` presence determines reintroducibility. */
 export type CanonicalAllergen = {
   id: string;
   icon: string;
@@ -64,6 +54,5 @@ export type CanonicalAllergen = {
   /** Position in Matoušková's 20-allergen testing sequence. Absent for allergens not in her list. */
   allergenOrder?: number;
   source?: string;
-  protocol?: AllergenProtocol;
   ladder?: Ladder;
 };

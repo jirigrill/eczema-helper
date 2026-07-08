@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase } from "./ladder";
 import type { Ladder, LadderStep } from "./ladder";
-import type { Meal, SkinObservation, ReintroductionEvaluation } from "$lib/domain/models";
+import type { Meal, SkinObservation, ReintroductionEvaluation, LadderAllergenId } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
+import { BundledCatalogAdapter } from "$lib/adapters/bundled-catalog-adapter";
 
 // ── Fixtures ──────────────────────────────────────────────────
 
@@ -402,29 +403,6 @@ describe("ALLERGENS ladders", () => {
       ).toBeDefined();
     }
   });
-
-  it("each breastfed-stage rung inherits isEvaluationCheckpoint from the legacy ProtocolDay.isEvaluationDay at the same index", () => {
-    for (const allergen of ALLERGENS) {
-      const rec = allergen as {
-        id: string;
-        protocol?: { days: readonly { isEvaluationDay: boolean }[] };
-        ladder?: {
-          stages: { breastfed?: readonly { isEvaluationCheckpoint: boolean }[] };
-        };
-      };
-      const breastfed = rec.ladder?.stages.breastfed;
-      if (!rec.protocol || !breastfed) continue;
-      expect(breastfed.length, `rung count mismatch on ${rec.id}`).toBe(
-        rec.protocol.days.length,
-      );
-      for (let i = 0; i < rec.protocol.days.length; i++) {
-        expect(
-          breastfed[i].isEvaluationCheckpoint,
-          `parity mismatch on ${rec.id} rung ${i + 1}`,
-        ).toBe(rec.protocol.days[i].isEvaluationDay);
-      }
-    }
-  });
 });
 
 // ── resolveLadder (override merge) ────────────────────────────
@@ -505,5 +483,42 @@ describe("resolveLadder", () => {
     ];
     // Override only defines breastfed; asking about solids must use the default.
     expect(currentRung("eggs", meals, defaultLadder, "solids", overrideLadder)?.id).toBe("default-s-1");
+  });
+});
+
+// ── rungAtDayInPhase ──────────────────────────────────────────
+
+describe("rungAtDayInPhase", () => {
+  const catalog = new BundledCatalogAdapter();
+  const firstLadder = ALLERGENS.find(
+    (a): a is typeof a & { ladder: { stages: { breastfed?: readonly LadderStep[] } } } =>
+      "ladder" in a && !!(a as { ladder?: { stages?: { breastfed?: unknown } } }).ladder?.stages?.breastfed
+  );
+
+  it("returns the rung at day 1 (1-indexed)", () => {
+    if (!firstLadder) throw new Error("catalog has no ladder-bearing allergen");
+    const expected = firstLadder.ladder.stages.breastfed![0];
+    expect(rungAtDayInPhase(catalog, firstLadder.id as LadderAllergenId, 1, "breastfed")).toBe(expected);
+  });
+
+  it("returns null when the day is out of range", () => {
+    if (!firstLadder) throw new Error("catalog has no ladder-bearing allergen");
+    const totalDays = firstLadder.ladder.stages.breastfed!.length;
+    expect(rungAtDayInPhase(catalog, firstLadder.id as LadderAllergenId, totalDays + 1, "breastfed")).toBeNull();
+  });
+
+  it("returns null when the allergen has no ladder for the stage", () => {
+    if (!firstLadder) throw new Error("catalog has no ladder-bearing allergen");
+    // No catalog allergen currently carries a `solids` stage — the assertion is
+    // vacuously true today, but pin the contract for when one is authored.
+    const hasSolids = ALLERGENS.some(
+      (a) => "ladder" in a && !!(a as { ladder?: { stages?: { solids?: unknown } } }).ladder?.stages?.solids
+    );
+    if (hasSolids) return; // skip if data has moved on
+    expect(rungAtDayInPhase(catalog, firstLadder.id as LadderAllergenId, 1, "solids")).toBeNull();
+  });
+
+  it("returns null when the allergen is unknown", () => {
+    expect(rungAtDayInPhase(catalog, "not-a-real-allergen" as LadderAllergenId, 1, "breastfed")).toBeNull();
   });
 });

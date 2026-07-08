@@ -1,4 +1,4 @@
-import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder, AllergenId, ProtocolAllergenId, AllergenOutcome } from '$lib/domain/models';
+import type { QuestionnaireAnswers, GeneratedSchedule, SchedulePhase, EczemaSeverity, Meal, ToleranceBuildingReminder, AllergenId, LadderAllergenId, AllergenOutcome } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import { addDays } from '$lib/utils/date';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
@@ -197,7 +197,7 @@ export function applyReintroductionVerdict(
 
 export function addTrainingPhase(
   schedule: GeneratedSchedule,
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   afterPhaseId: string
 ): GeneratedSchedule {
   const afterPhase = schedule.phases.find(p => p.id === afterPhaseId);
@@ -242,7 +242,7 @@ export function addTrainingPhase(
  */
 export function appendReTestPhases(
   schedule: GeneratedSchedule,
-  ids: ProtocolAllergenId[],
+  ids: LadderAllergenId[],
   today: string,
 ): Result<GeneratedSchedule, RetestRejection> {
   const statuses = getAllergenStatuses(schedule, today);
@@ -298,8 +298,8 @@ export function appendReTestPhases(
 // ── Cancel re-test phase ──────────────────────────────────────
 
 export type RemoveRetestRejection =
-  | { code: 'not-scheduled';  allergenId: ProtocolAllergenId }
-  | { code: 'protocol-phase'; allergenId: ProtocolAllergenId };
+  | { code: 'not-scheduled';  allergenId: LadderAllergenId }
+  | { code: 'protocol-phase'; allergenId: LadderAllergenId };
 
 /**
  * Removes a previously appended retest phase for `allergenId`.
@@ -312,7 +312,7 @@ export type RemoveRetestRejection =
  */
 export function removeReTestPhase(
   schedule: GeneratedSchedule,
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   today: string,
 ): Result<GeneratedSchedule, RemoveRetestRejection> {
   const retestPhase = schedule.phases.find(

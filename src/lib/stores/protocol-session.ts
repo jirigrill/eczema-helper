@@ -6,7 +6,7 @@ import { DexieEvaluationRepository } from '$lib/adapters/dexie-evaluation-reposi
 import { generateSchedule, appendReTestPhases, removeReTestPhase, applyReintroductionVerdict } from '$lib/domain/schedule-builder';
 import { scheduleContext } from '$lib/stores/schedule-context';
 import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
-import type { ProtocolAllergenId, QuestionnaireAnswers, ReintroductionEvaluation, AllergenOutcome } from '$lib/domain/models';
+import type { LadderAllergenId, QuestionnaireAnswers, ReintroductionEvaluation, AllergenOutcome } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 import type { RetestRejection } from '$lib/domain/schedule-builder';
 
@@ -42,7 +42,7 @@ async function appendReTests(
 	const ctx = await _loadReadySchedule();
 	if (!ctx.ok) return { ok: false, error: { code: 'not-baby-confirmed', invalidIds: [] } };
 
-	const retestResult = appendReTestPhases(ctx.data, slugs as ProtocolAllergenId[], today);
+	const retestResult = appendReTestPhases(ctx.data, slugs as LadderAllergenId[], today);
 	if (!retestResult.ok) return retestResult;
 
 	const saveResult = await scheduleRepo.save(retestResult.data);
@@ -57,7 +57,7 @@ async function removeReTest(
 	const ctx = await _loadReadySchedule();
 	if (!ctx.ok) return ctx;
 
-	const result = removeReTestPhase(ctx.data, allergenId as ProtocolAllergenId, today);
+	const result = removeReTestPhase(ctx.data, allergenId as LadderAllergenId, today);
 	if (!result.ok) return { ok: false, error: result.error.code };
 
 	const saveResult = await scheduleRepo.save(result.data);

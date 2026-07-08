@@ -519,26 +519,28 @@ describe("getReintroductionDayInfo", () => {
   });
 });
 
-// ── getReintroductionDayInfo — ladder-parity across every protocol allergen ──
-// Frozen pre-migration values sourced from `ALLERGENS[*].protocol.days[i].isEvaluationDay`.
-// After the switch to `LadderStep.isEvaluationCheckpoint`, output must be identical for
-// every protocol allergen and every day-in-phase.
+// ── getReintroductionDayInfo — ladder-driven isEvaluationDay coverage ────────
+// Derived output at every day-in-phase must equal the ladder's
+// `isEvaluationCheckpoint` at the corresponding rung, for every ladder-bearing
+// allergen in the catalog.
 
-describe('getReintroductionDayInfo — ladder parity with legacy protocol', () => {
-  type ProtocolRecord = {
+describe('getReintroductionDayInfo — ladder drives isEvaluationDay', () => {
+  type LadderRecord = {
     id: string;
-    protocol: { days: readonly { isEvaluationDay: boolean }[] };
+    ladder: { stages: { breastfed?: readonly { isEvaluationCheckpoint: boolean }[] } };
   };
-  const protocolAllergens = ALLERGENS.filter(
-    (a): a is typeof a & ProtocolRecord => 'protocol' in a && a.protocol !== undefined
+  const ladderAllergens = ALLERGENS.filter(
+    (a): a is typeof a & LadderRecord =>
+      'ladder' in a && !!(a as { ladder?: { stages?: { breastfed?: unknown } } }).ladder?.stages?.breastfed
   );
 
-  it('covers every protocol allergen in the catalog', () => {
-    expect(protocolAllergens.length).toBeGreaterThan(0);
+  it('covers every ladder-bearing allergen in the catalog', () => {
+    expect(ladderAllergens.length).toBeGreaterThan(0);
   });
 
-  for (const allergen of protocolAllergens) {
-    const totalDays = allergen.protocol.days.length;
+  for (const allergen of ladderAllergens) {
+    const breastfed = allergen.ladder.stages.breastfed!;
+    const totalDays = breastfed.length;
     const startDate = '2026-05-01';
     const endDate = addDays(startDate, totalDays - 1);
     const schedule: GeneratedSchedule = {
@@ -558,7 +560,7 @@ describe('getReintroductionDayInfo — ladder parity with legacy protocol', () =
 
     for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
       const date = addDays(startDate, dayIndex);
-      const expected = allergen.protocol.days[dayIndex].isEvaluationDay;
+      const expected = breastfed[dayIndex].isEvaluationCheckpoint;
       it(`${allergen.id} day ${dayIndex + 1}/${totalDays} → isEvaluationDay=${expected}`, () => {
         const info = getReintroductionDayInfo(schedule, date, catalog);
         expect(info).not.toBeNull();

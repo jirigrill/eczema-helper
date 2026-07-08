@@ -1,7 +1,7 @@
 import type {
   Meal,
   PortionKind,
-  ProtocolAllergenId,
+  LadderAllergenId,
   SkinObservation,
   RegionLevel,
   ReintroductionEvaluation,
@@ -9,6 +9,7 @@ import type {
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import { REST_PHASE_DAYS_MILD, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_SEVERE } from '$lib/domain/policy';
 
@@ -23,7 +24,7 @@ function foodTriggers(foodId: string): readonly string[] {
   return [];
 }
 
-function mealHitsAllergen(meal: Meal, allergenId: ProtocolAllergenId): boolean {
+function mealHitsAllergen(meal: Meal, allergenId: LadderAllergenId): boolean {
   return meal.items.some((i) => foodTriggers(i.foodId).includes(allergenId));
 }
 
@@ -63,7 +64,7 @@ export function resolveLadder(
  * defined for `stage`.
  */
 export function currentRung(
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   meals: Meal[],
   defaultLadder: Ladder,
   stage: FeedingStage,
@@ -120,6 +121,24 @@ export function nextLegalStep(
 
 // ── Gates ─────────────────────────────────────────────────────
 
+/**
+ * Rung at position `dayInPhase` (1-indexed) on the allergen's `stage` ladder,
+ * or `null` if the allergen carries no ladder for that stage or the day is
+ * out of range. Hides the four-hop walk `catalog → allergen → ladder →
+ * stages[stage] → [i]` from templates and callers; the meal page and the
+ * ladder-driven fields on `ReintroductionDayInfo` share this single walk.
+ */
+export function rungAtDayInPhase(
+  catalog: CanonicalCatalogPort,
+  allergenId: LadderAllergenId,
+  dayInPhase: number,
+  stage: FeedingStage
+): LadderStep | null {
+  const steps = catalog.get(allergenId)?.ladder?.stages[stage];
+  if (!steps) return null;
+  return steps[dayInPhase - 1] ?? null;
+}
+
 export type CadenceGateResult = {
   /** Whether the cadence threshold has elapsed since the last matching dose. */
   allowed: boolean;
@@ -145,7 +164,7 @@ function daysSince(fromIsoDate: string, toIsoDate: string): number {
  * F4 active reintroduction use different rhythms — see ADR-0023).
  */
 export function cadenceGate(
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   meals: Meal[],
   today: string,
   cadenceDays: number
@@ -212,12 +231,11 @@ export type CheckpointVerdictGateResult = {
  * filtered here to `allergen-test` rows for `allergenId` and reduced to the
  * latest by date — mirrors the "latest wins" rule `allergen-status.ts` uses
  * for reintroduction phases (ADR-0012). No new storage: this reuses the same
- * append-only evaluation log the legacy `ProtocolDay.isEvaluationDay` flow
- * already wrote one row per evaluation day into.
+ * append-only evaluation log F4 already wrote one row per evaluation day into.
  */
 export function checkpointVerdictGate(
   rung: LadderStep | null,
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   evaluations: readonly ReintroductionEvaluation[]
 ): CheckpointVerdictGateResult {
   if (rung === null || !rung.isEvaluationCheckpoint) {

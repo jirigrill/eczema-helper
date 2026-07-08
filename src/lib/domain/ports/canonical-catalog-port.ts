@@ -1,12 +1,16 @@
-import type { AllergenProtocol, Ladder } from '$lib/domain/canonical-allergen';
+import type { Ladder } from '$lib/domain/canonical-allergen';
 import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
 
-type CatalogAllergen = {
+/**
+ * Shape returned by the canonical catalog port. The concrete data source
+ * (bundled catalog today, future remote provider) narrows this type via
+ * `satisfies`; consumers depend only on the shape declared here.
+ */
+export type CatalogAllergen = {
   id: string;
   familyId: string;
   icon: string;
   aliases: readonly string[];
-  protocol?: AllergenProtocol;
   ladder?: Ladder;
 };
 

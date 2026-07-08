@@ -1,16 +1,6 @@
-import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
-import type { AllergenProtocol, Ladder } from '$lib/domain/canonical-allergen';
+import type { CanonicalCatalogPort, CatalogAllergen } from '$lib/domain/ports/canonical-catalog-port';
 import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
 import { FAMILIES, ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
-
-type CatalogAllergen = {
-  id: string;
-  familyId: string;
-  icon: string;
-  aliases: readonly string[];
-  protocol?: AllergenProtocol;
-  ladder?: Ladder;
-};
 
 export class BundledCatalogAdapter implements CanonicalCatalogPort {
   list(): CatalogAllergen[] {

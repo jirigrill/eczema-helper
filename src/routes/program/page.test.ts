@@ -273,3 +273,68 @@ describe('program timeline — permanent allergen sections', () => {
     expect(queryByText('Potvrzené alergie miminka')).not.toBeInTheDocument();
   });
 });
+
+// ── Reintroduction evaluation prompt (ADR-0023 / PRD #421) ─────────
+// The eval-day prompt "Dnes vyhodnoťte celkovou reakci miminka." is gated
+// by `reintroInfo.isEvaluationDay`, which `getReintroductionDayInfo` sources
+// from `LadderStep.isEvaluationCheckpoint` at the current rung. This test
+// pair locks in that gating end-to-end for the program page.
+
+describe('program timeline — reintroduction evaluation prompt', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // dairy's ladder has isEvaluationCheckpoint: true only on step 6 (breastfed).
+  // Day 1 → rung 1 (not checkpoint), day 6 → rung 6 (checkpoint).
+  const dairyReintroSchedule = (dayInPhase: number, totalDays: number): GeneratedSchedule => {
+    const start = new Date(Date.now() - (dayInPhase - 1) * 86400000).toISOString().split('T')[0];
+    const end = new Date(Date.now() + (totalDays - dayInPhase) * 86400000).toISOString().split('T')[0];
+    return {
+      permanentMother: [], permanentBaby: [],
+      startDate: start, estimatedEndDate: end,
+      phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: start, endDate: end }],
+    };
+  };
+
+  it('shows "Sledujte kůži miminka" on a non-evaluation rung', async () => {
+    const schedule = dairyReintroSchedule(1, 6);
+    const ctx: ScheduleContext = {
+      status: 'ready',
+      schedule,
+      answers: sampleAnswers,
+      allergenStatuses: getAllergenStatuses(schedule, today),
+      eliminatedToday: getEliminatedSlugsForDate(schedule, today),
+      reintroInfo: getReintroductionDayInfo(schedule, today, catalog),
+      progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
+    };
+    mockScheduleContext.set(ctx);
+    const { default: ProgramPage } = await import('./+page.svelte');
+    const { queryByText } = render(ProgramPage);
+    await tick();
+    expect(queryByText(/Sledujte kůži miminka/)).toBeInTheDocument();
+    expect(queryByText(/Dnes vyhodnoťte celkovou reakci/)).not.toBeInTheDocument();
+  });
+
+  it('shows "Dnes vyhodnoťte celkovou reakci" on the isEvaluationCheckpoint rung', async () => {
+    const schedule = dairyReintroSchedule(6, 6);
+    const ctx: ScheduleContext = {
+      status: 'ready',
+      schedule,
+      answers: sampleAnswers,
+      allergenStatuses: getAllergenStatuses(schedule, today),
+      eliminatedToday: getEliminatedSlugsForDate(schedule, today),
+      reintroInfo: getReintroductionDayInfo(schedule, today, catalog),
+      progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
+    };
+    mockScheduleContext.set(ctx);
+    const { default: ProgramPage } = await import('./+page.svelte');
+    const { queryByText } = render(ProgramPage);
+    await tick();
+    expect(queryByText(/Dnes vyhodnoťte celkovou reakci/)).toBeInTheDocument();
+    expect(queryByText(/Sledujte kůži miminka/)).not.toBeInTheDocument();
+  });
+});
