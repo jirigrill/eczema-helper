@@ -252,7 +252,7 @@ optional `allergenOrder` (position in Matoušková's 20-allergen testing
 sequence), an **optional** reintroduction `protocol`, and an **optional**
 `ladder` (see [Ladder](#ladder) below). The records are the data-first source
 of truth: `AllergenId` is derived as `typeof ALLERGEN_CATALOG[number]['id']`,
-and `ProtocolAllergenId` as the subset of records that carry a `ladder`.
+and `LadderAllergenId` as the subset of records that carry a `ladder`.
 A record without a ladder is canonical and loggable but **not reintroducible**
 — the honest state of most long-tail foods. Czech display `name` is not on the
 record; it lives in `strings/` (ADR-0014) — **except** `LadderStep.dose`, which
@@ -289,7 +289,7 @@ word "allergen":
   `Mléko`, `Nuts-seeds`). One non-overlapping tile per food family. Pure
   organisation; carries no protocol and no clinical meaning.
 - **Allergen** — the reintroduction unit. Carries the optional `protocol`,
-  owns `AllergenStatus`, is what `ProtocolAllergenId` and
+  owns `AllergenStatus`, is what `LadderAllergenId` and
   `SchedulePhase.allergenIds` refer to. This is today's `CanonicalAllergen`
   record, unchanged — the refactor does **not** push `protocol` down to the
   food. An allergen belongs to exactly **one** family (its clinical home).
@@ -523,7 +523,7 @@ after data exists is a migration.
   and the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
 - **Allergen catalog is data-first, bundled, and port-fronted.** Each allergen
   is one curated JSON-serializable `CanonicalAllergen` record; `AllergenId` and
-  `ProtocolAllergenId` are *derived* from the records, not hand-written unions.
+  `LadderAllergenId` are *derived* from the records, not hand-written unions.
   Reintroduction capability is the optional `protocol` field — canonical does
   not imply reintroducible. Unknown user input becomes a runtime
   `HarvestCandidate` in Dexie, never mutates the bundled catalog. Cross-user

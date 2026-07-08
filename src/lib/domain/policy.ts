@@ -5,7 +5,7 @@
  * live here. Tuning the protocol requires touching only this file.
  */
 
-import type { ProtocolAllergenId } from '$lib/data/allergen-catalog';
+import type { LadderAllergenId } from '$lib/data/allergen-catalog';
 
 // ── Default tested allergens ─────────────────────────────────
 
@@ -14,7 +14,7 @@ import type { ProtocolAllergenId } from '$lib/data/allergen-catalog';
  * common trigger. A protocol policy choice, not catalog reference data — which
  * allergens *exist* is the catalog's job; which we *test by default* is this file's.
  */
-export const DEFAULT_TESTED_ALLERGENS: ProtocolAllergenId[] = ['soy', 'wheat', 'eggs', 'dairy'];
+export const DEFAULT_TESTED_ALLERGENS: LadderAllergenId[] = ['soy', 'wheat', 'eggs', 'dairy'];
 
 // ── Phase durations (in days) ────────────────────────────────
 

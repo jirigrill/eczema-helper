@@ -13,7 +13,7 @@ export type {
   CatalogAllergenId,
   AllergenId,
   CustomAllergenId,
-  LadderAllergenId as ProtocolAllergenId,
+  LadderAllergenId,
   CatalogFoodId,
   FoodId,
   LadderStepId,

@@ -7,7 +7,7 @@
 import type {
   AllergenId,
   CatalogAllergenId,
-  ProtocolAllergenId,
+  LadderAllergenId,
   CustomAllergenId,
 } from '$lib/data/allergen-catalog';
 import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
@@ -16,7 +16,7 @@ import type { FamilyId, FoodId, CatalogFoodId } from '$lib/data/allergen-catalog
 export type {
   AllergenId,
   CatalogAllergenId,
-  ProtocolAllergenId,
+  LadderAllergenId,
   CustomAllergenId,
   FamilyId,
   FoodId,
@@ -51,7 +51,7 @@ export type QuestionnaireAnswers = {
   babyConfirmedAllergies: AllergenId[]; // permanent, never reintroduced — may include custom
   programStartDate: string; // ISO date — when the program begins
   completedAt: string; // ISO datetime
-  testedAllergens: ProtocolAllergenId[]; // protocol-only — custom slugs can't be reintroduced
+  testedAllergens: LadderAllergenId[]; // protocol-only — custom slugs can't be reintroduced
 };
 
 export type PhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';
@@ -61,7 +61,7 @@ export type SchedulePhase = {
   type: PhaseType;
   startDate: string; // ISO date
   endDate: string; // ISO date
-  allergenIds: ProtocolAllergenId[]; // protocol allergens relevant to this phase
+  allergenIds: LadderAllergenId[]; // protocol allergens relevant to this phase
 };
 
 export type GeneratedSchedule = {
@@ -200,7 +200,7 @@ export type SkinPhotoInput = {
 export type ReintroductionDayInfo = {
   dayInPhase: number;
   totalDays: number;
-  allergenId: ProtocolAllergenId;
+  allergenId: LadderAllergenId;
   isEvaluationDay: boolean;
 };
 
@@ -214,7 +214,7 @@ export type ReintroductionEvaluation = {
   phaseId: string; // links to SchedulePhase.id
   phaseType: 'allergen-test' | 'skin-status'; // determines which outcome vocabulary applies
   outcome: AllergenOutcome | SkinEvaluationOutcome;
-  allergenId?: ProtocolAllergenId; // only set for allergen-test evaluations
+  allergenId?: LadderAllergenId; // only set for allergen-test evaluations
   notes?: string;
   date: string; // ISO date when evaluation was made
 };
@@ -228,7 +228,7 @@ export type AppState = {
 };
 
 export type ToleranceBuildingReminder = {
-  allergenId: ProtocolAllergenId;
+  allergenId: LadderAllergenId;
   daysSinceLastDose: number;
   // No display label — resolve via categoryConfig[allergenId] at render sites (ADR-0014).
 };

@@ -2,7 +2,7 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Unified Program Page
   // ═══════════════════════════════════════════════════════════
-  import type { AllergenStatusValue, ProtocolAllergenId, SchedulePhase, SkinObservation } from '$lib/domain/models';
+  import type { AllergenStatusValue, LadderAllergenId, SchedulePhase, SkinObservation } from '$lib/domain/models';
   import { getPhaseForDate, getEliminatedSlugsForDate, detectConflicts } from '$lib/domain/schedule-queries';
   import { getPhaseVerdictStatuses, filterProtocolStatuses } from '$lib/domain/allergen-status';
   import { getCategoryConfig } from '$lib/config/categories';

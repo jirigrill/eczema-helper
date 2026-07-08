@@ -73,8 +73,8 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
 
 - **`Ladder`** — `{ allergenId: string, stages: Partial<Record<FeedingStage,
   readonly LadderStep[]>> }` on the optional `ladder` field of a
-  `CanonicalAllergen`. `allergenId` is typed `string`, not `ProtocolAllergenId`,
-  to avoid a circular type (`ProtocolAllergenId` is inferred from the catalog
+  `CanonicalAllergen`. `allergenId` is typed `string`, not `LadderAllergenId`,
+  to avoid a circular type (`LadderAllergenId` is inferred from the catalog
   the ladder lives inside).
 - **`FeedingStage`** — `'breastfed' | 'mixed' | 'solids'`, mirroring the three
   table variants in the source protocols (Pekárková, Matoušková): "plně kojené
@@ -107,14 +107,14 @@ A food trigger substance identified by a string slug (e.g. `'dairy'`, `'eggs'`,
 The display name and icon are resolved from the slug at render time. The slug type is
 `AllergenId`.
 
-### AllergenId / ProtocolAllergenId / CustomAllergenId
+### AllergenId / LadderAllergenId / CustomAllergenId
 
 The typed shape of an allergen slug. Per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
 these are **derived** from the data-first catalog rather than hand-written unions:
 
 - `CatalogAllergenId = typeof ALLERGENS[number]['id']` — every canonical allergen slug
   in the bundled catalog (38 records as of PR #430's ladder expansion).
-- `ProtocolAllergenId = Extract<typeof ALLERGENS[number], { ladder: object }>['id']`
+- `LadderAllergenId = Extract<typeof ALLERGENS[number], { ladder: object }>['id']`
   — the 22-record subset whose record carries a reintroduction `ladder`. Only
   allergens in this set can enter a reintroduction phase.
 - `CustomAllergenId = \`other:${string}\`` — free-text allergen slugs the mother
@@ -127,7 +127,7 @@ these are **derived** from the data-first catalog rather than hand-written union
 tier (`motherAllergies`, `babyConfirmedAllergies`,
 `AllergenStatus.allergenId`).
 
-Fields known by construction to be protocol-only are typed `ProtocolAllergenId`
+Fields known by construction to be ladder-bearing are typed `LadderAllergenId`
 directly (`SchedulePhase.allergenIds`, `testedAllergens`,
 `ReintroductionDayInfo.allergenId`, `ToleranceBuildingReminder.allergenId`,
 `DEFAULT_TESTED_ALLERGENS`). See ADR-0014 "Domain-key shapes" section.
@@ -142,7 +142,7 @@ The catalog has three levels, each with a derived id:
 
 - **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`,
   `Vlastní`). Presentation only; no protocol, no clinical meaning.
-- **Allergen** (`AllergenId`, with `ProtocolAllergenId` its protocol-bearing
+- **Allergen** (`AllergenId`, with `LadderAllergenId` its ladder-bearing
   subset) — the reintroduction unit. Carries `ladder`; engine unchanged.
 - **Food** (`FoodId`, with `CustomFoodId = other:${string}` its free-text tier) —
   first-class loggable entity carrying `familyId` (presentation) and
@@ -232,7 +232,7 @@ optional `protocol`, optional `ladder` — see [Ladder / LadderStep /
 FeedingStage](#ladder--ladderstep--feedingstage) — and optional `allergenOrder`,
 its position in Matoušková's 20-allergen testing sequence). The `ALLERGEN_CATALOG`
 array of these records (in `src/lib/data/allergen-catalog/`) is the source of
-truth from which `AllergenId` / `ProtocolAllergenId` are derived; it is sorted by
+truth from which `AllergenId` / `LadderAllergenId` are derived; it is sorted by
 `allergenOrder`. Bundled, build-time, JSON-serializable, read through
 `CanonicalCatalogPort`. See ADR-0017, ADR-0023.
 

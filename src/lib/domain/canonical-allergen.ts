@@ -36,8 +36,8 @@ export type LadderStep = {
  * data for every stage — e.g. a source table tested in the child only leaves
  * `breastfed` absent.
  *
- * `allergenId` is typed `string` (rather than the derived `ProtocolAllergenId`)
- * to break a circular type: `ProtocolAllergenId` is inferred from the catalog
+ * `allergenId` is typed `string` (rather than the derived `LadderAllergenId`)
+ * to break a circular type: `LadderAllergenId` is inferred from the catalog
  * which now embeds `Ladder` records. Consumers that need the narrow type read
  * the parent allergen record's `id` directly.
  */

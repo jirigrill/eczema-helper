@@ -1,7 +1,7 @@
 import type {
   Meal,
   PortionKind,
-  ProtocolAllergenId,
+  LadderAllergenId,
   SkinObservation,
   RegionLevel,
   ReintroductionEvaluation,
@@ -24,7 +24,7 @@ function foodTriggers(foodId: string): readonly string[] {
   return [];
 }
 
-function mealHitsAllergen(meal: Meal, allergenId: ProtocolAllergenId): boolean {
+function mealHitsAllergen(meal: Meal, allergenId: LadderAllergenId): boolean {
   return meal.items.some((i) => foodTriggers(i.foodId).includes(allergenId));
 }
 
@@ -64,7 +64,7 @@ export function resolveLadder(
  * defined for `stage`.
  */
 export function currentRung(
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   meals: Meal[],
   defaultLadder: Ladder,
   stage: FeedingStage,
@@ -130,7 +130,7 @@ export function nextLegalStep(
  */
 export function rungAtDayInPhase(
   catalog: CanonicalCatalogPort,
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   dayInPhase: number,
   stage: FeedingStage
 ): LadderStep | null {
@@ -164,7 +164,7 @@ function daysSince(fromIsoDate: string, toIsoDate: string): number {
  * F4 active reintroduction use different rhythms — see ADR-0023).
  */
 export function cadenceGate(
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   meals: Meal[],
   today: string,
   cadenceDays: number
@@ -235,7 +235,7 @@ export type CheckpointVerdictGateResult = {
  */
 export function checkpointVerdictGate(
   rung: LadderStep | null,
-  allergenId: ProtocolAllergenId,
+  allergenId: LadderAllergenId,
   evaluations: readonly ReintroductionEvaluation[]
 ): CheckpointVerdictGateResult {
   if (rung === null || !rung.isEvaluationCheckpoint) {

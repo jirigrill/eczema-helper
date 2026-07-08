@@ -1,7 +1,7 @@
-import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue, AllergenId, ProtocolAllergenId, SchedulePhase } from '$lib/domain/models';
+import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue, AllergenId, LadderAllergenId, SchedulePhase } from '$lib/domain/models';
 import { addDays } from '$lib/utils/date';
 
-function getProtocolIds(schedule: GeneratedSchedule): ProtocolAllergenId[] {
+function getProtocolIds(schedule: GeneratedSchedule): LadderAllergenId[] {
   return schedule.phases.find(p => p.type === 'elimination')?.allergenIds ?? [];
 }
 
