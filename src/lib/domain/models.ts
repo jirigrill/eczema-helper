@@ -10,7 +10,7 @@ import type {
   ProtocolAllergenId,
   CustomAllergenId,
 } from '$lib/data/allergen-catalog';
-import type { ProtocolDay, AllergenProtocol, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import type { FamilyId, FoodId, CatalogFoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 
 export type {
@@ -21,8 +21,6 @@ export type {
   FamilyId,
   FoodId,
   CatalogFoodId,
-  ProtocolDay,
-  AllergenProtocol,
   Ladder,
   LadderStep,
 };

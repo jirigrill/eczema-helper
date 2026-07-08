@@ -1,7 +1,7 @@
 // Three-collection catalog — families, allergens, foods (ADR-0017 slice 2 / issue #227).
 // Ids derive from the data; types are structurally enforced at compile time.
 
-import type { AllergenProtocol, Ladder } from "$lib/domain/canonical-allergen";
+import type { Ladder } from "$lib/domain/canonical-allergen";
 
 // ── Families ──────────────────────────────────────────────────
 
@@ -37,7 +37,6 @@ type AllergenRecord = {
   icon: string;
   aliases: readonly string[];
   allergenOrder?: number;
-  protocol?: AllergenProtocol;
   ladder?: Ladder;
 };
 
@@ -50,23 +49,6 @@ export const ALLERGENS = [
     icon: "🫘",
     aliases: ["legumes", "luštěniny"],
     allergenOrder: 1,
-    protocol: {
-      days: [
-        {
-          day: 1,
-          instructionCs:
-            "Např. červená čočka, 30 g (červená čočka nejméně nadýmá, proto je k testu luštěnin nejvýhodnější)",
-          isEvaluationDay: false,
-        },
-        { day: 2, instructionCs: "Např. červená čočka, 50–100 g", isEvaluationDay: false, },
-        {
-          day: 3,
-          instructionCs:
-            "Neomezené množství červené čočky, případně cizrny, hrachu či fazolí (lze kombinovat vícero druhů luštěnin) — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "legumes",
       stages: {
@@ -97,23 +79,6 @@ export const ALLERGENS = [
     icon: "🥕",
     aliases: ["carrot", "mrkev", "kořenová zelenina"],
     allergenOrder: 2,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "1 ks syrové mrkve (cca 70–120 g)", isEvaluationDay: false, },
-        {
-          day: 2,
-          instructionCs:
-            "2–3 ks syrové mrkve nebo 150–200 ml vývaru z kořenové zeleniny",
-          isEvaluationDay: false,
-        },
-        {
-          day: 3,
-          instructionCs:
-            "Neomezené množství mrkve či vývaru z kořenové zeleniny — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "carrot-root-veg",
       stages: {
@@ -144,18 +109,6 @@ export const ALLERGENS = [
     icon: "🍅",
     aliases: ["tomatoes", "rajčata", "rajče", "rajský"],
     allergenOrder: 3,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "50 g rajčat nebo paprik", isEvaluationDay: false, },
-        { day: 2, instructionCs: "70–100 g rajčat nebo paprik", isEvaluationDay: false, },
-        {
-          day: 3,
-          instructionCs:
-            "Neomezené množství rajčat nebo paprik — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "tomatoes",
       stages: {
@@ -186,18 +139,6 @@ export const ALLERGENS = [
     icon: "🥭",
     aliases: ["exotic-fruit", "exotické ovoce"],
     allergenOrder: 4,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "1 banán", isEvaluationDay: false },
-        { day: 2, instructionCs: "2 banány", isEvaluationDay: false },
-        {
-          day: 3,
-          instructionCs:
-            "Neomezené množství exotického ovoce (např. ovocný salát z banánu, manga a kiwi) — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "exotic-fruit",
       stages: {
@@ -228,13 +169,6 @@ export const ALLERGENS = [
     icon: "🍋",
     aliases: ["citrus", "citrony", "pomeranče", "mandarinky", "grapefruit"],
     allergenOrder: 5,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "50 g kteréhokoli citrusu", isEvaluationDay: false, },
-        { day: 2, instructionCs: "70–100 g kteréhokoli citrusu", isEvaluationDay: false, },
-        { day: 3, instructionCs: "Neomezené množství citrusů — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "citrus",
       stages: {
@@ -265,18 +199,6 @@ export const ALLERGENS = [
     icon: "🌾",
     aliases: ["wheat", "pšenice", "lepek", "gluten"],
     allergenOrder: 6,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "50 g bezvaječných těstovin nebo 50 g kuskusu", isEvaluationDay: false, },
-        { day: 2, instructionCs: "100 g bezvaječných těstovin nebo 100 g kuskusu", isEvaluationDay: false, },
-        {
-          day: 3,
-          instructionCs:
-            "Neomezené množství bezvaječných těstovin nebo kuskusu — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "wheat",
       stages: {
@@ -309,13 +231,6 @@ export const ALLERGENS = [
     icon: "🌾",
     aliases: ["oats", "oves", "ovesný"],
     allergenOrder: 7,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "2–3 lžičky ovesné kaše.", isEvaluationDay: false },
-        { day: 2, instructionCs: "5–10 lžiček ovesné kaše.", isEvaluationDay: false },
-        { day: 3, instructionCs: "Neomezeně ovesné kaše — večer vyhodnoťte reakci.", isEvaluationDay: true },
-      ],
-    },
     ladder: {
       allergenId: "oats",
       stages: {
@@ -341,23 +256,6 @@ export const ALLERGENS = [
     icon: "🥚",
     aliases: ["eggs", "vejce", "vaječný"],
     allergenOrder: 8,
-    protocol: {
-      days: [
-        {
-          day: 1,
-          instructionCs:
-            "1 žloutek (vejce natvrdo, sníst pouze žloutek, bílek NE)",
-          isEvaluationDay: false,
-        },
-        { day: 2, instructionCs: "50 g piškotů nebo jiného pečeného výrobku s vejcem", isEvaluationDay: false, },
-        {
-          day: 3,
-          instructionCs:
-            "Vejce v libovolné formě (míchaná, volské oko, vařené) — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "eggs",
       stages: {
@@ -390,14 +288,6 @@ export const ALLERGENS = [
     icon: "🍗",
     aliases: ["chicken", "kuřecí maso", "kuřecí"],
     allergenOrder: 9,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "Maminka: vejce i kuřecí maso neomezeně. Dítě: bez dávky.", isEvaluationDay: false },
-        { day: 2, instructionCs: "Maminka: vejce i kuřecí maso neomezeně. Dítě: 1 lžička kuřecího masa.", isEvaluationDay: false },
-        { day: 3, instructionCs: "Maminka: vejce i kuřecí maso neomezeně. Dítě: 2–3 lžičky kuřecího masa.", isEvaluationDay: false },
-        { day: 4, instructionCs: "Maminka: vejce i kuřecí maso neomezeně. Dítě: neomezeně — večer vyhodnoťte reakci.", isEvaluationDay: true },
-      ],
-    },
     ladder: {
       allergenId: "chicken",
       stages: {
@@ -430,13 +320,6 @@ export const ALLERGENS = [
     icon: "🐟",
     aliases: ["fish", "ryba", "ryby"],
     allergenOrder: 10,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "80–100 g po tepelné úpravě ryby", isEvaluationDay: false, },
-        { day: 2, instructionCs: "100–130 g po tepelné úpravě ryby", isEvaluationDay: false, },
-        { day: 3, instructionCs: "Neomezené množství ryby — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "fish",
       stages: {
@@ -465,31 +348,6 @@ export const ALLERGENS = [
     icon: "🥛",
     aliases: ["dairy", "milk", "mleko", "mléčné výrobky"],
     allergenOrder: 11,
-    protocol: {
-      days: [
-        {
-          day: 1,
-          instructionCs:
-            "Minimálně 2 čajové lžičky másla (maximum 10 čajových lžiček)",
-          isEvaluationDay: false,
-        },
-        {
-          day: 2,
-          instructionCs:
-            "50–75 g bílého jogurtu nebo 2 plátky tvrdého sýra (eidam, ementál, gouda)",
-          isEvaluationDay: false,
-        },
-        { day: 3, instructionCs: "150 g jogurtu nebo 3–5 plátků tvrdého sýra", isEvaluationDay: false, },
-        { day: 4, instructionCs: "100 g sušenek, buchty nebo koláče s mlékem", isEvaluationDay: false, },
-        { day: 5, instructionCs: "150 g sušenek, buchty nebo koláče s mlékem", isEvaluationDay: false, },
-        {
-          day: 6,
-          instructionCs:
-            "Pokud do dnešního dne nenastalo zhoršení stavu kůže či stolice ani jiné trávící obtíže, zkuste mléčnou zátěžovou zkoušku — neomezené množství jakýkoliv mléčných výrobků v nezakysané a nepečené formě. Večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "dairy",
       stages: {
@@ -529,13 +387,6 @@ export const ALLERGENS = [
     icon: "🍓",
     aliases: ["raspberries", "maliny", "malina", "rybíz", "ostružiny", "currants", "blackberries"],
     allergenOrder: 12,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "50 g malin", isEvaluationDay: false, },
-        { day: 2, instructionCs: "70–100 g malin", isEvaluationDay: false, },
-        { day: 3, instructionCs: "Neomezené množství malin — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "raspberries",
       stages: {
@@ -570,18 +421,6 @@ export const ALLERGENS = [
     icon: "🍓",
     aliases: ["strawberries", "jahody", "jahoda"],
     allergenOrder: 13,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "50 g jahod", isEvaluationDay: false, },
-        { day: 2, instructionCs: "70–100 g jahod", isEvaluationDay: false, },
-        {
-          day: 3,
-          instructionCs:
-            "Neomezené množství jahod — večer vyhodnoťte reakci",
-          isEvaluationDay: true,
-        },
-      ],
-    },
     ladder: {
       allergenId: "strawberries",
       stages: {
@@ -613,14 +452,6 @@ export const ALLERGENS = [
     icon: "🌰",
     aliases: ["sesame", "sezam", "mák", "tahini", "sezamová semínka", "chia", "slunečnicová semínka", "semínka a mák"],
     allergenOrder: 14,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "1 polévková lžíce semínek (chia/sezamových/slunečnicových)", isEvaluationDay: false, },
-        { day: 2, instructionCs: "Semínka neomezeně", isEvaluationDay: false, },
-        { day: 3, instructionCs: "1 kousek makovce nebo 1 polévková lžíce máku či makového mléka", isEvaluationDay: false, },
-        { day: 4, instructionCs: "Makovec neomezeně — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "sesame",
       stages: {
@@ -641,14 +472,6 @@ export const ALLERGENS = [
     icon: "🫘",
     aliases: ["soy", "soja", "sója"],
     allergenOrder: 15,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "100 ml sójového mléka nebo malá porce tofu", isEvaluationDay: false, },
-        { day: 2, instructionCs: "200 ml sójového mléka nebo střední porce tofu", isEvaluationDay: false, },
-        { day: 3, instructionCs: "Neomezeně sójových výrobků — večer vyhodnoťte reakci", isEvaluationDay: false, },
-        { day: 4, instructionCs: "Neomezeně sójových výrobků — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "soy",
       stages: {
@@ -684,14 +507,6 @@ export const ALLERGENS = [
     icon: "🥜",
     aliases: ["nuts", "ořechy", "mandle", "vlašské ořechy", "kešu", "lískové ořechy"],
     allergenOrder: 16,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "1 Hrst mandlí", isEvaluationDay: false, },
-        { day: 2, instructionCs: "1 hrst kešu/vlašských ořechů", isEvaluationDay: false, },
-        { day: 3, instructionCs: "1 hrst lískových ořechů", isEvaluationDay: false },
-        { day: 4, instructionCs: "Neomezeně ořechů — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "nuts",
       stages: {
@@ -727,14 +542,6 @@ export const ALLERGENS = [
     icon: "🐄",
     aliases: ["beef", "hovězí", "telecí", "cow protein", "BSA"],
     allergenOrder: 17,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "Maminka: hovězí maso neomezeně. Dítě: bez dávky.", isEvaluationDay: false },
-        { day: 2, instructionCs: "Maminka: hovězí maso neomezeně. Dítě: 1–2 lžičky hovězího masa (nebo 20–30 ml vývaru z hovězího masa).", isEvaluationDay: false },
-        { day: 3, instructionCs: "Maminka: hovězí maso neomezeně. Dítě: 2–6 lžiček hovězího masa (nebo 40–90 ml vývaru).", isEvaluationDay: false },
-        { day: 4, instructionCs: "Maminka: hovězí maso neomezeně. Dítě: neomezeně — večer vyhodnoťte reakci.", isEvaluationDay: true },
-      ],
-    },
     ladder: {
       allergenId: "beef",
       stages: {
@@ -767,14 +574,6 @@ export const ALLERGENS = [
     icon: "🍫",
     aliases: ["chocolate", "čokoláda", "kakao", "cocoa"],
     allergenOrder: 18,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "2–3 kostičky hořké čokolády (min. 70 % kakaa)", isEvaluationDay: false, },
-        { day: 2, instructionCs: "Polovina tabulky čokolády", isEvaluationDay: false, },
-        { day: 3, instructionCs: "Neomezeně čokolády", isEvaluationDay: false, },
-        { day: 4, instructionCs: "Neomezeně čokolády — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "cocoa",
       stages: {
@@ -812,15 +611,6 @@ export const ALLERGENS = [
     icon: "🍯",
     aliases: ["honey", "med"],
     allergenOrder: 19,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "Maminka: med neomezeně. Dítě: bez dávky.", isEvaluationDay: false },
-        { day: 2, instructionCs: "Maminka: med neomezeně. Dítě: ½ lžičky medu.", isEvaluationDay: false },
-        { day: 3, instructionCs: "Maminka: med neomezeně. Dítě: ½ lžičky medu.", isEvaluationDay: false },
-        { day: 4, instructionCs: "Maminka: med neomezeně. Dítě: 1 lžička medu.", isEvaluationDay: false },
-        { day: 5, instructionCs: "Maminka: med neomezeně. Dítě: neomezeně (stačí 1 lžička) — večer vyhodnoťte reakci.", isEvaluationDay: true },
-      ],
-    },
     ladder: {
       allergenId: "honey",
       stages: {
@@ -860,13 +650,6 @@ export const ALLERGENS = [
       "caraway",
     ],
     allergenOrder: 20,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "Maminka: koření neomezeně (kari, kurkuma, sladká paprika, pepř…). Dítě: bez dávky.", isEvaluationDay: false },
-        { day: 2, instructionCs: "Maminka: koření neomezeně. Dítě: špetka sladké papriky/kari/kurkumy.", isEvaluationDay: false },
-        { day: 3, instructionCs: "Maminka: koření neomezeně. Dítě: špetka sladké papriky/kari/kurkumy — večer vyhodnoťte reakci.", isEvaluationDay: true },
-      ],
-    },
     ladder: {
       allergenId: "spices-herbs",
       stages: {
@@ -891,14 +674,6 @@ export const ALLERGENS = [
     icon: "🥜",
     aliases: ["peanuts", "arašídy", "podzemnice olejná"],
     allergenOrder: 21,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "1 lžička arašídů", isEvaluationDay: false, },
-        { day: 2, instructionCs: "1 polévková lžíce arašídů", isEvaluationDay: false, },
-        { day: 3, instructionCs: "2 polévkové lžíce arašídů", isEvaluationDay: false, },
-        { day: 4, instructionCs: "Neomezeně arašídů — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "peanuts",
       stages: {
@@ -931,13 +706,6 @@ export const ALLERGENS = [
     icon: "🦐",
     aliases: ["shellfish", "korýši", "měkkýši", "krevety", "krab", "mušle"],
     allergenOrder: 22,
-    protocol: {
-      days: [
-        { day: 1, instructionCs: "Malá porce korýšů nebo měkkýšů (cca 50 g)", isEvaluationDay: false, },
-        { day: 2, instructionCs: "Střední porce korýšů nebo měkkýšů (cca 100 g)", isEvaluationDay: false, },
-        { day: 3, instructionCs: "Neomezeně korýšů a měkkýšů — večer vyhodnoťte reakci", isEvaluationDay: true, },
-      ],
-    },
     ladder: {
       allergenId: "shellfish",
       stages: {
@@ -1060,10 +828,10 @@ export const ALLERGENS = [
 export type CatalogAllergenId3 = (typeof ALLERGENS)[number]["id"];
 /** Re-export as AllergenId for consumer convenience */
 export type AllergenId = CatalogAllergenId3 | `other:${string}`;
-/** Allergens with a reintroduction protocol */
+/** Allergens with a reintroduction ladder */
 export type ProtocolAllergenId3 = Extract<
   (typeof ALLERGENS)[number],
-  { protocol: object }
+  { ladder: object }
 >["id"];
 
 /**

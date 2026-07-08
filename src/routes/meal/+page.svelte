@@ -5,7 +5,6 @@
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { get } from 'svelte/store';
-  import { getProtocolForAllergen } from '$lib/data/allergen-catalog';
   import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, reintroDayLabel } from '$lib/strings/common';
@@ -556,13 +555,13 @@
     <!-- Dosing guidance during reintroduction -->
     {#if reintroInfo}
       {@const cat = getCategoryConfig(reintroInfo.allergenId)}
-      {@const protocolDay = getProtocolForAllergen(reintroInfo.allergenId)?.days[reintroInfo.dayInPhase - 1]}
+      {@const rung = catalog.get(reintroInfo.allergenId)?.ladder?.stages.breastfed?.[reintroInfo.dayInPhase - 1]}
       <div class="px-4 pt-2 space-y-1.5">
         <InfoBanner variant="success">
           <p class="eyebrow text-success">
             {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
           </p>
-          <p class="caption mt-0.5">{protocolDay?.instructionCs ?? ''} ({cat?.name})</p>
+          <p class="caption mt-0.5">{rung?.dose ?? ''} ({cat?.name})</p>
         </InfoBanner>
       </div>
     {/if}

@@ -179,8 +179,7 @@ export type CheckpointVerdictGateResult = {
  * filtered here to `allergen-test` rows for `allergenId` and reduced to the
  * latest by date — mirrors the "latest wins" rule `allergen-status.ts` uses
  * for reintroduction phases (ADR-0012). No new storage: this reuses the same
- * append-only evaluation log the legacy `ProtocolDay.isEvaluationDay` flow
- * already wrote one row per evaluation day into.
+ * append-only evaluation log F4 already wrote one row per evaluation day into.
  */
 export function checkpointVerdictGate(
   rung: LadderStep | null,

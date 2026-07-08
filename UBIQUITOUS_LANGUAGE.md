@@ -60,31 +60,16 @@ former `'training'` per ADR-0012). Icon: 🥄.
 
 Day-within-phase record returned by `getReintroductionDayInfo(schedule, date)` for
 the active reintroduction phase. Contains: `dayInPhase`, `totalDays`, `allergenId`,
-and `isEvaluationDay` (true on the last day, triggers verdict UI). Carries **no Czech
-strings** — the render site resolves the day's dosing instruction from
-`getProtocolForAllergen(allergenId)?.days[dayInPhase - 1].instructionCs`.
-
-### AllergenProtocol
-
-The static dosing config for one allergen's reintroduction phase. Shape:
-`{ days: ProtocolDay[] }`. Per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
-it lives as the **optional `protocol` field on the `CanonicalAllergen` record**
-(in `src/lib/data/allergen-catalog/`), no longer in a standalone
-`REINTRODUCTION_PROTOCOLS` map; only records that carry it are reintroducible.
-Accessed via `getProtocolForAllergen(id): AllergenProtocol | undefined`. v1 ships
-baseline clinical guidelines only; dynamic adjustment per baby profile is deferred.
-
-### ProtocolDay
-
-A single day's entry within an `AllergenProtocol`:
-`{ day: number, instructionCs: string, isEvaluationDay: boolean }`.
-`instructionCs` is Czech dosing text (e.g. "50 g červené čočky"). `isEvaluationDay`
-drives whether the verdict UI appears — it is a domain flag, not display state.
+and `isEvaluationDay` (derived from `LadderStep.isEvaluationCheckpoint` at the
+current rung — triggers the verdict UI). Carries **no Czech strings** — the
+render site resolves the day's dose caption from the allergen's breastfed-stage
+`LadderStep.dose` at index `dayInPhase - 1` (see [Ladder / LadderStep /
+FeedingStage](#ladder--ladderstep--feedingstage)).
 
 ### Ladder / LadderStep / FeedingStage
 
-The dose-escalation model that replaces `AllergenProtocol` (retiring on PRD #421
-PR B merge, per [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)).
+The dose-escalation model — sole per-allergen dose-progression shape as of PRD
+#421 PR B, per [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).
 
 - **`Ladder`** — `{ allergenId: string, stages: Partial<Record<FeedingStage,
   readonly LadderStep[]>> }` on the optional `ladder` field of a
@@ -99,11 +84,11 @@ PR B merge, per [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)).
   isEvaluationCheckpoint: boolean, dose: string }`. `anchor` reuses the shared
   `PortionKind` vocabulary; *order within the ladder*, not the anchor value
   alone, makes one step higher than another (anchors may repeat, e.g. dairy has
-  three `package` rungs). `isEvaluationCheckpoint` mirrors the legacy
-  `ProtocolDay.isEvaluationDay`. `dose` is the Czech caption for that rung,
-  **inlined on the domain record** — a deliberate deviation from ADR-0014 for
-  this Czech-only single-tenant v1 (single-file catalog review beats a
-  cross-file `strings/ladder.ts` lookup); see the ADR-0023 amendment.
+  three `package` rungs). `isEvaluationCheckpoint` gates the mother's verdict
+  UI at that rung. `dose` is the Czech caption for that rung, **inlined on the
+  domain record** — a deliberate deviation from ADR-0014 for this Czech-only
+  single-tenant v1 (single-file catalog review beats a cross-file
+  `strings/ladder.ts` lookup); see the ADR-0023 amendment.
 - **`currentRung(allergenId, meals, steps)`** / **`nextLegalStep(rung, steps)`**
   (`src/lib/domain/ladder.ts`) — pure derivation, mirroring `AllergenStatus`:
   the rung is never persisted, and skipping a rung is impossible to express
@@ -129,11 +114,9 @@ these are **derived** from the data-first catalog rather than hand-written union
 
 - `CatalogAllergenId = typeof ALLERGENS[number]['id']` — every canonical allergen slug
   in the bundled catalog (38 records as of PR #430's ladder expansion).
-- `ProtocolAllergenId = Extract<typeof ALLERGENS[number], { protocol: object }>['id']`
-  — the 22-record subset whose record carries a reintroduction `protocol` (up from
-  13 pre-#430; the same 22 also carry a `ladder`, see [Ladder / LadderStep /
-  FeedingStage](#ladder--ladderstep--feedingstage)). Only allergens in this set can
-  enter a reintroduction phase.
+- `ProtocolAllergenId = Extract<typeof ALLERGENS[number], { ladder: object }>['id']`
+  — the 22-record subset whose record carries a reintroduction `ladder`. Only
+  allergens in this set can enter a reintroduction phase.
 - `CustomAllergenId = \`other:${string}\`` — free-text allergen slugs the mother
   defines herself (e.g. `'other:Paprika'`). Participates in elimination logs, never
   enters a protocol phase. Unknown free-text input is also captured as a
@@ -147,9 +130,7 @@ tier (`motherAllergies`, `babyConfirmedAllergies`,
 Fields known by construction to be protocol-only are typed `ProtocolAllergenId`
 directly (`SchedulePhase.allergenIds`, `testedAllergens`,
 `ReintroductionDayInfo.allergenId`, `ToleranceBuildingReminder.allergenId`,
-`DEFAULT_TESTED_ALLERGENS`). Lookups crossing the boundary go through
-`getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined`. See ADR-0014
-"Domain-key shapes" section.
+`DEFAULT_TESTED_ALLERGENS`). See ADR-0014 "Domain-key shapes" section.
 
 ### Family / Allergen / Food — three-level catalog
 *Czech: Rodina / Alergen / Potravina. See
@@ -162,7 +143,7 @@ The catalog has three levels, each with a derived id:
 - **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`,
   `Vlastní`). Presentation only; no protocol, no clinical meaning.
 - **Allergen** (`AllergenId`, with `ProtocolAllergenId` its protocol-bearing
-  subset) — the reintroduction unit. Carries `protocol`; engine unchanged.
+  subset) — the reintroduction unit. Carries `ladder`; engine unchanged.
 - **Food** (`FoodId`, with `CustomFoodId = other:${string}` its free-text tier) —
   first-class loggable entity carrying `familyId` (presentation) and
   `allergenIds` (its trigger set, many-to-many).
@@ -448,9 +429,8 @@ unconstrained on the persisted record.
 
 One of: `'pinch'` (Špetka) · `'teaspoon'` (Lžička) · `'spoon'` (Lžíce) ·
 `'portion'` (Porce) · `'package'` (Balení). The **meal-logging** portion size —
-what the mother recorded eating on a `MealItem`. Distinct from `AllergenProtocol`
-/ `ProtocolDay`, which are the protocol-prescribed dosing instructions during
-reintroduction. See ADR-0014.
+what the mother recorded eating on a `MealItem`. Distinct from a `LadderStep`,
+which is the protocol-prescribed dosing instruction during reintroduction. See ADR-0014.
 
 ### Actor
 → Defined in `CONTEXT.md`. The person whose food intake a `Meal` describes. Always
@@ -820,8 +800,8 @@ Values: `'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package'`.
 These are descriptive — what the mother actually logged eating on a `MealItem`.
 Czech display labels live in `src/lib/strings/portions.ts`. See ADR-0014.
 
-Not to be confused with `AllergenProtocol` / `ProtocolDay`, which are the
-prescriptive dosing instructions the protocol recommends during reintroduction.
+Not to be confused with a `LadderStep`, which is the prescriptive dosing
+instruction the protocol recommends during reintroduction.
 
 ### Presentation String
 

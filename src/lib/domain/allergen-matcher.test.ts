@@ -69,7 +69,7 @@ describe('matchAllergen', () => {
     const result = matchAllergen('paprika', catalog);
     expect(result).not.toBeNull();
     expect((result as CanonicalAllergen).id).toBe('other-vegetables');
-    expect((result as CanonicalAllergen).protocol).toBeUndefined();
+    expect((result as CanonicalAllergen).ladder).toBeUndefined();
   });
 
   it('resolves Czech alias chilli to spices-herbs record', () => {

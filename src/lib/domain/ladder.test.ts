@@ -397,27 +397,4 @@ describe("ALLERGENS ladders", () => {
       ).toBeDefined();
     }
   });
-
-  it("each breastfed-stage rung inherits isEvaluationCheckpoint from the legacy ProtocolDay.isEvaluationDay at the same index", () => {
-    for (const allergen of ALLERGENS) {
-      const rec = allergen as {
-        id: string;
-        protocol?: { days: readonly { isEvaluationDay: boolean }[] };
-        ladder?: {
-          stages: { breastfed?: readonly { isEvaluationCheckpoint: boolean }[] };
-        };
-      };
-      const breastfed = rec.ladder?.stages.breastfed;
-      if (!rec.protocol || !breastfed) continue;
-      expect(breastfed.length, `rung count mismatch on ${rec.id}`).toBe(
-        rec.protocol.days.length,
-      );
-      for (let i = 0; i < rec.protocol.days.length; i++) {
-        expect(
-          breastfed[i].isEvaluationCheckpoint,
-          `parity mismatch on ${rec.id} rung ${i + 1}`,
-        ).toBe(rec.protocol.days[i].isEvaluationDay);
-      }
-    }
-  });
 });

@@ -6,6 +6,9 @@ import type { ScheduleRaw } from '$lib/stores/schedule-context';
 import type { GeneratedSchedule, QuestionnaireAnswers, Meal } from '$lib/domain/models';
 import { db } from '$lib/db/atopic-db';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+
+const catalog = new BundledCatalogAdapter();
 
 const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 vi.mock('$lib/stores/schedule-context', () => ({
@@ -592,4 +595,42 @@ describe('meal/+page.svelte', () => {
   // The `eyebrow` / `body-muted` / `caption` typography assertions on the
   // section headers, notes label, and top-right date are covered end-to-end by
   // `tests/e2e/meal-typography.test.ts`.
+
+  // ── Reintroduction dose caption ─────────────────────────────
+  // The banner text sources from LadderStep.dose at the rung whose index
+  // matches `dayInPhase - 1` on the allergen's breastfed-stage ladder
+  // (ADR-0023). Locks in the PRD #421 F4 behavioral-equivalence gate.
+
+  it('reintroduction banner shows the ladder step dose for the current day-in-phase', async () => {
+    const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0];
+    const reintroDay1: GeneratedSchedule = {
+      permanentMother: [], permanentBaby: [],
+      startDate: today, estimatedEndDate: future,
+      phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: today, endDate: future }],
+    };
+    mockScheduleRaw.set({ status: 'ready', schedule: reintroDay1, answers: sampleAnswers });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+    // Caption format: `<dose> (<category name>)`
+    expect(getByText(new RegExp(ladderStep.dose.slice(0, 20)))).toBeInTheDocument();
+  });
+
+  it('reintroduction banner caption changes with the rung at each day-in-phase', async () => {
+    const ladder = catalog.get('dairy')!.ladder!.stages.breastfed!;
+    // Day 3 in phase: startDate is 2 days before today
+    const startDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
+    const endDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    const reintroDay3: GeneratedSchedule = {
+      permanentMother: [], permanentBaby: [],
+      startDate, estimatedEndDate: endDate,
+      phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate, endDate }],
+    };
+    mockScheduleRaw.set({ status: 'ready', schedule: reintroDay3, answers: sampleAnswers });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByText } = render(MealPage);
+    await tick();
+    // Rung 3 dose text — a stable slice unique to that rung
+    expect(getByText(new RegExp(ladder[2].dose.slice(0, 20)))).toBeInTheDocument();
+  });
 });

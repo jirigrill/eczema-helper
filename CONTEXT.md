@@ -252,18 +252,17 @@ optional `allergenOrder` (position in Matoušková's 20-allergen testing
 sequence), an **optional** reintroduction `protocol`, and an **optional**
 `ladder` (see [Ladder](#ladder) below). The records are the data-first source
 of truth: `AllergenId` is derived as `typeof ALLERGEN_CATALOG[number]['id']`,
-and `ProtocolAllergenId` as the subset of records that carry a `protocol` (the
-same subset also carries a `ladder`). A record without a protocol is canonical
-and loggable but **not reintroducible** — the honest state of most long-tail
-foods. Czech display `name` is not on the record; it lives in `strings/`
-(ADR-0014) — **except** `LadderStep.dose`, which is inlined on the ladder as a
-deliberate ADR-0014 deviation (see [Ladder](#ladder)). Records are bundled,
-build-time, and JSON-serializable, read through `CanonicalCatalogPort`. See
-[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+and `ProtocolAllergenId` as the subset of records that carry a `ladder`.
+A record without a ladder is canonical and loggable but **not reintroducible**
+— the honest state of most long-tail foods. Czech display `name` is not on the
+record; it lives in `strings/` (ADR-0014) — **except** `LadderStep.dose`, which
+is inlined on the ladder as a deliberate ADR-0014 deviation (see [Ladder](#ladder)).
+Records are bundled, build-time, and JSON-serializable, read through
+`CanonicalCatalogPort`. See [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
 
 ### Ladder
-The dose-escalation replacement for `AllergenProtocol`, retiring on PRD #421 PR
-B merge (see [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)). Shape:
+The dose-escalation model — the sole per-allergen dose-progression shape as of
+PRD #421 PR B (see [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)). Shape:
 `{ allergenId: string, stages: Partial<Record<FeedingStage, readonly
 LadderStep[]>> }`. `FeedingStage` is `'breastfed' | 'mixed' | 'solids'`,
 mirroring the three source-protocol table variants; not every allergen has
@@ -271,8 +270,8 @@ data for every stage. Each `LadderStep` ("rung") is `{ id, anchor: PortionKind,
 isEvaluationCheckpoint: boolean, dose: string }` — `anchor` reuses the shared
 `PortionKind` vocabulary, and *order within the ladder* (not the anchor value
 alone) is what makes one step higher than another, since anchors may repeat
-across rungs. `isEvaluationCheckpoint` mirrors the legacy
-`ProtocolDay.isEvaluationDay`.
+across rungs. `isEvaluationCheckpoint` gates the mother's verdict UI at that
+rung.
 
 The current rung is **derived, never persisted** — mirroring `AllergenStatus`
 (above): `currentRung(allergenId, meals, steps)` in `src/lib/domain/ladder.ts`
@@ -534,5 +533,5 @@ after data exists is a migration.
   unrepresentable.** `currentRung`/`nextLegalStep` (`src/lib/domain/ladder.ts`)
   mirror the `AllergenStatus` derivation pattern over per-stage
   `LadderStep[]` arrays on the optional `ladder` field of a `CanonicalAllergen`.
-  `AllergenProtocol`/`ProtocolDay` retire once the ladder fully replaces them
-  (PRD #421 PR B). See [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).
+  The ladder is the sole per-allergen dose-progression shape (PRD #421 PR B).
+  See [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).
