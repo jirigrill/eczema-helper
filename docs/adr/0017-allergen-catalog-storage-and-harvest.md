@@ -1,8 +1,19 @@
 # 0017 — Allergen Catalog Storage and Harvest Pipeline
 
-**Status:** Accepted
+**Status:** Accepted (amended by [ADR-0023](0023-dose-escalation-ladder.md))
 **Date:** 2026-06-08 (revised 2026-06-10)
 **Amends:** [ADR-0014](0014-presentation-strings-and-domain-keys.md) (data-first inversion of the catalog structure)
+
+> **Amendment (ADR-0023, 2026-07-08):** the `protocol` field on
+> `CanonicalAllergen` and its supporting types (`AllergenProtocol`,
+> `ProtocolDay`) are retired. Reintroduction data now lives on a `ladder`
+> field of type `Ladder` (per-stage `LadderStep[]`). The derived id union
+> `ProtocolAllergenId = Extract<ALLERGENS[number], { protocol: object }>['id']`
+> is renamed `LadderAllergenId = Extract<ALLERGENS[number], { ladder: object }>['id']`
+> — same construction, new name reflecting the new discriminant. References
+> below to `ProtocolAllergenId`, `{ protocol: object }`, and the `protocol`
+> field describe the pre-amendment shape; the *reason* they exist (data-first
+> derivation, one record per allergen) is unchanged.
 
 > **Revision (2026-06-10) — three-level restructure (family / allergen / food).**
 > The catalog originally shipped as a single collection of allergen records whose
@@ -65,7 +76,7 @@ export const FOODS      = [sojoveMleko, pomeranc, hummus, /* … */] as const;
 
 type FamilyId           = typeof FAMILIES[number]['id'];
 type AllergenId         = typeof ALLERGENS[number]['id'];
-type ProtocolAllergenId = Extract<typeof ALLERGENS[number], { protocol: object }>['id'];
+type LadderAllergenId   = Extract<typeof ALLERGENS[number], { ladder: object }>['id'];
 type FoodId             = typeof FOODS[number]['id'] | CustomFoodId;
 ```
 
@@ -73,8 +84,8 @@ The three levels (vocabulary + invariants in `CONTEXT.md`):
 
 - **Family** — presentation bucket / grid tile, `{ id, icon }`. One
   non-overlapping tile per food family. No protocol, no clinical meaning.
-- **Allergen** — the reintroduction unit, `{ id, familyId, protocol? }`. Carries
-  the optional `protocol`, owns `AllergenStatus`, is what `ProtocolAllergenId`,
+- **Allergen** — the reintroduction unit, `{ id, familyId, ladder? }`. Carries
+  the optional `ladder`, owns `AllergenStatus`, is what `LadderAllergenId`,
   `SchedulePhase.allergenIds`, and the engine refer to. Belongs to exactly one
   family. This is the original allergen record **minus** its inlined `subitems`.
 - **Food** — first-class loggable entity, `{ id, familyId, allergenIds, aliases }`.
@@ -94,10 +105,10 @@ clinical content), aggregated per collection by the index:
 ```
 src/lib/data/allergen-catalog/
   families/    obiloviny.ts  ovoce.ts  mleko.ts  …
-  allergens/   dairy.ts  citrus.ts  meat.ts (no protocol)  …
+  allergens/   dairy.ts  citrus.ts  meat.ts (no ladder)  …
   foods/       sojove-mleko.ts  pomeranc.ts  hummus.ts  …
   index.ts     // FAMILIES / ALLERGENS / FOODS, each `as const`
-               // derives + exports FamilyId / AllergenId / ProtocolAllergenId / FoodId
+               // derives + exports FamilyId / AllergenId / LadderAllergenId / FoodId
 ```
 
 Each record is `… as const satisfies Family | Allergen | Food` **and** each array
@@ -107,12 +118,12 @@ preserves the literals the union derivation needs (otherwise ids widen to
 to the data) and **re-exported through `models.ts`** so existing
 `$lib/domain/models` import sites do not churn.
 
-### 2. Protocol stays on the allergen; foods reference allergens
+### 2. Ladder stays on the allergen; foods reference allergens
 
-`protocol` is **optional** on an *allergen* record and stays there — it is **not**
-pushed down to foods. Its presence derives `ProtocolAllergenId`; only those
+`ladder` is **optional** on an *allergen* record and stays there — it is **not**
+pushed down to foods. Its presence derives `LadderAllergenId`; only those
 allergens enter reintroduction phases. The reintroduction engine
-(`ProtocolAllergenId`, `SchedulePhase.allergenIds`, the `reintro-` / `retest-`
+(`LadderAllergenId`, `SchedulePhase.allergenIds`, the `reintro-` / `retest-`
 phase-id scheme) is therefore **unchanged** by this restructure — the family
 layer is inserted *above* it, the food layer *below* it.
 

@@ -1,6 +1,6 @@
 # 0014 — Presentation Strings and Domain Keys
 
-**Status:** Accepted (amended by [ADR-0017](0017-allergen-catalog-storage-and-harvest.md); edge case noted by [ADR-0026](0026-llm-schedule-proposer.md))
+**Status:** Accepted (amended by [ADR-0017](0017-allergen-catalog-storage-and-harvest.md) and [ADR-0023](0023-dose-escalation-ladder.md); edge case noted by [ADR-0026](0026-llm-schedule-proposer.md))
 **Date:** 2026-05-25
 
 > **Amendment (ADR-0017):** the allergen catalog structure inverts from
@@ -9,6 +9,13 @@
 > id unions are *derived* from the records). `icon`, `subitems`, `protocol`,
 > and `aliases` co-locate onto the record; the `strings/` Czech-text
 > separation described below is **preserved**.
+
+> **Amendment (ADR-0023, 2026-07-08):** the `protocol` field and the
+> `AllergenProtocol` / `ProtocolDay` types are retired in favor of `ladder`
+> and `Ladder` / `LadderStep`. The derived id type is renamed
+> `ProtocolAllergenId` → `LadderAllergenId` (same construction, new name).
+> References to `ProtocolAllergenId` and `{ protocol: object }` below read
+> as `LadderAllergenId` and `{ ladder: object }` in the current code.
 
 > **Edge case (ADR-0026, 2026-07-05):** a v1.1 LLM proposal's `rationale` is
 > **generated per-instance Czech prose**, not keyable strings-layer text — the one
@@ -67,7 +74,7 @@ The display layer is split into two locations by concern:
   enforced with `satisfies Record<DomainKind, ...>`:
   - `phases.ts` — spreads `phaseStrings` + adds `icon`, `badge`, `iconBg`
   - `meals.ts` — spreads `mealStrings` + adds `icon` per `MealType`
-  - `categories.ts` — spreads `categoryStrings` + adds `icon` per `ProtocolAllergenId`
+  - `categories.ts` — spreads `categoryStrings` + adds `icon` per `LadderAllergenId`
 
 All entries are `as const` for literal-type inference. No i18n library is
 adopted. Pluralization and date formatting remain in `src/lib/utils/`.
@@ -78,16 +85,16 @@ Domain identifiers used as `Record<>` keys are string-literal unions defined
 in `src/lib/domain/models.ts`. Where the identifier admits two tiers — a
 fixed protocol-defined set plus a user-extensible set — the type is split:
 
-- `ProtocolAllergenId` — the 13 fixed allergen slugs the reintroduction
-  protocol covers (`'dairy' | 'eggs' | ...`).
+- `LadderAllergenId` — the 22 fixed allergen slugs whose catalog record
+  carries a reintroduction `ladder` (`'dairy' | 'eggs' | ...`).
 - `CustomAllergenId = \`other:${string}\`` — slugs the mother defines herself
   (e.g. `'other:Paprika'`). They participate in elimination logs but can
   never enter a protocol phase.
-- `AllergenId = ProtocolAllergenId | CustomAllergenId` — the union, used at
+- `AllergenId = LadderAllergenId | CustomAllergenId` — the union, used at
   fields whose value could legitimately come from either tier.
 
 Field types are picked per their domain invariant, not uniformly:
-`SchedulePhase.allergenIds: ProtocolAllergenId[]` (protocol-only by
+`SchedulePhase.allergenIds: LadderAllergenId[]` (protocol-only by
 construction); `MealItem.allergenId: AllergenId | null` (mother may log
 custom items). Lookups crossing the boundary go through
 `getProtocolForAllergen(id: AllergenId): AllergenProtocol | undefined` in
