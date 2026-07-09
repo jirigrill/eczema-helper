@@ -13,11 +13,12 @@
   import { categoryStrings } from '$lib/strings/categories';
   import { getCategoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
+  import { evaluationView } from '$lib/config/evaluation';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
-  import type { AllergenOutcome, LadderAllergenId, RegionLevel, ReintroductionEvaluation, SchedulePhase, SkinObservation } from '$lib/domain/models';
+  import type { AllergenOutcome, LadderAllergenId, RegionLevel, ReintroductionEvaluation, SchedulePhase, SkinObservation, SkinEvaluationOutcome } from '$lib/domain/models';
   import { severityStrings } from '$lib/strings/skin-regions';
 
   const phaseId = $derived(page.url.searchParams.get('phase') ?? '');
@@ -54,29 +55,38 @@
 
   const recap = $derived(phase ? buildPhaseRecap(phase, observations) : []);
 
-  let selectedOutcome = $state<AllergenOutcome | null>(null);
+  let selectedOutcome = $state<AllergenOutcome | SkinEvaluationOutcome | null>(null);
   let notes = $state('');
   let saving = $state(false);
   let savedToast = $state(false);
   let saveError = $state<string | null>(null);
 
+  // Vocabulary for this phase — allergen-test (reintroduction) vs skin-status
+  // (reset / elimination). Null only for never-evaluated phases (rest etc.).
+  const view = $derived(phase ? evaluationView(phase.type) : null);
+
   const allergenSlug = $derived<LadderAllergenId | null>(
     phase && phase.type === 'reintroduction' ? (phase.allergenIds[0] ?? null) : null
   );
-  const allergenName = $derived(
-    allergenSlug ? (getCategoryConfig(allergenSlug)?.name ?? categoryStrings[allergenSlug]?.name ?? allergenSlug) : ''
-  );
-  const allergenIcon = $derived(allergenSlug ? (getCategoryConfig(allergenSlug)?.icon ?? '🍽') : '🍽');
 
-  type OutcomeOption = { value: AllergenOutcome; label: string; subtitle: string };
-  const outcomeOptions: OutcomeOption[] = [
-    { value: 'tolerated',       label: commonStrings.program.reintroOutcomes['tolerated'],       subtitle: commonStrings.evaluation.outcomeSubtitles['tolerated'] },
-    { value: 'mild-reaction',   label: commonStrings.program.reintroOutcomes['mild-reaction'],   subtitle: commonStrings.evaluation.outcomeSubtitles['mild-reaction'] },
-    { value: 'clear-reaction',  label: commonStrings.program.reintroOutcomes['clear-reaction'],  subtitle: commonStrings.evaluation.outcomeSubtitles['clear-reaction'] },
-    { value: 'severe-reaction', label: commonStrings.program.reintroOutcomes['severe-reaction'], subtitle: commonStrings.evaluation.outcomeSubtitles['severe-reaction'] },
-  ];
+  // Header: allergen identity for a reintroduction test, phase identity otherwise.
+  const headerTitle = $derived(
+    allergenSlug
+      ? (getCategoryConfig(allergenSlug)?.name ?? categoryStrings[allergenSlug]?.name ?? allergenSlug)
+      : (phase ? phaseConfig[phase.type].label : '')
+  );
+  const headerIcon = $derived(
+    allergenSlug
+      ? (getCategoryConfig(allergenSlug)?.icon ?? '🍽')
+      : (phase ? phaseConfig[phase.type].icon : '🍽')
+  );
+  const headerIconBg = $derived(phase ? phaseConfig[phase.type].iconBg : '');
 
   const isReadOnly = $derived(existing !== null);
+  // Czech label for an already-recorded verdict, resolved from this phase's vocabulary.
+  const existingLabel = $derived(
+    existing ? (view?.options.find((o) => o.value === existing.outcome)?.label ?? existing.outcome) : ''
+  );
 
   function recapBadgeClass(severity?: RegionLevel): string {
     switch (severity) {
@@ -94,14 +104,15 @@
   }
 
   async function handleSave(): Promise<void> {
-    if (saving || !selectedOutcome || !phase || !allergenSlug) return;
+    if (saving || !selectedOutcome || !phase || !view) return;
     saving = true;
     const evaluation: ReintroductionEvaluation = {
       phaseId,
-      phaseType: 'allergen-test',
+      phaseType: view.kind,
       outcome: selectedOutcome,
-      allergenId: allergenSlug,
       date: queryDate,
+      // allergenId only applies to an allergen-test (reintroduction) verdict.
+      ...(view.kind === 'allergen-test' && allergenSlug ? { allergenId: allergenSlug } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
     };
     const result = await protocolSession.recordVerdict(evaluation);
@@ -121,16 +132,16 @@
   <div class="px-4 pt-3 space-y-3">
     {#if !phase}
       <ErrorAlert message="Phase not found." />
-    {:else if phase.type !== 'reintroduction'}
+    {:else if !view}
       <ErrorAlert message="This evaluation type is not supported yet." />
     {:else}
-      <!-- Test header -->
+      <!-- Phase / test header -->
       <div class="bg-white border border-surface-dark rounded-2xl p-3 flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 {phaseConfig.reintroduction.iconBg} text-xl">
-          {allergenIcon}
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 {headerIconBg} text-xl">
+          {headerIcon}
         </div>
         <div class="flex-1 min-w-0">
-          <div class="body-bold">{allergenName}</div>
+          <div class="body-bold">{headerTitle}</div>
           <div class="text-[11px] text-text-muted">
             {formatDateLongCs(phase.startDate)} – {formatDateLongCs(phase.endDate)}
           </div>
@@ -159,8 +170,8 @@
       {#if isReadOnly && existing}
         <!-- Read-only verdict view -->
         <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-2">
-          <div class="eyebrow">{commonStrings.evaluation.outcomePrompt}</div>
-          <div class="body-bold">{commonStrings.program.reintroOutcomes[existing.outcome] ?? existing.outcome}</div>
+          <div class="eyebrow">{view.prompt}</div>
+          <div class="body-bold">{existingLabel}</div>
           {#if existing.notes}
             <p class="body-muted">{existing.notes}</p>
           {/if}
@@ -168,9 +179,9 @@
       {:else}
         <!-- Outcome cards -->
         <div>
-          <div class="eyebrow mb-2">{commonStrings.evaluation.outcomePrompt}</div>
+          <div class="eyebrow mb-2">{view.prompt}</div>
           <div class="space-y-1.5">
-            {#each outcomeOptions as opt (opt.value)}
+            {#each view.options as opt (opt.value)}
               {@const selected = selectedOutcome === opt.value}
               <button
                 type="button"

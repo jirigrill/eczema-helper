@@ -202,4 +202,36 @@ describe('protocolSession', () => {
     expect(restPhase).toBeDefined();
     expect(restPhase?.type).toBe('rest');
   });
+
+  it('recordVerdict persists a skin-status verdict and leaves the schedule structurally unchanged', async () => {
+    const { protocolSession } = await import('./protocol-session');
+    const { db } = await import('$lib/db/atopic-db');
+
+    await protocolSession.reset();
+    await protocolSession.startProtocol(sampleAnswers);
+    await waitForStatus(protocolSession, 'ready');
+
+    const before = await db.schedule.get('singleton');
+    const phasesBefore = before?.phases.map((p) => `${p.id}:${p.type}:${p.startDate}->${p.endDate}`);
+
+    const phaseId = 'elimination';
+    const result = await protocolSession.recordVerdict({
+      phaseId,
+      phaseType: 'skin-status',
+      outcome: 'improved',
+      date: '2025-06-20',
+    });
+    expect(result).toMatchObject({ ok: true });
+
+    // Persisted as a skin-status record, no allergenId.
+    const stored = await db.evaluations.get(phaseId);
+    expect(stored?.phaseType).toBe('skin-status');
+    expect(stored?.outcome).toBe('improved');
+    expect(stored?.allergenId).toBeUndefined();
+
+    // Schedule topology is byte-for-byte unchanged — skin-status never mutates.
+    const after = await db.schedule.get('singleton');
+    const phasesAfter = after?.phases.map((p) => `${p.id}:${p.type}:${p.startDate}->${p.endDate}`);
+    expect(phasesAfter).toEqual(phasesBefore);
+  });
 });

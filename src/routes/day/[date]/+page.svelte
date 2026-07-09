@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { createDayView } from '$lib/stores/day-view.svelte';
   import { evaluationsStore } from '$lib/stores/evaluations-store';
+  import { evaluationHrefForPhase } from '$lib/config/evaluation';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
   import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -66,15 +67,9 @@
   const phaseEvaluation = $derived(
     phase ? evaluations.find((e) => e.phaseId === phase.id) ?? null : null
   );
-  const phaseHeroHref = $derived.by(() => {
-    if (!phase) return '/program';
-    const isReintro = phase.type === 'reintroduction';
-    const isEvalDay = phase.endDate ? selectedDate === phase.endDate : false;
-    if (isReintro && (phaseEvaluation || isEvalDay)) {
-      return `/evaluation?phase=${encodeURIComponent(phase.id)}&date=${selectedDate}&returnTo=${encodeURIComponent(`/day/${selectedDate}`)}`;
-    }
-    return '/program';
-  });
+  const phaseHeroHref = $derived(
+    evaluationHrefForPhase(phase ?? null, selectedDate, phaseEvaluation !== null) ?? '/program',
+  );
 
   const completeness = $derived(
     dailyCompleteness({ observations: skinObservations, photos, meals }),
