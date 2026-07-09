@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
+import { DexieScheduleRepository } from './dexie-schedule-repository';
+import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
 import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 import type {
-  GeneratedSchedule,
   SkinObservation,
   SkinPhoto,
   SkinPhotoInput,
@@ -12,19 +13,9 @@ import type {
 } from '$lib/domain/models';
 import { addDays } from '$lib/utils/date';
 import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
+import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 
 // ── Helpers ───────────────────────────────────────────────────
-
-function makeSchedule(overrides?: Partial<GeneratedSchedule>): GeneratedSchedule {
-  return {
-    phases: [],
-    permanentMother: [],
-    permanentBaby: [],
-    startDate: '2026-05-01',
-    estimatedEndDate: '2026-06-01',
-    ...overrides,
-  };
-}
 
 function makeObservation(date: string, overrides?: Partial<SkinObservation>): SkinObservation {
   return {
@@ -52,7 +43,7 @@ describe('DexieSkinObservationRepository', () => {
 
   beforeEach(() => {
     db = new AtopicDb({ indexedDB: new IDBFactory(), IDBKeyRange });
-    repo = new DexieSkinObservationRepository(db);
+    repo = new DexieSkinObservationRepository(db, new DexieScheduleRepository(db));
   });
 
   // ── Round-trip ───────────────────────────────────────────────
@@ -532,7 +523,7 @@ describe('DexieSkinObservationRepository', () => {
       await db.schedule.put({ id: SINGLETON_ID, ...schedule });
       const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
       const result = await repo.save(makeObservation(tooEarly, { id: 'obs-too-early' }), []);
-      expect(result).toEqual({ ok: false, error: 'date-outside-loggable-window' });
+      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
 
       const list = await repo.listByDate(tooEarly);
       expect(list).toEqual({ ok: true, data: [] });
@@ -543,7 +534,7 @@ describe('DexieSkinObservationRepository', () => {
       await db.schedule.put({ id: SINGLETON_ID, ...schedule });
       const tooLate = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS + 1);
       const result = await repo.save(makeObservation(tooLate, { id: 'obs-too-late' }), []);
-      expect(result).toEqual({ ok: false, error: 'date-outside-loggable-window' });
+      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
 
       const list = await repo.listByDate(tooLate);
       expect(list).toEqual({ ok: true, data: [] });
@@ -572,10 +563,50 @@ describe('DexieSkinObservationRepository', () => {
       const tooLate = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS + 1);
       const revised: SkinObservation = { ...original, date: tooLate, notes: 'after' };
       const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
-      expect(result).toEqual({ ok: false, error: 'date-outside-loggable-window' });
+      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
 
       const list = await repo.listByDate('2026-05-15');
       expect(list).toMatchObject({ ok: true, data: [{ notes: 'before' }] });
+    });
+
+    it('update rejects a date one day before the start-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const original = makeObservation('2026-05-15', { id: 'obs-update-start', notes: 'before' });
+      await repo.save(original, []);
+
+      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+      const revised: SkinObservation = { ...original, date: tooEarly, notes: 'after' };
+      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+
+      // Original row untouched — no write escaped the guard.
+      const list = await repo.listByDate('2026-05-15');
+      expect(list).toMatchObject({ ok: true, data: [{ notes: 'before' }] });
+    });
+
+    it('update succeeds exactly at the start-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const original = makeObservation('2026-05-15', { id: 'obs-update-start-ok' });
+      await repo.save(original, []);
+
+      const boundary = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS);
+      const revised: SkinObservation = { ...original, date: boundary };
+      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+      expect(result).toMatchObject({ ok: true });
+    });
+
+    it('update succeeds exactly at the end-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const original = makeObservation('2026-05-15', { id: 'obs-update-end-ok' });
+      await repo.save(original, []);
+
+      const boundary = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS);
+      const revised: SkinObservation = { ...original, date: boundary };
+      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+      expect(result).toMatchObject({ ok: true });
     });
   });
 });

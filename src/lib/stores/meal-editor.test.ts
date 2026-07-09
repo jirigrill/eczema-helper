@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createMealEditor } from './meal-editor.svelte';
 import { db } from '$lib/db/atopic-db';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import {
   startEditing,
   confirmFood,
@@ -11,7 +12,7 @@ import {
 } from '$lib/domain/working-meal';
 import type { Meal } from '$lib/domain/models';
 
-const meals = new DexieMealRepository(db);
+const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
 
 const today = '2024-08-01';
 
