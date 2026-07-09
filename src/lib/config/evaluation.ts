@@ -20,7 +20,7 @@ const allergenOptions: EvaluationOutcomeOption[] = (
 ).map((value) => ({
   value,
   label: commonStrings.program.reintroOutcomes[value] ?? value,
-  subtitle: commonStrings.evaluation.outcomeSubtitles[value] ?? '',
+  subtitle: commonStrings.evaluation.outcomeSubtitles[value],
 }));
 
 const skinOptions: EvaluationOutcomeOption[] = (
@@ -28,7 +28,7 @@ const skinOptions: EvaluationOutcomeOption[] = (
 ).map((value) => ({
   value,
   label: commonStrings.program.skinOutcomes[value] ?? value,
-  subtitle: commonStrings.evaluation.skinOutcomeSubtitles[value] ?? '',
+  subtitle: commonStrings.evaluation.skinOutcomeSubtitles[value],
 }));
 
 /**
