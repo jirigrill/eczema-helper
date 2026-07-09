@@ -1,7 +1,8 @@
-import { addDays } from '$lib/utils/date';
-
-const BUFFER_BEFORE_START_DAYS = 7;
-const BUFFER_AFTER_END_DAYS = 7;
+import { addDays } from "$lib/utils/date";
+import {
+  BUFFER_BEFORE_START_DAYS,
+  BUFFER_AFTER_END_DAYS,
+} from "$lib/domain/policy";
 
 export type DayStripCell = {
   date: string;

@@ -1,11 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { DexieMealRepository } from './dexie-meal-repository';
-import { AtopicDb } from '$lib/db/atopic-db';
-import type { Meal, MealItem } from '$lib/domain/models';
+import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
+import type { GeneratedSchedule, Meal, MealItem } from '$lib/domain/models';
 import { PREPARATION_METHODS } from '$lib/domain/models';
+import { addDays } from '$lib/utils/date';
+import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
 
 // ── Helpers ───────────────────────────────────────────────────
+
+function makeSchedule(overrides?: Partial<GeneratedSchedule>): GeneratedSchedule {
+  return {
+    phases: [],
+    permanentMother: [],
+    permanentBaby: [],
+    startDate: '2026-05-01',
+    estimatedEndDate: '2026-06-01',
+    ...overrides,
+  };
+}
 
 function makeMeal(date: string, mealType: Meal['mealType'], overrides?: Partial<Meal>): Meal {
   return {
@@ -318,5 +331,59 @@ describe('DexieMealRepository', () => {
     });
     const result = await repo.listByDate('2026-05-27');
     expect(result).toEqual({ ok: false, error: 'index fail' });
+  });
+
+  // ── Loggable-window guard (BUFFER_BEFORE_START_DAYS / BUFFER_AFTER_END_DAYS) ──
+
+  describe('loggable-window guard', () => {
+    it('save succeeds for a date inside the schedule span', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const result = await repo.save(makeMeal('2026-05-15', 'lunch'));
+      expect(result).toMatchObject({ ok: true });
+    });
+
+    it('save succeeds exactly at the start-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const boundary = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS);
+      const result = await repo.save(makeMeal(boundary, 'lunch'));
+      expect(result).toMatchObject({ ok: true });
+    });
+
+    it('save rejects a date one day before the start-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+      const result = await repo.save(makeMeal(tooEarly, 'lunch'));
+      expect(result).toEqual({ ok: false, error: 'date-outside-loggable-window' });
+
+      const persisted = await repo.loadBySlot(tooEarly, 'lunch');
+      expect(persisted).toEqual({ ok: true, data: null });
+    });
+
+    it('save succeeds exactly at the end-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const boundary = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS);
+      const result = await repo.save(makeMeal(boundary, 'lunch'));
+      expect(result).toMatchObject({ ok: true });
+    });
+
+    it('save rejects a date one day after the end-buffer boundary', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const tooLate = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS + 1);
+      const result = await repo.save(makeMeal(tooLate, 'lunch'));
+      expect(result).toEqual({ ok: false, error: 'date-outside-loggable-window' });
+
+      const persisted = await repo.loadBySlot(tooLate, 'lunch');
+      expect(persisted).toEqual({ ok: true, data: null });
+    });
+
+    it('save is unguarded when no schedule has been generated yet', async () => {
+      const result = await repo.save(makeMeal('1999-01-01', 'lunch'));
+      expect(result).toMatchObject({ ok: true });
+    });
   });
 });

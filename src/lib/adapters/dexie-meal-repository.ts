@@ -1,14 +1,19 @@
 import type { Meal, MealType } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import type { MealRepository } from '$lib/domain/ports/meal-repository';
+import { isWithinLoggableWindow } from '$lib/domain/policy';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
+import { SINGLETON_ID, type AtopicDb } from '$lib/db/atopic-db';
 
 export class DexieMealRepository implements MealRepository {
   constructor(private readonly db: AtopicDb) {}
 
   async save(meal: Meal): Promise<Result<void, string>> {
     try {
+      const schedule = await this.db.schedule.get(SINGLETON_ID);
+      if (schedule && !isWithinLoggableWindow(meal.date, schedule.startDate, schedule.estimatedEndDate)) {
+        return { ok: false, error: 'date-outside-loggable-window' };
+      }
       await this.db.meals.put(meal);
       return { ok: true, data: undefined };
     } catch (e) {

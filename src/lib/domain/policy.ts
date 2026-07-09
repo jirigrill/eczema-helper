@@ -5,7 +5,32 @@
  * live here. Tuning the protocol requires touching only this file.
  */
 
-import type { LadderAllergenId } from '$lib/data/allergen-catalog';
+import type { LadderAllergenId } from "$lib/data/allergen-catalog";
+import { addDays, isDateInRange } from "$lib/utils/date";
+
+// ── Number of days before/after program ─────────────────────────────────
+
+/** Number of days before and after program for which user can log meals and skin observations */
+
+export const BUFFER_BEFORE_START_DAYS = 7;
+export const BUFFER_AFTER_END_DAYS = 100;
+
+/**
+ * True when `date` falls inside the loggable window — the program's
+ * [startDate, estimatedEndDate] span, padded by the buffer constants above.
+ * The single hard limit enforced by every meal/skin-observation save path.
+ */
+export function isWithinLoggableWindow(
+  date: string,
+  scheduleStart: string,
+  scheduleEnd: string,
+): boolean {
+  return isDateInRange(
+    date,
+    addDays(scheduleStart, -BUFFER_BEFORE_START_DAYS),
+    addDays(scheduleEnd, BUFFER_AFTER_END_DAYS),
+  );
+}
 
 // ── Default tested allergens ─────────────────────────────────
 
@@ -14,7 +39,12 @@ import type { LadderAllergenId } from '$lib/data/allergen-catalog';
  * common trigger. A protocol policy choice, not catalog reference data — which
  * allergens *exist* is the catalog's job; which we *test by default* is this file's.
  */
-export const DEFAULT_TESTED_ALLERGENS: LadderAllergenId[] = ['soy', 'wheat', 'eggs', 'dairy'];
+export const DEFAULT_TESTED_ALLERGENS: LadderAllergenId[] = [
+  "soy",
+  "wheat",
+  "eggs",
+  "dairy",
+];
 
 // ── Phase durations (in days) ────────────────────────────────
 

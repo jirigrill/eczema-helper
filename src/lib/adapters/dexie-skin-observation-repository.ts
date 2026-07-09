@@ -4,17 +4,29 @@ import type {
   SkinObservationRepository,
   SkinObservationUpdateOptions,
 } from '$lib/domain/ports/skin-observation-repository';
+import { isWithinLoggableWindow } from '$lib/domain/policy';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
+import { SINGLETON_ID, type AtopicDb } from '$lib/db/atopic-db';
 
 export class DexieSkinObservationRepository implements SkinObservationRepository {
   constructor(private readonly db: AtopicDb) {}
+
+  private async assertWithinLoggableWindow(date: string): Promise<string | null> {
+    const schedule = await this.db.schedule.get(SINGLETON_ID);
+    if (schedule && !isWithinLoggableWindow(date, schedule.startDate, schedule.estimatedEndDate)) {
+      return 'date-outside-loggable-window';
+    }
+    return null;
+  }
 
   async save(
     observation: SkinObservation,
     inputs: SkinPhotoInput[],
   ): Promise<Result<void, string>> {
     try {
+      const outOfWindow = await this.assertWithinLoggableWindow(observation.date);
+      if (outOfWindow) return { ok: false, error: outOfWindow };
+
       const photos = mintPhotos(observation.id, inputs);
 
       await this.db.transaction(
@@ -39,6 +51,9 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     options: SkinObservationUpdateOptions,
   ): Promise<Result<void, string>> {
     try {
+      const outOfWindow = await this.assertWithinLoggableWindow(observation.date);
+      if (outOfWindow) return { ok: false, error: outOfWindow };
+
       const photosToAdd = mintPhotos(observation.id, options.addPhotos);
 
       await this.db.transaction(
