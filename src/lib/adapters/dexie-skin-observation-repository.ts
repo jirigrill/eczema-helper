@@ -4,17 +4,31 @@ import type {
   SkinObservationRepository,
   SkinObservationUpdateOptions,
 } from '$lib/domain/ports/skin-observation-repository';
+import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import type { Result } from '$lib/types/result';
 import type { AtopicDb } from '$lib/db/atopic-db';
+import { checkLoggableWindow } from './loggable-window-guard';
 
 export class DexieSkinObservationRepository implements SkinObservationRepository {
-  constructor(private readonly db: AtopicDb) {}
+  constructor(
+    private readonly db: AtopicDb,
+    private readonly scheduleRepo: ScheduleRepository,
+  ) {}
 
+  /**
+   * Atomically persist an observation and its photos. Rejects with
+   * `date-outside-loggable-window` when a schedule exists and the observation
+   * date falls outside the loggable window. Onboarding writes made before any
+   * schedule has been generated are intentionally unguarded.
+   */
   async save(
     observation: SkinObservation,
     inputs: SkinPhotoInput[],
   ): Promise<Result<void, string>> {
     try {
+      const outOfWindow = await checkLoggableWindow(this.scheduleRepo, observation.date);
+      if (outOfWindow) return { ok: false, error: outOfWindow };
+
       const photos = mintPhotos(observation.id, inputs);
 
       await this.db.transaction(
@@ -34,11 +48,19 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     }
   }
 
+  /**
+   * Overwrite an existing observation and its photo set in one transaction.
+   * Same loggable-window guard as `save` — a payload whose `date` has moved
+   * outside the window is rejected before any DB write.
+   */
   async update(
     observation: SkinObservation,
     options: SkinObservationUpdateOptions,
   ): Promise<Result<void, string>> {
     try {
+      const outOfWindow = await checkLoggableWindow(this.scheduleRepo, observation.date);
+      if (outOfWindow) return { ok: false, error: outOfWindow };
+
       const photosToAdd = mintPhotos(observation.id, options.addPhotos);
 
       await this.db.transaction(

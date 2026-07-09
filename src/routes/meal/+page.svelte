@@ -31,6 +31,7 @@
   import { page } from '$app/state';
   import { db } from '$lib/db/atopic-db';
   import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
@@ -521,7 +522,7 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await new DexieMealRepository(db).remove(targetDate, selectedMealType);
+    const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(targetDate, selectedMealType);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;

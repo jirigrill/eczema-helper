@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeDayStrip } from './day-strip';
+import { BUFFER_AFTER_END_DAYS } from '$lib/domain/policy';
 
 describe('computeDayStrip', () => {
   const protocolStart = '2026-06-01';
@@ -75,12 +76,12 @@ describe('computeDayStrip', () => {
     expect((start - earliest) / 86400000).toBeLessThanOrEqual(14);
   });
 
-  it('soft-clamps the range to a small buffer after estimatedEnd', () => {
+  it('soft-clamps the range to the buffer after estimatedEnd', () => {
     const { cells } = computeDayStrip({ selectedDate: today, protocolStart, estimatedEnd, today });
     expect(cells[cells.length - 1].date > estimatedEnd).toBe(true);
     const latest = new Date(cells[cells.length - 1].date + 'T00:00:00').getTime();
     const end = new Date(estimatedEnd + 'T00:00:00').getTime();
-    expect((latest - end) / 86400000).toBeLessThanOrEqual(14);
+    expect((latest - end) / 86400000).toBeLessThanOrEqual(BUFFER_AFTER_END_DAYS);
   });
 
   it('extends the range to cover selectedDate even if it falls outside the soft-clamp', () => {

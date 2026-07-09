@@ -1,5 +1,6 @@
 import { db } from '$lib/db/atopic-db';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import {
 	emptyWorkingMeal,
 	fromMealItems,
@@ -142,7 +143,7 @@ export type MealEditor = {
 
 export function createMealEditor(): MealEditor {
 	const catalog = new BundledCatalogAdapter();
-	const meals = new DexieMealRepository(db);
+	const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
 	let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
 	let editingExisting = $state(false);
 	let slot = $state<MealSlot | null>(null);
