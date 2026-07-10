@@ -600,7 +600,13 @@ describe('meal/+page.svelte', () => {
   // ── Reintroduction dose caption ─────────────────────────────
   // The banner text sources from LadderStep.dose at the rung whose index
   // matches `dayInPhase - 1` on the allergen's breastfed-stage ladder
-  // (ADR-0023). Locks in the PRD #421 F4 behavioral-equivalence gate.
+  // (ADR-0023). These assert *wiring* — the page renders the ladder's dose at
+  // the right rung. They are NOT a migration-parity gate: they read the current
+  // `LadderStep.dose`, so they cannot catch a caption mis-transcribed from the
+  // old `instructionCs` during authoring. The frozen parity that matters —
+  // `isEvaluationDay` — lives in `schedule-queries.test.ts`; dose-caption
+  // correctness is covered by the well-formedness gate (ladder.test.ts) plus
+  // curator review.
 
   it('reintroduction banner shows the ladder step dose for the current day-in-phase', async () => {
     const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0];

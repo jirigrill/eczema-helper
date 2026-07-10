@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase } from "./ladder";
 import type { Ladder, LadderStep } from "./ladder";
-import type { Meal, SkinObservation, ReintroductionEvaluation, LadderAllergenId } from "$lib/domain/models";
+import type { Meal, SkinObservation, ReintroductionEvaluation, LadderAllergenId, PortionKind } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 import { BundledCatalogAdapter } from "$lib/adapters/bundled-catalog-adapter";
 
@@ -184,6 +184,62 @@ describe("currentRung", () => {
       }),
     ];
     expect(currentRung("eggs", meals, eggsLadder, "breastfed")?.id).toBe("rung-3");
+  });
+
+  it("caps the rung at doses logged before a recorded reaction (not reacted-against)", () => {
+    // Two tolerated doses (rungs 1 & 2), then a reacting dose on 2026-06-03.
+    // The reacting dose must not advance the rung to rung-3.
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+      makeMeal({
+        id: "2026-06-02:breakfast",
+        date: "2026-06-02",
+        mealType: "breakfast",
+        items: [{ id: "i2", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+      makeMeal({
+        id: "2026-06-03:lunch",
+        date: "2026-06-03",
+        mealType: "lunch",
+        items: [{ id: "i3", name: "Vejce", foodId: "vejce", amount: "package" }],
+      }),
+    ];
+    const evaluations = [evaluation({ date: "2026-06-03", outcome: "clear-reaction" })];
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed", null, evaluations)?.id).toBe(
+      "rung-2",
+    );
+  });
+
+  it("a tolerated evaluation does not cap the rung", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "2026-06-01:breakfast",
+        date: "2026-06-01",
+        mealType: "breakfast",
+        items: [{ id: "i1", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+      makeMeal({
+        id: "2026-06-02:breakfast",
+        date: "2026-06-02",
+        mealType: "breakfast",
+        items: [{ id: "i2", name: "Vejce", foodId: "vejce", amount: "portion" }],
+      }),
+      makeMeal({
+        id: "2026-06-03:lunch",
+        date: "2026-06-03",
+        mealType: "lunch",
+        items: [{ id: "i3", name: "Vejce", foodId: "vejce", amount: "package" }],
+      }),
+    ];
+    const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+    expect(currentRung("eggs", meals, eggsLadder, "breastfed", null, evaluations)?.id).toBe(
+      "rung-3",
+    );
   });
 });
 
@@ -391,16 +447,47 @@ describe("checkpointVerdictGate", () => {
 // ── Catalog parity ────────────────────────────────────────────
 
 describe("ALLERGENS ladders", () => {
-  it("every protocol allergen carries a ladder", () => {
-    const withProtocol = ALLERGENS.filter(
-      (a): a is typeof a & { protocol: object } =>
-        "protocol" in a && a.protocol !== undefined,
-    );
-    for (const allergen of withProtocol) {
-      expect(
-        (allergen as { ladder?: unknown }).ladder,
-        `missing ladder on ${allergen.id}`,
-      ).toBeDefined();
+  // Post-migration (#437) a "protocol allergen" IS "an allergen carrying a
+  // ladder" — `LadderAllergenId` is derived from the `ladder` field's presence
+  // (allergen-catalog.ts). So the old "missing ladder" case is structurally
+  // impossible; what still needs a gate is a *malformed* ladder (Story 11).
+  // The repo validates curated data at test/CI time (see curation-rules.test.ts),
+  // which is its build-merge gate.
+  const VALID_ANCHORS: readonly PortionKind[] = [
+    "pinch",
+    "teaspoon",
+    "spoon",
+    "portion",
+    "package",
+  ];
+
+  const withLadder = ALLERGENS.filter(
+    (a): a is typeof a & { ladder: Ladder } =>
+      "ladder" in a && !!(a as { ladder?: unknown }).ladder,
+  );
+
+  it("the catalog authors at least one ladder-bearing allergen", () => {
+    expect(withLadder.length).toBeGreaterThan(0);
+  });
+
+  it("every ladder is well-formed (non-empty stage, valid anchors, unique ids, non-empty dose)", () => {
+    const seenIds = new Set<string>();
+    for (const { id, ladder } of withLadder) {
+      const stages = Object.values(ladder.stages).filter(
+        (s): s is readonly LadderStep[] => !!s,
+      );
+      expect(stages.length, `ladder on ${id} defines no stage`).toBeGreaterThan(0);
+      for (const steps of stages) {
+        expect(steps.length, `empty stage on ${id}`).toBeGreaterThan(0);
+        for (const step of steps) {
+          expect(VALID_ANCHORS, `invalid anchor "${step.anchor}" on ${id}`).toContain(
+            step.anchor,
+          );
+          expect(step.dose.trim().length, `empty dose on ${id}/${step.id}`).toBeGreaterThan(0);
+          expect(seenIds.has(step.id), `duplicate step id "${step.id}"`).toBe(false);
+          seenIds.add(step.id);
+        }
+      }
     }
   });
 });
