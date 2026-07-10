@@ -73,3 +73,17 @@ After significant changes, check whether these still need updating:
 5. `grep -rn "\$lib/" src/` — dead imports after deletes
 
 **Term ownership rule:** any named concept used in more than one file (type, route label, component, phase name) needs an entry in `UBIQUITOUS_LANGUAGE.md`; a core domain invariant also needs a `CONTEXT.md` entry; an architectural decision also needs an ADR.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
