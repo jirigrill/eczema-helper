@@ -143,6 +143,14 @@ meals + evaluations in date order **once** and produces
 delicate reaction-binding + step-back logic is written exactly once and the two
 public functions cannot drift. The replay is never exported.
 
+> PRD #445 sketched this struct's payload as a flat `restUntil` date. The
+> implementation instead carries a `pendingReaction` object (the rung, outcome,
+> `until` date, and `stepBackTo` target kept together) and adds `ceilingRung`
+> for the terminal state; `lastPassingRung` is derived as
+> `pendingReaction?.stepBackTo ?? liveRung`. The observable behaviour and the
+> public contract are unchanged — this is an internal shape refinement of a
+> never-exported helper.
+
 **Phase → cadence injection.** The engine takes `cadenceDays` as an explicit
 value; the caller sources it from `cadenceForPhase(phase)` in `policy.ts`
 (F3 `ACCEPTED_ALLERGEN_CADENCE_DAYS` vs F4 `REINTRODUCTION_CADENCE_DAYS`). The
