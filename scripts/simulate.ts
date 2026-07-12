@@ -381,7 +381,11 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
   });
   traceCall(
     'decideLadderMove',
-    [`{ '${allergenId}', ${sumMeals()}, ${sumEvals()}, ${sumObs()}, cadence=${cadenceDays()} }`],
+    [
+      `{ '${allergenId}', ${sumMeals()}, ${sumEvals()}, ${sumObs()}, ` +
+        `defaultLadder=${sumLadder(def)}, override=${sumLadder(ovr)}, ` +
+        `stage='${stage}', today='${world.today}', cadence=${cadenceDays()} }`,
+    ],
     JSON.stringify(move),
   );
 
