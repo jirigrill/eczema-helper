@@ -106,6 +106,8 @@ type World = {
   evaluations: ReintroductionEvaluation[];
   /** Per-allergen ladder override, replacing the catalog default per stage (resolveLadder). */
   overrides: Map<ProtocolAllergenId, Ladder>;
+  /** Allergens marked permanently eliminated — drives `decideLadderMove`'s `blocked` verdict. */
+  permanent: Set<ProtocolAllergenId>;
   today: string;
   stage: FeedingStage;
   /** Ladder phase — selects the escalation cadence via `cadenceForPhase` (F3 vs F4). */
@@ -117,6 +119,7 @@ const world: World = {
   observations: [],
   evaluations: [],
   overrides: new Map(),
+  permanent: new Set(),
   today: '2026-06-01',
   stage: 'breastfed',
   phase: 'tolerance-building',
@@ -368,6 +371,7 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
   const verdict = checkpointVerdictGate(rung, allergenId, world.evaluations);
   traceCall('checkpointVerdictGate', [rung?.id ?? 'null', `'${allergenId}'`, sumEvals()], JSON.stringify(verdict));
 
+  const isPermanent = world.permanent.has(allergenId);
   const move = decideLadderMove({
     allergenId,
     meals: world.meals,
@@ -378,21 +382,24 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
     stage,
     today: world.today,
     cadenceDays: cadenceDays(),
+    isPermanentlyEliminated: isPermanent,
   });
   traceCall(
     'decideLadderMove',
     [
       `{ '${allergenId}', ${sumMeals()}, ${sumEvals()}, ${sumObs()}, ` +
         `defaultLadder=${sumLadder(def)}, override=${sumLadder(ovr)}, ` +
-        `stage='${stage}', today='${world.today}', cadence=${cadenceDays()} }`,
+        `stage='${stage}', today='${world.today}', cadence=${cadenceDays()}, ` +
+        `permanent=${isPermanent} }`,
     ],
     JSON.stringify(move),
   );
 
   const reachedIdx = rung ? steps.findIndex((s) => s.id === rung.id) : -1;
   const ovrTag = stageIsOverridden(allergenId, stage) ? ` ${YELLOW}[override]${RESET}` : '';
+  const permTag = isPermanent ? ` ${RED}[permanent]${RESET}` : '';
 
-  console.log(`\n${BOLD}${allergenId}${RESET} ${DIM}(${stage})${RESET}${ovrTag}`);
+  console.log(`\n${BOLD}${allergenId}${RESET} ${DIM}(${stage})${RESET}${ovrTag}${permTag}`);
   if (steps.length === 0) {
     console.log(`  ${DIM}no ladder for this stage${RESET}`);
     return;
@@ -549,6 +556,7 @@ ${BOLD}commands${RESET}  ${DIM}(type, press enter, see state)${RESET}
   ${BOLD}next${RESET} [n]                   advance n days (default 1)
   ${BOLD}stage${RESET} <${FEEDING_STAGES.join('|')}>   switch active feeding stage
   ${BOLD}phase${RESET} <${LADDER_PHASES.join('|')}>   switch ladder phase (sets cadence via cadenceForPhase)
+  ${BOLD}permanent${RESET} <allergen> [on|off]  mark allergen permanently eliminated (→ blocked); toggles if no arg
   ${BOLD}ladder show${RESET} <allergen>     print all three stage ladders (effective)
   ${BOLD}rung edit${RESET} <a> <stage> <n> [anchor=] [checkpoint=] [dose="…"]   edit rung n
   ${BOLD}rung add${RESET}  <a> <stage> [anchor=] [checkpoint=] [dose="…"] [at=n]  insert a rung
@@ -632,6 +640,7 @@ function handle(line: string): boolean {
       world.observations = [];
       world.evaluations = [];
       world.overrides.clear();
+      world.permanent.clear();
       console.log(`${DIM}world wiped${RESET}`);
       renderState();
       return true;
@@ -669,6 +678,17 @@ function handle(line: string): boolean {
       const p = args[0] ?? '';
       if (!isPhase(p)) return warn(`phase: ${LADDER_PHASES.join(' | ')}`);
       world.phase = p;
+      renderState();
+      return true;
+    }
+    case 'permanent': {
+      const [a, mode] = args;
+      if (!isTracked(a ?? '')) return warn(`allergen: ${TRACKED.join(' | ')}`);
+      if (mode !== undefined && mode !== 'on' && mode !== 'off') return warn('permanent <allergen> [on|off]');
+      const allergenId = a as ProtocolAllergenId;
+      const on = mode === undefined ? !world.permanent.has(allergenId) : mode === 'on';
+      if (on) world.permanent.add(allergenId);
+      else world.permanent.delete(allergenId);
       renderState();
       return true;
     }
