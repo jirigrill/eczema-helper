@@ -278,7 +278,32 @@ The current rung is **derived, never persisted** — mirroring `AllergenStatus`
 walks meal history against one feeding stage's `steps` array
 (`ladder.stages[stage]`, chosen by the caller). `nextLegalStep(rung, steps)`
 returns the single next step or `null` — skipping a rung is impossible to
-express through the function signature.
+express through the function signature. `currentRung` is **reaction-aware**
+(PRD #445): a recorded reaction drops the live rung one step, so it means
+"highest rung logged **and not reacted-against**".
+
+**Decision engine (`decideLadderMove`, PRD #445).** The deterministic brain that
+composes `currentRung` + the three gates (`cadenceGate`, `skinCalmGate`,
+`checkpointVerdictGate`) into one per-allergen **verdict** — the closed
+`LadderDecision` union (`advance` · `hold` · `rest` · `step-back` · `passed` ·
+`blocked` · `ceiling-reached`). It is the F3 ≡ F4 walker: it never branches on
+phase; the phase difference reduces to the injected `cadenceDays`
+(`cadenceForPhase` in `policy.ts`). Invariants:
+
+- **Decide, never write.** The engine returns a verdict and performs no
+  persistence or schedule mutation; the mother still logs every dose herself.
+  It is the single definition of a legal move that the PRD #423 proposer reuses.
+- **Fixed gate precedence** (most-overriding first): permanent → ceiling →
+  reaction (rest, then step-back) → awaiting-verdict → flare → cadence →
+  advance/passed. Safety/clinical gates dominate rhythm gates.
+- **A reaction is a temporary setback.** Reaction → `rest` (length by severity,
+  ADR-0016) → `step-back` to the last-passing rung → clean re-test re-advances.
+  A rung reacting `MAX_RUNG_REACTIONS` times, or the lowest rung reacting
+  (floor exhaustion), collapses into one terminal `ceiling-reached` that defers
+  to human care — the engine never sets a `permanent-*` status itself.
+- **One shared replay.** A private `deriveLadderState` replays meals +
+  evaluations in date order once; `currentRung` and `decideLadderMove` both read
+  it, so reaction-binding + step-back logic exists exactly once.
 
 ### Family / Allergen / Food — the three-level catalog
 
@@ -535,3 +560,9 @@ after data exists is a migration.
   `LadderStep[]` arrays on the optional `ladder` field of a `CanonicalAllergen`.
   The ladder is the sole per-allergen dose-progression shape (PRD #421 PR B).
   See [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).
+- **The ladder decision engine decides but never writes.**
+  `decideLadderMove` (`src/lib/domain/ladder.ts`) composes `currentRung` + the
+  gates into one `LadderDecision` verdict under a fixed gate precedence; it
+  performs no persistence or schedule mutation, and a terminal `ceiling-reached`
+  defers to human care rather than setting a `permanent-*` status. See the
+  [Ladder](#ladder) section and [ADR-0023 §5](docs/adr/0023-dose-escalation-ladder.md#5-decision-engine-decideladdermove-prd-445).
