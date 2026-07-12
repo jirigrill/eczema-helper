@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase } from "./ladder";
-import type { Ladder, LadderStep } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase, decideLadderMove } from "./ladder";
+import type { Ladder, LadderStep, LadderDecisionInput } from "./ladder";
+import { MAX_RUNG_REACTIONS, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_MILD } from "$lib/domain/policy";
+import { addDays } from "$lib/utils/date";
 import type { Meal, SkinObservation, ReintroductionEvaluation, LadderAllergenId, PortionKind } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 import { BundledCatalogAdapter } from "$lib/adapters/bundled-catalog-adapter";
@@ -607,5 +609,232 @@ describe("rungAtDayInPhase", () => {
 
   it("returns null when the allergen is unknown", () => {
     expect(rungAtDayInPhase(catalog, "not-a-real-allergen" as LadderAllergenId, 1, "breastfed")).toBeNull();
+  });
+});
+
+// ── decideLadderMove ──────────────────────────────────────────
+
+describe("decideLadderMove", () => {
+  // Distinct anchors per rung so the reaction re-test walk is unambiguous.
+  const engineSteps: readonly LadderStep[] = [
+    { id: "e1", anchor: "pinch", isEvaluationCheckpoint: false, dose: "d1" },
+    { id: "e2", anchor: "teaspoon", isEvaluationCheckpoint: true, dose: "d2" },
+    { id: "e3", anchor: "spoon", isEvaluationCheckpoint: false, dose: "d3" },
+  ];
+  const engineLadder: Ladder = { allergenId: "eggs", stages: { breastfed: engineSteps } };
+
+  function decInput(overrides: Partial<LadderDecisionInput>): LadderDecisionInput {
+    return {
+      allergenId: "eggs",
+      meals: [],
+      evaluations: [],
+      observations: [],
+      defaultLadder: engineLadder,
+      override: null,
+      stage: "breastfed",
+      today: "2026-06-10",
+      cadenceDays: 1,
+      isPermanentlyEliminated: false,
+      ...overrides,
+    };
+  }
+
+  function eggMeal(date: string, amount: PortionKind): Meal {
+    return makeMeal({
+      id: `${date}:breakfast`,
+      date,
+      mealType: "breakfast",
+      items: [{ id: `i-${date}-${amount}`, name: "Vejce", foodId: "vejce", amount }],
+    });
+  }
+
+  // ── Clean climb → passed ──
+  describe("clean climb", () => {
+    it("advances from null (the first move) when nothing has been logged", () => {
+      expect(decideLadderMove(decInput({}))).toEqual({ kind: "advance", from: null, to: engineSteps[0] });
+    });
+
+    it("advances one rung at a time once the cadence has elapsed", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      expect(decideLadderMove(decInput({ meals, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("holds at a checkpoint rung awaiting a verdict", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-03", "teaspoon")];
+      expect(decideLadderMove(decInput({ meals, today: "2026-06-05" }))).toEqual({
+        kind: "hold",
+        rung: engineSteps[1],
+        reason: "awaiting-verdict",
+      });
+    });
+
+    it("advances past a checkpoint once its verdict is tolerated", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-03", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-05" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[1],
+        to: engineSteps[2],
+      });
+    });
+
+    it("reports the whole ladder passed at the effective top rung", () => {
+      const meals = [
+        eggMeal("2026-06-01", "pinch"),
+        eggMeal("2026-06-03", "teaspoon"),
+        eggMeal("2026-06-05", "spoon"),
+      ];
+      const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-07" }))).toEqual({
+        kind: "passed",
+        rung: engineSteps[2],
+      });
+    });
+  });
+
+  // ── Each hold reason in isolation ──
+  describe("hold reasons", () => {
+    it("holds on a flare and names the flare as the reason", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-03", 2)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "hold",
+        rung: engineSteps[0],
+        reason: "flare",
+      });
+    });
+
+    it("holds on cadence and reports the days remaining", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      expect(decideLadderMove(decInput({ meals, cadenceDays: 3, today: "2026-06-02" }))).toEqual({
+        kind: "hold",
+        rung: engineSteps[0],
+        reason: "cadence",
+        daysRemaining: 2,
+      });
+    });
+  });
+
+  // ── Precedence overlaps ──
+  describe("precedence", () => {
+    it("prefers the flare hold over cadence when the cadence is already satisfied", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-04", 3)];
+      // cadence (1 day) is satisfied by 06-04, so only the flare should hold.
+      const move = decideLadderMove(decInput({ meals, observations, today: "2026-06-04" }));
+      expect(move).toEqual({ kind: "hold", rung: engineSteps[0], reason: "flare" });
+    });
+
+    it("rests on a recorded checkpoint reaction rather than holding for a verdict", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-02", outcome: "clear-reaction" })];
+      const move = decideLadderMove(decInput({ meals, evaluations, today: "2026-06-02" }));
+      expect(move).toEqual({
+        kind: "rest",
+        rung: engineSteps[1],
+        days: REST_PHASE_DAYS_CLEAR,
+        until: addDays("2026-06-02", REST_PHASE_DAYS_CLEAR),
+      });
+    });
+  });
+
+  // ── Reaction cycle: rest → step-back → clean re-test → re-advance ──
+  describe("reaction cycle", () => {
+    const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+    const evaluations = [evaluation({ date: "2026-06-02", outcome: "mild-reaction" })];
+    const until = addDays("2026-06-02", REST_PHASE_DAYS_MILD);
+
+    it("rests while the recovery window is open", () => {
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-03" }))).toEqual({
+        kind: "rest",
+        rung: engineSteps[1],
+        days: REST_PHASE_DAYS_MILD,
+        until,
+      });
+    });
+
+    it("steps back to the last-passing rung once the rest has elapsed", () => {
+      expect(decideLadderMove(decInput({ meals, evaluations, today: addDays(until, 1) }))).toEqual({
+        kind: "step-back",
+        from: engineSteps[1],
+        to: engineSteps[0],
+      });
+    });
+
+    it("re-advances after a clean re-test — a reaction is a temporary setback", () => {
+      const retestMeals = [...meals, eggMeal("2026-06-11", "teaspoon")];
+      const retestEvals = [...evaluations, evaluation({ date: "2026-06-11", outcome: "tolerated" })];
+      expect(
+        decideLadderMove(decInput({ meals: retestMeals, evaluations: retestEvals, today: "2026-06-13" })),
+      ).toEqual({ kind: "advance", from: engineSteps[1], to: engineSteps[2] });
+    });
+  });
+
+  // ── Terminals ──
+  describe("terminals", () => {
+    it("reports ceiling-reached when a rung reacts up to the per-rung cap", () => {
+      const meals = [
+        eggMeal("2026-06-01", "pinch"),
+        eggMeal("2026-06-02", "teaspoon"),
+        eggMeal("2026-06-11", "teaspoon"),
+      ];
+      const evaluations = [
+        evaluation({ date: "2026-06-02", outcome: "mild-reaction" }),
+        evaluation({ date: "2026-06-11", outcome: "mild-reaction" }),
+      ];
+      expect(MAX_RUNG_REACTIONS).toBe(2); // pin the fixture to the constant
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-20" }))).toEqual({
+        kind: "ceiling-reached",
+        rung: engineSteps[1],
+      });
+    });
+
+    it("reports ceiling-reached on floor exhaustion — the lowest rung reacts", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const evaluations = [evaluation({ date: "2026-06-01", outcome: "severe-reaction" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-05" }))).toEqual({
+        kind: "ceiling-reached",
+        rung: engineSteps[0],
+      });
+    });
+
+    it("reports blocked when permanently eliminated, regardless of history", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-03", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+      expect(
+        decideLadderMove(decInput({ meals, evaluations, isPermanentlyEliminated: true })),
+      ).toEqual({ kind: "blocked" });
+    });
+  });
+
+  // ── Override ──
+  it("fires passed at the effective top when an override shortens the ladder", () => {
+    const override: Ladder = {
+      allergenId: "eggs",
+      stages: {
+        breastfed: [{ id: "o1", anchor: "pinch", isEvaluationCheckpoint: false, dose: "override top" }],
+      },
+    };
+    const meals = [eggMeal("2026-06-01", "pinch")];
+    // Against the default the pinch is rung e1 with e2 above (→ advance); the
+    // override makes pinch the sole, top rung (→ passed at the effective top).
+    expect(decideLadderMove(decInput({ meals, override, today: "2026-06-03" }))).toEqual({
+      kind: "passed",
+      rung: override.stages.breastfed![0],
+    });
+  });
+
+  // ── currentRung reaction-awareness (shared replay through the projection) ──
+  it("currentRung drops the live rung after a bound reaction", () => {
+    const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+    // No reaction: the live rung is the checkpoint e2.
+    expect(currentRung("eggs", meals, engineLadder, "breastfed")?.id).toBe("e2");
+    // A reaction bound to e2 drops the live rung to e1.
+    const evaluations = [evaluation({ date: "2026-06-02", outcome: "clear-reaction" })];
+    expect(currentRung("eggs", meals, engineLadder, "breastfed", null, evaluations)?.id).toBe("e1");
   });
 });

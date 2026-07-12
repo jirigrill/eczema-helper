@@ -93,7 +93,21 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
   (`src/lib/domain/ladder.ts`) — pure derivation, mirroring `AllergenStatus`:
   the rung is never persisted, and skipping a rung is impossible to express
   through the function signature. The caller resolves `ladder.stages[stage]`
-  before passing `steps` in.
+  before passing `steps` in. `currentRung` is **reaction-aware** (PRD #445): a
+  recorded reaction drops the live rung one step, so it means "highest rung
+  logged **and not reacted-against**".
+- **`decideLadderMove(input): LadderDecision`** (`src/lib/domain/ladder.ts`) —
+  the deterministic ladder **decision engine** (PRD #445,
+  [ADR-0023 §5](docs/adr/0023-dose-escalation-ladder.md#5-decision-engine-decideladdermove-prd-445)).
+  Composes `currentRung` + the three gates into one per-allergen **verdict** for
+  one moment; the F3 ≡ F4 walker (phase reduces to the injected `cadenceDays`).
+  Decides but never writes. **`LadderDecision`** is the closed verdict union:
+  `advance` · `hold` (reason `awaiting-verdict` / `flare` / `cadence`) · `rest`
+  · `step-back` · `passed` · `blocked` · `ceiling-reached`. See the ADR for the
+  gate precedence and the reaction → rest → step-back → re-test state machine.
+- **`deriveLadderState`** — the *private*, single date-ordered replay of meals +
+  evaluations behind both `currentRung` and `decideLadderMove`, so the
+  reaction-binding + step-back logic exists exactly once. Never exported.
 
 ---
 
