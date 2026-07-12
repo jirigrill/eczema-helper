@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { addDays } from '$lib/utils/date';
 import {
+  ACCEPTED_ALLERGEN_CADENCE_DAYS,
   BUFFER_AFTER_END_DAYS,
   BUFFER_BEFORE_START_DAYS,
+  cadenceForPhase,
   isWithinLoggableWindow,
+  REINTRODUCTION_CADENCE_DAYS,
 } from './policy';
 
 describe('isWithinLoggableWindow', () => {
@@ -32,5 +35,15 @@ describe('isWithinLoggableWindow', () => {
   it('is false one day after the end-buffer boundary', () => {
     const tooLate = addDays(scheduleEnd, BUFFER_AFTER_END_DAYS + 1);
     expect(isWithinLoggableWindow(tooLate, scheduleStart, scheduleEnd)).toBe(false);
+  });
+});
+
+describe('cadenceForPhase', () => {
+  it('returns the accepted-allergen (F3) cadence for the tolerance-building phase', () => {
+    expect(cadenceForPhase('tolerance-building')).toBe(ACCEPTED_ALLERGEN_CADENCE_DAYS);
+  });
+
+  it('returns the reintroduction (F4) cadence for the reintroduction phase', () => {
+    expect(cadenceForPhase('reintroduction')).toBe(REINTRODUCTION_CADENCE_DAYS);
   });
 });
