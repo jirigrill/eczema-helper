@@ -59,6 +59,7 @@ import type {
 import { FEEDING_STAGES } from '../src/lib/domain/canonical-allergen';
 import { ALLERGENS, FOODS } from '../src/lib/data/allergen-catalog/allergen-catalog';
 import { DEFAULT_TESTED_ALLERGENS, cadenceForPhase, type LadderPhase } from '../src/lib/domain/policy';
+import { addDays } from '../src/lib/utils/date';
 
 // ── Config ────────────────────────────────────────────────────
 
@@ -193,12 +194,6 @@ function aFoodTriggering(allergenId: ProtocolAllergenId): string {
   const food = FOODS.find((f) => f.allergenIds.includes(allergenId));
   if (!food) throw new Error(`no catalog food triggers ${allergenId}`);
   return food.id;
-}
-
-function addDays(iso: string, n: number): string {
-  const d = new Date(iso + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
 }
 
 // ── Mutations (traced) ────────────────────────────────────────

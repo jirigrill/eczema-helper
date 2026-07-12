@@ -774,6 +774,37 @@ describe("decideLadderMove", () => {
     });
   });
 
+  // ── Reaction binding by date ──
+  // A verdict dated D binds to the highest rung whose anchor was dosed on or
+  // before D. The replay orders a same-date meal *before* a same-date eval, so
+  // a dose logged the same day the reaction is recorded still counts as the
+  // reacting rung. This pins that ordering — flip it and the reaction would
+  // bind one rung lower.
+  describe("reaction binding by date", () => {
+    it("binds a same-day reaction to the rung dosed that same day, not the rung below", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-02", outcome: "mild-reaction" })];
+      // teaspoon (e2) dosed on 06-02 → the 06-02 reaction rests at e2, not e1.
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-03" }))).toEqual({
+        kind: "rest",
+        rung: engineSteps[1],
+        days: REST_PHASE_DAYS_MILD,
+        until: addDays("2026-06-02", REST_PHASE_DAYS_MILD),
+      });
+    });
+
+    it("does not bind a reaction to a higher rung dosed after the reaction date", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-05", "teaspoon")];
+      // Reaction dated 06-02: only pinch (e1) was dosed on or before that day,
+      // so it binds to e1 (floor exhaustion) — the later teaspoon does not count.
+      const evaluations = [evaluation({ date: "2026-06-02", outcome: "severe-reaction" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-10" }))).toEqual({
+        kind: "ceiling-reached",
+        rung: engineSteps[0],
+      });
+    });
+  });
+
   // ── Terminals ──
   describe("terminals", () => {
     it("reports ceiling-reached when a rung reacts up to the per-rung cap", () => {
