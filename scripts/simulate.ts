@@ -498,6 +498,7 @@ ${BOLD}commands${RESET}  ${DIM}(type, press enter, see state)${RESET}
   ${BOLD}rung reset${RESET} <a> [stage]     drop the override (one stage, or all)
   ${BOLD}trace${RESET} <on|off|full>        toggle call tracing (full = verbatim args)
   ${BOLD}show${RESET}                       reprint current state
+  ${BOLD}clear${RESET}                      clear the screen, keep only legend + current state
   ${BOLD}reset${RESET}                      wipe all logged data + overrides
   ${BOLD}help${RESET} · ${BOLD}quit${RESET}
 `;
@@ -561,6 +562,11 @@ function handle(line: string): boolean {
       console.log(HELP);
       return true;
     case 'show':
+      renderState();
+      return true;
+    case 'clear':
+      console.clear();
+      console.log(HELP);
       renderState();
       return true;
     case 'reset':
