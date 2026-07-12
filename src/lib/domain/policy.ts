@@ -6,6 +6,7 @@
  */
 
 import type { LadderAllergenId } from "$lib/data/allergen-catalog";
+import type { PhaseType } from "$lib/domain/models";
 import { addDays, isDateInRange } from "$lib/utils/date";
 
 // ── Number of days before/after program ─────────────────────────────────
@@ -89,3 +90,57 @@ export const REST_PHASE_DAYS_CLEAR = 7;
 
 /** Length of the rest phase inserted after a `severe-reaction` verdict. */
 export const REST_PHASE_DAYS_SEVERE = 14;
+
+// ── Dose-escalation ladder cadence + reaction cap ────────────
+
+/**
+ * Minimum days between escalation steps while growing the dose of an
+ * already-accepted allergen (feature direction F3, phase `tolerance-building`;
+ * ADR-0023). Gentle by design — an allergen the baby already tolerates is grown
+ * no faster than its maintenance re-dose rhythm (`TRAINING_REMINDER_THRESHOLD_DAYS`).
+ * Injected into the ladder decision engine as `cadenceDays` via `cadenceForPhase`.
+ */
+export const ACCEPTED_ALLERGEN_CADENCE_DAYS = 3;
+
+/**
+ * Minimum days between escalation steps during an active reintroduction
+ * (feature direction F4, phase `reintroduction`; ADR-0023). One rung per eating
+ * day, matching the three escalating eating days of the reintroduction phase
+ * (`REINTRODUCTION_PHASE_DAYS` — three eating days plus one evaluation day); the
+ * evaluation checkpoint and reaction → rest machinery, not a long spacing, carry
+ * the safety here. Injected into the ladder decision engine as `cadenceDays` via
+ * `cadenceForPhase`.
+ */
+export const REINTRODUCTION_CADENCE_DAYS = 1;
+
+/**
+ * How many times one ladder rung may react before the decision engine treats it
+ * as a confirmed ceiling and stops re-attempting it (ADR-0023). A single
+ * reaction is a temporary setback — rest, step back, re-test; reacting this many
+ * times converts the rung into a terminal `ceiling-reached` and defers to human
+ * care (ADR-0024 medical-scope boundary). Never converts an allergen to a
+ * `permanent-*` status itself (ADR-0012).
+ */
+export const MAX_RUNG_REACTIONS = 2;
+
+/** The two protocol phases that walk the dose ladder (ADR-0023 F3 ≡ F4). */
+export type LadderPhase = Extract<PhaseType, "tolerance-building" | "reintroduction">;
+
+/**
+ * The single definition of "which cadence for which phase". The ladder decision
+ * engine takes `cadenceDays` as an explicit injected value and never derives
+ * F3-vs-F4 itself; callers source that value here so the mapping lives in exactly
+ * one place, beside the constants it returns (ADR-0023 phase → cadence seam).
+ */
+export function cadenceForPhase(phase: LadderPhase): number {
+  switch (phase) {
+    case "reintroduction":
+      return REINTRODUCTION_CADENCE_DAYS;
+    case "tolerance-building":
+      return ACCEPTED_ALLERGEN_CADENCE_DAYS;
+    default: {
+      const _exhaustive: never = phase;
+      return _exhaustive;
+    }
+  }
+}
