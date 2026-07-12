@@ -10,6 +10,16 @@ export const FEEDING_STAGES = ["breastfed", "mixed", "solids"] as const;
 export type FeedingStage = (typeof FEEDING_STAGES)[number];
 
 /**
+ * The single feeding stage v1 supports. v1 tracks a breastfed newborn on the
+ * mother's elimination diet (ADR-0001), so every ladder read resolves to
+ * `breastfed`. `mixed`/`solids` ladders are authored for a later release that
+ * has a real feeding-stage source; until then consumers must reference this
+ * constant instead of hardcoding the literal so the two call sites cannot drift
+ * and the assumption is greppable. Follow-up: wire an actual stage source.
+ */
+export const V1_FEEDING_STAGE: FeedingStage = "breastfed";
+
+/**
  * A single dose step on a per-allergen escalation ladder (ADR-0023, Option A).
  *
  * `anchor` reuses the shared `PortionKind` vocabulary; *order within the

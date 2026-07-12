@@ -55,6 +55,21 @@ Nothing in the codebase derives dose-position today; this is a whole-new
 derivation over the meal log. Keeping the rung derived preserves the ADR-0012 /
 ADR-0016 property that the record set is self-describing and single-sourced.
 
+**Reaction-capping (PRD #421):** the rung tracks *safely-tolerated* reality, not
+everything ingested. A recorded reaction (an `allergen-test` evaluation for the
+allergen whose outcome is not `tolerated`) caps the rung — only doses logged
+strictly before the earliest such reaction count. A dose that provoked a
+reaction never advances the ladder. `currentRung` takes the evaluation history to
+apply this; omitting it counts every logged anchor.
+
+**Feeding stage — v1 is breastfed-only.** Ladders are keyed by `FeedingStage`
+(`breastfed | mixed | solids`), but v1 tracks a breastfed newborn (ADR-0001), so
+every read resolves through the single `V1_FEEDING_STAGE` constant
+(`canonical-allergen.ts`). The `mixed`/`solids` ladders are authored ahead of a
+later release that has a real feeding-stage source; consumers reference the
+constant rather than the `'breastfed'` literal so the assumption is greppable and
+the call sites cannot drift.
+
 ### 3. LLM picks among legal moves; the engine refuses off-menu
 
 Movement on the ladder (advance a rung, hold, step back) is a proposal in the

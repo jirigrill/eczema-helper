@@ -2,6 +2,7 @@ import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, 
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
+import { V1_FEEDING_STAGE } from '$lib/domain/canonical-allergen';
 import { isDateInRange, daysBetween } from '$lib/utils/date';
 
 // ── Current phase ─────────────────────────────────────────────
@@ -104,7 +105,7 @@ export function getReintroductionDayInfo(
   const dayInPhase = daysBetween(phase.startDate, date);
   const totalDays = daysBetween(phase.startDate, phase.endDate);
 
-  const rung = catalog.get(allergenId)?.ladder?.stages.breastfed?.[dayInPhase - 1];
+  const rung = catalog.get(allergenId)?.ladder?.stages[V1_FEEDING_STAGE]?.[dayInPhase - 1];
   const isEvaluationDay = rung?.isEvaluationCheckpoint ?? (dayInPhase === totalDays);
 
   return { dayInPhase, totalDays, allergenId, isEvaluationDay };

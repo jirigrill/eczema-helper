@@ -59,6 +59,14 @@ export function resolveLadder(
  * override — see `resolveLadder`). Derived from meal history — never
  * persisted (ADR-0012).
  *
+ * `evaluations` (optional) is the mother's `ReintroductionEvaluation` history.
+ * A recorded reaction (an `allergen-test` row for `allergenId` whose outcome is
+ * not `tolerated`) *caps* the rung: only doses logged strictly before the
+ * earliest such reaction's date count, so a dose that provoked a reaction never
+ * advances the ladder. This is the "not reacted-against" half of the rule — the
+ * ladder tracks safely-tolerated reality, not everything ingested (Story 7).
+ * Omit `evaluations` (or pass none) and every logged anchor counts.
+ *
  * Returns `null` when the mother has not yet logged the first step of the
  * effective ladder for `stage`, or when the effective ladder has no rungs
  * defined for `stage`.
@@ -68,12 +76,28 @@ export function currentRung(
   meals: Meal[],
   defaultLadder: Ladder,
   stage: FeedingStage,
-  override?: Ladder | null
+  override?: Ladder | null,
+  evaluations?: readonly ReintroductionEvaluation[]
 ): LadderStep | null {
   const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
+
+  // Earliest reaction date for this allergen, if any — doses on or after it are
+  // reacted-against and must not advance the rung.
+  const reactionCutoff = (evaluations ?? [])
+    .filter(
+      (e) =>
+        e.phaseType === 'allergen-test' &&
+        e.allergenId === allergenId &&
+        (e.outcome as AllergenOutcome) !== 'tolerated'
+    )
+    .map((e) => e.date)
+    .sort()
+    .at(0);
+
   const anchors: PortionKind[] = [];
   const ordered = [...meals].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   for (const meal of ordered) {
+    if (reactionCutoff !== undefined && meal.date >= reactionCutoff) continue;
     if (!mealHitsAllergen(meal, allergenId)) continue;
     for (const item of meal.items) {
       if (foodTriggers(item.foodId).includes(allergenId)) {
