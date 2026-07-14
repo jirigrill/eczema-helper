@@ -1,6 +1,6 @@
 # 0023 — Dose-escalation ladder as first-class domain data
 
-**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section.
+**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
 **Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table).
@@ -84,6 +84,91 @@ can apply.
 The ladder is pure/deterministic and LLM-independent, so it is sequenced **first**
 in the §5 worklist — it de-risks everything above it and is testable on its own
 (F3/F4 deterministic default with no proposer wired).
+
+### 5. Decision engine (`decideLadderMove`) — PRD #445
+
+Section 1 gives the menu, section 2 derives the current rung, and PRD #421
+shipped the read-only gate *signals* (`cadenceGate`, `skinCalmGate`,
+`checkpointVerdictGate`; joined later by `skinStabilityGate` — see below). PRD
+#445 adds the deterministic **brain** that composes
+them: a single pure function `decideLadderMove(input): LadderDecision` in
+`ladder.ts`. It is the F3 ≡ F4 walker — it never branches on phase; the phase
+difference reduces to one injected `cadenceDays` value. It **decides but never
+writes** (no meal/evaluation/schedule mutation); the mother still logs every
+dose herself. It is the single definition of a legal move that the PRD #423
+proposer's deep validator reuses (section 3).
+
+**Verdict union.** A closed discriminated union `LadderDecision`:
+
+```
+advance(from, to) | hold(rung, reason, daysRemaining?) | rest(rung, days, until)
+| step-back(from, to) | passed(rung) | blocked | ceiling-reached(rung)
+```
+
+`advance` with `from: null` is the first move (no separate `start`). `rest`
+carries `until` (a date) so "re-test becomes due" is computable without re-adding
+`days`. `blocked` carries no rung — the ladder was inert from the start (permanent
+elimination, or a stage with no rungs); `ceiling-reached` carries the rung it got
+stuck at.
+
+**Gate precedence — most-overriding first.** (1) permanent elimination →
+`blocked`; (2) floor exhausted or per-rung cap hit → `ceiling-reached`; (3) a
+reaction still in effect → `rest` (window open) then `step-back`; (4) checkpoint
+awaiting a verdict → `hold('awaiting-verdict')`; (5) skin worsened across the
+stability window → `hold('skin-worsening', baseline→current)`;
+(6) cadence not elapsed → `hold('cadence', daysRemaining)`; (7) otherwise →
+`advance`, or `passed` at the effective top. Safety/clinical gates dominate rhythm
+gates: a recorded reaction outranks an awaiting-verdict hold, and skin state
+outranks cadence (never advance while skin is trending worse, even when the clock
+allows it). A **steady baseline is not a hold reason on its own** — a child with
+mild eczema at severity 1 that stays at 1 through the window is escalation-eligible;
+only an increase over the window's baseline blocks. `skinCalmGate` remains in the
+codebase as a UI-facing "is there a flare right now?" signal but is no longer part
+of `decideLadderMove`'s decision path — `skinStabilityGate(observations, today,
+stabilityWindowDays)` replaced it (`stabilityWindowDays = max(cadenceDays, 3)` via
+`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day
+cadence from shrinking the safety window below a readable trend).
+
+**Reaction → rest → step-back → re-test.** A checkpoint reaction yields
+`rest(days)` keyed to severity (ADR-0016 `REST_PHASE_DAYS_*`). When the rest
+window elapses (`today` past `until`) the engine surfaces `step-back` to the
+**last-passing rung** (the rung directly below the reacting one) and re-tests
+there — auto-due, but the dose is still a mother-logged meal. A clean re-test
+re-advances: a reaction is a *temporary* setback, not a cap.
+
+**Per-rung cap + unified terminal.** A rung that reacts `MAX_RUNG_REACTIONS` times
+(a `policy.ts` constant) becomes a confirmed ceiling → `ceiling-reached`. The
+floor case (lowest rung reacts, nowhere lower to retreat) unifies into the *same*
+terminal. Both defer to human care; the engine never converts a terminal into a
+`permanent-*` status itself (ADR-0012 / ADR-0024).
+
+**Reaction binding by date.** A `ReintroductionEvaluation` carries no rung id, so
+a reaction dated D binds to the highest still-live rung whose anchor was logged in
+a meal on or before D.
+
+**One shared replay.** A single private helper (`deriveLadderState`) replays
+meals + evaluations in date order **once** and produces
+`{ liveRung, lastPassingRung, pendingReaction, ceilingRung, reactionCounts }`.
+`currentRung` becomes reaction-aware by projecting `liveRung` from it — so the
+delicate reaction-binding + step-back logic is written exactly once and the two
+public functions cannot drift. The replay is never exported.
+
+> PRD #445 sketched this struct's payload as a flat `restUntil` date. The
+> implementation instead carries a `pendingReaction` object (the rung, outcome,
+> `until` date, and `stepBackTo` target kept together) and adds `ceilingRung`
+> for the terminal state; `lastPassingRung` is derived as
+> `pendingReaction?.stepBackTo ?? liveRung`. The observable behaviour and the
+> public contract are unchanged — this is an internal shape refinement of a
+> never-exported helper.
+
+**Phase → cadence injection.** The engine takes `cadenceDays` as an explicit
+value; the caller sources it from `cadenceForPhase(phase)` in `policy.ts`
+(F3 `ACCEPTED_ALLERGEN_CADENCE_DAYS` vs F4 `REINTRODUCTION_CADENCE_DAYS`). The
+engine never derives F3-vs-F4 itself.
+
+Applying a verdict, and any UI rendering of it, is out of scope (PRD #423 / a
+follow-up UI pass). `scripts/simulate.ts` drives the engine and renders a
+`verdict:` line per allergen above the raw signals that produced it.
 
 ## Open question — the rung scale — RESOLVED 2026-07-05
 

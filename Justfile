@@ -111,9 +111,9 @@ setup-hooks:
 dev:
     bun run dev -- --host 0.0.0.0
 
-# Run allergen ladder simulator (no args → DEFAULT_TESTED_ALLERGENS; or pass allergen ids)
-simulate *allergens:
-    bun run scripts/simulate.ts {{allergens}}
+# Run allergen ladder simulator (no args → DEFAULT_TESTED_ALLERGENS; pass allergen ids and/or phase=tolerance-building|reintroduction, verbose=true|false)
+simulate *args:
+    bun run scripts/simulate.ts {{args}}
 
 # Run all tests (unit + e2e)
 test:

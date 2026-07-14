@@ -7,6 +7,8 @@ import {
   cadenceForPhase,
   isWithinLoggableWindow,
   REINTRODUCTION_CADENCE_DAYS,
+  SKIN_STABILITY_WINDOW_DAYS,
+  stabilityWindowFor,
 } from './policy';
 
 describe('isWithinLoggableWindow', () => {
@@ -45,5 +47,19 @@ describe('cadenceForPhase', () => {
 
   it('returns the reintroduction (F4) cadence for the reintroduction phase', () => {
     expect(cadenceForPhase('reintroduction')).toBe(REINTRODUCTION_CADENCE_DAYS);
+  });
+});
+
+describe('stabilityWindowFor', () => {
+  it('holds a minimum floor of SKIN_STABILITY_WINDOW_DAYS even when cadence is shorter', () => {
+    // reintroduction cadence is 1 day; the stability window must not shrink below the 3-day floor.
+    expect(stabilityWindowFor('reintroduction')).toBe(SKIN_STABILITY_WINDOW_DAYS);
+  });
+
+  it('grows with cadence when the phase cadence is at or above the floor', () => {
+    // tolerance-building cadence is 3 days, which happens to equal the floor.
+    expect(stabilityWindowFor('tolerance-building')).toBe(
+      Math.max(ACCEPTED_ALLERGEN_CADENCE_DAYS, SKIN_STABILITY_WINDOW_DAYS),
+    );
   });
 });

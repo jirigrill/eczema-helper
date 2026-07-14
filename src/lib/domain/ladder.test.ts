@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase } from "./ladder";
-import type { Ladder, LadderStep } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, skinStabilityGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase, decideLadderMove } from "./ladder";
+import type { Ladder, LadderStep, LadderDecisionInput } from "./ladder";
+import { MAX_RUNG_REACTIONS, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_MILD } from "$lib/domain/policy";
+import { addDays } from "$lib/utils/date";
 import type { Meal, SkinObservation, ReintroductionEvaluation, LadderAllergenId, PortionKind } from "$lib/domain/models";
 import { ALLERGENS } from "$lib/data/allergen-catalog/allergen-catalog";
 import { BundledCatalogAdapter } from "$lib/adapters/bundled-catalog-adapter";
@@ -385,6 +387,76 @@ describe("skinCalmGate", () => {
   });
 });
 
+// ── skinStabilityGate ─────────────────────────────────────────
+
+describe("skinStabilityGate", () => {
+  it("is permissive when there are no observations at all (missing data ≠ hold)", () => {
+    const result = skinStabilityGate([], "2026-06-05", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBeNull();
+    expect(result.currentSeverity).toBeNull();
+  });
+
+  it("allows advancing when severity stays the same across the window", () => {
+    const observations = [obs("2026-06-01", 1), obs("2026-06-03", 1)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(1);
+    expect(result.currentSeverity).toBe(1);
+  });
+
+  it("allows advancing when severity improves across the window", () => {
+    const observations = [obs("2026-06-01", 2), obs("2026-06-03", 0)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(2);
+    expect(result.currentSeverity).toBe(0);
+  });
+
+  it("blocks when severity increases even by one level", () => {
+    const observations = [obs("2026-06-01", 0), obs("2026-06-03", 1)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(false);
+    expect(result.baselineSeverity).toBe(0);
+    expect(result.currentSeverity).toBe(1);
+  });
+
+  it("treats an unchanged log as stable — a single observation is its own baseline", () => {
+    const observations = [obs("2026-06-01", 1)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(1);
+    expect(result.currentSeverity).toBe(1);
+  });
+
+  it("falls back to the pre-window observation when the window is empty (baseline == current)", () => {
+    // today=06-10, window=3 → window starts 06-07; only obs (06-01) is pre-window,
+    // so it serves as both baseline and current — a stale-but-known reading reads
+    // as "unchanged," not as a hold.
+    const observations = [obs("2026-06-01", 2)];
+    const result = skinStabilityGate(observations, "2026-06-10", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(2);
+    expect(result.currentSeverity).toBe(2);
+  });
+
+  it("prefers the first in-window reading as baseline when both in-window and pre-window observations exist", () => {
+    // today=06-05, window=3 → starts 06-02. Baseline should be 06-02 (severity 2), not 06-01.
+    const observations = [obs("2026-06-01", 0), obs("2026-06-02", 2), obs("2026-06-05", 2)];
+    const result = skinStabilityGate(observations, "2026-06-05", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(2);
+    expect(result.currentSeverity).toBe(2);
+  });
+
+  it("ignores observations after `today` — future readings do not gate a past date", () => {
+    const observations = [obs("2026-06-01", 0), obs("2026-06-08", 3)];
+    const result = skinStabilityGate(observations, "2026-06-02", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.currentSeverity).toBe(0);
+  });
+});
+
 // ── checkpointVerdictGate ─────────────────────────────────────
 
 function evaluation(
@@ -607,5 +679,302 @@ describe("rungAtDayInPhase", () => {
 
   it("returns null when the allergen is unknown", () => {
     expect(rungAtDayInPhase(catalog, "not-a-real-allergen" as LadderAllergenId, 1, "breastfed")).toBeNull();
+  });
+});
+
+// ── decideLadderMove ──────────────────────────────────────────
+
+describe("decideLadderMove", () => {
+  // Distinct anchors per rung so the reaction re-test walk is unambiguous.
+  const engineSteps: readonly LadderStep[] = [
+    { id: "e1", anchor: "pinch", isEvaluationCheckpoint: false, dose: "d1" },
+    { id: "e2", anchor: "teaspoon", isEvaluationCheckpoint: true, dose: "d2" },
+    { id: "e3", anchor: "spoon", isEvaluationCheckpoint: false, dose: "d3" },
+  ];
+  const engineLadder: Ladder = { allergenId: "eggs", stages: { breastfed: engineSteps } };
+
+  function decInput(overrides: Partial<LadderDecisionInput>): LadderDecisionInput {
+    return {
+      allergenId: "eggs",
+      meals: [],
+      evaluations: [],
+      observations: [],
+      defaultLadder: engineLadder,
+      override: null,
+      stage: "breastfed",
+      today: "2026-06-10",
+      cadenceDays: 1,
+      stabilityWindowDays: 3,
+      isPermanentlyEliminated: false,
+      ...overrides,
+    };
+  }
+
+  function eggMeal(date: string, amount: PortionKind): Meal {
+    return makeMeal({
+      id: `${date}:breakfast`,
+      date,
+      mealType: "breakfast",
+      items: [{ id: `i-${date}-${amount}`, name: "Vejce", foodId: "vejce", amount }],
+    });
+  }
+
+  // ── Clean climb → passed ──
+  describe("clean climb", () => {
+    it("advances from null (the first move) when nothing has been logged", () => {
+      expect(decideLadderMove(decInput({}))).toEqual({ kind: "advance", from: null, to: engineSteps[0] });
+    });
+
+    it("advances one rung at a time once the cadence has elapsed", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      expect(decideLadderMove(decInput({ meals, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("holds at a checkpoint rung awaiting a verdict", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-03", "teaspoon")];
+      expect(decideLadderMove(decInput({ meals, today: "2026-06-05" }))).toEqual({
+        kind: "hold",
+        rung: engineSteps[1],
+        reason: "awaiting-verdict",
+      });
+    });
+
+    it("advances past a checkpoint once its verdict is tolerated", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-03", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-05" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[1],
+        to: engineSteps[2],
+      });
+    });
+
+    it("reports the whole ladder passed at the effective top rung", () => {
+      const meals = [
+        eggMeal("2026-06-01", "pinch"),
+        eggMeal("2026-06-03", "teaspoon"),
+        eggMeal("2026-06-05", "spoon"),
+      ];
+      const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-07" }))).toEqual({
+        kind: "passed",
+        rung: engineSteps[2],
+      });
+    });
+  });
+
+  // ── Each hold reason in isolation ──
+  describe("hold reasons", () => {
+    it("holds when skin has worsened across the window and reports the delta", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 0), obs("2026-06-03", 2)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "hold",
+        rung: engineSteps[0],
+        reason: "skin-worsening",
+        baselineSeverity: 0,
+        currentSeverity: 2,
+      });
+    });
+
+    it("allows advancing when skin has stayed at a steady non-zero baseline", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 1), obs("2026-06-03", 1)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("allows advancing when skin has improved across the window", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 2), obs("2026-06-03", 1)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("treats an absent observation today as unchanged since the last log", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 1)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("holds on cadence and reports the days remaining", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      expect(decideLadderMove(decInput({ meals, cadenceDays: 3, today: "2026-06-02" }))).toEqual({
+        kind: "hold",
+        rung: engineSteps[0],
+        reason: "cadence",
+        daysRemaining: 2,
+      });
+    });
+  });
+
+  // ── Precedence overlaps ──
+  describe("precedence", () => {
+    it("prefers the skin-worsening hold over cadence when the cadence is already satisfied", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-02", 0), obs("2026-06-04", 3)];
+      // cadence (1 day) is satisfied by 06-04, so only the skin gate should hold.
+      const move = decideLadderMove(decInput({ meals, observations, today: "2026-06-04" }));
+      expect(move).toEqual({
+        kind: "hold",
+        rung: engineSteps[0],
+        reason: "skin-worsening",
+        baselineSeverity: 0,
+        currentSeverity: 3,
+      });
+    });
+
+    it("rests on a recorded checkpoint reaction rather than holding for a verdict", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-02", outcome: "clear-reaction" })];
+      const move = decideLadderMove(decInput({ meals, evaluations, today: "2026-06-02" }));
+      expect(move).toEqual({
+        kind: "rest",
+        rung: engineSteps[1],
+        days: REST_PHASE_DAYS_CLEAR,
+        until: addDays("2026-06-02", REST_PHASE_DAYS_CLEAR),
+      });
+    });
+  });
+
+  // ── Reaction cycle: rest → step-back → clean re-test → re-advance ──
+  describe("reaction cycle", () => {
+    const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+    const evaluations = [evaluation({ date: "2026-06-02", outcome: "mild-reaction" })];
+    const until = addDays("2026-06-02", REST_PHASE_DAYS_MILD);
+
+    it("rests while the recovery window is open", () => {
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-03" }))).toEqual({
+        kind: "rest",
+        rung: engineSteps[1],
+        days: REST_PHASE_DAYS_MILD,
+        until,
+      });
+    });
+
+    it("steps back to the last-passing rung once the rest has elapsed", () => {
+      expect(decideLadderMove(decInput({ meals, evaluations, today: addDays(until, 1) }))).toEqual({
+        kind: "step-back",
+        from: engineSteps[1],
+        to: engineSteps[0],
+      });
+    });
+
+    it("re-advances after a clean re-test — a reaction is a temporary setback", () => {
+      const retestMeals = [...meals, eggMeal("2026-06-11", "teaspoon")];
+      const retestEvals = [...evaluations, evaluation({ date: "2026-06-11", outcome: "tolerated" })];
+      expect(
+        decideLadderMove(decInput({ meals: retestMeals, evaluations: retestEvals, today: "2026-06-13" })),
+      ).toEqual({ kind: "advance", from: engineSteps[1], to: engineSteps[2] });
+    });
+  });
+
+  // ── Reaction binding by date ──
+  // A verdict dated D binds to the highest rung whose anchor was dosed on or
+  // before D. The replay orders a same-date meal *before* a same-date eval, so
+  // a dose logged the same day the reaction is recorded still counts as the
+  // reacting rung. This pins that ordering — flip it and the reaction would
+  // bind one rung lower.
+  describe("reaction binding by date", () => {
+    it("binds a same-day reaction to the rung dosed that same day, not the rung below", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-02", outcome: "mild-reaction" })];
+      // teaspoon (e2) dosed on 06-02 → the 06-02 reaction rests at e2, not e1.
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-03" }))).toEqual({
+        kind: "rest",
+        rung: engineSteps[1],
+        days: REST_PHASE_DAYS_MILD,
+        until: addDays("2026-06-02", REST_PHASE_DAYS_MILD),
+      });
+    });
+
+    it("does not bind a reaction to a higher rung dosed after the reaction date", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-05", "teaspoon")];
+      // Reaction dated 06-02: only pinch (e1) was dosed on or before that day,
+      // so it binds to e1 (floor exhaustion) — the later teaspoon does not count.
+      const evaluations = [evaluation({ date: "2026-06-02", outcome: "severe-reaction" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-10" }))).toEqual({
+        kind: "ceiling-reached",
+        rung: engineSteps[0],
+      });
+    });
+  });
+
+  // ── Terminals ──
+  describe("terminals", () => {
+    it("reports ceiling-reached when a rung reacts up to the per-rung cap", () => {
+      const meals = [
+        eggMeal("2026-06-01", "pinch"),
+        eggMeal("2026-06-02", "teaspoon"),
+        eggMeal("2026-06-11", "teaspoon"),
+      ];
+      const evaluations = [
+        evaluation({ date: "2026-06-02", outcome: "mild-reaction" }),
+        evaluation({ date: "2026-06-11", outcome: "mild-reaction" }),
+      ];
+      expect(MAX_RUNG_REACTIONS).toBe(2); // pin the fixture to the constant
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-20" }))).toEqual({
+        kind: "ceiling-reached",
+        rung: engineSteps[1],
+      });
+    });
+
+    it("reports ceiling-reached on floor exhaustion — the lowest rung reacts", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const evaluations = [evaluation({ date: "2026-06-01", outcome: "severe-reaction" })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: "2026-06-05" }))).toEqual({
+        kind: "ceiling-reached",
+        rung: engineSteps[0],
+      });
+    });
+
+    it("reports blocked when permanently eliminated, regardless of history", () => {
+      const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-03", "teaspoon")];
+      const evaluations = [evaluation({ date: "2026-06-03", outcome: "tolerated" })];
+      expect(
+        decideLadderMove(decInput({ meals, evaluations, isPermanentlyEliminated: true })),
+      ).toEqual({ kind: "blocked" });
+    });
+  });
+
+  // ── Override ──
+  it("fires passed at the effective top when an override shortens the ladder", () => {
+    const override: Ladder = {
+      allergenId: "eggs",
+      stages: {
+        breastfed: [{ id: "o1", anchor: "pinch", isEvaluationCheckpoint: false, dose: "override top" }],
+      },
+    };
+    const meals = [eggMeal("2026-06-01", "pinch")];
+    // Against the default the pinch is rung e1 with e2 above (→ advance); the
+    // override makes pinch the sole, top rung (→ passed at the effective top).
+    expect(decideLadderMove(decInput({ meals, override, today: "2026-06-03" }))).toEqual({
+      kind: "passed",
+      rung: override.stages.breastfed![0],
+    });
+  });
+
+  // ── currentRung reaction-awareness (shared replay through the projection) ──
+  it("currentRung drops the live rung after a bound reaction", () => {
+    const meals = [eggMeal("2026-06-01", "pinch"), eggMeal("2026-06-02", "teaspoon")];
+    // No reaction: the live rung is the checkpoint e2.
+    expect(currentRung("eggs", meals, engineLadder, "breastfed")?.id).toBe("e2");
+    // A reaction bound to e2 drops the live rung to e1.
+    const evaluations = [evaluation({ date: "2026-06-02", outcome: "clear-reaction" })];
+    expect(currentRung("eggs", meals, engineLadder, "breastfed", null, evaluations)?.id).toBe("e1");
   });
 });
