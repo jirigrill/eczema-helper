@@ -357,6 +357,59 @@ export function skinCalmGate(
   return { allowed: severity === 0, isFlare: severity > 0, latestSeverity: severity };
 }
 
+export type SkinStabilityGateResult = {
+  /** Whether escalation is allowed — false when skin severity has increased across the window. */
+  allowed: boolean;
+  /** Severity to compare against — first observation inside the window if any,
+   *  otherwise the most recent observation before it, otherwise `null`. */
+  baselineSeverity: RegionLevel | null;
+  /** Severity on the most recent observation on or before `today`, or `null` when none exists. */
+  currentSeverity: RegionLevel | null;
+};
+
+/**
+ * Skin-stability gate — the trend-based successor to `skinCalmGate` inside the
+ * decision engine (ADR-0023 §decision-engine). Blocks escalation when skin has
+ * *worsened* across the window; a steady baseline of mild eczema is not a hold
+ * reason. Baseline priority: first observation inside `[today - windowDays, today]`
+ * if any exists (start-of-window reading), otherwise the most recent observation
+ * before the window (a stale-but-known baseline). With no observations at all
+ * the gate is permissive — same "missing data ≠ hold" stance as the other gates.
+ * Under an unchanged or improved reading the mother's silence is read as
+ * "unchanged," matching how a diligent logger would report a stable child.
+ * `windowDays` is injected by the caller so the engine never derives it.
+ */
+export function skinStabilityGate(
+  observations: SkinObservation[],
+  today: string,
+  windowDays: number
+): SkinStabilityGateResult {
+  const eligible = observations
+    .filter((o) => o.date <= today)
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+  if (eligible.length === 0) {
+    return { allowed: true, baselineSeverity: null, currentSeverity: null };
+  }
+
+  const windowStart = addDays(today, -windowDays);
+  const inWindow = eligible.filter((o) => o.date >= windowStart);
+  const beforeWindow = eligible.filter((o) => o.date < windowStart);
+  const baselineObs =
+    inWindow.length > 0 ? inWindow[0] : beforeWindow[beforeWindow.length - 1];
+  const currentObs = eligible[eligible.length - 1];
+
+  const baselineSeverity = overallSeverity(baselineObs);
+  const currentSeverity = overallSeverity(currentObs);
+  return {
+    allowed: currentSeverity <= baselineSeverity,
+    baselineSeverity,
+    currentSeverity
+  };
+}
+
 export type CheckpointVerdictGateResult = {
   /** Whether escalation past the checkpoint rung is allowed. */
   allowed: boolean;
@@ -418,8 +471,13 @@ export type LadderDecision =
   | {
       kind: 'hold';
       rung: LadderStep;
-      reason: 'awaiting-verdict' | 'flare' | 'cadence';
+      reason: 'awaiting-verdict' | 'skin-worsening' | 'cadence';
+      /** Only set when reason is 'cadence' — days left before the cadence gate re-opens. */
       daysRemaining?: number;
+      /** Only set when reason is 'skin-worsening' — the baseline the current reading rose above. */
+      baselineSeverity?: RegionLevel;
+      /** Only set when reason is 'skin-worsening' — the current severity that triggered the hold. */
+      currentSeverity?: RegionLevel;
     }
   | { kind: 'rest'; rung: LadderStep; days: number; until: string }
   | { kind: 'step-back'; from: LadderStep; to: LadderStep }
@@ -446,6 +504,8 @@ export type LadderDecisionInput = {
   today: string;
   /** Minimum spacing between escalation steps (F3/F4 via `cadenceForPhase`). */
   cadenceDays: number;
+  /** Look-back window for the skin-stability gate — how many days back to seek a baseline. */
+  stabilityWindowDays: number;
   /** True for a `permanent-mother`/`permanent-baby` allergen (ADR-0012). */
   isPermanentlyEliminated?: boolean;
 };
@@ -463,14 +523,16 @@ export type LadderDecisionInput = {
  *   2. floor exhausted or per-rung cap hit → `ceiling-reached` (unified terminal);
  *   3. reaction still in effect → `rest` (rest window open) then `step-back`;
  *   4. checkpoint awaiting a verdict → `hold('awaiting-verdict')`;
- *   5. skin flare → `hold('flare')`;
+ *   5. skin worsened across the stability window → `hold('skin-worsening')`;
  *   6. cadence not elapsed → `hold('cadence', daysRemaining)`;
  *   7. otherwise → `advance`, or `passed` at the effective top.
  *
  * Safety/clinical gates dominate rhythm gates: a recorded reaction outranks an
- * awaiting-verdict hold, and skin state outranks cadence (never advance during a
- * flare even when the clock allows it). All rung reasoning runs against the
- * *effective* ladder (`resolveLadder`), never the raw default.
+ * awaiting-verdict hold, and skin state outranks cadence (never advance while
+ * skin is trending worse, even when the clock allows it). A steady baseline
+ * — even mild eczema at severity 1 — is not a hold reason on its own; only an
+ * increase over the window's baseline blocks. All rung reasoning runs against
+ * the *effective* ladder (`resolveLadder`), never the raw default.
  */
 export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   const { allergenId, meals, evaluations, observations, defaultLadder, override, stage, today } =
@@ -511,9 +573,18 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   // are about to attempt when nothing has been logged yet.
   const referenceRung = liveRung ?? steps[0];
 
-  // (5) Skin flare — never escalate exposure while the baby is flaring.
-  if (skinCalmGate(observations, today).isFlare) {
-    return { kind: 'hold', rung: referenceRung, reason: 'flare' };
+  // (5) Skin-stability — hold when skin has worsened across the window. A
+  //     steady baseline (even mild eczema at severity 1) is not a hold reason;
+  //     only an *increase* over the window's baseline blocks escalation.
+  const stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
+  if (!stability.allowed) {
+    return {
+      kind: 'hold',
+      rung: referenceRung,
+      reason: 'skin-worsening',
+      baselineSeverity: stability.baselineSeverity as RegionLevel,
+      currentSeverity: stability.currentSeverity as RegionLevel
+    };
   }
 
   // (6) Cadence — wait the required spacing since the last dose.

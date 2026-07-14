@@ -123,6 +123,20 @@ export const REINTRODUCTION_CADENCE_DAYS = 1;
  */
 export const MAX_RUNG_REACTIONS = 2;
 
+/**
+ * Look-back window for the skin-stability gate (ADR-0023 §decision-engine).
+ * Held to `max(cadenceDays, 3)` by `stabilityWindowFor`; three days is the
+ * shortest span in which "skin got worse" reads as a genuine trend rather
+ * than day-to-day noise, and reintroduction's 1-day cadence must not shrink
+ * the safety window below that floor.
+ */
+export const SKIN_STABILITY_WINDOW_DAYS = 3;
+
+/** The look-back window `decideLadderMove` should compare skin against. */
+export function stabilityWindowFor(phase: LadderPhase): number {
+  return Math.max(cadenceForPhase(phase), SKIN_STABILITY_WINDOW_DAYS);
+}
+
 /** The two protocol phases that walk the dose ladder (ADR-0023 F3 ≡ F4). */
 export type LadderPhase = Extract<PhaseType, "tolerance-building" | "reintroduction">;
 

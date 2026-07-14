@@ -89,7 +89,8 @@ in the §5 worklist — it de-risks everything above it and is testable on its o
 
 Section 1 gives the menu, section 2 derives the current rung, and PRD #421
 shipped the read-only gate *signals* (`cadenceGate`, `skinCalmGate`,
-`checkpointVerdictGate`). PRD #445 adds the deterministic **brain** that composes
+`checkpointVerdictGate`; joined later by `skinStabilityGate` — see below). PRD
+#445 adds the deterministic **brain** that composes
 them: a single pure function `decideLadderMove(input): LadderDecision` in
 `ladder.ts`. It is the F3 ≡ F4 walker — it never branches on phase; the phase
 difference reduces to one injected `cadenceDays` value. It **decides but never
@@ -113,11 +114,20 @@ stuck at.
 **Gate precedence — most-overriding first.** (1) permanent elimination →
 `blocked`; (2) floor exhausted or per-rung cap hit → `ceiling-reached`; (3) a
 reaction still in effect → `rest` (window open) then `step-back`; (4) checkpoint
-awaiting a verdict → `hold('awaiting-verdict')`; (5) skin flare → `hold('flare')`;
+awaiting a verdict → `hold('awaiting-verdict')`; (5) skin worsened across the
+stability window → `hold('skin-worsening', baseline→current)`;
 (6) cadence not elapsed → `hold('cadence', daysRemaining)`; (7) otherwise →
 `advance`, or `passed` at the effective top. Safety/clinical gates dominate rhythm
 gates: a recorded reaction outranks an awaiting-verdict hold, and skin state
-outranks cadence (never advance during a flare even when the clock allows it).
+outranks cadence (never advance while skin is trending worse, even when the clock
+allows it). A **steady baseline is not a hold reason on its own** — a child with
+mild eczema at severity 1 that stays at 1 through the window is escalation-eligible;
+only an increase over the window's baseline blocks. `skinCalmGate` remains in the
+codebase as a UI-facing "is there a flare right now?" signal but is no longer part
+of `decideLadderMove`'s decision path — `skinStabilityGate(observations, today,
+stabilityWindowDays)` replaced it (`stabilityWindowDays = max(cadenceDays, 3)` via
+`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day
+cadence from shrinking the safety window below a readable trend).
 
 **Reaction → rest → step-back → re-test.** A checkpoint reaction yields
 `rest(days)` keyed to severity (ADR-0016 `REST_PHASE_DAYS_*`). When the rest

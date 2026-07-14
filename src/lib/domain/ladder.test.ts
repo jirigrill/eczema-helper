@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase, decideLadderMove } from "./ladder";
+import { currentRung, nextLegalStep, cadenceGate, skinCalmGate, skinStabilityGate, checkpointVerdictGate, resolveLadder, rungAtDayInPhase, decideLadderMove } from "./ladder";
 import type { Ladder, LadderStep, LadderDecisionInput } from "./ladder";
 import { MAX_RUNG_REACTIONS, REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_MILD } from "$lib/domain/policy";
 import { addDays } from "$lib/utils/date";
@@ -387,6 +387,76 @@ describe("skinCalmGate", () => {
   });
 });
 
+// ── skinStabilityGate ─────────────────────────────────────────
+
+describe("skinStabilityGate", () => {
+  it("is permissive when there are no observations at all (missing data ≠ hold)", () => {
+    const result = skinStabilityGate([], "2026-06-05", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBeNull();
+    expect(result.currentSeverity).toBeNull();
+  });
+
+  it("allows advancing when severity stays the same across the window", () => {
+    const observations = [obs("2026-06-01", 1), obs("2026-06-03", 1)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(1);
+    expect(result.currentSeverity).toBe(1);
+  });
+
+  it("allows advancing when severity improves across the window", () => {
+    const observations = [obs("2026-06-01", 2), obs("2026-06-03", 0)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(2);
+    expect(result.currentSeverity).toBe(0);
+  });
+
+  it("blocks when severity increases even by one level", () => {
+    const observations = [obs("2026-06-01", 0), obs("2026-06-03", 1)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(false);
+    expect(result.baselineSeverity).toBe(0);
+    expect(result.currentSeverity).toBe(1);
+  });
+
+  it("treats an unchanged log as stable — a single observation is its own baseline", () => {
+    const observations = [obs("2026-06-01", 1)];
+    const result = skinStabilityGate(observations, "2026-06-03", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(1);
+    expect(result.currentSeverity).toBe(1);
+  });
+
+  it("falls back to the pre-window observation when the window is empty (baseline == current)", () => {
+    // today=06-10, window=3 → window starts 06-07; only obs (06-01) is pre-window,
+    // so it serves as both baseline and current — a stale-but-known reading reads
+    // as "unchanged," not as a hold.
+    const observations = [obs("2026-06-01", 2)];
+    const result = skinStabilityGate(observations, "2026-06-10", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(2);
+    expect(result.currentSeverity).toBe(2);
+  });
+
+  it("prefers the first in-window reading as baseline when both in-window and pre-window observations exist", () => {
+    // today=06-05, window=3 → starts 06-02. Baseline should be 06-02 (severity 2), not 06-01.
+    const observations = [obs("2026-06-01", 0), obs("2026-06-02", 2), obs("2026-06-05", 2)];
+    const result = skinStabilityGate(observations, "2026-06-05", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.baselineSeverity).toBe(2);
+    expect(result.currentSeverity).toBe(2);
+  });
+
+  it("ignores observations after `today` — future readings do not gate a past date", () => {
+    const observations = [obs("2026-06-01", 0), obs("2026-06-08", 3)];
+    const result = skinStabilityGate(observations, "2026-06-02", 3);
+    expect(result.allowed).toBe(true);
+    expect(result.currentSeverity).toBe(0);
+  });
+});
+
 // ── checkpointVerdictGate ─────────────────────────────────────
 
 function evaluation(
@@ -634,6 +704,7 @@ describe("decideLadderMove", () => {
       stage: "breastfed",
       today: "2026-06-10",
       cadenceDays: 1,
+      stabilityWindowDays: 3,
       isPermanentlyEliminated: false,
       ...overrides,
     };
@@ -698,13 +769,45 @@ describe("decideLadderMove", () => {
 
   // ── Each hold reason in isolation ──
   describe("hold reasons", () => {
-    it("holds on a flare and names the flare as the reason", () => {
+    it("holds when skin has worsened across the window and reports the delta", () => {
       const meals = [eggMeal("2026-06-01", "pinch")];
-      const observations = [obs("2026-06-03", 2)];
+      const observations = [obs("2026-06-01", 0), obs("2026-06-03", 2)];
       expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
         kind: "hold",
         rung: engineSteps[0],
-        reason: "flare",
+        reason: "skin-worsening",
+        baselineSeverity: 0,
+        currentSeverity: 2,
+      });
+    });
+
+    it("allows advancing when skin has stayed at a steady non-zero baseline", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 1), obs("2026-06-03", 1)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("allows advancing when skin has improved across the window", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 2), obs("2026-06-03", 1)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it("treats an absent observation today as unchanged since the last log", () => {
+      const meals = [eggMeal("2026-06-01", "pinch")];
+      const observations = [obs("2026-06-01", 1)];
+      expect(decideLadderMove(decInput({ meals, observations, today: "2026-06-03" }))).toEqual({
+        kind: "advance",
+        from: engineSteps[0],
+        to: engineSteps[1],
       });
     });
 
@@ -721,12 +824,18 @@ describe("decideLadderMove", () => {
 
   // ── Precedence overlaps ──
   describe("precedence", () => {
-    it("prefers the flare hold over cadence when the cadence is already satisfied", () => {
+    it("prefers the skin-worsening hold over cadence when the cadence is already satisfied", () => {
       const meals = [eggMeal("2026-06-01", "pinch")];
-      const observations = [obs("2026-06-04", 3)];
-      // cadence (1 day) is satisfied by 06-04, so only the flare should hold.
+      const observations = [obs("2026-06-02", 0), obs("2026-06-04", 3)];
+      // cadence (1 day) is satisfied by 06-04, so only the skin gate should hold.
       const move = decideLadderMove(decInput({ meals, observations, today: "2026-06-04" }));
-      expect(move).toEqual({ kind: "hold", rung: engineSteps[0], reason: "flare" });
+      expect(move).toEqual({
+        kind: "hold",
+        rung: engineSteps[0],
+        reason: "skin-worsening",
+        baselineSeverity: 0,
+        currentSeverity: 3,
+      });
     });
 
     it("rests on a recorded checkpoint reaction rather than holding for a verdict", () => {

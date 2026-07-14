@@ -17,15 +17,19 @@
  * not in this script — the simulator only drives and renders it.
  *
  * ── How to run ────────────────────────────────────────────────
- *   just simulate                     # track DEFAULT_TESTED_ALLERGENS (soy, wheat, eggs, dairy)
- *   just simulate dairy               # track only dairy
- *   just simulate dairy eggs          # track two allergens
+ *   just simulate                                 # track DEFAULT_TESTED_ALLERGENS (soy, wheat, eggs, dairy)
+ *   just simulate dairy                           # track only dairy
+ *   just simulate dairy eggs                      # track two allergens
+ *   just simulate phase=reintroduction            # start in F4 (cadence 1d) instead of F3
+ *   just simulate dairy phase=reintroduction      # combine
+ *   just simulate verbose=true                    # also print the per-render → gate call trace
  *
  * Without the `just` recipe:
  *   bun run scripts/simulate.ts               # no args → default set
  *   bun run scripts/simulate.ts dairy         # track only dairy
  *
  * An unknown allergen id aborts with the list of valid (ladder-carrying) ids.
+ * The initial phase can also be flipped at runtime with the `phase` command.
  * Once running, type `help` for the command list, `quit` (or Ctrl-D) to exit.
  * In a real terminal, ↑/↓ recall previous commands and the line is editable.
  */
@@ -36,6 +40,7 @@ import {
   currentRung,
   cadenceGate,
   skinCalmGate,
+  skinStabilityGate,
   checkpointVerdictGate,
   decideLadderMove,
   resolveLadder,
@@ -58,7 +63,7 @@ import type {
 } from '../src/lib/domain/models';
 import { FEEDING_STAGES } from '../src/lib/domain/canonical-allergen';
 import { ALLERGENS, FOODS } from '../src/lib/data/allergen-catalog/allergen-catalog';
-import { DEFAULT_TESTED_ALLERGENS, cadenceForPhase, type LadderPhase } from '../src/lib/domain/policy';
+import { DEFAULT_TESTED_ALLERGENS, cadenceForPhase, stabilityWindowFor, type LadderPhase } from '../src/lib/domain/policy';
 import { addDays } from '../src/lib/utils/date';
 
 // ── Config ────────────────────────────────────────────────────
@@ -83,20 +88,59 @@ const RED = '\x1b[31m';
 const CYAN = '\x1b[36m';
 const RESET = '\x1b[0m';
 
-// ── Tracked allergens (from CLI args) ─────────────────────────
+// ── Tracked allergens + initial phase (from CLI args) ─────────
 
-function parseTracked(argv: readonly string[]): readonly ProtocolAllergenId[] {
-  if (argv.length === 0) return DEFAULT_TESTED_ALLERGENS;
-  const unknown = argv.filter((a) => !LADDER_ALLERGENS.includes(a as ProtocolAllergenId));
+type CliArgs = {
+  tracked: readonly ProtocolAllergenId[];
+  phase: LadderPhase;
+  verbose: boolean;
+};
+
+function parseArgs(argv: readonly string[]): CliArgs {
+  const positional: string[] = [];
+  let phase: LadderPhase = 'tolerance-building';
+  let verbose = false;
+
+  for (const raw of argv) {
+    const eq = raw.indexOf('=');
+    if (eq > 0) {
+      const key = raw.slice(0, eq);
+      const value = raw.slice(eq + 1);
+      if (key === 'phase') {
+        if (!isPhase(value)) {
+          console.error(`${RED}phase must be one of: ${LADDER_PHASES.join(', ')} (got '${value}')${RESET}`);
+          process.exit(1);
+        }
+        phase = value;
+        continue;
+      }
+      if (key === 'verbose') {
+        if (value !== 'true' && value !== 'false') {
+          console.error(`${RED}verbose must be 'true' or 'false' (got '${value}')${RESET}`);
+          process.exit(1);
+        }
+        verbose = value === 'true';
+        continue;
+      }
+      console.error(`${RED}unknown flag: ${key}${RESET}`);
+      console.error(`${DIM}supported flags: phase=<${LADDER_PHASES.join('|')}>, verbose=<true|false>${RESET}`);
+      process.exit(1);
+    }
+    positional.push(raw);
+  }
+
+  const tracked = positional.length === 0 ? DEFAULT_TESTED_ALLERGENS : positional;
+  const unknown = tracked.filter((a) => !LADDER_ALLERGENS.includes(a as ProtocolAllergenId));
   if (unknown.length > 0) {
     console.error(`${RED}unknown allergen id(s): ${unknown.join(', ')}${RESET}`);
     console.error(`${DIM}valid ids (allergens with a ladder): ${LADDER_ALLERGENS.join(', ')}${RESET}`);
     process.exit(1);
   }
-  return argv as ProtocolAllergenId[];
+  return { tracked: tracked as readonly ProtocolAllergenId[], phase, verbose };
 }
 
-const TRACKED = parseTracked(process.argv.slice(2));
+const CLI = parseArgs(process.argv.slice(2));
+const TRACKED = CLI.tracked;
 
 // ── In-memory world ───────────────────────────────────────────
 
@@ -122,7 +166,7 @@ const world: World = {
   permanent: new Set(),
   today: '2026-06-01',
   stage: 'breastfed',
-  phase: 'tolerance-building',
+  phase: CLI.phase,
 };
 
 /** The cadence the engine is driven with — resolved from the active phase (ADR-0023). */
@@ -130,14 +174,22 @@ function cadenceDays(): number {
   return cadenceForPhase(world.phase);
 }
 
+/** The skin-stability window the engine is driven with (ADR-0023 §decision-engine). */
+function stabilityWindowDays(): number {
+  return stabilityWindowFor(world.phase);
+}
+
 // ── Tracing ───────────────────────────────────────────────────
 
 let traceOn = true;
 let traceFull = false;
+let verbose = CLI.verbose;
 
-/** A domain-function call: name, argument summaries, and the return value. */
+/** A domain-function call: name, argument summaries, and the return value.
+ *  Gated on `verbose` — these are diagnostic and off by default, while
+ *  mutation traces remain visible so the record of user actions stays intact. */
 function traceCall(name: string, args: string[], ret: string): void {
-  if (!traceOn) return;
+  if (!verbose || !traceOn) return;
   console.log(`  ${DIM}→ ${name}(${args.join(', ')}) = ${ret}${RESET}`);
 }
 
@@ -334,8 +386,17 @@ function formatVerdict(v: LadderDecision): string {
   switch (v.kind) {
     case 'advance':
       return `${GREEN}advance${RESET} ${DIM}${v.from?.id ?? '(start)'} → ${v.to.id}${RESET}`;
-    case 'hold':
-      return `${YELLOW}hold${RESET} ${DIM}${v.reason}${v.daysRemaining !== undefined ? ` (${v.daysRemaining}d left)` : ''} @ ${v.rung.id}${RESET}`;
+    case 'hold': {
+      const detail =
+        v.reason === 'cadence' && v.daysRemaining !== undefined
+          ? ` (${v.daysRemaining}d left)`
+          : v.reason === 'skin-worsening' &&
+              v.baselineSeverity !== undefined &&
+              v.currentSeverity !== undefined
+            ? ` (${v.baselineSeverity} → ${v.currentSeverity})`
+            : '';
+      return `${YELLOW}hold${RESET} ${DIM}${v.reason}${detail} @ ${v.rung.id}${RESET}`;
+    }
     case 'rest':
       return `${YELLOW}rest${RESET} ${DIM}${v.days}d until ${v.until} @ ${v.rung.id}${RESET}`;
     case 'step-back':
@@ -368,6 +429,13 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
   const skin = skinCalmGate(world.observations, world.today);
   traceCall('skinCalmGate', [sumObs(), `'${world.today}'`], JSON.stringify(skin));
 
+  const stability = skinStabilityGate(world.observations, world.today, stabilityWindowDays());
+  traceCall(
+    'skinStabilityGate',
+    [sumObs(), `'${world.today}'`, String(stabilityWindowDays())],
+    JSON.stringify(stability)
+  );
+
   const verdict = checkpointVerdictGate(rung, allergenId, world.evaluations);
   traceCall('checkpointVerdictGate', [rung?.id ?? 'null', `'${allergenId}'`, sumEvals()], JSON.stringify(verdict));
 
@@ -382,6 +450,7 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
     stage,
     today: world.today,
     cadenceDays: cadenceDays(),
+    stabilityWindowDays: stabilityWindowDays(),
     isPermanentlyEliminated: isPermanent,
   });
   traceCall(
@@ -390,7 +459,7 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
       `{ '${allergenId}', ${sumMeals()}, ${sumEvals()}, ${sumObs()}, ` +
         `defaultLadder=${sumLadder(def)}, override=${sumLadder(ovr)}, ` +
         `stage='${stage}', today='${world.today}', cadence=${cadenceDays()}, ` +
-        `permanent=${isPermanent} }`,
+        `stabilityWindow=${stabilityWindowDays()}, permanent=${isPermanent} }`,
     ],
     JSON.stringify(move),
   );
@@ -425,16 +494,21 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
     ? `${GREEN}ok${RESET}`
     : `${YELLOW}wait ${cadence.daysSinceLastDose}d/${cadenceDays()}d${RESET}`;
   const skinTxt = skin.isFlare ? `${RED}flare ${skin.latestSeverity}${RESET}` : `${GREEN}calm${RESET}`;
+  const trendTxt = stability.allowed
+    ? stability.baselineSeverity !== null && stability.currentSeverity !== null
+      ? `${GREEN}stable ${stability.baselineSeverity}→${stability.currentSeverity}${RESET}`
+      : `${GREEN}stable (no data)${RESET}`
+    : `${RED}worsening ${stability.baselineSeverity}→${stability.currentSeverity}${RESET}`;
   const verdictTxt = verdict.allowed
     ? `${GREEN}ok${RESET}`
     : `${RED}hold${verdict.requiresRest ? ` rest ${verdict.restDays}d` : ''}${RESET}`;
-  console.log(`  ${DIM}signals:${RESET} cadence ${cadenceTxt} | skin ${skinTxt} | verdict ${verdictTxt}`);
+  console.log(`  ${DIM}signals:${RESET} cadence ${cadenceTxt} | skin ${skinTxt} | trend ${trendTxt} | verdict ${verdictTxt}`);
 }
 
 function renderState(): void {
   console.log(`\n${'═'.repeat(56)}`);
   console.log(
-    `${BOLD}day ${world.today}${RESET}   ${DIM}stage=${world.stage} phase=${world.phase} (cadence ${cadenceDays()}d) meals=${world.meals.length} skin=${world.observations.length} evals=${world.evaluations.length}${RESET}`
+    `${BOLD}day ${world.today}${RESET}   ${DIM}stage=${world.stage} phase=${world.phase} (cadence ${cadenceDays()}d, stability window ${stabilityWindowDays()}d) meals=${world.meals.length} skin=${world.observations.length} evals=${world.evaluations.length}${RESET}`
   );
   for (const a of TRACKED) renderAllergen(a);
   console.log('');
@@ -563,6 +637,7 @@ ${BOLD}commands${RESET}  ${DIM}(type, press enter, see state)${RESET}
   ${BOLD}rung rm${RESET}   <a> <stage> <n>                                        remove rung n
   ${BOLD}rung reset${RESET} <a> [stage]     drop the override (one stage, or all)
   ${BOLD}trace${RESET} <on|off|full>        toggle call tracing (full = verbatim args)
+  ${BOLD}verbose${RESET} <on|off>            show/hide the per-render → gate call trace (default off)
   ${BOLD}show${RESET}                       reprint current state
   ${BOLD}clear${RESET}                      clear the screen, keep only legend + current state
   ${BOLD}reset${RESET}                      wipe all logged data + overrides
@@ -660,6 +735,14 @@ function handle(line: string): boolean {
       console.log(`${DIM}trace: ${traceOn ? (traceFull ? 'full' : 'on') : 'off'}${RESET}`);
       return true;
     }
+    case 'verbose': {
+      const mode = args[0];
+      if (mode === 'on') verbose = true;
+      else if (mode === 'off') verbose = false;
+      else return warn('verbose <on|off>');
+      console.log(`${DIM}verbose: ${verbose ? 'on' : 'off'}${RESET}`);
+      return true;
+    }
     case 'next': {
       const n = args[0] ? parseInt(args[0], 10) : 1;
       if (Number.isNaN(n) || n < 1) return warn('next needs a positive integer');
@@ -746,7 +829,7 @@ function warn(msg: string): boolean {
 
 // ── REPL ──────────────────────────────────────────────────────
 
-console.log(`${BOLD}Allergen ladder simulator${RESET}  ${DIM}— tracking: ${TRACKED.join(', ')}${RESET}`);
+console.log(`${BOLD}Allergen ladder simulator${RESET}  ${DIM}— tracking: ${TRACKED.join(', ')} · phase: ${world.phase} (cadence ${cadenceDays()}d, stability window ${stabilityWindowDays()}d) · verbose: ${verbose ? 'on' : 'off'}${RESET}`);
 console.log(`${DIM}type 'help', 'quit' to exit${RESET}`);
 console.log(HELP);
 renderState();
