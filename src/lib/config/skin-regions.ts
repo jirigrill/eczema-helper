@@ -44,26 +44,26 @@ export type SeverityConfig = SeverityStrings & {
 export const severityConfig = {
   0: {
     ...severityStrings[0],
-    dot:        'bg-surface-dark',
-    tileBg:     'bg-white',
+    dot: 'bg-surface-dark',
+    tileBg: 'bg-white',
     tileBorder: 'border-surface-dark',
   },
   1: {
     ...severityStrings[1],
-    dot:        'bg-warning',
-    tileBg:     'bg-warning/15',
+    dot: 'bg-warning',
+    tileBg: 'bg-warning/15',
     tileBorder: 'border-warning/50',
   },
   2: {
     ...severityStrings[2],
-    dot:        'bg-severity-4',
-    tileBg:     'bg-severity-4/45',
+    dot: 'bg-severity-4',
+    tileBg: 'bg-severity-4/45',
     tileBorder: 'border-severity-4/50',
   },
   3: {
     ...severityStrings[3],
-    dot:        'bg-danger',
-    tileBg:     'bg-danger/60',
+    dot: 'bg-danger',
+    tileBg: 'bg-danger/60',
     tileBorder: 'border-danger/50',
   },
 } as const satisfies Record<RegionLevel, SeverityConfig>;

@@ -39,7 +39,7 @@ function mealWithConfirmed(foodId = FOOD_A, name = 'Kravské mléko'): WorkingMe
 describe('startEditing', () => {
   it('puts the food into editing state', () => {
     const meal = mealWithFood();
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state.status).toBe('editing');
   });
 
@@ -52,7 +52,7 @@ describe('startEditing', () => {
   it('locks other foods in the same family when editing starts', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_B starts editing; FOOD_A becomes locked
-    const a = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const a = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(a?.state.status).toBe('locked');
   });
 
@@ -60,12 +60,14 @@ describe('startEditing', () => {
     let meal = mealWithConfirmed();
     meal = updateEditingAmount(
       startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A'),
-      FAM, FOOD_A, 'teaspoon'
+      FAM,
+      FOOD_A,
+      'teaspoon',
     );
     meal = confirmFood(meal, FAM, FOOD_A);
     meal = deselectFood(meal, FAM, FOOD_A);
     meal = startEditing(meal, FAM, FOOD_A, 'A');
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state).toMatchObject({ status: 'editing', amount: 'teaspoon' });
   });
 });
@@ -73,7 +75,7 @@ describe('startEditing', () => {
 describe('confirmFood', () => {
   it('moves food from editing to confirmed', () => {
     const meal = mealWithConfirmed();
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state.status).toBe('confirmed');
   });
 
@@ -81,7 +83,7 @@ describe('confirmFood', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = updateEditingAmount(meal, FAM, FOOD_A, 'spoon');
     meal = confirmFood(meal, FAM, FOOD_A);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state).toMatchObject({ status: 'confirmed', amount: 'spoon' });
   });
 
@@ -89,16 +91,16 @@ describe('confirmFood', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_A locked(idle)
     meal = confirmFood(meal, FAM, FOOD_B);
-    const a = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const a = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(a?.state.status).toBe('idle');
   });
 
   it('restores locked-confirmed foods to confirmed after confirmation', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
-    meal = confirmFood(meal, FAM, FOOD_A);       // FOOD_A: confirmed
+    meal = confirmFood(meal, FAM, FOOD_A); // FOOD_A: confirmed
     meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_A: locked(confirmed), FOOD_B: editing
-    meal = confirmFood(meal, FAM, FOOD_B);       // FOOD_B: confirmed, FOOD_A: restored to confirmed
-    const a = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    meal = confirmFood(meal, FAM, FOOD_B); // FOOD_B: confirmed, FOOD_A: restored to confirmed
+    const a = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(a?.state.status).toBe('confirmed');
   });
 
@@ -106,7 +108,7 @@ describe('confirmFood', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     meal = confirmFood(meal, FAM, FOOD_A);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.cachedAmount).toBe('portion');
     expect(food?.cachedPreparation).toBe('boiled');
   });
@@ -118,14 +120,14 @@ describe('cancelEditing', () => {
   it('returns food to idle state', () => {
     let meal = mealWithFood();
     meal = cancelEditing(meal, FAM, FOOD_A);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state.status).toBe('idle');
   });
 
   it('caches nothing on cancel', () => {
     let meal = mealWithFood();
     meal = cancelEditing(meal, FAM, FOOD_A);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.cachedAmount).toBeUndefined();
     expect(food?.cachedPreparation).toBeUndefined();
   });
@@ -134,7 +136,7 @@ describe('cancelEditing', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_A locked
     meal = cancelEditing(meal, FAM, FOOD_B);
-    const a = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const a = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(a?.state.status).toBe('idle');
   });
 });
@@ -145,7 +147,7 @@ describe('deselectFood', () => {
   it('moves confirmed food back to idle', () => {
     let meal = mealWithConfirmed();
     meal = deselectFood(meal, FAM, FOOD_A);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state.status).toBe('idle');
   });
 
@@ -154,15 +156,15 @@ describe('deselectFood', () => {
     meal = updateEditingAmount(meal, FAM, FOOD_A, 'pinch');
     meal = confirmFood(meal, FAM, FOOD_A);
     meal = deselectFood(meal, FAM, FOOD_A);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.cachedAmount).toBe('pinch');
   });
 
   it('is a no-op for a food that is not confirmed', () => {
     let meal = mealWithFood(); // editing
-    const before = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A)?.state;
+    const before = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A)?.state;
     meal = deselectFood(meal, FAM, FOOD_A);
-    const after = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A)?.state;
+    const after = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A)?.state;
     expect(after).toEqual(before);
   });
 });
@@ -173,15 +175,15 @@ describe('updateEditingAmount', () => {
   it('updates amount while editing', () => {
     let meal = mealWithFood();
     meal = updateEditingAmount(meal, FAM, FOOD_A, 'teaspoon');
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state).toMatchObject({ status: 'editing', amount: 'teaspoon' });
   });
 
   it('is a no-op when food is not editing', () => {
     let meal = mealWithConfirmed();
-    const before = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A)?.state;
+    const before = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A)?.state;
     meal = updateEditingAmount(meal, FAM, FOOD_A, 'pinch');
-    const after = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A)?.state;
+    const after = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A)?.state;
     expect(after).toEqual(before);
   });
 });
@@ -190,7 +192,7 @@ describe('updateEditingPreparation', () => {
   it('sets preparation while editing', () => {
     let meal = mealWithFood();
     meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(food?.state).toMatchObject({ status: 'editing', preparation: 'boiled' });
   });
 
@@ -198,7 +200,7 @@ describe('updateEditingPreparation', () => {
     let meal = mealWithFood();
     meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     meal = updateEditingPreparation(meal, FAM, FOOD_A, undefined);
-    const food = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    const food = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect((food?.state as { preparation?: string }).preparation).toBeUndefined();
   });
 });
@@ -209,13 +211,13 @@ describe('commitFamily', () => {
   it('removes idle/cancelled foods, keeps confirmed foods', () => {
     // Confirm FOOD_A, then add FOOD_B (stays idle, never confirmed), then commit
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
-    meal = confirmFood(meal, FAM, FOOD_A);       // FOOD_A: confirmed
+    meal = confirmFood(meal, FAM, FOOD_A); // FOOD_A: confirmed
     meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_A: locked(confirmed), FOOD_B: editing
-    meal = cancelEditing(meal, FAM, FOOD_B);     // FOOD_B: idle, FOOD_A: restored to confirmed
+    meal = cancelEditing(meal, FAM, FOOD_B); // FOOD_B: idle, FOOD_A: restored to confirmed
     meal = commitFamily(meal, FAM);
     const foods = foodsForFamily(meal, FAM);
-    expect(foods.some(f => f.foodId === FOOD_B)).toBe(false);
-    expect(foods.some(f => f.foodId === FOOD_A)).toBe(true);
+    expect(foods.some((f) => f.foodId === FOOD_B)).toBe(false);
+    expect(foods.some((f) => f.foodId === FOOD_A)).toBe(true);
   });
 
   it('keeps confirmed foods after commit', () => {
@@ -291,7 +293,7 @@ describe('toMealItems / fromMealItems round-trip', () => {
     expect(items[0].preparationMethod).toBe('raw');
 
     const restored = fromMealItems(items);
-    const restoredFood = foodsForFamily(restored, FAM).find(f => f.foodId === FOOD_A);
+    const restoredFood = foodsForFamily(restored, FAM).find((f) => f.foodId === FOOD_A);
     expect(restoredFood?.state).toMatchObject({
       status: 'confirmed',
       amount: 'spoon',
@@ -304,7 +306,7 @@ describe('toMealItems / fromMealItems round-trip', () => {
     meal = updateEditingPreparation(meal, FAM, FOOD_A, 'boiled');
     meal = confirmFood(meal, FAM, FOOD_A);
     const restored = fromMealItems(toMealItems(meal));
-    const restoredFood = foodsForFamily(restored, FAM).find(f => f.foodId === FOOD_A);
+    const restoredFood = foodsForFamily(restored, FAM).find((f) => f.foodId === FOOD_A);
     expect(restoredFood?.state).toMatchObject({ preparation: 'boiled' });
   });
 
@@ -312,7 +314,7 @@ describe('toMealItems / fromMealItems round-trip', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'Kravské mléko');
     meal = confirmFood(meal, FAM, FOOD_A);
     const restored = fromMealItems(toMealItems(meal));
-    const restoredFood = foodsForFamily(restored, FAM).find(f => f.foodId === FOOD_A);
+    const restoredFood = foodsForFamily(restored, FAM).find((f) => f.foodId === FOOD_A);
     expect(restoredFood?.state).toMatchObject({ preparation: undefined });
   });
 });
@@ -324,7 +326,7 @@ describe('active edit slot invariant', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = startEditing(meal, FAM, FOOD_B, 'B');
     const editingCount = foodsForFamily(meal, FAM).filter(
-      f => f.state.status === 'editing'
+      (f) => f.state.status === 'editing',
     ).length;
     expect(editingCount).toBe(1);
   });
@@ -336,14 +338,14 @@ describe('removeFood', () => {
   it('removes a confirmed food from the working list', () => {
     let meal = mealWithConfirmed();
     meal = removeFood(meal, FAM, FOOD_A);
-    expect(foodsForFamily(meal, FAM).some(f => f.foodId === FOOD_A)).toBe(false);
+    expect(foodsForFamily(meal, FAM).some((f) => f.foodId === FOOD_A)).toBe(false);
   });
 
   it('removes an idle food from the working list', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = cancelEditing(meal, FAM, FOOD_A); // now idle
     meal = removeFood(meal, FAM, FOOD_A);
-    expect(foodsForFamily(meal, FAM).some(f => f.foodId === FOOD_A)).toBe(false);
+    expect(foodsForFamily(meal, FAM).some((f) => f.foodId === FOOD_A)).toBe(false);
   });
 
   it('is a no-op when the foodId is not present', () => {
@@ -359,16 +361,16 @@ describe('removeFood', () => {
     meal = confirmFood(meal, FAM, FOOD_B);
     meal = removeFood(meal, FAM, FOOD_A);
     const foods = foodsForFamily(meal, FAM);
-    expect(foods.some(f => f.foodId === FOOD_A)).toBe(false);
-    expect(foods.some(f => f.foodId === FOOD_B)).toBe(true);
+    expect(foods.some((f) => f.foodId === FOOD_A)).toBe(false);
+    expect(foods.some((f) => f.foodId === FOOD_B)).toBe(true);
   });
 
   it('removing the editing food unlocks all locked siblings', () => {
     let meal = startEditing(emptyWorkingMeal(), FAM, FOOD_A, 'A');
     meal = confirmFood(meal, FAM, FOOD_A);
     meal = startEditing(meal, FAM, FOOD_B, 'B'); // FOOD_A locked(confirmed), FOOD_B editing
-    meal = removeFood(meal, FAM, FOOD_B);        // remove the editing food
-    const a = foodsForFamily(meal, FAM).find(f => f.foodId === FOOD_A);
+    meal = removeFood(meal, FAM, FOOD_B); // remove the editing food
+    const a = foodsForFamily(meal, FAM).find((f) => f.foodId === FOOD_A);
     expect(a?.state.status).not.toBe('locked');
   });
 

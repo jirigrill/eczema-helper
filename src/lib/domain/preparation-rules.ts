@@ -8,9 +8,9 @@ import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
  * meal item is unconstrained (issue #314).
  */
 export const formPreparations = {
-  none:       [],
-  liquid:     ['raw', 'boiled', 'baked'],
-  cookable:   ['raw', 'boiled', 'baked', 'fried'],
+  none: [],
+  liquid: ['raw', 'boiled', 'baked'],
+  cookable: ['raw', 'boiled', 'baked', 'fried'],
   'raw-only': ['raw'],
 } as const satisfies Record<FoodForm, readonly PreparationMethod[]>;
 
@@ -20,6 +20,6 @@ export const formPreparations = {
  * the full chip set so users can pick freely.
  */
 export function formForFood(foodId: string): FoodForm {
-  const record = FOODS.find(f => f.id === foodId);
+  const record = FOODS.find((f) => f.id === foodId);
   return record?.form ?? 'cookable';
 }

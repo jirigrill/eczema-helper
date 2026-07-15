@@ -50,31 +50,31 @@
   }
 
   function navigateToEvaluation() {
-    goto(`/evaluation?phase=${encodeURIComponent(evaluatePhaseId)}&date=${date}&returnTo=/day/${date}`);
+    goto(
+      `/evaluation?phase=${encodeURIComponent(evaluatePhaseId)}&date=${date}&returnTo=/day/${date}`,
+    );
     onclose();
   }
 </script>
 
 <!-- Backdrop -->
-<div
-  role="presentation"
-  class="fixed inset-0 bg-black/35 z-[60]"
-  onclick={onclose}
-></div>
+<div role="presentation" class="fixed inset-0 z-[60] bg-black/35" onclick={onclose}></div>
 
 <!-- Bottom sheet -->
 <div
   role="dialog"
-  aria-label={mealSubmenuOpen ? commonStrings.fabSheet.pickMealType : commonStrings.fabSheet.heading}
-  class="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[20px] pb-safe"
+  aria-label={mealSubmenuOpen
+    ? commonStrings.fabSheet.pickMealType
+    : commonStrings.fabSheet.heading}
+  class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
 >
   {#if mealSubmenuOpen}
     <div class="px-5 pt-4 pb-2 text-center">
-      <p class="text-[11px] text-text-muted uppercase tracking-wide">
+      <p class="text-text-muted text-[11px] tracking-wide uppercase">
         {commonStrings.fabSheet.pickMealType}
       </p>
     </div>
-    <div class="mx-5 border-t border-surface-dark"></div>
+    <div class="border-surface-dark mx-5 border-t"></div>
 
     {#each mealTypes as type (type)}
       {@const cfg = mealConfig[type]}
@@ -83,16 +83,16 @@
       <button
         data-testid="fab-meal-type-{type}"
         data-logged={logged ? 'true' : 'false'}
-        aria-label={logged
-          ? `${cfg.label}, ${commonStrings.fabSheet.alreadyLogged}`
-          : cfg.label}
-        class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
+        aria-label={logged ? `${cfg.label}, ${commonStrings.fabSheet.alreadyLogged}` : cfg.label}
+        class="border-surface-dark active:bg-surface flex w-full items-center gap-3 border-b px-5 py-4"
         onclick={() => navigateToMeal(type)}
       >
-        <span class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-          <Icon class="w-[22px] h-[22px]" />
+        <span
+          class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <Icon class="h-[22px] w-[22px]" />
         </span>
-        <span class="flex-1 text-[15px] font-semibold text-text text-left">
+        <span class="text-text flex-1 text-left text-[15px] font-semibold">
           {cfg.label}
         </span>
         {#if logged}
@@ -104,28 +104,30 @@
 
     <button
       data-testid="fab-meal-type-back"
-      class="w-full py-4 text-center text-[13px] text-text-muted active:bg-surface"
+      class="text-text-muted active:bg-surface w-full py-4 text-center text-[13px]"
       onclick={() => (mealSubmenuOpen = false)}
     >
       {commonStrings.fabSheet.cancel}
     </button>
   {:else}
     <div class="px-5 pt-4 pb-2 text-center">
-      <p class="text-[11px] text-text-muted uppercase tracking-wide">
+      <p class="text-text-muted text-[11px] tracking-wide uppercase">
         {commonStrings.fabSheet.heading}
       </p>
     </div>
-    <div class="mx-5 border-t border-surface-dark"></div>
+    <div class="border-surface-dark mx-5 border-t"></div>
 
     <button
       data-testid="fab-action-meal"
-      class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
+      class="border-surface-dark active:bg-surface flex w-full items-center gap-3 border-b px-5 py-4"
       onclick={() => (mealSubmenuOpen = true)}
     >
-      <span class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-        <FoodIcon class="w-[22px] h-[22px]" />
+      <span
+        class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+      >
+        <FoodIcon class="h-[22px] w-[22px]" />
       </span>
-      <span class="flex-1 text-[15px] text-text-muted text-left">
+      <span class="text-text-muted flex-1 text-left text-[15px]">
         {commonStrings.fabSheet.addMeal}
       </span>
       <span class="text-text-muted text-sm">›</span>
@@ -133,13 +135,15 @@
 
     <button
       data-testid="fab-action-skin"
-      class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
+      class="border-surface-dark active:bg-surface flex w-full items-center gap-3 border-b px-5 py-4"
       onclick={() => navigate('/skin')}
     >
-      <span class="w-10 h-10 rounded-full bg-text-muted/8 flex items-center justify-center shrink-0 text-text-muted">
-        <PersonIcon class="w-[22px] h-[22px]" />
+      <span
+        class="bg-text-muted/8 text-text-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+      >
+        <PersonIcon class="h-[22px] w-[22px]" />
       </span>
-      <span class="flex-1 text-[15px] text-text-muted text-left">
+      <span class="text-text-muted flex-1 text-left text-[15px]">
         {commonStrings.fabSheet.addSkin}
       </span>
       <span class="text-text-muted text-sm">›</span>
@@ -148,16 +152,27 @@
     {#if showEvaluate}
       <button
         data-testid="fab-action-evaluate"
-        class="w-full flex items-center gap-3 px-5 py-4 border-b border-surface-dark active:bg-surface"
+        class="border-surface-dark active:bg-surface flex w-full items-center gap-3 border-b px-5 py-4"
         onclick={navigateToEvaluation}
       >
-        <span class="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-primary">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <span
+          class="bg-primary/15 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="M9 11l3 3L22 4" />
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
         </span>
-        <span class="flex-1 text-[15px] text-text-muted text-left">
+        <span class="text-text-muted flex-1 text-left text-[15px]">
           {commonStrings.fabSheet.addEvaluation}
         </span>
         <span class="text-text-muted text-sm">›</span>
@@ -166,7 +181,7 @@
 
     <button
       data-testid="fab-action-close"
-      class="w-full py-4 text-center text-[13px] text-text-muted active:bg-surface"
+      class="text-text-muted active:bg-surface w-full py-4 text-center text-[13px]"
       onclick={onclose}
     >
       {commonStrings.fabSheet.cancel}

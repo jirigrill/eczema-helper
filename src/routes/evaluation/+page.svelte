@@ -18,7 +18,15 @@
   import Button from '$lib/components/Button.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import ErrorAlert from '$lib/components/error-alert.svelte';
-  import type { AllergenOutcome, LadderAllergenId, RegionLevel, ReintroductionEvaluation, SchedulePhase, SkinObservation, SkinEvaluationOutcome } from '$lib/domain/models';
+  import type {
+    AllergenOutcome,
+    LadderAllergenId,
+    RegionLevel,
+    ReintroductionEvaluation,
+    SchedulePhase,
+    SkinObservation,
+    SkinEvaluationOutcome,
+  } from '$lib/domain/models';
   import { severityStrings } from '$lib/strings/skin-regions';
 
   const phaseId = $derived(page.url.searchParams.get('phase') ?? '');
@@ -27,9 +35,7 @@
 
   const raw = $derived($scheduleRaw);
   const phase = $derived<SchedulePhase | null>(
-    raw.status === 'ready'
-      ? raw.schedule.phases.find((p) => p.id === phaseId) ?? null
-      : null
+    raw.status === 'ready' ? (raw.schedule.phases.find((p) => p.id === phaseId) ?? null) : null,
   );
 
   const evaluations = $derived($evaluationsStore);
@@ -42,14 +48,14 @@
           const start = phase.startDate;
           const end = phase.endDate;
           const sub = liveQuery(() =>
-            db.skin_observations.where('date').between(start, end, true, true).toArray()
+            db.skin_observations.where('date').between(start, end, true, true).toArray(),
           ).subscribe({
             next: (rows) => set(rows ?? []),
             error: () => set([]),
           });
           return () => sub.unsubscribe();
         })
-      : readable<SkinObservation[]>([])
+      : readable<SkinObservation[]>([]),
   );
   const observations = $derived(fromStore(observationsStore).current);
 
@@ -66,35 +72,48 @@
   const view = $derived(phase ? evaluationView(phase.type) : null);
 
   const allergenSlug = $derived<LadderAllergenId | null>(
-    phase && phase.type === 'reintroduction' ? (phase.allergenIds[0] ?? null) : null
+    phase && phase.type === 'reintroduction' ? (phase.allergenIds[0] ?? null) : null,
   );
 
   // Header: allergen identity for a reintroduction test, phase identity otherwise.
   const headerTitle = $derived(
     allergenSlug
-      ? (getCategoryConfig(allergenSlug)?.name ?? categoryStrings[allergenSlug]?.name ?? allergenSlug)
-      : (phase ? phaseConfig[phase.type].label : '')
+      ? (getCategoryConfig(allergenSlug)?.name ??
+          categoryStrings[allergenSlug]?.name ??
+          allergenSlug)
+      : phase
+        ? phaseConfig[phase.type].label
+        : '',
   );
   const headerIcon = $derived(
     allergenSlug
       ? (getCategoryConfig(allergenSlug)?.icon ?? '🍽')
-      : (phase ? phaseConfig[phase.type].icon : '🍽')
+      : phase
+        ? phaseConfig[phase.type].icon
+        : '🍽',
   );
   const headerIconBg = $derived(phase ? phaseConfig[phase.type].iconBg : '');
 
   const isReadOnly = $derived(existing !== null);
   // Czech label for an already-recorded verdict, resolved from this phase's vocabulary.
   const existingLabel = $derived(
-    existing ? (view?.options.find((o) => o.value === existing.outcome)?.label ?? existing.outcome) : ''
+    existing
+      ? (view?.options.find((o) => o.value === existing.outcome)?.label ?? existing.outcome)
+      : '',
   );
 
   function recapBadgeClass(severity?: RegionLevel): string {
     switch (severity) {
-      case 0:  return 'bg-success text-white';
-      case 1:  return 'bg-warning text-text';
-      case 2:  return 'bg-warning text-text';
-      case 3:  return 'bg-danger text-white';
-      default: return 'bg-surface-dark text-text-muted';
+      case 0:
+        return 'bg-success text-white';
+      case 1:
+        return 'bg-warning text-text';
+      case 2:
+        return 'bg-warning text-text';
+      case 3:
+        return 'bg-danger text-white';
+      default:
+        return 'bg-surface-dark text-text-muted';
     }
   }
 
@@ -129,38 +148,47 @@
 <div class="page-container pb-24">
   <PageHeader title={commonStrings.evaluation.heading} onBack={() => goto(returnTo)} />
 
-  <div class="px-4 pt-3 space-y-3">
+  <div class="space-y-3 px-4 pt-3">
     {#if !phase}
       <ErrorAlert message="Phase not found." />
     {:else if !view}
       <ErrorAlert message="This evaluation type is not supported yet." />
     {:else}
       <!-- Phase / test header -->
-      <div class="bg-white border border-surface-dark rounded-2xl p-3 flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 {headerIconBg} text-xl">
+      <div class="border-surface-dark flex items-center gap-3 rounded-2xl border bg-white p-3">
+        <div
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl {headerIconBg} text-xl"
+        >
           {headerIcon}
         </div>
-        <div class="flex-1 min-w-0">
+        <div class="min-w-0 flex-1">
           <div class="body-bold">{headerTitle}</div>
-          <div class="text-[11px] text-text-muted">
+          <div class="text-text-muted text-[11px]">
             {formatDateLongCs(phase.startDate)} – {formatDateLongCs(phase.endDate)}
           </div>
         </div>
         {#if isReadOnly}
-          <span class="text-[10px] font-bold text-success uppercase tracking-wider px-2 py-1 rounded-full bg-success/10">
+          <span
+            class="text-success bg-success/10 rounded-full px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
+          >
             {commonStrings.evaluation.readonlyBadge}
           </span>
         {/if}
       </div>
 
       <!-- Recap -->
-      <div class="bg-white border border-surface-dark rounded-2xl p-3">
+      <div class="border-surface-dark rounded-2xl border bg-white p-3">
         <div class="eyebrow mb-2">{commonStrings.evaluation.recapHeading}</div>
         <div class="space-y-1.5">
           {#each recap as row (row.date)}
             <div class="flex items-center gap-2 text-[11px]">
-              <span class="w-5 h-5 rounded-full {recapBadgeClass(row.severity)} text-[10px] font-bold flex items-center justify-center shrink-0">{row.dayNumber}</span>
-              <span class="font-medium text-text">{formatDateLongCs(row.date)}</span>
+              <span
+                class="h-5 w-5 rounded-full {recapBadgeClass(
+                  row.severity,
+                )} flex shrink-0 items-center justify-center text-[10px] font-bold"
+                >{row.dayNumber}</span
+              >
+              <span class="text-text font-medium">{formatDateLongCs(row.date)}</span>
               <span class="text-text-muted ml-auto">{recapStatusLabel(row.severity)}</span>
             </div>
           {/each}
@@ -169,7 +197,7 @@
 
       {#if isReadOnly && existing}
         <!-- Read-only verdict view -->
-        <div class="bg-white border border-surface-dark rounded-2xl p-4 space-y-2">
+        <div class="border-surface-dark space-y-2 rounded-2xl border bg-white p-4">
           <div class="eyebrow">{view.prompt}</div>
           <div class="body-bold">{existingLabel}</div>
           {#if existing.notes}
@@ -185,13 +213,15 @@
               {@const selected = selectedOutcome === opt.value}
               <button
                 type="button"
-                class="w-full bg-white rounded-xl px-3 py-2.5 flex items-center gap-3 text-left transition-colors
-                  {selected ? 'border-2 border-primary ring-2 ring-primary/20' : 'border border-surface-dark'}"
+                class="flex w-full items-center gap-3 rounded-xl bg-white px-3 py-2.5 text-left transition-colors
+                  {selected
+                  ? 'border-primary ring-primary/20 border-2 ring-2'
+                  : 'border-surface-dark border'}"
                 onclick={() => (selectedOutcome = opt.value)}
               >
-                <div class="flex-1 min-w-0">
-                  <div class="text-[12px] font-bold text-text">{opt.label}</div>
-                  <div class="text-[10px] text-text-muted">{opt.subtitle}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-text text-[12px] font-bold">{opt.label}</div>
+                  <div class="text-text-muted text-[10px]">{opt.subtitle}</div>
                 </div>
                 {#if selected}
                   <span class="text-primary text-lg leading-none">✓</span>
@@ -203,7 +233,9 @@
 
         <!-- Severe-reaction confirmation -->
         {#if selectedOutcome === 'severe-reaction'}
-          <div class="rounded-xl bg-warning/15 border border-warning/40 px-3 py-2.5 text-[11px] text-text">
+          <div
+            class="bg-warning/15 border-warning/40 text-text rounded-xl border px-3 py-2.5 text-[11px]"
+          >
             {commonStrings.evaluation.severeWarning}
           </div>
         {/if}
@@ -211,7 +243,7 @@
         <!-- Notes -->
         <div>
           <textarea
-            class="w-full bg-white border border-surface-dark rounded-2xl p-3 text-[13px] resize-none"
+            class="border-surface-dark w-full resize-none rounded-2xl border bg-white p-3 text-[13px]"
             rows="3"
             placeholder={commonStrings.evaluation.notesPlaceholder}
             bind:value={notes}
@@ -219,11 +251,10 @@
         </div>
 
         <!-- Save -->
-        <Button
-          disabled={!selectedOutcome || saving}
-          onclick={handleSave}
-        >
-          {selectedOutcome ? commonStrings.evaluation.saveButton : commonStrings.evaluation.saveButtonDisabled}
+        <Button disabled={!selectedOutcome || saving} onclick={handleSave}>
+          {selectedOutcome
+            ? commonStrings.evaluation.saveButton
+            : commonStrings.evaluation.saveButtonDisabled}
         </Button>
       {/if}
     {/if}
@@ -240,9 +271,5 @@
 {/if}
 
 {#if saveError}
-  <Toast
-    message={saveError}
-    type="error"
-    onClose={() => (saveError = null)}
-  />
+  <Toast message={saveError} type="error" onClose={() => (saveError = null)} />
 {/if}

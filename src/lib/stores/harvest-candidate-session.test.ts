@@ -66,9 +66,8 @@ describe('harvestCandidateSession (singleton store)', () => {
     const { harvestCandidateSession } = await import('./harvest-candidate-session');
     const candidate = makeCandidate({ normalizedKey: 'citron' });
     await harvestCandidateSession.upsert(candidate);
-    const candidates = await waitForCandidates(
-      harvestCandidateSession,
-      (cs) => cs.some((c) => c.normalizedKey === candidate.normalizedKey),
+    const candidates = await waitForCandidates(harvestCandidateSession, (cs) =>
+      cs.some((c) => c.normalizedKey === candidate.normalizedKey),
     );
     expect(candidates.some((c) => c.normalizedKey === 'citron')).toBe(true);
   });

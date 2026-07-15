@@ -37,6 +37,9 @@ export function isDateInRange(date: string, start: string, end: string): boolean
 
 export function formatDateCs(iso: string): string {
   const d = new Date(iso + 'T00:00:00');
+  // The space after the day number is a non-breaking space (U+00A0) — the
+  // required Czech date style, intentional rather than stray whitespace.
+  // eslint-disable-next-line no-irregular-whitespace
   return `${d.getDate()}. ${d.getMonth() + 1}.`;
 }
 

@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { evaluationView, evaluationHrefForPhase } from './evaluation';
 import type { SchedulePhase } from '$lib/domain/models';
 
-function phase(p: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>): SchedulePhase {
+function phase(
+  p: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>,
+): SchedulePhase {
   return { allergenIds: [], ...p };
 }
 
@@ -45,10 +47,32 @@ describe('evaluationView', () => {
 });
 
 describe('evaluationHrefForPhase', () => {
-  const reintro = phase({ id: 'reintro-soy', type: 'reintroduction', startDate: '2026-06-01', endDate: '2026-06-04', allergenIds: ['soy'] });
-  const reset = phase({ id: 'reset', type: 'reset', startDate: '2026-05-01', endDate: '2026-05-05' });
-  const elimination = phase({ id: 'elimination', type: 'elimination', startDate: '2026-05-06', endDate: '2026-05-26', allergenIds: ['dairy'] });
-  const rest = phase({ id: 'rest-1', type: 'rest', startDate: '2026-06-05', endDate: '2026-06-07' });
+  const reintro = phase({
+    id: 'reintro-soy',
+    type: 'reintroduction',
+    startDate: '2026-06-01',
+    endDate: '2026-06-04',
+    allergenIds: ['soy'],
+  });
+  const reset = phase({
+    id: 'reset',
+    type: 'reset',
+    startDate: '2026-05-01',
+    endDate: '2026-05-05',
+  });
+  const elimination = phase({
+    id: 'elimination',
+    type: 'elimination',
+    startDate: '2026-05-06',
+    endDate: '2026-05-26',
+    allergenIds: ['dairy'],
+  });
+  const rest = phase({
+    id: 'rest-1',
+    type: 'rest',
+    startDate: '2026-06-05',
+    endDate: '2026-06-07',
+  });
 
   it('links to /evaluation on a reintroduction phase-end day', () => {
     const href = evaluationHrefForPhase(reintro, '2026-06-04', false);

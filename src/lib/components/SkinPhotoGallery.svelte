@@ -71,29 +71,33 @@
         class="relative aspect-square cursor-pointer {photo.markedForRemoval ? 'opacity-40' : ''}"
         onclick={() => openLightbox(i)}
       >
-        <img
-          src={objectUrls[i]}
-          alt="Snímek kůže"
-          class="w-full h-full object-cover rounded-xl"
-        />
+        <img src={objectUrls[i]} alt="Snímek kůže" class="h-full w-full rounded-xl object-cover" />
         {#if photo.markedForRemoval}
           <button
             type="button"
             data-testid="skin-photo-undo-{i}"
-            class="absolute top-1 right-1 h-5 rounded-full bg-black/60 text-white text-[10px] font-medium px-1.5 flex items-center leading-none"
+            class="absolute top-1 right-1 flex h-5 items-center rounded-full bg-black/60 px-1.5 text-[10px] leading-none font-medium text-white"
             aria-label={commonStrings.skin.undoPhotoRemoval}
-            onclick={(e) => { e.stopPropagation(); onDelete(i); }}
-          >↺</button>
+            onclick={(e) => {
+              e.stopPropagation();
+              onDelete(i);
+            }}>↺</button
+          >
         {:else}
           <button
             type="button"
             data-testid="skin-photo-delete-{i}"
-            class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center leading-none"
+            class="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[11px] leading-none text-white"
             aria-label="Smazat snímek"
-            onclick={(e) => { e.stopPropagation(); onDelete(i); }}
-          >×</button>
+            onclick={(e) => {
+              e.stopPropagation();
+              onDelete(i);
+            }}>×</button
+          >
         {/if}
-        <span class="absolute bottom-1 left-1 right-1 text-[9px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5">
+        <span
+          class="absolute right-1 bottom-1 left-1 rounded bg-black/45 px-1 py-0.5 text-center text-[9px] leading-tight text-white"
+        >
           {regionStrings[photo.region].label}
         </span>
       </div>

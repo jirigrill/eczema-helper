@@ -53,22 +53,22 @@
 {#if visible}
   <div
     class="
-      fixed bottom-[84px] left-4 right-4 z-40
-      flex items-center justify-between gap-3
-      px-4 py-3 rounded-xl shadow-lg
-      animate-slideUp
+      animate-slideUp fixed right-4 bottom-[84px] left-4
+      z-40 flex items-center justify-between
+      gap-3 rounded-xl px-4 py-3
+      shadow-lg
       {typeStyles[type]}
     "
     role="alert"
   >
-    <div class="flex flex-col gap-1 min-w-0">
+    <div class="flex min-w-0 flex-col gap-1">
       <span class="text-sm">{message}</span>
       {#if href && linkLabel}
-        <a {href} class="text-xs opacity-80 underline underline-offset-2">{linkLabel}</a>
+        <a {href} class="text-xs underline underline-offset-2 opacity-80">{linkLabel}</a>
       {/if}
     </div>
 
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex shrink-0 items-center gap-2">
       {#if onUndo}
         <button
           type="button"

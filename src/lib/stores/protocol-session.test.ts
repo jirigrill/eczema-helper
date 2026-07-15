@@ -28,7 +28,7 @@ const sampleAnswers: QuestionnaireAnswers = {
 // ── Helper: wait for liveQuery to propagate ──────────────────────────────────
 
 async function tick(ms = 50): Promise<void> {
-  await new Promise(r => setTimeout(r, ms));
+  await new Promise((r) => setTimeout(r, ms));
 }
 
 // Wait until the store reaches a desired status (with a subscriber held open).
@@ -212,7 +212,9 @@ describe('protocolSession', () => {
     await waitForStatus(protocolSession, 'ready');
 
     const before = await db.schedule.get('singleton');
-    const phasesBefore = before?.phases.map((p) => `${p.id}:${p.type}:${p.startDate}->${p.endDate}`);
+    const phasesBefore = before?.phases.map(
+      (p) => `${p.id}:${p.type}:${p.startDate}->${p.endDate}`,
+    );
 
     const phaseId = 'elimination';
     const result = await protocolSession.recordVerdict({

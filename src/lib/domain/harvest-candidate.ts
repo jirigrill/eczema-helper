@@ -6,8 +6,8 @@ export type HarvestCandidate = {
   normalizedKey: string;
   status: HarvestCandidateStatus;
   count: number;
-  firstSeen: string;  // ISO datetime
-  lastSeen: string;   // ISO datetime
+  firstSeen: string; // ISO datetime
+  lastSeen: string; // ISO datetime
   rawForms: string[];
 };
 
@@ -20,14 +20,11 @@ export { normalizeKey } from '$lib/domain/allergen-matcher';
  * allergen names that didn't match any canonical catalog entry.
  */
 export function extractOtherSlugs(answers: QuestionnaireAnswers): string[] {
-  const slugs = [
-    ...answers.motherAllergies,
-    ...answers.babyConfirmedAllergies,
-  ];
+  const slugs = [...answers.motherAllergies, ...answers.babyConfirmedAllergies];
   return slugs
-    .filter(s => s.startsWith('other:'))
-    .map(s => s.slice(6))
-    .filter(s => s.length > 0);
+    .filter((s) => s.startsWith('other:'))
+    .map((s) => s.slice(6))
+    .filter((s) => s.length > 0);
 }
 
 /**

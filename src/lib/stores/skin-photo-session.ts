@@ -13,23 +13,20 @@ import type { SkinPhoto } from '$lib/domain/models';
  * is mutated, so subscribers get reactive updates after Uložit on /skin.
  */
 export function createSkinPhotoSession(date: string): Readable<SkinPhoto[]> {
-	return readable<SkinPhoto[]>([], (set) => {
-		const subscription = liveQuery(async () => {
-			const observations = await db.skin_observations
-				.where('date')
-				.equals(date)
-				.toArray();
-			if (observations.length === 0) return [] as SkinPhoto[];
-			const observationIds = observations.map((o) => o.id);
-			return db.photos.where('observationId').anyOf(observationIds).toArray();
-		}).subscribe({
-			next: (rows) => {
-				set(rows ?? []);
-			},
-			error: () => {
-				set([]);
-			},
-		});
-		return () => subscription.unsubscribe();
-	});
+  return readable<SkinPhoto[]>([], (set) => {
+    const subscription = liveQuery(async () => {
+      const observations = await db.skin_observations.where('date').equals(date).toArray();
+      if (observations.length === 0) return [] as SkinPhoto[];
+      const observationIds = observations.map((o) => o.id);
+      return db.photos.where('observationId').anyOf(observationIds).toArray();
+    }).subscribe({
+      next: (rows) => {
+        set(rows ?? []);
+      },
+      error: () => {
+        set([]);
+      },
+    });
+    return () => subscription.unsubscribe();
+  });
 }

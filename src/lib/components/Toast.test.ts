@@ -3,8 +3,12 @@ import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Toast from './Toast.svelte';
 
-beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); });
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('Toast', () => {
   it('renders the message', () => {

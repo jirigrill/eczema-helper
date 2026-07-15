@@ -17,7 +17,10 @@ export function normalizeKey(raw: string): string {
  * catalog ids and aliases after normalization (ADR-0017).
  * Returns null for unknown or empty input — never creates an other: entry.
  */
-export function matchAllergen(raw: string, catalog: CanonicalCatalogPort): CanonicalAllergen | null {
+export function matchAllergen(
+  raw: string,
+  catalog: CanonicalCatalogPort,
+): CanonicalAllergen | null {
   const normalized = normalizeKey(raw);
   if (!normalized) return null;
 
@@ -45,7 +48,8 @@ export function matchFood(raw: string, catalog: CanonicalCatalogPort): FoodMatch
   for (const food of catalog.listFoods()) {
     if (food.id === normalized) return { foodId: food.id, allergenIds: food.allergenIds };
     const aliases: readonly string[] = food.aliases ?? [];
-    if (aliases.map(normalizeKey).includes(normalized)) return { foodId: food.id, allergenIds: food.allergenIds };
+    if (aliases.map(normalizeKey).includes(normalized))
+      return { foodId: food.id, allergenIds: food.allergenIds };
   }
 
   return null;

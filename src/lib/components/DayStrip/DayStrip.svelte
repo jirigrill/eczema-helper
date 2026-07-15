@@ -32,8 +32,7 @@
     // rect delta is layout-position independent.
     const scRect = scrollerEl.getBoundingClientRect();
     const cellRect = cellEl.getBoundingClientRect();
-    const delta =
-      cellRect.left - scRect.left - (scrollerEl.clientWidth / 2 - cellRect.width / 2);
+    const delta = cellRect.left - scRect.left - (scrollerEl.clientWidth / 2 - cellRect.width / 2);
     scrollerEl.scrollLeft += delta;
   }
 
@@ -72,7 +71,7 @@
   <div class="day-strip-mask">
     <div
       bind:this={scrollerEl}
-      class="day-strip-scroller flex gap-1 overflow-x-auto scroll-smooth snap-x"
+      class="day-strip-scroller flex snap-x gap-1 overflow-x-auto scroll-smooth"
       data-testid="day-strip-scroller"
     >
       {#each cells as cell (cell.date)}
@@ -84,7 +83,7 @@
               ? 'text-text-muted/50'
               : 'text-text-muted'}
         <button
-          class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg snap-center {baseClass}"
+          class="flex w-10 shrink-0 snap-center flex-col items-center gap-1 rounded-lg py-2 {baseClass}"
           onclick={() => onselectdate(cell.date)}
           data-testid="day-strip-cell"
           data-date={cell.date}
@@ -101,20 +100,24 @@
           </span>
           {#if cell.isToday && !cell.isSelected}
             <span
-              class="w-1.5 h-1.5 rounded-full ring-1 ring-primary {todayRecorded ? 'bg-primary' : 'bg-transparent'}"
+              class="ring-primary h-1.5 w-1.5 rounded-full ring-1 {todayRecorded
+                ? 'bg-primary'
+                : 'bg-transparent'}"
               data-testid="day-strip-today-ring"
               data-recorded={todayRecorded ? 'true' : 'false'}
             ></span>
           {:else if cell.isToday && cell.isSelected}
             <span
-              class="w-1.5 h-1.5 rounded-full ring-1 ring-white {todayRecorded ? 'bg-white' : 'bg-white/30'}"
+              class="h-1.5 w-1.5 rounded-full ring-1 ring-white {todayRecorded
+                ? 'bg-white'
+                : 'bg-white/30'}"
               data-testid="day-strip-today-ring"
               data-recorded={todayRecorded ? 'true' : 'false'}
             ></span>
           {:else if cell.isSelected}
-            <span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>
+            <span class="h-1.5 w-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>
           {:else}
-            <span class="w-1.5 h-1.5 rounded-full bg-transparent"></span>
+            <span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>
           {/if}
         </button>
       {/each}

@@ -1,5 +1,13 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Meal, QuestionnaireAnswers, GeneratedSchedule, SkinObservation, SkinPhoto, ReintroductionEvaluation, Ladder } from '$lib/domain/models';
+import type {
+  Meal,
+  QuestionnaireAnswers,
+  GeneratedSchedule,
+  SkinObservation,
+  SkinPhoto,
+  ReintroductionEvaluation,
+  Ladder,
+} from '$lib/domain/models';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 
 type AnswersRow = QuestionnaireAnswers & { id: string };

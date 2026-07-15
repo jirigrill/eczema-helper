@@ -6,9 +6,7 @@
  * Usage: Services can construct results inline ({ ok: true, data: ... })
  * or use the helper functions below for more functional composition.
  */
-export type Result<T, E = string> =
-  | { ok: true; data: T }
-  | { ok: false; error: E };
+export type Result<T, E = string> = { ok: true; data: T } | { ok: false; error: E };
 
 /**
  * Helper to create a successful result.
@@ -58,7 +56,7 @@ export function map<T, U, E>(result: Result<T, E>, fn: (data: T) => U): Result<U
  */
 export function flatMap<T, U, E>(
   result: Result<T, E>,
-  fn: (data: T) => Result<U, E>
+  fn: (data: T) => Result<U, E>,
 ): Result<U, E> {
   if (result.ok) {
     return fn(result.data);

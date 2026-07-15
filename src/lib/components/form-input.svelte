@@ -7,11 +7,14 @@
     hint?: string;
   };
 
+  // This is an app component, never a custom element; `...rest` forwards
+  // native input attributes, so the custom-element inference warning is moot.
+  // svelte-ignore custom_element_props_identifier
   let { label, id, hint, value = $bindable(''), ...rest }: Props = $props();
 </script>
 
 <div>
-  <label for={id} class="block body-medium mb-1">
+  <label for={id} class="body-medium mb-1 block">
     {label}
     {#if hint}
       <span class="text-text-muted font-normal">({hint})</span>
@@ -20,7 +23,7 @@
   <input
     {id}
     bind:value
-    class="w-full border border-surface-dark rounded-xl px-4 py-3 text-base text-text focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
+    class="border-surface-dark text-text focus:ring-primary/40 w-full rounded-xl border bg-white px-4 py-3 text-base focus:ring-2 focus:outline-none"
     {...rest}
   />
 </div>
@@ -29,7 +32,7 @@
   /* Safari renders input[type="date"] as inline-flex, causing width:100% to be
      ignored on iOS 17 and earlier. appearance:none resets it to a standard
      box-model element so width and padding behave as expected. */
-  input[type="date"] {
+  input[type='date'] {
     -webkit-appearance: none;
     appearance: none;
   }

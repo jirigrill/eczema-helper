@@ -8,6 +8,6 @@
   } = $props();
 </script>
 
-<div class="h-1 bg-surface-dark rounded-full overflow-hidden {extraClass}">
-  <div class="h-full bg-primary rounded-full" style:width="{value}%"></div>
+<div class="bg-surface-dark h-1 overflow-hidden rounded-full {extraClass}">
+  <div class="bg-primary h-full rounded-full" style:width="{value}%"></div>
 </div>

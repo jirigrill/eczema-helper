@@ -1,4 +1,7 @@
-import type { CanonicalCatalogPort, CatalogAllergen } from '$lib/domain/ports/canonical-catalog-port';
+import type {
+  CanonicalCatalogPort,
+  CatalogAllergen,
+} from '$lib/domain/ports/canonical-catalog-port';
 import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
 import { FAMILIES, ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 
@@ -25,12 +28,14 @@ export class BundledCatalogAdapter implements CanonicalCatalogPort {
 
   allergensForFood(foodId: string): string[] {
     // Catalog foods have explicit allergenIds
-    const food = (FOODS as readonly { id: string; allergenIds: readonly string[] }[]).find((f) => f.id === foodId);
+    const food = (FOODS as readonly { id: string; allergenIds: readonly string[] }[]).find(
+      (f) => f.id === foodId,
+    );
     if (food) return [...food.allergenIds];
     // Convention: `other:${allergenId}` encodes a known allergen without a catalog food twin
     if (foodId.startsWith('other:')) {
       const allergenId = foodId.slice(6);
-      const allergen = ALLERGENS.find(a => a.id === allergenId);
+      const allergen = ALLERGENS.find((a) => a.id === allergenId);
       if (allergen) return [allergenId];
     }
     return [];

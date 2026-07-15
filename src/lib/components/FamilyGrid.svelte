@@ -24,15 +24,15 @@
     <button
       type="button"
       data-state={isActive ? 'active' : undefined}
-      class="flex flex-col items-center justify-center gap-1 h-[72px] px-1 rounded-xl text-xs font-medium transition-all relative border bg-white border-surface-dark text-text"
+      class="border-surface-dark text-text relative flex h-[72px] flex-col items-center justify-center gap-1 rounded-xl border bg-white px-1 text-xs font-medium transition-all"
       onclick={() => onSelect(family.id)}
     >
       <span class="text-2xl leading-none">{family.icon}</span>
-      <span class="leading-tight text-center">{familyStrings[family.id].name}</span>
+      <span class="text-center leading-tight">{familyStrings[family.id].name}</span>
       {#if isActive}
         <span
           data-testid="active-dot"
-          class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary"
+          class="bg-primary absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full"
         ></span>
       {/if}
     </button>

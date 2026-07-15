@@ -18,15 +18,17 @@ describe('encryption', () => {
     const encrypted2 = await encrypt(testData, passphrase);
 
     // Ciphertexts should differ due to random salt and IV
-    expect(Array.from(new Uint8Array(encrypted1))).not.toEqual(Array.from(new Uint8Array(encrypted2)));
+    expect(Array.from(new Uint8Array(encrypted1))).not.toEqual(
+      Array.from(new Uint8Array(encrypted2)),
+    );
   });
 
   it('fails to decrypt with wrong passphrase', async () => {
     const encrypted = await encrypt(testData, passphrase);
 
-    await expect(
-      decrypt(new Uint8Array(encrypted), 'wrong-passphrase')
-    ).rejects.toThrow('Decryption failed');
+    await expect(decrypt(new Uint8Array(encrypted), 'wrong-passphrase')).rejects.toThrow(
+      'Decryption failed',
+    );
   });
 
   it('fails to decrypt corrupted data', async () => {

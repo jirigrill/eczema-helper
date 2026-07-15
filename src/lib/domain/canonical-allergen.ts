@@ -1,4 +1,4 @@
-import type { PortionKind } from "$lib/domain/models";
+import type { PortionKind } from '$lib/domain/models';
 
 /**
  * Feeding stage a ladder's dose steps apply to, mirroring the three table
@@ -6,7 +6,7 @@ import type { PortionKind } from "$lib/domain/models";
  * "plně kojené dítě (bez příkrmů)", "kojené dítě + příkrmy", "dítě plně na
  * příkrmech".
  */
-export const FEEDING_STAGES = ["breastfed", "mixed", "solids"] as const;
+export const FEEDING_STAGES = ['breastfed', 'mixed', 'solids'] as const;
 export type FeedingStage = (typeof FEEDING_STAGES)[number];
 
 /**
@@ -17,7 +17,7 @@ export type FeedingStage = (typeof FEEDING_STAGES)[number];
  * constant instead of hardcoding the literal so the two call sites cannot drift
  * and the assumption is greppable. Follow-up: wire an actual stage source.
  */
-export const V1_FEEDING_STAGE: FeedingStage = "breastfed";
+export const V1_FEEDING_STAGE: FeedingStage = 'breastfed';
 
 /**
  * A single dose step on a per-allergen escalation ladder (ADR-0023, Option A).

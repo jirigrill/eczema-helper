@@ -1,8 +1,5 @@
-import { addDays } from "$lib/utils/date";
-import {
-  BUFFER_BEFORE_START_DAYS,
-  BUFFER_AFTER_END_DAYS,
-} from "$lib/domain/policy";
+import { addDays } from '$lib/utils/date';
+import { BUFFER_BEFORE_START_DAYS, BUFFER_AFTER_END_DAYS } from '$lib/domain/policy';
 
 export type DayStripCell = {
   date: string;
@@ -38,8 +35,7 @@ export function computeDayStrip(input: ComputeDayStripInput): DayStrip {
   const earliestSoftClamp = addDays(protocolStart, -BUFFER_BEFORE_START_DAYS);
   const latestSoftClamp = addDays(estimatedEnd, BUFFER_AFTER_END_DAYS);
 
-  const earliest =
-    selectedDate < earliestSoftClamp ? selectedDate : earliestSoftClamp;
+  const earliest = selectedDate < earliestSoftClamp ? selectedDate : earliestSoftClamp;
   const latest =
     selectedDate > latestSoftClamp
       ? selectedDate

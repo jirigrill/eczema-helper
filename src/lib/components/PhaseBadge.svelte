@@ -9,7 +9,7 @@
 
 <span
   data-state={type}
-  class="text-[8px] font-extrabold tracking-wider rounded-full px-1.5 py-0.5 {display.badge}"
+  class="rounded-full px-1.5 py-0.5 text-[8px] font-extrabold tracking-wider {display.badge}"
 >
   {display.badgeLabel}
 </span>

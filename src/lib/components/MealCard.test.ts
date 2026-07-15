@@ -85,30 +85,28 @@ describe('MealCard', () => {
     const row = getByTestId('meal-row-breakfast');
     expect(row.tagName).toBe('A');
     expect(row.getAttribute('href')).toBe(
-      '/meal?type=breakfast&date=2026-05-31&returnTo=/day/2026-05-31'
+      '/meal?type=breakfast&date=2026-05-31&returnTo=/day/2026-05-31',
     );
   });
 
-  it.each([
-    'breakfast',
-    'lunch',
-    'snack',
-    'dinner',
-  ] as const)('row for %s links to /meal with that exact type', async (mealType) => {
-    const meal = makeMeal({
-      id: `2026-05-31:${mealType}`,
-      mealType,
-      items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
-    });
-    const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
-    });
-    await tick();
-    const row = getByTestId(`meal-row-${mealType}`);
-    expect(row.getAttribute('href')).toBe(
-      `/meal?type=${mealType}&date=2026-05-31&returnTo=/day/2026-05-31`
-    );
-  });
+  it.each(['breakfast', 'lunch', 'snack', 'dinner'] as const)(
+    'row for %s links to /meal with that exact type',
+    async (mealType) => {
+      const meal = makeMeal({
+        id: `2026-05-31:${mealType}`,
+        mealType,
+        items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
+      });
+      const { getByTestId } = render(MealCard, {
+        props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      });
+      await tick();
+      const row = getByTestId(`meal-row-${mealType}`);
+      expect(row.getAttribute('href')).toBe(
+        `/meal?type=${mealType}&date=2026-05-31&returnTo=/day/2026-05-31`,
+      );
+    },
+  );
 
   it('row has a single tap gesture — no swipe/long-press handlers attached', async () => {
     const meal = makeMeal({
@@ -141,7 +139,15 @@ describe('MealCard', () => {
 
   it('does NOT render portion or preparation text on any logged row', async () => {
     const meal = makeMeal({
-      items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'spoon', preparationMethod: 'boiled' }],
+      items: [
+        {
+          id: 'i1',
+          name: 'Jogurt',
+          foodId: 'jogurt',
+          amount: 'spoon',
+          preparationMethod: 'boiled',
+        },
+      ],
     });
     const { queryByText } = render(MealCard, {
       props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
@@ -157,23 +163,26 @@ describe('MealCard', () => {
 
   it.each([
     ['breakfast', '🌅'],
-    ['lunch',     '☀️'],
-    ['snack',     '🍎'],
-    ['dinner',    '🌙'],
-  ] as const)('meal-type marker for %s renders an <svg> icon, not the legacy emoji', async (mealType, emoji) => {
-    const meal = makeMeal({
-      id: `2026-05-31:${mealType}`,
-      mealType,
-      items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
-    });
-    const { getByTestId, queryByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
-    });
-    await tick();
-    const row = getByTestId(`meal-row-${mealType}`);
-    expect(row.querySelector('svg')).not.toBeNull();
-    expect(queryByText(emoji)).not.toBeInTheDocument();
-  });
+    ['lunch', '☀️'],
+    ['snack', '🍎'],
+    ['dinner', '🌙'],
+  ] as const)(
+    'meal-type marker for %s renders an <svg> icon, not the legacy emoji',
+    async (mealType, emoji) => {
+      const meal = makeMeal({
+        id: `2026-05-31:${mealType}`,
+        mealType,
+        items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
+      });
+      const { getByTestId, queryByText } = render(MealCard, {
+        props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      });
+      await tick();
+      const row = getByTestId(`meal-row-${mealType}`);
+      expect(row.querySelector('svg')).not.toBeNull();
+      expect(queryByText(emoji)).not.toBeInTheDocument();
+    },
+  );
 
   it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {
     const meal = makeMeal({
@@ -214,7 +223,7 @@ describe('MealCard', () => {
     const row = getByTestId('meal-row-lunch');
     expect(row.tagName).toBe('A');
     expect(row.getAttribute('href')).toBe(
-      '/meal?type=lunch&date=2026-06-15&returnTo=/day/2026-06-15'
+      '/meal?type=lunch&date=2026-06-15&returnTo=/day/2026-06-15',
     );
   });
 

@@ -8,12 +8,12 @@
  */
 export const actionStrings = {
   /** Generic verbs */
-  start:              'Začít',
-  continue:           'Pokračovat',
-  back:               'Zpět',
-  backArrow:          '← Zpět',
-  add:                'Přidat',
-  save:               'Uložit',
+  start: 'Začít',
+  continue: 'Pokračovat',
+  back: 'Zpět',
+  backArrow: '← Zpět',
+  add: 'Přidat',
+  save: 'Uložit',
   /**
    * Edit-mode finalize CTA on `/meal` (issue #277, ADR-0018). Distinct from
    * `save` because compose-new reads "Uložit {MealType}" (e.g. "Uložit Oběd")
@@ -21,34 +21,33 @@ export const actionStrings = {
    * "Uložit změny" — naming the *change*, never the meal type, so the user
    * never fears creating a duplicate lunch.
    */
-  saveChanges:        'Uložit změny',
-  cancel:             'Zrušit',
-  close:              'Zavřít',
-  done:               'Hotovo',
-  all:                'Vše',
-  edit:               'Upravit',
+  saveChanges: 'Uložit změny',
+  cancel: 'Zrušit',
+  close: 'Zavřít',
+  done: 'Hotovo',
+  all: 'Vše',
+  edit: 'Upravit',
 
   /** Compound / app-specific action labels */
-  confirm:            'Potvrdit a spustit program',
-  restart:            'Restartovat dotazník',
-  saveWithConflict:   '⚠ Uložit s odchylkou',
-  editSchedule:       'Upravit program',
+  confirm: 'Potvrdit a spustit program',
+  restart: 'Restartovat dotazník',
+  saveWithConflict: '⚠ Uložit s odchylkou',
+  editSchedule: 'Upravit program',
 
   /** Onboarding skip / no-selection buttons */
-  noAllergy:          'Nemám žádnou alergii',
+  noAllergy: 'Nemám žádnou alergii',
   noConfirmedAllergy: 'Žádné potvrzené alergie',
 
   /** Navigation links styled as actions */
-  evaluatePhase:      'Zhodnotit fázi →',
+  evaluatePhase: 'Zhodnotit fázi →',
   startQuestionnaire: 'Spustit dotazník →',
-  showDayOverview:    'Zobrazit přehled dne →',
+  showDayOverview: 'Zobrazit přehled dne →',
 
   /** Meal delete + overflow (issue #268, ADR-0018) */
-  more:              'Více',            // aria-label for the ⋯ overflow trigger
-  deleteMeal:        'Smazat jídlo',    // destructive button on the confirm sheet
-  confirmDelete:     'Potvrdit smazání', // future-proof; not currently rendered (deleteMeal is itself the confirm verb)
+  more: 'Více', // aria-label for the ⋯ overflow trigger
+  deleteMeal: 'Smazat jídlo', // destructive button on the confirm sheet
+  confirmDelete: 'Potvrdit smazání', // future-proof; not currently rendered (deleteMeal is itself the confirm verb)
 
   /** Skin observation delete (issue #394, ADR-0021 amendment) */
   deleteObservation: 'Smazat pozorování', // destructive button on the /skin confirm sheet
-
 } as const;

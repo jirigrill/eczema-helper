@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 /**
  * E2E tests for issue #299: undo (Zpět) restores the *exact dirty edit*.
  *

@@ -19,19 +19,15 @@
   aria-modal="true"
   aria-label="Náhled snímku"
   data-testid="skin-photo-lightbox"
-  class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
   onclick={handleBackdropClick}
 >
-  <img
-    {src}
-    alt="Snímek kůže"
-    class="max-w-full max-h-full object-contain rounded-xl"
-  />
+  <img {src} alt="Snímek kůže" class="max-h-full max-w-full rounded-xl object-contain" />
   <button
     type="button"
     data-testid="skin-lightbox-close"
-    class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 text-white text-lg flex items-center justify-center"
+    class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-lg text-white"
     aria-label="Zavřít"
-    onclick={onClose}
-  >×</button>
+    onclick={onClose}>×</button
+  >
 </div>

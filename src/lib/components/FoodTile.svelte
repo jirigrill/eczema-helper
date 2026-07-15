@@ -57,16 +57,21 @@
   // (white) rather than bordeaux-filled — see the `variant` prop doc.
   const plainFill = $derived(
     variant === 'list' &&
-    eliminatedStatus !== 'danger' &&
-    (state === 'confirmed' || isLockedConfirmed)
+      eliminatedStatus !== 'danger' &&
+      (state === 'confirmed' || isLockedConfirmed),
   );
   const dataState = $derived(
-    state === 'locked' && lockedPrior === 'confirmed' && eliminatedStatus === 'danger' ? 'locked-danger-confirmed'
-    : state === 'locked' && lockedPrior === 'confirmed' ? 'locked-confirmed'
-    : eliminatedStatus === 'danger' && state === 'confirmed' ? 'danger-confirmed'
-    : eliminatedStatus === 'danger' && state === 'editing' ? 'danger'
-    : state === 'confirmed' ? 'confirmed'
-    : eliminatedStatus ?? (state === 'locked' ? 'locked' : undefined)
+    state === 'locked' && lockedPrior === 'confirmed' && eliminatedStatus === 'danger'
+      ? 'locked-danger-confirmed'
+      : state === 'locked' && lockedPrior === 'confirmed'
+        ? 'locked-confirmed'
+        : eliminatedStatus === 'danger' && state === 'confirmed'
+          ? 'danger-confirmed'
+          : eliminatedStatus === 'danger' && state === 'editing'
+            ? 'danger'
+            : state === 'confirmed'
+              ? 'confirmed'
+              : (eliminatedStatus ?? (state === 'locked' ? 'locked' : undefined)),
   );
 
   const isFilled = $derived(!plainFill && (state === 'confirmed' || isLockedConfirmed));
@@ -79,41 +84,41 @@
 
 <div
   data-state={dataState}
-  class="rounded-xl overflow-hidden transition-all
+  class="overflow-hidden rounded-xl transition-all
     {state === 'editing'
-      ? eliminatedStatus === 'danger'
-        ? 'border-2 border-danger bg-danger/05'
-        : 'border-2 border-primary bg-primary/05'
-      : plainFill
-        ? 'border border-surface-dark bg-white'
+    ? eliminatedStatus === 'danger'
+      ? 'border-danger bg-danger/05 border-2'
+      : 'border-primary bg-primary/05 border-2'
+    : plainFill
+      ? 'border-surface-dark border bg-white'
       : state === 'confirmed'
         ? eliminatedStatus === 'danger'
-          ? 'bg-danger border border-danger'
-          : 'bg-primary border border-primary'
+          ? 'bg-danger border-danger border'
+          : 'bg-primary border-primary border'
         : isLockedConfirmed
           ? eliminatedStatus === 'danger'
-            ? 'bg-danger border border-danger opacity-50'
-            : 'bg-primary border border-primary opacity-50'
+            ? 'bg-danger border-danger border opacity-50'
+            : 'bg-primary border-primary border opacity-50'
           : state === 'locked'
-            ? 'border border-surface-dark bg-surface opacity-40'
+            ? 'border-surface-dark bg-surface border opacity-40'
             : eliminatedStatus === 'danger'
-              ? 'border border-danger/30 bg-danger/08'
-              : 'border border-surface-dark bg-white'}"
+              ? 'border-danger/30 bg-danger/08 border'
+              : 'border-surface-dark border bg-white'}"
 >
   <div class="flex items-center gap-2">
     <button
       type="button"
       disabled={!isInteractive}
       onclick={isInteractive ? onclick : undefined}
-      class="flex-1 text-left py-2 px-3 text-sm
+      class="flex-1 px-3 py-2 text-left text-sm
         {plainFill
-          ? state === 'confirmed'
-            ? 'text-text font-semibold'
-            : 'text-text font-semibold cursor-default'
-          : state === 'confirmed'
-          ? 'text-white font-semibold'
+        ? state === 'confirmed'
+          ? 'text-text font-semibold'
+          : 'text-text cursor-default font-semibold'
+        : state === 'confirmed'
+          ? 'font-semibold text-white'
           : isLockedConfirmed
-            ? 'text-white font-semibold cursor-default'
+            ? 'cursor-default font-semibold text-white'
             : state === 'locked'
               ? 'text-text-muted cursor-default'
               : state === 'editing'
@@ -131,24 +136,27 @@
     </button>
     {#if summary}
       <span
-        class="caption whitespace-nowrap pr-1
-          {isFilled ? 'text-white' : ''}"
-      >{summary}</span>
+        class="caption pr-1 whitespace-nowrap
+          {isFilled ? 'text-white' : ''}">{summary}</span
+      >
     {/if}
     {#if onRemove}
       <button
         type="button"
         aria-label={`Odebrat ${name}`}
         onclick={handleRemove}
-        class="px-2 py-1 mr-1 text-base leading-none
+        class="mr-1 px-2 py-1 text-base leading-none
           {isFilled ? 'text-white/80 hover:text-white' : 'text-text-muted hover:text-danger'}"
-      >×</button>
+        >×</button
+      >
     {/if}
   </div>
 
   {#if state === 'editing'}
     {#if eliminatedStatus === 'danger'}
-      <p class="px-3 pb-1 text-xs text-danger font-medium">{commonStrings.meal.eliminatedTodayWarning}</p>
+      <p class="text-danger px-3 pb-1 text-xs font-medium">
+        {commonStrings.meal.eliminatedTodayWarning}
+      </p>
     {/if}
     {#if editor}
       <div class="px-3 pb-3">

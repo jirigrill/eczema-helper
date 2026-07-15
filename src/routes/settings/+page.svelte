@@ -12,10 +12,10 @@
   }
 </script>
 
-<div class="max-w-lg mx-auto">
+<div class="mx-auto max-w-lg">
   <PageHeader title={commonStrings.settings.heading} onBack={() => history.back()} />
 
-  <div class="px-4 pt-4 pb-10 flex flex-col gap-4">
+  <div class="flex flex-col gap-4 px-4 pt-4 pb-10">
     <p class="body-muted">{commonStrings.settings.resetWarning}</p>
     <Button color="danger" onclick={resetPrototype}>{actionStrings.restart}</Button>
   </div>

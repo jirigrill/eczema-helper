@@ -67,10 +67,6 @@
 
   const progress = $derived(((step - 1) / (TOTAL_STEPS - 1)) * 100);
 
-  const permanentSlugs = $derived(
-    [...new Set([...motherAllergies.map(s => s.split(':')[0]), ...babyAllergies.map(s => s.split(':')[0])])]
-  );
-
   // Maps allergen ids to their family — used to highlight families in FamilyGrid
   function familiesForAllergens(allergenIds: string[]): FamilyId[] {
     const families = new Set<FamilyId>();
@@ -99,10 +95,31 @@
   });
 
   // ── Severity options ──────────────────────────────────────
-  const severityOptions: { value: EczemaSeverity; label: string; desc: string; border: string; bg: string }[] = [
-    { value: 'mild',     ...commonStrings.onboarding.severityOptions.mild,     border: 'border-l-4 border-success', bg: 'bg-success/10' },
-    { value: 'moderate', ...commonStrings.onboarding.severityOptions.moderate, border: 'border-l-4 border-warning', bg: 'bg-warning/10' },
-    { value: 'severe',   ...commonStrings.onboarding.severityOptions.severe,   border: 'border-l-4 border-danger',  bg: 'bg-danger/10'  },
+  const severityOptions: {
+    value: EczemaSeverity;
+    label: string;
+    desc: string;
+    border: string;
+    bg: string;
+  }[] = [
+    {
+      value: 'mild',
+      ...commonStrings.onboarding.severityOptions.mild,
+      border: 'border-l-4 border-success',
+      bg: 'bg-success/10',
+    },
+    {
+      value: 'moderate',
+      ...commonStrings.onboarding.severityOptions.moderate,
+      border: 'border-l-4 border-warning',
+      bg: 'bg-warning/10',
+    },
+    {
+      value: 'severe',
+      ...commonStrings.onboarding.severityOptions.severe,
+      border: 'border-l-4 border-danger',
+      bg: 'bg-danger/10',
+    },
   ];
 
   // ── Navigation ────────────────────────────────────────────
@@ -145,29 +162,34 @@
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
     });
     const result = await protocolSession.startProtocol(answers);
-    if (!result.ok) { saveError = result.error; return; }
+    if (!result.ok) {
+      saveError = result.error;
+      return;
+    }
     goto(`/day/${todayIso()}`);
   }
 
   // Count unique allergen categories (not individual sub-item slugs).
   // Custom slugs (other:Name) each count as their own entry — not collapsed.
   function affectedCategoryCount(slugs: string[]): number {
-    return new Set(slugs.map(s => s.startsWith('other:') ? s : s.split(':')[0])).size;
+    return new Set(slugs.map((s) => (s.startsWith('other:') ? s : s.split(':')[0]))).size;
   }
 
   function slugsToNames(slugs: string[]): string {
     if (slugs.length === 0) return commonStrings.onboarding.noneLabel;
-    return slugs.map(s => {
-      if (s.startsWith('other:')) return s.slice(6);
-      if (s.includes(':')) {
-        return (subitemStrings as Record<string, string>)[s] ?? s.split(':')[1];
-      }
-      return categoryStrings[s as LadderAllergenId]?.name ?? s;
-    }).join(', ');
+    return slugs
+      .map((s) => {
+        if (s.startsWith('other:')) return s.slice(6);
+        if (s.includes(':')) {
+          return (subitemStrings as Record<string, string>)[s] ?? s.split(':')[1];
+        }
+        return categoryStrings[s as LadderAllergenId]?.name ?? s;
+      })
+      .join(', ');
   }
 </script>
 
-<div class="min-h-screen bg-surface flex flex-col">
+<div class="bg-surface flex min-h-screen flex-col">
   <!-- Progress bar -->
   {#if step > 1 && step < TOTAL_STEPS}
     <ProgressBar value={progress} />
@@ -176,18 +198,17 @@
   <!-- Back button -->
   {#if step > 1}
     <button
-      class="self-start m-4 mb-0 body-muted flex items-center gap-1 hover:text-text"
+      class="body-muted hover:text-text m-4 mb-0 flex items-center gap-1 self-start"
       onclick={back}
     >
       {actionStrings.backArrow}
     </button>
   {/if}
 
-  <div class="flex-1 flex flex-col w-full page-container pb-8">
-
+  <div class="page-container flex w-full flex-1 flex-col pb-8">
     <!-- ═══ Step 1: Welcome ═══ -->
     {#if step === 1}
-      <div class="flex-1 flex flex-col items-center justify-center text-center gap-6">
+      <div class="flex flex-1 flex-col items-center justify-center gap-6 text-center">
         <div class="text-7xl">🌿</div>
         <div>
           <h1 class="page-heading mb-3">{commonStrings.onboarding.heading}</h1>
@@ -196,10 +217,10 @@
             {commonStrings.onboarding.introLine2}
           </p>
         </div>
-        <div class="card-base w-full text-left space-y-2">
+        <div class="card-base w-full space-y-2 text-left">
           <p class="body-medium">{commonStrings.onboarding.whatsNext}</p>
           {#each commonStrings.onboarding.steps as item}
-            <div class="flex items-start gap-2 body-muted">
+            <div class="body-muted flex items-start gap-2">
               <span class="text-success mt-0.5">✓</span>
               <span>{item}</span>
             </div>
@@ -208,9 +229,9 @@
         <Button onclick={next}>{actionStrings.start}</Button>
       </div>
 
-    <!-- ═══ Step 2: Baby info ═══ -->
+      <!-- ═══ Step 2: Baby info ═══ -->
     {:else if step === 2}
-      <div class="flex-1 flex flex-col justify-center gap-6">
+      <div class="flex flex-1 flex-col justify-center gap-6">
         <div>
           <h2 class="card-heading">{commonStrings.onboarding.step2Heading}</h2>
           <p class="body-muted">{commonStrings.onboarding.step2Subtitle}</p>
@@ -230,13 +251,15 @@
             {#each severityOptions as opt}
               <button
                 type="button"
-                class="w-full text-left rounded-2xl border-2 p-4 transition-all
-                  {severity === opt.value ? opt.border + ' ' + opt.bg + ' shadow-sm' : 'border-surface-dark bg-white'}"
+                class="w-full rounded-2xl border-2 p-4 text-left transition-all
+                  {severity === opt.value
+                  ? opt.border + ' ' + opt.bg + ' shadow-sm'
+                  : 'border-surface-dark bg-white'}"
                 onclick={() => (severity = opt.value)}
               >
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="font-semibold text-text">{opt.label}</p>
+                    <p class="text-text font-semibold">{opt.label}</p>
                     <p class="body-muted mt-0.5">{opt.desc}</p>
                   </div>
                   {#if severity === opt.value}
@@ -258,9 +281,9 @@
         </div>
       </div>
 
-    <!-- ═══ Step 3: Mother's allergies ═══ -->
+      <!-- ═══ Step 3: Mother's allergies ═══ -->
     {:else if step === 3}
-      <div class="flex-1 flex flex-col gap-5">
+      <div class="flex flex-1 flex-col gap-5">
         {#if motherDrillFamily === null}
           <div>
             <h2 class="card-heading">{commonStrings.onboarding.step3Heading}</h2>
@@ -270,20 +293,20 @@
           </div>
 
           <InfoBanner variant="info">
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted static UI string from $lib/strings, never user input -->
             <p class="body">{@html commonStrings.onboarding.step3InfoHtml}</p>
           </InfoBanner>
 
-          <FamilyGrid
-            onSelect={handleMotherFamilySelect}
-            activeFamilyIds={motherActiveFamilies}
-          />
+          <FamilyGrid onSelect={handleMotherFamilySelect} activeFamilyIds={motherActiveFamilies} />
 
           <div class="mt-auto space-y-2">
             <Button onclick={next}>
-              {motherAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(motherAllergies)} ${allergenWordCs(affectedCategoryCount(motherAllergies))})` : actionStrings.continue}
+              {motherAllergies.length > 0
+                ? `${actionStrings.continue} (${affectedCategoryCount(motherAllergies)} ${allergenWordCs(affectedCategoryCount(motherAllergies))})`
+                : actionStrings.continue}
             </Button>
             {#if motherAllergies.length === 0}
-              <button class="w-full py-2 body-muted" onclick={next}>
+              <button class="body-muted w-full py-2" onclick={next}>
                 {actionStrings.noAllergy}
               </button>
             {/if}
@@ -301,9 +324,9 @@
         {/if}
       </div>
 
-    <!-- ═══ Step 4: Baby's confirmed allergies ═══ -->
+      <!-- ═══ Step 4: Baby's confirmed allergies ═══ -->
     {:else if step === 4}
-      <div class="flex-1 flex flex-col gap-5">
+      <div class="flex flex-1 flex-col gap-5">
         {#if babyDrillFamily === null}
           <div>
             <h2 class="card-heading">{commonStrings.onboarding.step4Heading}</h2>
@@ -313,20 +336,20 @@
           </div>
 
           <InfoBanner variant="danger">
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted static UI string from $lib/strings, never user input -->
             <p class="body">{@html commonStrings.onboarding.step4InfoHtml}</p>
           </InfoBanner>
 
-          <FamilyGrid
-            onSelect={handleBabyFamilySelect}
-            activeFamilyIds={babyActiveFamilies}
-          />
+          <FamilyGrid onSelect={handleBabyFamilySelect} activeFamilyIds={babyActiveFamilies} />
 
           <div class="mt-auto space-y-2">
             <Button onclick={next}>
-              {babyAllergies.length > 0 ? `${actionStrings.continue} (${affectedCategoryCount(babyAllergies)} ${allergenWordCs(affectedCategoryCount(babyAllergies))})` : actionStrings.continue}
+              {babyAllergies.length > 0
+                ? `${actionStrings.continue} (${affectedCategoryCount(babyAllergies)} ${allergenWordCs(affectedCategoryCount(babyAllergies))})`
+                : actionStrings.continue}
             </Button>
             {#if babyAllergies.length === 0}
-              <button class="w-full py-2 body-muted" onclick={next}>
+              <button class="body-muted w-full py-2" onclick={next}>
                 {actionStrings.noConfirmedAllergy}
               </button>
             {/if}
@@ -344,9 +367,9 @@
         {/if}
       </div>
 
-    <!-- ═══ Step 5: Program start date ═══ -->
+      <!-- ═══ Step 5: Program start date ═══ -->
     {:else if step === 5}
-      <div class="flex-1 flex flex-col justify-center gap-6">
+      <div class="flex flex-1 flex-col justify-center gap-6">
         <div>
           <h2 class="card-heading">{commonStrings.onboarding.step5Heading}</h2>
           <p class="body-muted">{commonStrings.onboarding.step5Subtitle}</p>
@@ -361,6 +384,7 @@
         />
 
         <InfoBanner variant="info">
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted static UI string from $lib/strings, never user input -->
           <p class="body leading-relaxed">{@html commonStrings.onboarding.step5InfoHtml}</p>
         </InfoBanner>
 
@@ -369,9 +393,9 @@
         </div>
       </div>
 
-    <!-- ═══ Step 6: Summary ═══ -->
+      <!-- ═══ Step 6: Summary ═══ -->
     {:else if step === 6}
-      <div class="flex-1 flex flex-col gap-5">
+      <div class="flex flex-1 flex-col gap-5">
         <div>
           <h2 class="card-heading">{commonStrings.onboarding.step6Heading}</h2>
           <p class="body-muted">{commonStrings.onboarding.step6Subtitle}</p>
@@ -386,7 +410,7 @@
           />
           <QuestionnaireSummaryRow
             label={commonStrings.onboarding.summarySeverityLabel}
-            value={severityOptions.find(s => s.value === severity)?.label ?? ''}
+            value={severityOptions.find((s) => s.value === severity)?.label ?? ''}
             onEdit={() => editStep(2)}
           />
           <QuestionnaireSummaryRow
@@ -414,6 +438,5 @@
         </div>
       </div>
     {/if}
-
   </div>
 </div>

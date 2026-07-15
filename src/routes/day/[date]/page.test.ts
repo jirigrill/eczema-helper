@@ -41,7 +41,11 @@ vi.mock('dexie', async (importOriginal) => {
       return {
         subscribe(observer: { next: (v: unknown[]) => void; error?: (e: unknown) => void }) {
           let tag: string | undefined;
-          try { tag = queryFn().__tag; } catch { /* ignore */ }
+          try {
+            tag = queryFn().__tag;
+          } catch {
+            /* ignore */
+          }
           if (tag === 'observations') observer.next(liveObservations);
           else if (tag === 'photos') observer.next(livePhotos);
           else observer.next(liveMeals);
@@ -71,7 +75,10 @@ vi.mock('$lib/db/atopic-db', () => ({
 // emit livePhotos so the day-view completeness counter stays testable.
 vi.mock('$lib/stores/skin-photo-session', () => ({
   createSkinPhotoSession: (_date: string) => ({
-    subscribe: (cb: (v: SkinPhoto[]) => void) => { cb(livePhotos); return () => {}; },
+    subscribe: (cb: (v: SkinPhoto[]) => void) => {
+      cb(livePhotos);
+      return () => {};
+    },
   }),
 }));
 
@@ -84,7 +91,8 @@ const pastDate = '2025-06-01';
 const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
+  permanentMother: [],
+  permanentBaby: [],
   startDate: '2025-05-01',
   estimatedEndDate: futureDate,
   phases: [
@@ -123,7 +131,8 @@ const readyRaw: ScheduleRaw = {
 
 // Schedule that covers today — needed for content tests that assert today-specific UI.
 const todaySchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
+  permanentMother: [],
+  permanentBaby: [],
   startDate: today,
   estimatedEndDate: futureDate,
   phases: [
@@ -169,7 +178,8 @@ const trainingSchedule: GeneratedSchedule = {
 
 // Training schedule rooted at today so tolerance reminders fire.
 const trainingScheduleToday: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
+  permanentMother: [],
+  permanentBaby: [],
   startDate: today,
   estimatedEndDate: futureDate,
   phases: [
@@ -287,7 +297,9 @@ describe('/day/[date] page', () => {
       const eyebrowText = eyebrow?.textContent ?? '';
       // Eyebrow on today shows the date only — no weekday, no divider.
       expect(eyebrowText).not.toContain('·');
-      expect(eyebrowText.toLowerCase()).not.toMatch(/pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/);
+      expect(eyebrowText.toLowerCase()).not.toMatch(
+        /pondělí|úterý|středa|čtvrtek|pátek|sobota|neděle/,
+      );
     });
 
     it('shows the date exactly once in the header on a non-today day', async () => {
@@ -341,7 +353,10 @@ describe('/day/[date] page', () => {
       const { default: DayPage } = await import('./+page.svelte');
       render(DayPage);
       await tick();
-      expect(mockGoto).toHaveBeenCalledWith(expect.stringContaining('/day/'), expect.objectContaining({ replaceState: true }));
+      expect(mockGoto).toHaveBeenCalledWith(
+        expect.stringContaining('/day/'),
+        expect.objectContaining({ replaceState: true }),
+      );
     });
 
     it('calls goto when param is before protocol start', async () => {
@@ -350,7 +365,10 @@ describe('/day/[date] page', () => {
       const { default: DayPage } = await import('./+page.svelte');
       render(DayPage);
       await tick();
-      expect(mockGoto).toHaveBeenCalledWith(expect.stringContaining('/day/'), expect.objectContaining({ replaceState: true }));
+      expect(mockGoto).toHaveBeenCalledWith(
+        expect.stringContaining('/day/'),
+        expect.objectContaining({ replaceState: true }),
+      );
     });
 
     it('does NOT call goto when param is a valid in-range date', async () => {
@@ -478,7 +496,14 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
         date: today,
         mealType: 'lunch',
         actor: 'mother',
-        items: [{ id: 'i1', name: 'Rýže', foodId: 'rice:rice' as Meal['items'][number]['foodId'], amount: 'portion' }],
+        items: [
+          {
+            id: 'i1',
+            name: 'Rýže',
+            foodId: 'rice:rice' as Meal['items'][number]['foodId'],
+            amount: 'portion',
+          },
+        ],
         createdAt: `${today}T12:00:00.000Z`,
       },
     ];
@@ -497,7 +522,14 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
         date: today,
         mealType: 'lunch',
         actor: 'mother',
-        items: [{ id: 'i1', name: 'Rýže', foodId: 'rice:rice' as Meal['items'][number]['foodId'], amount: 'portion' }],
+        items: [
+          {
+            id: 'i1',
+            name: 'Rýže',
+            foodId: 'rice:rice' as Meal['items'][number]['foodId'],
+            amount: 'portion',
+          },
+        ],
         createdAt: `${today}T12:00:00.000Z`,
       },
     ];
@@ -616,7 +648,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     await tick();
     const allEls = Array.from(container.querySelectorAll('*'));
     const idx = (label: string) => {
-      const el = allEls.find(e => e.textContent?.trim() === label);
+      const el = allEls.find((e) => e.textContent?.trim() === label);
       return el ? allEls.indexOf(el) : -1;
     };
     expect(idx('Stav ekzému')).toBeLessThan(idx('Foto kůže'));
@@ -627,14 +659,19 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     mockPage.params.date = today;
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     const pastOnlySchedule: GeneratedSchedule = {
-      permanentMother: [], permanentBaby: [],
+      permanentMother: [],
+      permanentBaby: [],
       startDate: yesterday,
       estimatedEndDate: yesterday,
       phases: [
         { id: 'reset', type: 'reset', allergenIds: [], startDate: yesterday, endDate: yesterday },
       ],
     };
-    mockScheduleRaw.set({ status: 'ready', schedule: pastOnlySchedule, answers: { ...todayAnswers, programStartDate: yesterday } });
+    mockScheduleRaw.set({
+      status: 'ready',
+      schedule: pastOnlySchedule,
+      answers: { ...todayAnswers, programStartDate: yesterday },
+    });
     const { default: DayPage } = await import('./+page.svelte');
     const { getByText } = render(DayPage);
     await tick();
@@ -678,7 +715,11 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
   it('shows tolerance reminder when training phase is active and allergen never dosed', async () => {
     mockPage.params.date = today;
     liveMeals = [];
-    mockScheduleRaw.set({ status: 'ready', schedule: trainingScheduleToday, answers: todayAnswers });
+    mockScheduleRaw.set({
+      status: 'ready',
+      schedule: trainingScheduleToday,
+      answers: todayAnswers,
+    });
     const { default: DayPage } = await import('./+page.svelte');
     const { container } = render(DayPage);
     await tick();
@@ -688,7 +729,11 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
   it('shows reminder label "Trénink tolerance" when reminder is active', async () => {
     mockPage.params.date = today;
     liveMeals = [];
-    mockScheduleRaw.set({ status: 'ready', schedule: trainingScheduleToday, answers: todayAnswers });
+    mockScheduleRaw.set({
+      status: 'ready',
+      schedule: trainingScheduleToday,
+      answers: todayAnswers,
+    });
     const { default: DayPage } = await import('./+page.svelte');
     const { getAllByText } = render(DayPage);
     await tick();
@@ -707,7 +752,11 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
         createdAt: `${today}T12:00:00.000Z`,
       } satisfies Meal,
     ];
-    mockScheduleRaw.set({ status: 'ready', schedule: trainingScheduleToday, answers: todayAnswers });
+    mockScheduleRaw.set({
+      status: 'ready',
+      schedule: trainingScheduleToday,
+      answers: todayAnswers,
+    });
     const { default: DayPage } = await import('./+page.svelte');
     const { container } = render(DayPage);
     await tick();

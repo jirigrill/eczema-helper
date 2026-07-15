@@ -14,36 +14,35 @@
 import type { AllergenOutcome, SkinEvaluationOutcome } from '$lib/domain/models';
 
 export const commonStrings = {
-
   // ── Bottom navigation ──────────────────────────────────────
   nav: {
     addRecordAria: 'Přidat záznam',
-    today:         'Dnes',
-    week:          'Týden',
+    today: 'Dnes',
+    week: 'Týden',
   },
 
   // ── FAB action sheet ──────────────────────────────────────
   fabSheet: {
-    heading:        'Co chceš přidat?',
-    addMeal:        'Přidat jídlo',
-    addSkin:        'Zaznamenat stav kůže',
-    cancel:         'Zrušit',
+    heading: 'Co chceš přidat?',
+    addMeal: 'Přidat jídlo',
+    addSkin: 'Zaznamenat stav kůže',
+    cancel: 'Zrušit',
     /** Heading shown on the second-level meal-type submenu. */
-    pickMealType:   'Jaké jídlo zaznamenáš?',
+    pickMealType: 'Jaké jídlo zaznamenáš?',
     /** Aria suffix appended to a submenu row when that slot is already logged. */
-    alreadyLogged:  'již zaznamenáno',
+    alreadyLogged: 'již zaznamenáno',
     /** Contextual fourth row, shown only on a day that ends an evaluable phase (issue #331). */
-    addEvaluation:  'Vyhodnotit test',
+    addEvaluation: 'Vyhodnotit test',
   },
 
   // ── Today page ────────────────────────────────────────────
   today: {
-    heading:           'Dnes',
-    settingsAria:      'Nastavení',
-    noProgram:         'Program není nastaven. Dokončete dotazník.',
-    programEnded:      'Program skončil',
-    counterHint:       'Dnes ti chybí stav, foto a jídla.',
-    phaseUntilPrefix:  'do',
+    heading: 'Dnes',
+    settingsAria: 'Nastavení',
+    noProgram: 'Program není nastaven. Dokončete dotazník.',
+    programEnded: 'Program skončil',
+    counterHint: 'Dnes ti chybí stav, foto a jídla.',
+    phaseUntilPrefix: 'do',
     eczemaStatusLabel: 'Stav ekzému',
     eczemaStatusEmpty: 'Zatím není záznam pro dnešek — ',
     eczemaStatusEmptyCta: 'zaznamenat stav kůže',
@@ -56,40 +55,41 @@ export const commonStrings = {
      * unchanged for /skin tiles, /program recap, and /evaluation.
      */
     eczemaAllCalmChip: 'Vše klidné',
-    photoLabel:        'Foto kůže',
-    photoEmpty:        'Žádný snímek pro dnešek.',
-    mealsLabel:        'Dnešní jídla',
+    photoLabel: 'Foto kůže',
+    photoEmpty: 'Žádný snímek pro dnešek.',
+    mealsLabel: 'Dnešní jídla',
     eczemaStatusValue: 'neuložen',
-    photoStatusValue:  'chybí',
-    mealsStatusValue:  '0 záznamů',
-    allowed:           '✓ Smím',
-    avoid:             '✗ Vyhýbej se',
-    noRestrictions:    'Žádná omezení',
-    recordHint:        'Vše zapisuj přes + : foto · jídlo · stav',
-    reminderLabel:     'Trénink tolerance',
-    reminderNeverDosed:'Ještě jsi nezkoušela.',
-    reminderOverdue:   'Naposledy před',
+    photoStatusValue: 'chybí',
+    mealsStatusValue: '0 záznamů',
+    allowed: '✓ Smím',
+    avoid: '✗ Vyhýbej se',
+    noRestrictions: 'Žádná omezení',
+    recordHint: 'Vše zapisuj přes + : foto · jídlo · stav',
+    reminderLabel: 'Trénink tolerance',
+    reminderNeverDosed: 'Ještě jsi nezkoušela.',
+    reminderOverdue: 'Naposledy před',
   },
 
   // ── Future-day preview (read-only "Naplánováno" view) ────
   dayPreview: {
     /** Eyebrow / status badge on a future day. */
-    badge:        'Naplánováno',
+    badge: 'Naplánováno',
     /** Body copy explaining why the day is read-only. */
-    description:  'Tento den teprve nastane. Záznamy můžeš přidat, až bude den aktuální.',
+    description: 'Tento den teprve nastane. Záznamy můžeš přidat, až bude den aktuální.',
   },
 
   // ── Week page ─────────────────────────────────────────────
   week: {
-    heading:      'Týden',
+    heading: 'Týden',
     overviewLabel: 'Přehled',
-    comingSoon:   'Týdenní přehled bude dostupný v dalším slicu.',
+    comingSoon: 'Týdenní přehled bude dostupný v dalším slicu.',
   },
 
   // ── Settings page ─────────────────────────────────────────
   settings: {
-    heading:      'Nastavení',
-    resetWarning: 'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
+    heading: 'Nastavení',
+    resetWarning:
+      'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
   },
 
   // ── Onboarding questionnaire ───────────────────────────────
@@ -107,188 +107,188 @@ export const commonStrings = {
     ] as string[],
 
     // Step 2 — Baby info
-    step2Heading:     'Miminko',
-    step2Subtitle:    'Datum narození a závažnost ekzému',
-    birthdateLabel:   'Datum narození miminka',
+    step2Heading: 'Miminko',
+    step2Subtitle: 'Datum narození a závažnost ekzému',
+    birthdateLabel: 'Datum narození miminka',
     severityQuestion: 'Jak závažný je ekzém miminka?',
-    severityHint:     'Závažnost ovlivní délku jednotlivých fází programu',
+    severityHint: 'Závažnost ovlivní délku jednotlivých fází programu',
     severityOptions: {
-      mild:     { label: 'Mírná',   desc: 'Občasné suché fleky, minimální svědění' },
+      mild: { label: 'Mírná', desc: 'Občasné suché fleky, minimální svědění' },
       moderate: { label: 'Střední', desc: 'Časté zarudnutí, svědění narušuje spánek' },
-      severe:   { label: 'Těžká',   desc: 'Rozsáhlý ekzém, silné svědění, možné krvácení' },
+      severe: { label: 'Těžká', desc: 'Rozsáhlý ekzém, silné svědění, možné krvácení' },
     },
 
     // Step 3 — Mother's allergies
-    step3Heading:  'Moje alergie',
+    step3Heading: 'Moje alergie',
     step3Subtitle: 'Jsem alergická / mám intoleranci na:',
     step3InfoHtml:
       'Tyto potraviny budou <strong>trvale vyřazeny</strong> — neplánujeme je znovuzavodit, protože je samy nejíte. ' +
       'Přesto je budeme sledovat, abyste věděly o náhodném kontaktu.',
 
     // Step 4 — Baby's confirmed allergies
-    step4Heading:  'Potvrzené alergie miminka',
+    step4Heading: 'Potvrzené alergie miminka',
     step4Subtitle: 'Má miminko potvrzenou alergii od lékaře?',
     step4InfoHtml:
       'Potvrzené alergeny budou po dobu diety <strong>vyřazeny</strong>. ' +
       'Jejich otestování a případné znovu zařazení by mělo proběhnout <strong>velmi opatrně</strong> či <strong>s lékařem</strong>.',
 
     // Step 5 — Program start date
-    step5Heading:   'Začátek programu',
-    step5Subtitle:  'Kdy chcete začít s eliminační dietou?',
+    step5Heading: 'Začátek programu',
+    step5Subtitle: 'Kdy chcete začít s eliminační dietou?',
     startDateLabel: 'Datum začátku',
     step5InfoHtml:
       'Program začne <strong>resetovací fází</strong> ({5} dní) — jezte normálně, ' +
       'zaznamenáváme výchozí stav kůže miminka. Poté přejdeme k eliminaci.',
 
     // Step 6 — Summary
-    step6Heading:      'Shrnutí',
-    step6Subtitle:     'Zkontrolujte odpovědi před spuštěním programu',
-    summaryMotherLabel:       'Moje alergie',
-    summaryBabyAllergiesLabel:'Potvrzené alergie miminka',
-    summaryBirthLabel:        'Narození',
-    summarySeverityLabel:     'Závažnost',
-    summaryStartEndLabel:     'Start · konec',
-    summaryAge:        'Věk',
-    summarySeverity:   'Závažnost',
-    summaryStart:      'Začátek',
-    summaryEdit:       'Upravit',
+    step6Heading: 'Shrnutí',
+    step6Subtitle: 'Zkontrolujte odpovědi před spuštěním programu',
+    summaryMotherLabel: 'Moje alergie',
+    summaryBabyAllergiesLabel: 'Potvrzené alergie miminka',
+    summaryBirthLabel: 'Narození',
+    summarySeverityLabel: 'Závažnost',
+    summaryStartEndLabel: 'Start · konec',
+    summaryAge: 'Věk',
+    summarySeverity: 'Závažnost',
+    summaryStart: 'Začátek',
+    summaryEdit: 'Upravit',
     summaryNoReintroHtml:
       '<em class="text-text-muted">Žádné znovuzavedení</em> — všechny protokolové alergeny jsou trvale vyřazeny',
     summaryReintroPrefix: 'Znovuzavedení',
-    everyLabel:           'každý',
-    noneLabel:            'žádné',
+    everyLabel: 'každý',
+    noneLabel: 'žádné',
   },
 
   // ── Meal logging page ─────────────────────────────────────
   meal: {
-    heading:              'Přidat jídlo',
-    allCategoriesLabel:   'Všechny kategorie',
-    customFoodPlaceholder:'Název potraviny…',
-    eliminatedChipLabel:  'Vyloučeno',
+    heading: 'Přidat jídlo',
+    allCategoriesLabel: 'Všechny kategorie',
+    customFoodPlaceholder: 'Název potraviny…',
+    eliminatedChipLabel: 'Vyloučeno',
     eliminatedTodayWarning: '⚠️ Vyloučeno dnes',
-    notesPlaceholder:     'Poznámka (volitelné, např. u babičky)',
-    customFoodsLabel:     'Dříve zadané',
-    customFamilyEmptyHint:'Zatím žádné vlastní potraviny. Napište potravinu výše.',
+    notesPlaceholder: 'Poznámka (volitelné, např. u babičky)',
+    customFoodsLabel: 'Dříve zadané',
+    customFamilyEmptyHint: 'Zatím žádné vlastní potraviny. Napište potravinu výše.',
     // ── Issue #244: modal-edit flow ────────────────────────
-    confirmedFoodsLabel:  'Přidané potraviny',
-    mealNotesLabel:       'Poznámka k jídlu',
+    confirmedFoodsLabel: 'Přidané potraviny',
+    mealNotesLabel: 'Poznámka k jídlu',
     // ── Issue #247 / #277: dirty-aware discard toast (one per DiscardKind) ──
     /** Compose-new back-out: a fresh draft was discarded (neuter-singular). */
     discardedComposeToast: 'Jídlo neuloženo',
     /** Edit back-out, dirty: unsaved edits to a saved meal were dropped (feminine-plural "změny"). */
-    discardedEditToast:    'Změny neuloženy',
+    discardedEditToast: 'Změny neuloženy',
     /** Explicit delete: the saved meal was removed; undo re-saves a fresh meal. */
-    deletedToast:          'Jídlo smazáno',
+    deletedToast: 'Jídlo smazáno',
     // ── Issue #268: explicit delete + empty-Hotovo guard ───
     deleteConfirmHeading: 'Smazat jídlo?',
-    deleteConfirmBody:    'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',
-    emptyMealHint:        'Jídlo potřebuje aspoň jednu položku — pro odebrání použij Smazat.',
+    deleteConfirmBody: 'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',
+    emptyMealHint: 'Jídlo potřebuje aspoň jednu položku — pro odebrání použij Smazat.',
   },
 
   // ── Program page ──────────────────────────────────────────
   program: {
-    noProgram:         'Nejprve dokončete dotazník.',
-    notStarted:        'Program ještě nezačal',
-    startingPrefix:    'Začíná',
-    completed:         'Program dokončen 🎉',
-    completedBanner:   'Program dokončen!',
+    noProgram: 'Nejprve dokončete dotazník.',
+    notStarted: 'Program ještě nezačal',
+    startingPrefix: 'Začíná',
+    completed: 'Program dokončen 🎉',
+    completedBanner: 'Program dokončen!',
 
     // Section labels
-    sectionTodo:                'Co dělat',
-    sectionPermanent:           'Trvalá omezení',
-    sectionPermanentNote:       'Těmto potravinám se vyhněte i nyní.',
+    sectionTodo: 'Co dělat',
+    sectionPermanent: 'Trvalá omezení',
+    sectionPermanentNote: 'Těmto potravinám se vyhněte i nyní.',
     sectionPermanentReasonNote: 'Trvale vyřazeno z vašeho nebo miminkova důvodu.',
-    sectionEliminated:          'Vyřazeno',
-    sectionTesting:             'Testujete',
-    sectionStillEliminated:     'Stále vyřazeno',
-    sectionAllergenStatus:      'Stav alergenů',
-    sectionDeviations:          'Odchylky v jídelníčku',
-    sectionSkinReaction:        'Reakce kůže',
-    sectionEvaluation:          'Celkové hodnocení',
+    sectionEliminated: 'Vyřazeno',
+    sectionTesting: 'Testujete',
+    sectionStillEliminated: 'Stále vyřazeno',
+    sectionAllergenStatus: 'Stav alergenů',
+    sectionDeviations: 'Odchylky v jídelníčku',
+    sectionSkinReaction: 'Reakce kůže',
+    sectionEvaluation: 'Celkové hodnocení',
 
     // Body copy
     evaluationPending: 'Hodnocení proběhne na konci fáze.',
-    noDeviations:      'Žádné odchylky — vše v souladu s programem.',
-    noSkinRecords:     'Žádné záznamy stavu kůže.',
+    noDeviations: 'Žádné odchylky — vše v souladu s programem.',
+    noSkinRecords: 'Žádné záznamy stavu kůže.',
     resetTodoHtml:
       'Jezte normálně — zaznamenáváme <strong>výchozí stav kůže</strong> miminka. ' +
       'Denně zaznamenejte stav kůže v přehledu dne.',
     eliminationTodoHtml:
       'Vylučte všechny níže uvedené alergeny — <strong>i ve skryté podobě</strong> ' +
       '(etikety, omáčky, pečivo). Čekáme na ustálení kůže miminka.',
-    reintroAddPrefix:    'Zařaďte',
-    reintroAddSuffix:    'do jídelníčku.',
-    reintroTodayEval:    'Dnes vyhodnoťte celkovou reakci miminka.',
-    reintroMonitor:      'Sledujte kůži miminka každý den.',
+    reintroAddPrefix: 'Zařaďte',
+    reintroAddSuffix: 'do jídelníčku.',
+    reintroTodayEval: 'Dnes vyhodnoťte celkovou reakci miminka.',
+    reintroMonitor: 'Sledujte kůži miminka každý den.',
     toleranceBuildingPrefix: 'Budování tolerance — občas zařaďte malou dávku',
     toleranceBuildingSuffix: '(max 2× týdně, max 1 lžička). Budujete toleranci.',
 
     // Timeline
-    now:      'Teď',
-    ongoing:  'průběžně',
+    now: 'Teď',
+    ongoing: 'průběžně',
 
     // Permanent allergen sections
-    motherAllergensSection:  'Maminčiny alergeny',
-    motherAllergensNote:     'Trvale vyřazeno — vaše vlastní alergie.',
-    babyAllergensSection:    'Potvrzené alergie miminka',
-    babyAllergensNote:       'Trvale vyřazeno. Testování doporučujeme konzultovat s lékařem.',
-    fromQuestionnaire:       'z dotazníku',
-    trainingLabel:           'Trénink:',
-    possibleCausePrefix:     'Možná příčina:',
+    motherAllergensSection: 'Maminčiny alergeny',
+    motherAllergensNote: 'Trvale vyřazeno — vaše vlastní alergie.',
+    babyAllergensSection: 'Potvrzené alergie miminka',
+    babyAllergensNote: 'Trvale vyřazeno. Testování doporučujeme konzultovat s lékařem.',
+    fromQuestionnaire: 'z dotazníku',
+    trainingLabel: 'Trénink:',
+    possibleCausePrefix: 'Možná příčina:',
 
     // Allergen status labels (keyed by AllergenStatusValue)
     statusLabels: {
-      testing:             'testuje se',
-      passed:              '✓ znovuzavedena',
-      reacted:             'reagovalo',
-      'tolerance-building':'buduje toleranci',
-      eliminated:          'vyřazena',
-      'not-yet-tested':    'vyřazena',
+      testing: 'testuje se',
+      passed: '✓ znovuzavedena',
+      reacted: 'reagovalo',
+      'tolerance-building': 'buduje toleranci',
+      eliminated: 'vyřazena',
+      'not-yet-tested': 'vyřazena',
     } as Record<string, string>,
 
     // Skin assessment outcome labels
     skinOutcomes: {
-      improved:     'Zlepšení',
-      unchanged:    'Beze změny',
-      worsened:     'Zhoršení',
-      'new-lesions':'Nová ložiska',
+      improved: 'Zlepšení',
+      unchanged: 'Beze změny',
+      worsened: 'Zhoršení',
+      'new-lesions': 'Nová ložiska',
     } as Record<string, string>,
 
     // Reintroduction evaluation outcome labels
     reintroOutcomes: {
-      tolerated:       'Toleruje',
+      tolerated: 'Toleruje',
       'mild-reaction': 'Mírná reakce',
-      'clear-reaction':'Jasná reakce',
-      'severe-reaction':'Silná reakce',
+      'clear-reaction': 'Jasná reakce',
+      'severe-reaction': 'Silná reakce',
     } as Record<string, string>,
 
     // Toast messages (static)
-    toastComingSoon:           'Tato funkce bude dostupná brzy',
-    toastRetestCancelled:      'Retest zrušen.',
+    toastComingSoon: 'Tato funkce bude dostupná brzy',
+    toastRetestCancelled: 'Retest zrušen.',
     toastCannotCancelProtocol: 'Nelze zrušit: toto je protokolová fáze, ne přidaný retest.',
-    toastRetestNotFound:       'Retest nenalezen — možná již proběhl.',
+    toastRetestNotFound: 'Retest nenalezen — možná již proběhl.',
 
     // Permanent elimination reason labels
     reasonMotherAndBaby: 'vaše + miminka',
-    reasonMother:        'vaše alergie',
-    reasonBaby:          'alergie miminka',
+    reasonMother: 'vaše alergie',
+    reasonBaby: 'alergie miminka',
   },
 
   // ── Skin observation page (/skin) ──────────────────────────
   skin: {
     /** PageHeader title — "Stav kůže" matches the prototype. */
-    heading:           'Stav kůže',
+    heading: 'Stav kůže',
     /** Eyebrow above the region grid. */
-    eyebrow:           'Kde a jak moc',
+    eyebrow: 'Kde a jak moc',
     /** Caption next to the eyebrow telling the mother the tap rule. */
-    tapHint:           'ťukni = vyber · znovu = míra',
+    tapHint: 'ťukni = vyber · znovu = míra',
     /**
      * Optional per-observation note placeholder. Mirrors `/meal`'s editorial
      * pattern: `(volitelné, např. <concrete example>)` — the example teaches
      * the kind of observation worth keeping (a time-bound symptom that the
      * mother might not think to log on her own).
      */
-    notePlaceholder:   'Poznámka (volitelné, např. svědí v noci)',
+    notePlaceholder: 'Poznámka (volitelné, např. svědí v noci)',
     /**
      * Save CTA label. Constant — does not change based on the number of
      * logged regions. The previous count-based label
@@ -301,65 +301,66 @@ export const commonStrings = {
      * issue #379 for whether klidné should be persisted as positive
      * evidence.
      */
-    saveLabel:         'Uložit pozorování',
+    saveLabel: 'Uložit pozorování',
     /** Aria label for the save action. */
-    saveAriaLabel:     'Uložit pozorování kůže',
+    saveAriaLabel: 'Uložit pozorování kůže',
     /** Toast shown when persistence fails. */
-    saveError:         'Uložení se nezdařilo. Zkus to znovu.',
+    saveError: 'Uložení se nezdařilo. Zkus to znovu.',
     /** Toast shown when a delete fails after the mother confirms Smazat. */
-    deleteError:       'Nepodařilo se smazat pozorování.',
+    deleteError: 'Nepodařilo se smazat pozorování.',
     /** Prefix for the contextual photo-add button; region label is appended. */
-    addPhotoPrefix:    'Přidat fotku · ',
+    addPhotoPrefix: 'Přidat fotku · ',
     /**
      * CTA label in edit mode. Named the change rather than the observation
      * type so `Uložit změny` reads consistently across /meal and /skin.
      */
-    updateLabel:       'Uložit změny',
+    updateLabel: 'Uložit změny',
     /** Aria label paired with `updateLabel`. */
-    updateAriaLabel:   'Uložit změny pozorování',
+    updateAriaLabel: 'Uložit změny pozorování',
     /**
      * Toast shown when a dirty edit is discarded via back-out. Silent on a
      * clean edit — nothing changed, so no message is warranted.
      */
     discardedEditToast: 'Změny neuloženy',
     /** Toast shown after an explicit delete (undo restores the observation). */
-    deletedToast:      'Pozorování smazáno',
+    deletedToast: 'Pozorování smazáno',
     /** Aria label for the undo action on a greyed-out persisted-photo tile. */
-    undoPhotoRemoval:  'Vrátit snímek',
+    undoPhotoRemoval: 'Vrátit snímek',
     // ── Issue #394: explicit delete + post-delete undo ────────
     /** Heading on the destructive-confirm sheet in edit mode. */
     deleteConfirmHeading: 'Smazat pozorování?',
     /** Body warning that photos will be removed alongside the observation. */
-    deleteConfirmBody:    'Pozorování i všechny jeho fotky budou odstraněny. Můžeš to vzít zpět hned po smazání.',
+    deleteConfirmBody:
+      'Pozorování i všechny jeho fotky budou odstraněny. Můžeš to vzít zpět hned po smazání.',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────
   evaluation: {
-    heading:           'Vyhodnocení testu',
-    recapHeading:      'Průběh testu',
-    recapEmpty:        'Bez záznamu',
-    outcomePrompt:     'Jak miminko alergen sneslo?',
+    heading: 'Vyhodnocení testu',
+    recapHeading: 'Průběh testu',
+    recapEmpty: 'Bez záznamu',
+    outcomePrompt: 'Jak miminko alergen sneslo?',
     skinOutcomePrompt: 'Jak se kůže miminka měla?',
-    notesPlaceholder:  'Poznámka (volitelné)',
-    saveButton:        'Uložit vyhodnocení',
-    saveButtonDisabled:'Vyber výsledek',
-    severeWarning:     'Po silné reakci přijde 14denní odpočinek. Alergen není trvale vyřazen — později ho znovu otestuješ.',
-    readonlyBadge:     'Vyhodnoceno',
-    toastSaved:        'Vyhodnocení uloženo.',
+    notesPlaceholder: 'Poznámka (volitelné)',
+    saveButton: 'Uložit vyhodnocení',
+    saveButtonDisabled: 'Vyber výsledek',
+    severeWarning:
+      'Po silné reakci přijde 14denní odpočinek. Alergen není trvale vyřazen — později ho znovu otestuješ.',
+    readonlyBadge: 'Vyhodnoceno',
+    toastSaved: 'Vyhodnocení uloženo.',
     outcomeSubtitles: {
-      tolerated:        'Žádná reakce',
-      'mild-reaction':  'Zarudnutí, mírné svědění',
+      tolerated: 'Žádná reakce',
+      'mild-reaction': 'Zarudnutí, mírné svědění',
       'clear-reaction': 'Zhoršení po podání',
-      'severe-reaction':'Otok, dušnost — k lékaři',
+      'severe-reaction': 'Otok, dušnost — k lékaři',
     } satisfies Record<AllergenOutcome, string>,
     skinOutcomeSubtitles: {
-      improved:      'Kůže se zklidnila',
-      unchanged:     'Bez výrazné změny',
-      worsened:      'Zhoršení během fáze',
+      improved: 'Kůže se zklidnila',
+      unchanged: 'Bez výrazné změny',
+      worsened: 'Zhoršení během fáze',
       'new-lesions': 'Objevila se nová ložiska',
     } satisfies Record<SkinEvaluationOutcome, string>,
   },
-
 } as const;
 
 // ── Dynamic string builders ────────────────────────────────────────────────
@@ -446,9 +447,7 @@ export function dayProgress(current: number, total: number): string {
 
 /** "den {current} z {total} · {date}" — compact phase progress with date */
 export function phaseProgressLabel(current: number, total: number | null, date: string): string {
-  return total != null
-    ? `den ${current} z ${total} · ${date}`
-    : `den ${current} · ${date}`;
+  return total != null ? `den ${current} z ${total} · ${date}` : `den ${current} · ${date}`;
 }
 
 /** "{count} fází · {formattedDate}" — program done-at line */

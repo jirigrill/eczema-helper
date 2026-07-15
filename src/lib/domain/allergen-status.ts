@@ -1,8 +1,15 @@
-import type { GeneratedSchedule, AllergenStatus, AllergenStatusValue, AllergenId, LadderAllergenId, SchedulePhase } from '$lib/domain/models';
+import type {
+  GeneratedSchedule,
+  AllergenStatus,
+  AllergenStatusValue,
+  AllergenId,
+  LadderAllergenId,
+  SchedulePhase,
+} from '$lib/domain/models';
 import { addDays } from '$lib/utils/date';
 
 function getProtocolIds(schedule: GeneratedSchedule): LadderAllergenId[] {
-  return schedule.phases.find(p => p.type === 'elimination')?.allergenIds ?? [];
+  return schedule.phases.find((p) => p.type === 'elimination')?.allergenIds ?? [];
 }
 
 /**
@@ -22,27 +29,29 @@ function getProtocolIds(schedule: GeneratedSchedule): LadderAllergenId[] {
 function getProtocolAllergenStatus(
   schedule: GeneratedSchedule,
   id: AllergenId,
-  date: string
+  date: string,
 ): AllergenStatusValue {
   // All reintroduction phases that include this allergen, in chronological order
   const reintroPhases = schedule.phases.filter(
-    p => p.type === 'reintroduction' && (p.allergenIds as AllergenId[]).includes(id)
+    (p) => p.type === 'reintroduction' && (p.allergenIds as AllergenId[]).includes(id),
   );
 
   // Tolerance-building phase for this allergen (open-ended, at most one active)
   const tbPhase = schedule.phases.find(
-    p => p.type === 'tolerance-building' && (p.allergenIds as AllergenId[]).includes(id)
+    (p) => p.type === 'tolerance-building' && (p.allergenIds as AllergenId[]).includes(id),
   );
 
   // Latest reintroduction that has already started (startDate <= date)
-  const startedReintros = reintroPhases.filter(p => p.startDate <= date);
+  const startedReintros = reintroPhases.filter((p) => p.startDate <= date);
   const latestReintro = startedReintros.at(-1) ?? null;
 
   // No reintroduction has started yet
   if (!latestReintro) {
     const activeEarlyPhase = schedule.phases.find(
-      p => (p.type === 'elimination' || p.type === 'reset') &&
-           p.startDate <= date && (p.endDate === '' || p.endDate >= date)
+      (p) =>
+        (p.type === 'elimination' || p.type === 'reset') &&
+        p.startDate <= date &&
+        (p.endDate === '' || p.endDate >= date),
     );
     return activeEarlyPhase ? 'eliminated' : 'not-yet-tested';
   }
@@ -73,10 +82,7 @@ function getProtocolAllergenStatus(
  * The three sets are disjoint by construction. Status is derived for `date`
  * following the latest-reintroduction-wins rule documented in ADR-0012.
  */
-export function getAllergenStatuses(
-  schedule: GeneratedSchedule,
-  date: string
-): AllergenStatus[] {
+export function getAllergenStatuses(schedule: GeneratedSchedule, date: string): AllergenStatus[] {
   const results: AllergenStatus[] = [];
 
   for (const allergenId of schedule.permanentMother) {
@@ -86,7 +92,10 @@ export function getAllergenStatuses(
     // If a retest phase exists and has started, derive status via protocol logic.
     // A failed retest (→ 'reacted') reverts to 'permanent-baby' per ADR-0012.
     const hasStartedRetest = schedule.phases.some(
-      p => p.type === 'reintroduction' && (p.allergenIds as AllergenId[]).includes(allergenId) && p.startDate <= date
+      (p) =>
+        p.type === 'reintroduction' &&
+        (p.allergenIds as AllergenId[]).includes(allergenId) &&
+        p.startDate <= date,
     );
     if (hasStartedRetest) {
       const derived = getProtocolAllergenStatus(schedule, allergenId, date);
@@ -106,7 +115,7 @@ export function getAllergenStatuses(
  * Filters out permanent-mother / permanent-baby entries.
  */
 export function filterProtocolStatuses(statuses: AllergenStatus[]): AllergenStatus[] {
-  return statuses.filter(s => s.status !== 'permanent-mother' && s.status !== 'permanent-baby');
+  return statuses.filter((s) => s.status !== 'permanent-mother' && s.status !== 'permanent-baby');
 }
 
 /**
@@ -118,7 +127,7 @@ export function filterProtocolStatuses(statuses: AllergenStatus[]): AllergenStat
  */
 export function getPhaseVerdictStatuses(
   schedule: GeneratedSchedule,
-  phase: SchedulePhase
+  phase: SchedulePhase,
 ): AllergenStatus[] {
   return filterProtocolStatuses(getAllergenStatuses(schedule, addDays(phase.endDate, 1)));
 }

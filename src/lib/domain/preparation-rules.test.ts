@@ -11,12 +11,7 @@ describe('formPreparations', () => {
   });
 
   it('cookable → all four chips including raw', () => {
-    expect(formPreparations.cookable).toEqual([
-      'raw',
-      'boiled',
-      'baked',
-      'fried',
-    ]);
+    expect(formPreparations.cookable).toEqual(['raw', 'boiled', 'baked', 'fried']);
   });
 
   it('raw-only → only raw', () => {

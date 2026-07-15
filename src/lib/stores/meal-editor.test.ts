@@ -49,7 +49,7 @@ describe('createMealEditor — open()', () => {
 
   it('on a saved slot hydrates into a WorkingMeal in edit framing', async () => {
     const date = '2024-08-02';
-        const seeded = makeMeal({ id: `${date}:dinner`, date, mealType: 'dinner' });
+    const seeded = makeMeal({ id: `${date}:dinner`, date, mealType: 'dinner' });
     await meals.save(seeded);
 
     const editor = createMealEditor();
@@ -99,12 +99,14 @@ describe('createMealEditor — finalize() on edit', () => {
   it('preserves the original createdAt and stamps a fresh updatedAt', async () => {
     const date = '2024-08-05';
     const originalCreatedAt = '2024-08-05T07:00:00.000Z';
-        await meals.save(makeMeal({
-      id: `${date}:lunch`,
-      date,
-      mealType: 'lunch',
-      createdAt: originalCreatedAt,
-    }));
+    await meals.save(
+      makeMeal({
+        id: `${date}:lunch`,
+        date,
+        mealType: 'lunch',
+        createdAt: originalCreatedAt,
+      }),
+    );
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -128,7 +130,7 @@ describe('createMealEditor — finalize() on edit', () => {
 describe('createMealEditor — dirty + canFinalize on edit', () => {
   it('clean edit (no mutation after open) is not dirty and canFinalize is false', async () => {
     const date = '2024-09-01';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -139,7 +141,7 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
 
   it('changing a food (deselect + add a different food) flips dirty true and canFinalize true', async () => {
     const date = '2024-09-02';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -154,7 +156,7 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
 
   it('changing a food amount flips dirty true', async () => {
     const date = '2024-09-03';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -170,7 +172,7 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
 
   it('changing a food preparation flips dirty true', async () => {
     const date = '2024-09-04';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -184,7 +186,7 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
 
   it('changing notes flips dirty true; whitespace-only padding stays clean (trim-aware)', async () => {
     const date = '2024-09-05';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', notes: 'orig' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', notes: 'orig' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -246,7 +248,7 @@ describe('createMealEditor — finalizeKind', () => {
     await editor.open({ date, mealType: 'breakfast' });
     expect(editor.finalizeKind).toBe('compose');
 
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
     await editor.open({ date, mealType: 'lunch' });
     expect(editor.finalizeKind).toBe('edit');
   });
@@ -279,7 +281,7 @@ describe('createMealEditor — discardDescriptor()', () => {
 
   it('clean edit returns null (load snapshot equals live)', async () => {
     const date = '2024-10-03';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -289,7 +291,7 @@ describe('createMealEditor — discardDescriptor()', () => {
 
   it('dirty edit returns kind "edit" + working meal carrying live notes', async () => {
     const date = '2024-10-04';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', notes: 'orig' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', notes: 'orig' }));
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -307,7 +309,9 @@ describe('createMealEditor — discardDescriptor()', () => {
     // state. The route calls discardDescriptor('delete') after the row is gone
     // from Dexie, threading the captured working meal into the buffer.
     const date = '2024-10-05';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', notes: 'will be removed' }));
+    await meals.save(
+      makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', notes: 'will be removed' }),
+    );
 
     const editor = createMealEditor();
     await editor.open({ date, mealType: 'lunch' });
@@ -330,7 +334,7 @@ describe('createMealEditor — applyUndo()', () => {
     // rather than silently dropping the user's restored work (issue #299).
     const date = '2024-10-06';
     const originalCreatedAt = '2024-10-06T07:00:00.000Z';
-        await meals.save(
+    await meals.save(
       makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', createdAt: originalCreatedAt }),
     );
 
@@ -347,7 +351,13 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: 'meal-edit', workingMeal: desc!.workingMeal, mealType: 'lunch', date, returnTo: '/day/2024-10-06' },
+      {
+        kind: 'meal-edit',
+        workingMeal: desc!.workingMeal,
+        mealType: 'lunch',
+        date,
+        returnTo: '/day/2024-10-06',
+      },
     );
 
     expect(editor2.finalizeKind).toBe('edit');
@@ -362,13 +372,15 @@ describe('createMealEditor — applyUndo()', () => {
     // Issue #299: undo must re-inject the elimination window so the per-food
     // danger styling and red CTA reappear on the rehydrated screen.
     const date = '2024-11-10';
-        // Seed a saved meal with a single non-eliminated food.
-    await meals.save(makeMeal({
-      id: `${date}:breakfast`,
-      date,
-      mealType: 'breakfast',
-      items: [{ id: 'item-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
-    }));
+    // Seed a saved meal with a single non-eliminated food.
+    await meals.save(
+      makeMeal({
+        id: `${date}:breakfast`,
+        date,
+        mealType: 'breakfast',
+        items: [{ id: 'item-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      }),
+    );
 
     // Simulate user adding an eliminated dairy food, backing out, capturing buffer.
     const editor1 = createMealEditor();
@@ -383,7 +395,13 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'breakfast' },
-      { kind: 'meal-edit', workingMeal: desc!.workingMeal, mealType: 'breakfast', date, returnTo: `/day/${date}` },
+      {
+        kind: 'meal-edit',
+        workingMeal: desc!.workingMeal,
+        mealType: 'breakfast',
+        date,
+        returnTo: `/day/${date}`,
+      },
       ['dairy'],
     );
 
@@ -395,7 +413,7 @@ describe('createMealEditor — applyUndo()', () => {
     // Issue #299: undo restores dirty state, so backing out again must
     // re-write the buffer rather than treat the meal as clean.
     const date = '2024-11-11';
-        await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
+    await meals.save(makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch' }));
 
     const editor1 = createMealEditor();
     await editor1.open({ date, mealType: 'lunch' });
@@ -406,7 +424,13 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: 'meal-edit', workingMeal: desc.workingMeal, mealType: 'lunch', date, returnTo: `/day/${date}` },
+      {
+        kind: 'meal-edit',
+        workingMeal: desc.workingMeal,
+        mealType: 'lunch',
+        date,
+        returnTo: `/day/${date}`,
+      },
     );
 
     // Second back-out: editor must report a non-null descriptor with the
@@ -422,7 +446,7 @@ describe('createMealEditor — applyUndo()', () => {
   it('back-out → undo → finalize round-trip preserves the original createdAt', async () => {
     const date = '2024-10-07';
     const originalCreatedAt = '2024-10-07T06:00:00.000Z';
-        await meals.save(
+    await meals.save(
       makeMeal({ id: `${date}:lunch`, date, mealType: 'lunch', createdAt: originalCreatedAt }),
     );
 
@@ -437,7 +461,13 @@ describe('createMealEditor — applyUndo()', () => {
     const editor2 = createMealEditor();
     await editor2.applyUndo(
       { date, mealType: 'lunch' },
-      { kind: desc.kind, workingMeal: desc.workingMeal, mealType: 'lunch', date, returnTo: '/day/x' },
+      {
+        kind: desc.kind,
+        workingMeal: desc.workingMeal,
+        mealType: 'lunch',
+        date,
+        returnTo: '/day/x',
+      },
     );
     const result = await editor2.finalize();
     expect(result).toMatchObject({ ok: true });
@@ -530,7 +560,7 @@ describe('createMealEditor — order-independent food comparison', () => {
     // Seed two foods and verify that deselecting one and re-adding it (which
     // appends to the working list) does not flip dirty.
     const date = '2024-09-13';
-        await meals.save({
+    await meals.save({
       id: `${date}:lunch`,
       date,
       mealType: 'lunch',

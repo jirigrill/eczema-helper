@@ -5,7 +5,7 @@ import type {
   SkinObservation,
   RegionLevel,
   ReintroductionEvaluation,
-  AllergenOutcome
+  AllergenOutcome,
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
@@ -15,7 +15,7 @@ import {
   REST_PHASE_DAYS_MILD,
   REST_PHASE_DAYS_CLEAR,
   REST_PHASE_DAYS_SEVERE,
-  MAX_RUNG_REACTIONS
+  MAX_RUNG_REACTIONS,
 } from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
 
@@ -23,7 +23,7 @@ export type { FeedingStage, Ladder, LadderStep };
 
 function foodTriggers(foodId: string): readonly string[] {
   const food = (FOODS as readonly { id: string; allergenIds: readonly string[] }[]).find(
-    (f) => f.id === foodId
+    (f) => f.id === foodId,
   );
   if (food) return food.allergenIds;
   if (foodId.startsWith('other:')) return [foodId.slice(6)];
@@ -47,10 +47,7 @@ function mealHitsAllergen(meal: Meal, allergenId: LadderAllergenId): boolean {
  *
  * Included in the ADR-0002 export so a device restore preserves the plan.
  */
-export function resolveLadder(
-  defaultLadder: Ladder,
-  override: Ladder | null | undefined
-): Ladder {
+export function resolveLadder(defaultLadder: Ladder, override: Ladder | null | undefined): Ladder {
   if (!override) return defaultLadder;
   return {
     ...defaultLadder,
@@ -125,7 +122,7 @@ function deriveLadderState(
   allergenId: LadderAllergenId,
   meals: Meal[],
   evaluations: readonly ReintroductionEvaluation[],
-  steps: readonly LadderStep[]
+  steps: readonly LadderStep[],
 ): LadderReplayState {
   // Build one chronological event stream. Meal anchors (climb) carry `order: 0`
   // and evaluations (verdicts) carry `order: 1`, so a same-day dose is replayed
@@ -189,7 +186,7 @@ function deriveLadderState(
       outcome: ev.outcome,
       date: ev.date,
       until: addDays(ev.date, restDaysFor(ev.outcome)),
-      stepBackTo: steps[liveIndex - 1]
+      stepBackTo: steps[liveIndex - 1],
     };
     // Drop one rung and reopen the reacting rung for a re-test.
     liveIndex -= 1;
@@ -202,7 +199,7 @@ function deriveLadderState(
     lastPassingRung: pendingReaction?.stepBackTo ?? liveRung,
     pendingReaction,
     ceilingRung,
-    reactionCounts
+    reactionCounts,
   };
 }
 
@@ -235,7 +232,7 @@ export function currentRung(
   defaultLadder: Ladder,
   stage: FeedingStage,
   override?: Ladder | null,
-  evaluations?: readonly ReintroductionEvaluation[]
+  evaluations?: readonly ReintroductionEvaluation[],
 ): LadderStep | null {
   const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
   return deriveLadderState(allergenId, meals, evaluations ?? [], steps).liveRung;
@@ -257,7 +254,7 @@ export function nextLegalStep(
   defaultLadder: Ladder,
   stage: FeedingStage,
   override?: Ladder | null,
-  opts?: { isPermanentlyEliminated?: boolean }
+  opts?: { isPermanentlyEliminated?: boolean },
 ): LadderStep | null {
   if (opts?.isPermanentlyEliminated) return null;
   const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
@@ -280,7 +277,7 @@ export function rungAtDayInPhase(
   catalog: CanonicalCatalogPort,
   allergenId: LadderAllergenId,
   dayInPhase: number,
-  stage: FeedingStage
+  stage: FeedingStage,
 ): LadderStep | null {
   const steps = catalog.get(allergenId)?.ladder?.stages[stage];
   if (!steps) return null;
@@ -300,7 +297,8 @@ export type CadenceGateResult = {
 
 function daysSince(fromIsoDate: string, toIsoDate: string): number {
   return Math.round(
-    (new Date(toIsoDate + 'T00:00:00').getTime() - new Date(fromIsoDate + 'T00:00:00').getTime()) / 86400000
+    (new Date(toIsoDate + 'T00:00:00').getTime() - new Date(fromIsoDate + 'T00:00:00').getTime()) /
+      86400000,
   );
 }
 
@@ -315,12 +313,15 @@ export function cadenceGate(
   allergenId: LadderAllergenId,
   meals: Meal[],
   today: string,
-  cadenceDays: number
+  cadenceDays: number,
 ): CadenceGateResult {
   const matching = meals.filter((m) => mealHitsAllergen(m, allergenId));
   if (matching.length === 0) return { allowed: true, daysSinceLastDose: null };
 
-  const lastDate = matching.map((m) => m.date).sort().at(-1) as string;
+  const lastDate = matching
+    .map((m) => m.date)
+    .sort()
+    .at(-1) as string;
   const elapsed = daysSince(lastDate, today);
   return { allowed: elapsed >= cadenceDays, daysSinceLastDose: elapsed };
 }
@@ -341,10 +342,7 @@ export type SkinCalmGateResult = {
  * to hold against); consumers that require positive confirmation of calm
  * should combine this with a "did the mother log skin today?" check.
  */
-export function skinCalmGate(
-  observations: SkinObservation[],
-  today: string
-): SkinCalmGateResult {
+export function skinCalmGate(observations: SkinObservation[], today: string): SkinCalmGateResult {
   const eligible = observations.filter((o) => o.date <= today);
   if (eligible.length === 0) return { allowed: true, isFlare: false, latestSeverity: null };
 
@@ -382,7 +380,7 @@ export type SkinStabilityGateResult = {
 export function skinStabilityGate(
   observations: SkinObservation[],
   today: string,
-  windowDays: number
+  windowDays: number,
 ): SkinStabilityGateResult {
   const eligible = observations
     .filter((o) => o.date <= today)
@@ -397,8 +395,7 @@ export function skinStabilityGate(
   const windowStart = addDays(today, -windowDays);
   const inWindow = eligible.filter((o) => o.date >= windowStart);
   const beforeWindow = eligible.filter((o) => o.date < windowStart);
-  const baselineObs =
-    inWindow.length > 0 ? inWindow[0] : beforeWindow[beforeWindow.length - 1];
+  const baselineObs = inWindow.length > 0 ? inWindow[0] : beforeWindow[beforeWindow.length - 1];
   const currentObs = eligible[eligible.length - 1];
 
   const baselineSeverity = overallSeverity(baselineObs);
@@ -406,7 +403,7 @@ export function skinStabilityGate(
   return {
     allowed: currentSeverity <= baselineSeverity,
     baselineSeverity,
-    currentSeverity
+    currentSeverity,
   };
 }
 
@@ -437,18 +434,20 @@ export type CheckpointVerdictGateResult = {
 export function checkpointVerdictGate(
   rung: LadderStep | null,
   allergenId: LadderAllergenId,
-  evaluations: readonly ReintroductionEvaluation[]
+  evaluations: readonly ReintroductionEvaluation[],
 ): CheckpointVerdictGateResult {
   if (rung === null || !rung.isEvaluationCheckpoint) {
     return { allowed: true, requiresRest: false, restDays: null };
   }
 
   const matching = evaluations.filter(
-    (e) => e.phaseType === 'allergen-test' && e.allergenId === allergenId
+    (e) => e.phaseType === 'allergen-test' && e.allergenId === allergenId,
   );
   if (matching.length === 0) return { allowed: false, requiresRest: false, restDays: null };
 
-  const latest = [...matching].sort((a, b) => a.date.localeCompare(b.date)).at(-1) as ReintroductionEvaluation;
+  const latest = [...matching]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .at(-1) as ReintroductionEvaluation;
   const outcome = latest.outcome as AllergenOutcome;
   if (outcome === 'tolerated') return { allowed: true, requiresRest: false, restDays: null };
 
@@ -583,7 +582,7 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
       rung: referenceRung,
       reason: 'skin-worsening',
       baselineSeverity: stability.baselineSeverity as RegionLevel,
-      currentSeverity: stability.currentSeverity as RegionLevel
+      currentSeverity: stability.currentSeverity as RegionLevel,
     };
   }
 
@@ -594,7 +593,7 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
       kind: 'hold',
       rung: referenceRung,
       reason: 'cadence',
-      daysRemaining: Math.max(0, input.cadenceDays - (cadence.daysSinceLastDose ?? 0))
+      daysRemaining: Math.max(0, input.cadenceDays - (cadence.daysSinceLastDose ?? 0)),
     };
   }
 
@@ -602,9 +601,8 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   // `isPermanentlyEliminated` is already handled at (1); pass it through anyway so
   // this stays consistent with `nextLegalStep`'s own permanent-elimination contract.
   const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
-    isPermanentlyEliminated: input.isPermanentlyEliminated
+    isPermanentlyEliminated: input.isPermanentlyEliminated,
   });
   if (nextStep === null) return { kind: 'passed', rung: liveRung as LadderStep };
   return { kind: 'advance', from: liveRung, to: nextStep };
 }
-

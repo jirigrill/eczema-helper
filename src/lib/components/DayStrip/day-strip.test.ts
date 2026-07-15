@@ -17,7 +17,12 @@ describe('computeDayStrip', () => {
 
   it('includes both today and the selected date', () => {
     const selected = '2026-06-05';
-    const { cells } = computeDayStrip({ selectedDate: selected, protocolStart, estimatedEnd, today });
+    const { cells } = computeDayStrip({
+      selectedDate: selected,
+      protocolStart,
+      estimatedEnd,
+      today,
+    });
     expect(cells.some((c) => c.date === today)).toBe(true);
     expect(cells.some((c) => c.date === selected)).toBe(true);
   });
@@ -31,7 +36,12 @@ describe('computeDayStrip', () => {
 
   it('marks the selected date with isSelected=true and only that one cell', () => {
     const selected = '2026-06-05';
-    const { cells } = computeDayStrip({ selectedDate: selected, protocolStart, estimatedEnd, today });
+    const { cells } = computeDayStrip({
+      selectedDate: selected,
+      protocolStart,
+      estimatedEnd,
+      today,
+    });
     const sel = cells.filter((c) => c.isSelected);
     expect(sel).toHaveLength(1);
     expect(sel[0].date).toBe(selected);
@@ -87,7 +97,12 @@ describe('computeDayStrip', () => {
   it('extends the range to cover selectedDate even if it falls outside the soft-clamp', () => {
     // Far-past selected date should still appear in the strip.
     const farPast = '2025-12-01';
-    const { cells } = computeDayStrip({ selectedDate: farPast, protocolStart, estimatedEnd, today });
+    const { cells } = computeDayStrip({
+      selectedDate: farPast,
+      protocolStart,
+      estimatedEnd,
+      today,
+    });
     expect(cells.some((c) => c.date === farPast)).toBe(true);
     expect(cells.find((c) => c.date === farPast)?.isBeforeStart).toBe(true);
   });

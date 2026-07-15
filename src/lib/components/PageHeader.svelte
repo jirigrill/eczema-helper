@@ -31,7 +31,11 @@
   } = $props();
 </script>
 
-<div class="sticky top-0 bg-surface z-20 px-4 py-2.5 flex items-center gap-3 {bordered ? 'border-b border-surface-dark' : ''}">
+<div
+  class="bg-surface sticky top-0 z-20 flex items-center gap-3 px-4 py-2.5 {bordered
+    ? 'border-surface-dark border-b'
+    : ''}"
+>
   {#if onBack}
     <!--
       Back-chevron sizing tracks the title:
@@ -40,9 +44,9 @@
         keeps it thumb-tappable without pushing the title rightward)
     -->
     <button
-      class="text-text leading-none {variant === 'large' ? 'text-3xl -ml-1 px-2 py-1' : 'text-lg'}"
-      onclick={onBack}
-    >‹</button>
+      class="text-text leading-none {variant === 'large' ? '-ml-1 px-2 py-1 text-3xl' : 'text-lg'}"
+      onclick={onBack}>‹</button
+    >
   {/if}
   <h1 class="{variant === 'large' ? 'page-heading' : 'body-bold'} flex-1">{title}</h1>
   {#if right}

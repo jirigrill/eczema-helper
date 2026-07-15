@@ -4,7 +4,9 @@ vi.mock('$lib/utils/date', () => ({
   todayIso: () => '2026-06-07',
 }));
 
-afterEach(() => { vi.clearAllMocks(); });
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('parseDayQuery', () => {
   async function parse(search: string) {

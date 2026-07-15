@@ -15,13 +15,10 @@ describe('InfoBanner', () => {
     ['success', 'success'],
     ['warning', 'warning'],
     ['danger', 'danger'],
-  ] as const)(
-    'maps variant=%s to data-state=%s',
-    (variant, state) => {
-      const { container } = render(InfoBanner, { props: { variant } });
-      expect(container.querySelector(`[data-state="${state}"]`)).not.toBeNull();
-    }
-  );
+  ] as const)('maps variant=%s to data-state=%s', (variant, state) => {
+    const { container } = render(InfoBanner, { props: { variant } });
+    expect(container.querySelector(`[data-state="${state}"]`)).not.toBeNull();
+  });
 
   it('renders as a div when no href is provided', () => {
     const { container } = render(InfoBanner, { props: { variant: 'info' } });

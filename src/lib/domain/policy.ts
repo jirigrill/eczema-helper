@@ -5,9 +5,9 @@
  * live here. Tuning the protocol requires touching only this file.
  */
 
-import type { LadderAllergenId } from "$lib/data/allergen-catalog";
-import type { PhaseType } from "$lib/domain/models";
-import { addDays, isDateInRange } from "$lib/utils/date";
+import type { LadderAllergenId } from '$lib/data/allergen-catalog';
+import type { PhaseType } from '$lib/domain/models';
+import { addDays, isDateInRange } from '$lib/utils/date';
 
 // ── Number of days before/after program ─────────────────────────────────
 
@@ -40,12 +40,7 @@ export function isWithinLoggableWindow(
  * common trigger. A protocol policy choice, not catalog reference data — which
  * allergens *exist* is the catalog's job; which we *test by default* is this file's.
  */
-export const DEFAULT_TESTED_ALLERGENS: LadderAllergenId[] = [
-  "soy",
-  "wheat",
-  "eggs",
-  "dairy",
-];
+export const DEFAULT_TESTED_ALLERGENS: LadderAllergenId[] = ['soy', 'wheat', 'eggs', 'dairy'];
 
 // ── Phase durations (in days) ────────────────────────────────
 
@@ -138,7 +133,7 @@ export function stabilityWindowFor(phase: LadderPhase): number {
 }
 
 /** The two protocol phases that walk the dose ladder (ADR-0023 F3 ≡ F4). */
-export type LadderPhase = Extract<PhaseType, "tolerance-building" | "reintroduction">;
+export type LadderPhase = Extract<PhaseType, 'tolerance-building' | 'reintroduction'>;
 
 /**
  * The single definition of "which cadence for which phase". The ladder decision
@@ -148,9 +143,9 @@ export type LadderPhase = Extract<PhaseType, "tolerance-building" | "reintroduct
  */
 export function cadenceForPhase(phase: LadderPhase): number {
   switch (phase) {
-    case "reintroduction":
+    case 'reintroduction':
       return REINTRODUCTION_CADENCE_DAYS;
-    case "tolerance-building":
+    case 'tolerance-building':
       return ACCEPTED_ALLERGEN_CADENCE_DAYS;
     default: {
       const _exhaustive: never = phase;

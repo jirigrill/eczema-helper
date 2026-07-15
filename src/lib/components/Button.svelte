@@ -29,9 +29,9 @@
   onclick={disabled ? undefined : onclick}
   class="
     {variant === 'primary'
-      ? `w-full py-3.5 rounded-xl text-white font-semibold text-base
+    ? `w-full rounded-xl py-3.5 text-base font-semibold text-white
          ${color === 'danger' ? 'bg-danger' : color === 'warning' ? 'bg-warning' : 'bg-primary'}`
-      : 'text-xs text-text-muted border border-surface-dark rounded-xl px-2.5 py-1 font-medium hover:text-text hover:border-text-muted transition-colors'}
+    : 'text-text-muted border-surface-dark hover:text-text hover:border-text-muted rounded-xl border px-2.5 py-1 text-xs font-medium transition-colors'}
   "
 >
   {@render children?.()}

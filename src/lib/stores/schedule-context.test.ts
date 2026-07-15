@@ -91,7 +91,10 @@ describe('scheduleRaw', () => {
 
     const value = await new Promise<{ status: string }>((resolve, reject) => {
       let unsub: (() => void) | undefined;
-      const timer = setTimeout(() => { unsub?.(); reject(new Error('timeout')); }, 600);
+      const timer = setTimeout(() => {
+        unsub?.();
+        reject(new Error('timeout'));
+      }, 600);
       unsub = scheduleRaw.subscribe((v) => {
         if (v.status === 'ready') {
           clearTimeout(timer);

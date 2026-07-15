@@ -6,7 +6,7 @@ export type MealStrings = {
 
 export const mealStrings = {
   breakfast: { label: 'Snídaně' },
-  lunch:     { label: 'Oběd'    },
-  snack:     { label: 'Svačina' },
-  dinner:    { label: 'Večeře'  },
+  lunch: { label: 'Oběd' },
+  snack: { label: 'Svačina' },
+  dinner: { label: 'Večeře' },
 } as const satisfies Record<MealType, MealStrings>;

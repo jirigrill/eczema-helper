@@ -15,18 +15,11 @@
 </script>
 
 {#if href}
-  <a
-    {href}
-    data-state={variant}
-    class="no-underline rounded-xl px-4 py-3 border {extraClass}"
-  >
+  <a {href} data-state={variant} class="rounded-xl border px-4 py-3 no-underline {extraClass}">
     {@render children?.()}
   </a>
 {:else}
-  <div
-    data-state={variant}
-    class="rounded-xl px-4 py-3 border {extraClass}"
-  >
+  <div data-state={variant} class="rounded-xl border px-4 py-3 {extraClass}">
     {@render children?.()}
   </div>
 {/if}
