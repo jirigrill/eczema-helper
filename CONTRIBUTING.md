@@ -28,6 +28,21 @@ Motivation or context.
 Before/after snippet, API example, or screenshot.
 ```
 
+## AI-Assisted Contributions
+
+Agent-authored PRs are expected here, not discouraged — this repo has an `AGENTS.md` and a `docs/agents/` directory. The relevant policy is how they self-identify, not whether they're allowed:
+
+- **Autonomous agent runs** (e.g. Sandcastle/`RALPH`, see `.sandcastle/README.md`) work on branch `agent/ralph-issue-<N>`, prefix every commit subject and PR title with `RALPH:`, and open the PR body with `Closes #<N>`.
+- **Human-directed AI pair-programming** (a contributor working interactively with an assistant) follows the normal branch, commit, and PR conventions below — no special prefix. The human reviews and is accountable for what's proposed before it ships.
+
+## Branch Naming
+
+```
+<scope>/<short-description>
+```
+
+Same scopes as PR titles, e.g. `fix/472-svelte-check-errors`, `docs/date-strip-prototype`. Autonomous agent branches use `agent/ralph-issue-<N>` instead (see above).
+
 ## CI
 
 Required before merge:
