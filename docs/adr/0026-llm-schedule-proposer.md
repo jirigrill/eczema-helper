@@ -5,7 +5,7 @@
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3, §6 #3/#4/#5/#6, §5 sequence #4.
 **Amends:** [ADR-0001](0001-single-device-v1.md) (introduces a stateless BFF; "no server" → "no server *holding user data*").
 **Gated by:** [ADR-0024](0024-medical-scope-boundary.md) (scope-gate ahead of the proposer).
-**Builds on:** [ADR-0016](0016-verdict-drives-schedule-not-status.md) (audit-fact precedent), [ADR-0023](0023-dose-escalation-ladder.md) (ladder moves), [ADR-0025](0025-event-domain-model.md) (trigger kinds), [ADR-0006](0006-dexie-persistence.md), [ADR-0014](0014-presentation-strings-and-domain-keys.md).
+**Builds on:** [ADR-0016](0016-verdict-drives-schedule-not-status.md) (audit-fact precedent), [ADR-0023](0023-dose-escalation-ladder.md) (ladder moves), [ADR-0025](0025-event-domain-model.md) (trigger kinds), the Dexie-persistence and presentation-strings conventions (now in CONTEXT.md / code-standards.md).
 
 ## Context
 

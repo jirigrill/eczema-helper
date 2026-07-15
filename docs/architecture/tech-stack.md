@@ -10,7 +10,7 @@ Technologies currently in use for v1 (the Protocol Executor — see [ADR-0007](.
 | Adapter      | `@sveltejs/adapter-static`                | Static PWA, `fallback: 'index.html'` for client routing              |
 | Runtime / PM | Bun 1.x                                   | Used for install, dev server, build                                  |
 | Styling      | Tailwind CSS 4                            | CSS-first config; tokens defined in `src/app.css`                    |
-| Local DB     | Dexie 4 / IndexedDB                       | Normalized tables, reactive `liveQuery` ([ADR-0006](../adr/0006-dexie-persistence.md)) |
+| Local DB     | Dexie 4 / IndexedDB                       | Normalized tables, reactive `liveQuery` |
 | Crypto       | Web Crypto API (AES-256-GCM, PBKDF2)      | Backs encrypted manual-export blob ([ADR-0002](../adr/0002-backup-floor.md)) |
 | PWA          | `@vite-pwa/sveltekit`                     | Installed; not yet wired for offline shell                           |
 | Testing      | Vitest + `@testing-library/svelte` + `fake-indexeddb`; Playwright | See [testing-strategy.md](testing-strategy.md) |
@@ -38,7 +38,7 @@ The following lived in earlier iterations of this document and are **not** part 
 - **No auth.** No cookie sessions, no bcrypt, no passkeys. Single-device, no accounts.
 - **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine ships in v1.1 ([ADR-0004](../adr/0004-causation-derived-not-recorded.md)).
 - **No push notifications.** No web-push, no VAPID.
-- **No photo upload.** Photos stay on-device; encryption-at-rest in IndexedDB is deferred with a shipping constraint ([ADR-0005](../adr/0005-photo-encryption-deferred.md)).
+- **No photo upload.** Photos stay on-device; encryption-at-rest in IndexedDB is deferred with a shipping constraint.
 - **No charts / no PDF export.** No `uPlot`, no `pdfmake`.
 
 If any of these become relevant, add an ADR before reintroducing the dependency.

@@ -123,7 +123,7 @@ The display name and icon are resolved from the slug at render time. The slug ty
 
 ### AllergenId / LadderAllergenId / CustomAllergenId
 
-The typed shape of an allergen slug. Per [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
+The typed shape of an allergen slug. Per ADR-0017
 these are **derived** from the data-first catalog rather than hand-written unions:
 
 - `CatalogAllergenId = typeof ALLERGENS[number]['id']` — every canonical allergen slug
@@ -148,8 +148,7 @@ directly (`SchedulePhase.allergenIds`, `testedAllergens`,
 
 ### Family / Allergen / Food — three-level catalog
 *Czech: Rodina / Alergen / Potravina. See
-[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md)
-and the CONTEXT.md "Family / Allergen / Food" entry for full definitions and
+the CONTEXT.md "Family / Allergen / Food" entry for full definitions and
 invariants.*
 
 The catalog has three levels, each with a derived id:
@@ -315,7 +314,7 @@ produced by the pure `buildScheduleContext()` in `schedule-queries.ts`.
 The six-field payload carried by the `ready` arm of `ScheduleContext`: `schedule`,
 `answers`, `allergenStatuses`, `eliminatedToday`, `reintroInfo`, `progress`. Produced
 by `buildScheduleContext(raw, today)` in `src/lib/domain/schedule-queries.ts` — a pure
-projection with no DB dependency. See [ADR-0015](docs/adr/0015-stores-as-imperative-shells.md).
+projection with no DB dependency.
 
 ### protocolSession
 
@@ -342,8 +341,7 @@ on `skinObservationSession` for writes; they do not instantiate adapters directl
 [Slice 4](docs/adr/0008-tracer-bullet-slices.md) converts this (and `mealSession` /
 `skinPhotoSession`) into a **date factory** — `createSkinObservationSession(date)` returns
 a `readable` scoped to that date — so the unified Day View can read any selected date while
-`liveQuery` stays in the stores layer ([ADR-0009](docs/adr/0009-schedule-context-store.md)
-boundary rule). A `todayIso()`-bound instance remains the default for today-only callers.
+`liveQuery` stays in the stores layer (ADR-0009 boundary rule). A `todayIso()`-bound instance remains the default for today-only callers.
 
 ### skinPhotoSession
 
@@ -656,7 +654,7 @@ add-only — no delete yet). Return-to-today is the bottom-nav `Dnes` tab. **Act
 chrome** — tolerance-building reminders and the task counter — renders only when the
 selected date is today; past days show historical facts only.
 The data path is reactive per selected date (`buildScheduleContext(raw, selectedDate)` +
-date-scoped session-store factories), see [ADR-0009](docs/adr/0009-schedule-context-store.md)'s
+date-scoped session-store factories), see ADR-0009's
 Slice-4 amendment. The main screen a user opens each day.
 
 ### Daily Completeness

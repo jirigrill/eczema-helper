@@ -1,6 +1,6 @@
 # Ports & Adapters Architecture
 
-The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1 has no backend. The split is between **pure domain logic** and **all I/O**, including local I/O against IndexedDB. See [ADR-0006](../adr/0006-dexie-persistence.md) for the persistence rationale.
+The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1 has no backend. The split is between **pure domain logic** and **all I/O**, including local I/O against IndexedDB.
 
 ## Why hexagonal here
 
@@ -16,7 +16,7 @@ The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1
 │   ↓ reads from stores; calls ports through them               │
 ├───────────────────────────────────────────────────────────────┤
 │ Stores            src/lib/stores/                             │
-│   ↓ wrap liveQuery into Svelte stores ([ADR-0009])            │
+│   ↓ wrap liveQuery into Svelte stores                         │
 ├───────────────────────────────────────────────────────────────┤
 │ Ports             src/lib/domain/ports/    (interfaces)       │
 │ Domain            src/lib/domain/          (pure functions)   │
@@ -76,7 +76,7 @@ type SkinPhotoStore = {
 };
 ```
 
-List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs stored plaintext in v1 per [ADR-0005](../adr/0005-photo-encryption-deferred.md).
+List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs stored plaintext in v1.
 
 ## Adapters
 
@@ -105,7 +105,7 @@ Each session store is the **only** place that imports `db` and constructs the ad
 
 ## Reactivity boundary
 
-Ports expose **point reads** (`load()`, `listByDate()`), not subscriptions. Live reactive reads are a UI concern and are handled in `src/lib/stores/`, which subscribes directly to `Dexie.liveQuery()`. The `ScheduleContext` store ([ADR-0009](../adr/0009-schedule-context-store.md)) is the canonical example — exposes a `loading | empty | ready` discriminated union to routes.
+Ports expose **point reads** (`load()`, `listByDate()`), not subscriptions. Live reactive reads are a UI concern and are handled in `src/lib/stores/`, which subscribes directly to `Dexie.liveQuery()`. The `ScheduleContext` store is the canonical example — exposes a `loading | empty | ready` discriminated union to routes.
 
 This is deliberate: putting `liveQuery` in the port would couple the domain to Dexie and force any future test adapter to ship a fake reactive primitive.
 

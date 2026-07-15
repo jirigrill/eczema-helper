@@ -426,7 +426,7 @@ The convergence between severity colors and semantic colors is **intentional**: 
 
 #### Semantic Opacity Tiers
 
-Three opacity tiers exist for semantic-colour backgrounds. Each has a distinct role; do not substitute one for another (see [ADR-0011](docs/adr/0011-semantic-opacity-tiers.md)):
+Three opacity tiers exist for semantic-colour backgrounds. Each has a distinct role; do not substitute one for another:
 
 | Tier | Tailwind suffix | Role | Examples |
 |------|----------------|------|---------|

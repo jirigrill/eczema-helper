@@ -243,8 +243,6 @@ Status is a discriminated string union:
   dose day." Any consumer that wants a phase's final verdict must query
   `getAllergenStatuses(schedule, endDate + 1)`, never `endDate`.
 
-See [ADR-0012](docs/adr/0012-allergen-status-lifecycle.md).
-
 ### CanonicalAllergen
 A curated catalog record describing one allergen — its stable `id`, `icon`,
 `subitems`, `aliases` (normalized surface forms), optional `source` provenance,
@@ -258,7 +256,7 @@ A record without a ladder is canonical and loggable but **not reintroducible**
 record; it lives in `strings/` (ADR-0014) — **except** `LadderStep.dose`, which
 is inlined on the ladder as a deliberate ADR-0014 deviation (see [Ladder](#ladder)).
 Records are bundled, build-time, and JSON-serializable, read through
-`CanonicalCatalogPort`. See [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+`CanonicalCatalogPort`.
 
 ### Ladder
 The dose-escalation model — the sole per-allergen dose-progression shape as of
@@ -350,8 +348,7 @@ a key like `cow` / `gluten`), independent of both `familyId` and `allergenIds`:
 `sójové mléko` under `Rostlinné` while its allergen is `soy`. Grouping by allergen
 would scatter these away from where they are looked for; source-grouping keeps
 them together. The subgroup vocabulary is **per-family** — `cow` means nothing
-outside `Mléko` — and lives, ordered, in the strings layer (`familySources`,
-[ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md)); the array
+outside `Mléko` — and lives, ordered, in the strings layer (`familySources`); the array
 order is the render order. Grouping is a **progressive enhancement**: a family
 renders grouped only when it has **≥ 5 foods _and_ an authored source structure**,
 otherwise flat. Foods with no `sourceGroup` fall into a trailing **`Ostatní`**
@@ -459,8 +456,7 @@ candidate is the harvest feed and the eventual cross-user sync payload; it
 cover its key. Harvest stats live only here, never on a `CanonicalAllergen`.
 On-device normalization is deliberately minimal and precision-biased
 (lowercase + trim + collapse whitespace, **keep** diacritics, **no** stemming);
-authoritative clustering is a deferred server-side job. See
-[ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
+authoritative clustering is a deferred server-side job.
 
 ### Actor
 The person whose food intake a `Meal` describes. In v1 always `'mother'`
@@ -504,14 +500,11 @@ after data exists is a migration.
   Day-overall severity is derived as `max(regions)` and never persisted.
   `SkinObservationRepository.save(observation, photos)` writes both in a
   single Dexie transaction.
-  See [ADR-0021](docs/adr/0021-regional-severity-skin-observation.md).
 - **Klidné regions persist as positive evidence; every save witnesses
   all nine regions.** Absence of an observation for the day means
   "didn't check"; an observation with every region at level 0 means
   "checked, all calm". The Uložit gate is removed — every `/skin` visit
   can save.
-  See [ADR-0021, klidné amendment](docs/adr/0021-regional-severity-skin-observation.md#amendment--klidné-as-positive-evidence-2026-06-29)
-  (originally filed as ADR-0022; merged 2026-06-30).
 - **Observation `id` and `createdAt` are immutable across edit, delete,
   and undo-after-delete.** `createdAt` represents the *witnessing
   moment*, not the row's last-write timestamp; an edit (typo in a note,
@@ -519,15 +512,12 @@ after data exists is a migration.
   at the skin. Delete is a hard delete cascading to all `SkinPhoto` rows
   for that observation. The repository port exposes `save` (compose),
   `update` (edit), `remove` (delete), `listByDate` (read).
-  See [ADR-0021, edit-and-delete amendment](docs/adr/0021-regional-severity-skin-observation.md#amendment--edit-and-delete-preserve-identity-2026-06-30).
 - **Photo encryption-at-rest deferred past v1** — with a shipping
   constraint: encryption must land before the app reaches any device
   other than the developer's own.
-  See [ADR-0005](docs/adr/0005-photo-encryption-deferred.md).
 - **Persistence: Dexie/IndexedDB, normalized tables.** Photos in a
   dedicated table. Reactive UI via `liveQuery`. The insight engine
   receives plain arrays — it does not know Dexie exists.
-  See [ADR-0006](docs/adr/0006-dexie-persistence.md).
 - **v1 ships the Protocol Executor.** Onboarding, today view, meal-add
   with conflict detection, day detail, program timeline, end-of-reintro
   verdict, encrypted export. Insight engine deferred to v1.1.
@@ -544,8 +534,7 @@ after data exists is a migration.
   a display string onto a domain record violates this invariant.
   **Exception:** `LadderStep.dose` (Czech dose caption) is inlined on the
   catalog record — a deliberate, documented deviation for the Czech-only
-  single-tenant v1. See [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md)
-  and the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
+  single-tenant v1. See the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
 - **Allergen catalog is data-first, bundled, and port-fronted.** Each allergen
   is one curated JSON-serializable `CanonicalAllergen` record; `AllergenId` and
   `LadderAllergenId` are *derived* from the records, not hand-written unions.
@@ -553,7 +542,6 @@ after data exists is a migration.
   not imply reintroducible. Unknown user input becomes a runtime
   `HarvestCandidate` in Dexie, never mutates the bundled catalog. Cross-user
   aggregation and server-push are deferred behind `CanonicalCatalogPort`.
-  See [ADR-0017](docs/adr/0017-allergen-catalog-storage-and-harvest.md).
 - **Ladder rung is derived, never persisted; skipping a rung is
   unrepresentable.** `currentRung`/`nextLegalStep` (`src/lib/domain/ladder.ts`)
   mirror the `AllergenStatus` derivation pattern over per-stage

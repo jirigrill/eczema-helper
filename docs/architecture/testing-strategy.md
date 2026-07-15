@@ -65,7 +65,7 @@ This project does **not** use Playwright's `toHaveScreenshot` visual
 snapshot tests. CSS-level regressions (wrong opacity, wrong colour
 token, broken atom) are caught by manual review, not by automation.
 
-Rationale and re-entry conditions in [ADR-0010](../adr/0010-no-visual-snapshot-tests.md).
+Re-entry conditions — revisit if any of: a real `app.css` regression ships unnoticed and causes user-visible breakage; the project adds a second contributor (visual review can no longer rely on a single pair of eyes); or the CSS surface grows substantially (dark mode, theming). The preferred re-entry path is Pattern C — generate baselines locally in the official Playwright Docker image (`mcr.microsoft.com/playwright`), not the workflow-trigger approach that proved friction-heavy.
 Full options matrix (Docker locally, visual SaaS, keep with platform
 skips, etc.) captured in [issue #82](https://github.com/jirigrill/eczema-helper/issues/82).
 
