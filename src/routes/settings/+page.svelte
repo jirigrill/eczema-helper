@@ -8,6 +8,20 @@
 
   async function resetPrototype() {
     await protocolSession.reset();
+    // scheduleContext updates via a liveQuery subscription, so it can still
+    // report the stale 'ready' status for a tick right after reset() resolves.
+    // Wait for it to actually leave 'ready' before navigating — otherwise the
+    // root layout's ready-on-root redirect (issue #353) fires on the stale
+    // value and bounces straight back to the day view instead of showing
+    // the questionnaire.
+    await new Promise<void>((resolve) => {
+      const unsubscribe = protocolSession.subscribe((ctx) => {
+        if (ctx.status !== 'ready') {
+          resolve();
+          queueMicrotask(() => unsubscribe());
+        }
+      });
+    });
     goto('/');
   }
 </script>

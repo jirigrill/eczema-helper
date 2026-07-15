@@ -104,6 +104,29 @@ describe('+layout.svelte — redirect', () => {
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
   });
+
+  it('calls goto("/day/<today>") when status is ready and landing on the root route (issue #353)', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
+    mockScheduleContext.set(readyContext);
+    await renderLayout();
+    await tick();
+    expect(mockGoto).toHaveBeenCalledWith(`/day/${today}`);
+  });
+
+  it('does not call goto when status is ready and already on a non-root route', async () => {
+    mockScheduleContext.set(readyContext);
+    await renderLayout();
+    await tick();
+    expect(mockGoto).not.toHaveBeenCalled();
+  });
+
+  it('does not call goto while status is loading, even on the root route', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
+    mockScheduleContext.set({ status: 'loading' });
+    await renderLayout();
+    await tick();
+    expect(mockGoto).not.toHaveBeenCalled();
+  });
 });
 
 describe('+layout.svelte — bottom nav visibility', () => {

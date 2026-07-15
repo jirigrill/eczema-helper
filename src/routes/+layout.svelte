@@ -110,6 +110,7 @@
   $effect(() => {
     if (ctx.status === 'loading') return;
     if (ctx.status === 'empty' && !isOnboarding) goto('/');
+    if (ctx.status === 'ready' && isOnboarding) goto(`/day/${today}`);
   });
 
   // The shell scrolls inside <main>, not on window — so SvelteKit's default
