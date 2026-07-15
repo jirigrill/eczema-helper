@@ -7,7 +7,7 @@ PDF extraction and organization script for the elimination diet schedule.
 **Run from:** `eczema-helper` root directory
 
 ```bash
-cd "docs/full elimination diet schedule - atopicky ekzem Pekarkova" && \
+cd "docs/allergen-reference/elimination-diet-schedule-pekarkova" && \
 python3 -m venv /tmp/v$$ && source /tmp/v$$/bin/activate && \
 pip install -q pdfplumber pillow && python3 extract_organize_diet_tables.py && \
 deactivate && cd - && rm -rf /tmp/v$$
@@ -19,7 +19,7 @@ cd /Users/jiri.grill/Developer/eczema-helper && \
 python3 -m venv /tmp/diet_venv && \
 source /tmp/diet_venv/bin/activate && \
 pip install -q pdfplumber pillow && \
-python3 "docs/full elimination diet schedule - atopicky ekzem Pekarkova/extract_organize_diet_tables.py" && \
+python3 "docs/allergen-reference/elimination-diet-schedule-pekarkova/extract_organize_diet_tables.py" && \
 deactivate && rm -rf /tmp/diet_venv
 ```
 

@@ -10,7 +10,7 @@ PDF is native text/tables and small (9 pages), so it was transcribed by hand int
 ## Regenerate CSVs
 
 ```bash
-cd "docs/jak testovat alergeny - matouskova" && python3 generate_csvs.py
+cd "docs/allergen-reference/allergen-testing-matouskova" && python3 generate_csvs.py
 ```
 
 ## Output
