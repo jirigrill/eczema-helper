@@ -143,6 +143,13 @@
     ctx.status === 'ready' ? ctx.allergenStatuses.filter((s) => s.status === 'permanent-baby') : [],
   );
 
+  // Protocol allergens that reacted during reintroduction — retestable the same
+  // way as baby-confirmed allergens (#354, PRD #208 story #8). `passed` (tolerated)
+  // allergens are absent by construction, so they get no retest affordance.
+  const reactedProtocolStatuses = $derived(
+    ctx.status === 'ready' ? ctx.allergenStatuses.filter((s) => s.status === 'reacted') : [],
+  );
+
   async function addRetestPhases() {
     if (!schedule || selectedRetestSlugs.length === 0) return;
     const retestResult = await protocolSession.appendReTests(selectedRetestSlugs, today);
@@ -332,6 +339,29 @@
     showToast = true;
   }
 </script>
+
+{#snippet retestChip(allergenId: string)}
+  {@const cat = getCategoryConfig(allergenId)}
+  {#if cat}
+    {@const isChosen = selectedRetestSlugs.includes(allergenId)}
+    <button
+      type="button"
+      class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-all
+        {isChosen
+        ? 'bg-primary border-primary text-white'
+        : 'text-text border-surface-dark bg-white'}"
+      onclick={() => {
+        selectedRetestSlugs = isChosen
+          ? selectedRetestSlugs.filter((s) => s !== allergenId)
+          : [...selectedRetestSlugs, allergenId];
+      }}
+    >
+      {cat.icon}
+      {cat.name}
+      {#if isChosen}<span class="ml-1">✓</span>{/if}
+    </button>
+  {/if}
+{/snippet}
 
 {#snippet skinOutcomes(observations: SkinObservation[])}
   {@const calm = observations.filter((o) => overallSeverity(o) === 0).length}
@@ -856,35 +886,30 @@
         <p class="eyebrow mb-1">{commonStrings.program.babyAllergensSection}</p>
         <p class="body-muted text-xs">{commonStrings.program.babyAllergensNote}</p>
         <div class="flex flex-wrap gap-2">
-          {#each babyPermanentStatuses as allergenStatus}
-            {@const cat = getCategoryConfig(allergenStatus.allergenId)}
-            {#if cat}
-              {@const isChosen = selectedRetestSlugs.includes(allergenStatus.allergenId)}
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-all
-                  {isChosen
-                  ? 'bg-primary border-primary text-white'
-                  : 'text-text border-surface-dark bg-white'}"
-                onclick={() => {
-                  selectedRetestSlugs = isChosen
-                    ? selectedRetestSlugs.filter((s) => s !== allergenStatus.allergenId)
-                    : [...selectedRetestSlugs, allergenStatus.allergenId];
-                }}
-              >
-                {cat.icon}
-                {cat.name}
-                {#if isChosen}<span class="ml-1">✓</span>{/if}
-              </button>
-            {/if}
+          {#each babyPermanentStatuses as allergenStatus (allergenStatus.allergenId)}
+            {@render retestChip(allergenStatus.allergenId)}
           {/each}
         </div>
-        {#if selectedRetestSlugs.length > 0}
-          <Button onclick={addRetestPhases}>
-            {addRetestPhasesLabel(selectedRetestSlugs.length)}
-          </Button>
-        {/if}
       </div>
+    {/if}
+
+    {#if reactedProtocolStatuses.length > 0}
+      <div class="card-base space-y-3">
+        <p class="eyebrow mb-1">{commonStrings.program.reactedAllergensSection}</p>
+        <p class="body-muted text-xs">{commonStrings.program.reactedAllergensNote}</p>
+        <div class="flex flex-wrap gap-2">
+          {#each reactedProtocolStatuses as allergenStatus (allergenStatus.allergenId)}
+            {@render retestChip(allergenStatus.allergenId)}
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    <!-- Shared retest confirm — one selection model across both retest sections -->
+    {#if selectedRetestSlugs.length > 0}
+      <Button onclick={addRetestPhases}>
+        {addRetestPhasesLabel(selectedRetestSlugs.length)}
+      </Button>
     {/if}
 
     <!-- Edit notice -->
