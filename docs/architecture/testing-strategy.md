@@ -17,6 +17,31 @@ This project uses two complementary test tiers. The boundary between them is det
 | Domain logic (`schedule.ts`, etc.) | Vitest | colocated `*.test.ts` |
 | Adapter layer (Dexie, in-memory) | Vitest + fake-indexeddb | colocated `*.test.ts` |
 | Svelte components | @testing-library/svelte | colocated `*.test.ts` |
+| Reactive logic in `.svelte.ts` files (raw `$state`/`$derived`/`$effect`) | Vitest + `testWithEffect` | colocated `*.test.svelte.ts` |
+
+**Testing runes outside `.svelte` files:**
+
+A store built from `createXyz()` returning plain getters (e.g. `meal-editor.svelte.ts`) can be tested with an ordinary `*.test.ts` file — calling a method and reading a getter afterwards doesn't need a reactive context. But asserting that a `$derived` or `$effect` actually *reacts* to a `$state` write (not just computes correctly once) needs an `$effect.root`, since runes only push updates through when something is subscribed to them. That requires two things:
+
+1. The test file itself must be named `*.test.svelte.ts`, not `.test.ts` — only the `.svelte.ts` extension gets rune syntax processed by the Svelte compiler.
+2. Wrap the test body in `testWithEffect` (`$lib/test/util.svelte.ts`) instead of Vitest's `test`, so the runes run inside an effect root:
+
+```ts
+import { describe, expect } from 'vitest';
+
+import { testWithEffect } from '$lib/test/util.svelte';
+
+describe('someRuneLogic', () => {
+  testWithEffect('derived reacts to a state write', () => {
+    let count = $state(0);
+    const doubled = $derived(count * 2);
+    count = 5;
+    expect(doubled).toBe(10);
+  });
+});
+```
+
+Pattern and helper source: `svecosystem/runed`'s `testWithEffect` (`packages/runed/src/lib/test/util.svelte.ts`).
 
 **Component test patterns:**
 
