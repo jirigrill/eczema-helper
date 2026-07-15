@@ -1,6 +1,6 @@
+import type { AtopicDb } from '$lib/db/atopic-db';
 import type { HarvestCandidate, HarvestCandidateStatus } from '$lib/domain/harvest-candidate';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
 
 export class DexieHarvestCandidateRepository {
   constructor(private readonly db: AtopicDb) {}

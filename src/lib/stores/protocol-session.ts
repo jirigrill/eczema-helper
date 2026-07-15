@@ -1,24 +1,24 @@
-import { db } from '$lib/db/atopic-db';
+import { DexieEvaluationRepository } from '$lib/adapters/dexie-evaluation-repository';
+import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
 import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
-import { DexieEvaluationRepository } from '$lib/adapters/dexie-evaluation-repository';
-import {
-  generateSchedule,
-  appendReTestPhases,
-  removeReTestPhase,
-  applyReintroductionVerdict,
-} from '$lib/domain/schedule-builder';
-import { scheduleContext } from '$lib/stores/schedule-context';
+import { db } from '$lib/db/atopic-db';
 import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
 import type {
+  AllergenOutcome,
   LadderAllergenId,
   QuestionnaireAnswers,
   ReintroductionEvaluation,
-  AllergenOutcome,
 } from '$lib/domain/models';
-import type { Result } from '$lib/types/result';
+import {
+  appendReTestPhases,
+  applyReintroductionVerdict,
+  generateSchedule,
+  removeReTestPhase,
+} from '$lib/domain/schedule-builder';
 import type { RetestRejection } from '$lib/domain/schedule-builder';
+import { scheduleContext } from '$lib/stores/schedule-context';
+import type { Result } from '$lib/types/result';
 
 const questionnaireRepo = new DexieQuestionnaireRepository(db);
 const scheduleRepo = new DexieScheduleRepository(db);

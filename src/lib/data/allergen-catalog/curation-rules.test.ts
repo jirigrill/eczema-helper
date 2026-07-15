@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { FOODS, ALLERGENS } from './allergen-catalog';
+import { describe, expect, it } from 'vitest';
+
+import { ALLERGENS, FOODS } from './allergen-catalog';
 
 type FoodLite = {
   id: string;

@@ -1,13 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { resolveDay, dailyCompleteness } from './day-view';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
+import { describe, expect, it } from 'vitest';
+
 import type {
   GeneratedSchedule,
-  QuestionnaireAnswers,
   Meal,
+  QuestionnaireAnswers,
   SkinObservation,
   SkinPhoto,
 } from '$lib/domain/models';
+import type { ScheduleRaw } from '$lib/stores/schedule-context';
+
+import { dailyCompleteness, resolveDay } from './day-view';
 
 const protocolStart = '2025-05-01';
 const today = '2025-06-10';

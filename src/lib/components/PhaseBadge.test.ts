@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
-import PhaseBadge from './PhaseBadge.svelte';
+import { describe, expect, it } from 'vitest';
+
 import type { PhaseType } from '$lib/domain/models';
+
+import PhaseBadge from './PhaseBadge.svelte';
 
 describe('PhaseBadge', () => {
   const phases: PhaseType[] = [

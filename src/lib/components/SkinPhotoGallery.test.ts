@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
-import type { SkinPhotoInput, RegionId } from '$lib/domain/models';
+
+import { fireEvent, render } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { RegionId, SkinPhotoInput } from '$lib/domain/models';
 
 // JSDOM doesn't support Blob → object URL; stub both directions.
 let urlCounter = 0;

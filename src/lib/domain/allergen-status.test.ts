@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { getAllergenStatuses, getPhaseVerdictStatuses } from './allergen-status';
+import { describe, expect, it } from 'vitest';
+
 import type { GeneratedSchedule, SchedulePhase } from '$lib/domain/models';
+
+import { getAllergenStatuses, getPhaseVerdictStatuses } from './allergen-status';
 
 // ── Fixtures ──────────────────────────────────────────────────
 

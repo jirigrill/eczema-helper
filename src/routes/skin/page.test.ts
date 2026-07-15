@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { writable } from 'svelte/store';
+
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { SkinObservation } from '$lib/domain/models';
 
 // ── Skin observation session mock ─────────────────────────────

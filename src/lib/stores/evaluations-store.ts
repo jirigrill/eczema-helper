@@ -1,5 +1,7 @@
 import { readable } from 'svelte/store';
+
 import { liveQuery } from 'dexie';
+
 import { db } from '$lib/db/atopic-db';
 import type { ReintroductionEvaluation } from '$lib/domain/models';
 

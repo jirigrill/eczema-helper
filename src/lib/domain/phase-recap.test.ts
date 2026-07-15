@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import type { RegionLevel, SchedulePhase, SkinObservation } from '$lib/domain/models';
+
 import { buildPhaseRecap } from './phase-recap';
-import type { SchedulePhase, SkinObservation, RegionLevel } from '$lib/domain/models';
 
 function obs(
   date: string,

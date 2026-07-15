@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { sharePhotosToRoll } from './share-photos';
 
 function makeBlob(type = 'image/jpeg'): Blob {

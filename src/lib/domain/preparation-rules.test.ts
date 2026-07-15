@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { formPreparations, formForFood } from './preparation-rules';
+import { describe, expect, it } from 'vitest';
+
+import { formForFood, formPreparations } from './preparation-rules';
 
 describe('formPreparations', () => {
   it('none → no chips', () => {

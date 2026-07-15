@@ -1,5 +1,5 @@
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
 import type { Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
+import type { ScheduleRaw } from '$lib/stores/schedule-context';
 import { resolveRouteDate } from '$lib/utils/date';
 
 export type DayViewMode = 'editable' | 'preview';

@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { DexieLadderOverrideRepo } from './dexie-ladder-override-repo';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AtopicDb } from '$lib/db/atopic-db';
 import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+
+import { DexieLadderOverrideRepo } from './dexie-ladder-override-repo';
 
 // ── Helpers ───────────────────────────────────────────────────
 

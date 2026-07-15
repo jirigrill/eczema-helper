@@ -1,13 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers, Meal } from '$lib/domain/models';
-import { db } from '$lib/db/atopic-db';
+import { writable } from 'svelte/store';
+
+import { fireEvent, render } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import { db } from '$lib/db/atopic-db';
+import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
 const catalog = new BundledCatalogAdapter();
 

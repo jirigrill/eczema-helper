@@ -29,7 +29,7 @@ export default mergeConfig(
           test: {
             name: 'node',
             environment: 'node',
-            include: ['src/**/*.test.ts'],
+            include: ['src/**/*.test.ts', 'src/**/*.test.svelte.ts'],
             exclude: [...sharedExclude, ...domGlobs],
           },
         },

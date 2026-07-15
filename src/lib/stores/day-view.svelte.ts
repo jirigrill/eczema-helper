@@ -1,14 +1,15 @@
 import { fromStore } from 'svelte/store';
-import { scheduleRaw } from '$lib/stores/schedule-context';
+
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { resolveDay } from '$lib/domain/day-view';
 import type { DayViewMode } from '$lib/domain/day-view';
+import type { Meal, SchedulePhase, SkinObservation, SkinPhoto } from '$lib/domain/models';
 import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
 import { createMealSession } from '$lib/stores/meal-session';
+import { scheduleRaw } from '$lib/stores/schedule-context';
+import type { ScheduleContext } from '$lib/stores/schedule-context';
 import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
 import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
-import type { Meal, SkinObservation, SkinPhoto, SchedulePhase } from '$lib/domain/models';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 export type DayView = {
   readonly redirectTo: string | null;

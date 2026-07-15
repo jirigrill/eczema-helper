@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
+
+import { describe, expect, it } from 'vitest';
+
 import { dayStripRecentreSignal, pulseRecentreDayStrip } from './day-strip-recentre';
 
 describe('day-strip-recentre signal', () => {

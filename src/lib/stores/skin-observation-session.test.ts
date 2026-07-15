@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
+
+import { describe, expect, it } from 'vitest';
+
 import type { SkinObservation, SkinPhoto } from '$lib/domain/models';
 
 // fake-indexeddb is loaded globally in test-setup.ts; Dexie works without setup.

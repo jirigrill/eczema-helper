@@ -1,7 +1,7 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-import { db, SINGLETON_ID } from '$lib/db/atopic-db';
-import type { QuestionnaireAnswers, GeneratedSchedule, SkinPhoto } from '$lib/domain/models';
+import { SINGLETON_ID, db } from '$lib/db/atopic-db';
+import type { GeneratedSchedule, QuestionnaireAnswers, SkinPhoto } from '$lib/domain/models';
 import { DEFAULT_TESTED_ALLERGENS } from '$lib/domain/policy';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import type { FamilyId, CatalogFoodId } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { CatalogFoodId, FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
 
 export type FamilyStrings = {
   name: string;

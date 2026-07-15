@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
+
+import { describe, expect, it } from 'vitest';
+
 import { db } from '$lib/db/atopic-db';
-import { createMealSession } from './meal-session';
 import type { Meal } from '$lib/domain/models';
+
+import { createMealSession } from './meal-session';
 
 // fake-indexeddb is loaded globally in test-setup.ts; Dexie works without setup.
 

@@ -1,21 +1,21 @@
-import { db } from '$lib/db/atopic-db';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import {
-  emptyWorkingMeal,
-  fromMealItems,
-  allConfirmedFoods,
-  isNonEmpty,
-  finalizeWorkingMeal,
-} from '$lib/domain/working-meal';
-import type { WorkingMeal } from '$lib/domain/working-meal';
-import type { MealType, MealItem, AllergenId, PortionKind } from '$lib/domain/models';
-import type { Result } from '$lib/types/result';
-import type { MealDiscardKind, DiscardedMeal } from '$lib/stores/discard-buffer';
-import { detectConflicts } from '$lib/domain/schedule-queries';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import { db } from '$lib/db/atopic-db';
 import { snapshotOf, snapshotsEqual } from '$lib/domain/meal-dirtiness';
 import type { MealSnapshot } from '$lib/domain/meal-dirtiness';
+import type { AllergenId, MealItem, MealType, PortionKind } from '$lib/domain/models';
+import { detectConflicts } from '$lib/domain/schedule-queries';
+import {
+  allConfirmedFoods,
+  emptyWorkingMeal,
+  finalizeWorkingMeal,
+  fromMealItems,
+  isNonEmpty,
+} from '$lib/domain/working-meal';
+import type { WorkingMeal } from '$lib/domain/working-meal';
+import type { DiscardedMeal, MealDiscardKind } from '$lib/stores/discard-buffer';
+import type { Result } from '$lib/types/result';
 
 /**
  * MealEditor (PRD #284, slice #285) — owns the meal editing lifecycle from

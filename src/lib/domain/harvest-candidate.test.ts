@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { mergeCandidate, normalizeKey, extractOtherSlugs } from './harvest-candidate';
+import { describe, expect, it } from 'vitest';
+
+import { extractOtherSlugs, mergeCandidate, normalizeKey } from './harvest-candidate';
 import type { HarvestCandidate } from './harvest-candidate';
 import type { QuestionnaireAnswers } from './models';
 

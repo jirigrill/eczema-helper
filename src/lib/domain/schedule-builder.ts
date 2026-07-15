@@ -1,29 +1,29 @@
-import type {
-  QuestionnaireAnswers,
-  GeneratedSchedule,
-  SchedulePhase,
-  EczemaSeverity,
-  Meal,
-  ToleranceBuildingReminder,
-  AllergenId,
-  LadderAllergenId,
-  AllergenOutcome,
-} from '$lib/domain/models';
-import type { Result } from '$lib/types/result';
-import { addDays } from '$lib/utils/date';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
+import type {
+  AllergenId,
+  AllergenOutcome,
+  EczemaSeverity,
+  GeneratedSchedule,
+  LadderAllergenId,
+  Meal,
+  QuestionnaireAnswers,
+  SchedulePhase,
+  ToleranceBuildingReminder,
+} from '$lib/domain/models';
 import {
-  RESET_PHASE_DAYS,
   ELIMINATION_PHASE_DAYS_DEFAULT,
   ELIMINATION_PHASE_DAYS_SEVERE,
-  REINTRODUCTION_PHASE_DAYS,
-  TRAINING_REMINDER_THRESHOLD_DAYS,
   NEVER_DOSED_SENTINEL_DAYS,
-  REST_PHASE_DAYS_MILD,
+  REINTRODUCTION_PHASE_DAYS,
+  RESET_PHASE_DAYS,
   REST_PHASE_DAYS_CLEAR,
+  REST_PHASE_DAYS_MILD,
   REST_PHASE_DAYS_SEVERE,
+  TRAINING_REMINDER_THRESHOLD_DAYS,
 } from '$lib/domain/policy';
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
+import type { Result } from '$lib/types/result';
+import { addDays } from '$lib/utils/date';
 
 // ── Re-test eligibility rejection ────────────────────────────
 

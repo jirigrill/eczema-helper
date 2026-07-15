@@ -1,19 +1,21 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
-import { DexieScheduleRepository } from './dexie-schedule-repository';
-import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
+import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 import type {
+  RegionLevel,
   SkinObservation,
   SkinPhoto,
   SkinPhotoInput,
-  RegionLevel,
   SkinRegionRecord,
 } from '$lib/domain/models';
-import { addDays } from '$lib/utils/date';
 import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import { addDays } from '$lib/utils/date';
+
+import { DexieScheduleRepository } from './dexie-schedule-repository';
+import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
+import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
 
 // ── Helpers ───────────────────────────────────────────────────
 

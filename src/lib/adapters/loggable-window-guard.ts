@@ -1,5 +1,5 @@
-import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import { isWithinLoggableWindow } from '$lib/domain/policy';
+import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 
 /**
  * Error tag returned when a write adapter refuses to persist a record whose

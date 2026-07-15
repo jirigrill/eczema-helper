@@ -1,7 +1,7 @@
+import type { AtopicDb } from '$lib/db/atopic-db';
 import type { ReintroductionEvaluation } from '$lib/domain/models';
 import type { ReintroductionEvaluationRepository } from '$lib/domain/ports/evaluation-repository';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
 
 export class DexieEvaluationRepository implements ReintroductionEvaluationRepository {
   constructor(private readonly db: AtopicDb) {}

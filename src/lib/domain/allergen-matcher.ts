@@ -1,5 +1,5 @@
-import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 
 // Precision-biased normalization (ADR-0017): lowercase + trim + collapse whitespace
 // + strip surrounding non-letters. Diacritics preserved; no stemming.

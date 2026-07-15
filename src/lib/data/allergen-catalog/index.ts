@@ -1,3 +1,8 @@
+import { categoryStrings } from '$lib/strings/categories';
+
+import { ALLERGENS } from './allergen-catalog';
+import type { FamilyId } from './allergen-catalog';
+
 // Single source of truth is allergen-catalog.ts — all allergen data lives there.
 // This barrel re-exports catalog types and provides helpers that need the strings layer.
 
@@ -15,9 +20,6 @@ export type {
   LadderStepId,
 } from './allergen-catalog';
 
-import { ALLERGENS } from './allergen-catalog';
-import { categoryStrings } from '$lib/strings/categories';
-
 /** Flat array of all allergen records — compatibility shim; prefer ALLERGENS. */
 export const ALLERGEN_CATALOG = ALLERGENS;
 
@@ -33,8 +35,6 @@ export function getCategoryConfig(id: string): CategoryConfig | undefined {
   if (!strings) return undefined;
   return { name: strings.name, icon: record.icon };
 }
-
-import type { FamilyId } from './allergen-catalog';
 
 /** All catalog allergens that belong to the given family, in catalog order. */
 export function allergensByFamily(familyId: FamilyId): (typeof ALLERGENS)[number][] {

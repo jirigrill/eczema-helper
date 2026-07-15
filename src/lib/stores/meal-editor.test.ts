@@ -1,16 +1,18 @@
-import { describe, it, expect } from 'vitest';
-import { createMealEditor } from './meal-editor.svelte';
-import { db } from '$lib/db/atopic-db';
+import { describe, expect, it } from 'vitest';
+
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+import { db } from '$lib/db/atopic-db';
+import type { Meal } from '$lib/domain/models';
 import {
-  startEditing,
   confirmFood,
   deselectFood,
+  startEditing,
   updateEditingAmount,
   updateEditingPreparation,
 } from '$lib/domain/working-meal';
-import type { Meal } from '$lib/domain/models';
+
+import { createMealEditor } from './meal-editor.svelte';
 
 const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
 

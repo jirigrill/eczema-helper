@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
+
+import { render } from '@testing-library/svelte';
+import { describe, expect, it } from 'vitest';
+
 import type { SkinObservation } from '$lib/domain/models';
 import { commonStrings } from '$lib/strings/common';
+
 import SkinObservationCard from './SkinObservationCard.svelte';
 
 const DATE = '2026-06-30';
