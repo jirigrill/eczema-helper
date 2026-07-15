@@ -5,6 +5,7 @@ import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SkinObservation } from '$lib/domain/models';
+import type { DiscardDescriptor } from '$lib/stores/discard-buffer';
 
 // ── Skin observation session mock ─────────────────────────────
 const mockSave = vi.fn().mockResolvedValue({ ok: true, data: undefined });
@@ -12,7 +13,7 @@ const mockUpdate = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockRemove = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockRestore = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 const mockLoadPhotos = vi.fn().mockResolvedValue({ ok: true, data: [] });
-const mockSessionStore = writable<import('$lib/domain/models').SkinObservation[]>([]);
+const mockSessionStore = writable<SkinObservation[]>([]);
 vi.mock('$lib/stores/skin-observation-session', () => ({
   skinObservationSession: {
     subscribe: mockSessionStore.subscribe,
@@ -39,14 +40,10 @@ vi.mock('$app/navigation', () => ({
 
 // Discard-buffer mock — the /skin page reads it on mount and writes to it
 // on dirty back-out. Tests observe writeBuffer / clearBuffer calls.
-const mockDiscardBuffer = writable<import('$lib/stores/discard-buffer').DiscardDescriptor | null>(
-  null,
-);
-const mockWriteBuffer = vi.fn(
-  (snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) => {
-    mockDiscardBuffer.set(snapshot);
-  },
-);
+const mockDiscardBuffer = writable<DiscardDescriptor | null>(null);
+const mockWriteBuffer = vi.fn((snapshot: DiscardDescriptor) => {
+  mockDiscardBuffer.set(snapshot);
+});
 const mockClearBuffer = vi.fn(() => {
   mockDiscardBuffer.set(null);
 });
@@ -54,8 +51,7 @@ vi.mock('$lib/stores/discard-buffer', () => ({
   get discardBuffer() {
     return mockDiscardBuffer;
   },
-  writeBuffer: (snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) =>
-    mockWriteBuffer(snapshot),
+  writeBuffer: (snapshot: DiscardDescriptor) => mockWriteBuffer(snapshot),
   clearBuffer: () => mockClearBuffer(),
 }));
 

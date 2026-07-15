@@ -42,6 +42,13 @@ export default ts.config(
       // `unsub` referenced in a timeout that runs before `unsub = subscribe(...)`)
       // genuinely cannot be `const`; don't flag it.
       'prefer-const': ['error', { ignoreReadBeforeAssign: true }],
+      // `verbatimModuleSyntax` (tsconfig) requires type-only imports to be
+      // written as `import type`. This rule is the autofix that makes the
+      // fixup mechanical — run `just lint-fix`. See code-standards.md.
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+      ],
     },
   },
   {
