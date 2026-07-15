@@ -77,6 +77,44 @@ test('hard reload on /day/<today> after onboarding stays on /day/<today>', async
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
+test('navigating back to / after onboarding redirects to /day/<today> (issue #353)', async ({
+  page,
+}) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  await page.goto('/');
+  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page.getByRole('button', { name: 'Začít' })).not.toBeVisible();
+});
+
+test('reopening / on a fresh load with an in-progress program redirects to /day/<today> (issue #353)', async ({
+  page,
+}) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.goto('/');
+  await expect(page).toHaveURL(`/day/${today}`);
+});
+
+test('settings reset flow lands on the questionnaire, not bounced back by the ready redirect (issue #353)', async ({
+  page,
+}) => {
+  const today = new Date().toISOString().split('T')[0];
+  await completeOnboarding(page);
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Restartovat dotazník' }).click();
+
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
+});
+
 test('onboarding → /day/<today> shows phase and allergen columns', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
