@@ -155,7 +155,7 @@ function deriveLadderState(
     if (ceilingRung) break; // terminal — nothing that follows can move the ladder
 
     if (ev.kind === 'anchor') {
-      if (nextStepIdx < steps.length && steps[nextStepIdx].anchor === ev.amount) {
+      if (nextStepIdx < steps.length && steps[nextStepIdx]!.anchor === ev.amount) {
         liveIndex = nextStepIdx;
         nextStepIdx += 1;
       }
@@ -170,7 +170,7 @@ function deriveLadderState(
     // Reaction — bind to the highest still-live rung (nothing dosed yet ⇒ nothing
     // to bind to).
     if (liveIndex < 0) continue;
-    const reactingRung = steps[liveIndex];
+    const reactingRung = steps[liveIndex]!;
     const count = (reactionCounts.get(reactingRung.id) ?? 0) + 1;
     reactionCounts.set(reactingRung.id, count);
 
@@ -186,14 +186,14 @@ function deriveLadderState(
       outcome: ev.outcome,
       date: ev.date,
       until: addDays(ev.date, restDaysFor(ev.outcome)),
-      stepBackTo: steps[liveIndex - 1],
+      stepBackTo: steps[liveIndex - 1]!,
     };
     // Drop one rung and reopen the reacting rung for a re-test.
     liveIndex -= 1;
     nextStepIdx = liveIndex + 1;
   }
 
-  const liveRung = liveIndex >= 0 ? steps[liveIndex] : null;
+  const liveRung = liveIndex >= 0 ? steps[liveIndex]! : null;
   return {
     liveRung,
     lastPassingRung: pendingReaction?.stepBackTo ?? liveRung,
@@ -350,7 +350,7 @@ export function skinCalmGate(observations: SkinObservation[], today: string): Sk
     if (a.date !== b.date) return a.date.localeCompare(b.date);
     return a.createdAt.localeCompare(b.createdAt);
   });
-  const latest = eligible[eligible.length - 1];
+  const latest = eligible[eligible.length - 1]!;
   const severity = overallSeverity(latest);
   return { allowed: severity === 0, isFlare: severity > 0, latestSeverity: severity };
 }
@@ -395,8 +395,10 @@ export function skinStabilityGate(
   const windowStart = addDays(today, -windowDays);
   const inWindow = eligible.filter((o) => o.date >= windowStart);
   const beforeWindow = eligible.filter((o) => o.date < windowStart);
-  const baselineObs = inWindow.length > 0 ? inWindow[0] : beforeWindow[beforeWindow.length - 1];
-  const currentObs = eligible[eligible.length - 1];
+  // `eligible` is the disjoint union of `inWindow` and `beforeWindow` and is
+  // non-empty here, so at least one branch is populated and the pick is defined.
+  const baselineObs = inWindow.length > 0 ? inWindow[0]! : beforeWindow[beforeWindow.length - 1]!;
+  const currentObs = eligible[eligible.length - 1]!;
 
   const baselineSeverity = overallSeverity(baselineObs);
   const currentSeverity = overallSeverity(currentObs);
@@ -570,7 +572,7 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
 
   // Rung the remaining holds refer to: the current rung, or the first step we
   // are about to attempt when nothing has been logged yet.
-  const referenceRung = liveRung ?? steps[0];
+  const referenceRung = liveRung ?? steps[0]!;
 
   // (5) Skin-stability — hold when skin has worsened across the window. A
   //     steady baseline (even mild eczema at severity 1) is not a hold reason;

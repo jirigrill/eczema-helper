@@ -8,14 +8,15 @@ Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettie
 
 ## TypeScript
 - Strict mode, no `any` (use `unknown` + narrow) — `@typescript-eslint/no-explicit-any` enforces the `any` ban at lint time
-- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`
+- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`
+- `noUncheckedIndexedAccess` — array/record index access yields `T | undefined`. Narrow it (guard, `?.`, `??`) or, where a nearby invariant already guarantees the element (a checked bounds test, a non-empty ladder/phase list), assert with `!` and leave a comment on the invariant when it isn't obvious
 - `type` over `interface`; discriminated unions over optional fields; exhaustive switch with `never`
 - No enums — `as const` objects or string literal unions
 - Explicit return types on exported functions
 
 ## Naming
 - Files: `kebab-case.ts`/`.svelte` · Types: `PascalCase` · Functions/vars: `camelCase` · True constants: `UPPER_SNAKE_CASE`
-- Tests: `*.test.ts` colocated
+- Tests: `*.test.ts` colocated; `*.test.svelte.ts` when a test needs to exercise raw `$state`/`$derived`/`$effect` reactivity (see `testing-strategy.md`)
 
 ## Imports
 - Order: svelte/sveltekit → third-party → `$lib/*` → relative, blank line between groups — enforced by `@trivago/prettier-plugin-sort-imports` (`.prettierrc`) in `.ts` files. Known upstream limitation: the plugin does not sort imports inside `.svelte` `<script>` blocks under Prettier 3 ([trivago/prettier-plugin-sort-imports#282](https://github.com/trivago/prettier-plugin-sort-imports/discussions/282)) — those stay eyeballed in review.

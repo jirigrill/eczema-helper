@@ -61,8 +61,8 @@ vi.mock('$lib/stores/harvest-candidate-session', () => ({
   },
 }));
 
-const today = new Date().toISOString().split('T')[0];
-const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+const today = new Date().toISOString().split('T')[0]!;
+const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]!;
 
 const sampleAnswers: QuestionnaireAnswers = {
   babyBirthDate: '2025-01-01',
@@ -635,7 +635,7 @@ describe('meal/+page.svelte', () => {
   // curator review.
 
   it('reintroduction banner shows the ladder step dose for the current day-in-phase', async () => {
-    const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0];
+    const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0]!;
     const reintroDay1: GeneratedSchedule = {
       permanentMother: [],
       permanentBaby: [],
@@ -662,8 +662,8 @@ describe('meal/+page.svelte', () => {
   it('reintroduction banner caption changes with the rung at each day-in-phase', async () => {
     const ladder = catalog.get('dairy')!.ladder!.stages.breastfed!;
     // Day 3 in phase: startDate is 2 days before today
-    const startDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
-    const endDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]!;
+    const endDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]!;
     const reintroDay3: GeneratedSchedule = {
       permanentMother: [],
       permanentBaby: [],
@@ -678,6 +678,6 @@ describe('meal/+page.svelte', () => {
     const { getByText } = render(MealPage);
     await tick();
     // Rung 3 dose text — a stable slice unique to that rung
-    expect(getByText(new RegExp(ladder[2].dose.slice(0, 20)))).toBeInTheDocument();
+    expect(getByText(new RegExp(ladder[2]!.dose.slice(0, 20)))).toBeInTheDocument();
   });
 });

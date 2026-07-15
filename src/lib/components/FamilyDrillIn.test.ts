@@ -123,7 +123,7 @@ describe('FamilyDrillIn — dairy family (grouped by source)', () => {
     const indices = headers.map((h) => {
       const elements = getAllByText(h);
       expect(elements.length).toBeGreaterThan(0);
-      return elements[0].compareDocumentPosition;
+      return elements[0]!.compareDocumentPosition;
     });
     // Verify each header is present
     expect(indices.every(Boolean)).toBe(true);

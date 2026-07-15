@@ -18,9 +18,9 @@ async function clearDb(page: Page) {
  *  Returns the seeded startDate. */
 async function seedSchedule(page: Page, startDate: string) {
   await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-    const endReset = new Date(new Date(start).getTime() + 4 * 86400000).toISOString().split('T')[0];
+    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0]!;
+    const today = new Date().toISOString().split('T')[0]!;
+    const endReset = new Date(new Date(start).getTime() + 4 * 86400000).toISOString().split('T')[0]!;
     const path = '/src/lib/db/atopic-db.ts';
     const { db } = await import(/* @vite-ignore */ path);
     await db.answers.put({
@@ -55,16 +55,16 @@ test.beforeEach(async ({ page }) => {
 // ── Redirect tests ────────────────────────────────────────────────────────
 
 test('/day/<invalid> redirects to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto('/day/not-a-date');
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
 test('/day/<future> renders read-only "Naplánováno" preview, no FAB', async ({ page }) => {
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${futureDate}`);
   // Stays on the future URL — no redirect.
@@ -81,9 +81,9 @@ test('/day/<future> renders read-only "Naplánováno" preview, no FAB', async ({
 });
 
 test('/day/<before-start> redirects to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const beforeStart = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const beforeStart = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${beforeStart}`);
   await expect(page).toHaveURL(`/day/${today}`);
@@ -92,8 +92,8 @@ test('/day/<before-start> redirects to /day/<today>', async ({ page }) => {
 // ── Past-day rendering ────────────────────────────────────────────────────
 
 test('/day/<past> renders day view with day strip', async ({ page }) => {
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${pastDate}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
@@ -103,8 +103,8 @@ test('/day/<past> renders day view with day strip', async ({ page }) => {
 });
 
 test('/day/<past> does not show a Dnes pill (pill removed)', async ({ page }) => {
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${pastDate}`);
   await expect(page.getByTestId('dnes-pill')).toHaveCount(0);
@@ -113,8 +113,8 @@ test('/day/<past> does not show a Dnes pill (pill removed)', async ({ page }) =>
 // ── Today-only chrome gating ──────────────────────────────────────────────
 
 test('/day/<today> shows task counter, no Dnes pill', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('task-counter')).toBeVisible();
@@ -122,8 +122,8 @@ test('/day/<today> shows task counter, no Dnes pill', async ({ page }) => {
 });
 
 test('/day/<past> hides task counter', async ({ page }) => {
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${pastDate}`);
   await expect(page.getByTestId('task-counter')).not.toBeVisible();
@@ -132,8 +132,8 @@ test('/day/<past> hides task counter', async ({ page }) => {
 // ── DayStrip navigation ──────────────────────────────────────────────────
 
 test('clicking a strip cell navigates to /day/<cell-date>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
@@ -158,9 +158,9 @@ test('clicking a strip cell navigates to /day/<cell-date>', async ({ page }) => 
 });
 
 test('returning via the bottom-nav Dnes tab navigates to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${pastDate}`);
   // Bottom-nav "Dnes" tab is an <a> with text "Dnes"
@@ -171,7 +171,7 @@ test('returning via the bottom-nav Dnes tab navigates to /day/<today>', async ({
 // ── No-program state ──────────────────────────────────────────────────────
 
 test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
   // DB already cleared by beforeEach
   await page.goto(`/day/${today}`);
   // Layout redirects to / (onboarding) when schedule DB is empty
@@ -183,8 +183,8 @@ test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) =>
 test('/day/<past-reset> shows "Žádná omezení" — dairy not yet eliminated', async ({ page }) => {
   // seedSchedule puts dairy elimination starting today; the reset phase covers
   // startDate through startDate+4. A date 2 days after start is in reset → no eliminations.
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const resetDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const resetDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${resetDate}`);
   await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
@@ -192,8 +192,8 @@ test('/day/<past-reset> shows "Žádná omezení" — dairy not yet eliminated',
 });
 
 test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
@@ -204,8 +204,8 @@ test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
 // ── Decoupled scroll-then-tap: scrolling only browses ─────────────────────
 
 test('scrolling the strip only browses — URL and content stay until a tap', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
@@ -247,8 +247,8 @@ test('scrolling the strip only browses — URL and content stay until a tap', as
 // ── Browser back preserves navigation ─────────────────────────────────────
 
 test('browser back returns to the previous day after a strip tap', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
@@ -282,8 +282,8 @@ test('clicking a before-start cell selects that date (no jump-to-today)', async 
   // Protocol starts 7 days ago; the strip extends a buffer before that. The
   // earliest cell is before-start — clicking it must navigate to that date,
   // not redirect to today.
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
+  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
 
   await page.goto(`/day/${today}`);

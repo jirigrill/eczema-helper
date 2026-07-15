@@ -16,7 +16,8 @@ export function todayIso(): string {
 }
 
 export function addDays(iso: string, n: number): string {
-  const [year, month, day] = iso.split('-').map(Number);
+  // `iso` is an internal YYYY-MM-DD string, so the split yields exactly three parts.
+  const [year, month, day] = iso.split('-').map(Number) as [number, number, number];
   const d = new Date(Date.UTC(year, month - 1, day));
   d.setUTCDate(d.getUTCDate() + n);
   const y = d.getUTCFullYear();

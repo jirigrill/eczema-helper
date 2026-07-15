@@ -89,9 +89,9 @@ global.URL.createObjectURL = vi.fn(() => 'blob:mock');
 global.URL.revokeObjectURL = vi.fn();
 
 // ── Fixtures ─────────────────────────────────────────────────
-const today = new Date().toISOString().split('T')[0];
+const today = new Date().toISOString().split('T')[0]!;
 const pastDate = '2025-06-01';
-const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!;
 
 const sampleSchedule: GeneratedSchedule = {
   permanentMother: [],
@@ -660,7 +660,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
 
   it('shows "Program skončil" when no phase matches the selected date', async () => {
     mockPage.params.date = today;
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]!;
     const pastOnlySchedule: GeneratedSchedule = {
       permanentMother: [],
       permanentBaby: [],

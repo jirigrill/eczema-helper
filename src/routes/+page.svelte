@@ -32,7 +32,7 @@
   let severity = $state<EczemaSeverity>('moderate');
   let motherAllergies = $state<string[]>([]);
   let babyAllergies = $state<string[]>([]);
-  let programStartDate = $state(new Date().toISOString().split('T')[0]);
+  let programStartDate = $state(new Date().toISOString().split('T')[0]!);
 
   // Drill-in state for steps 3 and 4
   let motherDrillFamily = $state<FamilyId | null>(null);

@@ -45,9 +45,9 @@ describe('SkinPhotoGallery — gallery', () => {
     await tick();
     const thumbs = container.querySelectorAll('[data-testid^="skin-photo-thumb-"]');
     expect(thumbs).toHaveLength(3);
-    expect(thumbs[0].getAttribute('data-testid')).toBe('skin-photo-thumb-0');
-    expect(thumbs[1].getAttribute('data-testid')).toBe('skin-photo-thumb-1');
-    expect(thumbs[2].getAttribute('data-testid')).toBe('skin-photo-thumb-2');
+    expect(thumbs[0]!.getAttribute('data-testid')).toBe('skin-photo-thumb-0');
+    expect(thumbs[1]!.getAttribute('data-testid')).toBe('skin-photo-thumb-1');
+    expect(thumbs[2]!.getAttribute('data-testid')).toBe('skin-photo-thumb-2');
   });
 
   it('shows the Czech region label beneath each thumb', async () => {

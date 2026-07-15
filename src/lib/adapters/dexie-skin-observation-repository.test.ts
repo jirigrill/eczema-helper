@@ -57,7 +57,7 @@ describe('DexieSkinObservationRepository', () => {
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data).toHaveLength(1);
-      expect(result.data[0]).toEqual(obs);
+      expect(result.data[0]!).toEqual(obs);
     }
   });
 
@@ -118,7 +118,7 @@ describe('DexieSkinObservationRepository', () => {
     await repo.save(obs, []);
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data[0].notes).toBeUndefined();
+    if (result.ok) expect(result.data[0]!.notes).toBeUndefined();
   });
 
   it.each([1, 2, 3] as RegionLevel[])('region level %i round-trips', async (level) => {
@@ -129,7 +129,7 @@ describe('DexieSkinObservationRepository', () => {
     await repo.save(obs, []);
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data[0].regions[0].level).toBe(level);
+    if (result.ok) expect(result.data[0]!.regions[0]!.level).toBe(level);
   });
 
   // ── Upsert by id ─────────────────────────────────────────────
@@ -150,7 +150,7 @@ describe('DexieSkinObservationRepository', () => {
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].regions[0].level).toBe(3);
+      expect(result.data[0]!.regions[0]!.level).toBe(3);
     }
   });
 
@@ -180,7 +180,7 @@ describe('DexieSkinObservationRepository', () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-fk' });
     await repo.save(obs, [makePhotoInput({ region: 'face' })]);
     const photos = await db.photos.toArray();
-    expect(photos[0].observationId).toBe('obs-fk');
+    expect(photos[0]!.observationId).toBe('obs-fk');
   });
 
   it('save mints a unique non-empty id on each stored photo', async () => {
@@ -188,23 +188,23 @@ describe('DexieSkinObservationRepository', () => {
     const inputs = [makePhotoInput({ region: 'face' }), makePhotoInput({ region: 'arms' })];
     await repo.save(obs, inputs);
     const photos = await db.photos.toArray();
-    expect(photos[0].id).toBeTruthy();
-    expect(photos[1].id).toBeTruthy();
-    expect(photos[0].id).not.toBe(photos[1].id);
+    expect(photos[0]!.id).toBeTruthy();
+    expect(photos[1]!.id).toBeTruthy();
+    expect(photos[0]!.id).not.toBe(photos[1]!.id);
   });
 
   it('save stores the region from SkinPhotoInput on the stored photo', async () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-region' });
     await repo.save(obs, [makePhotoInput({ region: 'belly' })]);
     const photos = await db.photos.toArray();
-    expect(photos[0].region).toBe('belly');
+    expect(photos[0]!.region).toBe('belly');
   });
 
   it('save mints capturedAt as an ISO datetime string', async () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-cat' });
     await repo.save(obs, [makePhotoInput()]);
     const photos = await db.photos.toArray();
-    expect(photos[0].capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(photos[0]!.capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   // ── Atomicity under partial-write failure ────────────────────
@@ -266,8 +266,8 @@ describe('DexieSkinObservationRepository', () => {
     expect(list).toMatchObject({ ok: true });
     if (list.ok) {
       expect(list.data).toHaveLength(1);
-      expect(list.data[0].regions).toEqual(revised.regions);
-      expect(list.data[0].notes).toBe('after');
+      expect(list.data[0]!.regions).toEqual(revised.regions);
+      expect(list.data[0]!.notes).toBe('after');
     }
   });
 
@@ -290,8 +290,8 @@ describe('DexieSkinObservationRepository', () => {
     const list = await repo.listByDate('2026-05-27');
     expect(list).toMatchObject({ ok: true });
     if (list.ok) {
-      expect(list.data[0].id).toBe('obs-preserve');
-      expect(list.data[0].createdAt).toBe('2026-05-27T08:00:00.000Z');
+      expect(list.data[0]!.id).toBe('obs-preserve');
+      expect(list.data[0]!.createdAt).toBe('2026-05-27T08:00:00.000Z');
     }
   });
 
@@ -323,14 +323,14 @@ describe('DexieSkinObservationRepository', () => {
     expect(beforePhotos).toHaveLength(2);
     const [toRemove, toKeep] = beforePhotos;
 
-    await repo.update(obs, { addPhotos: [], removePhotoIds: [toRemove.id] });
+    await repo.update(obs, { addPhotos: [], removePhotoIds: [toRemove!.id] });
 
     const afterPhotos = await db.photos
       .where('observationId')
       .equals('obs-remove-photos')
       .toArray();
     expect(afterPhotos).toHaveLength(1);
-    expect(afterPhotos[0].id).toBe(toKeep.id);
+    expect(afterPhotos[0]!.id).toBe(toKeep!.id);
   });
 
   it('update rolls back the observation row when the photos write throws', async () => {
@@ -359,8 +359,8 @@ describe('DexieSkinObservationRepository', () => {
     expect(list).toMatchObject({ ok: true });
     if (list.ok) {
       expect(list.data).toHaveLength(1);
-      expect(list.data[0].regions[0].level).toBe(1);
-      expect(list.data[0].notes).toBe('before');
+      expect(list.data[0]!.regions[0]!.level).toBe(1);
+      expect(list.data[0]!.notes).toBe('before');
     }
   });
 
@@ -466,9 +466,9 @@ describe('DexieSkinObservationRepository', () => {
     expect(list).toMatchObject({ ok: true });
     if (list.ok) {
       expect(list.data).toHaveLength(1);
-      expect(list.data[0].id).toBe('obs-restore');
-      expect(list.data[0].createdAt).toBe('2026-05-27T08:00:00.000Z');
-      expect(list.data[0].notes).toBe('restored');
+      expect(list.data[0]!.id).toBe('obs-restore');
+      expect(list.data[0]!.createdAt).toBe('2026-05-27T08:00:00.000Z');
+      expect(list.data[0]!.notes).toBe('restored');
     }
   });
 
@@ -485,9 +485,9 @@ describe('DexieSkinObservationRepository', () => {
 
     const rows = await db.photos.where('observationId').equals('obs-restore').toArray();
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe('photo-preserved');
-    expect(rows[0].region).toBe('belly');
-    expect(rows[0].capturedAt).toBe('2026-05-27T09:12:00.000Z');
+    expect(rows[0]!.id).toBe('photo-preserved');
+    expect(rows[0]!.region).toBe('belly');
+    expect(rows[0]!.capturedAt).toBe('2026-05-27T09:12:00.000Z');
   });
 
   it('restore rejects when a photo id already belongs to a different observation', async () => {
