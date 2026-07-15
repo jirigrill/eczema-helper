@@ -47,20 +47,27 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
   /**
    * Overwrite an existing observation and its photo set in one transaction.
    * Same loggable-window guard as `save` — a payload whose `date` has moved
-   * outside the window is rejected before any DB write.
+   * outside the window is rejected before any DB write. An edit that leaves
+   * `date` unchanged is exempt even when that (unchanged) date is outside
+   * the window — e.g. after a schedule regeneration narrowed the span — so a
+   * notes-only edit on a stale row isn't blocked (issue #440).
    */
   async update(
     observation: SkinObservation,
     options: SkinObservationUpdateOptions,
   ): Promise<Result<void, string>> {
     try {
-      const outOfWindow = await checkLoggableWindow(this.scheduleRepo, observation.date);
+      const existing = await this.db.skin_observations.get(observation.id);
+      const outOfWindow = await checkLoggableWindow(
+        this.scheduleRepo,
+        observation.date,
+        existing?.date,
+      );
       if (outOfWindow) return { ok: false, error: outOfWindow };
 
       const photosToAdd = mintPhotos(observation.id, options.addPhotos);
 
       await this.db.transaction('rw', this.db.skin_observations, this.db.photos, async () => {
-        const existing = await this.db.skin_observations.get(observation.id);
         const merged: SkinObservation = {
           ...observation,
           createdAt: existing?.createdAt ?? observation.createdAt,

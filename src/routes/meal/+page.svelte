@@ -14,6 +14,7 @@
   import { familyStrings } from '$lib/strings/families';
   import { formForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
+  import { isWithinLoggableWindow } from '$lib/domain/policy';
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext } from '$lib/domain/schedule-queries';
   import { rungAtDayInPhase } from '$lib/domain/ladder';
@@ -63,6 +64,12 @@
   );
   const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
   const reintroInfo = $derived(ctx?.reintroInfo ?? null);
+  // Passive hint (issue #440) — a stale row can be edited freely, but the
+  // mother should know its date no longer sits inside the protocol window.
+  const isOutOfWindow = $derived(
+    raw.status === 'ready' &&
+      !isWithinLoggableWindow(targetDate, raw.schedule.startDate, raw.schedule.estimatedEndDate),
+  );
 
   // ── Meal type: Fixed-at-Entry (ADR-0018) ─────────────────
   // The meal type is read once from the URL and never mutated in-screen.
@@ -580,6 +587,13 @@
               {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
             </p>
             <p class="caption mt-0.5">{rung?.dose ?? ''} ({cat?.name})</p>
+          </InfoBanner>
+        </div>
+      {/if}
+      {#if editingExisting && isOutOfWindow}
+        <div class="space-y-1.5 px-4 pt-2">
+          <InfoBanner variant="info">
+            <p class="caption">{commonStrings.meal.outOfWindowHint}</p>
           </InfoBanner>
         </div>
       {/if}

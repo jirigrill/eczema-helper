@@ -388,5 +388,32 @@ describe('DexieMealRepository', () => {
       const result = await repo.save(makeMeal('1999-01-01', 'lunch'));
       expect(result).toMatchObject({ ok: true });
     });
+
+    // ── Unchanged-date edits to an already out-of-window slot (issue #440) ──
+
+    it('re-saving a slot whose date is already outside the window succeeds when the date is unchanged', async () => {
+      const schedule = makeSchedule();
+      // Seed the row before any schedule exists — mirrors a row written pre-guard
+      // or one left stranded by a schedule regeneration.
+      const staleDate = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+      await repo.save(makeMeal(staleDate, 'lunch', { notes: 'first' }));
+
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+
+      const result = await repo.save(makeMeal(staleDate, 'lunch', { notes: 'second' }));
+      expect(result).toMatchObject({ ok: true });
+
+      const persisted = await repo.loadBySlot(staleDate, 'lunch');
+      expect(persisted).toMatchObject({ ok: true, data: { notes: 'second' } });
+    });
+
+    it('saving a brand-new slot with an out-of-window date is still rejected even though no row exists yet', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+
+      const result = await repo.save(makeMeal(tooEarly, 'dinner'));
+      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+    });
   });
 });

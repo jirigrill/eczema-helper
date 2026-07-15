@@ -637,5 +637,39 @@ describe('DexieSkinObservationRepository', () => {
       const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
       expect(result).toMatchObject({ ok: true });
     });
+
+    // ── Unchanged-date edits to an already out-of-window row (issue #440) ──
+
+    it('update succeeds when the row is already outside the window but the payload does not change its date', async () => {
+      const schedule = makeSchedule();
+      // Seed the stale row before a schedule exists, then generate one that
+      // leaves the row's date stranded outside the window.
+      const staleDate = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+      const original = makeObservation(staleDate, { id: 'obs-stale', notes: 'before' });
+      await repo.save(original, []);
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+
+      const revised: SkinObservation = { ...original, notes: 'after' };
+      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+      expect(result).toMatchObject({ ok: true });
+
+      const list = await repo.listByDate(staleDate);
+      expect(list).toMatchObject({ ok: true, data: [{ notes: 'after' }] });
+    });
+
+    it('update rescues a stale out-of-window row by moving its date back inside the window', async () => {
+      const schedule = makeSchedule();
+      const staleDate = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+      const original = makeObservation(staleDate, { id: 'obs-rescue' });
+      await repo.save(original, []);
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+
+      const revised: SkinObservation = { ...original, date: schedule.startDate };
+      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
+      expect(result).toMatchObject({ ok: true });
+
+      const list = await repo.listByDate(schedule.startDate);
+      expect(list).toMatchObject({ ok: true, data: [{ id: 'obs-rescue' }] });
+    });
   });
 });
