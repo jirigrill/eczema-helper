@@ -4,9 +4,9 @@ Guidance for AI agents working in this repository.
 
 ## Project Overview
 
-Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimination diet. v1: single-device, mother's phone, Czech UI. [ADR-0001](docs/adr/0001-single-device-v1.md)
+Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimination diet. Single-device, the mother's phone, Czech UI. [ADR-0001](docs/adr/0001-single-device-v1.md)
 
-**Status:** Foundation-first build of v1, the Protocol Executor ([ADR-0007](docs/adr/0007-v1-scope.md)). `docs/design/redesign-prototype.html` is the design source of truth — SvelteKit routes are being re-authored against it. No backend/auth in v1; derived-insight engine ships in v1.1.
+**Status:** The app is a Protocol Executor — onboarding, today view, meal logging with conflict detection, program timeline, skin + photo. `docs/design/redesign-prototype.html` is the design source of truth; SvelteKit routes are authored against it. No backend or auth. Encrypted export/import (#438) and the derived-insight engine (#468) are not built yet.
 
 ## Documentation
 
@@ -14,13 +14,13 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 
 - `UBIQUITOUS_LANGUAGE.md` — shared vocabulary, first place to look up a term
 - `CONTEXT.md` — deep definitions and invariants, links to relevant ADRs
-- `docs/adr/` — numbered decision records (ADR-0001…0026; index in `docs/README.md`)
+- `docs/adr/` — numbered architecture decision records; `docs/decisions-log.md` — settled implemented decisions (one-liners)
 - `docs/architecture/tech-stack.md` — framework/runtime rationale
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture detail
 
 ## Tech Stack
 
-SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · Web Crypto (AES-256-GCM, PBKDF2) for the encrypted export blob ([ADR-0002](docs/adr/0002-backup-floor.md)) · no backend in v1 · deployed as a static bundle rsynced to a VPS, served by Caddy.
+SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · Web Crypto (AES-256-GCM, PBKDF2) for the encrypted export blob · no backend · deployed as a static bundle rsynced to a VPS, served by Caddy.
 
 ## Directory Layout
 

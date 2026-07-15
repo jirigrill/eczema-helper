@@ -1,6 +1,6 @@
 # 0025 — Event domain model (external confounders)
 
-**Status:** Accepted — informs v1.1; no implementation yet.
+**Status:** Accepted design — not yet implemented; build tracked in [PRD #422](https://github.com/jirigrill/eczema-helper/issues/422).
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3 Events, §6 #2, §5 sequence #3.
 **Builds on:** the allergen catalog storage/harvest model (curated-kinds + `other:` pattern, now in CONTEXT.md), [ADR-0004](0004-causation-derived-not-recorded.md) (causation derived), [ADR-0016](0016-verdict-drives-schedule-not-status.md) (verdict parent-attributed), the Dexie-persistence model (new table, now in CONTEXT.md).
@@ -80,7 +80,7 @@ triggers with no Event row. An Event can exist with no proposal at all.
 ## Consequences
 
 - New `events` Dexie table (ADR-0006), repository port, and export-snapshot entry
-  (ADR-0002).
+  (the encrypted export, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438)).
 - `Event`, the `trigger` union, and `derived-signal` become
   `UBIQUITOUS_LANGUAGE.md` + `CONTEXT.md` terms.
 - Typical-duration-per-kind constants join `policy.ts`.
