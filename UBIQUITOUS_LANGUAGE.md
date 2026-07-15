@@ -169,8 +169,8 @@ Triggers are **resolved live** from the catalog, never snapshotted onto a
 `MealItem`.
 
 ### Source Subgroup (`sourceGroup`) / Ostatní
-*Czech: Zdroj / podskupina. See
-[ADR-0019](docs/adr/0019-food-source-subgroup.md) and the CONTEXT.md
+*Czech: Zdroj / podskupina. See the
+[decisions log](docs/decisions-log.md) (was ADR-0019) and the CONTEXT.md
 "food-source subgroup" principle.*
 
 A **second presentation axis** on a food, independent of `familyId` and
@@ -784,14 +784,14 @@ The architectural pattern used for persistence. **Ports** are TypeScript interfa
 are concrete implementations in `src/lib/adapters/` (e.g. `DexieScheduleRepository`,
 `DexieMealRepository`). Each port has a single `Dexie*` implementation; adapters are
 tested against `fake-indexeddb`. Hand-written `InMemory*` fakes were removed per
-[ADR-0013](docs/adr/0013-drop-unused-in-memory-adapters.md). Domain logic depends only
+the [decisions log](docs/decisions-log.md) (was ADR-0013). Domain logic depends only
 on the port interfaces.
 
 ### ScheduleRepository / QuestionnaireRepository
 
 Ports (interfaces) for persisting and loading the two core data objects. Single
 implementation each: `Dexie*` (production), tested against `fake-indexeddb`
-([ADR-0013](docs/adr/0013-drop-unused-in-memory-adapters.md)). Both follow the
+(see the [decisions log](docs/decisions-log.md), was ADR-0013). Both follow the
 `Result<T, E>` return convention for `save` / `load` operations.
 
 ### Result\<T, E\>

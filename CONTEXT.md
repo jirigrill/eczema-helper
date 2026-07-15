@@ -357,7 +357,7 @@ renders grouped only when it has **≥ 5 foods _and_ an authored source structur
 otherwise flat. Foods with no `sourceGroup` fall into a trailing **`Ostatní`**
 bucket — a presentation catch-all carrying *no* safety claim (danger stays
 per-food). Source never enters the trigger path; like `familyId` it is presentation
-only — see [ADR-0019](docs/adr/0019-food-source-subgroup.md).
+only — see the [decisions log](docs/decisions-log.md) (was ADR-0019).
 
 **Principle — what qualifies as a Food: atomic consumption *and* fixed
 composition.** A catalog Food is a thing **acquired and eaten as one indivisible
@@ -487,7 +487,7 @@ after data exists is a migration.
   See [ADR-0002](docs/adr/0002-backup-floor.md).
 - **Meals are day-granular.** `Meal` carries `date` + `mealType` only.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
-  for audit. See [ADR-0003](docs/adr/0003-day-granular-meals.md).
+  for audit. See the [decisions log](docs/decisions-log.md) (was ADR-0003).
 - **One `Meal` per date+mealType slot.** A given `(date, mealType)` pair
   maps to exactly one `Meal` record. The record is upserted (not appended)
   when the user finalizes the working meal (the `Uložit` CTA). `Meal.id` is the deterministic
