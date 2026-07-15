@@ -8,6 +8,7 @@ import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { db } from '$lib/db/atopic-db';
+import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
@@ -42,7 +43,7 @@ const mockPage: { url: URL; state: Record<string, unknown> } = {
 };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
-const mockHarvestStore = writable<import('$lib/domain/harvest-candidate').HarvestCandidate[]>([]);
+const mockHarvestStore = writable<HarvestCandidate[]>([]);
 vi.mock('$lib/stores/harvest-candidate-session', () => ({
   harvestCandidateSession: {
     subscribe: mockHarvestStore.subscribe,
@@ -50,7 +51,7 @@ vi.mock('$lib/stores/harvest-candidate-session', () => ({
     // The real session optimistically upserts into its in-memory store, so
     // newly-typed custom foods render immediately. The stub mirrors that
     // shape so the editing-after-Přidat rendering tests stay realistic.
-    upsert: (candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) => {
+    upsert: (candidate: HarvestCandidate) => {
       mockHarvestStore.update((list) => {
         const idx = list.findIndex((c) => c.normalizedKey === candidate.normalizedKey);
         return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];

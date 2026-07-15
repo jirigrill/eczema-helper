@@ -2,6 +2,7 @@ import { tick } from 'svelte';
 import { writable } from 'svelte/store';
 
 import { render } from '@testing-library/svelte';
+import type * as Dexie from 'dexie';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -36,7 +37,7 @@ let liveObservations: SkinObservation[] = [];
 let livePhotos: SkinPhoto[] = [];
 
 vi.mock('dexie', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('dexie')>();
+  const actual = await importOriginal<typeof Dexie>();
   return {
     ...actual,
     liveQuery: vi.fn((queryFn: () => { __tag?: string }) => {

@@ -5,6 +5,7 @@
   import type {
     AllergenId,
     AllergenStatusValue,
+    Meal,
     SchedulePhase,
     SkinObservation,
   } from '$lib/domain/models';
@@ -46,8 +47,8 @@
   let toastUndo = $state<(() => void) | undefined>(undefined);
   let selectedRetestSlugs = $state<string[]>([]);
   let expandedPhaseId = $state<string | null>(null);
-  let meals = $state<import('$lib/domain/models').Meal[]>([]);
-  let skinObservations = $state<import('$lib/domain/models').SkinObservation[]>([]);
+  let meals = $state<Meal[]>([]);
+  let skinObservations = $state<SkinObservation[]>([]);
   const evaluations = $derived($evaluationsStore);
 
   const catalog = new BundledCatalogAdapter();

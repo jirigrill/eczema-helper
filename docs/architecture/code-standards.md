@@ -8,7 +8,7 @@ Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettie
 
 ## TypeScript
 - Strict mode, no `any` (use `unknown` + narrow) — `@typescript-eslint/no-explicit-any` enforces the `any` ban at lint time
-- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`
+- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`
 - `noUncheckedIndexedAccess` — array/record index access yields `T | undefined`. Narrow it (guard, `?.`, `??`) or, where a nearby invariant already guarantees the element (a checked bounds test, a non-empty ladder/phase list), assert with `!` and leave a comment on the invariant when it isn't obvious
 - `type` over `interface`; discriminated unions over optional fields; exhaustive switch with `never`
 - No enums — `as const` objects or string literal unions
@@ -22,6 +22,7 @@ Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettie
 - Order: svelte/sveltekit → third-party → `$lib/*` → relative, blank line between groups — enforced by `@trivago/prettier-plugin-sort-imports` (`.prettierrc`) in `.ts` files. Known upstream limitation: the plugin does not sort imports inside `.svelte` `<script>` blocks under Prettier 3 ([trivago/prettier-plugin-sort-imports#282](https://github.com/trivago/prettier-plugin-sort-imports/discussions/282)) — those stay eyeballed in review.
 - No `../../../` — use `$lib/`
 - Named exports; default exports only for Svelte page/layout components
+- `verbatimModuleSyntax` requires type-only imports to be written `import type` (and type-only re-exports `export type`) — `@typescript-eslint/consistent-type-imports` autofixes it, so run `just lint-fix`. Inline `import('…').Type` annotations aren't autofixable; hoist them to a top-level `import type`.
 
 ## Error Handling
 - `Result<T, E>` (`$lib/types/result`) for expected failures; throw only for truly unexpected ones; never swallow silently
