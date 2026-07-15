@@ -183,6 +183,13 @@ export const commonStrings = {
     deleteConfirmHeading: 'Smazat jídlo?',
     deleteConfirmBody: 'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',
     emptyMealHint: 'Jídlo potřebuje aspoň jednu položku — pro odebrání použij Smazat.',
+    /**
+     * Passive, non-blocking hint shown when the edited meal's date falls
+     * outside the current protocol's loggable window (issue #440) — e.g. a
+     * schedule regeneration narrowed the span after the meal was logged.
+     * Informational only: it never blocks saving.
+     */
+    outOfWindowHint: 'Toto jídlo je mimo okno aktuálního protokolu.',
   },
 
   // ── Program page ──────────────────────────────────────────
@@ -332,6 +339,13 @@ export const commonStrings = {
     /** Body warning that photos will be removed alongside the observation. */
     deleteConfirmBody:
       'Pozorování i všechny jeho fotky budou odstraněny. Můžeš to vzít zpět hned po smazání.',
+    /**
+     * Passive, non-blocking hint shown when the edited observation's date
+     * falls outside the current protocol's loggable window (issue #440) —
+     * e.g. a schedule regeneration narrowed the span after the observation
+     * was logged. Informational only: it never blocks saving.
+     */
+    outOfWindowHint: 'Toto pozorování je mimo okno aktuálního protokolu.',
   },
 
   // ── Evaluation page (/evaluation) ──────────────────────────

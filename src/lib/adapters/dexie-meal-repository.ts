@@ -17,11 +17,16 @@ export class DexieMealRepository implements MealRepository {
    * Upsert a meal. Rejects with `date-outside-loggable-window` when a schedule
    * exists and the meal's date falls outside the loggable window. Writes made
    * before any schedule has been generated (onboarding) are intentionally
-   * unguarded. See `checkLoggableWindow` for the guard shape.
+   * unguarded. An edit to an already-persisted slot that carries the same
+   * `date` (the only kind possible — `meal.id` is derived from date+mealType,
+   * see `mealId`) is exempt even if that date is now outside the window
+   * (issue #440); only a genuinely new slot is held to the strict guard. See
+   * `checkLoggableWindow` for the guard shape.
    */
   async save(meal: Meal): Promise<Result<void, string>> {
     try {
-      const outOfWindow = await checkLoggableWindow(this.scheduleRepo, meal.date);
+      const existing = await this.db.meals.get(meal.id);
+      const outOfWindow = await checkLoggableWindow(this.scheduleRepo, meal.date, existing?.date);
       if (outOfWindow) return { ok: false, error: outOfWindow };
       await this.db.meals.put(meal);
       return { ok: true, data: undefined };

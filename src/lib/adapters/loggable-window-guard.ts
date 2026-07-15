@@ -15,10 +15,19 @@ export const OUT_OF_WINDOW_ERROR = 'date-outside-loggable-window';
  * (rather than reaching into the Dexie `schedule` table directly) and checks
  * whether `date` falls inside the loggable window.
  *
+ * `existingDate`, when passed, is the date already stored on the row being
+ * written (undefined/null for a fresh row). When it equals `date` the write
+ * is an edit that never touched the date, so the check is skipped entirely —
+ * a row that was already outside the window (e.g. after a schedule
+ * regeneration narrowed the span) can still have its other fields edited.
+ * Explicit date changes are never exempt: moving a date in or out of the
+ * window always runs the check (issue #440).
+ *
  * Returns:
- *   - `null` when the write is allowed to proceed — either the date is in
- *     range, or no schedule has been generated yet (pre-program logging is
- *     unguarded to keep onboarding writes possible).
+ *   - `null` when the write is allowed to proceed — the date is unchanged
+ *     from the stored row, the date is in range, or no schedule has been
+ *     generated yet (pre-program logging is unguarded to keep onboarding
+ *     writes possible).
  *   - `OUT_OF_WINDOW_ERROR` when the date is outside the window; the caller
  *     surfaces this as `{ ok: false, error }` and skips its DB write.
  *
@@ -28,7 +37,9 @@ export const OUT_OF_WINDOW_ERROR = 'date-outside-loggable-window';
 export async function checkLoggableWindow(
   scheduleRepo: ScheduleRepository,
   date: string,
+  existingDate?: string | null,
 ): Promise<typeof OUT_OF_WINDOW_ERROR | null> {
+  if (existingDate != null && existingDate === date) return null;
   const result = await scheduleRepo.load();
   if (!result.ok) return null; // schedule read failed → be permissive, matches pre-guard behaviour
   const schedule = result.data;
