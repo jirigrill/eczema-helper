@@ -75,7 +75,7 @@ sourcing earns its keep against those problems; we do not have them.
 - `lib/adapters/` will host concrete Dexie implementations
   (`DexieMealRepository`, `DexiePhotoStore`, etc.) of ports defined in
   `lib/domain/`. The domain stays pure; adapters are tested against
-  `fake-indexeddb` (see [ADR-0013](0013-drop-unused-in-memory-adapters.md)).
+  `fake-indexeddb` (see the [decisions log](../decisions-log.md), was ADR-0013).
 - Schema migrations use Dexie's declarative `version().stores()` chain.
   Data migrations (row-shape changes) use `upgrade()` callbacks.
 - Every persisted record carries a locally-generated UUID, satisfying

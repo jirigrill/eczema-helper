@@ -87,7 +87,7 @@ List-shaped port. Multiple photos may exist per calendar day. Live reactive read
 | `SkinObservationRepository`   | `dexie-skin-observation-repository.ts`          |
 | `SkinPhotoStore`              | `dexie-skin-photo-store.ts`                     |
 
-Each port has a single production adapter. Adapter tests run against `fake-indexeddb` rather than a hand-rolled in-memory fake — see [ADR-0013](../adr/0013-drop-unused-in-memory-adapters.md).
+Each port has a single production adapter. Adapter tests run against `fake-indexeddb` rather than a hand-rolled in-memory fake — see the [decisions log](../decisions-log.md) (was ADR-0013).
 
 ## Stores layer
 
