@@ -4,6 +4,7 @@
   // ═══════════════════════════════════════════════════════════
   import type {
     AllergenId,
+    AllergenStatus,
     AllergenStatusValue,
     Meal,
     SchedulePhase,
@@ -361,6 +362,18 @@
       {#if isChosen}<span class="ml-1">✓</span>{/if}
     </button>
   {/if}
+{/snippet}
+
+{#snippet retestSectionCard(eyebrow: string, note: string, statuses: AllergenStatus[])}
+  <div class="card-base space-y-3">
+    <p class="eyebrow mb-1">{eyebrow}</p>
+    <p class="body-muted text-xs">{note}</p>
+    <div class="flex flex-wrap gap-2">
+      {#each statuses as allergenStatus (allergenStatus.allergenId)}
+        {@render retestChip(allergenStatus.allergenId)}
+      {/each}
+    </div>
+  </div>
 {/snippet}
 
 {#snippet skinOutcomes(observations: SkinObservation[])}
@@ -882,27 +895,19 @@
     {/if}
 
     {#if babyPermanentStatuses.length > 0}
-      <div class="card-base space-y-3">
-        <p class="eyebrow mb-1">{commonStrings.program.babyAllergensSection}</p>
-        <p class="body-muted text-xs">{commonStrings.program.babyAllergensNote}</p>
-        <div class="flex flex-wrap gap-2">
-          {#each babyPermanentStatuses as allergenStatus (allergenStatus.allergenId)}
-            {@render retestChip(allergenStatus.allergenId)}
-          {/each}
-        </div>
-      </div>
+      {@render retestSectionCard(
+        commonStrings.program.babyAllergensSection,
+        commonStrings.program.babyAllergensNote,
+        babyPermanentStatuses,
+      )}
     {/if}
 
     {#if reactedProtocolStatuses.length > 0}
-      <div class="card-base space-y-3">
-        <p class="eyebrow mb-1">{commonStrings.program.reactedAllergensSection}</p>
-        <p class="body-muted text-xs">{commonStrings.program.reactedAllergensNote}</p>
-        <div class="flex flex-wrap gap-2">
-          {#each reactedProtocolStatuses as allergenStatus (allergenStatus.allergenId)}
-            {@render retestChip(allergenStatus.allergenId)}
-          {/each}
-        </div>
-      </div>
+      {@render retestSectionCard(
+        commonStrings.program.reactedAllergensSection,
+        commonStrings.program.reactedAllergensNote,
+        reactedProtocolStatuses,
+      )}
     {/if}
 
     <!-- Shared retest confirm — one selection model across both retest sections -->
