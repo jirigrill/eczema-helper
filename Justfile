@@ -101,7 +101,7 @@ check-tools:
 setup-hooks:
     #!/usr/bin/env bash
     mkdir -p .git/hooks
-    printf '#!/bin/bash\nset -e\nbunx tsc --noEmit\nbunx prettier --check "src/**/*.{ts,svelte}"\n' > .git/hooks/pre-commit
+    printf '#!/bin/bash\nset -e\nbun run check\nbunx eslint .\nbunx prettier --check "src/**/*.{ts,svelte}"\n' > .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
     @echo "✅ Pre-commit hook installed"
 
@@ -152,12 +152,12 @@ outdated:
 
 # Type-check + build
 build:
-    bunx tsc --noEmit && bun run build
+    bun run check && bun run build
     @echo "✅ Built"
 
 # Full check (type check + build)
 check:
-    bunx tsc --noEmit
+    bun run check
     bun run build
     @echo "✅ All checks passed!"
 
