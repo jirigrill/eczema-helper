@@ -1,11 +1,11 @@
 # Ports & Adapters Architecture
 
-The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1 has no backend. The split is between **pure domain logic** and **all I/O**, including local I/O against IndexedDB.
+The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though it has no backend. The split is between **pure domain logic** and **all I/O**, including local I/O against IndexedDB.
 
 ## Why hexagonal here
 
 - **Testability.** Pure domain functions stay free of I/O so they run as plain Vitest unit tests. Dexie adapters are tested against `fake-indexeddb` (loaded globally in `src/test-setup.ts`).
-- **Storage swap.** If v1.1 ever needs to back up to a server or switch local stores, the domain doesn't move.
+- **Storage swap.** If it ever needs to back up to a server or switch local stores, the domain doesn't move.
 - **Boundary discipline.** Forces ourselves to keep `lib/domain/` free of Dexie / DOM / SvelteKit imports.
 
 ## Layers
@@ -30,7 +30,7 @@ The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though v1
 └───────────────────────────────────────────────────────────────┘
 ```
 
-## Current ports (v1)
+## Current ports
 
 All ports return `Result<T, string>` from `$lib/types/result` for expected failures.
 
@@ -76,7 +76,7 @@ type SkinPhotoStore = {
 };
 ```
 
-List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs stored plaintext in v1.
+List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs are stored plaintext (encryption-at-rest tracked in #467).
 
 ## Adapters
 
@@ -113,4 +113,4 @@ This is deliberate: putting `liveQuery` in the port would couple the domain to D
 
 - `MealRepository` — list-shaped; already wired via `mealSession`.
 - `AssessmentRepository` — skin observations and photos are wired via `skinObservationSession` / `skinPhotoSession`.
-- Backup port (post-alpha) — encrypted export/import per [ADR-0002](../adr/0002-backup-floor.md).
+- Backup port — encrypted export/import; not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).

@@ -1,6 +1,6 @@
 # Technology Stack
 
-Technologies currently in use for v1 (the Protocol Executor — see [ADR-0007](../adr/0007-v1-scope.md)). v1 is single-device, client-only, no backend ([ADR-0001](../adr/0001-single-device-v1.md)).
+Technologies currently in use. The app is single-device, client-only, with no backend (see [ADR-0001](../adr/0001-single-device-v1.md)).
 
 ## Stack overview
 
@@ -11,10 +11,10 @@ Technologies currently in use for v1 (the Protocol Executor — see [ADR-0007](.
 | Runtime / PM | Bun 1.x                                   | Used for install, dev server, build                                  |
 | Styling      | Tailwind CSS 4                            | CSS-first config; tokens defined in `src/app.css`                    |
 | Local DB     | Dexie 4 / IndexedDB                       | Normalized tables, reactive `liveQuery` |
-| Crypto       | Web Crypto API (AES-256-GCM, PBKDF2)      | Backs encrypted manual-export blob ([ADR-0002](../adr/0002-backup-floor.md)) |
+| Crypto       | Web Crypto API (AES-256-GCM, PBKDF2)      | Backs the encrypted manual-export blob (not built yet, [#438](https://github.com/jirigrill/eczema-helper/issues/438)) |
 | PWA          | `@vite-pwa/sveltekit`                     | Installed; not yet wired for offline shell                           |
 | Testing      | Vitest + `@testing-library/svelte` + `fake-indexeddb`; Playwright | See [testing-strategy.md](testing-strategy.md) |
-| Deployment   | Static bundle, rsync to VPS, served by Caddy | No app server; no backend in v1                                   |
+| Deployment   | Static bundle, rsync to VPS, served by Caddy | No app server; no backend                                   |
 
 ## Version floor
 
@@ -30,15 +30,15 @@ Technologies currently in use for v1 (the Protocol Executor — see [ADR-0007](.
 | iOS Safari     | 16.4+   | Home-screen install / PWA                   |
 | Android Chrome | 120+    | PWA                                         |
 
-## Not in v1 (deliberately)
+## Not built (deliberately out of scope)
 
-The following lived in earlier iterations of this document and are **not** part of v1. They are listed here so future agents don't re-add them by accident.
+The following lived in earlier iterations of this document and are **not** part of the app. They are listed here so future agents don't re-add them by accident.
 
-- **No backend.** No PostgreSQL, no `postgres.js`, no server DB. No app server. No `lib/server/`. ([ADR-0001](../adr/0001-single-device-v1.md), [ADR-0007](../adr/0007-v1-scope.md))
+- **No backend.** No PostgreSQL, no `postgres.js`, no server DB. No app server. No `lib/server/`. ([ADR-0001](../adr/0001-single-device-v1.md))
 - **No auth.** No cookie sessions, no bcrypt, no passkeys. Single-device, no accounts.
-- **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine ships in v1.1 ([ADR-0004](../adr/0004-causation-derived-not-recorded.md)).
+- **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine is not built ([#468](https://github.com/jirigrill/eczema-helper/issues/468); see [ADR-0004](../adr/0004-causation-derived-not-recorded.md)).
 - **No push notifications.** No web-push, no VAPID.
-- **No photo upload.** Photos stay on-device; encryption-at-rest in IndexedDB is deferred with a shipping constraint.
+- **No photo upload.** Photos stay on-device; photos are stored unencrypted at rest; encryption-at-rest must land before any non-developer device (#467).
 - **No charts / no PDF export.** No `uPlot`, no `pdfmake`.
 
 If any of these become relevant, add an ADR before reintroducing the dependency.

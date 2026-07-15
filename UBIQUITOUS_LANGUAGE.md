@@ -87,7 +87,7 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
   three `package` rungs). `isEvaluationCheckpoint` gates the mother's verdict
   UI at that rung. `dose` is the Czech caption for that rung, **inlined on the
   domain record** — a deliberate deviation from ADR-0014 for this Czech-only
-  single-tenant v1 (single-file catalog review beats a cross-file
+  single-tenant app (single-file catalog review beats a cross-file
   `strings/ladder.ts` lookup); see the ADR-0023 amendment.
 - **`currentRung(allergenId, meals, steps)`** / **`nextLegalStep(rung, steps)`**
   (`src/lib/domain/ladder.ts`) — pure derivation, mirroring `AllergenStatus`:
@@ -259,15 +259,15 @@ curation. See ADR-0017.
 ### CanonicalCatalogPort
 The port (hexagonal seam) through which the domain reads the allergen catalog.
 The only adapter today returns the bundled `ALLERGEN_CATALOG`; a remote, server-pushed
-adapter is deferred behind it (ADR-0017). Keeps the catalog source swappable
+adapter sits behind it (ADR-0017), so the catalog source stays swappable
 without touching domain or UI.
 
 ### Normalized Key
 The deterministic lowercase/trimmed/whitespace-collapsed form of a food name
 used to dedupe `HarvestCandidate` rows and to match free-text input against a
 `CanonicalAllergen`'s `aliases`. Precision-biased: diacritics are **kept** and
-no stemming is applied on-device — authoritative clustering is a deferred
-server job. See ADR-0017.
+no stemming is applied on-device — authoritative cross-user clustering is out of
+scope for the on-device catalog. See ADR-0017.
 
 ### Category / SubItem / SubitemId
 
@@ -338,8 +338,8 @@ the only place that imports `db` and constructs the adapter for skin observation
 Routes subscribe to `$skinObservationSession` for reactive reads and call the verbs
 on `skinObservationSession` for writes; they do not instantiate adapters directly.
 
-[Slice 4](docs/adr/0008-tracer-bullet-slices.md) converts this (and `mealSession` /
-`skinPhotoSession`) into a **date factory** — `createSkinObservationSession(date)` returns
+A **date factory** pattern converts this (and `mealSession` /
+`skinPhotoSession`) so `createSkinObservationSession(date)` returns
 a `readable` scoped to that date — so the unified Day View can read any selected date while
 `liveQuery` stays in the stores layer (ADR-0009 boundary rule). A `todayIso()`-bound instance remains the default for today-only callers.
 
@@ -389,7 +389,7 @@ See ADR-0012.
 
 A record of the mother's food intake for one date+mealType slot. Fields: `id`
 (`MealId`), `date`, `mealType`, `items` (list of `MealItem`), `actor` (always
-`'mother'` in v1), optional `notes` (free-text observation), `createdAt` (ISO
+`'mother'`), optional `notes` (free-text observation), `createdAt` (ISO
 datetime string — rendered as Czech `HH:MM` at display sites, never stored
 formatted; see ADR-0014). Meals are day-granular — no user-facing time of day.
 → See ADR-0003.
@@ -446,7 +446,7 @@ which is the protocol-prescribed dosing instruction during reintroduction. See A
 
 ### Actor
 → Defined in `CONTEXT.md`. The person whose food intake a `Meal` describes. Always
-`'mother'` in v1.
+`'mother'`.
 
 ### Working Meal / Working List
 *Czech: Rozdělané jídlo*
@@ -618,7 +618,7 @@ it changes no schedule and no status.
 
 ### Insight
 → Defined in `CONTEXT.md`. A derived pattern card computed over `(Meal, SkinObservation)`
-pairs. Not user input. Deferred to v1.1.
+pairs. Not user input. Not built (tracked in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
 
 ---
 
@@ -633,7 +633,7 @@ Route names and their Czech display labels:
 | `/week` | Týden | Weekly overview: insights, photo gallery |
 | `/program` | Postup | Full protocol timeline with phase details |
 | `/meal` | Přidat jídlo | Meal logging form |
-| `/settings` | Nastavení | App configuration (v1.1) |
+| `/settings` | Nastavení | App configuration |
 
 ### Onboarding
 *Czech: Průvodce*
@@ -826,7 +826,7 @@ See ADR-0014.
 ### Singleton ID
 
 The constant string `'singleton'` used as the primary key for both `answers` and
-`schedule` tables in Dexie. v1 is single-user — exactly one row per table.
+`schedule` tables in Dexie. The app is single-user — exactly one row per table.
 → See ADR-0001.
 
 ### ISO Date

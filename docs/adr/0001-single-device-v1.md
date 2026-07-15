@@ -1,10 +1,9 @@
-# 0001 — Single-device for v1
+# 0001 — Single-device, single-actor architecture
 
-**Status:** Accepted (amended by [ADR-0026](0026-llm-schedule-proposer.md) — a stateless BFF is introduced for v1.1)
+**Status:** Accepted
 **Date:** 2026-05-11
 
-> **Amendment (ADR-0026, 2026-07-05):** v1.1 introduces an LLM schedule proposer
-> reached through a **stateless edge-function BFF** (prompt + schema + key only,
+> **Amendment (ADR-0026, 2026-07-05):** An LLM schedule proposer (tracked in [PRD #423](https://github.com/jirigrill/eczema-helper/issues/423)) is reached through a **stateless edge-function BFF** (prompt + schema + key only,
 > no storage bindings, client-redacted payloads). "No server" is refined to **"no
 > server *holding user data*"** — the BFF is PII-free in transit and at rest, so
 > the GDPR-controller and multi-device-sync reasoning below is **unchanged**;
@@ -34,11 +33,11 @@ this for medical data subject to GDPR.
 
 ## Decision
 
-v1 is a single-device app. All data lives in IndexedDB (via Dexie) on
+The app is single-device. All data lives in IndexedDB (via Dexie) on
 one phone — the mother's. No server. No accounts. No sync.
 
-If the co-parent needs visibility, v1.5 will add an export (PDF / share
-sheet) — also useful for the pediatrician.
+If the co-parent needs visibility, an export (PDF / share sheet) can be
+added later — also useful for the pediatrician.
 
 ## Consequences
 
@@ -46,7 +45,7 @@ sheet) — also useful for the pediatrician.
   user database. The app is a local journal; the user holds the data.
 - Device loss = data loss unless a backup mechanism exists. A backup /
   export story must be designed *before* the first user trusts the app
-  with three months of medical observations. (See ADR-0002.)
+  with three months of medical observations. (Tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).)
 - Photos can be encrypted at rest with a passphrase-derived key without
   needing to design a multi-device key-distribution scheme.
 - IDs in the schema can be locally-generated UUIDs without coordination.

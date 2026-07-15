@@ -3,7 +3,7 @@
 **Status:** Accepted (extended by [ADR-0026](0026-llm-schedule-proposer.md) — proposals inherit the audit-fact rule)
 **Date:** 2026-06-08
 
-> **Extension (ADR-0026, 2026-07-05):** the v1.1 `proposals` table inherits this
+> **Extension (ADR-0026, 2026-07-05):** the `proposals` table inherits this
 > ADR's **audit-fact-never-read-by-derivation** rule — it is append-only, stores
 > rejected proposals too, and no schedule derivation reads it (topology stays the
 > truth). Storing an LLM-authored `rationale` is not a spine violation: the record
@@ -12,13 +12,14 @@
 > `derived-signal` from the engine (its read of meals + skin) yields a proposal the
 > mother confirms, *never* an auto-verdict. Auto-evaluated verdicts — the engine
 > confirming the verdict itself — would require a deliberate **revision of this
-> ADR** (dropping the parent-attribution mandate) and are explicitly **not v1.1**;
-> the seam is merely built to allow the confirm step to become optional later.
+> ADR** (dropping the parent-attribution mandate) and are explicitly **out of
+> scope for the initial proposer build**; the seam is merely built to allow the
+> confirm step to become optional later.
 
 ## Context
 
-[Slice 5](0008-tracer-bullet-slices.md) records the end-of-reintroduction
-verdict — whether a reintroduced allergen was tolerated or provoked a
+The end-of-reintroduction verdict records
+whether a reintroduced allergen was tolerated or provoked a
 reaction. The `ReintroductionEvaluation` model already existed
 (`src/lib/domain/models.ts`); the program timeline already rendered an
 `evaluations` array. Nothing wrote it: the array was a permanently-empty
@@ -31,7 +32,7 @@ reacted" live?** Two sources competed.
   **purely from schedule topology** — an allergen is `reacted` iff the
   phase immediately following its reintroduction is a `rest` phase. The
   schedule is self-describing.
-- The ADR-0008 slice text said the verdict "feeds allergen status," which
+- The original slice-planning text said the verdict "feeds allergen status," which
   reads as: the stored `ReintroductionEvaluation` should *be* the source
   of truth for status.
 
@@ -95,12 +96,12 @@ each retest), the latest-reintroduction-wins rule already routes status to
 the most recent attempt, and the verdict for each attempt is recorded
 independently (see below).
 
-### Verdicts are write-once in v1
+### Verdicts are write-once
 
 Once saved, an evaluation is immutable; revisiting `/evaluation` for that
 phase shows it read-only. This avoids building an inverse `removeRestDays`
 mutation and the date-re-shift-under-already-logged-days problem that
-editing would require. Editing a verdict is deferred to its own slice.
+editing would require. Editing a saved verdict is not supported.
 
 ### Storage: phase-keyed, one row per attempt
 
@@ -154,15 +155,15 @@ stand untouched and the schedule remains self-describing.
   a pure record that does not mutate the schedule.
 - IndexedDB schema bumps to v5. No upgrade hook — pre-launch, consistent
   with ADR-0012's reasoning; the only data is on the developer's machine.
-- The "DOPORUČENO" auto-suggestion in the C.4 prototype is **omitted** in
-  v1 (it needs the v1.1 pattern detector per ADR-0007); the four outcome
+- The "DOPORUČENO" auto-suggestion in the C.4 prototype is **omitted**
+  (it needs the derived-insight engine, tracked in [#468](https://github.com/jirigrill/eczema-helper/issues/468)); the four outcome
   cards ship with nothing pre-selected.
 
-### Known v1 limitation
+### Known limitation
 
 With write-once verdicts plus backfill, recording a *late* reaction shifts
 later phase boundaries beneath any already-logged days. In practice the
 blast radius is small — a verdict is recorded before the next allergen's
 phase begins, so the shift lands on still-future phases, and meals are
-date-keyed facts that do not move. Accepted for v1; revisit if real use
+date-keyed facts that do not move. Accepted; revisit if real use
 surfaces a collision.

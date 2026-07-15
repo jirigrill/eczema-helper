@@ -1,42 +1,22 @@
 # Eczema Tracker
 
-Personal PWA for tracking a breastfed newborn's atopic eczema through elimination diet. Single-child, two-parent, Czech UI.
+Personal PWA for tracking a breastfed newborn's atopic eczema through an elimination diet. Single-child, the mother's phone, Czech UI.
 
-## Status
+## What it is
 
-Prototype-first frontend. Backend, persistence, and AI features are not wired yet — will be re-authored against the prototype's domain when the UX stabilizes.
+A local-first SvelteKit PWA — no backend, no accounts. It runs the elimination protocol: onboarding, a daily "today" view, meal logging with allergen-conflict detection, a program timeline, per-region skin observations with photos, and end-of-reintroduction verdicts. All data lives in IndexedDB on the one device.
 
-### Tracer-bullet slice progress
+## Docs
 
-| Slice | Summary | Status |
-|-------|---------|--------|
-| 1 | Schedule persistence + today screen (Dexie v1–v3, `MealRepository`) | ✅ Done |
-| 2 | Meal logging — add/edit/commit flow, allergen chips, conflict detection | ✅ Done |
-| 3 | Daily skin assessment + photo (`SkinObservation`, `SkinPhotoStore`, `/skin` screen, today surface) | ✅ Done |
-
-## Structure
-
-- `src/routes/*` — prototype UI (app pages: `/`, `/program`, `/day`, `/meal`, `/settings`)
-- `src/routes/api/health/+server.ts` — liveness probe for deployment
-- `src/lib/domain/` — domain model (`models.ts`) and pure business logic (`schedule.ts`)
-- `src/lib/data/` — seed data (food categories, reintroduction order)
-- `src/lib/utils/` — generic utilities (date, uuid, error)
-- `src/lib/components/` — UI components (FamilyGrid/AllergenDrillIn/SkinObservationCard + kept generics)
-- `src/lib/server/` — server-side infra kept for future backend (logger, env, postgres pool, bcrypt, rate-limit, validation, shutdown)
-- `src/lib/crypto/` — AES-256-GCM encryption helpers (Web Crypto)
-- `src/lib/types/` — shared type helpers (`Result<T, E>`)
-
-## Design docs
-
-- [tech-stack.md](architecture/tech-stack.md) — framework, runtime, deployment choices
-- [ports-and-adapters.md](architecture/ports-and-adapters.md) — hexagonal architecture; current ports and Dexie/in-memory adapters
+- `../CONTEXT.md` — domain vocabulary and invariants
+- `../UBIQUITOUS_LANGUAGE.md` — shared term glossary
+- `adr/` — architecture decision records
+- `decisions-log.md` — settled implemented decisions (one-liners)
+- `architecture/` — tech stack, ports & adapters, testing, code standards
+- `design/` — the redesign prototype (design source of truth)
+- `research/` — forward-looking design research
+- `allergen-reference/` — source protocol tables (Pekárková, Matoušková)
 
 ## Commands
 
-See root-level `AGENTS.md` (symlinked as `CLAUDE.md`) and run `just` for the available recipes.
-
-## Follow-ups
-
-- New ports + services against the prototype's domain (photo storage, auth, analysis) when backend re-wiring starts.
-- First migration `001_*.sql` once the new schema is defined.
-- Session validation in `hooks.server.ts` when auth returns.
+Run `just` from the repo root for the recipe list (`just dev`, `just build`, `just check`, `just health`).

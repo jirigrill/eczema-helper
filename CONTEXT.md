@@ -89,7 +89,7 @@ preserve identity, 2026-06-30).
 ### Region
 One of nine canonical body areas the parent can log on `/skin`: face,
 scalp, neck, belly, back, arms, elbow-folds, knee-folds, legs. The
-union is frozen for v1; new regions require an ADR. Identified by
+union is frozen; new regions require an ADR. Identified by
 `RegionId` — a kebab-case English-rooted slug. Czech display labels
 live in `src/lib/strings/skin-regions.ts` keyed by `RegionId` (per
 ADR-0014).
@@ -149,9 +149,9 @@ Recording an `allergen-test` *reaction* drives a schedule mutation (a
 `AllergenStatus` is then derived from the resulting topology — the
 evaluations table is never read by `getAllergenStatuses`. A reaction is
 **never permanent** for a protocol allergen: a reacted allergen is
-eligible for a later manual retest. The app may later suggest a
-recommended outcome from the phase's daily observations (deferred to
-v1.1); the user always confirms. See
+eligible for a later manual retest. The app may suggest a
+recommended outcome from the phase's daily observations (the proposer,
+[ADR-0026](docs/adr/0026-llm-schedule-proposer.md)); the user always confirms. See
 [ADR-0016](docs/adr/0016-verdict-drives-schedule-not-status.md).
 
 ### Insight
@@ -456,31 +456,28 @@ candidate is the harvest feed and the eventual cross-user sync payload; it
 cover its key. Harvest stats live only here, never on a `CanonicalAllergen`.
 On-device normalization is deliberately minimal and precision-biased
 (lowercase + trim + collapse whitespace, **keep** diacritics, **no** stemming);
-authoritative clustering is a deferred server-side job.
+authoritative cross-user clustering is out of scope for the on-device catalog.
 
 ### Actor
-The person whose food intake a `Meal` describes. In v1 always `'mother'`
+The person whose food intake a `Meal` describes. Always `'mother'`
 (the breastfeeding mother — allergens transit to the baby via breastmilk).
 The `actor` field is reserved on `Meal` for future expansion to `'baby'`
-once solids-introduction is in scope, but v1 writes only `'mother'`.
+once solids-introduction is in scope, but only `'mother'` is written today.
 
-**Why the field exists now:** committing to dual-actor logic in v1 would
+**Why the field exists now:** committing to dual-actor logic now would
 fork the schedule generator (mother eliminates X *and* baby solids skip X
 on a different timeline). Reserving the field is cheap; retrofitting it
 after data exists is a migration.
 
-**Invariant:** every `Meal` has an `actor`. In v1, `actor === 'mother'`.
+**Invariant:** every `Meal` has an `actor`; `actor === 'mother'`.
 
 ---
 
 ## Invariants
 
-- **Single device, single actor.** v1 runs on one phone (the mother's).
+- **Single device, single actor.** Runs on one phone (the mother's).
   No accounts, no sync, no server. See [ADR-0001](docs/adr/0001-single-device-v1.md).
-- **Encrypted manual export is the backup floor.** Every persisted record
-  has a stable UUID. Whole-state serialize + AES-256-GCM with a
-  passphrase-derived key is built in v1. Cloud/auto-backup is deferred.
-  See [ADR-0002](docs/adr/0002-backup-floor.md).
+- **No backup mechanism exists yet.** Data lives only in IndexedDB on the one device. An encrypted manual export/import (whole-state serialize + AES-256-GCM, passphrase-derived key; every record has a stable UUID) is the intended floor — not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).
 - **Meals are day-granular.** `Meal` carries `date` + `mealType` only.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
   for audit. See the [decisions log](docs/decisions-log.md) (was ADR-0003).
@@ -512,20 +509,13 @@ after data exists is a migration.
   at the skin. Delete is a hard delete cascading to all `SkinPhoto` rows
   for that observation. The repository port exposes `save` (compose),
   `update` (edit), `remove` (delete), `listByDate` (read).
-- **Photo encryption-at-rest deferred past v1** — with a shipping
-  constraint: encryption must land before the app reaches any device
-  other than the developer's own.
+- **Photos are stored unencrypted at rest** (only the export blob is encrypted). Encryption-at-rest must land before the app reaches any device other than the developer's own — a hard release gate, tracked in [#467](https://github.com/jirigrill/eczema-helper/issues/467).
 - **Persistence: Dexie/IndexedDB, normalized tables.** Photos in a
   dedicated table. Reactive UI via `liveQuery`. The insight engine
   receives plain arrays — it does not know Dexie exists.
-- **v1 ships the Protocol Executor.** Onboarding, today view, meal-add
+- **The app is a Protocol Executor.** Onboarding, today view, meal-add
   with conflict detection, day detail, program timeline, end-of-reintro
-  verdict, encrypted export. Insight engine deferred to v1.1.
-  See [ADR-0007](docs/adr/0007-v1-scope.md).
-- **Tracer-bullet slice order**: (1) Onboarding + Today read-only, (2)
-  Log a meal → see it on today, (3) Daily assessment + photo. Then the
-  remaining v1 screens.
-  See [ADR-0008](docs/adr/0008-tracer-bullet-slices.md).
+  verdict. The derived-insight engine is not built (tracked in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
 - **Domain records carry types, not display strings.** Domain-emitted
   records (`SchedulePhase`, `MealItem`, etc.) carry stable type
   identifiers (e.g. `type: 'elimination'`). Czech display text and visual
@@ -534,14 +524,13 @@ after data exists is a migration.
   a display string onto a domain record violates this invariant.
   **Exception:** `LadderStep.dose` (Czech dose caption) is inlined on the
   catalog record — a deliberate, documented deviation for the Czech-only
-  single-tenant v1. See the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
+  single-tenant app. See the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
 - **Allergen catalog is data-first, bundled, and port-fronted.** Each allergen
   is one curated JSON-serializable `CanonicalAllergen` record; `AllergenId` and
   `LadderAllergenId` are *derived* from the records, not hand-written unions.
   Reintroduction capability is the optional `protocol` field — canonical does
   not imply reintroducible. Unknown user input becomes a runtime
-  `HarvestCandidate` in Dexie, never mutates the bundled catalog. Cross-user
-  aggregation and server-push are deferred behind `CanonicalCatalogPort`.
+  `HarvestCandidate` in Dexie, never mutates the bundled catalog.
 - **Ladder rung is derived, never persisted; skipping a rung is
   unrepresentable.** `currentRung`/`nextLegalStep` (`src/lib/domain/ladder.ts`)
   mirror the `AllergenStatus` derivation pattern over per-stage

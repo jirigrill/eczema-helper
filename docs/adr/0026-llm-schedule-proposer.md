@@ -1,6 +1,6 @@
 # 0026 — LLM as schedule proposer (code core + LLM proposer)
 
-**Status:** Accepted — informs v1.1; no implementation yet. Feeds the proposer + BFF PRD.
+**Status:** Accepted design — not yet implemented; build tracked in [PRD #423](https://github.com/jirigrill/eczema-helper/issues/423).
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3, §6 #3/#4/#5/#6, §5 sequence #4.
 **Amends:** [ADR-0001](0001-single-device-v1.md) (introduces a stateless BFF; "no server" → "no server *holding user data*").
@@ -154,7 +154,7 @@ Czech; the prose is explanatory, never prescriptive (ADR-0024 C).
 ## Consequences
 
 - New `proposals` + ladder-override tables (ADR-0006), added to the export
-  snapshot (ADR-0002).
+  snapshot (the encrypted export, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438)).
 - ADR-0001 is amended (BFF, tiered connectivity, endpoint-abuse protection).
 - `ScheduleProposal`, the spine invariant, the allergen-exposure projection, the
   `trigger` union + `derived-signal`, and the **exposure-increasing vs
@@ -174,4 +174,4 @@ Czech; the prose is explanatory, never prescriptive (ADR-0024 C).
 - **Auto-evaluated verdicts** — the engine confirming the reaction verdict itself,
   not just proposing; requires a deliberate ADR-0016 revision (drops the
   parent-attribution mandate). The seam is built to allow it (the confirm step
-  becomes optional later). **Not v1.1.**
+  becomes optional later). **Out of scope for the initial proposer build.**
