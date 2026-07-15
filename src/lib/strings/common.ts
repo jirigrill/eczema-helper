@@ -239,6 +239,8 @@ export const commonStrings = {
     motherAllergensNote: 'Trvale vyřazeno — vaše vlastní alergie.',
     babyAllergensSection: 'Potvrzené alergie miminka',
     babyAllergensNote: 'Trvale vyřazeno. Testování doporučujeme konzultovat s lékařem.',
+    reactedAllergensSection: 'Alergeny s reakcí',
+    reactedAllergensNote: 'Během testování reagovaly. Můžete je později znovu otestovat.',
     fromQuestionnaire: 'z dotazníku',
     trainingLabel: 'Trénink:',
     possibleCausePrefix: 'Možná příčina:',
