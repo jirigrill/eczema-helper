@@ -6,11 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import type {
-  GeneratedSchedule,
-  LadderAllergenId,
-  QuestionnaireAnswers,
-} from '$lib/domain/models';
+import type { GeneratedSchedule, LadderAllergenId, QuestionnaireAnswers } from '$lib/domain/models';
 import { appendReTestPhases } from '$lib/domain/schedule-builder';
 import { getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule-queries';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
@@ -466,7 +462,9 @@ describe('program timeline — retest of reacted protocol allergen', () => {
     // No retest phase exists yet, so the timeline has no cancel affordance.
     expect(queryByText('Zrušit')).not.toBeInTheDocument();
 
-    within(retestSection(getByText)).getByRole('button', { name: /Mléčné výrobky/ }).click();
+    within(retestSection(getByText))
+      .getByRole('button', { name: /Mléčné výrobky/ })
+      .click();
     await tick();
     getByRole('button', { name: /Přidat testovací fáze/ }).click();
     await flushConfirm();
@@ -490,7 +488,9 @@ describe('program timeline — retest of reacted protocol allergen', () => {
     const { getByText, getByRole } = render(ProgramPage);
     await tick();
 
-    within(retestSection(getByText)).getByRole('button', { name: /Mléčné výrobky/ }).click();
+    within(retestSection(getByText))
+      .getByRole('button', { name: /Mléčné výrobky/ })
+      .click();
     await tick();
     getByRole('button', { name: /Přidat testovací fáze/ }).click();
     await flushConfirm();
@@ -510,7 +510,9 @@ describe('program timeline — retest of reacted protocol allergen', () => {
     const { getByText, getByRole } = render(ProgramPage);
     await tick();
 
-    within(retestSection(getByText)).getByRole('button', { name: /Mléčné výrobky/ }).click();
+    within(retestSection(getByText))
+      .getByRole('button', { name: /Mléčné výrobky/ })
+      .click();
     await tick();
     getByRole('button', { name: /Přidat testovací fáze/ }).click();
     await flushConfirm();
@@ -539,7 +541,9 @@ describe('program timeline — baby-confirmed retest flow (regression)', () => {
     permanentBaby: ['eggs'],
     startDate: today,
     estimatedEndDate: futureDate,
-    phases: [{ id: 'reset', type: 'reset', allergenIds: [], startDate: today, endDate: futureDate }],
+    phases: [
+      { id: 'reset', type: 'reset', allergenIds: [], startDate: today, endDate: futureDate },
+    ],
   };
 
   it('selecting a baby-confirmed allergen and confirming calls appendReTests with its id', async () => {
