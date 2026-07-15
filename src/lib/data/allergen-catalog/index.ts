@@ -47,5 +47,5 @@ export function allergensByFamily(familyId: FamilyId): (typeof ALLERGENS)[number
  */
 export function singleAllergenFamily(familyId: FamilyId): string | null {
   const members = allergensByFamily(familyId);
-  return members.length === 1 ? members[0].id : null;
+  return members.length === 1 ? members[0]!.id : null;
 }

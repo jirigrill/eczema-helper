@@ -266,7 +266,7 @@
 
   function handleGalleryDelete(index: number): void {
     if (index < persistedPhotos.length) {
-      const persisted = persistedPhotos[index];
+      const persisted = persistedPhotos[index]!;
       const next = new Set(stagedPhotoRemovals);
       if (next.has(persisted.id)) {
         next.delete(persisted.id); // Undo affordance

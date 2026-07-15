@@ -272,7 +272,7 @@ describe('toMealItems', () => {
       amount: 'spoon',
       preparationMethod: 'boiled',
     });
-    expect(items[0].id).toBeTruthy(); // randomUUID assigned
+    expect(items[0]!.id).toBeTruthy(); // randomUUID assigned
   });
 
   it('returns empty array for empty meal', () => {
@@ -290,7 +290,7 @@ describe('toMealItems / fromMealItems round-trip', () => {
     meal = confirmFood(meal, FAM, FOOD_A);
 
     const items = toMealItems(meal);
-    expect(items[0].preparationMethod).toBe('raw');
+    expect(items[0]!.preparationMethod).toBe('raw');
 
     const restored = fromMealItems(items);
     const restoredFood = foodsForFamily(restored, FAM).find((f) => f.foodId === FOOD_A);

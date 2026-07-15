@@ -10,7 +10,7 @@ describe('computeDayStrip', () => {
   it('returns a continuous run of cells in ascending date order', () => {
     const { cells } = computeDayStrip({ selectedDate: today, protocolStart, estimatedEnd, today });
     for (let i = 1; i < cells.length; i++) {
-      expect(cells[i].date > cells[i - 1].date).toBe(true);
+      expect(cells[i]!.date > cells[i - 1]!.date).toBe(true);
     }
     expect(cells.length).toBeGreaterThan(7);
   });
@@ -31,7 +31,7 @@ describe('computeDayStrip', () => {
     const { cells } = computeDayStrip({ selectedDate: today, protocolStart, estimatedEnd, today });
     const todays = cells.filter((c) => c.isToday);
     expect(todays).toHaveLength(1);
-    expect(todays[0].date).toBe(today);
+    expect(todays[0]!.date).toBe(today);
   });
 
   it('marks the selected date with isSelected=true and only that one cell', () => {
@@ -44,7 +44,7 @@ describe('computeDayStrip', () => {
     });
     const sel = cells.filter((c) => c.isSelected);
     expect(sel).toHaveLength(1);
-    expect(sel[0].date).toBe(selected);
+    expect(sel[0]!.date).toBe(selected);
   });
 
   it('selecting a non-today day keeps today flagged in its own slot (today does not move)', () => {
@@ -56,8 +56,8 @@ describe('computeDayStrip', () => {
     const todayIndexB = stripB.cells.findIndex((c) => c.isToday);
     expect(todayIndexA).toBe(todayIndexB);
     // today's cell still flagged with isToday in B even when not selected
-    expect(stripB.cells[todayIndexB].isToday).toBe(true);
-    expect(stripB.cells[todayIndexB].isSelected).toBe(false);
+    expect(stripB.cells[todayIndexB]!.isToday).toBe(true);
+    expect(stripB.cells[todayIndexB]!.isSelected).toBe(false);
   });
 
   it('marks dates strictly after today with isFuture=true', () => {
@@ -79,17 +79,17 @@ describe('computeDayStrip', () => {
   it('soft-clamps the range to a small buffer before protocolStart', () => {
     const { cells } = computeDayStrip({ selectedDate: today, protocolStart, estimatedEnd, today });
     // Earliest cell must not be more than a small buffer before protocolStart.
-    expect(cells[0].date < protocolStart).toBe(true);
+    expect(cells[0]!.date < protocolStart).toBe(true);
     // But the buffer is bounded — earliest cell should be within ~14 days before start.
-    const earliest = new Date(cells[0].date + 'T00:00:00').getTime();
+    const earliest = new Date(cells[0]!.date + 'T00:00:00').getTime();
     const start = new Date(protocolStart + 'T00:00:00').getTime();
     expect((start - earliest) / 86400000).toBeLessThanOrEqual(14);
   });
 
   it('soft-clamps the range to the buffer after estimatedEnd', () => {
     const { cells } = computeDayStrip({ selectedDate: today, protocolStart, estimatedEnd, today });
-    expect(cells[cells.length - 1].date > estimatedEnd).toBe(true);
-    const latest = new Date(cells[cells.length - 1].date + 'T00:00:00').getTime();
+    expect(cells[cells.length - 1]!.date > estimatedEnd).toBe(true);
+    const latest = new Date(cells[cells.length - 1]!.date + 'T00:00:00').getTime();
     const end = new Date(estimatedEnd + 'T00:00:00').getTime();
     expect((latest - end) / 86400000).toBeLessThanOrEqual(BUFFER_AFTER_END_DAYS);
   });

@@ -95,7 +95,7 @@ describe('DayStrip', () => {
     });
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
-    buttons[0].click();
+    buttons[0]!.click();
     expect(fn).toHaveBeenCalledWith('2026-05-25');
   });
 
@@ -110,7 +110,7 @@ describe('DayStrip', () => {
     });
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
-    buttons[1].click();
+    buttons[1]!.click();
     expect(fn).toHaveBeenCalledWith('2026-06-11');
   });
 
@@ -125,8 +125,8 @@ describe('DayStrip', () => {
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
     // Future cell carries the muted/faded class; the non-future today cell does not.
-    expect(buttons[1].className).toContain('text-text-muted/50');
-    expect(buttons[0].className).not.toContain('text-text-muted/50');
+    expect(buttons[1]!.className).toContain('text-text-muted/50');
+    expect(buttons[0]!.className).not.toContain('text-text-muted/50');
   });
 
   it('does not jump to today when a before-start cell is clicked (no jump-to-today behavior)', async () => {
@@ -140,7 +140,7 @@ describe('DayStrip', () => {
     });
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
-    buttons[0].click();
+    buttons[0]!.click();
     expect(fn).toHaveBeenCalledWith('2026-05-25');
     expect(fn).not.toHaveBeenCalledWith(today);
   });
@@ -159,7 +159,7 @@ describe('DayStrip', () => {
       props: { cells: initialCells, today, todayRecorded: false, onselectdate: vi.fn() },
     });
     await tick();
-    expect(getAllByTestId('day-strip-cell')[1].getAttribute('aria-current')).toBe('date');
+    expect(getAllByTestId('day-strip-cell')[1]!.getAttribute('aria-current')).toBe('date');
 
     const updatedCells: DayStripCell[] = [
       cell('2026-06-08'),
@@ -170,7 +170,7 @@ describe('DayStrip', () => {
     await tick();
 
     const buttons = getAllByTestId('day-strip-cell');
-    expect(buttons[1].getAttribute('aria-current')).toBeNull();
-    expect(buttons[2].getAttribute('aria-current')).toBe('date');
+    expect(buttons[1]!.getAttribute('aria-current')).toBeNull();
+    expect(buttons[2]!.getAttribute('aria-current')).toBe('date');
   });
 });

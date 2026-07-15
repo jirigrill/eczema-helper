@@ -113,7 +113,7 @@ export function generateSchedule(answers: QuestionnaireAnswers): GeneratedSchedu
     cursor = addDays(reintroEnd, 1);
   }
 
-  const lastPhase = phases[phases.length - 1];
+  const lastPhase = phases[phases.length - 1]!;
 
   return {
     phases,
@@ -143,7 +143,7 @@ export function insertRestDays(
   const idx = phases.findIndex((p) => p.id === afterPhaseId);
   if (idx < 0) return schedule;
 
-  const afterPhase = phases[idx];
+  const afterPhase = phases[idx]!;
   const restStart = addDays(afterPhase.endDate, 1);
   const restEnd = addDays(restStart, days - 1);
 
@@ -157,11 +157,12 @@ export function insertRestDays(
 
   // Shift all non-tolerance-building phases after idx forward by `days`
   for (let i = idx + 1; i < phases.length; i++) {
-    if (phases[i].type !== 'tolerance-building') {
+    const phase = phases[i]!;
+    if (phase.type !== 'tolerance-building') {
       phases[i] = {
-        ...phases[i],
-        startDate: addDays(phases[i].startDate, days),
-        endDate: addDays(phases[i].endDate, days),
+        ...phase,
+        startDate: addDays(phase.startDate, days),
+        endDate: addDays(phase.endDate, days),
       };
     }
   }
@@ -382,7 +383,8 @@ export function getToleranceBuildingRemindersForDate(
 
   return trainingPhases
     .map((phase) => {
-      const allergenId = phase.allergenIds[0];
+      // A tolerance-building phase always carries exactly the one allergen it trains.
+      const allergenId = phase.allergenIds[0]!;
 
       const relevantMeals = meals
         .filter(

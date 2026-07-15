@@ -106,5 +106,8 @@
 {/if}
 
 {#if lightboxIndex !== null}
-  <PhotoLightbox src={objectUrls[lightboxIndex]} onClose={closeLightbox} />
+  {@const lightboxSrc = objectUrls[lightboxIndex]}
+  {#if lightboxSrc}
+    <PhotoLightbox src={lightboxSrc} onClose={closeLightbox} />
+  {/if}
 {/if}

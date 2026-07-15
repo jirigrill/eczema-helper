@@ -88,7 +88,7 @@ describe('DexieHarvestCandidateRepository', () => {
     await repo.upsert(ingested);
     const result = await repo.listByStatus('pending');
     expect(result.ok && result.data).toHaveLength(1);
-    if (result.ok) expect(result.data[0].normalizedKey).toBe('křen');
+    if (result.ok) expect(result.data[0]!.normalizedKey).toBe('křen');
   });
 
   it('listByStatus returns empty array when no candidates match', async () => {

@@ -35,7 +35,7 @@ describe('encryption', () => {
     const encrypted = await encrypt(testData, passphrase);
     const corrupted = new Uint8Array(encrypted);
     // Corrupt the ciphertext (after salt + iv)
-    corrupted[30] ^= 0xff;
+    corrupted[30] = corrupted[30]! ^ 0xff;
 
     await expect(decrypt(corrupted, passphrase)).rejects.toThrow('Decryption failed');
   });

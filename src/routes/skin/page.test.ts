@@ -226,7 +226,7 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockSave).toHaveBeenCalledOnce();
-    const [observation] = mockSave.mock.calls[0];
+    const [observation] = mockSave.mock.calls[0]!;
     const obs = observation as SkinObservation;
     expect(obs.regions).toHaveLength(9);
     expect(obs.regions.every((r) => r.level === 0)).toBe(true);
@@ -259,7 +259,7 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockSave).toHaveBeenCalledOnce();
-    const [observation, photos] = mockSave.mock.calls[0];
+    const [observation, photos] = mockSave.mock.calls[0]!;
     expect(photos).toEqual([]);
     const obs = observation as SkinObservation;
     // Issue #379: all 9 regions persist; face = mírné (1), other 8 = klidné (0).
@@ -290,7 +290,7 @@ describe('skin/+page.svelte — region grid', () => {
     await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
-    const [obs] = mockSave.mock.calls[0];
+    const [obs] = mockSave.mock.calls[0]!;
     const o = obs as SkinObservation;
     expect(o.regions).toContainEqual({ id: 'face', level: 1 });
     expect(o.regions).toContainEqual({ id: 'arms', level: 3 });
@@ -313,7 +313,7 @@ describe('skin/+page.svelte — region grid', () => {
     await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
-    const [obs] = mockSave.mock.calls[0];
+    const [obs] = mockSave.mock.calls[0]!;
     const o = obs as SkinObservation;
     expect(o.notes).toBe('svědí');
   });
@@ -330,7 +330,7 @@ describe('skin/+page.svelte — region grid', () => {
     await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
-    const [obs] = mockSave.mock.calls[0];
+    const [obs] = mockSave.mock.calls[0]!;
     expect((obs as SkinObservation).notes).toBeUndefined();
   });
 
@@ -631,9 +631,9 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockSave).toHaveBeenCalledOnce();
-    const [, photos] = mockSave.mock.calls[0];
+    const [, photos] = mockSave.mock.calls[0]!;
     expect(photos).toHaveLength(1);
-    expect((photos as Array<{ region: string }>)[0].region).toBe('face');
+    expect((photos as Array<{ region: string }>)[0]!.region).toBe('face');
   });
 
   it('deleting a staged photo removes it from the gallery', async () => {
@@ -672,7 +672,7 @@ describe('skin/+page.svelte — region grid', () => {
     await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
-    const [, photos] = mockSave.mock.calls[0];
+    const [, photos] = mockSave.mock.calls[0]!;
     expect(photos).toEqual([]);
   });
 
@@ -775,7 +775,7 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockUpdate).toHaveBeenCalledOnce();
-    const [observation, options] = mockUpdate.mock.calls[0];
+    const [observation, options] = mockUpdate.mock.calls[0]!;
     const obs = observation as SkinObservation;
     expect(obs.id).toBe('obs-1');
     expect(obs.createdAt).toBe('2026-06-30T09:12:00.000Z');
@@ -802,7 +802,7 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockUpdate).toHaveBeenCalledOnce();
-    const [observation] = mockUpdate.mock.calls[0];
+    const [observation] = mockUpdate.mock.calls[0]!;
     expect((observation as SkinObservation).notes).toBe('nové');
   });
 
@@ -932,7 +932,7 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockUpdate).toHaveBeenCalledOnce();
-    const [, options] = mockUpdate.mock.calls[0];
+    const [, options] = mockUpdate.mock.calls[0]!;
     expect(options.addPhotos).toHaveLength(1);
     expect(options.removePhotoIds).toEqual(['photo-a']);
   });
@@ -957,7 +957,7 @@ describe('skin/+page.svelte — region grid', () => {
     await tick();
 
     expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    const buf = mockWriteBuffer.mock.calls[0][0];
+    const buf = mockWriteBuffer.mock.calls[0]![0];
     if (buf.kind !== 'skin-edit') throw new Error('expected skin-edit descriptor');
     expect(buf.observationId).toBe('obs-1');
   });
@@ -1129,13 +1129,13 @@ describe('skin/+page.svelte — region grid', () => {
 
     // Descriptor written before remove; both must have happened.
     expect(mockWriteBuffer).toHaveBeenCalledOnce();
-    const desc = mockWriteBuffer.mock.calls[0][0];
+    const desc = mockWriteBuffer.mock.calls[0]![0];
     if (desc.kind !== 'skin-delete') throw new Error('expected skin-delete descriptor');
     expect(desc.observationId).toBe('obs-1');
     expect(desc.observation.id).toBe('obs-1');
     expect(desc.observation.createdAt).toBe('2026-06-30T09:12:00.000Z');
     expect(desc.photoBlobs).toHaveLength(1);
-    expect(desc.photoBlobs[0].id).toBe('photo-a');
+    expect(desc.photoBlobs[0]!.id).toBe('photo-a');
     expect(desc.date).toBe(today);
     expect(desc.returnTo).toBe(`/day/${today}`);
 
@@ -1268,7 +1268,7 @@ describe('skin/+page.svelte — region grid', () => {
     // Update path is NOT used for post-delete-undo — restore is.
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(mockRestore).toHaveBeenCalledOnce();
-    const [observation, photos] = mockRestore.mock.calls[0];
+    const [observation, photos] = mockRestore.mock.calls[0]!;
     const obs = observation as SkinObservation;
     expect(obs.id).toBe('obs-deleted');
     expect(obs.createdAt).toBe('2026-06-30T09:12:00.000Z');

@@ -23,8 +23,8 @@ vi.mock('$lib/stores/protocol-session', () => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
-const today = new Date().toISOString().split('T')[0];
-const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+const today = new Date().toISOString().split('T')[0]!;
+const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!;
 
 const sampleSchedule: GeneratedSchedule = {
   permanentMother: [],
@@ -37,7 +37,7 @@ const sampleSchedule: GeneratedSchedule = {
       type: 'reset',
       allergenIds: [],
       startDate: today,
-      endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0]!,
     },
   ],
 };
@@ -162,7 +162,7 @@ describe('ScheduleContext allergenStatuses consistency', () => {
 });
 
 // ── date helper used in regression schedule ────────────────────────────────
-const d = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().split('T')[0];
+const d = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().split('T')[0]!;
 
 // Schedule: dairy reacted (reintro → rest, both done), eggs currently being reintroduced
 const reactedSchedule: GeneratedSchedule = {
@@ -327,10 +327,10 @@ describe('program timeline — reintroduction evaluation prompt', () => {
   // dairy's ladder has isEvaluationCheckpoint: true only on step 6 (breastfed).
   // Day 1 → rung 1 (not checkpoint), day 6 → rung 6 (checkpoint).
   const dairyReintroSchedule = (dayInPhase: number, totalDays: number): GeneratedSchedule => {
-    const start = new Date(Date.now() - (dayInPhase - 1) * 86400000).toISOString().split('T')[0];
+    const start = new Date(Date.now() - (dayInPhase - 1) * 86400000).toISOString().split('T')[0]!;
     const end = new Date(Date.now() + (totalDays - dayInPhase) * 86400000)
       .toISOString()
-      .split('T')[0];
+      .split('T')[0]!;
     return {
       permanentMother: [],
       permanentBaby: [],

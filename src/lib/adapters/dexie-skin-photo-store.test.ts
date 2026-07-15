@@ -42,7 +42,7 @@ describe('DexieSkinPhotoStore', () => {
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].id).toBe(photo.id);
+      expect(result.data[0]!.id).toBe(photo.id);
     }
   });
 
@@ -54,7 +54,7 @@ describe('DexieSkinPhotoStore', () => {
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].id).toBe('photo-a');
+      expect(result.data[0]!.id).toBe('photo-a');
     }
   });
 
@@ -80,8 +80,8 @@ describe('DexieSkinPhotoStore', () => {
     const result = await store.listByObservationId('obs-blob');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
-      expect(result.data[0].blob).toBeDefined();
-      expect(result.data[0].blob).not.toBeNull();
+      expect(result.data[0]!.blob).toBeDefined();
+      expect(result.data[0]!.blob).not.toBeNull();
     }
   });
 
@@ -97,9 +97,9 @@ describe('DexieSkinPhotoStore', () => {
     const result = await store.listByObservationId('obs-exact');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
-      expect(result.data[0].id).toBe('photo-exact');
-      expect(result.data[0].region).toBe('belly');
-      expect(result.data[0].capturedAt).toBe('2026-05-27T14:22:01.500Z');
+      expect(result.data[0]!.id).toBe('photo-exact');
+      expect(result.data[0]!.region).toBe('belly');
+      expect(result.data[0]!.capturedAt).toBe('2026-05-27T14:22:01.500Z');
     }
   });
 

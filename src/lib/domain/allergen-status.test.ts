@@ -387,7 +387,7 @@ describe('getPhaseVerdictStatuses — verdict-date boundary', () => {
         phase({ id: 'rest-1', type: 'rest', startDate: '2026-06-09', endDate: '2026-06-11' }),
       ],
     };
-    const rows = getPhaseVerdictStatuses(withRest, withRest.phases[2]);
+    const rows = getPhaseVerdictStatuses(withRest, withRest.phases[2]!);
     const dairy = rows.find((r) => r.allergenId === 'dairy');
     expect(dairy?.status).toBe('reacted');
   });

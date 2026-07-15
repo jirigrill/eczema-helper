@@ -253,19 +253,19 @@ describe('nextLegalStep', () => {
   });
 
   it('returns the next single step above the current rung', () => {
-    expect(nextLegalStep(eggsSteps[0], eggsLadder, 'breastfed')?.id).toBe('rung-2');
-    expect(nextLegalStep(eggsSteps[1], eggsLadder, 'breastfed')?.id).toBe('rung-3');
+    expect(nextLegalStep(eggsSteps[0]!, eggsLadder, 'breastfed')?.id).toBe('rung-2');
+    expect(nextLegalStep(eggsSteps[1]!, eggsLadder, 'breastfed')?.id).toBe('rung-3');
   });
 
   it('returns null once the top of the ladder is reached', () => {
-    const top = eggsSteps[eggsSteps.length - 1];
+    const top = eggsSteps[eggsSteps.length - 1]!;
     expect(nextLegalStep(top, eggsLadder, 'breastfed')).toBeNull();
   });
 
   it('cannot express a multi-step advance — the return is a single step or null', () => {
     // The signature itself precludes returning two steps at once. This test
     // documents that guarantee: `nextLegalStep` walks exactly one rung.
-    const returned = nextLegalStep(eggsSteps[0], eggsLadder, 'breastfed');
+    const returned = nextLegalStep(eggsSteps[0]!, eggsLadder, 'breastfed');
     const idx = eggsSteps.findIndex((s) => s.id === returned?.id);
     expect(idx).toBe(1);
   });
@@ -277,12 +277,12 @@ describe('nextLegalStep', () => {
       nextLegalStep(null, eggsLadder, 'breastfed', undefined, { isPermanentlyEliminated: true }),
     ).toBeNull();
     expect(
-      nextLegalStep(eggsSteps[0], eggsLadder, 'breastfed', undefined, {
+      nextLegalStep(eggsSteps[0]!, eggsLadder, 'breastfed', undefined, {
         isPermanentlyEliminated: true,
       }),
     ).toBeNull();
     expect(
-      nextLegalStep(eggsSteps[1], eggsLadder, 'breastfed', undefined, {
+      nextLegalStep(eggsSteps[1]!, eggsLadder, 'breastfed', undefined, {
         isPermanentlyEliminated: true,
       }),
     ).toBeNull();
@@ -483,26 +483,26 @@ function evaluation(
 
 describe('checkpointVerdictGate', () => {
   it('is permissive at a non-checkpoint rung — nothing to evaluate there', () => {
-    const result = checkpointVerdictGate(eggsSteps[0], 'eggs', []);
+    const result = checkpointVerdictGate(eggsSteps[0]!, 'eggs', []);
     expect(result.allowed).toBe(true);
   });
 
   it('blocks at a checkpoint rung when no verdict has been recorded yet', () => {
-    const result = checkpointVerdictGate(eggsSteps[2], 'eggs', []);
+    const result = checkpointVerdictGate(eggsSteps[2]!, 'eggs', []);
     expect(result.allowed).toBe(false);
     expect(result.requiresRest).toBe(false);
   });
 
   it('allows past a checkpoint once the latest verdict for the allergen is tolerated', () => {
     const evaluations = [evaluation({ date: '2026-06-03', outcome: 'tolerated' })];
-    const result = checkpointVerdictGate(eggsSteps[2], 'eggs', evaluations);
+    const result = checkpointVerdictGate(eggsSteps[2]!, 'eggs', evaluations);
     expect(result.allowed).toBe(true);
     expect(result.requiresRest).toBe(false);
   });
 
   it('holds and requires rest when the latest verdict is a reaction', () => {
     const evaluations = [evaluation({ date: '2026-06-03', outcome: 'clear-reaction' })];
-    const result = checkpointVerdictGate(eggsSteps[2], 'eggs', evaluations);
+    const result = checkpointVerdictGate(eggsSteps[2]!, 'eggs', evaluations);
     expect(result.allowed).toBe(false);
     expect(result.requiresRest).toBe(true);
     expect(result.restDays).toBe(7);
@@ -513,7 +513,7 @@ describe('checkpointVerdictGate', () => {
       evaluation({ date: '2026-06-01', outcome: 'severe-reaction' }),
       evaluation({ date: '2026-06-05', outcome: 'tolerated' }),
     ];
-    const result = checkpointVerdictGate(eggsSteps[2], 'eggs', evaluations);
+    const result = checkpointVerdictGate(eggsSteps[2]!, 'eggs', evaluations);
     expect(result.allowed).toBe(true);
   });
 
@@ -527,7 +527,7 @@ describe('checkpointVerdictGate', () => {
         allergenId: 'eggs',
       }),
     ];
-    const result = checkpointVerdictGate(eggsSteps[2], 'eggs', evaluations);
+    const result = checkpointVerdictGate(eggsSteps[2]!, 'eggs', evaluations);
     expect(result.allowed).toBe(false);
   });
 });
@@ -633,7 +633,7 @@ describe('resolveLadder', () => {
 
   it("replaces the default stage's rungs with the override's when the override defines that stage", () => {
     const resolved = resolveLadder(defaultLadder, overrideLadder);
-    expect(resolved.stages.breastfed?.[0].id).toBe('override-b-1');
+    expect(resolved.stages.breastfed?.[0]!.id).toBe('override-b-1');
   });
 
   it('preserves default stages the override does not define — a breastfed-only override keeps mixed/solids', () => {
@@ -641,8 +641,8 @@ describe('resolveLadder', () => {
     // silently erase the other stages. The child would find an empty ladder
     // on transition into mixed/solids otherwise (issue #427 review).
     const resolved = resolveLadder(defaultLadder, overrideLadder);
-    expect(resolved.stages.mixed?.[0].id).toBe('default-m-1');
-    expect(resolved.stages.solids?.[0].id).toBe('default-s-1');
+    expect(resolved.stages.mixed?.[0]!.id).toBe('default-m-1');
+    expect(resolved.stages.solids?.[0]!.id).toBe('default-s-1');
   });
 
   it('currentRung uses the override rungs when an override is passed', () => {

@@ -8,7 +8,8 @@ Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettie
 
 ## TypeScript
 - Strict mode, no `any` (use `unknown` + narrow) — `@typescript-eslint/no-explicit-any` enforces the `any` ban at lint time
-- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`
+- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`
+- `noUncheckedIndexedAccess` — array/record index access yields `T | undefined`. Narrow it (guard, `?.`, `??`) or, where a nearby invariant already guarantees the element (a checked bounds test, a non-empty ladder/phase list), assert with `!` and leave a comment on the invariant when it isn't obvious
 - `type` over `interface`; discriminated unions over optional fields; exhaustive switch with `never`
 - No enums — `as const` objects or string literal unions
 - Explicit return types on exported functions

@@ -32,14 +32,14 @@ describe('familySources axes', () => {
   });
 
   it('dairy axis (existing) reused, not redefined', () => {
-    const keys = (familySources as Record<string, readonly { key: string }[]>).dairy.map(
+    const keys = (familySources as Record<string, readonly { key: string }[]>).dairy!.map(
       (s) => s.key,
     );
     expect(keys).toEqual(['cow', 'sheep', 'goat', 'plant']);
   });
 
   it('grains axis (existing) reused, not redefined', () => {
-    const keys = (familySources as Record<string, readonly { key: string }[]>).grains.map(
+    const keys = (familySources as Record<string, readonly { key: string }[]>).grains!.map(
       (s) => s.key,
     );
     expect(keys).toEqual(['gluten', 'gluten-free']);

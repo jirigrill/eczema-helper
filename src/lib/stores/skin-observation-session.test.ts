@@ -164,7 +164,7 @@ describe('createSkinObservationSession (factory)', () => {
       rs.some((r) => r.id === obs.id && r.notes === 'after'),
     );
     const found = rows.find((r) => r.id === obs.id);
-    expect(found?.regions[0].level).toBe(3);
+    expect(found?.regions[0]!.level).toBe(3);
     expect(found?.notes).toBe('after');
   });
 
@@ -211,7 +211,7 @@ describe('createSkinObservationSession (factory)', () => {
     const { db } = await import('$lib/db/atopic-db');
     const photos = await db.photos.where('observationId').equals(obs.id).toArray();
     expect(photos).toHaveLength(1);
-    expect(photos[0].region).toBe('face');
+    expect(photos[0]!.region).toBe('face');
   });
 
   it('restore through session reinserts observation with preserved id/createdAt', async () => {
@@ -257,7 +257,7 @@ describe('createSkinObservationSession (factory)', () => {
 
     const rows = await db.photos.where('observationId').equals(obs.id).toArray();
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe(photo.id);
-    expect(rows[0].capturedAt).toBe(photo.capturedAt);
+    expect(rows[0]!.id).toBe(photo.id);
+    expect(rows[0]!.capturedAt).toBe(photo.capturedAt);
   });
 });

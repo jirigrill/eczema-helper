@@ -32,20 +32,20 @@ function zIndexOf(el: Element | null): number {
   return 0;
 }
 
-const today = new Date().toISOString().split('T')[0];
+const today = new Date().toISOString().split('T')[0]!;
 
 const sampleSchedule: GeneratedSchedule = {
   permanentMother: [],
   permanentBaby: [],
   startDate: today,
-  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!,
   phases: [
     {
       id: 'reset',
       type: 'reset',
       allergenIds: [],
       startDate: today,
-      endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0]!,
     },
   ],
 };

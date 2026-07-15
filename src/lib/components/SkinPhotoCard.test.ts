@@ -105,7 +105,7 @@ describe('SkinPhotoCard', () => {
     await tick();
     const pills = getAllByTestId('skin-photo-caption');
     expect(pills).toHaveLength(1);
-    expect(pills[0].textContent).toBe('Tváře · 9:12');
+    expect(pills[0]!.textContent).toBe('Tváře · 9:12');
   });
 
   it('renders distinct times for two photos of the same region taken at different observations', async () => {

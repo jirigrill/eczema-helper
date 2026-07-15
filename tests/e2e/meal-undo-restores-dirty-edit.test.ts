@@ -124,7 +124,7 @@ async function seedLunchWithBrambory(page: Page, date: string) {
 
 test('edit + eliminated food: Zpět restores food, the meal stays dirty, "Uložit změny" enabled', async ({ page }) => {
   const today = await completeOnboardingWithDairyElimination(page);
-  await seedLunchWithBrambory(page, today);
+  await seedLunchWithBrambory(page, today!);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   // Wait for hydration — the seeded food row appears.
@@ -156,7 +156,7 @@ test('edit + eliminated food: Zpět restores food, the meal stays dirty, "Uloži
 
 test('edit: a SECOND back-out after Zpět writes a fresh discard buffer (no silent loss of restored food)', async ({ page }) => {
   const today = await completeOnboardingWithDairyElimination(page);
-  await seedLunchWithBrambory(page, today);
+  await seedLunchWithBrambory(page, today!);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   await expect(page.getByRole('button', { name: /^Brambory$/ })).toBeVisible();
