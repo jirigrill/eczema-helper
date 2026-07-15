@@ -1,9 +1,9 @@
+import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
+import { ALLERGENS, FAMILIES, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type {
   CanonicalCatalogPort,
   CatalogAllergen,
 } from '$lib/domain/ports/canonical-catalog-port';
-import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
-import { FAMILIES, ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 
 export class BundledCatalogAdapter implements CanonicalCatalogPort {
   list(): CatalogAllergen[] {

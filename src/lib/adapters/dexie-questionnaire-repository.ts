@@ -1,7 +1,7 @@
+import { type AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 import type { QuestionnaireAnswers } from '$lib/domain/models';
 import type { QuestionnaireRepository } from '$lib/domain/ports/questionnaire-repository';
 import type { Result } from '$lib/types/result';
-import { type AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 
 export class DexieQuestionnaireRepository implements QuestionnaireRepository {
   constructor(private readonly db: AtopicDb) {}

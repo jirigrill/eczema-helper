@@ -1,5 +1,6 @@
 import { readable } from 'svelte/store';
 import type { Readable } from 'svelte/store';
+
 import { liveQuery } from 'dexie';
 import type { EntityTable } from 'dexie';
 

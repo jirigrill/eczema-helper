@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { FAMILIES, ALLERGENS, FOODS } from './allergen-catalog';
+import { describe, expect, it } from 'vitest';
+
+import { ALLERGENS, FAMILIES, FOODS } from './allergen-catalog';
 
 // ── Id uniqueness ─────────────────────────────────────────────
 

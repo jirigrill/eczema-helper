@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
+
+import { describe, expect, it } from 'vitest';
 
 // We test the module by driving the exported write methods and asserting
 // on both the returned Results and the state of the reactive store.

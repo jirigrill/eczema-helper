@@ -1,7 +1,7 @@
+import type { AtopicDb } from '$lib/db/atopic-db';
 import type { Ladder } from '$lib/domain/canonical-allergen';
 import type { LadderOverrideRepository } from '$lib/domain/ports/ladder-override-repository';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
 
 export class DexieLadderOverrideRepo implements LadderOverrideRepository {
   constructor(private readonly db: AtopicDb) {}

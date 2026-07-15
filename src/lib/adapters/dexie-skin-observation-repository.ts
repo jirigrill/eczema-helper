@@ -1,12 +1,13 @@
-import { randomUUID } from '$lib/utils/uuid';
+import type { AtopicDb } from '$lib/db/atopic-db';
 import type { SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
+import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import type {
   SkinObservationRepository,
   SkinObservationUpdateOptions,
 } from '$lib/domain/ports/skin-observation-repository';
-import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
+import { randomUUID } from '$lib/utils/uuid';
+
 import { checkLoggableWindow } from './loggable-window-guard';
 
 export class DexieSkinObservationRepository implements SkinObservationRepository {

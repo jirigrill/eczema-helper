@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import type { MealItem } from '$lib/domain/models';
+import { fromMealItems } from '$lib/domain/working-meal';
+
 import { snapshotOf, snapshotsEqual } from './meal-dirtiness';
 import type { MealSnapshot } from './meal-dirtiness';
-import { fromMealItems } from '$lib/domain/working-meal';
-import type { MealItem } from '$lib/domain/models';
 
 // ── Fixtures ──────────────────────────────────────────────────
 

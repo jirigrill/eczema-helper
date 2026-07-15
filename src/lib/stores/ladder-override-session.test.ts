@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
+
+import { describe, expect, it } from 'vitest';
+
 import { db } from '$lib/db/atopic-db';
-import { createLadderOverrideSession } from './ladder-override-session';
 import type { Ladder } from '$lib/domain/canonical-allergen';
+
+import { createLadderOverrideSession } from './ladder-override-session';
 
 // fake-indexeddb is loaded globally in test-setup.ts; Dexie works without setup.
 

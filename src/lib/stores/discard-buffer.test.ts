@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import { discardBuffer, writeBuffer, clearBuffer } from './discard-buffer';
+
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import { emptyWorkingMeal, startEditing, confirmFood } from '$lib/domain/working-meal';
+import { confirmFood, emptyWorkingMeal, startEditing } from '$lib/domain/working-meal';
+
+import { clearBuffer, discardBuffer, writeBuffer } from './discard-buffer';
 
 const FAM = 'dairy' as const;
 

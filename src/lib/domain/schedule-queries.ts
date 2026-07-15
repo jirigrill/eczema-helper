@@ -1,18 +1,18 @@
-import type {
-  GeneratedSchedule,
-  QuestionnaireAnswers,
-  SchedulePhase,
-  MealItem,
-  ReintroductionDayInfo,
-  AllergenStatusValue,
-  AllergenStatus,
-  AllergenId,
-} from '$lib/domain/models';
-import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
-import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import { V1_FEEDING_STAGE } from '$lib/domain/canonical-allergen';
-import { isDateInRange, daysBetween } from '$lib/utils/date';
+import type {
+  AllergenId,
+  AllergenStatus,
+  AllergenStatusValue,
+  GeneratedSchedule,
+  MealItem,
+  QuestionnaireAnswers,
+  ReintroductionDayInfo,
+  SchedulePhase,
+} from '$lib/domain/models';
+import { getPermanentEliminations } from '$lib/domain/models';
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
+import { daysBetween, isDateInRange } from '$lib/utils/date';
 
 // ── Current phase ─────────────────────────────────────────────
 

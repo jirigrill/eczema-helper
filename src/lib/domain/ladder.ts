@@ -1,22 +1,22 @@
+import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import type {
+  AllergenOutcome,
+  LadderAllergenId,
   Meal,
   PortionKind,
-  LadderAllergenId,
-  SkinObservation,
   RegionLevel,
   ReintroductionEvaluation,
-  AllergenOutcome,
+  SkinObservation,
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
-import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
-import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
-import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import {
-  REST_PHASE_DAYS_MILD,
-  REST_PHASE_DAYS_CLEAR,
-  REST_PHASE_DAYS_SEVERE,
   MAX_RUNG_REACTIONS,
+  REST_PHASE_DAYS_CLEAR,
+  REST_PHASE_DAYS_MILD,
+  REST_PHASE_DAYS_SEVERE,
 } from '$lib/domain/policy';
+import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { addDays } from '$lib/utils/date';
 
 export type { FeedingStage, Ladder, LadderStep };

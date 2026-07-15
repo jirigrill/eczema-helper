@@ -1,22 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  emptyWorkingMeal,
-  startEditing,
-  confirmFood,
+  allConfirmedFoods,
   cancelEditing,
+  commitFamily,
+  confirmFood,
+  confirmedFoodsForFamily,
   deselectFood,
+  editingFood,
+  emptyWorkingMeal,
+  finalizeWorkingMeal,
+  foodsForFamily,
+  fromMealItems,
+  isNonEmpty,
+  removeFood,
+  startEditing,
+  toMealItems,
   updateEditingAmount,
   updateEditingPreparation,
-  commitFamily,
-  confirmedFoodsForFamily,
-  allConfirmedFoods,
-  editingFood,
-  foodsForFamily,
-  toMealItems,
-  fromMealItems,
-  removeFood,
-  isNonEmpty,
-  finalizeWorkingMeal,
 } from './working-meal';
 import type { WorkingMeal } from './working-meal';
 

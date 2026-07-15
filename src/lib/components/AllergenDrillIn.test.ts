@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
+
+import { fireEvent, render } from '@testing-library/svelte';
+import { describe, expect, it, vi } from 'vitest';
+
 import AllergenDrillIn from './AllergenDrillIn.svelte';
 
 // legumes family has 2 allergens: soy + legumes — good for toggle testing

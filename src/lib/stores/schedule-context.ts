@@ -1,12 +1,13 @@
 import { readable } from 'svelte/store';
+
 import { liveQuery } from 'dexie';
 
-import { db, SINGLETON_ID } from '$lib/db/atopic-db';
-import { buildScheduleContext } from '$lib/domain/schedule-queries';
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import { SINGLETON_ID, db } from '$lib/db/atopic-db';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import { buildScheduleContext } from '$lib/domain/schedule-queries';
 import type { ReadyContext } from '$lib/domain/schedule-queries';
 import { todayIso } from '$lib/utils/date';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 export type ScheduleContext =
   | { status: 'loading' }

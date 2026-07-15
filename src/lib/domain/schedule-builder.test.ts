@@ -1,23 +1,25 @@
-import { describe, it, expect } from 'vitest';
-import {
-  generateSchedule,
-  insertRestDays,
-  addTrainingPhase,
-  appendReTestPhases,
-  removeReTestPhase,
-  getToleranceBuildingRemindersForDate,
-  applyReintroductionVerdict,
-} from './schedule-builder';
+import { describe, expect, it } from 'vitest';
+
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import { addDays } from '$lib/utils/date';
 import { getPermanentEliminations } from '$lib/domain/models';
 import type {
   GeneratedSchedule,
+  Meal,
   QuestionnaireAnswers,
   SchedulePhase,
-  Meal,
 } from '$lib/domain/models';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import { addDays } from '$lib/utils/date';
+
+import {
+  addTrainingPhase,
+  appendReTestPhases,
+  applyReintroductionVerdict,
+  generateSchedule,
+  getToleranceBuildingRemindersForDate,
+  insertRestDays,
+  removeReTestPhase,
+} from './schedule-builder';
 
 const catalog = new BundledCatalogAdapter();
 

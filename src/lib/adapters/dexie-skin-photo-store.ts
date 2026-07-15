@@ -1,7 +1,7 @@
+import type { AtopicDb } from '$lib/db/atopic-db';
 import type { SkinPhoto } from '$lib/domain/models';
 import type { SkinPhotoStore } from '$lib/domain/ports/skin-photo-store';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
 
 export class DexieSkinPhotoStore implements SkinPhotoStore {
   constructor(private readonly db: AtopicDb) {}

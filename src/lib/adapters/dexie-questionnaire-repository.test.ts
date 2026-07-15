@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
-import { DexieQuestionnaireRepository } from './dexie-questionnaire-repository';
+import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AtopicDb } from '$lib/db/atopic-db';
 import type { QuestionnaireAnswers } from '$lib/domain/models';
+
+import { DexieQuestionnaireRepository } from './dexie-questionnaire-repository';
 
 const sampleAnswers: QuestionnaireAnswers = {
   babyBirthDate: '2025-01-01',

@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
-import { SunriseIcon, SunIcon, AppleIcon, MoonIcon } from './index';
+
+import { render } from '@testing-library/svelte';
+import { describe, expect, it } from 'vitest';
+
+import { AppleIcon, MoonIcon, SunIcon, SunriseIcon } from './index';
 
 describe('meal-type SVG icons', () => {
   const cases = [

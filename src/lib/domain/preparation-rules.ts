@@ -1,6 +1,7 @@
-import type { PreparationMethod } from './models';
 import type { FoodForm } from '$lib/data/allergen-catalog/allergen-catalog';
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+
+import type { PreparationMethod } from './models';
 
 /**
  * Resolves a food's physical form to the preparation chips that make sense

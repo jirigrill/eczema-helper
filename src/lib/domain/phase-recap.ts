@@ -1,4 +1,4 @@
-import type { SchedulePhase, SkinObservation, RegionLevel } from '$lib/domain/models';
+import type { RegionLevel, SchedulePhase, SkinObservation } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import { addDays, daysBetween } from '$lib/utils/date';
 

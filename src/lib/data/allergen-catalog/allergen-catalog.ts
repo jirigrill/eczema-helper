@@ -1,6 +1,5 @@
 // Three-collection catalog — families, allergens, foods (ADR-0017 slice 2 / issue #227).
 // Ids derive from the data; types are structurally enforced at compile time.
-
 import type { Ladder } from '$lib/domain/canonical-allergen';
 
 // ── Families ──────────────────────────────────────────────────

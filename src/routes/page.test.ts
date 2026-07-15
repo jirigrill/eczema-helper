@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
+
+import { fireEvent, render } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGoto = vi.fn();
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));

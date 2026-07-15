@@ -1,8 +1,8 @@
 import type {
-  GeneratedSchedule,
+  AllergenId,
   AllergenStatus,
   AllergenStatusValue,
-  AllergenId,
+  GeneratedSchedule,
   LadderAllergenId,
   SchedulePhase,
 } from '$lib/domain/models';
