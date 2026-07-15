@@ -1,3 +1,5 @@
+/// <reference types="vite-plugin-pwa/svelte" />
+
 declare global {
   namespace App {
     // interface Locals {}

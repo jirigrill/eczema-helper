@@ -47,11 +47,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Sync SvelteKit types
-        run: bunx svelte-kit sync
-
-      - name: TypeScript check
-        run: bunx tsc --noEmit
+      - name: Type check (incl. .svelte templates)
+        run: bun run check
 
   build:
     name: Build

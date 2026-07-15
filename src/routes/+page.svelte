@@ -16,7 +16,7 @@
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, allergenWordCs } from '$lib/strings/common';
-  import type { LadderAllergenId } from '$lib/domain/models';
+  import type { AllergenId, LadderAllergenId } from '$lib/domain/models';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { generateSchedule } from '$lib/domain/schedule-builder';
   import { protocolSession } from '$lib/stores/protocol-session';
@@ -85,8 +85,11 @@
     const schedule = generateSchedule({
       babyBirthDate,
       eczemaSeverity: severity,
-      motherAllergies,
-      babyConfirmedAllergies: babyAllergies,
+      // The onboarding UI collects allergen slugs as plain strings; every value
+      // originates from the catalog (CatalogAllergenId) or an `other:` custom id,
+      // so it is a valid AllergenId at this domain boundary.
+      motherAllergies: motherAllergies as AllergenId[],
+      babyConfirmedAllergies: babyAllergies as AllergenId[],
       programStartDate,
       completedAt: new Date().toISOString(),
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
@@ -155,8 +158,9 @@
     const answers: QuestionnaireAnswers = $state.snapshot({
       babyBirthDate,
       eczemaSeverity: severity,
-      motherAllergies,
-      babyConfirmedAllergies: babyAllergies,
+      // See the boundary note above: UI-collected slugs are valid AllergenIds.
+      motherAllergies: motherAllergies as AllergenId[],
+      babyConfirmedAllergies: babyAllergies as AllergenId[],
       programStartDate,
       completedAt: new Date().toISOString(),
       testedAllergens: DEFAULT_TESTED_ALLERGENS,

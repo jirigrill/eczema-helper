@@ -65,7 +65,8 @@
                 {#each conflictAllergens as allergenId}
                   <span
                     class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                    >⚠ {categoryStrings[allergenId]?.name ?? allergenId}</span
+                    >⚠ {categoryStrings[allergenId as keyof typeof categoryStrings]?.name ??
+                      allergenId}</span
                   >
                 {/each}
               </div>

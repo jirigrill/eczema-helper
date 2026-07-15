@@ -25,7 +25,9 @@
   import { getCategoryConfig } from '$lib/config/categories';
 
   const today = todayIso();
-  const view = createDayView(() => page.params.date, today);
+  // The `[date]` route param is always present; fall back to today only to
+  // satisfy the `() => string` contract when the type says `string | undefined`.
+  const view = createDayView(() => page.params.date ?? today, today);
   const catalog = new BundledCatalogAdapter();
 
   $effect(() => {

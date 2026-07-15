@@ -2,7 +2,12 @@
   // ═══════════════════════════════════════════════════════════
   // V2 Prototype — Unified Program Page
   // ═══════════════════════════════════════════════════════════
-  import type { AllergenStatusValue, SchedulePhase, SkinObservation } from '$lib/domain/models';
+  import type {
+    AllergenId,
+    AllergenStatusValue,
+    SchedulePhase,
+    SkinObservation,
+  } from '$lib/domain/models';
   import {
     getPhaseForDate,
     getEliminatedSlugsForDate,
@@ -36,7 +41,7 @@
   import { severityCountSuffix } from '$lib/strings/skin-regions';
 
   let showToast = $state(false);
-  let toastMessage = $state(commonStrings.program.toastComingSoon);
+  let toastMessage = $state<string>(commonStrings.program.toastComingSoon);
   let toastType = $state<'info' | 'success' | 'warning' | 'error'>('info');
   let toastUndo = $state<(() => void) | undefined>(undefined);
   let selectedRetestSlugs = $state<string[]>([]);
@@ -58,13 +63,7 @@
   const protocolEliminated = $derived(eliminatedToday.filter((s) => !permanentSlugs.includes(s)));
   const progress = $derived(ctx.status === 'ready' ? ctx.progress : null);
   const isBeforeSchedule = $derived(!!schedule && today < schedule.startDate);
-  const isProgramDone = $derived(
-    !!schedule &&
-      !isBeforeSchedule &&
-      today > schedule.estimatedEndDate &&
-      activeTrainingPhases.length === 0,
-  );
-  const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
+  // Declared before `isProgramDone`, which reads it.
   const activeTrainingPhases = $derived(
     schedule
       ? schedule.phases.filter(
@@ -75,6 +74,13 @@
         )
       : [],
   );
+  const isProgramDone = $derived(
+    !!schedule &&
+      !isBeforeSchedule &&
+      today > schedule.estimatedEndDate &&
+      activeTrainingPhases.length === 0,
+  );
+  const reintroInfo = $derived(ctx.status === 'ready' ? ctx.reintroInfo : null);
 
   type DisplayAllergen = { slug: string; icon: string; name: string; reason: string };
   const permanentEliminated = $derived.by((): DisplayAllergen[] => {
@@ -306,7 +312,12 @@
     )) {
       for (const conflict of detectConflicts(meal.items, eliminated, catalog)) {
         if (!conflicts.some((c) => c.name === conflict.name && c.date === meal.date)) {
-          const cfg = getCategoryConfig(conflict.allergenId);
+          // `detectConflicts` returns the offending MealItems; the icon comes
+          // from the eliminated allergen that the food actually triggers.
+          const trigger = catalog
+            .allergensForFood(conflict.foodId)
+            .find((a) => eliminated.includes(a as AllergenId));
+          const cfg = trigger ? getCategoryConfig(trigger) : undefined;
           conflicts.push({ name: conflict.name, icon: cfg?.icon ?? '🍽️', date: meal.date });
         }
       }
