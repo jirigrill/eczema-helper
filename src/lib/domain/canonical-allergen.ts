@@ -28,8 +28,8 @@ export const V1_FEEDING_STAGE: FeedingStage = "breastfed";
  * should record.
  *
  * `dose` is the Czech caption shown at that rung — sourced from the source
- * protocol tables under `docs/full elimination diet schedule - atopicky
- * ekzem Pekarkova/…` and `docs/jak testovat alergeny - matouskova/…`.
+ * protocol tables under `docs/allergen-reference/elimination-diet-schedule-pekarkova/…`
+ * and `docs/allergen-reference/allergen-testing-matouskova/…`.
  * Inlining display text on a domain record is a deliberate deviation from
  * ADR-0014 for the Czech-only single-tenant v1: single-file review beats
  * cross-file lookup for the person auditing the schedule.
