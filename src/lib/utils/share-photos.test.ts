@@ -44,19 +44,19 @@ describe('sharePhotosToRoll', () => {
     await sharePhotosToRoll(blobs);
 
     expect(shareSpy).toHaveBeenCalledOnce();
-    const { files } = shareSpy.mock.calls[0][0] as { files: File[] };
+    const { files } = shareSpy.mock.calls[0]![0] as { files: File[] };
     expect(files).toHaveLength(2);
-    expect(files[0].name).toBe('snimek-1.jpg');
-    expect(files[0].type).toBe('image/jpeg');
-    expect(files[1].name).toBe('snimek-2.jpg');
-    expect(files[1].type).toBe('image/png');
+    expect(files[0]!.name).toBe('snimek-1.jpg');
+    expect(files[0]!.type).toBe('image/jpeg');
+    expect(files[1]!.name).toBe('snimek-2.jpg');
+    expect(files[1]!.type).toBe('image/png');
   });
 
   it('falls back to image/jpeg when blob has no type', async () => {
     await sharePhotosToRoll([new Blob(['x'])]);
 
-    const { files } = shareSpy.mock.calls[0][0] as { files: File[] };
-    expect(files[0].type).toBe('image/jpeg');
+    const { files } = shareSpy.mock.calls[0]![0] as { files: File[] };
+    expect(files[0]!.type).toBe('image/jpeg');
   });
 
   it('does not throw when share throws AbortError (user cancel)', async () => {

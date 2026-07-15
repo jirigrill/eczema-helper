@@ -13,7 +13,7 @@ describe('allergensByFamily', () => {
   it('returns only the one allergen for single-allergen family', () => {
     const result = allergensByFamily('eggs');
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('eggs');
+    expect(result[0]!.id).toBe('eggs');
   });
 
   it('returns empty array for custom family (no allergens)', () => {

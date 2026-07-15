@@ -527,7 +527,7 @@ describe('getReintroductionDayInfo — ladder drives isEvaluationDay', () => {
 
     for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
       const date = addDays(startDate, dayIndex);
-      const expected = breastfed[dayIndex].isEvaluationCheckpoint;
+      const expected = breastfed[dayIndex]!.isEvaluationCheckpoint;
       it(`${allergen.id} day ${dayIndex + 1}/${totalDays} → isEvaluationDay=${expected}`, () => {
         const info = getReintroductionDayInfo(schedule, date, catalog);
         expect(info).not.toBeNull();
@@ -667,7 +667,7 @@ describe('detectConflicts', () => {
     // kravske-mleko → ['dairy']
     const result = detectConflicts([item('a', 'kravske-mleko')], ['dairy'], catalog);
     expect(result).toHaveLength(1);
-    expect(result[0].foodId).toBe('kravske-mleko');
+    expect(result[0]!.foodId).toBe('kravske-mleko');
   });
 
   it('sójové mléko conflicts under soy elimination (family divergence)', () => {
@@ -695,7 +695,7 @@ describe('detectConflicts', () => {
   it('hummus conflicts when either trigger is eliminated', () => {
     const result = detectConflicts([item('a', 'hummus')], ['legumes', 'sesame'], catalog);
     expect(result).toHaveLength(1);
-    expect(result[0].foodId).toBe('hummus');
+    expect(result[0]!.foodId).toBe('hummus');
   });
 
   it('neutral food never conflicts even when elimination list is non-empty', () => {
@@ -722,7 +722,7 @@ describe('detectConflicts', () => {
     const items: MealItem[] = [item('safe', 'ryze'), item('conflict', 'kravske-mleko')];
     const result = detectConflicts(items, ['dairy'], catalog);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('conflict');
+    expect(result[0]!.id).toBe('conflict');
   });
 });
 

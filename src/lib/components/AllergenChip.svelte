@@ -33,7 +33,8 @@
       let hash = 0;
       for (let i = 0; i < name.length; i++)
         hash = (hash + name.charCodeAt(i)) % CUSTOM_ICONS.length;
-      return { icon: CUSTOM_ICONS[hash], name };
+      // `hash` is reduced mod CUSTOM_ICONS.length, so it always indexes an entry.
+      return { icon: CUSTOM_ICONS[hash]!, name };
     }
     const cfg = getCategoryConfig(s);
     return { icon: cfg?.icon ?? '🍽️', name: cfg?.name ?? s };

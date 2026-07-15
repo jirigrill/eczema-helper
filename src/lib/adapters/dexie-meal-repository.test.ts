@@ -157,7 +157,7 @@ describe('DexieMealRepository', () => {
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].preparationMethod).toBeUndefined();
+    if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBeUndefined();
   });
 
   it('MealItem with catalog foodId persists correctly', async () => {
@@ -165,7 +165,7 @@ describe('DexieMealRepository', () => {
     await repo.save(makeMeal('2026-05-27', 'snack', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'snack');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].foodId).toBe('kravske-mleko');
+    if (result.ok) expect(result.data?.items[0]!.foodId).toBe('kravske-mleko');
   });
 
   it('MealItem with custom foodId persists correctly', async () => {
@@ -173,7 +173,7 @@ describe('DexieMealRepository', () => {
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].foodId).toBe('other:vlastni-jidlo');
+    if (result.ok) expect(result.data?.items[0]!.foodId).toBe('other:vlastni-jidlo');
   });
 
   it('multiple items in a meal all persist', async () => {
@@ -200,7 +200,7 @@ describe('DexieMealRepository', () => {
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].preparationMethod).toBe(method);
+    if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBe(method);
   });
 
   // ── MealItem upsert ──────────────────────────────────────────
@@ -219,7 +219,7 @@ describe('DexieMealRepository', () => {
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data?.items).toHaveLength(1);
-      expect(result.data?.items[0].id).toBe('item-b');
+      expect(result.data?.items[0]!.id).toBe('item-b');
     }
   });
 
@@ -237,7 +237,7 @@ describe('DexieMealRepository', () => {
     );
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].preparationMethod).toBe('baked');
+    if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBe('baked');
   });
 
   it('re-saving without preparationMethod removes it from the persisted item', async () => {
@@ -247,7 +247,7 @@ describe('DexieMealRepository', () => {
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withoutMethod] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0].preparationMethod).toBeUndefined();
+    if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBeUndefined();
   });
 
   it('re-saving with fewer items removes the dropped items', async () => {
@@ -276,8 +276,8 @@ describe('DexieMealRepository', () => {
     const dinnerResult = await repo.loadBySlot('2026-05-27', 'dinner');
     expect(lunchResult).toMatchObject({ ok: true });
     expect(dinnerResult).toMatchObject({ ok: true });
-    if (lunchResult.ok) expect(lunchResult.data?.items[0].name).toBe('Oběd');
-    if (dinnerResult.ok) expect(dinnerResult.data?.items[0].name).toBe('Večeře');
+    if (lunchResult.ok) expect(lunchResult.data?.items[0]!.name).toBe('Oběd');
+    if (dinnerResult.ok) expect(dinnerResult.data?.items[0]!.name).toBe('Večeře');
   });
 
   it('saving one slot does not affect another slot on the same date', async () => {
@@ -300,7 +300,7 @@ describe('DexieMealRepository', () => {
     await repo.remove('2026-05-27', 'dinner');
     const lunch = await repo.loadBySlot('2026-05-27', 'lunch');
     const dinner = await repo.loadBySlot('2026-05-27', 'dinner');
-    expect(lunch.ok && lunch.data?.items[0].id).toBe('keep');
+    expect(lunch.ok && lunch.data?.items[0]!.id).toBe('keep');
     expect(dinner).toEqual({ ok: true, data: null });
   });
 

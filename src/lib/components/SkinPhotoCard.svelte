@@ -74,5 +74,8 @@
 </DayCard>
 
 {#if lightboxPhotoId !== null}
-  <PhotoLightbox src={objectUrls[lightboxPhotoId]} onClose={() => (lightboxPhotoId = null)} />
+  {@const lightboxSrc = objectUrls[lightboxPhotoId]}
+  {#if lightboxSrc}
+    <PhotoLightbox src={lightboxSrc} onClose={() => (lightboxPhotoId = null)} />
+  {/if}
 {/if}

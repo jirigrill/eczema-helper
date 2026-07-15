@@ -80,7 +80,7 @@ test('tapping an unlogged meal slot navigates to /meal with the slot type pre-se
 
 test('tapping a logged meal row navigates to /meal editor for that meal', async ({ page }) => {
   const today = await seedSchedule(page);
-  await seedMeal(page, today, 'breakfast');
+  await seedMeal(page, today!, 'breakfast');
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('meal-row-breakfast')).toBeVisible();
 

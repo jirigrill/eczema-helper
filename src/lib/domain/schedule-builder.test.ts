@@ -614,8 +614,8 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const schedule = trainingSchedule('2026-05-20');
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-20', [], catalog);
     expect(reminders).toHaveLength(1);
-    expect(reminders[0].allergenId).toBe('dairy');
-    expect(reminders[0].daysSinceLastDose).toBe(999);
+    expect(reminders[0]!.allergenId).toBe('dairy');
+    expect(reminders[0]!.daysSinceLastDose).toBe(999);
   });
 
   it('returns no reminder when allergen was dosed today (0 days)', () => {
@@ -639,7 +639,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const meals = [meal('2026-05-20')];
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals, catalog);
     expect(reminders).toHaveLength(1);
-    expect(reminders[0].daysSinceLastDose).toBe(3);
+    expect(reminders[0]!.daysSinceLastDose).toBe(3);
   });
 
   it('returns reminder when allergen was dosed 5 days ago (above threshold)', () => {
@@ -647,7 +647,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const meals = [meal('2026-05-20')];
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-25', meals, catalog);
     expect(reminders).toHaveLength(1);
-    expect(reminders[0].daysSinceLastDose).toBe(5);
+    expect(reminders[0]!.daysSinceLastDose).toBe(5);
   });
 
   it('uses the most recent dose date when multiple meals exist', () => {
@@ -656,7 +656,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     // Most recent dose is 2026-05-22; checking 2026-05-25 → 3 days → reminder fires
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-25', meals, catalog);
     expect(reminders).toHaveLength(1);
-    expect(reminders[0].daysSinceLastDose).toBe(3);
+    expect(reminders[0]!.daysSinceLastDose).toBe(3);
   });
 
   it('ignores meals after the check date', () => {
@@ -665,7 +665,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     const meals = [meal('2026-05-27')];
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals, catalog);
     expect(reminders).toHaveLength(1);
-    expect(reminders[0].daysSinceLastDose).toBe(999);
+    expect(reminders[0]!.daysSinceLastDose).toBe(999);
   });
 
   it('only counts meals whose items contain the training allergenId', () => {
@@ -673,7 +673,7 @@ describe('getToleranceBuildingRemindersForDate', () => {
     // Meal with vejce (eggs food twin), not dairy — should not count as a dairy dose
     const meals = [meal('2026-05-20', 'vejce')];
     const reminders = getToleranceBuildingRemindersForDate(schedule, '2026-05-23', meals, catalog);
-    expect(reminders[0].daysSinceLastDose).toBe(999);
+    expect(reminders[0]!.daysSinceLastDose).toBe(999);
   });
 
   it('does not fire reminder before training phase start date', () => {

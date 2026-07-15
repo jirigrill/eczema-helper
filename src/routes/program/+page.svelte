@@ -97,7 +97,7 @@
             ? commonStrings.program.reasonMother
             : commonStrings.program.reasonBaby;
       if (s.startsWith('other:')) return [{ slug: s, icon: '🌿', name: s.slice(6), reason }];
-      const cfg = getCategoryConfig(s.split(':')[0]);
+      const cfg = getCategoryConfig(s.split(':')[0]!);
       if (!cfg) return [];
       return [{ slug: s, icon: cfg.icon, name: cfg.name, reason }];
     });
@@ -272,7 +272,7 @@
     return schedule.phases
       .filter((p: SchedulePhase) => p.type === 'tolerance-building' && p.startDate <= today)
       .map((tp: SchedulePhase) => {
-        const slug = tp.allergenIds[0];
+        const slug = tp.allergenIds[0]!;
         const cfg = getCategoryConfig(slug);
         let startIdx = nonTrainingPhases.findIndex((p: SchedulePhase) =>
           p.endDate ? p.endDate >= tp.startDate : p.startDate <= today,
@@ -280,7 +280,7 @@
         if (startIdx < 0) startIdx = Math.max(0, nonTrainingPhases.length - 1);
         let endIdx = startIdx;
         for (let i = nonTrainingPhases.length - 1; i >= startIdx; i--) {
-          if (nonTrainingPhases[i].startDate <= today) {
+          if (nonTrainingPhases[i]!.startDate <= today) {
             endIdx = i;
             break;
           }
@@ -468,7 +468,7 @@
               </div>
             {/if}
           {:else if currentPhase.type === 'reintroduction'}
-            {@const testCat = getCategoryConfig(currentPhase.allergenIds[0])}
+            {@const testCat = getCategoryConfig(currentPhase.allergenIds[0]!)}
 
             <div>
               <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
@@ -488,7 +488,7 @@
               <div>
                 <p class="eyebrow text-success mb-1">{commonStrings.program.sectionTesting}</p>
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <AllergenChip slug={currentPhase.allergenIds[0]} color="success" />
+                  <AllergenChip slug={currentPhase.allergenIds[0]!} color="success" />
                   {#if reintroInfo}
                     <span class="body-muted">
                       den {reintroInfo.dayInPhase} z {reintroInfo.totalDays}
@@ -525,7 +525,7 @@
               <p class="body-muted">{phaseConfig[currentPhase.type].description}</p>
             </div>
           {:else if currentPhase.type === 'tolerance-building'}
-            {@const trainingCat = getCategoryConfig(currentPhase.allergenIds[0])}
+            {@const trainingCat = getCategoryConfig(currentPhase.allergenIds[0]!)}
 
             <div>
               <p class="eyebrow mb-1">{commonStrings.program.sectionTodo}</p>
@@ -704,7 +704,7 @@
                       {:else}
                         {@render skinOutcomes(phaseAssessments)}
                         {#if phaseAssessments.some((o: SkinObservation) => overallSeverity(o) >= 2) && phase.type === 'reintroduction'}
-                          {@const phaseCat = getCategoryConfig(phase.allergenIds[0])}
+                          {@const phaseCat = getCategoryConfig(phase.allergenIds[0]!)}
                           <p class="text-text-muted mt-1">
                             {commonStrings.program.possibleCausePrefix}
                             {phaseCat?.icon}
@@ -803,7 +803,7 @@
                   <button
                     type="button"
                     class="text-danger/70 hover:text-danger hover:bg-danger/10 shrink-0 rounded-lg px-2 py-1 text-xs font-medium transition-colors"
-                    onclick={() => cancelRetestPhase(phase.allergenIds[0])}
+                    onclick={() => cancelRetestPhase(phase.allergenIds[0]!)}
                   >
                     {actionStrings.cancel}
                   </button>
