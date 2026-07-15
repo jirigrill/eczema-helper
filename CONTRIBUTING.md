@@ -33,7 +33,7 @@ Before/after snippet, API example, or screenshot.
 Required before merge:
 - **Format** — `prettier --check "src/**/*.{ts,svelte}"` (run `just fmt` to fix)
 - **Lint** — `eslint .` (run `just lint` / `just lint-fix`)
-- **Type Check** — `bunx tsc --noEmit`
+- **Type Check** — `bun run check` (`svelte-check` — also type-checks `.svelte` templates, which `tsc --noEmit` does not)
 - **Build** — `bun run build`
 - **Unit Tests** / **E2E Tests** — `bun run test` / `playwright test`
 

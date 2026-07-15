@@ -12,7 +12,9 @@
   import FoodEditor from '$lib/components/FoodEditor.svelte';
   import { formForFood } from '$lib/domain/preparation-rules';
 
-  type CatalogFood = (typeof FOODS)[number];
+  // FOODS is `as const satisfies readonly FoodRecord[]`, so the inferred union
+  // drops `sourceGroup` on the records that omit it; re-add it as optional.
+  type CatalogFood = (typeof FOODS)[number] & { sourceGroup?: string };
 
   let {
     familyId,
@@ -48,7 +50,7 @@
     customInputValue = '';
   }
 
-  const catalogFoods = $derived(FOODS.filter((f) => f.familyId === familyId));
+  const catalogFoods: CatalogFood[] = $derived(FOODS.filter((f) => f.familyId === familyId));
   const sources = $derived(
     (familySources as Partial<Record<FamilyId, readonly { key: string; label: string }[]>>)[
       familyId
