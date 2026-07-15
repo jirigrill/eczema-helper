@@ -1,6 +1,6 @@
 # 0023 — Dose-escalation ladder as first-class domain data
 
-**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section.
+**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section. **Clinical reshape (v2)** accepted 2026-07-14 (pediatric-allergy grilling session); implementation scoped in PRD #454 — see [§6](#6-decision-engine-v2--clinical-reshape-amendment-2026-07-14) below. §6 supersedes the reaction/cadence semantics in §5 where they conflict.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
 **Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table).
@@ -251,3 +251,99 @@ Reasoning:
   and inline `instructionCs` are deleted. Per-rung Czech text lives on
   `LadderStep.dose` (inlined on the catalog record — see amendment above), not
   in `lib/strings/`.
+
+## 6. Decision-engine v2 — clinical reshape (amendment 2026-07-14)
+
+A pediatric-allergy stress-test of `decideLadderMove` on **clean** data (correct,
+on-time logging; trustworthy clock; no confounders) found v1 models a rung as a
+**turnstile** — one clean dose advances, one reaction is a temporary detour — whereas
+atopic-eczema reintroduction treats a rung as a **platform**: a dose you *dwell on* so
+a delayed reaction can surface, and sometimes the dose you *stay on*. The reshape below
+is accepted; it is deterministic and LLM-independent like the rest of the engine.
+Implementation is scoped in **PRD #454**. Where it conflicts with §5 it **supersedes**
+it (flagged inline).
+
+### 6.1 Reaction latency is first-class (was: zero-latency binding)
+
+Atopic/non-IgE flares run 24–72 h+, longer via breastmilk. v1 binds a reaction to the
+highest rung dosed on/before the verdict date — a **zero-latency** model that, under a
+1-day reintroduction cadence, blames a rung *above* the true culprit and re-exposes the
+child to the offending dose. v2 adds a **`reactionLatencyDays`** policy constant
+(v1 = 3, tunable) and the invariant **cadence ≥ latency**, so every attribution window
+contains exactly one rung.
+
+### 6.2 Two-phase walk: probe then confirm
+
+- **Probe** (first walk): cadence 1 — climb fast to *detect whether a ceiling exists*;
+  attribution is deliberately coarse. **Accepted risk (product-owner):** a delayed/
+  cumulative reactor may be dosed past true tolerance before the flare surfaces — the
+  skin gate catches fast reactors, not delayed ones.
+- **Confirm** (after the first reaction, or at the top of a clean probe): cadence 2, a
+  **dwell** that *establishes* the accepted level.
+
+The engine gains an internal **mode** (probe vs confirm) derived from replay state; it
+remains the F3 ≡ F4 walker — mode and cadence are the only phase-dependent inputs.
+
+### 6.3 A reaction walks the ladder DOWN; no re-climb (supersedes §5 "temporary setback")
+
+v1 treats a reaction as a temporary setback and re-climbs *through* the reacted rung
+toward the top, bounded by `MAX_RUNG_REACTIONS`. v2: **a reaction is a verdict on that
+rung** — step down and never re-climb it. Consequences:
+
+- `MAX_RUNG_REACTIONS` becomes unreachable (collapses to 1) and is **retired**; the §5
+  per-rung-cap terminal reduces to **floor exhaustion** only.
+- The stepped-down rung is **re-confirmed** — its single climb-past dose never counted
+  as confirmation.
+
+### 6.4 Confirmation (dwell) — Global rule
+
+Hold the accepted rung's dose **constant** and test it **N = (steps in the allergen's
+default ladder)** times at confirm cadence (2 d); terminal evaluation at **last dose +
+latency**. Eggs (3 steps): doses d1/3/5, eval d8. Dairy (6): d1/3/5/7/9/11, eval d14. A
+clean probe confirms the **top rung only** (dose–response is monotone: tolerating the
+full serving implies tolerating the smaller ones). `N = #steps` is a pragmatic proxy for
+allergen caution, not a tolerance-duration law; all numbers tunable.
+
+### 6.5 Skin worsening IS the reaction trigger (closes the two-signal gap)
+
+v1 wires skin state (a *hold*) and the reaction verdict (step-down/terminal) to two logs
+that never reconcile. v2: a **significant skin flare drives the reaction** and the
+(phase-terminal) `ReintroductionEvaluation`; the explicit `AllergenOutcome` verdict
+formalizes it. Detection is **region-aware**, replacing the `overallSeverity` (max-level)
+signal that discards extent — measured vs the pre-reintroduction baseline, **stop if
+`maxRegionΔ ≥ 2` OR `> 50 % of tracked regions worsened by ≥ 1`**. Extent is therefore
+**in v1** (reverses the prior deferral); body-surface-area weighting stays v1.1;
+"majority" = region count for now. Cutoffs (2 / 1 / 50 %) tunable. `overallSeverity`
+demotes to a UI convenience. The `isEvaluationCheckpoint` hold
+(`checkpointVerdictGate`, `awaiting-verdict`) is **retired from the decision path** —
+reactions are continuous over skin, not captured at a checkpoint rung; the flag survives
+only as a UI "watch dose — log skin today" nudge.
+
+### 6.6 `settled` = maintenance; terminals stay derived
+
+A new terminal **`settled(rung)`** — "currently maintaining at this dose; may be
+re-challenged upward later" — distinct from `passed` (behaviourally unified with it in
+v1) and from `ceiling-reached` (defer-to-human). It is **not** an absorbing dead-end. Per
+ADR-0012 all ladder state stays **derived, never persisted**; the engine never writes a
+`permanent-*` status, so a future trend-aware engine can reinterpret the same history.
+
+### 6.7 Scope boundaries
+
+- **v1.1 deferrals:** adaptation/tachyphylaxis (both OIT-style push-through *and* the
+  re-challenge-upward loop), body-surface-area weighting, half-step retries (authored as
+  finer rungs — the engine already walks whatever is authored).
+- **OIT push-through stays out even in v1.1:** dosing *through* an active flare is
+  supervised immunotherapy; the app cannot distinguish a benign non-IgE skin flare from a
+  child at systemic risk from skin data alone. Deferring to human care on a terminal is
+  the safe posture (ADR-0024).
+- **OPEN — severe-reaction handling:** does a `severe-reaction` outcome walk down +
+  re-confirm like mild/clear, or route straight to the terminal (`reacted` /
+  `ceiling-reached`, **no auto-retest**, defer to human per ADR-0024 and
+  `program-engine-shape.md` §6 #1-D)? Recommendation: the latter — carve severe out.
+  **Unresolved**; tracked in PRD #454.
+
+### 6.8 Reconciliation
+
+No stale ladder claims in `docs/research/program-engine-shape.md` (it sits above these
+mechanics). Its §6 #4 — the deep validator "reuses the engine's own legality rules" —
+now inherits the v2 `LadderDecision` vocabulary as the definition of a legal move.
