@@ -15,7 +15,7 @@ Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettie
 
 ## Naming
 - Files: `kebab-case.ts`/`.svelte` · Types: `PascalCase` · Functions/vars: `camelCase` · True constants: `UPPER_SNAKE_CASE`
-- Tests: `*.test.ts` colocated
+- Tests: `*.test.ts` colocated; `*.test.svelte.ts` when a test needs to exercise raw `$state`/`$derived`/`$effect` reactivity (see `testing-strategy.md`)
 
 ## Imports
 - Order: svelte/sveltekit → third-party → `$lib/*` → relative, blank line between groups — enforced by `@trivago/prettier-plugin-sort-imports` (`.prettierrc`) in `.ts` files. Known upstream limitation: the plugin does not sort imports inside `.svelte` `<script>` blocks under Prettier 3 ([trivago/prettier-plugin-sort-imports#282](https://github.com/trivago/prettier-plugin-sort-imports/discussions/282)) — those stay eyeballed in review.
