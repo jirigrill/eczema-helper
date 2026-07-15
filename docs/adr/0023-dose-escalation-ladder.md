@@ -1,5 +1,15 @@
 # 0023 — Dose-escalation ladder as first-class domain data
 
+## Overview
+
+Reintroducing a food isn't a yes/no switch — it's a climb. You give a pinch, then a teaspoon, then a spoon, then a normal portion, moving up only while the skin stays calm. This decision gives that climb a proper place in the app: each testable allergen carries a "ladder" of dose steps (rungs), tailored to the baby's feeding stage (exclusively breastfed, breastfed plus solids, or fully on solids), taken from the source protocol tables.
+
+The app never stores "which rung are we on" as an editable number — it works that out from the history of what was actually eaten, so the record and the reality can't drift apart, and skipping a rung simply can't be expressed. A companion piece of logic reads the ladder together with the recent meals and skin and returns a single recommendation — advance, hold, rest, step back, and so on — but it only *recommends*; it never writes anything or moves the plan by itself.
+
+A later clinical refinement of that recommendation logic (probe a small dose then confirm, step back down after a reaction, and react to which body regions flare) is designed but not yet built, and is tracked in its own plan.
+
+---
+
 **Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section. The **clinical reshape** (probe/confirm walk-down, skin-driven region-aware reactions) is accepted design but not yet implemented; it is scoped in [PRD #454](https://github.com/jirigrill/eczema-helper/issues/454) — see [§6](#6-decision-engine--clinical-reshape-amendment-2026-07-14) below, which supersedes the reaction/cadence semantics in §5 where they conflict once built.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.

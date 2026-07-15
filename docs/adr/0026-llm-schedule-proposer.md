@@ -1,5 +1,15 @@
 # 0026 — LLM as schedule proposer (code core + LLM proposer)
 
+## Overview
+
+The plan engine today is plain, predictable code: given the history, it computes the same schedule every time. Some future features — reading free-text notes, weighing fuzzy combinations of meals, skin, and outside events — are exactly the things rules struggle with and an AI is genuinely good at. This decision settles where an AI is allowed to sit: *above* the engine, as an advisor that produces *proposals*.
+
+The line that must never be crossed: the AI never changes your data. It suggests; the plain, deterministic engine is the only thing that writes, and every actual change stays local, offline, and reproducible. The AI can be wrong, or simply unavailable, and the app still works — reading your data, logging, and every routine change happen with no network at all, and only generating a fresh suggestion needs to go online.
+
+This keeps the trustworthy, offline core intact while letting the app get smarter at the edges. It's designed but not yet built.
+
+---
+
 **Status:** Accepted design — not yet implemented; build tracked in [PRD #423](https://github.com/jirigrill/eczema-helper/issues/423).
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3, §6 #3/#4/#5/#6, §5 sequence #4.

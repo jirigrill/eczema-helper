@@ -1,6 +1,8 @@
 # Technology Stack
 
-Technologies currently in use. The app is single-device, client-only, with no backend (see [ADR-0001](../adr/0001-single-device-v1.md)).
+## Overview
+
+Technologies currently in use. The app is single-device, client-only, with no backend (see [ADR-0001](../adr/0001-single-device-v1.md)) — a SvelteKit + TypeScript PWA that runs entirely in the browser on the mother's phone, storing everything locally in IndexedDB, built with Bun and served as a static bundle. The table below is the full list.
 
 ## Stack overview
 

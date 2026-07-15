@@ -13,10 +13,12 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 **Before changing the domain or making architectural decisions**, read `CONTEXT.md` and `docs/adr/`. Don't introduce vocabulary or decisions that conflict with what's recorded there — revise the ADR instead.
 
 - `UBIQUITOUS_LANGUAGE.md` — shared vocabulary, first place to look up a term
-- `CONTEXT.md` — deep definitions and invariants, links to relevant ADRs
+- `CONTEXT.md` — deep definitions and invariants
 - `docs/adr/` — numbered architecture decision records; `docs/decisions-log.md` — settled implemented decisions (one-liners)
 - `docs/architecture/tech-stack.md` — framework/runtime rationale
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture detail
+
+**Recording a decision:** write a numbered ADR in `docs/adr/` only when the decision constrains not-yet-built work, or when reversing it would be catastrophic and non-obvious. Otherwise add a one-line entry to `docs/decisions-log.md`. `docs/` describes what exists today — anything forward-looking lives in the issue tracker, not here. Every ADR and reference doc leads with a plain-language `## Overview`; ADRs then split at a `---` into the precise detail below.
 
 ## Tech Stack
 

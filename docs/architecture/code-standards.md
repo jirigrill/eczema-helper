@@ -1,5 +1,9 @@
 # Code Standards
 
+## Overview
+
+The house rules for writing code here — TypeScript style, naming, imports, error handling, Svelte 5 usage, testing, and security. When in doubt, match the surrounding code. The sections below are the specifics.
+
 ## TypeScript
 - Strict mode, no `any` (use `unknown` + narrow)
 - `type` over `interface`; discriminated unions over optional fields; exhaustive switch with `never`

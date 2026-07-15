@@ -1,5 +1,15 @@
 # 0024 — Medical-scope boundary & red-flag escalation
 
+## Overview
+
+This app helps with one thing: skin eczema and the elimination diet that manages it. But a parent will sometimes type something that isn't that — "swollen lips and wheezing after egg" is a possible medical emergency, not a diet-tuning question. The rule here is to notice such input just enough to *stop* the normal flow and point the parent toward real medical care — and never to diagnose, name a condition, or treat.
+
+We deliberately reject both extremes: a system that actively tries to detect medical conditions (which would turn the app into a regulated medical device and carry serious liability), and a naive logger that would answer "swollen lips" with a schedule tweak (which trivializes real danger). The app's competence is defined positively — eczema and its diet — and anything clearly outside that, or clearly alarming, triggers a stop-and-redirect.
+
+This boundary has to be settled *before* any feature that lets an AI read free-text symptoms is built — safety before capability — which is why it stands as its own decision even though the feature itself isn't built yet.
+
+---
+
 **Status:** Accepted design — not yet implemented; build tracked in [PRD #422](https://github.com/jirigrill/eczema-helper/issues/422). Regulatory classification pending external counsel — hard gate before any non-dogfooder user.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3, §6 #1, §5 sequence #2.

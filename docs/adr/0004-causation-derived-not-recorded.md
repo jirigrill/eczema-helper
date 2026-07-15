@@ -1,5 +1,13 @@
 # 0004 — Causation is derived, not recorded
 
+## Overview
+
+When the mother notices the baby's skin flaring, it's tempting to let her tag a day with "I think it was the dairy." We deliberately don't. She records only what actually happened — what she ate, how the skin looked, and the verdict at the end of a reintroduction test. The app is what looks for the culprit: it compares those honest records and surfaces patterns like "after dairy days, skin was worse in 3 of 4 cases," including the counter-examples.
+
+Why keep the parent out of the guessing? A tired parent's in-the-moment hunch is often wrong, and once it's written down it quietly biases everything recorded after it. Keeping the ground truth free of guesses means the app's later reasoning has clean data to work from. Practically: there is no "suspected cause" field anywhere in the app, and no one should add one.
+
+---
+
 **Status:** Accepted
 **Date:** 2026-05-11
 **Amended:** 2026-06-22 — `SkinObservation` shape replaced with per-region severities (see ADR-0021 (now in CONTEXT.md)). The "user records only ground truth, app derives patterns" decision is unchanged; only the *shape* of the ground truth changed.

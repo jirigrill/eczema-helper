@@ -1,5 +1,15 @@
 # 0001 — Single-device, single-actor architecture
 
+## Overview
+
+The whole app runs on one phone — the mother's — and nowhere else. There are no accounts, no login, no syncing between devices, and no server storing anyone's data; everything lives in the browser's local storage on that one phone. This is a deliberate choice, not a limitation we'll casually lift.
+
+The reason is the protocol itself: it's a breastfeeding elimination diet, where the mother eats, allergens pass through breastmilk, and the baby reacts — so the person doing both the eating and the logging is the mother. Letting a second parent log from their own phone would demand a server, accounts, login, and machinery to reconcile simultaneous edits, and it would make us the custodian of a family's sensitive medical data under privacy law. That cost dwarfs the modest convenience gained.
+
+The one carefully-bounded exception: when the app later asks an AI to *suggest* a schedule change, it may reach a thin online relay that holds no user data and stores nothing. So "no server" more precisely means "no server that holds your data" — everything of yours still lives only on the phone.
+
+---
+
 **Status:** Accepted
 **Date:** 2026-05-11
 
