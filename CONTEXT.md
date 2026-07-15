@@ -1,5 +1,7 @@
 # Context — Atopic Helper
 
+## Overview
+
 Domain vocabulary and invariants for the Atopic Helper app. Read before
 extending the domain or naming new concepts. Update inline as decisions
 crystallise; do not let it drift from the code.

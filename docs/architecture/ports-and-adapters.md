@@ -1,5 +1,9 @@
 # Ports & Adapters Architecture
 
+## Overview
+
+The app keeps its thinking (pure logic — the schedule and domain rules) strictly separate from its plumbing (anything that touches storage, the DOM, or the framework). Logic never imports the database directly; it talks to small interfaces ("ports"), and the real storage code ("adapters") plugs in behind them. That's the hexagonal / ports-and-adapters split — applied here even with no backend, so the domain stays trivially testable and storage could be swapped without touching the rules. The rest of this doc shows the layers, the current ports, and where reactive reads live.
+
 The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though it has no backend. The split is between **pure domain logic** and **all I/O**, including local I/O against IndexedDB.
 
 ## Why hexagonal here

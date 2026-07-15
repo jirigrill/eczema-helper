@@ -1,5 +1,13 @@
 # 0025 — Event domain model (external confounders)
 
+## Overview
+
+A baby's skin doesn't only respond to food. Illness, teething, a vaccination, pollen, a change in weather — any of these can flare eczema, and an app that ignores them will happily blame the wrong food. This decision gives those outside factors a proper home: the mother can log them as "events," and their job is to serve as *alternative explanations* when the app weighs whether a food caused a reaction — "the skin got worse on egg day three, but there was also a flu that week."
+
+The key point is what an event is *not*: it's context for judging a reaction, not a trigger that pauses or reshapes the plan. Events sit upstream of the verdict — they inform how a reaction is attributed, but the mother still makes the call. This is design for a feature that isn't built yet; it's written down now so the later reasoning rests on an honest model of what really moves the skin.
+
+---
+
 **Status:** Accepted design — not yet implemented; build tracked in [PRD #422](https://github.com/jirigrill/eczema-helper/issues/422).
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3 Events, §6 #2, §5 sequence #3.

@@ -2,7 +2,7 @@
 
 Personal PWA for tracking a breastfed newborn's atopic eczema through an elimination diet. Single-child, the mother's phone, Czech UI.
 
-## What it is
+## Overview
 
 A local-first SvelteKit PWA — no backend, no accounts. It runs the elimination protocol: onboarding, a daily "today" view, meal logging with allergen-conflict detection, a program timeline, per-region skin observations with photos, and end-of-reintroduction verdicts. All data lives in IndexedDB on the one device.
 

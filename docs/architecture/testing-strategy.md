@@ -1,5 +1,9 @@
 # Testing Strategy
 
+## Overview
+
+How the project tests itself, and where the line between the two kinds of test falls. Most logic is covered by fast unit tests; a thin layer of end-to-end tests covers the few things that need a real browser (routing, live-database reactivity). Visual/pixel-snapshot testing is deliberately not used. The sections below give the rules and the reasoning.
+
 ## Two-tier model
 
 This project uses two complementary test tiers. The boundary between them is determined by whether the assertion involves real SvelteKit routing or real Dexie `liveQuery` reactivity.

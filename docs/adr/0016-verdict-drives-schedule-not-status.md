@@ -1,5 +1,13 @@
 # 0016 — Reintroduction verdict drives the schedule, not the status
 
+## Overview
+
+At the end of testing a single allergen — say, egg — the mother records one verdict: did the baby tolerate it, or react? That verdict is the one thing that decides what happens next in the plan: a reaction inserts a recovery period and keeps the allergen out; tolerance lets the plan move on. The app never quietly decides this for her — the reaction is always the parent's recorded judgment, not a conclusion the app draws on its own from the daily logs.
+
+The verdict is treated as a permanent historical fact: once saved it isn't edited, and nothing downstream is allowed to silently re-derive or overrule it. An allergen's current "status" (eliminated, testing, passed, reacted) isn't stored — it's *computed* from the sequence of phases the verdicts produced. So status follows from the plan, and the plan follows from the verdicts. Even when the app later gains the ability to *suggest* a verdict from the logs, that suggestion stays a proposal the mother confirms; turning it into an automatic decision would require deliberately changing this rule.
+
+---
+
 **Status:** Accepted (extended by [ADR-0026](0026-llm-schedule-proposer.md) — proposals inherit the audit-fact rule)
 **Date:** 2026-06-08
 
