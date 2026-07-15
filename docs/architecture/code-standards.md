@@ -4,8 +4,11 @@
 
 The house rules for writing code here — TypeScript style, naming, imports, error handling, Svelte 5 usage, testing, and security. When in doubt, match the surrounding code. The sections below are the specifics.
 
+Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettier owns formatting** (`.prettierrc`), **ESLint owns code quality** (`eslint.config.js`). Run `just fmt` and `just lint`. Where a rule below is machine-checkable, the config is the source of truth and this doc explains the intent.
+
 ## TypeScript
-- Strict mode, no `any` (use `unknown` + narrow)
+- Strict mode, no `any` (use `unknown` + narrow) — `@typescript-eslint/no-explicit-any` enforces the `any` ban at lint time
+- `tsconfig.json` enables `strict`, `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters`
 - `type` over `interface`; discriminated unions over optional fields; exhaustive switch with `never`
 - No enums — `as const` objects or string literal unions
 - Explicit return types on exported functions

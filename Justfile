@@ -134,11 +134,11 @@ fmt:
 
 # Lint code
 lint:
-    bunx eslint src --ext .ts,.svelte
+    bunx eslint .
 
 # Fix linting
 lint-fix:
-    bunx eslint src --ext .ts,.svelte --fix
+    bunx eslint . --fix
 
 # Update dependencies
 update:
