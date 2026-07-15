@@ -35,12 +35,12 @@
     <button
       type="button"
       aria-label="Zpět"
-      class="text-text-muted text-sm px-1 py-1"
-      onclick={onBack}
-    >←</button>
-    <div class="flex items-center gap-2 flex-1 min-w-0">
+      class="text-text-muted px-1 py-1 text-sm"
+      onclick={onBack}>←</button
+    >
+    <div class="flex min-w-0 flex-1 items-center gap-2">
       <span class="text-xl">{FAMILIES.find((f) => f.id === familyId)?.icon ?? ''}</span>
-      <span class="text-sm font-semibold text-text">{familyStrings[familyId].name}</span>
+      <span class="text-text text-sm font-semibold">{familyStrings[familyId].name}</span>
     </div>
   </div>
 
@@ -54,12 +54,12 @@
           type="button"
           data-allergen-id={allergen.id}
           data-selected={isSelected}
-          class="py-2 px-3 rounded-xl text-sm transition-all border flex items-center gap-1.5
+          class="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition-all
             {isSelected && variant === 'primary'
-              ? 'bg-primary/10 border-primary text-primary font-semibold'
-              : isSelected && variant === 'danger'
-                ? 'bg-danger/10 border-danger text-danger font-semibold'
-                : 'bg-white border-surface-dark text-text'}"
+            ? 'bg-primary/10 border-primary text-primary font-semibold'
+            : isSelected && variant === 'danger'
+              ? 'bg-danger/10 border-danger text-danger font-semibold'
+              : 'border-surface-dark text-text bg-white'}"
           onclick={() => toggle(allergen.id)}
         >
           <span class="text-base leading-none">{cfg?.icon ?? allergen.icon}</span>

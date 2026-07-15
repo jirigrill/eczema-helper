@@ -4,7 +4,13 @@ import PhaseBadge from './PhaseBadge.svelte';
 import type { PhaseType } from '$lib/domain/models';
 
 describe('PhaseBadge', () => {
-  const phases: PhaseType[] = ['reset', 'elimination', 'reintroduction', 'rest', 'tolerance-building'];
+  const phases: PhaseType[] = [
+    'reset',
+    'elimination',
+    'reintroduction',
+    'rest',
+    'tolerance-building',
+  ];
 
   it.each(phases)('renders without throwing for type "%s"', (type) => {
     expect(() => render(PhaseBadge, { props: { type } })).not.toThrow();
@@ -16,10 +22,10 @@ describe('PhaseBadge', () => {
   });
 
   const czechLabels: [PhaseType, string][] = [
-    ['reset',          'Reset'],
-    ['elimination',    'Eliminace'],
+    ['reset', 'Reset'],
+    ['elimination', 'Eliminace'],
     ['reintroduction', 'Reintrodukce'],
-    ['rest',           'Odpočinek'],
+    ['rest', 'Odpočinek'],
     ['tolerance-building', 'Budování tolerance'],
   ];
 

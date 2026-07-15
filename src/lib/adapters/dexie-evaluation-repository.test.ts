@@ -4,7 +4,10 @@ import { DexieEvaluationRepository } from './dexie-evaluation-repository';
 import { AtopicDb } from '$lib/db/atopic-db';
 import type { ReintroductionEvaluation, SkinEvaluationOutcome } from '$lib/domain/models';
 
-function makeEval(phaseId: string, overrides?: Partial<ReintroductionEvaluation>): ReintroductionEvaluation {
+function makeEval(
+  phaseId: string,
+  overrides?: Partial<ReintroductionEvaluation>,
+): ReintroductionEvaluation {
   return {
     phaseId,
     phaseType: 'allergen-test',
@@ -57,7 +60,7 @@ describe('DexieEvaluationRepository', () => {
     const result = await repo.listAll();
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
-      expect(result.data.map(e => e.phaseId).sort()).toEqual(['reintro-dairy', 'reintro-eggs']);
+      expect(result.data.map((e) => e.phaseId).sort()).toEqual(['reintro-dairy', 'reintro-eggs']);
     }
   });
 

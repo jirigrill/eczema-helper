@@ -168,7 +168,9 @@ describe('SkinPhotoCard — lightbox', () => {
     });
     await tick();
 
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement,
+    );
     await tick();
 
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeInTheDocument();
@@ -180,11 +182,15 @@ describe('SkinPhotoCard — lightbox', () => {
     });
     await tick();
 
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement,
+    );
     await tick();
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeInTheDocument();
 
-    await fireEvent.click(container.querySelector('[data-testid="skin-lightbox-close"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-lightbox-close"]') as HTMLElement,
+    );
     await tick();
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
   });
@@ -195,10 +201,14 @@ describe('SkinPhotoCard — lightbox', () => {
     });
     await tick();
 
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement,
+    );
     await tick();
 
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-lightbox"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-lightbox"]') as HTMLElement,
+    );
     await tick();
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
   });

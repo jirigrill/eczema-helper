@@ -2,7 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { phaseConfig } from '$lib/config/phases';
 import type { PhaseType } from '$lib/domain/models';
 
-const ALL_TYPES: PhaseType[] = ['reset', 'elimination', 'reintroduction', 'rest', 'tolerance-building'];
+const ALL_TYPES: PhaseType[] = [
+  'reset',
+  'elimination',
+  'reintroduction',
+  'rest',
+  'tolerance-building',
+];
 
 describe('config/phases', () => {
   it.each(ALL_TYPES)('"%s" has a non-empty label', (type) => {

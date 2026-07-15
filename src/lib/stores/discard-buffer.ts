@@ -1,11 +1,6 @@
 import { writable } from 'svelte/store';
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import type {
-  MealType,
-  SkinObservation,
-  SkinPhoto,
-  SkinPhotoInput,
-} from '$lib/domain/models';
+import type { MealType, SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
 
 /**
  * Discriminated union of everything that can land in the in-memory discard

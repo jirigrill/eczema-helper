@@ -43,7 +43,11 @@ describe('DexieHarvestCandidateRepository', () => {
 
   it('upsert overwrites an existing candidate with the same normalizedKey', async () => {
     const first = makeCandidate({ count: 1, lastSeen: '2026-06-01T10:00:00.000Z' });
-    const second = makeCandidate({ count: 2, lastSeen: '2026-06-02T09:00:00.000Z', rawForms: ['Křen', 'křen'] });
+    const second = makeCandidate({
+      count: 2,
+      lastSeen: '2026-06-02T09:00:00.000Z',
+      rawForms: ['Křen', 'křen'],
+    });
     await repo.upsert(first);
     await repo.upsert(second);
     expect(await repo.readByKey('křen')).toEqual({ ok: true, data: second });
@@ -75,7 +79,11 @@ describe('DexieHarvestCandidateRepository', () => {
 
   it('listByStatus returns only candidates with matching status', async () => {
     const pending = makeCandidate({ normalizedKey: 'křen', status: 'pending' });
-    const ingested = makeCandidate({ normalizedKey: 'chren', rawForms: ['chren'], status: 'ingested' });
+    const ingested = makeCandidate({
+      normalizedKey: 'chren',
+      rawForms: ['chren'],
+      status: 'ingested',
+    });
     await repo.upsert(pending);
     await repo.upsert(ingested);
     const result = await repo.listByStatus('pending');

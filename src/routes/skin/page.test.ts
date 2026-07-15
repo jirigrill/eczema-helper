@@ -37,16 +37,23 @@ vi.mock('$app/navigation', () => ({
 
 // Discard-buffer mock — the /skin page reads it on mount and writes to it
 // on dirty back-out. Tests observe writeBuffer / clearBuffer calls.
-const mockDiscardBuffer = writable<import('$lib/stores/discard-buffer').DiscardDescriptor | null>(null);
-const mockWriteBuffer = vi.fn((snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) => {
-  mockDiscardBuffer.set(snapshot);
-});
+const mockDiscardBuffer = writable<import('$lib/stores/discard-buffer').DiscardDescriptor | null>(
+  null,
+);
+const mockWriteBuffer = vi.fn(
+  (snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) => {
+    mockDiscardBuffer.set(snapshot);
+  },
+);
 const mockClearBuffer = vi.fn(() => {
   mockDiscardBuffer.set(null);
 });
 vi.mock('$lib/stores/discard-buffer', () => ({
-  get discardBuffer() { return mockDiscardBuffer; },
-  writeBuffer: (snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) => mockWriteBuffer(snapshot),
+  get discardBuffer() {
+    return mockDiscardBuffer;
+  },
+  writeBuffer: (snapshot: import('$lib/stores/discard-buffer').DiscardDescriptor) =>
+    mockWriteBuffer(snapshot),
   clearBuffer: () => mockClearBuffer(),
 }));
 
@@ -90,7 +97,17 @@ describe('skin/+page.svelte — region grid', () => {
 
     expect(container.querySelectorAll('[data-region]')).toHaveLength(9);
 
-    for (const label of ['Tváře', 'Vlasová část', 'Krk', 'Břicho', 'Záda', 'Paže', 'Loketní jamky', 'Podkolení', 'Nohy']) {
+    for (const label of [
+      'Tváře',
+      'Vlasová část',
+      'Krk',
+      'Břicho',
+      'Záda',
+      'Paže',
+      'Loketní jamky',
+      'Podkolení',
+      'Nohy',
+    ]) {
       expect(getByText(label)).toBeInTheDocument();
     }
   });
@@ -216,8 +233,15 @@ describe('skin/+page.svelte — region grid', () => {
     // All nine canonical region ids must be present.
     const ids = obs.regions.map((r) => r.id).sort();
     expect(ids).toEqual([
-      'arms', 'back', 'belly', 'elbow-folds', 'face',
-      'knee-folds', 'legs', 'neck', 'scalp',
+      'arms',
+      'back',
+      'belly',
+      'elbow-folds',
+      'face',
+      'knee-folds',
+      'legs',
+      'neck',
+      'scalp',
     ]);
   });
 
@@ -392,9 +416,10 @@ describe('skin/+page.svelte — region grid', () => {
     // Use a never-resolving promise so `saving` stays true between clicks.
     let resolve: ((value: { ok: true; data: undefined }) => void) | undefined;
     mockSave.mockImplementationOnce(
-      () => new Promise((r) => {
-        resolve = r;
-      }),
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        }),
     );
     const SkinPage = await loadPage();
     const { getByTestId } = render(SkinPage);
@@ -625,7 +650,9 @@ describe('skin/+page.svelte — region grid', () => {
     expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeInTheDocument();
 
     // Delete it
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-delete-0"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-delete-0"]') as HTMLElement,
+    );
     await tick();
 
     expect(container.querySelector('[data-testid="skin-photo-gallery"]')).toBeNull();
@@ -1144,17 +1171,21 @@ describe('skin/+page.svelte — region grid', () => {
     // Dexie has no row for this id (the observation was hard-deleted). Only
     // the buffer holds its state.
     mockSessionStore.set([]);
-    const deletedObs = makeObs({ id: 'obs-deleted', regions: [
-      { id: 'face', level: 2 },
-      { id: 'arms', level: 1 },
-      { id: 'back', level: 0 },
-      { id: 'belly', level: 0 },
-      { id: 'elbow-folds', level: 0 },
-      { id: 'knee-folds', level: 0 },
-      { id: 'legs', level: 0 },
-      { id: 'neck', level: 0 },
-      { id: 'scalp', level: 0 },
-    ], notes: 'restore me' });
+    const deletedObs = makeObs({
+      id: 'obs-deleted',
+      regions: [
+        { id: 'face', level: 2 },
+        { id: 'arms', level: 1 },
+        { id: 'back', level: 0 },
+        { id: 'belly', level: 0 },
+        { id: 'elbow-folds', level: 0 },
+        { id: 'knee-folds', level: 0 },
+        { id: 'legs', level: 0 },
+        { id: 'neck', level: 0 },
+        { id: 'scalp', level: 0 },
+      ],
+      notes: 'restore me',
+    });
     const savedBlob = new Blob(['x'], { type: 'image/jpeg' });
     mockDiscardBuffer.set({
       kind: 'skin-delete',

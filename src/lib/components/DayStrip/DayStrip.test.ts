@@ -33,10 +33,7 @@ describe('DayStrip', () => {
   });
 
   it('the selected cell carries aria-current=date', async () => {
-    const cells: DayStripCell[] = [
-      cell('2026-06-08'),
-      cell('2026-06-09', { isSelected: true }),
-    ];
+    const cells: DayStripCell[] = [cell('2026-06-08'), cell('2026-06-09', { isSelected: true })];
     const { getAllByTestId } = render(DayStrip, {
       props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
     });
@@ -86,7 +83,7 @@ describe('DayStrip', () => {
     expect(ring.getAttribute('data-recorded')).toBe('true');
   });
 
-  it('clicking any cell calls onselectdate with that cell\'s date — including before-start cells', async () => {
+  it("clicking any cell calls onselectdate with that cell's date — including before-start cells", async () => {
     const fn = vi.fn();
     const cells: DayStripCell[] = [
       cell('2026-05-25', { isBeforeStart: true }),

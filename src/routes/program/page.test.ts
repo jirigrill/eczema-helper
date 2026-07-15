@@ -27,7 +27,8 @@ const today = new Date().toISOString().split('T')[0];
 const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
+  permanentMother: [],
+  permanentBaby: [],
   startDate: today,
   estimatedEndDate: futureDate,
   phases: [
@@ -129,12 +130,19 @@ describe('program/+page.svelte', () => {
 describe('ScheduleContext allergenStatuses consistency', () => {
   it('allergenStatuses forbidden-status ids match eliminatedToday (non-reset phase)', () => {
     const scheduleWithDairy: GeneratedSchedule = {
-      permanentMother: [], permanentBaby: [],
-      startDate: today, estimatedEndDate: futureDate,
-      phases: [{
-        id: 'elim', type: 'elimination',
-        allergenIds: ['dairy'], startDate: today, endDate: futureDate,
-      }],
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: today,
+      estimatedEndDate: futureDate,
+      phases: [
+        {
+          id: 'elim',
+          type: 'elimination',
+          allergenIds: ['dairy'],
+          startDate: today,
+          endDate: futureDate,
+        },
+      ],
     };
     const statuses = getAllergenStatuses(scheduleWithDairy, today);
     const eliminated = getEliminatedSlugsForDate(scheduleWithDairy, today);
@@ -142,8 +150,12 @@ describe('ScheduleContext allergenStatuses consistency', () => {
     expect(statuses).toContainEqual({ allergenId: 'dairy', status: 'eliminated' });
 
     const forbiddenIds = statuses
-      .filter(s => ['permanent-mother', 'permanent-baby', 'eliminated', 'reacted', 'not-yet-tested'].includes(s.status))
-      .map(s => s.allergenId)
+      .filter((s) =>
+        ['permanent-mother', 'permanent-baby', 'eliminated', 'reacted', 'not-yet-tested'].includes(
+          s.status,
+        ),
+      )
+      .map((s) => s.allergenId)
       .sort();
     expect([...eliminated].sort()).toEqual(forbiddenIds);
   });
@@ -154,13 +166,33 @@ const d = (offset: number) => new Date(Date.now() + offset * 86400000).toISOStri
 
 // Schedule: dairy reacted (reintro → rest, both done), eggs currently being reintroduced
 const reactedSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: d(-20), estimatedEndDate: d(10),
+  permanentMother: [],
+  permanentBaby: [],
+  startDate: d(-20),
+  estimatedEndDate: d(10),
   phases: [
-    { id: 'elim', type: 'elimination', allergenIds: ['dairy', 'eggs'], startDate: d(-20), endDate: d(-11) },
-    { id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: d(-10), endDate: d(-7) },
+    {
+      id: 'elim',
+      type: 'elimination',
+      allergenIds: ['dairy', 'eggs'],
+      startDate: d(-20),
+      endDate: d(-11),
+    },
+    {
+      id: 'reintro-dairy',
+      type: 'reintroduction',
+      allergenIds: ['dairy'],
+      startDate: d(-10),
+      endDate: d(-7),
+    },
     { id: 'rest', type: 'rest', allergenIds: [], startDate: d(-6), endDate: d(-3) },
-    { id: 'reintro-eggs', type: 'reintroduction', allergenIds: ['eggs'], startDate: d(-2), endDate: d(3) },
+    {
+      id: 'reintro-eggs',
+      type: 'reintroduction',
+      allergenIds: ['eggs'],
+      startDate: d(-2),
+      endDate: d(3),
+    },
   ],
 };
 
@@ -175,7 +207,7 @@ describe('program timeline — regression: reacted allergen', () => {
   it('hero card shows reacted allergen as "reagovalo", not "✓ znovuzavedena"', async () => {
     // Verify domain precondition: dairy IS reacted on today (we're in eggs reintro phase)
     const statuses = getAllergenStatuses(reactedSchedule, today);
-    expect(statuses.find(s => s.allergenId === 'dairy')?.status).toBe('reacted');
+    expect(statuses.find((s) => s.allergenId === 'dairy')?.status).toBe('reacted');
 
     const reactedCtx: ScheduleContext = {
       status: 'ready',
@@ -215,7 +247,9 @@ describe('program timeline — permanent allergen sections', () => {
       permanentBaby: [],
       startDate: today,
       estimatedEndDate: futureDate,
-      phases: [{ id: 'reset', type: 'reset', allergenIds: [], startDate: today, endDate: futureDate }],
+      phases: [
+        { id: 'reset', type: 'reset', allergenIds: [], startDate: today, endDate: futureDate },
+      ],
     };
     const ctx: ScheduleContext = {
       status: 'ready',
@@ -247,7 +281,9 @@ describe('program timeline — permanent allergen sections', () => {
       permanentBaby: ['eggs'],
       startDate: today,
       estimatedEndDate: futureDate,
-      phases: [{ id: 'reset', type: 'reset', allergenIds: [], startDate: today, endDate: futureDate }],
+      phases: [
+        { id: 'reset', type: 'reset', allergenIds: [], startDate: today, endDate: futureDate },
+      ],
     };
     const ctx: ScheduleContext = {
       status: 'ready',
@@ -292,11 +328,23 @@ describe('program timeline — reintroduction evaluation prompt', () => {
   // Day 1 → rung 1 (not checkpoint), day 6 → rung 6 (checkpoint).
   const dairyReintroSchedule = (dayInPhase: number, totalDays: number): GeneratedSchedule => {
     const start = new Date(Date.now() - (dayInPhase - 1) * 86400000).toISOString().split('T')[0];
-    const end = new Date(Date.now() + (totalDays - dayInPhase) * 86400000).toISOString().split('T')[0];
+    const end = new Date(Date.now() + (totalDays - dayInPhase) * 86400000)
+      .toISOString()
+      .split('T')[0];
     return {
-      permanentMother: [], permanentBaby: [],
-      startDate: start, estimatedEndDate: end,
-      phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: start, endDate: end }],
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: start,
+      estimatedEndDate: end,
+      phases: [
+        {
+          id: 'reintro-dairy',
+          type: 'reintroduction',
+          allergenIds: ['dairy'],
+          startDate: start,
+          endDate: end,
+        },
+      ],
     };
   };
 

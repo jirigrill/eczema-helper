@@ -1,4 +1,9 @@
-import type { AllergenOutcome, PhaseType, SchedulePhase, SkinEvaluationOutcome } from '$lib/domain/models';
+import type {
+  AllergenOutcome,
+  PhaseType,
+  SchedulePhase,
+  SkinEvaluationOutcome,
+} from '$lib/domain/models';
 import { commonStrings } from '$lib/strings/common';
 
 export type EvaluationKind = 'allergen-test' | 'skin-status';

@@ -11,15 +11,15 @@ export type RegionStrings = {
  * `bunx tsc --noEmit` fail when a region is added without a label.
  */
 export const regionStrings = {
-  face:           { label: 'Tváře' },
-  scalp:          { label: 'Vlasová část' },
-  neck:           { label: 'Krk' },
-  belly:          { label: 'Břicho' },
-  back:           { label: 'Záda' },
-  arms:           { label: 'Paže' },
-  'elbow-folds':  { label: 'Loketní jamky' },
-  'knee-folds':   { label: 'Podkolení' },
-  legs:           { label: 'Nohy' },
+  face: { label: 'Tváře' },
+  scalp: { label: 'Vlasová část' },
+  neck: { label: 'Krk' },
+  belly: { label: 'Břicho' },
+  back: { label: 'Záda' },
+  arms: { label: 'Paže' },
+  'elbow-folds': { label: 'Loketní jamky' },
+  'knee-folds': { label: 'Podkolení' },
+  legs: { label: 'Nohy' },
 } as const satisfies Record<RegionId, RegionStrings>;
 
 export type SeverityStrings = {

@@ -17,16 +17,15 @@
 
   const cls = $derived(
     variant === 'danger'
-      ? active ? 'chip--danger-active' : 'chip--danger-muted'
-      : active ? 'chip--active' : 'chip--muted'
+      ? active
+        ? 'chip--danger-active'
+        : 'chip--danger-muted'
+      : active
+        ? 'chip--active'
+        : 'chip--muted',
   );
 </script>
 
-<button
-  type="button"
-  data-active={active}
-  class="chip {cls} {extraClass}"
-  {onclick}
->
+<button type="button" data-active={active} class="chip {cls} {extraClass}" {onclick}>
   {@render children?.()}
 </button>

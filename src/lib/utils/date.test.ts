@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { daysBetween, resolveRouteDate, formatWeekdayShortCs, formatWeekdayLongCs, todayIso, daysAgo, addDays, formatObservationTime } from './date';
+import {
+  daysBetween,
+  resolveRouteDate,
+  formatWeekdayShortCs,
+  formatWeekdayLongCs,
+  todayIso,
+  daysAgo,
+  addDays,
+  formatObservationTime,
+} from './date';
 
 describe('daysBetween', () => {
   it('same day returns 1 (inclusive convention)', () => {

@@ -24,13 +24,17 @@
   const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
   const isDetailScreen = $derived(
-    currentPath.startsWith('/meal') || currentPath.startsWith('/settings') || currentPath.startsWith('/skin')
+    currentPath.startsWith('/meal') ||
+      currentPath.startsWith('/settings') ||
+      currentPath.startsWith('/skin'),
   );
   const isDayRoute = $derived(currentPath.startsWith('/day/'));
   const today = $derived(todayIso());
   // Suppress the FAB on a future day — those days are read-only "Naplánováno"
   // previews and must not expose meal/observation/photo entry points.
-  const isFutureDay = $derived(isDayRoute && typeof $page.params.date === 'string' && $page.params.date > today);
+  const isFutureDay = $derived(
+    isDayRoute && typeof $page.params.date === 'string' && $page.params.date > today,
+  );
   const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
   const showFab = $derived(showNav && !isFutureDay);
   const dnesActive = $derived($page.params.date === today);
@@ -67,7 +71,9 @@
       );
       return;
     }
-    goto(`/meal?type=${buf.mealType}&date=${buf.date}&returnTo=${encodeURIComponent(buf.returnTo)}`);
+    goto(
+      `/meal?type=${buf.mealType}&date=${buf.date}&returnTo=${encodeURIComponent(buf.returnTo)}`,
+    );
   }
 
   let discardUndoFired = $state(false);
@@ -88,11 +94,16 @@
     const buf = $discardBuffer;
     if (!buf) return '';
     switch (buf.kind) {
-      case 'meal-compose': return commonStrings.meal.discardedComposeToast;
-      case 'meal-edit':    return commonStrings.meal.discardedEditToast;
-      case 'meal-delete':  return commonStrings.meal.deletedToast;
-      case 'skin-edit':    return commonStrings.skin.discardedEditToast;
-      case 'skin-delete':  return commonStrings.skin.deletedToast;
+      case 'meal-compose':
+        return commonStrings.meal.discardedComposeToast;
+      case 'meal-edit':
+        return commonStrings.meal.discardedEditToast;
+      case 'meal-delete':
+        return commonStrings.meal.deletedToast;
+      case 'skin-edit':
+        return commonStrings.skin.discardedEditToast;
+      case 'skin-delete':
+        return commonStrings.skin.deletedToast;
     }
   });
 
@@ -114,17 +125,19 @@
   });
 </script>
 
-<div class="h-dvh flex flex-col bg-surface">
-  <main bind:this={mainEl} class="flex-1 min-h-0 overflow-y-auto">
+<div class="bg-surface flex h-dvh flex-col">
+  <main bind:this={mainEl} class="min-h-0 flex-1 overflow-y-auto">
     {@render children()}
   </main>
 
   {#if showNav}
-    <nav class="relative z-30 bg-white border-t border-surface-dark pt-2 pb-5 shrink-0">
-      <div class="grid grid-cols-3 items-end max-w-lg mx-auto">
+    <nav class="border-surface-dark relative z-30 shrink-0 border-t bg-white pt-2 pb-5">
+      <div class="mx-auto grid max-w-lg grid-cols-3 items-end">
         <a
           href="/day/{todayIso()}"
-          class="flex flex-col items-center gap-0.5 {dnesActive ? 'text-primary' : 'text-text-muted'}"
+          class="flex flex-col items-center gap-0.5 {dnesActive
+            ? 'text-primary'
+            : 'text-text-muted'}"
           onclick={() => {
             // When already on /day/today the route does not change, so the
             // strip's selection effect does not re-run — pulse the recentre
@@ -135,24 +148,30 @@
             pulseRecentreDayStrip();
           }}
         >
-          <TodayIcon class="w-[22px] h-[22px]" />
-          <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}">{commonStrings.nav.today}</span>
+          <TodayIcon class="h-[22px] w-[22px]" />
+          <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}"
+            >{commonStrings.nav.today}</span
+          >
         </a>
         <div class="flex justify-center">
           {#if showFab}
             <button
-              class="relative z-50 -mt-7 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center text-3xl font-light ring-4 ring-primary/20"
+              class="bg-primary ring-primary/20 relative z-50 -mt-7 flex h-14 w-14 items-center justify-center rounded-full text-3xl font-light text-white shadow-lg ring-4"
               aria-label={commonStrings.nav.addRecordAria}
-              onclick={() => (fabOpen = true)}
-            >+</button>
+              onclick={() => (fabOpen = true)}>+</button
+            >
           {/if}
         </div>
         <a
           href="/week"
-          class="flex flex-col items-center gap-0.5 {!dnesActive ? 'text-primary' : 'text-text-muted'}"
+          class="flex flex-col items-center gap-0.5 {!dnesActive
+            ? 'text-primary'
+            : 'text-text-muted'}"
         >
-          <CalendarIcon class="w-[22px] h-[22px]" />
-          <span class="text-[10px] {!dnesActive ? 'font-semibold' : ''}">{commonStrings.nav.week}</span>
+          <CalendarIcon class="h-[22px] w-[22px]" />
+          <span class="text-[10px] {!dnesActive ? 'font-semibold' : ''}"
+            >{commonStrings.nav.week}</span
+          >
         </a>
       </div>
     </nav>

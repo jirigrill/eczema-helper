@@ -25,7 +25,9 @@ vi.mock('$app/navigation', () => ({
 
 const mockDiscardBuffer = writable<null>(null);
 vi.mock('$lib/stores/discard-buffer', () => ({
-  get discardBuffer() { return mockDiscardBuffer; },
+  get discardBuffer() {
+    return mockDiscardBuffer;
+  },
   writeBuffer: vi.fn(),
   clearBuffer: vi.fn(),
 }));
@@ -47,8 +49,8 @@ vi.mock('$lib/stores/harvest-candidate-session', () => ({
     // newly-typed custom foods render immediately. The stub mirrors that
     // shape so the editing-after-Přidat rendering tests stay realistic.
     upsert: (candidate: import('$lib/domain/harvest-candidate').HarvestCandidate) => {
-      mockHarvestStore.update(list => {
-        const idx = list.findIndex(c => c.normalizedKey === candidate.normalizedKey);
+      mockHarvestStore.update((list) => {
+        const idx = list.findIndex((c) => c.normalizedKey === candidate.normalizedKey);
         return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];
       });
       return Promise.resolve({ ok: true, data: undefined });
@@ -70,19 +72,29 @@ const sampleAnswers: QuestionnaireAnswers = {
 };
 
 const dairyEliminationSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: today, estimatedEndDate: future,
-  phases: [{ id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: today, endDate: future }],
+  permanentMother: [],
+  permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: future,
+  phases: [
+    { id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: today, endDate: future },
+  ],
 };
 
 const emptySchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
-  startDate: today, estimatedEndDate: future,
+  permanentMother: [],
+  permanentBaby: [],
+  startDate: today,
+  estimatedEndDate: future,
   phases: [{ id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future }],
 };
 
 function setReadyWithElim() {
-  mockScheduleRaw.set({ status: 'ready', schedule: dairyEliminationSchedule, answers: sampleAnswers });
+  mockScheduleRaw.set({
+    status: 'ready',
+    schedule: dairyEliminationSchedule,
+    answers: sampleAnswers,
+  });
 }
 function setReady() {
   mockScheduleRaw.set({ status: 'ready', schedule: emptySchedule, answers: sampleAnswers });
@@ -97,20 +109,21 @@ beforeEach(async () => {
 });
 
 describe('meal/+page.svelte', () => {
-
   // ── Layout: NO meal type pills (type is fixed at entry, ADR-0018) ────────
 
   it('does NOT render meal type pills — type is bound to the URL', async () => {
     setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
     await tick();
     // No standalone Snídaně/Oběd/Svačina/Večeře pill buttons (CTA may include them).
-    const pillCandidates = ['Snídaně', 'Oběd', 'Svačina', 'Večeře'].map(name =>
+    const pillCandidates = ['Snídaně', 'Oběd', 'Svačina', 'Večeře'].map((name) =>
       queryByRole('button', { name }),
     );
-    expect(pillCandidates.every(b => b === null)).toBe(true);
+    expect(pillCandidates.every((b) => b === null)).toBe(true);
   });
 
   // ── Layout: family grid ───────────────────────────────────
@@ -137,7 +150,6 @@ describe('meal/+page.svelte', () => {
     expect(queryByText('Oběd')).not.toBeInTheDocument();
     expect(queryByText('🥛 Mléko')).toBeInTheDocument();
   });
-
 
   it('back chevron (‹) in drill-in returns to family grid', async () => {
     setReady();
@@ -243,7 +255,6 @@ describe('meal/+page.svelte', () => {
   });
 
   // ── Schedule banners (preserved) ─────────────────────────
-
 
   // Vlastní drill-in behavior (list previously-typed customs, new-food →
   // editing, re-tap harvest chip → editing, grid has no standalone
@@ -446,9 +457,9 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: 'Brambory' })).toBeInTheDocument();
     // Kravské mléko must be before Brambory (added first)
     const foodTiles = document.querySelectorAll('[data-food-tile]');
-    const names = [...foodTiles].map(el => el.textContent?.trim() ?? '');
-    const milkIdx = names.findIndex(n => n.includes('Kravské mléko'));
-    const potatoIdx = names.findIndex(n => n.includes('Brambory'));
+    const names = [...foodTiles].map((el) => el.textContent?.trim() ?? '');
+    const milkIdx = names.findIndex((n) => n.includes('Kravské mléko'));
+    const potatoIdx = names.findIndex((n) => n.includes('Brambory'));
     expect(milkIdx).toBeLessThan(potatoIdx);
   });
 
@@ -475,14 +486,18 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: /Uložit Zelenina/ }));
     await tick();
     // Capture order before editing
-    const beforeTiles = [...document.querySelectorAll('[data-food-tile]')].map(el => el.textContent?.trim() ?? '');
+    const beforeTiles = [...document.querySelectorAll('[data-food-tile]')].map(
+      (el) => el.textContent?.trim() ?? '',
+    );
     // Open editor on Brambory (second item)
     await fireEvent.click(getByRole('button', { name: 'Brambory' }));
     await tick();
     // Capture order after — Brambory must stay at same index
-    const afterTiles = [...document.querySelectorAll('[data-food-tile]')].map(el => el.textContent?.trim() ?? '');
-    const beforeBramborIdx = beforeTiles.findIndex(n => n.includes('Brambory'));
-    const afterBramborIdx = afterTiles.findIndex(n => n.includes('Brambory'));
+    const afterTiles = [...document.querySelectorAll('[data-food-tile]')].map(
+      (el) => el.textContent?.trim() ?? '',
+    );
+    const beforeBramborIdx = beforeTiles.findIndex((n) => n.includes('Brambory'));
+    const afterBramborIdx = afterTiles.findIndex((n) => n.includes('Brambory'));
     expect(afterBramborIdx).toBe(beforeBramborIdx);
   });
 
@@ -522,7 +537,9 @@ describe('meal/+page.svelte', () => {
 
   it('renders the ⋯ overflow when editing an existing meal', async () => {
     setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
     await meals.save(lunchWithBramboryMeal());
     const { default: MealPage } = await import('./+page.svelte');
     const { findByRole } = render(MealPage);
@@ -531,7 +548,9 @@ describe('meal/+page.svelte', () => {
 
   it('tapping ⋯ opens the confirm sheet with "Smazat jídlo" + "Zrušit"', async () => {
     setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
     await meals.save(lunchWithBramboryMeal());
     const { default: MealPage } = await import('./+page.svelte');
     const { findByRole, getByRole } = render(MealPage);
@@ -543,7 +562,9 @@ describe('meal/+page.svelte', () => {
 
   it('tapping "Zrušit" in the confirm sheet closes it', async () => {
     setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
     await meals.save(lunchWithBramboryMeal());
     const { default: MealPage } = await import('./+page.svelte');
     const { findByRole, getByRole, queryByRole } = render(MealPage);
@@ -562,7 +583,9 @@ describe('meal/+page.svelte', () => {
 
   it('empty-meal hint visible when editing an existing meal with zero foods', async () => {
     setReady();
-    mockPage.url = new URL('http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13');
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
     await meals.save(lunchWithBramboryMeal());
     const { default: MealPage } = await import('./+page.svelte');
     const { findByRole, queryByText, getByText } = render(MealPage);
@@ -611,9 +634,19 @@ describe('meal/+page.svelte', () => {
   it('reintroduction banner shows the ladder step dose for the current day-in-phase', async () => {
     const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0];
     const reintroDay1: GeneratedSchedule = {
-      permanentMother: [], permanentBaby: [],
-      startDate: today, estimatedEndDate: future,
-      phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate: today, endDate: future }],
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: today,
+      estimatedEndDate: future,
+      phases: [
+        {
+          id: 'reintro-dairy',
+          type: 'reintroduction',
+          allergenIds: ['dairy'],
+          startDate: today,
+          endDate: future,
+        },
+      ],
     };
     mockScheduleRaw.set({ status: 'ready', schedule: reintroDay1, answers: sampleAnswers });
     const { default: MealPage } = await import('./+page.svelte');
@@ -629,9 +662,13 @@ describe('meal/+page.svelte', () => {
     const startDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
     const endDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
     const reintroDay3: GeneratedSchedule = {
-      permanentMother: [], permanentBaby: [],
-      startDate, estimatedEndDate: endDate,
-      phases: [{ id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate, endDate }],
+      permanentMother: [],
+      permanentBaby: [],
+      startDate,
+      estimatedEndDate: endDate,
+      phases: [
+        { id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate, endDate },
+      ],
     };
     mockScheduleRaw.set({ status: 'ready', schedule: reintroDay3, answers: sampleAnswers });
     const { default: MealPage } = await import('./+page.svelte');

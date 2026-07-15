@@ -75,16 +75,12 @@ describe('DexieLadderOverrideRepo', () => {
     const ladder: Ladder = {
       allergenId: 'vejce',
       stages: {
-        breastfed: [
-          { id: 'bf-1', anchor: 'pinch', isEvaluationCheckpoint: false, dose: 'špetka' },
-        ],
+        breastfed: [{ id: 'bf-1', anchor: 'pinch', isEvaluationCheckpoint: false, dose: 'špetka' }],
         mixed: [
           { id: 'mx-1', anchor: 'teaspoon', isEvaluationCheckpoint: false, dose: 'lžička' },
           { id: 'mx-2', anchor: 'spoon', isEvaluationCheckpoint: true, dose: 'lžíce' },
         ],
-        solids: [
-          { id: 'so-1', anchor: 'portion', isEvaluationCheckpoint: true, dose: 'porce' },
-        ],
+        solids: [{ id: 'so-1', anchor: 'portion', isEvaluationCheckpoint: true, dose: 'porce' }],
       },
     };
     await repo.save(ladder);

@@ -37,7 +37,7 @@
 
 {#snippet count()}
   {#if photos.length > 0}
-    <span class="text-[10px] text-text-muted">{snimkyCs(photos.length)}</span>
+    <span class="text-text-muted text-[10px]">{snimkyCs(photos.length)}</span>
   {/if}
 {/snippet}
 
@@ -55,17 +55,18 @@
           tabindex="0"
           data-testid="skin-photo-thumb-{i}"
           class="relative aspect-square cursor-pointer"
-          onclick={() => lightboxPhotoId = photo.id}
+          onclick={() => (lightboxPhotoId = photo.id)}
         >
           <img
             src={objectUrls[photo.id]}
             alt="Snímek kůže"
-            class="w-full h-full object-cover rounded-xl"
+            class="h-full w-full rounded-xl object-cover"
           />
           <span
             data-testid="skin-photo-caption"
-            class="absolute bottom-1 left-1 right-1 text-[11px] text-white text-center leading-tight bg-black/45 rounded px-1 py-0.5 tabular-nums"
-          >{regionLabel}{#if time}{' · '}{time}{/if}</span>
+            class="absolute right-1 bottom-1 left-1 rounded bg-black/45 px-1 py-0.5 text-center text-[11px] leading-tight text-white tabular-nums"
+            >{regionLabel}{#if time}{' · '}{time}{/if}</span
+          >
         </div>
       {/each}
     </div>
@@ -73,5 +74,5 @@
 </DayCard>
 
 {#if lightboxPhotoId !== null}
-  <PhotoLightbox src={objectUrls[lightboxPhotoId]} onClose={() => lightboxPhotoId = null} />
+  <PhotoLightbox src={objectUrls[lightboxPhotoId]} onClose={() => (lightboxPhotoId = null)} />
 {/if}

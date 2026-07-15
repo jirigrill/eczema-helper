@@ -17,7 +17,7 @@ export type MealConfig = MealStrings & {
 
 export const mealConfig = {
   breakfast: { ...mealStrings.breakfast, icon: SunriseIcon },
-  lunch:     { ...mealStrings.lunch,     icon: SunIcon     },
-  snack:     { ...mealStrings.snack,     icon: AppleIcon   },
-  dinner:    { ...mealStrings.dinner,    icon: MoonIcon    },
+  lunch: { ...mealStrings.lunch, icon: SunIcon },
+  snack: { ...mealStrings.snack, icon: AppleIcon },
+  dinner: { ...mealStrings.dinner, icon: MoonIcon },
 } as const satisfies Record<MealType, MealConfig>;

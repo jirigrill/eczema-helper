@@ -71,10 +71,7 @@ describe('ConfirmSheet', () => {
     const { getByRole } = render(ConfirmSheet, {
       props: { ...baseProps, open: true, confirmVariant: 'danger' },
     });
-    expect(getByRole('button', { name: 'Smazat jídlo' })).toHaveAttribute(
-      'data-variant',
-      'danger',
-    );
+    expect(getByRole('button', { name: 'Smazat jídlo' })).toHaveAttribute('data-variant', 'danger');
   });
 
   it('defaults confirmVariant to primary when omitted', () => {

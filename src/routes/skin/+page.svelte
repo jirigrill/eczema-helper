@@ -24,7 +24,9 @@
   import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
   import type { DiscardedSkinDelete } from '$lib/stores/discard-buffer';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import SkinPhotoGallery, { type SkinPhotoGalleryItem } from '$lib/components/SkinPhotoGallery.svelte';
+  import SkinPhotoGallery, {
+    type SkinPhotoGalleryItem,
+  } from '$lib/components/SkinPhotoGallery.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
 
@@ -90,7 +92,10 @@
     persistedPhotoIds: string[];
   } | null>(null);
 
-  function levelsEqual(a: Record<RegionId, RegionLevel>, b: Record<RegionId, RegionLevel>): boolean {
+  function levelsEqual(
+    a: Record<RegionId, RegionLevel>,
+    b: Record<RegionId, RegionLevel>,
+  ): boolean {
     return REGION_IDS.every((id) => a[id] === b[id]);
   }
 
@@ -455,8 +460,13 @@
     Sticky header — matches /meal verbatim: large variant, date on the
     right, no bottom border (the sticky container owns chrome).
   -->
-  <div class="sticky top-0 bg-surface z-20">
-    <PageHeader title={commonStrings.skin.heading} variant="large" onBack={handleBack} bordered={false}>
+  <div class="bg-surface sticky top-0 z-20">
+    <PageHeader
+      title={commonStrings.skin.heading}
+      variant="large"
+      onBack={handleBack}
+      bordered={false}
+    >
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(date)}</p>
         {#if editingExisting}
@@ -464,23 +474,22 @@
             type="button"
             data-testid="skin-overflow"
             aria-label={actionStrings.more}
-            class="ml-1 text-text-muted text-lg leading-none px-2 -mr-2"
-            onclick={() => (overflowOpen = true)}
-          >⋯</button>
+            class="text-text-muted -mr-2 ml-1 px-2 text-lg leading-none"
+            onclick={() => (overflowOpen = true)}>⋯</button
+          >
         {/if}
       {/snippet}
     </PageHeader>
   </div>
 
-  <div class="px-4 pt-4 space-y-5">
-
+  <div class="space-y-5 px-4 pt-4">
     <!--
       Region grid section: eyebrow + tap-hint on the right. The hint
       teaches the tap-cycle interaction on first use (the gesture is
       unique to /skin and not discoverable on its own).
     -->
     <section>
-      <div class="flex items-end justify-between mb-2">
+      <div class="mb-2 flex items-end justify-between">
         <p class="eyebrow">{commonStrings.skin.eyebrow}</p>
         <span class="caption">{commonStrings.skin.tapHint}</span>
       </div>
@@ -505,11 +514,15 @@
             data-level={lvl}
             aria-pressed={isActive}
             onclick={() => tapRegion(id)}
-            class="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 p-1 transition-all {isActive ? 'border-2' : 'border'} {borderClass} {cfg.tileBg}"
+            class="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl p-1 transition-all {isActive
+              ? 'border-2'
+              : 'border'} {borderClass} {cfg.tileBg}"
           >
-            <span class="w-4 h-4 rounded-full {cfg.dot}"></span>
-            <span class="text-[11px] font-medium text-text text-center leading-tight">{regionStrings[id].label}</span>
-            <span class="text-[9px] text-text-muted">{severityStrings[lvl].label}</span>
+            <span class="h-4 w-4 rounded-full {cfg.dot}"></span>
+            <span class="text-text text-center text-[11px] leading-tight font-medium"
+              >{regionStrings[id].label}</span
+            >
+            <span class="text-text-muted text-[9px]">{severityStrings[lvl].label}</span>
           </button>
         {/each}
       </div>
@@ -526,20 +539,14 @@
       {#if active}
         <label
           data-testid="skin-add-photo"
-          class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-primary/30 bg-primary/10 text-primary font-semibold text-sm cursor-pointer transition-colors hover:bg-primary/15"
+          class="border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors"
         >
           <span>+ Přidat fotku {regionStrings[active].label}</span>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            class="sr-only"
-            onchange={handleFileInput}
-          />
+          <input type="file" accept="image/*" multiple class="sr-only" onchange={handleFileInput} />
         </label>
       {:else}
         <div
-          class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-surface-dark text-text-muted text-sm cursor-default"
+          class="bg-surface-dark text-text-muted flex cursor-default items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm"
           aria-disabled="true"
         >
           <span>+ Vyber oblast pro fotku</span>
@@ -555,13 +562,13 @@
 
     <!-- Notes section: matches /meal's eyebrow + textarea pattern. -->
     <section>
-      <label class="eyebrow block mb-2" for="skin-note-textarea">Poznámka</label>
+      <label class="eyebrow mb-2 block" for="skin-note-textarea">Poznámka</label>
       <textarea
         id="skin-note-textarea"
         bind:value={note}
         placeholder={commonStrings.skin.notePlaceholder}
         rows={2}
-        class="input-base w-full px-4 py-2.5 bg-white resize-none"
+        class="input-base w-full resize-none bg-white px-4 py-2.5"
         data-testid="skin-note"
       ></textarea>
     </section>
@@ -570,18 +577,18 @@
 
 <!-- Sticky CTA — identical to /meal. -->
 <div
-  class="fixed left-0 right-0 bottom-0 z-30 px-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent"
+  class="from-surface via-surface fixed right-0 bottom-0 left-0 z-30 bg-gradient-to-t to-transparent px-4 pt-2"
   style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
 >
-  <div class="max-w-lg mx-auto">
+  <div class="mx-auto max-w-lg">
     <button
       type="button"
       data-testid="skin-save"
       aria-label={saveAriaLabel}
-      aria-disabled={(!canSave || saving) ? 'true' : 'false'}
+      aria-disabled={!canSave || saving ? 'true' : 'false'}
       disabled={!canSave || saving}
       onclick={handleSave}
-      class="w-full py-3 rounded-xl font-semibold text-sm transition-all
+      class="w-full rounded-xl py-3 text-sm font-semibold transition-all
         {canSave ? 'bg-primary text-white' : 'bg-surface-dark text-text-muted cursor-default'}"
     >
       {saveLabel}
@@ -590,11 +597,7 @@
 </div>
 
 {#if saveError}
-  <Toast
-    message={saveError}
-    type="error"
-    onClose={() => (saveError = null)}
-  />
+  <Toast message={saveError} type="error" onClose={() => (saveError = null)} />
 {/if}
 
 <!--

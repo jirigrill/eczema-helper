@@ -31,10 +31,11 @@ Before/after snippet, API example, or screenshot.
 ## CI
 
 Required before merge:
+- **Format** — `prettier --check "src/**/*.{ts,svelte}"` (run `just fmt` to fix)
+- **Lint** — `eslint .` (run `just lint` / `just lint-fix`)
 - **Type Check** — `bunx tsc --noEmit`
 - **Build** — `bun run build`
-
-(Test CI re-added when test coverage is authored.)
+- **Unit Tests** / **E2E Tests** — `bun run test` / `playwright test`
 
 ## Commit Messages
 

@@ -5,6 +5,37 @@ on:
     branches: [main]
 
 jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Prettier check
+        run: bunx prettier --check "src/**/*.{ts,svelte}"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Sync SvelteKit types
+        run: bunx svelte-kit sync
+
+      - name: ESLint
+        run: bunx eslint .
+
   type-check:
     name: Type Check
     runs-on: ubuntu-latest

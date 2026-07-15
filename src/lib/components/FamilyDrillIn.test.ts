@@ -13,7 +13,12 @@ function editingFood(foodId: string, name: string): WorkingFood {
   return { foodId, name, state: { status: 'editing', amount: 'portion' } };
 }
 function confirmedFood(foodId: string, name: string): WorkingFood {
-  return { foodId, name, state: { status: 'confirmed', amount: 'portion' }, cachedAmount: 'portion' };
+  return {
+    foodId,
+    name,
+    state: { status: 'confirmed', amount: 'portion' },
+    cachedAmount: 'portion',
+  };
 }
 function lockedFood(foodId: string, name: string): WorkingFood {
   return { foodId, name, state: { status: 'locked', prior: 'idle' } };
@@ -112,7 +117,7 @@ describe('FamilyDrillIn — dairy family (grouped by source)', () => {
   it('renders authored source-group headers in authored order', () => {
     const { getAllByText } = render(FamilyDrillIn, { props: dairyBase });
     const headers = ['Kravské', 'Ovčí', 'Kozí', 'Rostlinné'];
-    const indices = headers.map(h => {
+    const indices = headers.map((h) => {
       const elements = getAllByText(h);
       expect(elements.length).toBeGreaterThan(0);
       return elements[0].compareDocumentPosition;
@@ -148,7 +153,7 @@ describe('FamilyDrillIn — dairy family (grouped by source)', () => {
     const ovesne = getByRole('button', { name: /Ovesné mléko/ });
     const kokosove = getByRole('button', { name: /Kokosové mléko/ });
 
-    [sojove, mandlove, ovesne, kokosove].forEach(btn => {
+    [sojove, mandlove, ovesne, kokosove].forEach((btn) => {
       expect(plantSection!.contains(btn)).toBe(true);
     });
   });
@@ -400,7 +405,16 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
       props: { ...baseProps, familyId: 'fruit' as const },
     });
     const names = namesInGroup(container as HTMLElement, 'Bobuloviny');
-    expect(names).toEqual(['Angrešt', 'Borůvky', 'Brusinky', 'Hrozny', 'Jahody', 'Maliny', 'Ostružiny', 'Rybíz']);
+    expect(names).toEqual([
+      'Angrešt',
+      'Borůvky',
+      'Brusinky',
+      'Hrozny',
+      'Jahody',
+      'Maliny',
+      'Ostružiny',
+      'Rybíz',
+    ]);
   });
 
   it('fruit · citrusy sorted alphabetically (Citron → Grapefruit → Mandarinka → Pomeranč)', () => {
@@ -416,7 +430,15 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
       props: { ...baseProps, familyId: 'fruit' as const },
     });
     const names = namesInGroup(container as HTMLElement, 'Tropické');
-    expect(names).toEqual(['Ananas', 'Avokádo', 'Banán', 'Granátové jablko' ,'Kiwi', 'Mango', 'Meloun']);
+    expect(names).toEqual([
+      'Ananas',
+      'Avokádo',
+      'Banán',
+      'Granátové jablko',
+      'Kiwi',
+      'Mango',
+      'Meloun',
+    ]);
   });
 
   it('fish-seafood · sladkovodní sorted alphabetically (Kapr → Pangas → Pstruh → Sumec)', () => {
@@ -432,7 +454,16 @@ describe('FamilyDrillIn — alphabetical food order within groups', () => {
       props: { ...baseProps, familyId: 'fish-seafood' as const },
     });
     const names = namesInGroup(container as HTMLElement, 'Mořské');
-    expect(names).toEqual(['Halibut', 'Losos', 'Makrela', 'Sardinky', 'Sleď', 'Tilapie', 'Treska', 'Tuňák']);
+    expect(names).toEqual([
+      'Halibut',
+      'Losos',
+      'Makrela',
+      'Sardinky',
+      'Sleď',
+      'Tilapie',
+      'Treska',
+      'Tuňák',
+    ]);
   });
 
   it('fish-seafood · plody moře sorted alphabetically (Krab → Krevety → Mušle)', () => {
@@ -497,8 +528,8 @@ describe('FamilyDrillIn — eliminated source group sinks to bottom', () => {
     const headers = groupHeaders(container as HTMLElement);
     // After Rostlinné, the original cow → sheep → goat ordering is preserved.
     const idxKravske = headers.indexOf('Kravské');
-    const idxOvci    = headers.indexOf('Ovčí');
-    const idxKozi    = headers.indexOf('Kozí');
+    const idxOvci = headers.indexOf('Ovčí');
+    const idxKozi = headers.indexOf('Kozí');
     expect(idxKravske).toBeLessThan(idxOvci);
     expect(idxOvci).toBeLessThan(idxKozi);
   });

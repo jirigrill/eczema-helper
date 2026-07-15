@@ -178,7 +178,12 @@ describe('DexieMealRepository', () => {
     const items = [
       makeItem('item-1', { name: 'Pšenice', foodId: 'psenice', amount: 'portion' }),
       makeItem('item-2', { name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }),
-      makeItem('item-3', { name: 'Rajče', foodId: 'rajce', amount: 'spoon', preparationMethod: 'baked' }),
+      makeItem('item-3', {
+        name: 'Rajče',
+        foodId: 'rajce',
+        amount: 'spoon',
+        preparationMethod: 'baked',
+      }),
     ];
     await repo.save(makeMeal('2026-05-27', 'breakfast', { items }));
     const result = await repo.loadBySlot('2026-05-27', 'breakfast');
@@ -218,12 +223,16 @@ describe('DexieMealRepository', () => {
 
   it('re-saving with changed preparationMethod reflects new value', async () => {
     const base = { id: 'item-1', name: 'Kuře', foodId: 'kureci', amount: 'portion' } as const;
-    await repo.save(makeMeal('2026-05-27', 'lunch', {
-      items: [{ ...base, preparationMethod: 'boiled' }],
-    }));
-    await repo.save(makeMeal('2026-05-27', 'lunch', {
-      items: [{ ...base, preparationMethod: 'baked' }],
-    }));
+    await repo.save(
+      makeMeal('2026-05-27', 'lunch', {
+        items: [{ ...base, preparationMethod: 'boiled' }],
+      }),
+    );
+    await repo.save(
+      makeMeal('2026-05-27', 'lunch', {
+        items: [{ ...base, preparationMethod: 'baked' }],
+      }),
+    );
     const result = await repo.loadBySlot('2026-05-27', 'lunch');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0].preparationMethod).toBe('baked');

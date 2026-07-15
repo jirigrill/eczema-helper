@@ -59,7 +59,7 @@
   const ctx = $derived(
     raw.status === 'ready'
       ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, targetDate, catalog)
-      : null
+      : null,
   );
   const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
   const reintroInfo = $derived(ctx?.reintroInfo ?? null);
@@ -70,7 +70,7 @@
   // or invalid `?type=` is treated as a stale link / hand-typed URL and
   // bounces back to the day overview. There is no longer a 'lunch' fallback.
   const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'] as const;
-  type MealTypeKind = typeof mealTypes[number];
+  type MealTypeKind = (typeof mealTypes)[number];
   function isMealType(raw: string | null): raw is MealTypeKind {
     return mealTypes.includes(raw as MealTypeKind);
   }
@@ -161,13 +161,13 @@
   const hasConfirmed = $derived(confirmedFoods.length > 0);
 
   const currentEditingFood = $derived(
-    drilledFamily ? getEditingFood(workingMeal, drilledFamily) : null
+    drilledFamily ? getEditingFood(workingMeal, drilledFamily) : null,
   );
   /** The food currently open for inline editing on the grid. */
   const gridEditingFood = $derived(() => {
     if (!gridEditingFoodId) return null;
     for (const fam of workingMeal.families) {
-      const f = fam.foods.find(fd => fd.foodId === gridEditingFoodId);
+      const f = fam.foods.find((fd) => fd.foodId === gridEditingFoodId);
       if (f) return { food: f, familyId: fam.familyId };
     }
     return null;
@@ -175,12 +175,13 @@
 
   /** Foods displayed in the grid working-list: all active foods in their original order. */
   const gridListFoods = $derived(() => {
-    return workingMeal.families.flatMap(fam =>
-      fam.foods.filter(f =>
-        f.state.status === 'confirmed' ||
-        f.state.status === 'editing' ||
-        (f.state.status === 'locked' && f.state.prior === 'confirmed')
-      )
+    return workingMeal.families.flatMap((fam) =>
+      fam.foods.filter(
+        (f) =>
+          f.state.status === 'confirmed' ||
+          f.state.status === 'editing' ||
+          (f.state.status === 'locked' && f.state.prior === 'confirmed'),
+      ),
     );
   });
 
@@ -189,10 +190,10 @@
   const customFoods = $derived(
     [...$harvestCandidateSession]
       .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
-      .map(c => ({
+      .map((c) => ({
         foodId: `other:${c.normalizedKey}`,
         name: c.rawForms[c.rawForms.length - 1] ?? c.normalizedKey,
-      }))
+      })),
   );
 
   // ── CTA label ─────────────────────────────────────────────
@@ -229,26 +230,26 @@
   function handleFoodTap(foodId: string, name: string): void {
     if (!drilledFamily) return;
     const foods = foodsForFamily(workingMeal, drilledFamily);
-    const existing = foods.find(f => f.foodId === foodId);
+    const existing = foods.find((f) => f.foodId === foodId);
     const status = existing?.state.status;
 
     if (status === 'editing') {
-      editor.update(m => cancelEditing(m, drilledFamily!, foodId));
+      editor.update((m) => cancelEditing(m, drilledFamily!, foodId));
     } else if (status === 'confirmed') {
-      editor.update(m => deselectFood(m, drilledFamily!, foodId));
+      editor.update((m) => deselectFood(m, drilledFamily!, foodId));
     } else if (status !== 'locked') {
-      editor.update(m => startEditing(m, drilledFamily!, foodId, name));
+      editor.update((m) => startEditing(m, drilledFamily!, foodId, name));
     }
   }
 
   function handleAmountChange(foodId: string, amount: PortionKind): void {
     if (!drilledFamily) return;
-    editor.update(m => updateEditingAmount(m, drilledFamily!, foodId, amount));
+    editor.update((m) => updateEditingAmount(m, drilledFamily!, foodId, amount));
   }
 
   function handlePreparationChange(foodId: string, prep: PreparationMethod | undefined): void {
     if (!drilledFamily) return;
-    editor.update(m => updateEditingPreparation(m, drilledFamily!, foodId, prep));
+    editor.update((m) => updateEditingPreparation(m, drilledFamily!, foodId, prep));
   }
 
   // ── CTA action ────────────────────────────────────────────
@@ -261,16 +262,14 @@
    * Both rules live inside `editor.canFinalize`. Sub-CTAs (food/family
    * inside the drill-in or grid edit row) gate the route-level disable here.
    */
-  const finalizeDisabled = $derived(
-    !drilledFamily && !gridEditingFoodId && !editor.canFinalize,
-  );
+  const finalizeDisabled = $derived(!drilledFamily && !gridEditingFoodId && !editor.canFinalize);
 
   function handleCta(): void {
     if (drilledFamily) {
       if (currentEditingFood) {
-        editor.update(m => confirmFood(m, drilledFamily!, currentEditingFood.foodId));
+        editor.update((m) => confirmFood(m, drilledFamily!, currentEditingFood.foodId));
       } else {
-        editor.update(m => commitFamily(m, drilledFamily!));
+        editor.update((m) => commitFamily(m, drilledFamily!));
         drilledFamily = null;
         // Unwind the drill-in's pushed history entry so the grid is reached
         // by popping, not by stacking another entry on top.
@@ -280,7 +279,7 @@
     }
     const ge = gridEditingFood();
     if (ge) {
-      editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
+      editor.update((m) => confirmFood(m, ge.familyId, ge.food.foodId));
       gridEditingFoodId = null;
       return;
     }
@@ -293,30 +292,38 @@
   function handleGridRowTap(foodId: string, name: string, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) {
       // Re-tap: confirm back (collapses editor, food stays in list)
-      editor.update(m => confirmFood(m, familyId, foodId));
+      editor.update((m) => confirmFood(m, familyId, foodId));
       gridEditingFoodId = null;
     } else {
       // Confirm any currently-editing food first, then open the tapped one
       const ge = gridEditingFood();
       if (ge) {
-        editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
+        editor.update((m) => confirmFood(m, ge.familyId, ge.food.foodId));
       }
-      editor.update(m => startEditing(m, familyId, foodId, name));
+      editor.update((m) => startEditing(m, familyId, foodId, name));
       gridEditingFoodId = foodId;
     }
   }
 
-  function handleGridRowAmountChange(foodId: string, familyId: FamilyId, amount: PortionKind): void {
-    editor.update(m => updateEditingAmount(m, familyId, foodId, amount));
+  function handleGridRowAmountChange(
+    foodId: string,
+    familyId: FamilyId,
+    amount: PortionKind,
+  ): void {
+    editor.update((m) => updateEditingAmount(m, familyId, foodId, amount));
   }
 
-  function handleGridRowPreparationChange(foodId: string, familyId: FamilyId, prep: PreparationMethod | undefined): void {
-    editor.update(m => updateEditingPreparation(m, familyId, foodId, prep));
+  function handleGridRowPreparationChange(
+    foodId: string,
+    familyId: FamilyId,
+    prep: PreparationMethod | undefined,
+  ): void {
+    editor.update((m) => updateEditingPreparation(m, familyId, foodId, prep));
   }
 
   function handleGridRowRemove(foodId: string, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) gridEditingFoodId = null;
-    editor.update(m => removeFood(m, familyId, foodId));
+    editor.update((m) => removeFood(m, familyId, foodId));
   }
 
   function handleGridContainerClick(e: MouseEvent): void {
@@ -324,7 +331,7 @@
     if (!(e.target as Element).closest('[data-food-tile]')) {
       const ge = gridEditingFood();
       if (ge) {
-        editor.update(m => confirmFood(m, ge.familyId, ge.food.foodId));
+        editor.update((m) => confirmFood(m, ge.familyId, ge.food.foodId));
         gridEditingFoodId = null;
       }
     }
@@ -348,7 +355,7 @@
   // the large `.page-heading` style so the screen reads at "Dnes" weight.
   const headerTitle = $derived(() => {
     if (!drilledFamily) return mealConfig[selectedMealType].label;
-    const family = FAMILIES.find(f => f.id === drilledFamily);
+    const family = FAMILIES.find((f) => f.id === drilledFamily);
     const name = familyStrings[drilledFamily].name;
     return family ? `${family.icon} ${name}` : name;
   });
@@ -419,8 +426,7 @@
   // `tick()` to avoid racing SvelteKit's own `history.go(-delta)` undo.
   $effect(() => {
     function syncDrillFromHistory(): void {
-      const sk: Record<string, unknown> | undefined =
-        (history.state ?? {})['sveltekit:states'];
+      const sk: Record<string, unknown> | undefined = (history.state ?? {})['sveltekit:states'];
       const stateDrill = (sk ?? {})['drilledFamily'] as FamilyId | undefined;
       drilledFamily = stateDrill ?? null;
     }
@@ -451,7 +457,7 @@
     if (!drilledFamily) return;
     const editing = getEditingFood(workingMeal, drilledFamily);
     if (editing) {
-      editor.update(m => cancelEditing(m, drilledFamily!, editing.foodId));
+      editor.update((m) => cancelEditing(m, drilledFamily!, editing.foodId));
     }
   }
 
@@ -487,22 +493,24 @@
    * `gridEditingFoodId` only has confirmed entries in practice, so this also
    * filters defensively to confirmed foods.
    */
-  const hasConflicts = $derived(
-    confirmedFoods.some((f) => eliminatedFoodIds.has(f.foodId)),
-  );
+  const hasConflicts = $derived(confirmedFoods.some((f) => eliminatedFoodIds.has(f.foodId)));
   /** True when the food being edited right now (drill-in or grid) is eliminated today. */
   const editingFoodIsEliminated = $derived(
-    drilledFamily && currentEditingFood ? eliminatedFoodIds.has(currentEditingFood.foodId)
-    : gridEditingFoodId ? eliminatedFoodIds.has(gridEditingFoodId)
-    : false
+    drilledFamily && currentEditingFood
+      ? eliminatedFoodIds.has(currentEditingFood.foodId)
+      : gridEditingFoodId
+        ? eliminatedFoodIds.has(gridEditingFoodId)
+        : false,
   );
   /** True when saving the whole family would commit at least one eliminated food. */
   const familySaveHasEliminated = $derived(
-    drilledFamily !== null && currentEditingFood === null &&
-    foodsForFamily(workingMeal, drilledFamily).some(
-      f => (f.state.status === 'confirmed' || f.state.status === 'editing') &&
-           eliminatedFoodIds.has(f.foodId)
-    )
+    drilledFamily !== null &&
+      currentEditingFood === null &&
+      foodsForFamily(workingMeal, drilledFamily).some(
+        (f) =>
+          (f.state.status === 'confirmed' || f.state.status === 'editing') &&
+          eliminatedFoodIds.has(f.foodId),
+      ),
   );
 
   // ── Save-failure toast ────────────────────────────────────
@@ -523,7 +531,10 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(targetDate, selectedMealType);
+    const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
+      targetDate,
+      selectedMealType,
+    );
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
@@ -536,9 +547,8 @@
 </script>
 
 <div class="page-container pb-24">
-
   <!-- Sticky header -->
-  <div class="sticky top-0 bg-surface z-20">
+  <div class="bg-surface sticky top-0 z-20">
     <PageHeader title={headerTitle()} variant="large" onBack={handleBack} bordered={false}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(targetDate)}</p>
@@ -546,34 +556,37 @@
           <button
             type="button"
             aria-label={actionStrings.more}
-            class="ml-1 text-text-muted text-lg leading-none px-2 -mr-2"
-            onclick={() => (overflowOpen = true)}
-          >⋯</button>
+            class="text-text-muted -mr-2 ml-1 px-2 text-lg leading-none"
+            onclick={() => (overflowOpen = true)}>⋯</button
+          >
         {/if}
       {/snippet}
     </PageHeader>
 
     <!-- Meal type is fixed at entry (ADR-0018) — no pills here. -->
     {#if !drilledFamily}
-    <!-- Dosing guidance during reintroduction -->
-    {#if reintroInfo}
-      {@const cat = getCategoryConfig(reintroInfo.allergenId)}
-      {@const rung = rungAtDayInPhase(catalog, reintroInfo.allergenId, reintroInfo.dayInPhase, V1_FEEDING_STAGE)}
-      <div class="px-4 pt-2 space-y-1.5">
-        <InfoBanner variant="success">
-          <p class="eyebrow text-success">
-            {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
-          </p>
-          <p class="caption mt-0.5">{rung?.dose ?? ''} ({cat?.name})</p>
-        </InfoBanner>
-      </div>
-    {/if}
-
+      <!-- Dosing guidance during reintroduction -->
+      {#if reintroInfo}
+        {@const cat = getCategoryConfig(reintroInfo.allergenId)}
+        {@const rung = rungAtDayInPhase(
+          catalog,
+          reintroInfo.allergenId,
+          reintroInfo.dayInPhase,
+          V1_FEEDING_STAGE,
+        )}
+        <div class="space-y-1.5 px-4 pt-2">
+          <InfoBanner variant="success">
+            <p class="eyebrow text-success">
+              {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
+            </p>
+            <p class="caption mt-0.5">{rung?.dose ?? ''} ({cat?.name})</p>
+          </InfoBanner>
+        </div>
+      {/if}
     {/if}
   </div>
 
-  <div class="px-4 pt-4 space-y-5">
-
+  <div class="space-y-5 px-4 pt-4">
     <!-- Family grid or drill-in -->
     <div>
       {#if drilledFamily}
@@ -589,99 +602,109 @@
           onNewCustomFood={handleNewCustomFood}
         />
       {:else}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div role="presentation" onclick={handleGridContainerClick}>
-
-        <!-- Confirmed foods summary (editable working list) -->
-        {#if hasConfirmed || gridEditingFoodId}
-          <div class="mb-5">
-            <p class="eyebrow mb-2">{commonStrings.meal.confirmedFoodsLabel}</p>
-            <div class="space-y-1.5">
-              {#each gridListFoods() as food (food.foodId)}
-                {@const fam = workingMeal.families.find(f => f.foods.some(fd => fd.foodId === food.foodId))}
-                {@const familyId = fam?.familyId}
-                {@const isEditing = food.state.status === 'editing'}
-                {@const isConfirmed = food.state.status === 'confirmed'}
-                {@const isLockedConfirmed = food.state.status === 'locked' && food.state.prior === 'confirmed'}
-                {@const isEliminated = eliminatedFoodIds.has(food.foodId)}
-                {@const tileState = isEditing ? 'editing' : isConfirmed ? 'confirmed' : 'locked'}
-                {@const lockedPriorVal = isLockedConfirmed ? 'confirmed' : undefined}
-                {@const amount = isConfirmed && food.state.status === 'confirmed' ? food.state.amount : food.cachedAmount}
-                {@const prep = isConfirmed && food.state.status === 'confirmed' ? food.state.preparation : food.cachedPreparation}
-                {@const summary = amount
-                  ? `${portionStrings[amount].label}${prep ? ` · ${preparationStrings[prep].label}` : ''}`
-                  : undefined}
-                <div data-food-tile>
-                  <FoodTile
-                    name={food.name}
-                    state={tileState}
-                    variant="list"
-                    eliminatedStatus={isEliminated ? 'danger' : undefined}
-                    lockedPrior={lockedPriorVal}
-                    summary={isEditing ? undefined : summary}
-                    onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
-                    onRemove={() => familyId && handleGridRowRemove(food.foodId, familyId)}
-                  >
-                    {#snippet editor()}
-                      {#if food.state.status === 'editing'}
-                        <FoodEditor
-                          amount={food.state.amount}
-                          preparation={food.state.preparation}
-                          form={formForFood(food.foodId)}
-                          eliminatedVariant={isEliminated}
-                          onAmountChange={(a) => familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
-                          onPreparationChange={(p) => familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}
-                        />
-                      {/if}
-                    {/snippet}
-                  </FoodTile>
-                </div>
-              {/each}
+          <!-- Confirmed foods summary (editable working list) -->
+          {#if hasConfirmed || gridEditingFoodId}
+            <div class="mb-5">
+              <p class="eyebrow mb-2">{commonStrings.meal.confirmedFoodsLabel}</p>
+              <div class="space-y-1.5">
+                {#each gridListFoods() as food (food.foodId)}
+                  {@const fam = workingMeal.families.find((f) =>
+                    f.foods.some((fd) => fd.foodId === food.foodId),
+                  )}
+                  {@const familyId = fam?.familyId}
+                  {@const isEditing = food.state.status === 'editing'}
+                  {@const isConfirmed = food.state.status === 'confirmed'}
+                  {@const isLockedConfirmed =
+                    food.state.status === 'locked' && food.state.prior === 'confirmed'}
+                  {@const isEliminated = eliminatedFoodIds.has(food.foodId)}
+                  {@const tileState = isEditing ? 'editing' : isConfirmed ? 'confirmed' : 'locked'}
+                  {@const lockedPriorVal = isLockedConfirmed ? 'confirmed' : undefined}
+                  {@const amount =
+                    isConfirmed && food.state.status === 'confirmed'
+                      ? food.state.amount
+                      : food.cachedAmount}
+                  {@const prep =
+                    isConfirmed && food.state.status === 'confirmed'
+                      ? food.state.preparation
+                      : food.cachedPreparation}
+                  {@const summary = amount
+                    ? `${portionStrings[amount].label}${prep ? ` · ${preparationStrings[prep].label}` : ''}`
+                    : undefined}
+                  <div data-food-tile>
+                    <FoodTile
+                      name={food.name}
+                      state={tileState}
+                      variant="list"
+                      eliminatedStatus={isEliminated ? 'danger' : undefined}
+                      lockedPrior={lockedPriorVal}
+                      summary={isEditing ? undefined : summary}
+                      onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
+                      onRemove={() => familyId && handleGridRowRemove(food.foodId, familyId)}
+                    >
+                      {#snippet editor()}
+                        {#if food.state.status === 'editing'}
+                          <FoodEditor
+                            amount={food.state.amount}
+                            preparation={food.state.preparation}
+                            form={formForFood(food.foodId)}
+                            eliminatedVariant={isEliminated}
+                            onAmountChange={(a) =>
+                              familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
+                            onPreparationChange={(p) =>
+                              familyId && handleGridRowPreparationChange(food.foodId, familyId, p)}
+                          />
+                        {/if}
+                      {/snippet}
+                    </FoodTile>
+                  </div>
+                {/each}
+              </div>
             </div>
+          {/if}
+
+          <p class="eyebrow mb-2">{commonStrings.meal.allCategoriesLabel}</p>
+          <FamilyGrid onSelect={handleFamilySelect} />
+
+          <!-- Meal notes -->
+          <div class="mt-5">
+            <label class="eyebrow mb-2 block" for="meal-notes">
+              {commonStrings.meal.mealNotesLabel}
+            </label>
+            <textarea
+              id="meal-notes"
+              rows={2}
+              bind:value={editor.notes}
+              placeholder={commonStrings.meal.notesPlaceholder}
+              class="input-base w-full resize-none bg-white px-4 py-2.5"
+            ></textarea>
           </div>
-        {/if}
-
-        <p class="eyebrow mb-2">{commonStrings.meal.allCategoriesLabel}</p>
-        <FamilyGrid onSelect={handleFamilySelect} />
-
-        <!-- Meal notes -->
-        <div class="mt-5">
-          <label class="eyebrow block mb-2" for="meal-notes">
-            {commonStrings.meal.mealNotesLabel}
-          </label>
-          <textarea
-            id="meal-notes"
-            rows={2}
-            bind:value={editor.notes}
-            placeholder={commonStrings.meal.notesPlaceholder}
-            class="input-base w-full px-4 py-2.5 bg-white resize-none"
-          ></textarea>
-        </div>
         </div>
       {/if}
     </div>
-
   </div>
 </div>
 
 <!-- Sticky CTA -->
 <div
-  class="fixed left-0 right-0 bottom-0 z-30 px-4 pt-2 bg-gradient-to-t from-surface via-surface to-transparent"
+  class="from-surface via-surface fixed right-0 bottom-0 left-0 z-30 bg-gradient-to-t to-transparent px-4 pt-2"
   style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
 >
-  <div class="max-w-lg mx-auto">
+  <div class="mx-auto max-w-lg">
     {#if showEmptyHint}
-      <p class="body-muted text-center pb-2">{commonStrings.meal.emptyMealHint}</p>
+      <p class="body-muted pb-2 text-center">{commonStrings.meal.emptyMealHint}</p>
     {/if}
     <button
       aria-disabled={finalizeDisabled ? 'true' : 'false'}
       onclick={handleCta}
-      class="w-full py-3 rounded-xl font-semibold text-sm transition-all
+      class="w-full rounded-xl py-3 text-sm font-semibold transition-all
         {finalizeDisabled
-          ? 'bg-surface-dark text-text-muted cursor-default'
-          : editingFoodIsEliminated || familySaveHasEliminated || (hasConflicts && !drilledFamily && !gridEditingFoodId)
-            ? 'bg-danger text-white'
-            : 'bg-primary text-white'}"
+        ? 'bg-surface-dark text-text-muted cursor-default'
+        : editingFoodIsEliminated ||
+            familySaveHasEliminated ||
+            (hasConflicts && !drilledFamily && !gridEditingFoodId)
+          ? 'bg-danger text-white'
+          : 'bg-primary text-white'}"
     >
       {ctaLabel()}
     </button>
@@ -692,7 +715,9 @@
   <Toast
     message={saveErrorMessage}
     type="error"
-    onClose={() => { saveErrorMessage = null; }}
+    onClose={() => {
+      saveErrorMessage = null;
+    }}
   />
 {/if}
 

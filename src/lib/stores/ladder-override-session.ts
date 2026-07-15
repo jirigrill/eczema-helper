@@ -18,8 +18,12 @@ export function createLadderOverrideSession(allergenId: string): Readable<Ladder
     const subscription = liveQuery(() =>
       db.ladder_overrides.get(allergenId).then((row) => row ?? null),
     ).subscribe({
-      next: (row) => { set(row ?? null); },
-      error: () => { set(null); },
+      next: (row) => {
+        set(row ?? null);
+      },
+      error: () => {
+        set(null);
+      },
     });
     return () => subscription.unsubscribe();
   });

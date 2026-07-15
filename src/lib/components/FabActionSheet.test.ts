@@ -70,7 +70,9 @@ describe('FabActionSheet', () => {
     expect(getByTestId('fab-meal-type-lunch')).toHaveAttribute('data-logged', 'true');
     expect(getByTestId('fab-meal-type-snack')).toHaveAttribute('data-logged', 'false');
     expect(getByTestId('fab-meal-type-dinner')).toHaveAttribute('data-logged', 'false');
-    expect(getByTestId('fab-meal-type-breakfast').getAttribute('aria-label')).toMatch(/Snídaně.*již zaznamenáno/);
+    expect(getByTestId('fab-meal-type-breakfast').getAttribute('aria-label')).toMatch(
+      /Snídaně.*již zaznamenáno/,
+    );
   });
 
   it('the FAB is day-scoped — submenu row navigates with the current `date` prop', async () => {
@@ -106,9 +108,7 @@ describe('FabActionSheet', () => {
     });
     await fireEvent.click(getByTestId('fab-action-skin'));
     await tick();
-    expect(gotoMock).toHaveBeenCalledWith(
-      `/skin?date=${date}&returnTo=/day/${date}`,
-    );
+    expect(gotoMock).toHaveBeenCalledWith(`/skin?date=${date}&returnTo=/day/${date}`);
   });
 
   it('skin action calls onclose after navigating', async () => {
@@ -130,19 +130,22 @@ describe('FabActionSheet', () => {
 
   it.each([
     ['breakfast', '🌅'],
-    ['lunch',     '☀️'],
-    ['snack',     '🍎'],
-    ['dinner',    '🌙'],
-  ] as const)('meal-type submenu row for %s renders an <svg> icon, not the legacy emoji', async (mealType, emoji) => {
-    const { getByTestId, queryByText } = render(FabActionSheet, {
-      props: { date, onclose: vi.fn() },
-    });
-    await fireEvent.click(getByTestId('fab-action-meal'));
-    await tick();
-    const row = getByTestId(`fab-meal-type-${mealType}`);
-    expect(row.querySelector('svg')).not.toBeNull();
-    expect(queryByText(emoji)).not.toBeInTheDocument();
-  });
+    ['lunch', '☀️'],
+    ['snack', '🍎'],
+    ['dinner', '🌙'],
+  ] as const)(
+    'meal-type submenu row for %s renders an <svg> icon, not the legacy emoji',
+    async (mealType, emoji) => {
+      const { getByTestId, queryByText } = render(FabActionSheet, {
+        props: { date, onclose: vi.fn() },
+      });
+      await fireEvent.click(getByTestId('fab-action-meal'));
+      await tick();
+      const row = getByTestId(`fab-meal-type-${mealType}`);
+      expect(row.querySelector('svg')).not.toBeNull();
+      expect(queryByText(emoji)).not.toBeInTheDocument();
+    },
+  );
 
   it('the ✓ logged marker still renders alongside the new SVG icon', async () => {
     const { getByTestId } = render(FabActionSheet, {
@@ -193,7 +196,12 @@ describe('FabActionSheet', () => {
     it('the evaluate row is day-scoped — uses the current `date` prop and phase id', async () => {
       const pastDate = '2025-04-01';
       const { getByTestId } = render(FabActionSheet, {
-        props: { date: pastDate, onclose: vi.fn(), showEvaluate: true, evaluatePhaseId: 'reintro-wheat' },
+        props: {
+          date: pastDate,
+          onclose: vi.fn(),
+          showEvaluate: true,
+          evaluatePhaseId: 'reintro-wheat',
+        },
       });
       await fireEvent.click(getByTestId('fab-action-evaluate'));
       await tick();

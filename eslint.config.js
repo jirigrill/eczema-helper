@@ -38,6 +38,18 @@ export default ts.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
+      // A `let` read inside a closure before its later assignment (e.g. an
+      // `unsub` referenced in a timeout that runs before `unsub = subscribe(...)`)
+      // genuinely cannot be `const`; don't flag it.
+      'prefer-const': ['error', { ignoreReadBeforeAssign: true }],
+    },
+  },
+  {
+    // Runes make `let x = $state(...)` legitimate even when never reassigned,
+    // so `prefer-const` fights Svelte 5 here — off for all Svelte-authored files.
+    files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
+    rules: {
+      'prefer-const': 'off',
     },
   },
   {

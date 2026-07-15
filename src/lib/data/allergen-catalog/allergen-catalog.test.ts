@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  FAMILIES,
-  ALLERGENS,
-  FOODS,
-} from './allergen-catalog';
+import { FAMILIES, ALLERGENS, FOODS } from './allergen-catalog';
 
 // ── Id uniqueness ─────────────────────────────────────────────
 
@@ -32,20 +28,27 @@ describe('referential integrity', () => {
 
   it('every allergen references a known familyId', () => {
     for (const allergen of ALLERGENS) {
-      expect(familyIds, `allergen '${allergen.id}' has unknown familyId '${allergen.familyId}'`).toContain(allergen.familyId);
+      expect(
+        familyIds,
+        `allergen '${allergen.id}' has unknown familyId '${allergen.familyId}'`,
+      ).toContain(allergen.familyId);
     }
   });
 
   it('every food references a known familyId', () => {
     for (const food of FOODS) {
-      expect(familyIds, `food '${food.id}' has unknown familyId '${food.familyId}'`).toContain(food.familyId);
+      expect(familyIds, `food '${food.id}' has unknown familyId '${food.familyId}'`).toContain(
+        food.familyId,
+      );
     }
   });
 
   it('every food allergenId references a known allergen', () => {
     for (const food of FOODS) {
       for (const aId of food.allergenIds) {
-        expect(allergenIds, `food '${food.id}' references unknown allergenId '${aId}'`).toContain(aId);
+        expect(allergenIds, `food '${food.id}' references unknown allergenId '${aId}'`).toContain(
+          aId,
+        );
       }
     }
   });
@@ -119,13 +122,17 @@ describe('protocol allergens', () => {
   });
 
   it('meat has no ladder', () => {
-    const meat = ALLERGENS.find((a) => a.id === 'meat') as { id: string; ladder?: unknown } | undefined;
+    const meat = ALLERGENS.find((a) => a.id === 'meat') as
+      | { id: string; ladder?: unknown }
+      | undefined;
     expect(meat).toBeDefined();
     expect((meat as Record<string, unknown>).ladder).toBeUndefined();
   });
 
   it('coffee-tea has no ladder', () => {
-    const coffeeTea = ALLERGENS.find((a) => a.id === 'coffee-tea') as { id: string; ladder?: unknown } | undefined;
+    const coffeeTea = ALLERGENS.find((a) => a.id === 'coffee-tea') as
+      | { id: string; ladder?: unknown }
+      | undefined;
     expect(coffeeTea).toBeDefined();
     expect((coffeeTea as Record<string, unknown>).ladder).toBeUndefined();
   });
@@ -173,7 +180,9 @@ describe('spec spot checks', () => {
     for (const id of homelessIds) {
       const allergen = ALLERGENS.find((a) => a.id === id);
       expect(allergen, `allergen '${id}' not found`).toBeDefined();
-      expect(allergen?.familyId, `allergen '${id}' should be under spices-condiments`).toBe('spices-condiments');
+      expect(allergen?.familyId, `allergen '${id}' should be under spices-condiments`).toBe(
+        'spices-condiments',
+      );
     }
   });
 

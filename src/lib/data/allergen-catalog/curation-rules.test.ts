@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { FOODS, ALLERGENS } from './allergen-catalog';
 
-type FoodLite = { id: string; familyId: string; allergenIds: readonly string[]; form: string; sourceGroup?: string };
-const byId = (id: string): FoodLite | undefined => (FOODS as readonly FoodLite[]).find((f) => f.id === id);
+type FoodLite = {
+  id: string;
+  familyId: string;
+  allergenIds: readonly string[];
+  form: string;
+  sourceGroup?: string;
+};
+const byId = (id: string): FoodLite | undefined =>
+  (FOODS as readonly FoodLite[]).find((f) => f.id === id);
 
 describe('curation: precision-biased allergenIds', () => {
   it('ovesné mléko carries no allergens (oats are gluten-free; no cross-contamination tag)', () => {
@@ -89,8 +96,13 @@ describe('earned-granularity guard', () => {
     // they reduce to `psenice` as far as the allergen surface is concerned.
     const forbiddenWheatProducts = [
       'psenicny-chleb',
-      'rohlik', 'houska', 'bageta', 'toust', 'sendvic',
-      'testoviny', 'psenicna-mouka',
+      'rohlik',
+      'houska',
+      'bageta',
+      'toust',
+      'sendvic',
+      'testoviny',
+      'psenicna-mouka',
       'ovesne-vlocky',
       'kukuricna-mouka',
     ];
@@ -101,7 +113,16 @@ describe('earned-granularity guard', () => {
   });
 
   it('forbidden cosmetic-dup ids are absent (kefír, zmrzlina, granola, müsli, pizza, guláš)', () => {
-    const forbidden = ['kefir', 'zmrzlina', 'granola', 'musli', 'pizza', 'gulas', 'polevka', 'salat'];
+    const forbidden = [
+      'kefir',
+      'zmrzlina',
+      'granola',
+      'musli',
+      'pizza',
+      'gulas',
+      'polevka',
+      'salat',
+    ];
     for (const id of forbidden) {
       expect(byId(id), `cosmetic / dish '${id}' must not be in catalog`).toBeUndefined();
     }
@@ -253,33 +274,33 @@ describe('per-family expansion (issue #319 scope)', () => {
     const veg = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'vegetables');
     const expected: Record<string, string | undefined> = {
       // Plodová (fruit-vegetables)
-      rajce:           'plodova',
-      okurka:          'plodova',
-      cuketa:          'plodova',
-      paprika:         'plodova',
-      dyne:            'plodova',
-      lilek:           'plodova',
+      rajce: 'plodova',
+      okurka: 'plodova',
+      cuketa: 'plodova',
+      paprika: 'plodova',
+      dyne: 'plodova',
+      lilek: 'plodova',
       // Listová (leaf)
-      spenat:          'listova',
+      spenat: 'listova',
       'listovy-salat': 'listova',
       // Kořenová (root)
-      mrkev:           'korenova',
-      repa:            'korenova',
-      celer:           'korenova',
-      pastynak:        'korenova',
-      redkev:          'korenova',
+      mrkev: 'korenova',
+      repa: 'korenova',
+      celer: 'korenova',
+      pastynak: 'korenova',
+      redkev: 'korenova',
       // Cibulová (bulb / allium)
-      cesnek:          'cibulova',
-      cibule:          'cibulova',
+      cesnek: 'cibulova',
+      cibule: 'cibulova',
       // Hlízová (tuber)
-      brambory:        'hlizova',
-      bataty:          'hlizova',
+      brambory: 'hlizova',
+      bataty: 'hlizova',
       // Košťálová (brassica)
-      kvetak:          'kostalova',
-      zeli:            'kostalova',
-      brokolice:       'kostalova',
+      kvetak: 'kostalova',
+      zeli: 'kostalova',
+      brokolice: 'kostalova',
       // Houby — mushrooms aren't culinary vegetables → Ostatní (sourceGroup undefined)
-      houby:           undefined,
+      houby: undefined,
     };
     for (const food of veg) {
       const want = expected[food.id];
@@ -418,7 +439,13 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
   });
 
   it('oils split by type (option A), all plant source, no allergens, form: cookable', () => {
-    const oils = ['olivovy-olej', 'repkovy-olej', 'slunecnicovy-olej', 'lneny-olej', 'kokosovy-olej'];
+    const oils = [
+      'olivovy-olej',
+      'repkovy-olej',
+      'slunecnicovy-olej',
+      'lneny-olej',
+      'kokosovy-olej',
+    ];
     for (const id of oils) {
       const f = byId(id);
       expect(f, `${id} must be added`).toBeDefined();
@@ -458,13 +485,19 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
   it('meat family no longer contains sadlo (rendered fat moved to fats-oils)', () => {
     type FoodLite = { id: string; familyId: string };
     const meat = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'meat');
-    expect(meat.find((f) => f.id === 'sadlo'), 'sadlo must not be in meat').toBeUndefined();
+    expect(
+      meat.find((f) => f.id === 'sadlo'),
+      'sadlo must not be in meat',
+    ).toBeUndefined();
   });
 
   it('spices-condiments family no longer contains cooking oils', () => {
     type FoodLite = { id: string; familyId: string };
     const spices = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'spices-condiments');
-    expect(spices.find((f) => f.id === 'olej'), 'olej must not be in spices-condiments').toBeUndefined();
+    expect(
+      spices.find((f) => f.id === 'olej'),
+      'olej must not be in spices-condiments',
+    ).toBeUndefined();
     expect(
       spices.find((f) => f.id.endsWith('-olej')),
       'cooking oils must not be in spices-condiments',

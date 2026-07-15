@@ -26,8 +26,7 @@ export function snapshotsEqual(a: MealSnapshot, b: MealSnapshot): boolean {
   if (a.items.length !== b.items.length) return false;
   // Order-independent: editing reorders foods; same set of foodIds with
   // same amounts/preparations is "clean" regardless of order.
-  const key = (i: ComparableItem) =>
-    `${i.foodId}${i.name}${i.amount}${i.preparationMethod ?? ''}`;
+  const key = (i: ComparableItem) => `${i.foodId}${i.name}${i.amount}${i.preparationMethod ?? ''}`;
   const av = a.items.map(key).sort();
   const bv = b.items.map(key).sort();
   return av.every((k, idx) => k === bv[idx]);

@@ -1,11 +1,7 @@
 // Single source of truth is allergen-catalog.ts — all allergen data lives there.
 // This barrel re-exports catalog types and provides helpers that need the strings layer.
 
-export {
-  FAMILIES,
-  ALLERGENS,
-  FOODS,
-} from './allergen-catalog';
+export { FAMILIES, ALLERGENS, FOODS } from './allergen-catalog';
 
 export type {
   FamilyId,
@@ -41,7 +37,7 @@ export function getCategoryConfig(id: string): CategoryConfig | undefined {
 import type { FamilyId } from './allergen-catalog';
 
 /** All catalog allergens that belong to the given family, in catalog order. */
-export function allergensByFamily(familyId: FamilyId): typeof ALLERGENS[number][] {
+export function allergensByFamily(familyId: FamilyId): (typeof ALLERGENS)[number][] {
   return ALLERGENS.filter((a) => a.familyId === familyId);
 }
 

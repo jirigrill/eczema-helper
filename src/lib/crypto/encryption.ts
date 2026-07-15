@@ -26,17 +26,14 @@ const KEY_LENGTH = 256;
 /**
  * Derive an AES-256 key from a passphrase using PBKDF2.
  */
-async function deriveKey(
-  passphrase: string,
-  salt: BufferSource
-): Promise<CryptoKey> {
+async function deriveKey(passphrase: string, salt: BufferSource): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const passphraseKey = await crypto.subtle.importKey(
     'raw',
     encoder.encode(passphrase),
     'PBKDF2',
     false,
-    ['deriveBits', 'deriveKey']
+    ['deriveBits', 'deriveKey'],
   );
 
   return crypto.subtle.deriveKey(
@@ -49,7 +46,7 @@ async function deriveKey(
     passphraseKey,
     { name: 'AES-GCM', length: KEY_LENGTH },
     false,
-    ['encrypt', 'decrypt']
+    ['encrypt', 'decrypt'],
   );
 }
 
@@ -74,7 +71,7 @@ export async function encrypt(data: Uint8Array, passphrase: string): Promise<Arr
   const ciphertext = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
-    data as BufferSource
+    data as BufferSource,
   );
 
   // Combine salt + iv + ciphertext into single buffer
@@ -122,11 +119,7 @@ export async function decrypt(data: Uint8Array, passphrase: string): Promise<Arr
 
   // Decrypt with AES-GCM (will throw if auth tag fails)
   try {
-    return await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      key,
-      ciphertext
-    );
+    return await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
   } catch {
     throw new Error('Decryption failed: invalid passphrase or corrupted data');
   }

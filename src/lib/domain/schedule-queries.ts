@@ -1,4 +1,13 @@
-import type { GeneratedSchedule, QuestionnaireAnswers, SchedulePhase, MealItem, ReintroductionDayInfo, AllergenStatusValue, AllergenStatus, AllergenId } from '$lib/domain/models';
+import type {
+  GeneratedSchedule,
+  QuestionnaireAnswers,
+  SchedulePhase,
+  MealItem,
+  ReintroductionDayInfo,
+  AllergenStatusValue,
+  AllergenStatus,
+  AllergenId,
+} from '$lib/domain/models';
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { getPermanentEliminations } from '$lib/domain/models';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
@@ -14,9 +23,11 @@ function isPhaseActiveOnDate(phase: SchedulePhase, date: string): boolean {
 
 export function getPhaseForDate(schedule: GeneratedSchedule, date: string): SchedulePhase | null {
   // Tolerance-building phases overlap with others — prefer non-tolerance-building phases first
-  const nonTb = schedule.phases.find(p => p.type !== 'tolerance-building' && isPhaseActiveOnDate(p, date));
+  const nonTb = schedule.phases.find(
+    (p) => p.type !== 'tolerance-building' && isPhaseActiveOnDate(p, date),
+  );
   if (nonTb) return nonTb;
-  return schedule.phases.find(p => isPhaseActiveOnDate(p, date)) ?? null;
+  return schedule.phases.find((p) => isPhaseActiveOnDate(p, date)) ?? null;
 }
 
 // ── What is eliminated on a given date ───────────────────────
@@ -42,10 +53,7 @@ const FORBIDDEN_STATUSES = new Set<AllergenStatusValue>([
  *    reacted, not-yet-tested }. Statuses { testing, passed,
  *    tolerance-building } are not forbidden.
  */
-export function getEliminatedSlugsForDate(
-  schedule: GeneratedSchedule,
-  date: string
-): AllergenId[] {
+export function getEliminatedSlugsForDate(schedule: GeneratedSchedule, date: string): AllergenId[] {
   const phase = getPhaseForDate(schedule, date);
 
   // Step 1: reset guard
@@ -55,17 +63,14 @@ export function getEliminatedSlugsForDate(
 
   // Step 2: status filter
   return getAllergenStatuses(schedule, date)
-    .filter(s => FORBIDDEN_STATUSES.has(s.status))
-    .map(s => s.allergenId);
+    .filter((s) => FORBIDDEN_STATUSES.has(s.status))
+    .map((s) => s.allergenId);
 }
 
 // ── End-of-phase evaluation check ────────────────────────────
 // Returns true on the last day of reset, elimination, or reintroduction phases (not rest/training).
 
-export function isPhaseEndForEvaluation(
-  schedule: GeneratedSchedule,
-  date: string
-): boolean {
+export function isPhaseEndForEvaluation(schedule: GeneratedSchedule, date: string): boolean {
   const phase = getPhaseForDate(schedule, date);
   if (!phase) return false;
   if (phase.type === 'rest' || phase.type === 'tolerance-building') return false;
@@ -77,12 +82,12 @@ export function isPhaseEndForEvaluation(
 export function detectConflicts(
   items: MealItem[],
   eliminatedSlugs: AllergenId[],
-  catalog: CanonicalCatalogPort
+  catalog: CanonicalCatalogPort,
 ): MealItem[] {
   if (eliminatedSlugs.length === 0) return [];
-  return items.filter(item => {
+  return items.filter((item) => {
     const triggers = catalog.allergensForFood(item.foodId);
-    return triggers.some(t => eliminatedSlugs.includes(t as AllergenId));
+    return triggers.some((t) => eliminatedSlugs.includes(t as AllergenId));
   });
 }
 
@@ -94,7 +99,7 @@ export function detectConflicts(
 export function getReintroductionDayInfo(
   schedule: GeneratedSchedule,
   date: string,
-  catalog: CanonicalCatalogPort
+  catalog: CanonicalCatalogPort,
 ): ReintroductionDayInfo | null {
   const phase = getPhaseForDate(schedule, date);
   if (!phase || phase.type !== 'reintroduction') return null;
@@ -106,7 +111,7 @@ export function getReintroductionDayInfo(
   const totalDays = daysBetween(phase.startDate, phase.endDate);
 
   const rung = catalog.get(allergenId)?.ladder?.stages[V1_FEEDING_STAGE]?.[dayInPhase - 1];
-  const isEvaluationDay = rung?.isEvaluationCheckpoint ?? (dayInPhase === totalDays);
+  const isEvaluationDay = rung?.isEvaluationCheckpoint ?? dayInPhase === totalDays;
 
   return { dayInPhase, totalDays, allergenId, isEvaluationDay };
 }
@@ -116,7 +121,7 @@ export function getReintroductionDayInfo(
 
 export function getScheduleProgress(
   schedule: GeneratedSchedule,
-  today: string
+  today: string,
 ): { currentDay: number; totalDays: number; percentComplete: number } {
   const totalDays = daysBetween(schedule.startDate, schedule.estimatedEndDate);
   const currentDay = Math.max(1, Math.min(totalDays, daysBetween(schedule.startDate, today)));
@@ -141,7 +146,7 @@ export type ReadyContext = {
 export function buildScheduleContext(
   raw: { schedule: GeneratedSchedule; answers: QuestionnaireAnswers },
   today: string,
-  catalog: CanonicalCatalogPort
+  catalog: CanonicalCatalogPort,
 ): ReadyContext {
   const { schedule, answers } = raw;
   return {

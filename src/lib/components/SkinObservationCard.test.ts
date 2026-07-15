@@ -175,12 +175,18 @@ describe('SkinObservationCard', () => {
     const klidne = makeObservation({
       id: 'klidne',
       createdAt: `${DATE}T09:12:00.000`,
-      regions: [{ id: 'face', level: 0 }, { id: 'belly', level: 0 }],
+      regions: [
+        { id: 'face', level: 0 },
+        { id: 'belly', level: 0 },
+      ],
     });
     const stredni = makeObservation({
       id: 'stredni',
       createdAt: `${DATE}T14:30:00.000`,
-      regions: [{ id: 'elbow-folds', level: 2 }, { id: 'neck', level: 2 }],
+      regions: [
+        { id: 'elbow-folds', level: 2 },
+        { id: 'neck', level: 2 },
+      ],
       notes: 'po obědě',
     });
     const { container, queryByText } = render(SkinObservationCard, {
@@ -194,7 +200,7 @@ describe('SkinObservationCard', () => {
 
     // Read times top-to-bottom; assert ascending order regardless of input order.
     const times = Array.from(rows).map((row) =>
-      row.querySelector('.tabular-nums')?.textContent?.trim()
+      row.querySelector('.tabular-nums')?.textContent?.trim(),
     );
     expect(times).toEqual(['9:12', '14:30', '19:45']);
 
@@ -268,12 +274,8 @@ describe('SkinObservationCard', () => {
     }
     // Each anchor points to /skin with the observation's own date + id +
     // a returnTo pointing back to the day it was rendered on.
-    expect(rows[0].getAttribute('href')).toBe(
-      `/skin?date=${DATE}&id=obs-a&returnTo=/day/${DATE}`
-    );
-    expect(rows[1].getAttribute('href')).toBe(
-      `/skin?date=${DATE}&id=obs-b&returnTo=/day/${DATE}`
-    );
+    expect(rows[0].getAttribute('href')).toBe(`/skin?date=${DATE}&id=obs-a&returnTo=/day/${DATE}`);
+    expect(rows[1].getAttribute('href')).toBe(`/skin?date=${DATE}&id=obs-b&returnTo=/day/${DATE}`);
     // Empty-state CTA must be gone (observations exist), so the only anchors
     // in the card are the observation rows themselves.
     expect(container.querySelectorAll('a')).toHaveLength(2);

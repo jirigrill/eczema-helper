@@ -28,14 +28,14 @@ export type {
 // ── Allergen status ───────────────────────────────────────────
 
 export type AllergenStatusValue =
-  | 'permanent-mother'     // Mother's own allergy. Lifelong. Never reintroduced.
-  | 'permanent-baby'       // Baby's confirmed allergy. Eliminated; eligible for end-of-program retest.
-  | 'not-yet-tested'       // Protocol allergen whose reintroduction phase hasn't started yet.
-  | 'eliminated'           // Protocol allergen inside the active elimination (or reset) phase.
-  | 'testing'              // Inside a reintroduction phase right now.
-  | 'passed'               // Latest reintroduction completed cleanly (no rest follow-up).
-  | 'reacted'              // Latest reintroduction was followed by a rest phase.
-  | 'tolerance-building';  // Open-ended phase delivering small doses.
+  | 'permanent-mother' // Mother's own allergy. Lifelong. Never reintroduced.
+  | 'permanent-baby' // Baby's confirmed allergy. Eliminated; eligible for end-of-program retest.
+  | 'not-yet-tested' // Protocol allergen whose reintroduction phase hasn't started yet.
+  | 'eliminated' // Protocol allergen inside the active elimination (or reset) phase.
+  | 'testing' // Inside a reintroduction phase right now.
+  | 'passed' // Latest reintroduction completed cleanly (no rest follow-up).
+  | 'reacted' // Latest reintroduction was followed by a rest phase.
+  | 'tolerance-building'; // Open-ended phase delivering small doses.
 
 export type AllergenStatus = {
   allergenId: AllergenId;

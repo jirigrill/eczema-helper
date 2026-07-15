@@ -124,12 +124,16 @@ describe('SkinPhotoGallery — lightbox', () => {
     await tick();
 
     // Open
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement,
+    );
     await tick();
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeInTheDocument();
 
     // Close via × button
-    await fireEvent.click(container.querySelector('[data-testid="skin-lightbox-close"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-lightbox-close"]') as HTMLElement,
+    );
     await tick();
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
   });
@@ -142,11 +146,15 @@ describe('SkinPhotoGallery — lightbox', () => {
     await tick();
 
     // Open
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-thumb-0"]') as HTMLElement,
+    );
     await tick();
 
     // Click the backdrop (the lightbox overlay element itself, not the image)
-    await fireEvent.click(container.querySelector('[data-testid="skin-photo-lightbox"]') as HTMLElement);
+    await fireEvent.click(
+      container.querySelector('[data-testid="skin-photo-lightbox"]') as HTMLElement,
+    );
     await tick();
     expect(container.querySelector('[data-testid="skin-photo-lightbox"]')).toBeNull();
   });

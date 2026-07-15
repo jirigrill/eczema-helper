@@ -6,9 +6,9 @@ import { SunriseIcon, SunIcon, AppleIcon, MoonIcon } from './index';
 describe('meal-type SVG icons', () => {
   const cases = [
     { name: 'SunriseIcon', component: SunriseIcon },
-    { name: 'SunIcon',     component: SunIcon     },
-    { name: 'AppleIcon',   component: AppleIcon   },
-    { name: 'MoonIcon',    component: MoonIcon    },
+    { name: 'SunIcon', component: SunIcon },
+    { name: 'AppleIcon', component: AppleIcon },
+    { name: 'MoonIcon', component: MoonIcon },
   ] as const;
 
   for (const { name, component } of cases) {
@@ -24,7 +24,10 @@ describe('meal-type SVG icons', () => {
         for (const attr of ['fill', 'stroke'] as const) {
           const v = el.getAttribute(attr);
           if (v == null) continue;
-          expect(['currentColor', 'none'], `${name}: ${attr}="${v}" must be currentColor or none`).toContain(v);
+          expect(
+            ['currentColor', 'none'],
+            `${name}: ${attr}="${v}" must be currentColor or none`,
+          ).toContain(v);
         }
       }
     });

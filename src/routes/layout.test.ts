@@ -10,7 +10,11 @@ import { emptyWorkingMeal, type WorkingMeal } from '$lib/domain/working-meal';
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
-const mockPageStore = writable({ url: new URL(`http://localhost/day/${new Date().toISOString().split('T')[0]}`), params: { date: new Date().toISOString().split('T')[0] }, data: {} });
+const mockPageStore = writable({
+  url: new URL(`http://localhost/day/${new Date().toISOString().split('T')[0]}`),
+  params: { date: new Date().toISOString().split('T')[0] },
+  data: {},
+});
 
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }));
@@ -31,14 +35,19 @@ function zIndexOf(el: Element | null): number {
 const today = new Date().toISOString().split('T')[0];
 
 const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [], permanentBaby: [],
+  permanentMother: [],
+  permanentBaby: [],
   startDate: today,
   estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-  phases: [{
-    id: 'reset', type: 'reset',
-    allergenIds: [], startDate: today,
-    endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
-  }],
+  phases: [
+    {
+      id: 'reset',
+      type: 'reset',
+      allergenIds: [],
+      startDate: today,
+      endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
+    },
+  ],
 };
 
 const sampleAnswers: QuestionnaireAnswers = {
@@ -71,7 +80,11 @@ async function renderLayout() {
 beforeEach(() => {
   mockGoto.mockReset();
   mockScheduleContext.set({ status: 'loading' });
-  mockPageStore.set({ url: new URL(`http://localhost/day/${today}`), params: { date: today }, data: {} });
+  mockPageStore.set({
+    url: new URL(`http://localhost/day/${today}`),
+    params: { date: today },
+    data: {},
+  });
 });
 
 describe('+layout.svelte — redirect', () => {
@@ -125,7 +138,11 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('hides nav on /settings route', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/settings'), params: { date: '' }, data: {} });
+    mockPageStore.set({
+      url: new URL('http://localhost/settings'),
+      params: { date: '' },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { queryByText } = await renderLayout();
     await tick();
@@ -152,7 +169,11 @@ describe('+layout.svelte — bottom nav visibility', () => {
 
   it('hides FAB when viewing a future /day/[date]', async () => {
     const future = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-    mockPageStore.set({ url: new URL(`http://localhost/day/${future}`), params: { date: future }, data: {} });
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${future}`),
+      params: { date: future },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
@@ -171,7 +192,11 @@ describe('+layout.svelte — bottom nav visibility', () => {
   });
 
   it('action sheet uses page date param when on /day/[date]', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/day/2025-01-15'), params: { date: '2025-01-15' }, data: {} });
+    mockPageStore.set({
+      url: new URL('http://localhost/day/2025-01-15'),
+      params: { date: '2025-01-15' },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { container, getByTestId } = await renderLayout();
     await tick();
@@ -184,7 +209,9 @@ describe('+layout.svelte — bottom nav visibility', () => {
     await tick();
     await fireEvent.click(getByTestId('fab-meal-type-breakfast'));
     await tick();
-    expect(mockGoto).toHaveBeenCalledWith('/meal?type=breakfast&date=2025-01-15&returnTo=/day/2025-01-15');
+    expect(mockGoto).toHaveBeenCalledWith(
+      '/meal?type=breakfast&date=2025-01-15&returnTo=/day/2025-01-15',
+    );
   });
 });
 
@@ -264,7 +291,11 @@ describe('+layout.svelte — active tab state', () => {
   });
 
   it('marks Dnes tab active when viewing today', async () => {
-    mockPageStore.set({ url: new URL(`http://localhost/day/${today}`), params: { date: today }, data: {} });
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${today}`),
+      params: { date: today },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
@@ -276,7 +307,11 @@ describe('+layout.svelte — active tab state', () => {
 
   it('marks Dnes tab inactive when viewing a past date', async () => {
     const pastDate = '2025-01-01';
-    mockPageStore.set({ url: new URL(`http://localhost/day/${pastDate}`), params: { date: pastDate }, data: {} });
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${pastDate}`),
+      params: { date: pastDate },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
@@ -286,7 +321,11 @@ describe('+layout.svelte — active tab state', () => {
 
   it('marks Dnes tab inactive when viewing a future date', async () => {
     const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-    mockPageStore.set({ url: new URL(`http://localhost/day/${futureDate}`), params: { date: futureDate }, data: {} });
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${futureDate}`),
+      params: { date: futureDate },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
@@ -341,7 +380,11 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
   });
 
   it('resets scroll when navigating between two day routes', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/day/2025-01-15'), params: { date: '2025-01-15' }, data: {} });
+    mockPageStore.set({
+      url: new URL('http://localhost/day/2025-01-15'),
+      params: { date: '2025-01-15' },
+      data: {},
+    });
     mockScheduleContext.set(readyContext);
     const { container } = await renderLayout();
     await tick();
@@ -349,7 +392,11 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
     const main = container.querySelector('main') as HTMLElement;
     main.scrollTop = 400;
 
-    mockPageStore.set({ url: new URL('http://localhost/day/2025-01-16'), params: { date: '2025-01-16' }, data: {} });
+    mockPageStore.set({
+      url: new URL('http://localhost/day/2025-01-16'),
+      params: { date: '2025-01-16' },
+      data: {},
+    });
     await tick();
 
     expect(main.scrollTop).toBe(0);
@@ -361,7 +408,7 @@ describe('+layout.svelte — discard toast undo', () => {
     clearBuffer();
   });
 
-  it('preserves the buffer\'s original date when undoing a delete on a past day', async () => {
+  it("preserves the buffer's original date when undoing a delete on a past day", async () => {
     const pastDate = '2026-06-19';
     mockPageStore.set({
       url: new URL(`http://localhost/day/${pastDate}`),

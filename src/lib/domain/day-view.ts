@@ -5,9 +5,9 @@ import { resolveRouteDate } from '$lib/utils/date';
 export type DayViewMode = 'editable' | 'preview';
 
 export type DayViewCore = {
-	selectedDate: string;
-	redirectTo: string | null;
-	viewMode: DayViewMode;
+  selectedDate: string;
+  redirectTo: string | null;
+  viewMode: DayViewMode;
 };
 
 /**
@@ -21,23 +21,23 @@ export type DayViewCore = {
  * No reactive subscriptions — compose this inside a .svelte.ts shell.
  */
 export function resolveDay(param: string, raw: ScheduleRaw, today: string): DayViewCore {
-	if (raw.status !== 'ready') {
-		return { selectedDate: today, redirectTo: null, viewMode: 'editable' };
-	}
-	const result = resolveRouteDate(param, raw.schedule.startDate, today);
-	if (result.type === 'redirect') {
-		return { selectedDate: today, redirectTo: result.to, viewMode: 'editable' };
-	}
-	if (result.type === 'preview') {
-		return { selectedDate: result.date, redirectTo: null, viewMode: 'preview' };
-	}
-	return { selectedDate: result.date, redirectTo: null, viewMode: 'editable' };
+  if (raw.status !== 'ready') {
+    return { selectedDate: today, redirectTo: null, viewMode: 'editable' };
+  }
+  const result = resolveRouteDate(param, raw.schedule.startDate, today);
+  if (result.type === 'redirect') {
+    return { selectedDate: today, redirectTo: result.to, viewMode: 'editable' };
+  }
+  if (result.type === 'preview') {
+    return { selectedDate: result.date, redirectTo: null, viewMode: 'preview' };
+  }
+  return { selectedDate: result.date, redirectTo: null, viewMode: 'editable' };
 }
 
 export type DailyRecords = {
-	readonly observations: readonly SkinObservation[];
-	readonly photos: readonly SkinPhoto[];
-	readonly meals: readonly Meal[];
+  readonly observations: readonly SkinObservation[];
+  readonly photos: readonly SkinPhoto[];
+  readonly meals: readonly Meal[];
 };
 
 /**
@@ -48,12 +48,12 @@ export type DailyRecords = {
  * an empty slot does not count.
  */
 export function dailyCompleteness(records: DailyRecords): number {
-	const hasObservation = records.observations.length > 0 ? 1 : 0;
-	const hasPhoto = records.photos.length > 0 ? 1 : 0;
-	const hasMealContent = records.meals.some(
-		(m) => m.items.length > 0 || (m.notes != null && m.notes.trim().length > 0),
-	)
-		? 1
-		: 0;
-	return hasObservation + hasPhoto + hasMealContent;
+  const hasObservation = records.observations.length > 0 ? 1 : 0;
+  const hasPhoto = records.photos.length > 0 ? 1 : 0;
+  const hasMealContent = records.meals.some(
+    (m) => m.items.length > 0 || (m.notes != null && m.notes.trim().length > 0),
+  )
+    ? 1
+    : 0;
+  return hasObservation + hasPhoto + hasMealContent;
 }

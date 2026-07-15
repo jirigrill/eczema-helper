@@ -40,14 +40,14 @@ function mapFood(
   meal: WorkingMeal,
   familyId: FamilyId,
   foodId: string,
-  fn: (f: WorkingFood) => WorkingFood
+  fn: (f: WorkingFood) => WorkingFood,
 ): WorkingMeal {
   return {
     ...meal,
-    families: meal.families.map(fam =>
+    families: meal.families.map((fam) =>
       fam.familyId !== familyId
         ? fam
-        : { ...fam, foods: fam.foods.map(f => (f.foodId === foodId ? fn(f) : f)) }
+        : { ...fam, foods: fam.foods.map((f) => (f.foodId === foodId ? fn(f) : f)) },
     ),
   };
 }
@@ -55,16 +55,16 @@ function mapFood(
 function mapFamily(
   meal: WorkingMeal,
   familyId: FamilyId,
-  fn: (fam: WorkingFamily) => WorkingFamily
+  fn: (fam: WorkingFamily) => WorkingFamily,
 ): WorkingMeal {
   return {
     ...meal,
-    families: meal.families.map(fam => (fam.familyId === familyId ? fn(fam) : fam)),
+    families: meal.families.map((fam) => (fam.familyId === familyId ? fn(fam) : fam)),
   };
 }
 
 function familyFor(meal: WorkingMeal, familyId: FamilyId): WorkingFamily | undefined {
-  return meal.families.find(f => f.familyId === familyId);
+  return meal.families.find((f) => f.familyId === familyId);
 }
 
 /** Ensure the family exists; add it if not. */
@@ -78,12 +78,12 @@ function ensureFood(
   meal: WorkingMeal,
   familyId: FamilyId,
   foodId: string,
-  name: string
+  name: string,
 ): WorkingMeal {
   const fam = familyFor(meal, familyId);
-  if (fam?.foods.some(f => f.foodId === foodId)) return meal;
+  if (fam?.foods.some((f) => f.foodId === foodId)) return meal;
   const withFamily = ensureFamily(meal, familyId);
-  return mapFamily(withFamily, familyId, fam => ({
+  return mapFamily(withFamily, familyId, (fam) => ({
     ...fam,
     foods: [...fam.foods, { foodId, name, state: { status: 'idle' } }],
   }));
@@ -103,12 +103,12 @@ export function startEditing(
   meal: WorkingMeal,
   familyId: FamilyId,
   foodId: string,
-  name: string
+  name: string,
 ): WorkingMeal {
   const withFood = ensureFood(meal, familyId, foodId, name);
-  return mapFamily(withFood, familyId, fam => ({
+  return mapFamily(withFood, familyId, (fam) => ({
     ...fam,
-    foods: fam.foods.map(f => {
+    foods: fam.foods.map((f) => {
       if (f.foodId === foodId) {
         const amount: PortionKind = f.cachedAmount ?? 'portion';
         const preparation = f.cachedPreparation;
@@ -118,7 +118,11 @@ export function startEditing(
         f.state.status === 'idle' ||
         f.state.status === 'editing' ||
         f.state.status === 'confirmed'
-      ) return { ...f, state: { status: 'locked', prior: f.state.status === 'confirmed' ? 'confirmed' : 'idle' } };
+      )
+        return {
+          ...f,
+          state: { status: 'locked', prior: f.state.status === 'confirmed' ? 'confirmed' : 'idle' },
+        };
       return f;
     }),
   }));
@@ -128,14 +132,10 @@ export function startEditing(
  * "Uložit {Food}": confirm the editing food, unlock everything else.
  * Locked foods are restored to their prior state (confirmed or idle).
  */
-export function confirmFood(
-  meal: WorkingMeal,
-  familyId: FamilyId,
-  foodId: string
-): WorkingMeal {
-  return mapFamily(meal, familyId, fam => ({
+export function confirmFood(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+  return mapFamily(meal, familyId, (fam) => ({
     ...fam,
-    foods: fam.foods.map(f => {
+    foods: fam.foods.map((f) => {
       if (f.foodId === foodId && f.state.status === 'editing') {
         const { amount, preparation } = f.state;
         return {
@@ -147,7 +147,14 @@ export function confirmFood(
       }
       if (f.state.status === 'locked') {
         return f.state.prior === 'confirmed' && f.cachedAmount
-          ? { ...f, state: { status: 'confirmed', amount: f.cachedAmount, preparation: f.cachedPreparation } }
+          ? {
+              ...f,
+              state: {
+                status: 'confirmed',
+                amount: f.cachedAmount,
+                preparation: f.cachedPreparation,
+              },
+            }
           : { ...f, state: { status: 'idle' } };
       }
       return f;
@@ -159,20 +166,23 @@ export function confirmFood(
  * Tap the editing food again (or tap outside): cancel back to idle, cache nothing.
  * Locked foods are restored to their prior state (confirmed or idle).
  */
-export function cancelEditing(
-  meal: WorkingMeal,
-  familyId: FamilyId,
-  foodId: string
-): WorkingMeal {
-  return mapFamily(meal, familyId, fam => ({
+export function cancelEditing(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+  return mapFamily(meal, familyId, (fam) => ({
     ...fam,
-    foods: fam.foods.map(f => {
+    foods: fam.foods.map((f) => {
       if (f.foodId === foodId && f.state.status === 'editing') {
         return { ...f, state: { status: 'idle' } };
       }
       if (f.state.status === 'locked') {
         return f.state.prior === 'confirmed' && f.cachedAmount
-          ? { ...f, state: { status: 'confirmed', amount: f.cachedAmount, preparation: f.cachedPreparation } }
+          ? {
+              ...f,
+              state: {
+                status: 'confirmed',
+                amount: f.cachedAmount,
+                preparation: f.cachedPreparation,
+              },
+            }
           : { ...f, state: { status: 'idle' } };
       }
       return f;
@@ -183,12 +193,8 @@ export function cancelEditing(
 /**
  * Tap a confirmed food: deselect it back to idle. Cache is preserved for re-select.
  */
-export function deselectFood(
-  meal: WorkingMeal,
-  familyId: FamilyId,
-  foodId: string
-): WorkingMeal {
-  return mapFood(meal, familyId, foodId, f => {
+export function deselectFood(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+  return mapFood(meal, familyId, foodId, (f) => {
     if (f.state.status !== 'confirmed') return f;
     return { ...f, state: { status: 'idle' } };
   });
@@ -201,9 +207,9 @@ export function updateEditingAmount(
   meal: WorkingMeal,
   familyId: FamilyId,
   foodId: string,
-  amount: PortionKind
+  amount: PortionKind,
 ): WorkingMeal {
-  return mapFood(meal, familyId, foodId, f => {
+  return mapFood(meal, familyId, foodId, (f) => {
     if (f.state.status !== 'editing') return f;
     return { ...f, state: { ...f.state, amount } };
   });
@@ -216,9 +222,9 @@ export function updateEditingPreparation(
   meal: WorkingMeal,
   familyId: FamilyId,
   foodId: string,
-  preparation: PreparationMethod | undefined
+  preparation: PreparationMethod | undefined,
 ): WorkingMeal {
-  return mapFood(meal, familyId, foodId, f => {
+  return mapFood(meal, familyId, foodId, (f) => {
     if (f.state.status !== 'editing') return f;
     return { ...f, state: { ...f.state, preparation } };
   });
@@ -228,22 +234,25 @@ export function updateEditingPreparation(
  * Remove a food from the working list entirely (the ✕ action on a grid row).
  * If the removed food was editing, locked siblings are restored to their prior state.
  */
-export function removeFood(
-  meal: WorkingMeal,
-  familyId: FamilyId,
-  foodId: string
-): WorkingMeal {
-  return mapFamily(meal, familyId, fam => {
-    const target = fam.foods.find(f => f.foodId === foodId);
+export function removeFood(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+  return mapFamily(meal, familyId, (fam) => {
+    const target = fam.foods.find((f) => f.foodId === foodId);
     const wasEditing = target?.state.status === 'editing';
     return {
       ...fam,
       foods: fam.foods
-        .filter(f => f.foodId !== foodId)
-        .map(f => {
+        .filter((f) => f.foodId !== foodId)
+        .map((f) => {
           if (!wasEditing || f.state.status !== 'locked') return f;
           return f.state.prior === 'confirmed' && f.cachedAmount
-            ? { ...f, state: { status: 'confirmed', amount: f.cachedAmount, preparation: f.cachedPreparation } }
+            ? {
+                ...f,
+                state: {
+                  status: 'confirmed',
+                  amount: f.cachedAmount,
+                  preparation: f.cachedPreparation,
+                },
+              }
             : { ...f, state: { status: 'idle' } };
         }),
     };
@@ -255,32 +264,24 @@ export function removeFood(
  * reset confirmed foods' caches so the slot is clean for a future edit.
  */
 export function commitFamily(meal: WorkingMeal, familyId: FamilyId): WorkingMeal {
-  return mapFamily(meal, familyId, fam => ({
+  return mapFamily(meal, familyId, (fam) => ({
     ...fam,
-    foods: fam.foods.filter(f => isActive(f.state)),
+    foods: fam.foods.filter((f) => isActive(f.state)),
   }));
 }
 
 // ── Read helpers ───────────────────────────────────────────────
 
-export function confirmedFoodsForFamily(
-  meal: WorkingMeal,
-  familyId: FamilyId
-): WorkingFood[] {
-  return familyFor(meal, familyId)?.foods.filter(f => f.state.status === 'confirmed') ?? [];
+export function confirmedFoodsForFamily(meal: WorkingMeal, familyId: FamilyId): WorkingFood[] {
+  return familyFor(meal, familyId)?.foods.filter((f) => f.state.status === 'confirmed') ?? [];
 }
 
 export function allConfirmedFoods(meal: WorkingMeal): WorkingFood[] {
-  return meal.families.flatMap(fam => fam.foods.filter(f => f.state.status === 'confirmed'));
+  return meal.families.flatMap((fam) => fam.foods.filter((f) => f.state.status === 'confirmed'));
 }
 
-export function editingFood(
-  meal: WorkingMeal,
-  familyId: FamilyId
-): WorkingFood | null {
-  return (
-    familyFor(meal, familyId)?.foods.find(f => f.state.status === 'editing') ?? null
-  );
+export function editingFood(meal: WorkingMeal, familyId: FamilyId): WorkingFood | null {
+  return familyFor(meal, familyId)?.foods.find((f) => f.state.status === 'editing') ?? null;
 }
 
 export function foodsForFamily(meal: WorkingMeal, familyId: FamilyId): WorkingFood[] {
@@ -291,7 +292,7 @@ export function foodsForFamily(meal: WorkingMeal, familyId: FamilyId): WorkingFo
  * Convert the working meal's confirmed foods to MealItem[] for persistence.
  */
 export function toMealItems(meal: WorkingMeal): MealItem[] {
-  return allConfirmedFoods(meal).map(f => {
+  return allConfirmedFoods(meal).map((f) => {
     if (f.state.status !== 'confirmed') {
       throw new Error(`toMealItems: food ${f.foodId} is not confirmed`);
     }
@@ -310,8 +311,8 @@ export function toMealItems(meal: WorkingMeal): MealItem[] {
  * (editing or confirmed). Used by the discard guard before navigating away.
  */
 export function isNonEmpty(meal: WorkingMeal): boolean {
-  return meal.families.some(fam =>
-    fam.foods.some(f => f.state.status === 'editing' || f.state.status === 'confirmed')
+  return meal.families.some((fam) =>
+    fam.foods.some((f) => f.state.status === 'editing' || f.state.status === 'confirmed'),
   );
 }
 
@@ -324,7 +325,7 @@ export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
   const familyMap = new Map<FamilyId, WorkingFood[]>();
 
   for (const item of items) {
-    const catalogFood = FOODS.find(f => f.id === item.foodId);
+    const catalogFood = FOODS.find((f) => f.id === item.foodId);
     const familyId: FamilyId = catalogFood?.familyId ?? ('custom' as FamilyId);
 
     const food: WorkingFood = {

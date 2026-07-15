@@ -25,7 +25,9 @@ describe('FoodTile — visual states', () => {
   });
 
   it('confirmed: data-state="confirmed"', () => {
-    const { container } = render(FoodTile, { props: { ...baseProps, state: 'confirmed' as const } });
+    const { container } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const },
+    });
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('confirmed');
   });
 
@@ -61,17 +63,23 @@ describe('FoodTile — visual states', () => {
   });
 
   it('idle with eliminatedStatus: data-state="danger"', () => {
-    const { container } = render(FoodTile, { props: { ...baseProps, eliminatedStatus: 'danger' as const } });
+    const { container } = render(FoodTile, {
+      props: { ...baseProps, eliminatedStatus: 'danger' as const },
+    });
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger');
   });
 
   it('shows "Vyloučeno" label when idle + eliminatedStatus=danger', () => {
-    const { getByText } = render(FoodTile, { props: { ...baseProps, eliminatedStatus: 'danger' as const } });
+    const { getByText } = render(FoodTile, {
+      props: { ...baseProps, eliminatedStatus: 'danger' as const },
+    });
     expect(getByText('Vyloučeno')).toBeInTheDocument();
   });
 
   it('does not show "Vyloučeno" label when state is confirmed', () => {
-    const { queryByText } = render(FoodTile, { props: { ...baseProps, state: 'confirmed' as const, eliminatedStatus: 'danger' as const } });
+    const { queryByText } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const, eliminatedStatus: 'danger' as const },
+    });
     expect(queryByText('Vyloučeno')).not.toBeInTheDocument();
   });
 });
@@ -87,7 +95,9 @@ describe('FoodTile — interactivity', () => {
 
   it('does not call onclick when state is locked', async () => {
     const onclick = vi.fn();
-    const { getByRole } = render(FoodTile, { props: { ...baseProps, state: 'locked' as const, onclick } });
+    const { getByRole } = render(FoodTile, {
+      props: { ...baseProps, state: 'locked' as const, onclick },
+    });
     const btn = getByRole('button');
     expect(btn).toBeDisabled();
     await fireEvent.click(btn);
@@ -97,7 +107,9 @@ describe('FoodTile — interactivity', () => {
 
   it('calls onclick when tapped in editing state', async () => {
     const onclick = vi.fn();
-    const { getByRole } = render(FoodTile, { props: { ...baseProps, state: 'editing' as const, onclick } });
+    const { getByRole } = render(FoodTile, {
+      props: { ...baseProps, state: 'editing' as const, onclick },
+    });
     await fireEvent.click(getByRole('button'));
     await tick();
     expect(onclick).toHaveBeenCalledOnce();
@@ -105,7 +117,9 @@ describe('FoodTile — interactivity', () => {
 
   it('calls onclick when tapped in confirmed state', async () => {
     const onclick = vi.fn();
-    const { getByRole } = render(FoodTile, { props: { ...baseProps, state: 'confirmed' as const, onclick } });
+    const { getByRole } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const, onclick },
+    });
     await fireEvent.click(getByRole('button'));
     await tick();
     expect(onclick).toHaveBeenCalledOnce();
@@ -136,7 +150,9 @@ describe('FoodTile — conflict (eliminated-today) variants', () => {
   });
 
   it('confirmed without eliminatedStatus: still data-state="confirmed"', () => {
-    const { container } = render(FoodTile, { props: { ...baseProps, state: 'confirmed' as const } });
+    const { container } = render(FoodTile, {
+      props: { ...baseProps, state: 'confirmed' as const },
+    });
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('confirmed');
   });
 });

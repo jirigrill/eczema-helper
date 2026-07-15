@@ -36,7 +36,7 @@
   const skinObservations = $derived(view.observations);
   const photos = $derived(view.photos);
   const observationTimes = $derived(
-    new Map(skinObservations.map((o) => [o.id, formatObservationTime(o.createdAt)]))
+    new Map(skinObservations.map((o) => [o.id, formatObservationTime(o.createdAt)])),
   );
   const ctx = $derived(view.ctx);
   const selectedDate = $derived(view.selectedDate);
@@ -46,26 +46,24 @@
   const toleranceReminders = $derived(
     ctx.status === 'ready'
       ? getToleranceBuildingRemindersForDate(ctx.schedule, selectedDate, meals, catalog)
-      : []
+      : [],
   );
 
   const protocolSlugs = $derived(
     ctx.status === 'ready'
       ? (ctx.schedule.phases.find((p) => p.type === 'elimination')?.allergenIds ?? [])
-      : []
+      : [],
   );
 
   const allowedProtocol = $derived(
-    ctx.status === 'ready'
-      ? protocolSlugs.filter((s) => !ctx.eliminatedToday.includes(s))
-      : []
+    ctx.status === 'ready' ? protocolSlugs.filter((s) => !ctx.eliminatedToday.includes(s)) : [],
   );
 
   const isToday = $derived(selectedDate === today);
 
   const evaluations = $derived($evaluationsStore);
   const phaseEvaluation = $derived(
-    phase ? evaluations.find((e) => e.phaseId === phase.id) ?? null : null
+    phase ? (evaluations.find((e) => e.phaseId === phase.id) ?? null) : null,
   );
   const phaseHeroHref = $derived(
     evaluationHrefForPhase(phase ?? null, selectedDate, phaseEvaluation !== null) ?? '/program',
@@ -83,7 +81,7 @@
           estimatedEnd: ctx.schedule.estimatedEndDate,
           today,
         })
-      : computeDayStrip({ selectedDate, protocolStart: today, estimatedEnd: today, today })
+      : computeDayStrip({ selectedDate, protocolStart: today, estimatedEnd: today, today }),
   );
 
   const todayRecorded = $derived(isToday && completeness > 0);
@@ -102,9 +100,9 @@
   }
 </script>
 
-<div class="max-w-lg mx-auto">
+<div class="mx-auto max-w-lg">
   <!-- Header -->
-  <div class="px-4 pt-4 pb-2 flex items-end justify-between">
+  <div class="flex items-end justify-between px-4 pt-4 pb-2">
     <div>
       {#if isToday}
         <div class="eyebrow">{formatDateLongCs(selectedDate)}</div>
@@ -115,12 +113,21 @@
     </div>
     <a
       href="/settings"
-      class="text-text-muted p-1.5 -mr-1.5"
+      class="text-text-muted -mr-1.5 p-1.5"
       aria-label={commonStrings.today.settingsAria}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z" />
+        <path
+          d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"
+        />
       </svg>
     </a>
   </div>
@@ -134,33 +141,41 @@
     onselectdate={handleSelectDate}
   />
 
-  <div class="px-4 pb-24 space-y-3">
+  <div class="space-y-3 px-4 pb-24">
     {#if ctx.status === 'error'}
       <ErrorAlert message={ctx.message} />
     {:else if ctx.status !== 'ready'}
-      <div class="bg-white rounded-2xl border border-surface-dark p-6 text-center">
+      <div class="border-surface-dark rounded-2xl border bg-white p-6 text-center">
         <p class="body-muted">{commonStrings.today.noProgram}</p>
-        <a href="/" class="text-primary text-sm font-medium mt-2 inline-block">{actionStrings.startQuestionnaire}</a>
+        <a href="/" class="text-primary mt-2 inline-block text-sm font-medium"
+          >{actionStrings.startQuestionnaire}</a
+        >
       </div>
     {:else}
       <!-- Phase hero -->
       <a
         href={phaseHeroHref}
-        class="block bg-white rounded-2xl border border-surface-dark p-4 text-left"
+        class="border-surface-dark block rounded-2xl border bg-white p-4 text-left"
       >
-        <div class="flex items-center gap-2.5 mb-2">
+        <div class="mb-2 flex items-center gap-2.5">
           {#if phase}
             {@const display = phaseConfig[phase.type]}
-            <div class="w-9 h-9 rounded-lg {display.iconBg} flex items-center justify-center text-lg shrink-0">
+            <div
+              class="h-9 w-9 rounded-lg {display.iconBg} flex shrink-0 items-center justify-center text-lg"
+            >
               {display.icon}
             </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="body-bold">{display.label}{phase.allergenIds[0] ? `: ${categoryStrings[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}` : ''}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="body-bold"
+                  >{display.label}{phase.allergenIds[0]
+                    ? `: ${categoryStrings[phase.allergenIds[0]]?.name ?? phase.allergenIds[0]}`
+                    : ''}</span
+                >
                 <PhaseBadge type={phase.type} />
               </div>
               {#if ctx.progress}
-                <div class="text-[11px] text-text-muted mt-0.5">
+                <div class="text-text-muted mt-0.5 text-[11px]">
                   {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                   {#if phase.endDate}
                     · {commonStrings.today.phaseUntilPrefix} {formatDateLongCs(phase.endDate)}
@@ -169,11 +184,15 @@
               {/if}
             </div>
           {:else}
-            <div class="w-9 h-9 rounded-lg bg-surface-dark flex items-center justify-center text-lg shrink-0">📅</div>
-            <div class="flex-1 min-w-0">
+            <div
+              class="bg-surface-dark flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg"
+            >
+              📅
+            </div>
+            <div class="min-w-0 flex-1">
               <span class="body-bold">{commonStrings.today.programEnded}</span>
               {#if ctx.progress}
-                <div class="text-[11px] text-text-muted mt-0.5">
+                <div class="text-text-muted mt-0.5 text-[11px]">
                   {dayProgress(ctx.progress.currentDay, ctx.progress.totalDays)}
                 </div>
               {/if}
@@ -189,33 +208,40 @@
       <!-- Today-only chrome: task counter + tolerance reminders -->
       {#if isPreview}
         <!-- Future-day read-only "Naplánováno" preview -->
-        <div
-          class="bg-white border border-surface-dark rounded-2xl p-4"
-          data-testid="day-preview"
-        >
-          <div class="text-[10px] font-extrabold tracking-wider text-text-muted uppercase mb-1.5">
+        <div class="border-surface-dark rounded-2xl border bg-white p-4" data-testid="day-preview">
+          <div class="text-text-muted mb-1.5 text-[10px] font-extrabold tracking-wider uppercase">
             {commonStrings.dayPreview.badge}
           </div>
-          <p class="text-[12px] text-text-muted">
+          <p class="text-text-muted text-[12px]">
             {commonStrings.dayPreview.description}
           </p>
         </div>
       {:else}
         {#if isToday}
-          <div class="bg-white border border-surface-dark rounded-2xl px-3.5 py-2.5 flex items-center justify-between" data-testid="task-counter">
-            <div class="text-[12px] text-text">{commonStrings.today.counterHint}</div>
-            <div class="text-[10px] text-text-muted font-bold tracking-wide">{completeness} / 3</div>
+          <div
+            class="border-surface-dark flex items-center justify-between rounded-2xl border bg-white px-3.5 py-2.5"
+            data-testid="task-counter"
+          >
+            <div class="text-text text-[12px]">{commonStrings.today.counterHint}</div>
+            <div class="text-text-muted text-[10px] font-bold tracking-wide">
+              {completeness} / 3
+            </div>
           </div>
 
           {#each toleranceReminders as reminder (reminder.allergenId)}
             {@const cat = getCategoryConfig(reminder.allergenId)}
-            <div class="bg-white border border-warning/40 rounded-2xl px-3.5 py-3 flex items-center gap-3" data-testid="tolerance-reminder">
-              <span class="text-xl shrink-0">{cat?.icon ?? '🍽'}</span>
-              <div class="flex-1 min-w-0">
-                <div class="text-[10px] font-extrabold tracking-wider text-warning uppercase mb-0.5">
+            <div
+              class="border-warning/40 flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3"
+              data-testid="tolerance-reminder"
+            >
+              <span class="shrink-0 text-xl">{cat?.icon ?? '🍽'}</span>
+              <div class="min-w-0 flex-1">
+                <div
+                  class="text-warning mb-0.5 text-[10px] font-extrabold tracking-wider uppercase"
+                >
                   {commonStrings.today.reminderLabel}
                 </div>
-                <div class="text-[12px] text-text">
+                <div class="text-text text-[12px]">
                   {cat?.name ?? reminder.allergenId}
                   {#if reminder.daysSinceLastDose >= 999}
                     — {commonStrings.today.reminderNeverDosed}
@@ -232,13 +258,13 @@
         <SkinObservationCard observations={skinObservations} date={selectedDate} />
 
         <!-- Skin photo card -->
-        <SkinPhotoCard photos={photos} {observationTimes} />
+        <SkinPhotoCard {photos} {observationTimes} />
 
         <!-- Smím / Vyhýbej se -->
-        <div class="bg-white border border-surface-dark rounded-2xl overflow-hidden">
-          <div class="grid grid-cols-2 divide-x divide-surface-dark">
+        <div class="border-surface-dark overflow-hidden rounded-2xl border bg-white">
+          <div class="divide-surface-dark grid grid-cols-2 divide-x">
             <div class="p-3">
-              <div class="text-[9px] font-extrabold tracking-wider text-success uppercase mb-1.5">
+              <div class="text-success mb-1.5 text-[9px] font-extrabold tracking-wider uppercase">
                 {commonStrings.today.allowed}
               </div>
               {#if allowedProtocol.length > 0}
@@ -248,11 +274,11 @@
                   {/each}
                 </div>
               {:else}
-                <div class="text-[11px] text-text-muted">—</div>
+                <div class="text-text-muted text-[11px]">—</div>
               {/if}
             </div>
             <div class="p-3">
-              <div class="text-[9px] font-extrabold tracking-wider text-danger uppercase mb-1.5">
+              <div class="text-danger mb-1.5 text-[9px] font-extrabold tracking-wider uppercase">
                 {commonStrings.today.avoid}
               </div>
               {#if ctx.eliminatedToday.length > 0}
@@ -262,19 +288,27 @@
                   {/each}
                 </div>
               {:else}
-                <div class="text-[11px] text-success">{commonStrings.today.noRestrictions}</div>
+                <div class="text-success text-[11px]">{commonStrings.today.noRestrictions}</div>
               {/if}
             </div>
           </div>
         </div>
 
         <!-- Meal card -->
-        <MealCard date={selectedDate} meals={meals} eliminatedToday={ctx.eliminatedToday} />
+        <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
 
         <!-- Bottom hint -->
-        <div class="mt-2 flex items-center justify-center gap-2 text-[11px] text-text-muted/70">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rotate-180">
-            <path d="M12 19V5M5 12l7-7 7 7"/>
+        <div class="text-text-muted/70 mt-2 flex items-center justify-center gap-2 text-[11px]">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="rotate-180"
+          >
+            <path d="M12 19V5M5 12l7-7 7 7" />
           </svg>
           <span>{commonStrings.today.recordHint}</span>
         </div>

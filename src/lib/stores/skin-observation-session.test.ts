@@ -76,9 +76,8 @@ describe('skinObservationSession (default export — today singleton)', () => {
     const { skinObservationSession } = await import('./skin-observation-session');
     const obs = makeObservation({ id: `obs-${today}-mild`, regions: [{ id: 'arms', level: 2 }] });
     await skinObservationSession.save(obs, []);
-    const rows = await waitForObservations(
-      skinObservationSession,
-      (rs) => rs.some((r) => r.id === obs.id),
+    const rows = await waitForObservations(skinObservationSession, (rs) =>
+      rs.some((r) => r.id === obs.id),
     );
     expect(rows.some((r) => r.id === obs.id)).toBe(true);
   });
@@ -153,13 +152,16 @@ describe('createSkinObservationSession (factory)', () => {
       notes: 'before',
     };
     await session.save(obs, []);
-    const revised: SkinObservation = { ...obs, regions: [{ id: 'face', level: 3 }], notes: 'after' };
+    const revised: SkinObservation = {
+      ...obs,
+      regions: [{ id: 'face', level: 3 }],
+      notes: 'after',
+    };
     const result = await session.update(revised, { addPhotos: [], removePhotoIds: [] });
     expect(result).toMatchObject({ ok: true });
 
-    const rows = await waitForObservations(
-      session,
-      (rs) => rs.some((r) => r.id === obs.id && r.notes === 'after'),
+    const rows = await waitForObservations(session, (rs) =>
+      rs.some((r) => r.id === obs.id && r.notes === 'after'),
     );
     const found = rows.find((r) => r.id === obs.id);
     expect(found?.regions[0].level).toBe(3);

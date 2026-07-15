@@ -32,10 +32,7 @@ export type RecapRow = {
  *
  * Returns [] when phase.endDate is missing (incomplete schedule).
  */
-export function buildPhaseRecap(
-  phase: SchedulePhase,
-  observations: SkinObservation[],
-): RecapRow[] {
+export function buildPhaseRecap(phase: SchedulePhase, observations: SkinObservation[]): RecapRow[] {
   if (!phase.endDate) return [];
 
   const totalDays = daysBetween(phase.startDate, phase.endDate);

@@ -9,9 +9,13 @@ import type { ReintroductionEvaluation } from '$lib/domain/models';
  * the core projection stays a pure function of `schedule + answers + date`.
  */
 export const evaluationsStore = readable<ReintroductionEvaluation[]>([], (set) => {
-	const subscription = liveQuery(() => db.evaluations.toArray()).subscribe({
-		next: (rows) => { set(rows ?? []); },
-		error: () => { set([]); },
-	});
-	return () => subscription.unsubscribe();
+  const subscription = liveQuery(() => db.evaluations.toArray()).subscribe({
+    next: (rows) => {
+      set(rows ?? []);
+    },
+    error: () => {
+      set([]);
+    },
+  });
+  return () => subscription.unsubscribe();
 });

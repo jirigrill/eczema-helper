@@ -66,8 +66,14 @@ describe('DexieSkinObservationRepository', () => {
   // ── Multiple observations same date ──────────────────────────
 
   it('multiple observations for same date all appear in listByDate', async () => {
-    const first = makeObservation('2026-05-27', { id: 'obs-1', regions: [{ id: 'face', level: 1 }] });
-    const second = makeObservation('2026-05-27', { id: 'obs-2', regions: [{ id: 'arms', level: 3 }] });
+    const first = makeObservation('2026-05-27', {
+      id: 'obs-1',
+      regions: [{ id: 'face', level: 1 }],
+    });
+    const second = makeObservation('2026-05-27', {
+      id: 'obs-2',
+      regions: [{ id: 'arms', level: 3 }],
+    });
     await repo.save(first, []);
     await repo.save(second, []);
 
@@ -94,7 +100,11 @@ describe('DexieSkinObservationRepository', () => {
       { id: 'arms', level: 1 },
       { id: 'belly', level: 3 },
     ];
-    const obs = makeObservation('2026-05-27', { id: 'obs-full', regions, notes: 'rash on left arm' });
+    const obs = makeObservation('2026-05-27', {
+      id: 'obs-full',
+      regions,
+      notes: 'rash on left arm',
+    });
     await repo.save(obs, []);
     const result = await repo.listByDate('2026-05-27');
     expect(result).toMatchObject({ ok: true });
@@ -123,8 +133,14 @@ describe('DexieSkinObservationRepository', () => {
   // ── Upsert by id ─────────────────────────────────────────────
 
   it('second save for same id overwrites and does not duplicate', async () => {
-    const first = makeObservation('2026-05-27', { id: 'obs-1', regions: [{ id: 'face', level: 1 }] });
-    const second = makeObservation('2026-05-27', { id: 'obs-1', regions: [{ id: 'face', level: 3 }] });
+    const first = makeObservation('2026-05-27', {
+      id: 'obs-1',
+      regions: [{ id: 'face', level: 1 }],
+    });
+    const second = makeObservation('2026-05-27', {
+      id: 'obs-1',
+      regions: [{ id: 'face', level: 3 }],
+    });
     await repo.save(first, []);
     await repo.save(second, []);
 
@@ -235,7 +251,10 @@ describe('DexieSkinObservationRepository', () => {
 
     const revised: SkinObservation = {
       ...original,
-      regions: [{ id: 'face', level: 3 }, { id: 'arms', level: 2 }],
+      regions: [
+        { id: 'face', level: 3 },
+        { id: 'arms', level: 2 },
+      ],
       notes: 'after',
     };
     const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
@@ -295,13 +314,19 @@ describe('DexieSkinObservationRepository', () => {
   it('update removes photos whose id is in removePhotoIds', async () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-remove-photos' });
     await repo.save(obs, [makePhotoInput({ region: 'face' }), makePhotoInput({ region: 'arms' })]);
-    const beforePhotos = await db.photos.where('observationId').equals('obs-remove-photos').toArray();
+    const beforePhotos = await db.photos
+      .where('observationId')
+      .equals('obs-remove-photos')
+      .toArray();
     expect(beforePhotos).toHaveLength(2);
     const [toRemove, toKeep] = beforePhotos;
 
     await repo.update(obs, { addPhotos: [], removePhotoIds: [toRemove.id] });
 
-    const afterPhotos = await db.photos.where('observationId').equals('obs-remove-photos').toArray();
+    const afterPhotos = await db.photos
+      .where('observationId')
+      .equals('obs-remove-photos')
+      .toArray();
     expect(afterPhotos).toHaveLength(1);
     expect(afterPhotos[0].id).toBe(toKeep.id);
   });
@@ -493,7 +518,9 @@ describe('DexieSkinObservationRepository', () => {
     const obs = makeObservation('2026-05-27', { id: 'obs-restore-rb' });
     vi.spyOn(db.photos, 'bulkPut').mockRejectedValueOnce(new Error('photos boom'));
 
-    const result = await repo.restore(obs, [makePhotoRow({ id: 'photo-a', observationId: 'obs-restore-rb' })]);
+    const result = await repo.restore(obs, [
+      makePhotoRow({ id: 'photo-a', observationId: 'obs-restore-rb' }),
+    ]);
     expect(result).toMatchObject({ ok: false });
     if (!result.ok) expect(result.error).toContain('photos boom');
 
