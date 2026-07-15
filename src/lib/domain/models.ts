@@ -1,5 +1,4 @@
 // Domain model for the eczema-tracking app.
-
 // ── Allergen identifiers ──────────────────────────────────────
 // Derived from the data-first catalog (ADR-0017) and re-exported here so
 // existing `$lib/domain/models` import sites are unchanged. The catalog is the
@@ -7,11 +6,11 @@
 import type {
   AllergenId,
   CatalogAllergenId,
-  LadderAllergenId,
   CustomAllergenId,
+  LadderAllergenId,
 } from '$lib/data/allergen-catalog';
+import type { CatalogFoodId, FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
-import type { FamilyId, FoodId, CatalogFoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 
 export type {
   AllergenId,

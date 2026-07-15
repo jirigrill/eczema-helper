@@ -1,5 +1,5 @@
 import type { RegionLevel } from '$lib/domain/models';
-import { severityStrings, type SeverityStrings } from '$lib/strings/skin-regions';
+import { type SeverityStrings, severityStrings } from '$lib/strings/skin-regions';
 
 export type SeverityConfig = SeverityStrings & {
   /** Tailwind class for the dot — solid token color. */

@@ -1,13 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { addDays } from '$lib/utils/date';
+
 import {
   ACCEPTED_ALLERGEN_CADENCE_DAYS,
   BUFFER_AFTER_END_DAYS,
   BUFFER_BEFORE_START_DAYS,
-  cadenceForPhase,
-  isWithinLoggableWindow,
   REINTRODUCTION_CADENCE_DAYS,
   SKIN_STABILITY_WINDOW_DAYS,
+  cadenceForPhase,
+  isWithinLoggableWindow,
   stabilityWindowFor,
 } from './policy';
 

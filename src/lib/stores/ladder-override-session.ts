@@ -1,6 +1,8 @@
 import { readable } from 'svelte/store';
 import type { Readable } from 'svelte/store';
+
 import { liveQuery } from 'dexie';
+
 import { db } from '$lib/db/atopic-db';
 import type { Ladder } from '$lib/domain/canonical-allergen';
 

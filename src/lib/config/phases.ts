@@ -1,5 +1,5 @@
 import type { PhaseType } from '$lib/domain/models';
-import { phaseStrings, type PhaseStrings } from '$lib/strings/phases';
+import { type PhaseStrings, phaseStrings } from '$lib/strings/phases';
 
 export type PhaseConfig = PhaseStrings & {
   icon: string; // emoji used in icon circles

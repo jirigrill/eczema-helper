@@ -1,31 +1,33 @@
-import { describe, it, expect } from 'vitest';
-import {
-  currentRung,
-  nextLegalStep,
-  cadenceGate,
-  skinCalmGate,
-  skinStabilityGate,
-  checkpointVerdictGate,
-  resolveLadder,
-  rungAtDayInPhase,
-  decideLadderMove,
-} from './ladder';
-import type { Ladder, LadderStep, LadderDecisionInput } from './ladder';
+import { describe, expect, it } from 'vitest';
+
+import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
+import type {
+  LadderAllergenId,
+  Meal,
+  PortionKind,
+  ReintroductionEvaluation,
+  SkinObservation,
+} from '$lib/domain/models';
 import {
   MAX_RUNG_REACTIONS,
   REST_PHASE_DAYS_CLEAR,
   REST_PHASE_DAYS_MILD,
 } from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
-import type {
-  Meal,
-  SkinObservation,
-  ReintroductionEvaluation,
-  LadderAllergenId,
-  PortionKind,
-} from '$lib/domain/models';
-import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+
+import {
+  cadenceGate,
+  checkpointVerdictGate,
+  currentRung,
+  decideLadderMove,
+  nextLegalStep,
+  resolveLadder,
+  rungAtDayInPhase,
+  skinCalmGate,
+  skinStabilityGate,
+} from './ladder';
+import type { Ladder, LadderDecisionInput, LadderStep } from './ladder';
 
 // ── Fixtures ──────────────────────────────────────────────────
 

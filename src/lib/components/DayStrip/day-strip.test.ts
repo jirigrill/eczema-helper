@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { computeDayStrip } from './day-strip';
+import { describe, expect, it } from 'vitest';
+
 import { BUFFER_AFTER_END_DAYS } from '$lib/domain/policy';
+
+import { computeDayStrip } from './day-strip';
 
 describe('computeDayStrip', () => {
   const protocolStart = '2026-06-01';

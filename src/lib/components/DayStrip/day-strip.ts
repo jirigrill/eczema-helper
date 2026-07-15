@@ -1,5 +1,5 @@
+import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
-import { BUFFER_BEFORE_START_DAYS, BUFFER_AFTER_END_DAYS } from '$lib/domain/policy';
 
 export type DayStripCell = {
   date: string;

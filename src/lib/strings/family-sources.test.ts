@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { familySources } from './family-sources';
+import { describe, expect, it } from 'vitest';
+
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+
+import { familySources } from './family-sources';
 
 describe('familySources axes', () => {
   it('fruit has jádroviny · peckoviny · bobuloviny · citrusy · tropické (in render order)', () => {

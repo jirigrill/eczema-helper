@@ -1,7 +1,7 @@
+import { type AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 import type { GeneratedSchedule } from '$lib/domain/models';
 import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import type { Result } from '$lib/types/result';
-import { type AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 
 export class DexieScheduleRepository implements ScheduleRepository {
   constructor(private readonly db: AtopicDb) {}

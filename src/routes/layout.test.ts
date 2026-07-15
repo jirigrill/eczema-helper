@@ -1,12 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
 import { tick } from 'svelte';
 import { createRawSnippet } from 'svelte';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
+import { writable } from 'svelte/store';
+
+import { fireEvent, render } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
-import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
-import { emptyWorkingMeal, type WorkingMeal } from '$lib/domain/working-meal';
+import { type WorkingMeal, emptyWorkingMeal } from '$lib/domain/working-meal';
+import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buffer';
+import type { ScheduleContext } from '$lib/stores/schedule-context';
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });

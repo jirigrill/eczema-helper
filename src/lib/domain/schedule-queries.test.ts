@@ -1,23 +1,25 @@
-import { describe, it, expect } from 'vitest';
-import {
-  getPhaseForDate,
-  getEliminatedSlugsForDate,
-  getScheduleProgress,
-  getReintroductionDayInfo,
-  buildScheduleContext,
-  detectConflicts,
-  isPhaseEndForEvaluation,
-} from './schedule-queries';
-import { getAllergenStatuses } from './allergen-status';
-import type {
-  GeneratedSchedule,
-  QuestionnaireAnswers,
-  SchedulePhase,
-  MealItem,
-} from '$lib/domain/models';
+import { describe, expect, it } from 'vitest';
+
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
+import type {
+  GeneratedSchedule,
+  MealItem,
+  QuestionnaireAnswers,
+  SchedulePhase,
+} from '$lib/domain/models';
 import { addDays } from '$lib/utils/date';
+
+import { getAllergenStatuses } from './allergen-status';
+import {
+  buildScheduleContext,
+  detectConflicts,
+  getEliminatedSlugsForDate,
+  getPhaseForDate,
+  getReintroductionDayInfo,
+  getScheduleProgress,
+  isPhaseEndForEvaluation,
+} from './schedule-queries';
 
 const catalog = new BundledCatalogAdapter();
 

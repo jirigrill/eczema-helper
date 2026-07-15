@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
+import { writable } from 'svelte/store';
+
+import { render } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type {
   GeneratedSchedule,
-  QuestionnaireAnswers,
   Meal,
+  QuestionnaireAnswers,
   SkinObservation,
   SkinPhoto,
 } from '$lib/domain/models';
+import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
 // ── Navigation mock ───────────────────────────────────────────
 const mockGoto = vi.fn();

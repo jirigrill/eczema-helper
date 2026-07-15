@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { categoryStrings, subitemStrings } from './categories';
+import { describe, expect, it } from 'vitest';
+
 import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
+
+import { categoryStrings, subitemStrings } from './categories';
 
 describe('categoryStrings', () => {
   it('covers every CatalogAllergenId', () => {

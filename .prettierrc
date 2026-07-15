@@ -5,6 +5,13 @@
   "semi": true,
   "trailingComma": "all",
   "printWidth": 100,
-  "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports",
+    "prettier-plugin-svelte",
+    "prettier-plugin-tailwindcss"
+  ],
+  "importOrder": ["^svelte", "^@sveltejs", "<THIRD_PARTY_MODULES>", "^\\$lib/", "^\\.\\.?/"],
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true,
   "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
 }

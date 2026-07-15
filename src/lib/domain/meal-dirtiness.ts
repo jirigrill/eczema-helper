@@ -1,6 +1,6 @@
+import type { MealItem } from '$lib/domain/models';
 import { toMealItems } from '$lib/domain/working-meal';
 import type { WorkingMeal } from '$lib/domain/working-meal';
-import type { MealItem } from '$lib/domain/models';
 
 type ComparableItem = {
   name: string;

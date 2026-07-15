@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { actionStrings } from './actions';
 
 // Issue #277: collapse the meal-screen save verbs around a single `save` and a

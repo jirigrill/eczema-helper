@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { matchAllergen, matchFood } from './allergen-matcher';
+import { describe, expect, it } from 'vitest';
+
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
+
+import { matchAllergen, matchFood } from './allergen-matcher';
 
 const catalog = new BundledCatalogAdapter();
 

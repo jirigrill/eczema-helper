@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { evaluationView, evaluationHrefForPhase } from './evaluation';
+import { describe, expect, it } from 'vitest';
+
 import type { SchedulePhase } from '$lib/domain/models';
+
+import { evaluationHrefForPhase, evaluationView } from './evaluation';
 
 function phase(
   p: Partial<SchedulePhase> & Pick<SchedulePhase, 'id' | 'type' | 'startDate' | 'endDate'>,

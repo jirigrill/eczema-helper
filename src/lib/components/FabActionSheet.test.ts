@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
-import FabActionSheet from './FabActionSheet.svelte';
+
 import * as navigation from '$app/navigation';
+import { fireEvent, render } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import FabActionSheet from './FabActionSheet.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 

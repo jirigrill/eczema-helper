@@ -4,7 +4,6 @@
  * All numeric knobs that govern phase durations, evaluation windows, and thresholds
  * live here. Tuning the protocol requires touching only this file.
  */
-
 import type { LadderAllergenId } from '$lib/data/allergen-catalog';
 import type { PhaseType } from '$lib/domain/models';
 import { addDays, isDateInRange } from '$lib/utils/date';

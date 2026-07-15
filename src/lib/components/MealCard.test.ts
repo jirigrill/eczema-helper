@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
+
+import { render } from '@testing-library/svelte';
+import { describe, expect, it } from 'vitest';
+
 import type { Meal } from '$lib/domain/models';
+
 import MealCard from './MealCard.svelte';
 
 function makeMeal(overrides?: Partial<Meal>): Meal {

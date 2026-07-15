@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { BundledCatalogAdapter } from './bundled-catalog-adapter';
+import { describe, expect, it } from 'vitest';
+
 import { ALLERGEN_CATALOG } from '$lib/data/allergen-catalog';
-import { FAMILIES, ALLERGENS, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+import { ALLERGENS, FAMILIES, FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+
+import { BundledCatalogAdapter } from './bundled-catalog-adapter';
 
 describe('BundledCatalogAdapter', () => {
   const adapter = new BundledCatalogAdapter();

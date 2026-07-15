@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { DexieHarvestCandidateRepository } from './dexie-harvest-candidate-repository';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AtopicDb } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
+
+import { DexieHarvestCandidateRepository } from './dexie-harvest-candidate-repository';
 
 // ── Helpers ───────────────────────────────────────────────────
 

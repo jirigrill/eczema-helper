@@ -1,12 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render } from '@testing-library/svelte';
-import { writable } from 'svelte/store';
 import { tick } from 'svelte';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
-import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import { getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule-queries';
+import { writable } from 'svelte/store';
+
+import { render } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+import { getAllergenStatuses } from '$lib/domain/allergen-status';
+import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import { getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule-queries';
+import type { ScheduleContext } from '$lib/stores/schedule-context';
 
 const catalog = new BundledCatalogAdapter();
 

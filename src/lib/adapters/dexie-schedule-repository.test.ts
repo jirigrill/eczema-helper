@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
-import { DexieScheduleRepository } from './dexie-schedule-repository';
+import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AtopicDb } from '$lib/db/atopic-db';
 import type { GeneratedSchedule } from '$lib/domain/models';
+
+import { DexieScheduleRepository } from './dexie-schedule-repository';
 
 const sampleSchedule: GeneratedSchedule = {
   phases: [],

@@ -1,9 +1,10 @@
+import type { AtopicDb } from '$lib/db/atopic-db';
 import type { Meal, MealType } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import type { MealRepository } from '$lib/domain/ports/meal-repository';
 import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import type { Result } from '$lib/types/result';
-import type { AtopicDb } from '$lib/db/atopic-db';
+
 import { checkLoggableWindow } from './loggable-window-guard';
 
 export class DexieMealRepository implements MealRepository {

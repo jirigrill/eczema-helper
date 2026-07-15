@@ -1,14 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
+import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import type { Meal, MealItem } from '$lib/domain/models';
+import { PREPARATION_METHODS } from '$lib/domain/models';
+import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
+import { addDays } from '$lib/utils/date';
+
 import { DexieMealRepository } from './dexie-meal-repository';
 import { DexieScheduleRepository } from './dexie-schedule-repository';
 import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
-import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
-import type { Meal, MealItem } from '$lib/domain/models';
-import { PREPARATION_METHODS } from '$lib/domain/models';
-import { addDays } from '$lib/utils/date';
-import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 
 // ── Helpers ───────────────────────────────────────────────────
 

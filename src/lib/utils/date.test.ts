@@ -1,13 +1,14 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  daysBetween,
-  resolveRouteDate,
-  formatWeekdayShortCs,
-  formatWeekdayLongCs,
-  todayIso,
-  daysAgo,
   addDays,
+  daysAgo,
+  daysBetween,
   formatObservationTime,
+  formatWeekdayLongCs,
+  formatWeekdayShortCs,
+  resolveRouteDate,
+  todayIso,
 } from './date';
 
 describe('daysBetween', () => {

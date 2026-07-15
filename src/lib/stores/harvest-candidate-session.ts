@@ -1,7 +1,9 @@
 import { writable } from 'svelte/store';
+
 import { liveQuery } from 'dexie';
-import { db } from '$lib/db/atopic-db';
+
 import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
+import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { Result } from '$lib/types/result';
 

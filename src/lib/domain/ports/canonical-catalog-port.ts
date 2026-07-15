@@ -1,5 +1,5 @@
-import type { Ladder } from '$lib/domain/canonical-allergen';
 import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { Ladder } from '$lib/domain/canonical-allergen';
 
 /**
  * Shape returned by the canonical catalog port. The concrete data source
