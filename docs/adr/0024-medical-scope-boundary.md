@@ -2,7 +2,7 @@
 
 **Status:** Accepted (design). **Regulatory classification pending external
 counsel — hard gate before any non-dogfooder user** (parallels
-[ADR-0005](0005-photo-encryption-deferred.md)). No implementation yet.
+ADR-0005 (now in CONTEXT.md)). No implementation yet.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3, §6 #1, §5 sequence #2.
 **Relates to:** [ADR-0026](0026-llm-schedule-proposer.md) (the proposer this gates), [ADR-0016](0016-verdict-drives-schedule-not-status.md) (verdict stays parent-attributed), [ADR-0025](0025-event-domain-model.md) (event schema as a safety control).

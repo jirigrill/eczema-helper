@@ -20,7 +20,7 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 
 ## Tech Stack
 
-SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` ([ADR-0006](docs/adr/0006-dexie-persistence.md)) · Web Crypto (AES-256-GCM, PBKDF2) for the encrypted export blob ([ADR-0002](docs/adr/0002-backup-floor.md), [ADR-0005](docs/adr/0005-photo-encryption-deferred.md)) · no backend in v1 · deployed as a static bundle rsynced to a VPS, served by Caddy.
+SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · Web Crypto (AES-256-GCM, PBKDF2) for the encrypted export blob ([ADR-0002](docs/adr/0002-backup-floor.md)) · no backend in v1 · deployed as a static bundle rsynced to a VPS, served by Caddy.
 
 ## Directory Layout
 
@@ -28,7 +28,7 @@ SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-
 
 ## Architecture Intent
 
-Ports & Adapters (Hexagonal), applied to local I/O too, not just a remote backend. Pure logic in `lib/domain/`, interfaces in `lib/domain/ports/`, implementations in `lib/adapters/`. Detail: `docs/architecture/ports-and-adapters.md`, [ADR-0006](docs/adr/0006-dexie-persistence.md).
+Ports & Adapters (Hexagonal), applied to local I/O too, not just a remote backend. Pure logic in `lib/domain/`, interfaces in `lib/domain/ports/`, implementations in `lib/adapters/`. Detail: `docs/architecture/ports-and-adapters.md`.
 
 ## Commands
 
@@ -55,7 +55,7 @@ TypeScript, naming, imports, error handling, Svelte 5, testing, security rules: 
 
 ## Conventions
 
-- UI text is Czech, never inline on domain records: `src/lib/strings/` (pure text) → `src/lib/config/` (+ visual tokens). Full split, examples, `satisfies` rule: [ADR-0014](docs/adr/0014-presentation-strings-and-domain-keys.md).
+- UI text is Czech, never inline on domain records: `src/lib/strings/` (pure text) → `src/lib/config/` (+ visual tokens). Full split, examples, `satisfies` rule: `docs/architecture/code-standards.md`.
 - Dates: Czech-style `5. 3.` (non-breaking space)
 - Food categories seeded in `src/lib/data/categories.ts`
 

@@ -3,7 +3,7 @@
 **Status:** Accepted — informs v1.1; no implementation yet.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §3 Events, §6 #2, §5 sequence #3.
-**Builds on:** [ADR-0017](0017-allergen-catalog-storage-and-harvest.md) (curated-kinds + `other:` pattern), [ADR-0004](0004-causation-derived-not-recorded.md) (causation derived), [ADR-0016](0016-verdict-drives-schedule-not-status.md) (verdict parent-attributed), [ADR-0006](0006-dexie-persistence.md) (new table).
+**Builds on:** the allergen catalog storage/harvest model (curated-kinds + `other:` pattern, now in CONTEXT.md), [ADR-0004](0004-causation-derived-not-recorded.md) (causation derived), [ADR-0016](0016-verdict-drives-schedule-not-status.md) (verdict parent-attributed), the Dexie-persistence model (new table, now in CONTEXT.md).
 
 ## Context
 

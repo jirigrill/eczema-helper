@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-05-11
-**Amended:** 2026-06-22 — `SkinObservation` shape replaced with per-region severities (see [ADR-0021](0021-regional-severity-skin-observation.md)). The "user records only ground truth, app derives patterns" decision is unchanged; only the *shape* of the ground truth changed.
+**Amended:** 2026-06-22 — `SkinObservation` shape replaced with per-region severities (see ADR-0021 (now in CONTEXT.md)). The "user records only ground truth, app derives patterns" decision is unchanged; only the *shape* of the ground truth changed.
 
 ## Context
 

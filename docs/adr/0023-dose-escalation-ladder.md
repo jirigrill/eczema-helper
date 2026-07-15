@@ -3,7 +3,7 @@
 **Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section. **Clinical reshape (v2)** accepted 2026-07-14 (pediatric-allergy grilling session); implementation scoped in PRD #454 — see [§6](#6-decision-engine-v2--clinical-reshape-amendment-2026-07-14) below. §6 supersedes the reaction/cadence semantics in §5 where they conflict.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
-**Extends:** [ADR-0012](0012-allergen-status-lifecycle.md) (rung is derived like status), [ADR-0006](0006-dexie-persistence.md) (new override table).
+**Extends:** the AllergenStatus lifecycle and Dexie-persistence invariants (now in CONTEXT.md).
 **Supersedes (on PRD #421 PR B merge):** the day-scripted `AllergenProtocol` / `ProtocolDay` shape on the ADR-0017 catalog record — the ladder is the sole per-allergen dose-progression data.
 
 ## Context
