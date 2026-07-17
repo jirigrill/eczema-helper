@@ -115,13 +115,30 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
   Composes `currentRung` + the three gates into one per-allergen **verdict** for
   one moment; the F3 ≡ F4 walker (phase reduces to the injected `cadenceDays`).
   Decides but never writes. **`LadderDecision`** is the closed verdict union:
-  `advance` · `hold` (reason `awaiting-verdict` / `flare` / `cadence`) · `rest`
-  · `step-back` · `passed` · `blocked` · `ceiling-reached` (reason
-  `floor-exhaustion` / `severe`). The clinical-reshape variants `settled`,
-  `adapting-decelerate`, and `suspected-reaction` are declared as types
-  (scaffolding for PRD #454, [§6](docs/adr/0023-dose-escalation-ladder.md#6-decision-engine--clinical-reshape-amendment-2026-07-14-detection-layer-2026-07-16))
-  but not yet emitted. See the ADR for the gate precedence and the
+  `advance` · `hold` (reason `skin-worsening` / `cadence`) · `rest`
+  · `step-back` · `passed` · `settled` · `blocked` · `ceiling-reached` (reason
+  `floor-exhaustion` / `severe`). The escalation half of the clinical reshape is
+  built (PRD #454 / [#500](https://github.com/jirigrill/eczema-helper/issues/500)):
+  the engine derives a **probe/confirm mode** (see below), enforces
+  `cadence ≥ latency` in confirm, and **dwells** at the top rung before emitting
+  `settled`. The checkpoint verdict hold (`awaiting-verdict`) is **retired** —
+  `isEvaluationCheckpoint` survives only as a UI nudge. The reshape variants
+  `adapting-decelerate` and `suspected-reaction` remain declared-but-unemitted
+  scaffolding (later slices). See the ADR for the gate precedence and the
   reaction → rest → step-back → re-test state machine.
+- **Probe / confirm mode** — the derived rhythm the ladder engine walks in
+  ([ADR-0023 §6](docs/adr/0023-dose-escalation-ladder.md), PRD #454). **Probe**
+  (before the first reaction) climbs fast — cadence 1 — to find roughly where a
+  ceiling is. **Confirm** (once a reaction is seen, or the top rung is reached)
+  slows to `cadence ≥ reactionLatencyDays` so a delayed reaction has time to
+  surface before the next dose. Derived from replay state, never persisted; the
+  engine still never branches on F3/F4 phase — only on mode + injected cadence.
+- **Dwell** — the top-rung confirmation: hold the accepted dose constant and
+  re-dose it `N = default-ladder step count` times at confirm cadence, with
+  terminal evaluation at `last dose + reactionLatencyDays`. A clean probe
+  confirms the **top rung only** (dose–response is monotone). Only once the
+  dwell completes is the rung `settled` (a live maintenance state — "maintaining
+  at this dose; may be re-challenged later"); before then the top reads `passed`.
 - **`deriveLadderState`** — the *private*, single date-ordered replay of meals +
   evaluations behind both `currentRung` and `decideLadderMove`, so the
   reaction-binding + step-back logic exists exactly once. Never exported.

@@ -10,7 +10,7 @@ A clinical refinement of that recommendation logic (probe a small dose then conf
 
 ---
 
-**Status:** Accepted, implemented (v1). Types + curated data + rung derivation + the deterministic `decideLadderMove` engine are landed and green. The **clinical reshape** (§6) is accepted design, in progress: the reaction-detection layer is a *tripwire that raises a hold, never an auto-ban*, and severe reactions derive a terminal `ceiling-reached { reason: 'severe' }`. The v2 type scaffolding is tracked in [#498](https://github.com/jirigrill/eczema-helper/issues/498).
+**Status:** Accepted, implemented (v1). Types + curated data + rung derivation + the deterministic `decideLadderMove` engine are landed and green. The **clinical reshape** (§6) is accepted design, in progress: its **escalation half** — probe/confirm mode (derived, no persisted flag), `reactionLatencyDays` with `cadence ≥ latency` in confirm, the top-rung dwell → `settled` terminal, and the retired checkpoint hold — is **landed** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)). The reaction-detection layer is a *tripwire that raises a hold, never an auto-ban*, and severe reactions derive a terminal `ceiling-reached { reason: 'severe' }` — both still unbuilt (walk-down + detection are later slices). The v2 type scaffolding landed in [#498](https://github.com/jirigrill/eczema-helper/issues/498).
 **Date:** 2026-07-05 (last substantive amendment 2026-07-17)
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
 **Extends:** the `AllergenStatus` lifecycle and Dexie-persistence invariants (CONTEXT.md).
@@ -78,12 +78,12 @@ A single pure function `decideLadderMove(input): LadderDecision` in `ladder.ts` 
 1. permanent elimination → `blocked`
 2. floor exhausted or per-rung cap (`MAX_RUNG_REACTIONS`) hit → `ceiling-reached`
 3. reaction still in effect → `rest` (window open), then `step-back`
-4. checkpoint awaiting a verdict → `hold('awaiting-verdict')`
+4. checkpoint awaiting a verdict → `hold('awaiting-verdict')` — **retired by §6** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)): the per-rung verdict this waited on no longer gates the engine; `isEvaluationCheckpoint` survives only as a UI nudge and `checkpointVerdictGate` stays exported for that read
 5. skin worsened across the stability window → `hold('skin-worsening', baseline→current)`
-6. cadence not elapsed → `hold('cadence', daysRemaining)`
-7. otherwise → `advance`, or `passed` at the top
+6. cadence not elapsed → `hold('cadence', daysRemaining)` — the spacing is now **mode-driven** (§6): probe cadence 1, confirm `cadence ≥ latency`
+7. otherwise → `advance`; at the top, `passed` while the dwell runs, then `settled` once it completes (§6)
 
-A recorded reaction outranks an awaiting-verdict hold; skin state outranks cadence (never advance while skin trends worse, even when the clock allows). A **steady baseline is not a hold reason** — mild eczema steady at severity 1 through the window is escalation-eligible; only an *increase* over the window's baseline blocks. The skin gate is `skinStabilityGate(observations, today, stabilityWindowDays)` with `stabilityWindowDays = max(cadenceDays, 3)` (`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day cadence from shrinking the safety window below a readable trend). `skinCalmGate` remains only as a UI "is there a flare right now?" signal, out of the decision path.
+A recorded reaction outranks the rhythm gates; skin state outranks cadence (never advance while skin trends worse, even when the clock allows). A **steady baseline is not a hold reason** — mild eczema steady at severity 1 through the window is escalation-eligible; only an *increase* over the window's baseline blocks. The skin gate is `skinStabilityGate(observations, today, stabilityWindowDays)` with `stabilityWindowDays = max(cadenceDays, 3)` (`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day cadence from shrinking the safety window below a readable trend). `skinCalmGate` remains only as a UI "is there a flare right now?" signal, out of the decision path.
 
 **Reaction → rest → step-back → re-test.** A checkpoint reaction yields `rest(days)` keyed to severity (ADR-0016 `REST_PHASE_DAYS_*`). When the window elapses (`today` past `until`), the engine surfaces `step-back` to the **last-passing rung** (directly below the reacting one) and re-tests — auto-due, but still a mother-logged meal. A clean re-test re-advances: a reaction is a *temporary* setback, not a cap. A rung that reacts `MAX_RUNG_REACTIONS` times, and the floor case (lowest rung reacts, nowhere lower to retreat), unify into the *same* terminal `ceiling-reached`. The engine never converts a terminal into a `permanent-*` status itself (ADR-0012 / ADR-0024) — it defers to human care.
 
@@ -167,7 +167,7 @@ The **regulatory** question (is generated rationale "medical advice" under EU MD
 
 The ship-now boundary is the **`suspected-reaction` hold**, *not* the escalation-vs-detection split (a naive "escalation now, detection later" would ship an auto-banning walk-down this section already rules illegal, only to tear it out).
 
-- **Ships now** (re-scoped PRD #454 — the derived, LLM-free engine up to the hold): probe/confirm (incl. adaptation-window entry), `settled`, `cadence ≥ latency` unchanged, the walk-down mechanic driven by a *confirmed* `ReintroductionEvaluation` row, the detector demoted to a tripwire, `pendingAdaptation` + `adapting-decelerate`, and `suspected-reaction` as a first-class decision.
+- **Ships now** (re-scoped PRD #454 — the derived, LLM-free engine up to the hold): probe/confirm (incl. adaptation-window entry), `settled`, `cadence ≥ latency` unchanged, the walk-down mechanic driven by a *confirmed* `ReintroductionEvaluation` row, the detector demoted to a tripwire, `pendingAdaptation` + `adapting-decelerate`, and `suspected-reaction` as a first-class decision. **Landed so far** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)): the escalation half — probe/confirm mode + `cadence ≥ latency` + top-rung dwell → `settled` + the retired checkpoint hold. Reactions still flow through the v1 verdict path (rest/step-back/ceiling); walk-down, the tripwire detector, `pendingAdaptation`/`adapting-decelerate`, and `suspected-reaction` are still pending.
 - **Waits** (execution/UI, ADR-0026): the draft path (LLM/heuristic pre-fill), draft caching, the confirm UI, the BFF/prompt.
 
 **`cadence ≥ latency` is untouched by the seam** — it is a dosing-safety rule (never dose up into a brewing delayed reaction), not an attribution convenience. The seam decides *whether* a flare is a reaction, never *which rung* or *how fast to dose*.
