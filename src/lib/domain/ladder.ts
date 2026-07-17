@@ -466,6 +466,21 @@ export function checkpointVerdictGate(
  * carries `until` so "re-test becomes due" is computable without re-adding
  * `days` to `today`. `blocked` carries no rung — the ladder was inert from the
  * start; `ceiling-reached` carries the rung it got stuck at.
+ *
+ * Clinical-reshape variants (ADR-0023 §6, PRD #454) — declared here as
+ * *types only* so later slices compile incrementally; `decideLadderMove` does
+ * not emit them yet:
+ *   - `settled` — a dose confirmed and held at its rung (probe/confirm walk).
+ *   - `adapting-decelerate` — the open adaptation window: hold flat, keep
+ *     re-dosing, never push through (emitted only while the window is open).
+ *   - `suspected-reaction` — the detection tripwire: a hold that defers the
+ *     "was that flare a reaction?" judgment to the mother, never an auto-ban.
+ *
+ * `ceiling-reached` carries a discriminated `reason` (mirroring how `hold`
+ * discriminates on `reason`) so severity survives in the engine output:
+ * `'floor-exhaustion'` (lowest rung reacts / per-rung cap hit — see §5) or
+ * `'severe'` (a confirmed severe reaction — the strictly-absorbing terminal,
+ * §6). Only `'floor-exhaustion'` is emitted in this slice.
  */
 export type LadderDecision =
   | { kind: 'advance'; from: LadderStep | null; to: LadderStep }
@@ -484,7 +499,10 @@ export type LadderDecision =
   | { kind: 'step-back'; from: LadderStep; to: LadderStep }
   | { kind: 'passed'; rung: LadderStep }
   | { kind: 'blocked' }
-  | { kind: 'ceiling-reached'; rung: LadderStep };
+  | { kind: 'settled'; rung: LadderStep }
+  | { kind: 'adapting-decelerate'; rung: LadderStep }
+  | { kind: 'suspected-reaction'; rung: LadderStep }
+  | { kind: 'ceiling-reached'; rung: LadderStep; reason: 'floor-exhaustion' | 'severe' };
 
 /**
  * Single-object input to `decideLadderMove` — raw history plus the ladder
@@ -550,7 +568,11 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   const state = deriveLadderState(allergenId, meals, evaluations, steps);
 
   // (2) Ceiling — per-rung cap or floor exhaustion. Terminal; defers to human.
-  if (state.ceilingRung) return { kind: 'ceiling-reached', rung: state.ceilingRung };
+  // The `severe` reason is authored on the union but not emitted here yet — the
+  // severe-reaction branch lands in a later slice (ADR-0023 §6, PRD #454).
+  if (state.ceilingRung) {
+    return { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' };
+  }
 
   // (3) A reaction still in effect: rest while the recovery window is open, then
   //     step back to the last-passing rung to re-test.
