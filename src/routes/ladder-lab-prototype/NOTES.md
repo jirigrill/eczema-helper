@@ -1,94 +1,62 @@
 # ladder-lab UI prototype — NOTES
 
 **Question being answered:** What should the ladder-engine visualizer's main
-screen look like — and how does it stay correct as the engine changes?
+screen look like?
 
-**Answer (v3, after second round of feedback):** A **compact, single-focus**
-visualizer that is a **blind renderer of a trace the engine emits itself**.
-Three switchable layouts to compare (Inspector / Split / Trace log). The v2 flow
-pipeline was rejected: inputs hard to see, couldn't handle multiple meals/skins
-per day, neon colours, ladder too dense, information scattered across the whole
-screen — and, critically, the visualizer held **duplicated engine logic** (it
-re-inferred which gate fired and hand-wrote every condition string), so engine
-changes wouldn't propagate.
+**Answer (v4 — full reset, DAG-oriented):** Three *completely different*,
+innovative **directed-graph** takes on the engine, driven by **pure dummy data**
+(no engine wiring — look-and-feel only, on purpose). The v2 flow-pipeline and v3
+compact-layouts rounds were both rejected. This round abandons dashboards
+entirely and leans into the engine's real shape: a **DAG** — one input source →
+an ordered gate cascade → verdict sinks, where each gate either *fires* (short-
+circuit to a verdict) or *passes* (fall through to the next gate).
 
-## The architecture that makes it self-updating
+## The three layouts (switch via floating bar or ?layout=)
 
-`decideLadderMove(input, trace?)` now takes an **opt-in trace sink** (additive;
-when omitted the engine allocates nothing and behaves byte-for-byte as before —
-all 80 engine tests still pass). As the engine walks its precedence it records
-one self-describing `TraceGate` per step it evaluated — `{n, id, label,
-condition, inputs, passed, outcome}` — and a `LadderStateSnapshot` of the
-otherwise-unexported `deriveLadderState` internals (liveRung, mode, ceiling,
-pendingReaction, dwell, folded event replay). The gate that short-circuited is
-the one whose `passed === false`; steps below it are never recorded (absence =
-"not reached").
+1. **Circuit DAG** (`LayoutCircuit`) — the literal node-and-edge graph in SVG:
+   a source circle, a vertical spine of gate nodes, verdict pills on the right,
+   wired with bezier edges. For the current day the decision *path* illuminates
+   (source → passed gates → fired gate → verdict); the rest dims to a faint
+   substrate. The engine as an actual circuit you watch current flow through.
 
-The prototype's `engine.ts` is now a **dumb adapter**: it builds genuine
-Meal / SkinObservation / ReintroductionEvaluation objects, calls the real
-`decideLadderMove` with a trace, and hands back the raw trace. **Zero logic** —
-no `firedGate()` inference, no hand-authored conditions, no status
-reconstruction. Every label/condition/outcome the UI shows is authored by the
-engine. Change a gate in `src/lib/domain/ladder.ts` → the visualizer updates for
-free, no visualizer edit required. This was the user's hard requirement.
+2. **Flow / Sankey** (`LayoutSankey`) — the *whole scenario at once*: every day
+   is a numbered particle that enters at the source and drops out at the gate
+   that catches it, into that gate's verdict. Ribbon thickness = how many days
+   each gate caught, so you see the engine's behaviour *distribution* in one
+   glance. The current day's particle glows.
 
-The trace types (`TraceGate`, `LadderStateSnapshot`, `LadderTrace`) live in
-`src/lib/domain/ladder.ts` and are the ONE thing from this prototype worth
-keeping — they belong in the eventual standalone tool too.
+3. **Subway map** (`LayoutSubway`) — the cascade as a transit line: gates are
+   stations on one track, each with a spur down to its verdict terminal. The
+   current day is a train 🚆 that rides the track and pulls off at the station
+   where its gate fired. Playful, spatial; still a DAG (linear spine + spurs).
 
-## The three layouts (switch via ?layout= or the floating bottom bar)
+Shared: `Explorer.svelte` (shell: transport play/scrub + input chips + switcher),
+`fixture.ts` (the static DAG `NODES`/`EDGES` + a 6-day dummy scenario + calm
+slate/stone palette).
 
-- **Inspector** — one focused column: verdict headline → gate cascade directly
-  under it; ladder + inputs + engine-state in a compact right sidebar. Nothing to
-  scan for.
-- **Split** — left rail = the "world" (ladder + this day's inputs); right = the
-  "reasoning" (verdict + cascade + state). Two self-contained zones.
-- **Trace log** — dense debugger: every day is a log line (date · inputs ·
-  verdict); the current day expands inline to show its gates + state indented
-  beneath, like stepping debugger frames.
+## Dummy data (fixture.ts)
 
-Shared pieces: `Transport` (play/scrub/timeline), `GateRow` (renders one
-`TraceGate` blind), `LadderStrip` (compact, driven by trace state), `InputsCard`
-(groups multiple meals/skins/evals per day), `StatePanel` (the engine internals
-+ replay), `tokens.ts` (calm slate/stone palette — no neon).
+Hand-authored fiction — NOT the engine. A dairy-ish story: cadence-hold →
+advance → advance → skin-hold (two skin obs that day) → reaction/rest →
+advance. Every fired gate + verdict resolves to a real graph node (validated).
+Unlike earlier fixtures this one *does* show `advance` verdicts.
 
-## Wired to the real engine — verified
+## Status: THROWAWAY
 
-`engine.ts` calls the actual `decideLadderMove` + gates per event date. Verified
-end-to-end: dairy climb `pinch→teaspoon→teaspoon→spoon`, then a `clear-reaction`
-fires gate #3 (reaction) and walks the live rung down to `teaspoon`, rest window
-open. The 06-14 day carries **two** skin observations (severity 2 then 3) and
-fires gate #4 (skin) on the real trend — proving multi-input days work.
+Delete `src/routes/ladder-lab-prototype/` once a direction is chosen and rebuilt
+in the standalone `tools/ladder-lab/` app. Revert the prototype-only guard in
+`src/routes/+layout.svelte` and the worktree `vite.config.ts` edits — none merge
+to main.
 
-## Status: THROWAWAY (the prototype folder + guards)
+Note: the `trace` instrumentation added to `src/lib/domain/ladder.ts` in the
+previous round is still on this branch (additive, tests pass). It is unused by
+this dummy-data prototype; keep or revert it independently of the design choice.
 
-Delete `src/routes/ladder-lab-prototype/` once the design is rebuilt in the
-standalone `tools/ladder-lab/` Vite app. Revert the prototype-only guard in
-`src/routes/+layout.svelte` and the worktree `vite.config.ts` edits
-(`server.fs.allow` + dev PWA disabled) — none of these merge to main.
-
-**KEEP, do not throw away:** the `trace` instrumentation in
-`src/lib/domain/ladder.ts` is production-quality and additive. Promoting it is
-the natural way to give the real app (and the standalone tool) an honest,
-self-updating view of the engine. Decide separately whether to merge it.
-
-**How to view:** `just dev` (or `bun run dev`), then
-`http://localhost:5199/ladder-lab-prototype` (append `?layout=split` etc.)
-
-## Scenario in the fixture (engine.ts DEFAULT_SCENARIO)
-
-dairy · tolerance-building · **mixed** stage. Climb pinch→teaspoon→teaspoon→
-spoon; two skin obs on 06-14 (worsening); `clear-reaction` on 06-15 → walk-down
-to teaspoon + rest window; re-confirm dose on 06-22.
-
-Note: each verdict is evaluated on the same day its meal is logged, so climbing
-steps read `hold — cadence` even as the live rung advances (truthful engine
-behaviour). Gate #6 (advance) therefore never fires in this fixture. To *see*
-`advance`/`settled`, evaluate a day after each dose.
+**How to view:** `just dev`, then `http://localhost:5199/ladder-lab-prototype`
+(append `?layout=sankey` / `?layout=subway`).
 
 ## VERDICT (fill in after review)
 
-Winner: pending — three layouts up for comparison.
-Bits still to decide: (a) which layout; (b) whether to shift the fixture to show
-`advance`/`settled`; (c) scenario editing (YAML/manual); (d) whether to promote
-the engine `trace` instrumentation to production.
+Winner: pending — pick one of Circuit / Sankey / Subway (or a hybrid).
+Then decide: wire it to the real engine trace, and whether to add scenario
+editing.
