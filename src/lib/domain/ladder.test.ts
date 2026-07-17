@@ -968,6 +968,7 @@ describe('decideLadderMove', () => {
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-10' }))).toEqual({
         kind: 'ceiling-reached',
         rung: engineSteps[0],
+        reason: 'floor-exhaustion',
       });
     });
   });
@@ -988,6 +989,7 @@ describe('decideLadderMove', () => {
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-20' }))).toEqual({
         kind: 'ceiling-reached',
         rung: engineSteps[1],
+        reason: 'floor-exhaustion',
       });
     });
 
@@ -997,6 +999,7 @@ describe('decideLadderMove', () => {
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-05' }))).toEqual({
         kind: 'ceiling-reached',
         rung: engineSteps[0],
+        reason: 'floor-exhaustion',
       });
     });
 

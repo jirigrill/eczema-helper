@@ -405,8 +405,16 @@ function formatVerdict(v: LadderDecision): string {
       return `${GREEN}passed${RESET} ${DIM}@ ${v.rung.id}${RESET}`;
     case 'blocked':
       return `${RED}blocked${RESET} ${DIM}(permanently eliminated / inert)${RESET}`;
+    // Clinical-reshape variants (ADR-0023 §6) — never emitted yet; placeholder
+    // renders so the exhaustive switch stays green as the union grows.
+    case 'settled':
+      return `${GREEN}settled${RESET} ${DIM}@ ${v.rung.id}${RESET}`;
+    case 'adapting-decelerate':
+      return `${YELLOW}adapting-decelerate${RESET} ${DIM}@ ${v.rung.id}${RESET}`;
+    case 'suspected-reaction':
+      return `${YELLOW}suspected-reaction${RESET} ${DIM}@ ${v.rung.id} — awaiting mother's verdict${RESET}`;
     case 'ceiling-reached':
-      return `${RED}ceiling-reached${RESET} ${DIM}@ ${v.rung.id} — defer to clinician${RESET}`;
+      return `${RED}ceiling-reached${RESET} ${DIM}(${v.reason}) @ ${v.rung.id} — defer to clinician${RESET}`;
     default: {
       const _exhaustive: never = v;
       return _exhaustive;
