@@ -119,21 +119,6 @@ export const REINTRODUCTION_CADENCE_DAYS = 1;
 export const REACTION_LATENCY_DAYS = 3;
 
 /**
- * Cadence while *probing* a ladder for the first time — climb fast to find
- * roughly where a ceiling is (ADR-0023 §6, PRD #454 story 3). One rung per day;
- * deliberately below `REACTION_LATENCY_DAYS` (accepted overshoot risk).
- */
-export const PROBE_CADENCE_DAYS = 1;
-
-/**
- * Nominal cadence once *confirming* an accepted dose (ADR-0023 §6, PRD #454).
- * The confirm rhythm is the slower dwell rhythm; the engine clamps the effective
- * spacing to `max(CONFIRM_CADENCE_DAYS, REACTION_LATENCY_DAYS)` so the
- * cadence ≥ latency invariant always holds in confirm.
- */
-export const CONFIRM_CADENCE_DAYS = 2;
-
-/**
  * How many times one ladder rung may react before the decision engine treats it
  * as a confirmed ceiling and stops re-attempting it (ADR-0023). A single
  * reaction is a temporary setback — rest, step back, re-test; reacting this many
@@ -183,18 +168,16 @@ export function cadenceForPhase(phase: LadderPhase): number {
 export type LadderMode = 'probe' | 'confirm';
 
 /**
- * Effective escalation spacing for one moment — the mode's cadence, never below
- * the caller's injected F3/F4 rhythm, and in **confirm** never below
- * `REACTION_LATENCY_DAYS` so the cadence ≥ latency dosing-safety invariant holds
- * (ADR-0023 §6, PRD #454). The engine derives `mode` from replay and injects
- * `cadenceDays` from `cadenceForPhase`; this is where the two combine into the
- * single number the cadence gate enforces.
+ * Effective escalation spacing for one moment — the injected F3/F4 rhythm in
+ * probe, and in **confirm** that rhythm never below `REACTION_LATENCY_DAYS` so
+ * the cadence ≥ latency dosing-safety invariant holds (ADR-0023 §6, PRD #454).
+ * The engine derives `mode` from replay and injects `cadenceDays` from
+ * `cadenceForPhase`; this is where the two combine into the single number the
+ * cadence gate enforces.
  *
- * - **probe:** `max(cadenceDays, PROBE_CADENCE_DAYS)` — climb fast (accepted risk).
- * - **confirm:** `max(cadenceDays, CONFIRM_CADENCE_DAYS, REACTION_LATENCY_DAYS)`.
+ * - **probe:** the injected phase cadence — climb fast (1 in F4, 3 in F3; accepted risk).
+ * - **confirm:** `max(cadenceDays, REACTION_LATENCY_DAYS)` — cadence ≥ latency.
  */
 export function effectiveCadenceDays(mode: LadderMode, cadenceDays: number): number {
-  return mode === 'probe'
-    ? Math.max(cadenceDays, PROBE_CADENCE_DAYS)
-    : Math.max(cadenceDays, CONFIRM_CADENCE_DAYS, REACTION_LATENCY_DAYS);
+  return mode === 'probe' ? cadenceDays : Math.max(cadenceDays, REACTION_LATENCY_DAYS);
 }

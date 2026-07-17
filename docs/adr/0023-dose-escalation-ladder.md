@@ -80,7 +80,7 @@ A single pure function `decideLadderMove(input): LadderDecision` in `ladder.ts` 
 3. reaction still in effect → `rest` (window open), then `step-back`
 4. checkpoint awaiting a verdict → `hold('awaiting-verdict')` — **retired by §6** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)): the per-rung verdict this waited on no longer gates the engine; `isEvaluationCheckpoint` survives only as a UI nudge and `checkpointVerdictGate` stays exported for that read
 5. skin worsened across the stability window → `hold('skin-worsening', baseline→current)`
-6. cadence not elapsed → `hold('cadence', daysRemaining)` — the spacing is now **mode-driven** (§6): probe cadence 1, confirm `cadence ≥ latency`
+6. cadence not elapsed → `hold('cadence', daysRemaining)` — the spacing is now **mode-driven** (§6): probe cadence = the injected phase cadence (1 in F4, 3 in F3), confirm `cadence ≥ latency`
 7. otherwise → `advance`; at the top, `passed` while the dwell runs, then `settled` once it completes (§6)
 
 A recorded reaction outranks the rhythm gates; skin state outranks cadence (never advance while skin trends worse, even when the clock allows). A **steady baseline is not a hold reason** — mild eczema steady at severity 1 through the window is escalation-eligible; only an *increase* over the window's baseline blocks. The skin gate is `skinStabilityGate(observations, today, stabilityWindowDays)` with `stabilityWindowDays = max(cadenceDays, 3)` (`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day cadence from shrinking the safety window below a readable trend). `skinCalmGate` remains only as a UI "is there a flare right now?" signal, out of the decision path.
