@@ -12,10 +12,13 @@ import type {
 import { overallSeverity } from '$lib/domain/models';
 import {
   MAX_RUNG_REACTIONS,
+  REACTION_LATENCY_DAYS,
   REST_PHASE_DAYS_CLEAR,
   REST_PHASE_DAYS_MILD,
   REST_PHASE_DAYS_SEVERE,
+  effectiveCadenceDays,
 } from '$lib/domain/policy';
+import type { LadderMode } from '$lib/domain/policy';
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
 import { addDays } from '$lib/utils/date';
 
@@ -94,7 +97,38 @@ type LadderReplayState = {
   ceilingRung: LadderStep | null;
   /** How many times each rung (by id) has reacted across the whole history. */
   reactionCounts: ReadonlyMap<string, number>;
+  /**
+   * Probe/confirm mode, derived — never persisted (ADR-0023 §6, PRD #454).
+   * `probe` before the first reaction; `confirm` once a reaction has been seen
+   * *or* the climb has reached the top rung (a clean probe confirms the top).
+   */
+  mode: LadderMode;
+  /**
+   * Top-rung dwell progress — the two facts the `settled` terminal needs, always
+   * derived and reset together (see `Dwell`). Once the climb reaches the top,
+   * every further dose of the top rung's anchor advances the dwell; a reaction
+   * restarts it. A clean probe confirms the *top rung only*, so only the top rung
+   * dwells (dose–response is monotone); lower rungs are advanced through.
+   */
+  dwell: Dwell;
 };
+
+/**
+ * Top-rung dwell state — how many times the top rung has been dosed and the date
+ * of the last such dose, for the `last dose + latency` → `settled` terminal
+ * (ADR-0023 §6, PRD #454). The two fields always move together: both advance on a
+ * top-rung dose and both reset on a reaction (`NO_DWELL`), so a dose straddling a
+ * reaction can never complete a dwell.
+ */
+type Dwell = {
+  /** Doses landed on the top rung so far. */
+  count: number;
+  /** ISO date of the most recent top-rung dose, or `null` before the top is reached. */
+  lastDoseDate: string | null;
+};
+
+/** The empty dwell — no top-rung dose counted yet. Also the reaction reset. */
+const NO_DWELL: Dwell = { count: 0, lastDoseDate: null };
 
 type ReplayEvent =
   | { date: string; order: 0; kind: 'anchor'; amount: PortionKind }
@@ -114,6 +148,13 @@ type ReplayEvent =
  * retreat) or the `MAX_RUNG_REACTIONS`-th reaction on one rung is a confirmed
  * ceiling — a single unified terminal that defers to human care (ADR-0023,
  * ADR-0024); the engine never sets a `permanent-*` status itself (ADR-0012).
+ *
+ * It also derives the probe/confirm **mode** and the top-rung **dwell** count
+ * (ADR-0023 §6, PRD #454) purely from the same replay — no persisted flag: the
+ * mode is `confirm` once any reaction has been seen or the climb has reached the
+ * top rung, `probe` otherwise; the dwell count is how many times the top rung's
+ * anchor has been dosed. `decideLadderMove` turns those into cadence and the
+ * `settled` terminal.
  *
  * Written exactly once so `currentRung` and `decideLadderMove` cannot drift on
  * how a reaction moves the rung. Never exported.
@@ -150,6 +191,10 @@ function deriveLadderState(
   let pendingReaction: PendingReaction | null = null;
   let ceilingRung: LadderStep | null = null;
   const reactionCounts = new Map<string, number>();
+  let firstReactionSeen = false;
+  let dwell: Dwell = NO_DWELL;
+  const topIndex = steps.length - 1;
+  const topAnchor = topIndex >= 0 ? steps[topIndex]!.anchor : null;
 
   for (const ev of events) {
     if (ceilingRung) break; // terminal — nothing that follows can move the ladder
@@ -158,6 +203,13 @@ function deriveLadderState(
       if (nextStepIdx < steps.length && steps[nextStepIdx]!.anchor === ev.amount) {
         liveIndex = nextStepIdx;
         nextStepIdx += 1;
+      }
+      // Dwell counting: once the climb has reached the top rung, every dose of
+      // the top rung's anchor is a confirmation dose (the arrival dose is #1,
+      // each spaced re-dose thereafter increments). Only the top rung dwells —
+      // a clean probe confirms the top only (dose–response is monotone).
+      if (liveIndex === topIndex && topIndex >= 0 && ev.amount === topAnchor) {
+        dwell = { count: dwell.count + 1, lastDoseDate: ev.date };
       }
       continue;
     }
@@ -170,6 +222,12 @@ function deriveLadderState(
     // Reaction — bind to the highest still-live rung (nothing dosed yet ⇒ nothing
     // to bind to).
     if (liveIndex < 0) continue;
+    firstReactionSeen = true; // any reaction flips the mode to confirm
+    // A reaction interrupts the dwell's "held constant, tolerated" premise, so
+    // the confirmation must restart: reset the top-rung dwell so `settled` can
+    // never be reached by doses that straddle a reaction. (If the climb was not
+    // yet at the top the dwell is already empty — resetting is a harmless no-op.)
+    dwell = NO_DWELL;
     const reactingRung = steps[liveIndex]!;
     const count = (reactionCounts.get(reactingRung.id) ?? 0) + 1;
     reactionCounts.set(reactingRung.id, count);
@@ -194,12 +252,19 @@ function deriveLadderState(
   }
 
   const liveRung = liveIndex >= 0 ? steps[liveIndex]! : null;
+  // Mode: `confirm` once a reaction has been seen, or once the climb has reached
+  // the top rung (a clean probe confirms the top); `probe` otherwise. Derived,
+  // never persisted — recomputed from the same replay every time (ADR-0012).
+  const mode: LadderMode =
+    firstReactionSeen || (topIndex >= 0 && liveIndex === topIndex) ? 'confirm' : 'probe';
   return {
     liveRung,
     lastPassingRung: pendingReaction?.stepBackTo ?? liveRung,
     pendingReaction,
     ceilingRung,
     reactionCounts,
+    mode,
+    dwell,
   };
 }
 
@@ -487,7 +552,7 @@ export type LadderDecision =
   | {
       kind: 'hold';
       rung: LadderStep;
-      reason: 'awaiting-verdict' | 'skin-worsening' | 'cadence';
+      reason: 'skin-worsening' | 'cadence';
       /** Only set when reason is 'cadence' — days left before the cadence gate re-opens. */
       daysRemaining?: number;
       /** Only set when reason is 'skin-worsening' — the baseline the current reading rose above. */
@@ -537,21 +602,39 @@ export type LadderDecisionInput = {
  * writes (no meal, evaluation, or schedule mutation); the mother still logs
  * every dose herself.
  *
- * Gate precedence, most-overriding first (ADR-0023 §decision-engine):
+ * Gate precedence, most-overriding first (ADR-0023 §decision-engine, §6):
  *   1. permanent elimination → `blocked` (also an empty stage ladder — inert);
  *   2. floor exhausted or per-rung cap hit → `ceiling-reached` (unified terminal);
  *   3. reaction still in effect → `rest` (rest window open) then `step-back`;
- *   4. checkpoint awaiting a verdict → `hold('awaiting-verdict')`;
- *   5. skin worsened across the stability window → `hold('skin-worsening')`;
- *   6. cadence not elapsed → `hold('cadence', daysRemaining)`;
- *   7. otherwise → `advance`, or `passed` at the effective top.
+ *   4. skin worsened across the stability window → `hold('skin-worsening')`;
+ *   5. cadence (mode-driven, `cadence ≥ latency` in confirm) not elapsed →
+ *      `hold('cadence', daysRemaining)`;
+ *   6. otherwise → `advance`; at the effective top, `passed` while the dwell
+ *      confirmation is still running, then `settled` once it completes.
  *
- * Safety/clinical gates dominate rhythm gates: a recorded reaction outranks an
- * awaiting-verdict hold, and skin state outranks cadence (never advance while
- * skin is trending worse, even when the clock allows it). A steady baseline
- * — even mild eczema at severity 1 — is not a hold reason on its own; only an
- * increase over the window's baseline blocks. All rung reasoning runs against
- * the *effective* ladder (`resolveLadder`), never the raw default.
+ * The checkpoint verdict hold (`awaiting-verdict`) is **retired** from this path
+ * (ADR-0023 §6, PRD #454): the per-rung verdict it waited on no longer gates the
+ * engine. `isEvaluationCheckpoint` survives only as a UI "watch dose — log skin
+ * today" nudge; `checkpointVerdictGate` stays exported for that read but the
+ * decision path no longer calls it.
+ *
+ * The probe/confirm **mode** is derived in `deriveLadderState`, never persisted:
+ * a first walk probes fast (cadence 1) to find a ceiling; once a reaction is seen
+ * or the top rung is reached the engine confirms (cadence ≥ latency). The engine
+ * still never branches on F3/F4 phase — only on mode + the injected `cadenceDays`.
+ *
+ * At the effective top the engine **dwells**: the top rung's dose is held
+ * constant and confirmed `N = defaultLadder step count` times at confirm cadence,
+ * with terminal evaluation at `last top dose + latency`. `settled` is emitted
+ * only once that dwell completes; before then the top reads as `passed` (a clean
+ * probe confirms the top rung only — dose–response is monotone).
+ *
+ * Safety/clinical gates dominate rhythm gates: a recorded reaction outranks skin
+ * state, and skin state outranks cadence (never advance while skin is trending
+ * worse, even when the clock allows it). A steady baseline — even mild eczema at
+ * severity 1 — is not a hold reason on its own; only an increase over the
+ * window's baseline blocks. All rung reasoning runs against the *effective*
+ * ladder (`resolveLadder`), never the raw default.
  */
 export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   const { allergenId, meals, evaluations, observations, defaultLadder, override, stage, today } =
@@ -584,21 +667,15 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
 
   const liveRung = state.liveRung;
 
-  // (4) A checkpoint awaiting a verdict is a deliberate decision point — hold.
-  //     (A recorded reaction would have been caught at (3), so `requiresRest`
-  //     here only guards against misreading a rest as an awaiting-verdict.)
-  const verdict = checkpointVerdictGate(liveRung, allergenId, evaluations);
-  if (!verdict.allowed && !verdict.requiresRest) {
-    return { kind: 'hold', rung: liveRung as LadderStep, reason: 'awaiting-verdict' };
-  }
-
   // Rung the remaining holds refer to: the current rung, or the first step we
   // are about to attempt when nothing has been logged yet.
   const referenceRung = liveRung ?? steps[0]!;
 
-  // (5) Skin-stability — hold when skin has worsened across the window. A
+  // (4) Skin-stability — hold when skin has worsened across the window. A
   //     steady baseline (even mild eczema at severity 1) is not a hold reason;
   //     only an *increase* over the window's baseline blocks escalation.
+  //     The checkpoint verdict hold is retired (ADR-0023 §6): a recorded
+  //     reaction is caught at (3); skin state is the surviving pre-cadence gate.
   const stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
   if (!stability.allowed) {
     return {
@@ -610,23 +687,42 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
     };
   }
 
-  // (6) Cadence — wait the required spacing since the last dose.
-  const cadence = cadenceGate(allergenId, meals, today, input.cadenceDays);
+  // (5) Cadence — wait the required spacing since the last dose. The spacing is
+  //     mode-driven: fast in probe, `≥ latency` in confirm so the engine never
+  //     doses up into a window a delayed reaction to the previous dose could
+  //     still be brewing in (ADR-0023 §6, PRD #454).
+  const cadenceDays = effectiveCadenceDays(state.mode, input.cadenceDays);
+  const cadence = cadenceGate(allergenId, meals, today, cadenceDays);
   if (!cadence.allowed) {
     return {
       kind: 'hold',
       rung: referenceRung,
       reason: 'cadence',
-      daysRemaining: Math.max(0, input.cadenceDays - (cadence.daysSinceLastDose ?? 0)),
+      daysRemaining: Math.max(0, cadenceDays - (cadence.daysSinceLastDose ?? 0)),
     };
   }
 
-  // (7) Escalate one legal step, or report the whole ladder passed at the top.
-  // `isPermanentlyEliminated` is already handled at (1); pass it through anyway so
-  // this stays consistent with `nextLegalStep`'s own permanent-elimination contract.
+  // (6) Escalate one legal step. At the effective top there is nowhere to climb;
+  //     instead the top rung dwells — held constant and confirmed `N` times at
+  //     confirm cadence, terminal-evaluated at `last top dose + latency`. Only
+  //     once the dwell completes is the rung `settled`; before then it reads as
+  //     `passed` (a clean probe confirms the top rung only — dose–response is
+  //     monotone). `isPermanentlyEliminated` is already handled at (1); pass it
+  //     through so this stays consistent with `nextLegalStep`'s own contract.
   const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
     isPermanentlyEliminated: input.isPermanentlyEliminated,
   });
-  if (nextStep === null) return { kind: 'passed', rung: liveRung as LadderStep };
-  return { kind: 'advance', from: liveRung, to: nextStep };
+  if (nextStep !== null) return { kind: 'advance', from: liveRung, to: nextStep };
+
+  // At the effective top. `N` = number of steps in the *default* ladder for the
+  // stage (a finely-graded, usually more cautious allergen is confirmed more
+  // thoroughly). Dwell complete once the top rung has been dosed `N` times and
+  // the latency window since the last of those doses has elapsed.
+  const topRung = liveRung as LadderStep;
+  const dwellTarget = (defaultLadder.stages[stage] ?? []).length;
+  const dwellComplete =
+    state.dwell.count >= dwellTarget &&
+    state.dwell.lastDoseDate !== null &&
+    today >= addDays(state.dwell.lastDoseDate, REACTION_LATENCY_DAYS);
+  return dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung };
 }

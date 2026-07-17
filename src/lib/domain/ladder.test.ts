@@ -790,12 +790,15 @@ describe('decideLadderMove', () => {
       });
     });
 
-    it('holds at a checkpoint rung awaiting a verdict', () => {
+    it('advances past a former checkpoint rung without waiting for a verdict', () => {
+      // The checkpoint verdict hold is retired (ADR-0023 §6): reaching e2 (a
+      // checkpoint) no longer stops the climb for a recorded verdict. In probe
+      // mode the fast cadence lets it advance straight on.
       const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-03', 'teaspoon')];
       expect(decideLadderMove(decInput({ meals, today: '2026-06-05' }))).toEqual({
-        kind: 'hold',
-        rung: engineSteps[1],
-        reason: 'awaiting-verdict',
+        kind: 'advance',
+        from: engineSteps[1],
+        to: engineSteps[2],
       });
     });
 
@@ -809,13 +812,17 @@ describe('decideLadderMove', () => {
       });
     });
 
-    it('reports the whole ladder passed at the effective top rung', () => {
+    it('reports passed at the top while the dwell confirmation is still running', () => {
+      // Reaching the top flips the mode to confirm (cadence ≥ latency = 3). A
+      // single top dose is not yet a completed dwell (N = 3 steps), so the top
+      // reads as `passed` — being confirmed — not `settled`.
       const meals = [
         eggMeal('2026-06-01', 'pinch'),
-        eggMeal('2026-06-03', 'teaspoon'),
-        eggMeal('2026-06-05', 'spoon'),
+        eggMeal('2026-06-02', 'teaspoon'),
+        eggMeal('2026-06-03', 'spoon'),
       ];
       const evaluations = [evaluation({ date: '2026-06-03', outcome: 'tolerated' })];
+      // spoon dosed 06-03; today 06-07 clears the confirm cadence (3 d).
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-07' }))).toEqual({
         kind: 'passed',
         rung: engineSteps[2],
@@ -936,9 +943,11 @@ describe('decideLadderMove', () => {
         ...evaluations,
         evaluation({ date: '2026-06-11', outcome: 'tolerated' }),
       ];
+      // A reaction has flipped the mode to confirm, so the re-climb honours the
+      // confirm cadence (≥ latency = 3 d): teaspoon re-dosed 06-11, today 06-14.
       expect(
         decideLadderMove(
-          decInput({ meals: retestMeals, evaluations: retestEvals, today: '2026-06-13' }),
+          decInput({ meals: retestMeals, evaluations: retestEvals, today: '2026-06-14' }),
         ),
       ).toEqual({ kind: 'advance', from: engineSteps[1], to: engineSteps[2] });
     });
@@ -1015,8 +1024,161 @@ describe('decideLadderMove', () => {
     });
   });
 
+  // ── v2 clinical reshape: probe/confirm mode, dwell, settled (ADR-0023 §6) ──
+  // The escalation half of PRD #454. Reactions still flow through the existing
+  // verdict path (rest/step-back/ceiling) — walk-down is a later slice. These
+  // assert only the returned `LadderDecision`, never the private mode/dwell.
+  describe('probe/confirm reshape', () => {
+    // A full clean climb to the top, then repeated top-rung doses spaced at the
+    // confirm cadence (≥ latency = 3 d). N = 3 default steps.
+    const spoon = (date: string) => eggMeal(date, 'spoon');
+    const cleanClimb = [
+      eggMeal('2026-06-01', 'pinch'),
+      eggMeal('2026-06-02', 'teaspoon'),
+      spoon('2026-06-03'), // top dose #1
+    ];
+
+    it('advances fast in probe — a 1-day gap is enough before any reaction', () => {
+      const meals = [eggMeal('2026-06-01', 'pinch')];
+      // Probe cadence is 1: one day after the first dose the climb advances.
+      expect(decideLadderMove(decInput({ meals, today: '2026-06-02' }))).toEqual({
+        kind: 'advance',
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it('slows to confirm cadence (≥ latency) once a reaction has been seen', () => {
+      // Reaction on e2 flips to confirm; step back to e1, re-dose e1, re-climb to
+      // e2 via teaspoon. A 2-day gap would advance in probe but is below the
+      // confirm cadence (3), so the engine holds.
+      const meals = [
+        eggMeal('2026-06-01', 'pinch'),
+        eggMeal('2026-06-02', 'teaspoon'),
+        eggMeal('2026-06-11', 'teaspoon'), // re-climb to e2
+      ];
+      const evaluations = [
+        evaluation({ date: '2026-06-02', outcome: 'mild-reaction' }),
+        evaluation({ date: '2026-06-11', outcome: 'tolerated' }),
+      ];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-13' }))).toEqual({
+        kind: 'hold',
+        rung: engineSteps[1],
+        reason: 'cadence',
+        daysRemaining: 1,
+      });
+    });
+
+    it('binds a delayed reaction to a single rung under confirm cadence ≥ latency', () => {
+      // At the top the mode is confirm, so the dwell doses are ≥ 3 d apart and
+      // the [D − latency, D] attribution window holds exactly one rung. The last
+      // top dose is 06-06; a reaction dated 06-08 falls in its window and binds
+      // to the top rung e3 (rest at e3), not an earlier rung.
+      const meals = [...cleanClimb, spoon('2026-06-06')];
+      const evaluations = [evaluation({ date: '2026-06-08', outcome: 'mild-reaction' })];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-09' }))).toEqual({
+        kind: 'rest',
+        rung: engineSteps[2],
+        days: REST_PHASE_DAYS_MILD,
+        until: addDays('2026-06-08', REST_PHASE_DAYS_MILD),
+      });
+    });
+
+    it('reports passed — not settled — until the top-rung dwell completes', () => {
+      // Two of the three required top doses; dwell incomplete → passed.
+      const meals = [...cleanClimb, spoon('2026-06-06')];
+      expect(decideLadderMove(decInput({ meals, today: '2026-06-09' }))).toEqual({
+        kind: 'passed',
+        rung: engineSteps[2],
+      });
+    });
+
+    it('holds (cadence) after the Nth dose until the latency window elapses', () => {
+      // Third (final) top dose on 06-09. The terminal evaluation is at last dose
+      // + latency = 06-12; confirm cadence (3) coincides with latency, so 06-11
+      // (2 d after the last dose) is still a cadence hold, not yet settled.
+      const meals = [...cleanClimb, spoon('2026-06-06'), spoon('2026-06-09')];
+      expect(decideLadderMove(decInput({ meals, today: '2026-06-11' }))).toEqual({
+        kind: 'hold',
+        rung: engineSteps[2],
+        reason: 'cadence',
+        daysRemaining: 1,
+      });
+    });
+
+    it('reports settled once the dwell completes and the latency window elapses', () => {
+      // N = 3 top doses (06-03, 06-06, 06-09) at confirm cadence; terminal eval
+      // at 06-09 + latency (3) = 06-12.
+      const meals = [...cleanClimb, spoon('2026-06-06'), spoon('2026-06-09')];
+      expect(decideLadderMove(decInput({ meals, today: '2026-06-12' }))).toEqual({
+        kind: 'settled',
+        rung: engineSteps[2],
+      });
+    });
+
+    it('confirms the top rung only — a clean lower rung advances, never dwells', () => {
+      // A mid-ladder rung (e2) is not the top, so no dwell/settled ever accrues
+      // there; in probe mode the engine simply climbs on to e3 once cadence allows.
+      const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')];
+      expect(decideLadderMove(decInput({ meals, today: '2026-06-04' }))).toEqual({
+        kind: 'advance',
+        from: engineSteps[1],
+        to: engineSteps[2],
+      });
+    });
+
+    it('never returns the retired awaiting-verdict hold', () => {
+      // Sweep the climb across the former checkpoint rung (e2) at every day from
+      // the first dose onward; the retired `awaiting-verdict` hold must never
+      // appear regardless of whether a verdict was logged.
+      const meals = [
+        eggMeal('2026-06-01', 'pinch'),
+        eggMeal('2026-06-02', 'teaspoon'),
+        spoon('2026-06-03'),
+      ];
+      for (let d = 1; d <= 20; d++) {
+        const today = addDays('2026-06-01', d);
+        const move = decideLadderMove(decInput({ meals, today }));
+        if (move.kind === 'hold') expect(move.reason).not.toBe('awaiting-verdict');
+      }
+    });
+
+    it('keeps settled derived — recomputing from the same history is identical', () => {
+      const meals = [...cleanClimb, spoon('2026-06-06'), spoon('2026-06-09')];
+      const input = decInput({ meals, today: '2026-06-12' });
+      const first = decideLadderMove(input);
+      const second = decideLadderMove(input);
+      expect(first).toEqual({ kind: 'settled', rung: engineSteps[2] });
+      expect(second).toEqual(first); // pure recompute, nothing persisted
+    });
+
+    it('restarts the dwell after a top-rung reaction — doses straddling it never settle', () => {
+      // Two top-rung dwell doses (06-03, 06-06), then a reaction at the top on
+      // 06-07 steps back to e2 and interrupts the dwell. After the rest the
+      // mother re-climbs to e3 with a single fresh top dose (06-14). The dwell
+      // must restart from zero, so a single fresh dose is not a completed dwell:
+      // the top reads `passed`, not `settled` — the reset guards against calling
+      // a dose tolerated on the strength of exposures that straddle a reaction.
+      const meals = [
+        ...cleanClimb, // e1, e2, e3 (top dose #1 on 06-03)
+        spoon('2026-06-06'), // top dose #2
+        eggMeal('2026-06-14', 'spoon'), // re-climb top dose (fresh dwell #1)
+      ];
+      const evaluations = [
+        evaluation({ date: '2026-06-07', outcome: 'mild-reaction' }),
+        evaluation({ date: '2026-06-14', outcome: 'tolerated' }), // clears the setback
+      ];
+      // 06-17 clears the confirm cadence since the fresh top dose (06-14); with
+      // the dwell reset, only 1 of 3 required doses has accrued → passed.
+      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-17' }))).toEqual({
+        kind: 'passed',
+        rung: engineSteps[2],
+      });
+    });
+  });
+
   // ── Override ──
-  it('fires passed at the effective top when an override shortens the ladder', () => {
+  it('reports passed at the effective top when an override shortens the ladder', () => {
     const override: Ladder = {
       allergenId: 'eggs',
       stages: {
@@ -1027,8 +1189,10 @@ describe('decideLadderMove', () => {
     };
     const meals = [eggMeal('2026-06-01', 'pinch')];
     // Against the default the pinch is rung e1 with e2 above (→ advance); the
-    // override makes pinch the sole, top rung (→ passed at the effective top).
-    expect(decideLadderMove(decInput({ meals, override, today: '2026-06-03' }))).toEqual({
+    // override makes pinch the sole, top rung. At the top the mode is confirm
+    // (cadence ≥ 3), so today 06-04 clears it; the single top dose has not yet
+    // completed the dwell (N = 3 default steps), so the top reads as `passed`.
+    expect(decideLadderMove(decInput({ meals, override, today: '2026-06-04' }))).toEqual({
       kind: 'passed',
       rung: override.stages.breastfed![0],
     });

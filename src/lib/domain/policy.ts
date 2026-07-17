@@ -108,6 +108,17 @@ export const ACCEPTED_ALLERGEN_CADENCE_DAYS = 3;
 export const REINTRODUCTION_CADENCE_DAYS = 1;
 
 /**
+ * Reaction latency — how long a delayed atopic/non-IgE flare may take to surface
+ * after a dose (ADR-0023 §6, PRD #454). The dosing-safety invariant is
+ * **cadence ≥ latency** in the confirm rhythm: never dose *up* into a window in
+ * which a reaction to the previous dose could still be brewing, so every
+ * attribution window holds exactly one rung. The probe deliberately violates
+ * this (cadence 1) as a product-owner-accepted risk, corrected later by the
+ * downward confirm walk. A tunable clinical placeholder, not a stamped value.
+ */
+export const REACTION_LATENCY_DAYS = 3;
+
+/**
  * How many times one ladder rung may react before the decision engine treats it
  * as a confirmed ceiling and stops re-attempting it (ADR-0023). A single
  * reaction is a temporary setback — rest, step back, re-test; reacting this many
@@ -151,4 +162,22 @@ export function cadenceForPhase(phase: LadderPhase): number {
       return _exhaustive;
     }
   }
+}
+
+/** The probe/confirm mode `decideLadderMove` derives from replay state (ADR-0023 §6). */
+export type LadderMode = 'probe' | 'confirm';
+
+/**
+ * Effective escalation spacing for one moment — the injected F3/F4 rhythm in
+ * probe, and in **confirm** that rhythm never below `REACTION_LATENCY_DAYS` so
+ * the cadence ≥ latency dosing-safety invariant holds (ADR-0023 §6, PRD #454).
+ * The engine derives `mode` from replay and injects `cadenceDays` from
+ * `cadenceForPhase`; this is where the two combine into the single number the
+ * cadence gate enforces.
+ *
+ * - **probe:** the injected phase cadence — climb fast (1 in F4, 3 in F3; accepted risk).
+ * - **confirm:** `max(cadenceDays, REACTION_LATENCY_DAYS)` — cadence ≥ latency.
+ */
+export function effectiveCadenceDays(mode: LadderMode, cadenceDays: number): number {
+  return mode === 'probe' ? cadenceDays : Math.max(cadenceDays, REACTION_LATENCY_DAYS);
 }
