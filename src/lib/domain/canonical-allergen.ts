@@ -42,6 +42,22 @@ export type LadderStep = {
 };
 
 /**
+ * How allergenic a food is — the one authored input the derived adaptation
+ * window needs (ADR-0023 §6). The engine (`deriveLadderState`, not yet built)
+ * only distinguishes `'low'`: a `'low'` food is eligible for the
+ * decelerated-continuation *adaptation window* on a first-contact sub-threshold
+ * flare, whereas anything higher routes straight to the reaction path.
+ *
+ * The three-level scale is **tunable curator policy, not a clinically stamped
+ * classification** — an ordinal placeholder. Order is meaningful (`low` <
+ * `moderate` < `high`); only the `low` boundary is engine-load-bearing today,
+ * so `moderate`/`high` are free to be split or renumbered later without
+ * touching engine code.
+ */
+export const ALLERGENICITY_LEVELS = ['low', 'moderate', 'high'] as const;
+export type Allergenicity = (typeof ALLERGENICITY_LEVELS)[number];
+
+/**
  * Per-allergen dose ladder, keyed by feeding stage. Not every allergen has
  * data for every stage — e.g. a source table tested in the child only leaves
  * `breastfed` absent.
@@ -50,9 +66,12 @@ export type LadderStep = {
  * to break a circular type: `LadderAllergenId` is inferred from the catalog
  * which now embeds `Ladder` records. Consumers that need the narrow type read
  * the parent allergen record's `id` directly.
+ *
+ * `allergenicity` gates the derived adaptation window; see `Allergenicity`.
  */
 export type Ladder = {
   allergenId: string;
+  allergenicity: Allergenicity;
   stages: Partial<Record<FeedingStage, readonly LadderStep[]>>;
 };
 

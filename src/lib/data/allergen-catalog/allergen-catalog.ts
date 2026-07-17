@@ -39,6 +39,11 @@ type AllergenRecord = {
   ladder?: Ladder;
 };
 
+// `ladder.allergenicity` values below are **curator-tunable placeholders**, not
+// clinically stamped classifications (ADR-0023 §6). Only the `low` boundary is
+// engine-load-bearing today (adaptation-window eligibility); `moderate`/`high`
+// are grouped by rough anaphylaxis/reaction-risk convention and free to be
+// re-graded. `low`: legumes, carrot-root-veg, oats, chicken, beef.
 export const ALLERGENS = [
   // ── Core protocol allergens ───────────────────────────────
 
@@ -50,6 +55,7 @@ export const ALLERGENS = [
     allergenOrder: 1,
     ladder: {
       allergenId: 'legumes',
+      allergenicity: 'low',
       stages: {
         breastfed: [
           {
@@ -135,6 +141,7 @@ export const ALLERGENS = [
     allergenOrder: 2,
     ladder: {
       allergenId: 'carrot-root-veg',
+      allergenicity: 'low',
       stages: {
         breastfed: [
           {
@@ -220,6 +227,7 @@ export const ALLERGENS = [
     allergenOrder: 3,
     ladder: {
       allergenId: 'tomatoes',
+      allergenicity: 'moderate',
       stages: {
         breastfed: [
           {
@@ -305,6 +313,7 @@ export const ALLERGENS = [
     allergenOrder: 4,
     ladder: {
       allergenId: 'exotic-fruit',
+      allergenicity: 'moderate',
       stages: {
         breastfed: [
           {
@@ -390,6 +399,7 @@ export const ALLERGENS = [
     allergenOrder: 5,
     ladder: {
       allergenId: 'citrus',
+      allergenicity: 'moderate',
       stages: {
         breastfed: [
           {
@@ -475,6 +485,7 @@ export const ALLERGENS = [
     allergenOrder: 6,
     ladder: {
       allergenId: 'wheat',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {
@@ -562,6 +573,7 @@ export const ALLERGENS = [
     allergenOrder: 7,
     ladder: {
       allergenId: 'oats',
+      allergenicity: 'low',
       stages: {
         // No maminka-only (breastfed) table — Matoušková's dcera column is child-direct.
         // mixed: derived maminka side (assume unrestricted), dcera from source.
@@ -617,6 +629,7 @@ export const ALLERGENS = [
     allergenOrder: 8,
     ladder: {
       allergenId: 'eggs',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {
@@ -704,6 +717,7 @@ export const ALLERGENS = [
     allergenOrder: 9,
     ladder: {
       allergenId: 'chicken',
+      allergenicity: 'low',
       stages: {
         breastfed: [
           {
@@ -796,6 +810,7 @@ export const ALLERGENS = [
     allergenOrder: 10,
     ladder: {
       allergenId: 'fish',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {
@@ -874,6 +889,7 @@ export const ALLERGENS = [
     allergenOrder: 11,
     ladder: {
       allergenId: 'dairy',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {
@@ -1013,6 +1029,7 @@ export const ALLERGENS = [
     allergenOrder: 12,
     ladder: {
       allergenId: 'raspberries',
+      allergenicity: 'moderate',
       stages: {
         breastfed: [
           {
@@ -1102,6 +1119,7 @@ export const ALLERGENS = [
     allergenOrder: 13,
     ladder: {
       allergenId: 'strawberries',
+      allergenicity: 'moderate',
       stages: {
         breastfed: [
           {
@@ -1197,6 +1215,7 @@ export const ALLERGENS = [
     allergenOrder: 14,
     ladder: {
       allergenId: 'sesame',
+      allergenicity: 'high',
       stages: {
         // breastfed only — no dcera doses in Matoušková, no Pekárková seeds table
         breastfed: [
@@ -1237,6 +1256,7 @@ export const ALLERGENS = [
     allergenOrder: 15,
     ladder: {
       allergenId: 'soy',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {
@@ -1332,6 +1352,7 @@ export const ALLERGENS = [
     allergenOrder: 16,
     ladder: {
       allergenId: 'nuts',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           { id: 'nuts-1', anchor: 'pinch', isEvaluationCheckpoint: false, dose: '1 Hrst mandlí' },
@@ -1422,6 +1443,7 @@ export const ALLERGENS = [
     allergenOrder: 17,
     ladder: {
       allergenId: 'beef',
+      allergenicity: 'low',
       stages: {
         breastfed: [
           {
@@ -1514,6 +1536,7 @@ export const ALLERGENS = [
     allergenOrder: 18,
     ladder: {
       allergenId: 'cocoa',
+      allergenicity: 'moderate',
       stages: {
         breastfed: [
           {
@@ -1611,6 +1634,7 @@ export const ALLERGENS = [
     allergenOrder: 19,
     ladder: {
       allergenId: 'honey',
+      allergenicity: 'moderate',
       stages: {
         mixed: [
           {
@@ -1699,6 +1723,7 @@ export const ALLERGENS = [
     allergenOrder: 20,
     ladder: {
       allergenId: 'spices-herbs',
+      allergenicity: 'moderate',
       stages: {
         // No Pekárková table; Matoušková tests in 3 days with dcera doses days 2–3.
         // No breastfed or solids source — mixed is the only sourced stage.
@@ -1738,6 +1763,7 @@ export const ALLERGENS = [
     allergenOrder: 21,
     ladder: {
       allergenId: 'peanuts',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {
@@ -1830,6 +1856,7 @@ export const ALLERGENS = [
     allergenOrder: 22,
     ladder: {
       allergenId: 'shellfish',
+      allergenicity: 'high',
       stages: {
         breastfed: [
           {

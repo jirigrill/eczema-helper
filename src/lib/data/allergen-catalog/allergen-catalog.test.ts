@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { ALLERGENICITY_LEVELS } from '$lib/domain/canonical-allergen';
+
 import { ALLERGENS, FAMILIES, FOODS } from './allergen-catalog';
 
 // ── Id uniqueness ─────────────────────────────────────────────
@@ -136,6 +138,25 @@ describe('protocol allergens', () => {
       | undefined;
     expect(coffeeTea).toBeDefined();
     expect((coffeeTea as Record<string, unknown>).ladder).toBeUndefined();
+  });
+
+  it('every ladder carries a valid allergenicity level (ADR-0023 §6)', () => {
+    const levels = new Set<string>(ALLERGENICITY_LEVELS);
+    const laddered = ALLERGENS.filter(
+      (a): a is typeof a & { ladder: { allergenicity: string } } => 'ladder' in a,
+    );
+    expect(laddered.length).toBeGreaterThan(0);
+    for (const allergen of laddered) {
+      expect(
+        levels,
+        `allergen '${allergen.id}' has invalid allergenicity '${allergen.ladder.allergenicity}'`,
+      ).toContain(allergen.ladder.allergenicity);
+    }
+  });
+
+  it("at least one ladder is 'low' — the adaptation-window boundary", () => {
+    const hasLow = ALLERGENS.some((a) => 'ladder' in a && a.ladder.allergenicity === 'low');
+    expect(hasLow).toBe(true);
   });
 });
 
