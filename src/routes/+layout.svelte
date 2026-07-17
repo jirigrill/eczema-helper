@@ -108,6 +108,11 @@
   });
 
   $effect(() => {
+    // PROTOTYPE ESCAPE HATCH — the throwaway /ladder-lab-prototype route needs
+    // to render without onboarding data; the root layout always mounts (SPA
+    // shell) so the `@`-reset alone can't stop this redirect. Bail out for it.
+    // Delete this guard with the prototype route; never merge to main.
+    if (currentPath.startsWith('/ladder-lab-prototype')) return;
     if (ctx.status === 'loading') return;
     if (ctx.status === 'empty' && !isOnboarding) goto('/');
     if (ctx.status === 'ready' && isOnboarding) goto(`/day/${today}`);

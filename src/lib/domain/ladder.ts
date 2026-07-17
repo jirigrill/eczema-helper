@@ -164,6 +164,8 @@ function deriveLadderState(
   meals: Meal[],
   evaluations: readonly ReintroductionEvaluation[],
   steps: readonly LadderStep[],
+  /** Opt-in sink: when present, the folded event stream is copied out for tracing. */
+  replayOut?: { date: string; kind: string; detail: string }[],
 ): LadderReplayState {
   // Build one chronological event stream. Meal anchors (climb) carry `order: 0`
   // and evaluations (verdicts) carry `order: 1`, so a same-day dose is replayed
@@ -185,6 +187,16 @@ function deriveLadderState(
   // Stable sort (ES2019+): same date/order events keep insertion order, so meal
   // anchors stay in `createdAt` sequence within a day.
   events.sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order);
+
+  if (replayOut) {
+    for (const e of events) {
+      replayOut.push({
+        date: e.date,
+        kind: e.kind,
+        detail: e.kind === 'anchor' ? `anchor ${e.amount}` : `verdict ${e.outcome}`,
+      });
+    }
+  }
 
   let liveIndex = -1; // highest step reached
   let nextStepIdx = 0; // next step the climb is trying to reach
@@ -595,6 +607,63 @@ export type LadderDecisionInput = {
 };
 
 /**
+ * Optional execution trace for `decideLadderMove` (opt-in, additive).
+ *
+ * The engine records one `TraceGate` per precedence step it *evaluated*, in the
+ * order it evaluated them, and marks the one that short-circuited (`fired`).
+ * Steps below the fired one are never evaluated, so they never appear — the
+ * absence of a record is itself the honest "not reached" signal. Each record is
+ * fully self-describing: a consumer (e.g. a visualizer) can render it without
+ * knowing what any gate *means* — the engine owns the vocabulary, so changing a
+ * gate changes the trace automatically and no consumer edit is required.
+ *
+ * `state` is the raw `deriveLadderState` snapshot the decision was taken
+ * against — the "insides of the methods" that are otherwise unexported.
+ *
+ * Enabled only when a `LadderTrace` sink is passed to `decideLadderMove`; when
+ * omitted the engine allocates nothing and behaves byte-for-byte as before.
+ */
+export type TraceGate = {
+  /** Precedence position, 1-based, matching the documented ordering. */
+  n: number;
+  /** Stable gate identifier — the engine's own name for this step. */
+  id: 'permanent' | 'empty-ladder' | 'ceiling' | 'reaction' | 'skin' | 'cadence' | 'advance';
+  /** Human label the engine authors, so the consumer prints it verbatim. */
+  label: string;
+  /** The concrete values the gate read this run, name → rendered value. */
+  inputs: Record<string, string | number | boolean | null>;
+  /** The gate's own account of the condition it tested, values substituted. */
+  condition: string;
+  /** Whether this step let control fall through (`false` ⇒ it short-circuited). */
+  passed: boolean;
+  /** One-line outcome the engine authors for this step. */
+  outcome: string;
+};
+
+export type LadderStateSnapshot = {
+  liveRung: string | null;
+  liveIndex: number | null;
+  lastPassingRung: string | null;
+  mode: LadderMode;
+  ceilingRung: string | null;
+  pendingReaction: {
+    rung: string;
+    outcome: AllergenOutcome;
+    date: string;
+    until: string;
+    stepBackTo: string;
+  } | null;
+  dwell: { count: number; lastDoseDate: string | null };
+  /** The chronological replay the state was folded from — the real event stream. */
+  replay: { date: string; kind: string; detail: string }[];
+};
+
+export type LadderTrace = {
+  gates: TraceGate[];
+  state: LadderStateSnapshot | null;
+};
+
+/**
  * The deterministic ladder "brain" (PRD #445): compose `currentRung`, the three
  * gates, and the shared reaction replay into one `LadderDecision` for one
  * allergen at one moment. The F3 ≡ F4 walker — it never branches on phase; the
@@ -636,34 +705,121 @@ export type LadderDecisionInput = {
  * window's baseline blocks. All rung reasoning runs against the *effective*
  * ladder (`resolveLadder`), never the raw default.
  */
-export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
+export function decideLadderMove(input: LadderDecisionInput, trace?: LadderTrace): LadderDecision {
   const { allergenId, meals, evaluations, observations, defaultLadder, override, stage, today } =
     input;
 
+  // Trace sink — a no-op when `trace` is undefined, so the untraced path
+  // allocates nothing and behaves byte-for-byte as before.
+  const rec = (g: TraceGate) => {
+    if (trace) trace.gates.push(g);
+  };
+
   // (1) Permanent elimination — the ladder is inert regardless of history.
-  if (input.isPermanentlyEliminated) return { kind: 'blocked' };
+  if (input.isPermanentlyEliminated) {
+    rec({
+      n: 1,
+      id: 'permanent',
+      label: 'permanent elimination',
+      inputs: { isPermanentlyEliminated: true },
+      condition: 'isPermanentlyEliminated === true',
+      passed: false,
+      outcome: 'inert → blocked',
+    });
+    return { kind: 'blocked' };
+  }
 
   const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
   // No rungs for this stage: nothing to walk — the same rung-less "inert"
   // verdict as a permanently-eliminated allergen.
-  if (steps.length === 0) return { kind: 'blocked' };
+  if (steps.length === 0) {
+    rec({
+      n: 1,
+      id: 'empty-ladder',
+      label: 'ladder present',
+      inputs: { stage, rungs: 0 },
+      condition: `stage '${stage}' has rungs`,
+      passed: false,
+      outcome: 'no rungs → blocked',
+    });
+    return { kind: 'blocked' };
+  }
 
-  const state = deriveLadderState(allergenId, meals, evaluations, steps);
+  const replayOut: LadderStateSnapshot['replay'] | undefined = trace ? [] : undefined;
+  const state = deriveLadderState(allergenId, meals, evaluations, steps, replayOut);
+  if (trace) {
+    const liveIndex = state.liveRung ? steps.findIndex((s) => s.id === state.liveRung!.id) : null;
+    trace.state = {
+      liveRung: state.liveRung?.anchor ?? null,
+      liveIndex: liveIndex === -1 ? null : liveIndex,
+      lastPassingRung: state.lastPassingRung?.anchor ?? null,
+      mode: state.mode,
+      ceilingRung: state.ceilingRung?.anchor ?? null,
+      pendingReaction: state.pendingReaction
+        ? {
+            rung: state.pendingReaction.rung.anchor,
+            outcome: state.pendingReaction.outcome,
+            date: state.pendingReaction.date,
+            until: state.pendingReaction.until,
+            stepBackTo: state.pendingReaction.stepBackTo.anchor,
+          }
+        : null,
+      dwell: { count: state.dwell.count, lastDoseDate: state.dwell.lastDoseDate },
+      replay: replayOut ?? [],
+    };
+  }
 
   // (2) Ceiling — per-rung cap or floor exhaustion. Terminal; defers to human.
   // The `severe` reason is authored on the union but not emitted here yet — the
   // severe-reaction branch lands in a later slice (ADR-0023 §6, PRD #454).
   if (state.ceilingRung) {
+    rec({
+      n: 2,
+      id: 'ceiling',
+      label: 'ceiling / floor exhaustion',
+      inputs: { ceilingRung: state.ceilingRung.anchor },
+      condition: 'lowest rung reacted, or per-rung cap hit',
+      passed: false,
+      outcome: `ceiling at ${state.ceilingRung.anchor}`,
+    });
     return { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' };
   }
+  rec({
+    n: 2,
+    id: 'ceiling',
+    label: 'ceiling / floor exhaustion',
+    inputs: { ceilingRung: null },
+    condition: 'lowest rung reacted, or per-rung cap hit',
+    passed: true,
+    outcome: 'no ceiling → pass',
+  });
 
   // (3) A reaction still in effect: rest while the recovery window is open, then
   //     step back to the last-passing rung to re-test.
   if (state.pendingReaction) {
     const { rung, outcome, until, stepBackTo } = state.pendingReaction;
-    if (today <= until) return { kind: 'rest', rung, days: restDaysFor(outcome), until };
+    const open = today <= until;
+    rec({
+      n: 3,
+      id: 'reaction',
+      label: 'reaction in effect',
+      inputs: { rung: rung.anchor, outcome, until, today },
+      condition: `today (${today}) ≤ rest.until (${until})`,
+      passed: false,
+      outcome: open ? `rest ${restDaysFor(outcome)}d` : `step back → ${stepBackTo.anchor}`,
+    });
+    if (open) return { kind: 'rest', rung, days: restDaysFor(outcome), until };
     return { kind: 'step-back', from: rung, to: stepBackTo };
   }
+  rec({
+    n: 3,
+    id: 'reaction',
+    label: 'reaction in effect',
+    inputs: { pendingReaction: null },
+    condition: 'an unresolved reaction is pending',
+    passed: true,
+    outcome: 'none pending → pass',
+  });
 
   const liveRung = state.liveRung;
 
@@ -677,6 +833,19 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   //     The checkpoint verdict hold is retired (ADR-0023 §6): a recorded
   //     reaction is caught at (3); skin state is the surviving pre-cadence gate.
   const stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
+  rec({
+    n: 4,
+    id: 'skin',
+    label: 'skin stability',
+    inputs: {
+      baseline: stability.baselineSeverity,
+      current: stability.currentSeverity,
+      windowDays: input.stabilityWindowDays,
+    },
+    condition: `current (${stability.currentSeverity ?? '∅'}) ≤ baseline (${stability.baselineSeverity ?? '∅'})`,
+    passed: stability.allowed,
+    outcome: stability.allowed ? 'not worsened → pass' : 'worsened → hold',
+  });
   if (!stability.allowed) {
     return {
       kind: 'hold',
@@ -693,6 +862,19 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   //     still be brewing in (ADR-0023 §6, PRD #454).
   const cadenceDays = effectiveCadenceDays(state.mode, input.cadenceDays);
   const cadence = cadenceGate(allergenId, meals, today, cadenceDays);
+  rec({
+    n: 5,
+    id: 'cadence',
+    label: 'cadence spacing',
+    inputs: {
+      elapsedDays: cadence.daysSinceLastDose,
+      cadenceDays,
+      mode: state.mode,
+    },
+    condition: `elapsed (${cadence.daysSinceLastDose ?? '∅'}d) ≥ cadence (${cadenceDays}d)`,
+    passed: cadence.allowed,
+    outcome: cadence.allowed ? 'spacing met → pass' : 'too soon → hold',
+  });
   if (!cadence.allowed) {
     return {
       kind: 'hold',
@@ -712,7 +894,18 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
     isPermanentlyEliminated: input.isPermanentlyEliminated,
   });
-  if (nextStep !== null) return { kind: 'advance', from: liveRung, to: nextStep };
+  if (nextStep !== null) {
+    rec({
+      n: 6,
+      id: 'advance',
+      label: 'advance / dwell',
+      inputs: { from: liveRung?.anchor ?? null, to: nextStep.anchor },
+      condition: 'a higher legal rung exists',
+      passed: true,
+      outcome: `advance → ${nextStep.anchor}`,
+    });
+    return { kind: 'advance', from: liveRung, to: nextStep };
+  }
 
   // At the effective top. `N` = number of steps in the *default* ladder for the
   // stage (a finely-graded, usually more cautious allergen is confirmed more
@@ -724,5 +917,19 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
     state.dwell.count >= dwellTarget &&
     state.dwell.lastDoseDate !== null &&
     today >= addDays(state.dwell.lastDoseDate, REACTION_LATENCY_DAYS);
+  rec({
+    n: 6,
+    id: 'advance',
+    label: 'advance / dwell',
+    inputs: {
+      topRung: topRung.anchor,
+      dwellCount: state.dwell.count,
+      dwellTarget,
+      lastDoseDate: state.dwell.lastDoseDate,
+    },
+    condition: `at top; dwell ${state.dwell.count}/${dwellTarget} + latency elapsed`,
+    passed: true,
+    outcome: dwellComplete ? 'settled' : 'passed (dwell running)',
+  });
   return dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung };
 }

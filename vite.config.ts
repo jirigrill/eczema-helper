@@ -4,6 +4,15 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // PROTOTYPE worktree: deps resolve to the main checkout's node_modules, which
+  // lives outside this worktree root — allow Vite to serve from there so the
+  // SvelteKit client runtime isn't 403'd over /@fs/. Safe to drop when this
+  // worktree is removed.
+  server: {
+    fs: {
+      allow: ['/Users/jiri.grill/Developer/eczema-helper'],
+    },
+  },
   plugins: [
     tailwindcss(),
     sveltekit(),
@@ -26,7 +35,12 @@ export default defineConfig({
         navigateFallback: '/',
       },
       devOptions: {
-        enabled: true,
+        // PROTOTYPE ONLY — dev service worker DISABLED. The workbox SW hijacks
+        // navigation to `/` (navigateFallback), which bounces the prototype
+        // route to the app's onboarding page. Disabling it here is safe because
+        // this whole worktree/branch is throwaway and never merges to main —
+        // main keeps `enabled: true`. DO NOT cherry-pick this file.
+        enabled: false,
         type: 'module',
       },
     })
