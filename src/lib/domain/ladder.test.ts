@@ -976,7 +976,7 @@ describe('decideLadderMove', () => {
       const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-05', 'teaspoon')];
       // Reaction dated 06-02: only pinch (e1) was dosed on or before that day,
       // so it binds to e1 (floor exhaustion) — the later teaspoon does not count.
-      const evaluations = [evaluation({ date: '2026-06-02', outcome: 'severe-reaction' })];
+      const evaluations = [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })];
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-10' }))).toEqual({
         kind: 'ceiling-reached',
         rung: engineSteps[0],
@@ -1007,11 +1007,61 @@ describe('decideLadderMove', () => {
 
     it('reports ceiling-reached on floor exhaustion — the lowest rung reacts', () => {
       const meals = [eggMeal('2026-06-01', 'pinch')];
-      const evaluations = [evaluation({ date: '2026-06-01', outcome: 'severe-reaction' })];
+      const evaluations = [evaluation({ date: '2026-06-01', outcome: 'mild-reaction' })];
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-05' }))).toEqual({
         kind: 'ceiling-reached',
         rung: engineSteps[0],
         reason: 'floor-exhaustion',
+      });
+    });
+
+    // ── Severe-reaction terminal (ADR-0023 §6, PRD #454, issue #504) ──
+    // A confirmed `severe-reaction` verdict is its own terminal: it derives
+    // `ceiling-reached { reason: 'severe' }` at whatever rung it bound to,
+    // never a step-back / rest / re-confirm — no re-exposure after a dangerous
+    // reaction. It is strictly absorbing, exactly like floor-exhaustion.
+    describe('severe-reaction terminal', () => {
+      it('reports ceiling-reached { severe } on a confirmed severe reaction at a mid rung', () => {
+        // e2 (teaspoon) dosed and reacted-severe. A mild reaction here would
+        // step back to e1; a severe reaction must NOT — it is terminal.
+        const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')];
+        const evaluations = [evaluation({ date: '2026-06-02', outcome: 'severe-reaction' })];
+        expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-05' }))).toEqual({
+          kind: 'ceiling-reached',
+          rung: engineSteps[1],
+          reason: 'severe',
+        });
+      });
+
+      it('is strictly absorbing — later clean doses never re-challenge', () => {
+        // Severe reaction on e2, then the mother keeps logging clean doses well
+        // after the reaction. The terminal must hold: no advance / rest / passed,
+        // still ceiling-reached { severe } at the same rung.
+        const meals = [
+          eggMeal('2026-06-01', 'pinch'),
+          eggMeal('2026-06-02', 'teaspoon'),
+          eggMeal('2026-06-20', 'teaspoon'),
+          eggMeal('2026-06-30', 'spoon'),
+        ];
+        const evaluations = [evaluation({ date: '2026-06-02', outcome: 'severe-reaction' })];
+        expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-07-05' }))).toEqual({
+          kind: 'ceiling-reached',
+          rung: engineSteps[1],
+          reason: 'severe',
+        });
+      });
+
+      it('exits only when a human removes the verdict — replay re-derives the climb', () => {
+        // Same doses, but the doctor cleared it and the mother removed the severe
+        // row. With no reaction in the replay the terminal is gone: the engine
+        // walks the clean history again (here, holding for confirm cadence at e2).
+        const meals = [
+          eggMeal('2026-06-01', 'pinch'),
+          eggMeal('2026-06-02', 'teaspoon'),
+          eggMeal('2026-06-20', 'teaspoon'),
+        ];
+        const move = decideLadderMove(decInput({ meals, evaluations: [], today: '2026-07-05' }));
+        expect(move.kind).not.toBe('ceiling-reached');
       });
     });
 

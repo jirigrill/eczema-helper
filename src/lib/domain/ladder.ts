@@ -95,6 +95,12 @@ type LadderReplayState = {
   pendingReaction: PendingReaction | null;
   /** A rung confirmed as a ceiling — per-rung cap hit or floor exhausted. Terminal. */
   ceilingRung: LadderStep | null;
+  /**
+   * Why the ceiling was reached, mirroring `LadderDecision`'s discriminant so
+   * severity survives the replay: `'floor-exhaustion'` (lowest rung reacts / per-rung
+   * cap) or `'severe'` (a confirmed severe reaction). `null` iff `ceilingRung` is null.
+   */
+  ceilingReason: 'floor-exhaustion' | 'severe' | null;
   /** How many times each rung (by id) has reacted across the whole history. */
   reactionCounts: ReadonlyMap<string, number>;
   /**
@@ -190,6 +196,7 @@ function deriveLadderState(
   let nextStepIdx = 0; // next step the climb is trying to reach
   let pendingReaction: PendingReaction | null = null;
   let ceilingRung: LadderStep | null = null;
+  let ceilingReason: 'floor-exhaustion' | 'severe' | null = null;
   const reactionCounts = new Map<string, number>();
   let firstReactionSeen = false;
   let dwell: Dwell = NO_DWELL;
@@ -232,9 +239,20 @@ function deriveLadderState(
     const count = (reactionCounts.get(reactingRung.id) ?? 0) + 1;
     reactionCounts.set(reactingRung.id, count);
 
+    if (ev.outcome === 'severe-reaction') {
+      // A confirmed severe reaction is its own terminal at whatever rung it bound
+      // to — no step-back / re-confirm, no re-exposure after a dangerous reaction
+      // (ADR-0023 §6, issue #504). Strictly absorbing, like floor-exhaustion.
+      ceilingRung = reactingRung;
+      ceilingReason = 'severe';
+      pendingReaction = null;
+      break;
+    }
+
     if (liveIndex === 0 || count >= MAX_RUNG_REACTIONS) {
       // Floor exhaustion (nowhere lower) or the per-rung cap — the same terminal.
       ceilingRung = reactingRung;
+      ceilingReason = 'floor-exhaustion';
       pendingReaction = null;
       break;
     }
@@ -262,6 +280,7 @@ function deriveLadderState(
     lastPassingRung: pendingReaction?.stepBackTo ?? liveRung,
     pendingReaction,
     ceilingRung,
+    ceilingReason,
     reactionCounts,
     mode,
     dwell,
@@ -545,7 +564,7 @@ export function checkpointVerdictGate(
  * discriminates on `reason`) so severity survives in the engine output:
  * `'floor-exhaustion'` (lowest rung reacts / per-rung cap hit — see §5) or
  * `'severe'` (a confirmed severe reaction — the strictly-absorbing terminal,
- * §6). Only `'floor-exhaustion'` is emitted in this slice.
+ * §6). Both are emitted by `decideLadderMove`.
  */
 export type LadderDecision =
   | { kind: 'advance'; from: LadderStep | null; to: LadderStep }
@@ -650,11 +669,11 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
 
   const state = deriveLadderState(allergenId, meals, evaluations, steps);
 
-  // (2) Ceiling — per-rung cap or floor exhaustion. Terminal; defers to human.
-  // The `severe` reason is authored on the union but not emitted here yet — the
-  // severe-reaction branch lands in a later slice (ADR-0023 §6, PRD #454).
+  // (2) Ceiling — per-rung cap, floor exhaustion, or a confirmed severe reaction.
+  // Terminal; defers to human. The `reason` is derived in the replay so severity
+  // survives the engine output (ADR-0023 §6, PRD #454, issue #504).
   if (state.ceilingRung) {
-    return { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' };
+    return { kind: 'ceiling-reached', rung: state.ceilingRung, reason: state.ceilingReason! };
   }
 
   // (3) A reaction still in effect: rest while the recovery window is open, then
