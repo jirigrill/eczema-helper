@@ -116,9 +116,9 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
   one moment; the F3 ≡ F4 walker (phase reduces to the injected `cadenceDays`).
   Decides but never writes. **`LadderDecision`** is the closed verdict union:
   `advance` · `hold` (reason `skin-worsening` / `cadence`) · `rest`
-  · `passed` · `settled` · `blocked` · `ceiling-reached` (reason
-  `floor-exhaustion` / `severe`). The escalation half of the clinical reshape is
-  built (PRD #454 / [#500](https://github.com/jirigrill/eczema-helper/issues/500)):
+  · `passed` · `settled` · `suspected-reaction` · `blocked` · `ceiling-reached`
+  (reason `floor-exhaustion` / `severe`). The escalation half of the clinical
+  reshape is built (PRD #454 / [#500](https://github.com/jirigrill/eczema-helper/issues/500)):
   the engine derives a **probe/confirm mode** (see below), enforces
   `cadence ≥ latency` in confirm, and **dwells** at the top rung before emitting
   `settled`. The **walk-down** is built ([#501](https://github.com/jirigrill/eczema-helper/issues/501)):
@@ -127,10 +127,25 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
   dwell; the lowest rung reacting is the `ceiling-reached { floor-exhaustion }`
   terminal. The v1 `step-back` variant and `MAX_RUNG_REACTIONS` are **retired**.
   The checkpoint verdict hold (`awaiting-verdict`) is also retired —
-  `isEvaluationCheckpoint` survives only as a UI nudge. The reshape variants
-  `adapting-decelerate` and `suspected-reaction` remain declared-but-unemitted
-  scaffolding (later slices). See the ADR for the gate precedence and the
+  `isEvaluationCheckpoint` survives only as a UI nudge. The region-aware
+  **reaction tripwire** now emits `suspected-reaction` (see below); the reshape
+  variant `adapting-decelerate` remains declared-but-unemitted scaffolding (a
+  later slice). See the ADR for the gate precedence and the
   reaction → walk-down → re-confirm state machine.
+- **Reaction tripwire / `suspected-reaction`** — the region-aware reaction
+  detector ([ADR-0023 §6](docs/adr/0023-dose-escalation-ladder.md), PRD #454,
+  [#502](https://github.com/jirigrill/eczema-helper/issues/502)). A pure
+  region-delta comparison of the latest skin reading against the
+  **pre-reintroduction baseline** (the reading before the food's first dose)
+  crosses when `maxRegionΔ ≥ 2` **or** more than half the tracked regions each
+  rose by ≥ 1 level. A crossing raises the first-class `suspected-reaction`
+  decision — **a tripwire, not a verdict**: it advances nothing and bans nothing,
+  carries skin geometry + the food's authored `allergenicity` + a stubbed
+  `Event`s placeholder (pending [#422](https://github.com/jirigrill/eczema-helper/issues/422)),
+  and is a safe offline **hold-and-defer** — self-reassessed on every replay,
+  never blocking on the network (ADR-0024), time-boxed to
+  `SUSPECTED_REACTION_TIMEBOX_DAYS`, and resolved by a confirmed
+  `ReintroductionEvaluation` row the mother enters (ADR-0016).
 - **Probe / confirm mode** — the derived rhythm the ladder engine walks in
   ([ADR-0023 §6](docs/adr/0023-dose-escalation-ladder.md), PRD #454). **Probe**
   (before the first reaction) climbs fast — cadence 1 — to find roughly where a

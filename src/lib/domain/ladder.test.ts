@@ -8,8 +8,13 @@ import type {
   PortionKind,
   ReintroductionEvaluation,
   SkinObservation,
+  SkinRegionRecord,
 } from '$lib/domain/models';
-import { REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_MILD } from '$lib/domain/policy';
+import {
+  REST_PHASE_DAYS_CLEAR,
+  REST_PHASE_DAYS_MILD,
+  SUSPECTED_REACTION_TIMEBOX_DAYS,
+} from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
 
 import {
@@ -19,6 +24,7 @@ import {
   decideLadderMove,
   explainLadderMove,
   nextLegalStep,
+  reactionTripwire,
   resolveLadder,
   rungAtDayInPhase,
   skinStabilityGate,
@@ -363,6 +369,73 @@ function obs(
     ...(overrides ?? {}),
   };
 }
+
+// ── reactionTripwire ──────────────────────────────────────────
+
+function multiObs(date: string, regions: SkinRegionRecord[]): SkinObservation {
+  return { id: `obs-${date}`, date, createdAt: `${date}T12:00:00Z`, regions };
+}
+
+describe('reactionTripwire', () => {
+  it('crosses when a single region jumps two levels (maxRegionΔ ≥ 2) even on a small area', () => {
+    const baseline = multiObs('2026-06-01', [{ id: 'face', level: 0 }]);
+    const current = multiObs('2026-06-03', [{ id: 'face', level: 2 }]);
+    expect(reactionTripwire(baseline, current).crossed).toBe(true);
+  });
+
+  it('crosses when more than half the tracked regions each worsen by one level', () => {
+    // Four tracked regions; three rise by one level (3 > 0.5 × 4 = 2) — the
+    // breadth arm fires though no single region jumped two.
+    const baseline = multiObs('2026-06-01', [
+      { id: 'face', level: 0 },
+      { id: 'arms', level: 0 },
+      { id: 'legs', level: 0 },
+      { id: 'belly', level: 0 },
+    ]);
+    const current = multiObs('2026-06-03', [
+      { id: 'face', level: 1 },
+      { id: 'arms', level: 1 },
+      { id: 'legs', level: 1 },
+      { id: 'belly', level: 0 },
+    ]);
+    expect(reactionTripwire(baseline, current).crossed).toBe(true);
+  });
+
+  it('does not cross on a one-level bump confined to a minority of regions', () => {
+    // Four tracked regions; only one rises by one level (1 is not > 0.5 × 4 = 2)
+    // and no region jumped two — neither arm fires.
+    const baseline = multiObs('2026-06-01', [
+      { id: 'face', level: 0 },
+      { id: 'arms', level: 0 },
+      { id: 'legs', level: 0 },
+      { id: 'belly', level: 0 },
+    ]);
+    const current = multiObs('2026-06-03', [
+      { id: 'face', level: 1 },
+      { id: 'arms', level: 0 },
+      { id: 'legs', level: 0 },
+      { id: 'belly', level: 0 },
+    ]);
+    expect(reactionTripwire(baseline, current).crossed).toBe(false);
+  });
+
+  it('does not cross on a steady non-zero baseline — unchanged mild eczema is not a reaction', () => {
+    const baseline = multiObs('2026-06-01', [
+      { id: 'face', level: 1 },
+      { id: 'arms', level: 2 },
+    ]);
+    const current = multiObs('2026-06-03', [
+      { id: 'face', level: 1 },
+      { id: 'arms', level: 2 },
+    ]);
+    expect(reactionTripwire(baseline, current).crossed).toBe(false);
+  });
+
+  it('does not cross when there is no baseline to compare against (missing data ≠ hold)', () => {
+    const current = multiObs('2026-06-03', [{ id: 'face', level: 3 }]);
+    expect(reactionTripwire(null, current).crossed).toBe(false);
+  });
+});
 
 // ── skinStabilityGate ─────────────────────────────────────────
 
@@ -1208,7 +1281,120 @@ describe('decideLadderMove', () => {
     });
   });
 
-  // ── Override ──
+  // ── v2 tripwire: region-aware suspected-reaction hold (ADR-0023 §6, PRD #454) ──
+  // The detection tripwire raises a first-class `suspected-reaction` hold — no
+  // advance, no ban. Baseline is the skin state before the food was reintroduced
+  // (latest observation before the first matching dose); current is the latest
+  // reading on or before `today`. Resolution is a confirmed evaluation row on the
+  // next replay (walk-down slice); these assert only the returned `LadderDecision`.
+  describe('suspected-reaction tripwire', () => {
+    it('raises suspected-reaction when a region jumps two levels against the pre-reintroduction baseline', () => {
+      const meals = [eggMeal('2026-06-02', 'pinch')];
+      const observations = [
+        multiObs('2026-06-01', [{ id: 'face', level: 0 }]), // pre-reintroduction baseline
+        multiObs('2026-06-03', [{ id: 'face', level: 2 }]), // post-dose flare
+      ];
+      const move = decideLadderMove(decInput({ meals, observations, today: '2026-06-03' }));
+      expect(move.kind).toBe('suspected-reaction');
+    });
+
+    it('carries skin geometry, the authored allergenicity, and a stubbed empty Events list', () => {
+      const meals = [eggMeal('2026-06-02', 'pinch')];
+      const observations = [
+        multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+        multiObs('2026-06-03', [
+          { id: 'face', level: 2 },
+          { id: 'arms', level: 1 },
+        ]),
+      ];
+      const move = decideLadderMove(
+        decInput({ meals, observations, allergenicity: 'high', today: '2026-06-03' }),
+      );
+      expect(move).toEqual({
+        kind: 'suspected-reaction',
+        rung: engineSteps[0],
+        payload: {
+          regions: [
+            { id: 'face', level: 2 },
+            { id: 'arms', level: 1 },
+          ],
+          allergenicity: 'high',
+          nearbyEvents: [],
+        },
+      });
+    });
+
+    it('does not cross the tripwire on a steady non-zero baseline — it advances instead', () => {
+      const meals = [eggMeal('2026-06-01', 'pinch')];
+      const observations = [
+        multiObs('2026-05-31', [{ id: 'face', level: 1 }]), // pre-dose baseline
+        multiObs('2026-06-03', [{ id: 'face', level: 1 }]), // unchanged
+      ];
+      expect(decideLadderMove(decInput({ meals, observations, today: '2026-06-03' }))).toEqual({
+        kind: 'advance',
+        from: engineSteps[0],
+        to: engineSteps[1],
+      });
+    });
+
+    it('neither advances nor bans on a crossing — the live rung is untouched', () => {
+      // A crossing must not advance the rung nor set a ceiling/ban. It holds at
+      // the reference rung and leaves every other terminal untouched.
+      const meals = [eggMeal('2026-06-02', 'pinch')];
+      const observations = [
+        multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+        multiObs('2026-06-03', [{ id: 'face', level: 3 }]),
+      ];
+      const move = decideLadderMove(decInput({ meals, observations, today: '2026-06-03' }));
+      expect(move.kind).toBe('suspected-reaction');
+      // The rung it holds at is the live rung reached (e1), never advanced to e2.
+      expect(move).toMatchObject({ rung: engineSteps[0] });
+    });
+
+    it('resolves the hold once the mother confirms a not-a-reaction verdict on the next replay', () => {
+      // Crossing on 06-03; the mother reviews it and confirms `tolerated` (a false
+      // alarm — teething, not the food) dated 06-04. On the next replay the hold
+      // is resolved: the engine no longer re-raises suspected-reaction and the
+      // climb resumes.
+      const meals = [eggMeal('2026-06-02', 'pinch')];
+      const observations = [
+        multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+        multiObs('2026-06-03', [{ id: 'face', level: 2 }]),
+      ];
+      const evaluations = [evaluation({ date: '2026-06-04', outcome: 'tolerated' })];
+      const move = decideLadderMove(
+        decInput({ meals, evaluations, observations, today: '2026-06-05' }),
+      );
+      expect(move.kind).not.toBe('suspected-reaction');
+    });
+
+    it('times out an unadjudicated hold once the crossing reading ages past the trajectory time-box', () => {
+      // Crossing on 06-03, no confirming verdict, and the trajectory has gone
+      // quiet. By 06-07 the crossing reading is older than the N-day time-box
+      // (SUSPECTED_REACTION_TIMEBOX_DAYS = 3), so the engine stops holding on a
+      // stale reading and re-derives from fresh data rather than blocking forever.
+      const meals = [eggMeal('2026-06-02', 'pinch')];
+      const observations = [
+        multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+        multiObs('2026-06-03', [{ id: 'face', level: 2 }]),
+      ];
+      expect(SUSPECTED_REACTION_TIMEBOX_DAYS).toBe(3); // pin the fixture to the constant
+      const move = decideLadderMove(decInput({ meals, observations, today: '2026-06-07' }));
+      expect(move.kind).not.toBe('suspected-reaction');
+    });
+
+    it('still holds while the crossing reading is within the trajectory time-box', () => {
+      const meals = [eggMeal('2026-06-02', 'pinch')];
+      const observations = [
+        multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+        multiObs('2026-06-03', [{ id: 'face', level: 2 }]),
+      ];
+      // 06-05 is two days after the crossing reading — inside the 3-day time-box.
+      const move = decideLadderMove(decInput({ meals, observations, today: '2026-06-05' }));
+      expect(move.kind).toBe('suspected-reaction');
+    });
+  });
+
   it('reports passed at the effective top when an override shortens the ladder', () => {
     const override: Ladder = {
       allergenId: 'eggs',
@@ -1251,6 +1437,15 @@ describe('decideLadderMove', () => {
         evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
         today: '2026-06-03',
       }),
+      // suspected-reaction tripwire (region jump against pre-reintroduction baseline)
+      decInput({
+        meals: [eggMeal('2026-06-02', 'pinch')],
+        observations: [
+          multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+          multiObs('2026-06-03', [{ id: 'face', level: 2 }]),
+        ],
+        today: '2026-06-03',
+      }),
       // ceiling-reached (floor exhaustion)
       decInput({
         meals: [eggMeal('2026-06-01', 'pinch')],
@@ -1282,12 +1477,13 @@ describe('decideLadderMove', () => {
       'permanent-or-empty',
       'ceiling',
       'reaction',
+      'suspected-reaction',
       'skin-worsening',
       'cadence',
       'advance-or-dwell',
     ];
 
-    it('always returns the six precedence step names in order, whatever fired', () => {
+    it('always returns the seven precedence step names in order, whatever fired', () => {
       for (const input of corpus) {
         const { steps } = explainLadderMove(input);
         expect(steps.map((s) => s.name)).toEqual(NAMES_IN_ORDER);
@@ -1350,6 +1546,23 @@ describe('decideLadderMove', () => {
       expect(steps.slice(3).every((s) => s.status === 'not-reached')).toBe(true);
     });
 
+    it('fires suspected-reaction on a region-delta crossing, passing reaction first', () => {
+      const { steps, decision } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-02', 'pinch')],
+          observations: [
+            multiObs('2026-06-01', [{ id: 'face', level: 0 }]),
+            multiObs('2026-06-03', [{ id: 'face', level: 2 }]),
+          ],
+          today: '2026-06-03',
+        }),
+      );
+      expect(decision.kind).toBe('suspected-reaction');
+      expect(steps[2].status).toBe('passed-confirmed'); // no open rest window
+      expect(steps[3].status).toBe('fired'); // the tripwire
+      expect(steps.slice(4).every((s) => s.status === 'not-reached')).toBe(true);
+    });
+
     it('fires skin-worsening and carries the gate result with the effective window', () => {
       const { steps, decision } = explainLadderMove(
         decInput({
@@ -1360,7 +1573,7 @@ describe('decideLadderMove', () => {
         }),
       );
       expect(decision.kind).toBe('hold');
-      const skinStep = steps[3];
+      const skinStep = steps[4];
       expect(skinStep.status).toBe('fired');
       if (skinStep.detail.step !== 'skin-worsening') throw new Error('wrong detail');
       expect(skinStep.detail.windowDays).toBe(3);
@@ -1372,9 +1585,9 @@ describe('decideLadderMove', () => {
       // Cadence is downstream of the fired skin step and was never evaluated,
       // but it still reports its real effective threshold (probe mode, injected
       // cadenceDays=1) — consistently with how skin-worsening carries windowDays.
-      expect(steps[4].status).toBe('not-reached');
-      if (steps[4].detail.step !== 'cadence') throw new Error('wrong detail');
-      expect(steps[4].detail.cadenceDays).toBe(1);
+      expect(steps[5].status).toBe('not-reached');
+      if (steps[5].detail.step !== 'cadence') throw new Error('wrong detail');
+      expect(steps[5].detail.cadenceDays).toBe(1);
     });
 
     it('fires cadence and carries the gate result with the effective, mode-adjusted threshold', () => {
@@ -1384,13 +1597,13 @@ describe('decideLadderMove', () => {
         decInput({ meals: [eggMeal('2026-06-01', 'pinch')], cadenceDays: 3, today: '2026-06-02' }),
       );
       expect(decision).toMatchObject({ kind: 'hold', reason: 'cadence' });
-      const cadenceStep = steps[4];
+      const cadenceStep = steps[5];
       expect(cadenceStep.status).toBe('fired');
       if (cadenceStep.detail.step !== 'cadence') throw new Error('wrong detail');
       expect(cadenceStep.detail.cadenceDays).toBe(3);
       expect(cadenceStep.detail.gate).toEqual({ allowed: false, daysSinceLastDose: 1 });
       // The skin-stability step passed with no observations → passed-no-data.
-      expect(steps[3].status).toBe('passed-no-data');
+      expect(steps[4].status).toBe('passed-no-data');
     });
 
     it('raises the effective cadence to the latency floor in confirm mode', () => {
@@ -1411,7 +1624,7 @@ describe('decideLadderMove', () => {
           today: '2026-06-13',
         }),
       );
-      const cadenceStep = steps[4];
+      const cadenceStep = steps[5];
       expect(cadenceStep.status).toBe('fired');
       if (cadenceStep.detail.step !== 'cadence') throw new Error('wrong detail');
       expect(cadenceStep.detail.cadenceDays).toBe(3);
@@ -1426,9 +1639,9 @@ describe('decideLadderMove', () => {
         }),
       );
       expect(decision.kind).toBe('advance');
-      expect(steps[3].status).toBe('passed-confirmed'); // observations present
-      expect(steps[4].status).toBe('passed-confirmed'); // a dose was logged
-      expect(steps[5].status).toBe('fired');
+      expect(steps[4].status).toBe('passed-confirmed'); // observations present
+      expect(steps[5].status).toBe('passed-confirmed'); // a dose was logged
+      expect(steps[6].status).toBe('fired');
     });
 
     it('exposes the state snapshot with all six fields and explicit nulls', () => {

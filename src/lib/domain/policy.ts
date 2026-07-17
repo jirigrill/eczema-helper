@@ -127,6 +127,33 @@ export const REACTION_LATENCY_DAYS = 3;
  */
 export const SKIN_STABILITY_WINDOW_DAYS = 3;
 
+// ── Region-aware reaction tripwire (ADR-0023 §6, PRD #454) ────
+
+/**
+ * Crossing cutoff on the largest single-region severity jump: a rise of this
+ * many levels in any one region trips the reaction tripwire on its own, however
+ * small the area. A tunable clinical placeholder, not a stamped value.
+ */
+export const TRIPWIRE_MAX_REGION_DELTA = 2;
+
+/**
+ * Crossing cutoff on breadth: when *more than* this fraction of the tracked
+ * regions each worsen by at least one level, the tripwire fires even if no
+ * single region jumped two. "Majority" counts regions in v1 (body-surface-area
+ * weighting is v1.1). A tunable clinical placeholder.
+ */
+export const TRIPWIRE_MAJORITY_FRACTION = 0.5;
+
+/**
+ * Trajectory time-box for the offline / no-judge `suspected-reaction` hold
+ * (ADR-0023 §6, ADR-0024). The hold is a safe hold-and-defer that self-reassesses
+ * on the next replay; the mother remains the judge of record. This bounds how
+ * long the engine keeps deferring before the hold is a standing prompt rather
+ * than a fresh signal — a reaction verdict never blocks on the network. A
+ * tunable clinical placeholder.
+ */
+export const SUSPECTED_REACTION_TIMEBOX_DAYS = 3;
+
 /** The look-back window `decideLadderMove` should compare skin against. */
 export function stabilityWindowFor(phase: LadderPhase): number {
   return Math.max(cadenceForPhase(phase), SKIN_STABILITY_WINDOW_DAYS);

@@ -1,13 +1,20 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type {
+  Allergenicity,
+  FeedingStage,
+  Ladder,
+  LadderStep,
+} from '$lib/domain/canonical-allergen';
 import type {
   AllergenOutcome,
   LadderAllergenId,
   Meal,
   PortionKind,
+  RegionId,
   RegionLevel,
   ReintroductionEvaluation,
   SkinObservation,
+  SkinRegionRecord,
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import {
@@ -15,6 +22,9 @@ import {
   REST_PHASE_DAYS_CLEAR,
   REST_PHASE_DAYS_MILD,
   REST_PHASE_DAYS_SEVERE,
+  SUSPECTED_REACTION_TIMEBOX_DAYS,
+  TRIPWIRE_MAJORITY_FRACTION,
+  TRIPWIRE_MAX_REGION_DELTA,
   effectiveCadenceDays,
 } from '$lib/domain/policy';
 import type { LadderMode } from '$lib/domain/policy';
@@ -22,6 +32,129 @@ import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-p
 import { addDays } from '$lib/utils/date';
 
 export type { FeedingStage, Ladder, LadderStep };
+
+// ── Region-delta reaction tripwire (ADR-0023 §6, PRD #454) ─────
+
+/**
+ * Per-region severity change from a baseline observation to a later one, plus the
+ * two aggregate facts the crossing rule compares. A tripwire signal, not a
+ * verdict — the mother remains the judge of record (ADR-0016).
+ */
+export type TripwireResult = {
+  /** True when either arm of the crossing rule fires (see `reactionTripwire`). */
+  crossed: boolean;
+  /** Largest single-region severity increase from baseline to current. */
+  maxRegionDelta: number;
+  /** How many tracked regions rose by at least one level. */
+  regionsWorsened: number;
+  /** Regions in play — the union of regions present in baseline or current. */
+  trackedRegions: number;
+};
+
+/**
+ * Region-aware reaction detector — a **tripwire, not a verdict** (ADR-0023 §6).
+ * Reads per-region deltas (`SkinObservation.regions`, never `overallSeverity`)
+ * from the pre-reintroduction `baseline` to the latest `current` reading and
+ * fires the crossing rule (cutoffs are tunable placeholders in `policy.ts`):
+ *
+ *   crossed = (maxRegionΔ ≥ TRIPWIRE_MAX_REGION_DELTA)
+ *             OR (regionsWithΔ≥1 > TRIPWIRE_MAJORITY_FRACTION × trackedRegions)
+ *
+ * "Majority" counts regions in v1 (body-surface-area weighting is v1.1).
+ * `trackedRegions` is the union of regions present in either observation — the
+ * regions the mother is actually tracking. A missing `baseline` or `current`
+ * yields no crossing (nothing to compare against).
+ */
+export function reactionTripwire(
+  baseline: SkinObservation | null,
+  current: SkinObservation | null,
+): TripwireResult {
+  if (!baseline || !current) {
+    return { crossed: false, maxRegionDelta: 0, regionsWorsened: 0, trackedRegions: 0 };
+  }
+
+  const levelOf = (obs: SkinObservation, region: RegionId): RegionLevel =>
+    obs.regions.find((r) => r.id === region)?.level ?? 0;
+
+  const tracked = new Set<RegionId>();
+  for (const r of baseline.regions) tracked.add(r.id);
+  for (const r of current.regions) tracked.add(r.id);
+
+  let maxRegionDelta = 0;
+  let regionsWorsened = 0;
+  for (const region of tracked) {
+    const delta = levelOf(current, region) - levelOf(baseline, region);
+    if (delta > maxRegionDelta) maxRegionDelta = delta;
+    if (delta >= 1) regionsWorsened += 1;
+  }
+
+  const trackedRegions = tracked.size;
+  const crossed =
+    maxRegionDelta >= TRIPWIRE_MAX_REGION_DELTA ||
+    regionsWorsened > TRIPWIRE_MAJORITY_FRACTION * trackedRegions;
+
+  return { crossed, maxRegionDelta, regionsWorsened, trackedRegions };
+}
+
+/** Observations sorted oldest→newest, breaking date ties by `createdAt`. */
+function chronological(observations: readonly SkinObservation[]): SkinObservation[] {
+  return [...observations].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+}
+
+/** Latest observation dated on or before `date`, or `null` when none exists. */
+function latestObservationOnOrBefore(
+  observations: readonly SkinObservation[],
+  date: string,
+): SkinObservation | null {
+  const eligible = chronological(observations.filter((o) => o.date <= date));
+  return eligible.at(-1) ?? null;
+}
+
+/**
+ * The pre-reintroduction skin baseline for the tripwire — the latest observation
+ * dated strictly before this allergen's first logged dose. That is the skin state
+ * the flare is measured against: what the child looked like before the food was
+ * reintroduced. Returns `null` when the allergen has never been dosed or no
+ * observation predates the first dose (no baseline ⇒ the tripwire cannot cross).
+ */
+function preReintroductionBaseline(
+  allergenId: LadderAllergenId,
+  meals: readonly Meal[],
+  observations: readonly SkinObservation[],
+): SkinObservation | null {
+  const firstDoseDate = meals
+    .filter((m) => mealHitsAllergen(m, allergenId))
+    .map((m) => m.date)
+    .sort()
+    .at(0);
+  if (firstDoseDate === undefined) return null;
+  const before = chronological(observations.filter((o) => o.date < firstDoseDate));
+  return before.at(-1) ?? null;
+}
+
+/**
+ * Whether a crossed tripwire has already been adjudicated by the mother (ADR-0023
+ * §6, ADR-0016). The `suspected-reaction` hold is a safe hold-and-defer: it resolves
+ * only when a confirmed `allergen-test` `ReintroductionEvaluation` for the allergen
+ * is dated on or after the crossing observation — that row *is* the mother's verdict
+ * on this flare. A reaction verdict routes through the ordinary rest/walk-down/ceiling
+ * path (already handled upstream by `deriveLadderState`); a `tolerated` verdict is a
+ * false alarm that lets the climb resume. Until that row exists the hold self-reassesses
+ * on every replay and never blocks on the network (ADR-0024).
+ */
+function suspectedReactionResolved(
+  allergenId: LadderAllergenId,
+  evaluations: readonly ReintroductionEvaluation[],
+  crossingObs: SkinObservation,
+): boolean {
+  return evaluations.some(
+    (e) =>
+      e.phaseType === 'allergen-test' && e.allergenId === allergenId && e.date >= crossingObs.date,
+  );
+}
 
 function foodTriggers(foodId: string): readonly string[] {
   const food = (FOODS as readonly { id: string; allergenIds: readonly string[] }[]).find(
@@ -582,13 +715,14 @@ export function checkpointVerdictGate(
  * `ceiling-reached` carries the rung it got stuck at.
  *
  * Clinical-reshape variants (ADR-0023 §6, PRD #454):
- *   - `settled` — a dose confirmed and held at its rung (probe/confirm walk).
+ *   - `settled` — a dose confirmed and held at its rung (probe/confirm walk);
+ *     emitted once the top-rung dwell completes (#500).
+ *   - `suspected-reaction` — the detection tripwire: a region-delta hold that
+ *     defers the "was that flare a reaction?" judgment to the mother, never an
+ *     auto-ban; emitted on a crossing against the pre-reintroduction baseline.
  *   - `adapting-decelerate` — the open adaptation window: hold flat, keep
- *     re-dosing, never push through (emitted only while the window is open).
- *     Declared here as a *type only* — `decideLadderMove` does not emit it yet.
- *   - `suspected-reaction` — the detection tripwire: a hold that defers the
- *     "was that flare a reaction?" judgment to the mother, never an auto-ban.
- *     Declared here as a *type only* — not emitted yet.
+ *     re-dosing, never push through. Declared here as a *type only* — a later
+ *     slice emits it; `decideLadderMove` does not yet.
  *
  * The v1 `step-back` verdict is **retired** with the walk-down reshape (#501):
  * a reaction no longer steps back to re-climb the reacting rung; it walks the
@@ -619,7 +753,7 @@ export type LadderDecision =
   | { kind: 'blocked' }
   | { kind: 'settled'; rung: LadderStep }
   | { kind: 'adapting-decelerate'; rung: LadderStep }
-  | { kind: 'suspected-reaction'; rung: LadderStep }
+  | { kind: 'suspected-reaction'; rung: LadderStep; payload: SuspectedReactionPayload }
   | { kind: 'ceiling-reached'; rung: LadderStep; reason: 'floor-exhaustion' | 'severe' };
 
 // ── Explain/trace seam (issue #528, design #521) ──────────────
@@ -733,15 +867,17 @@ export type LadderReplay = {
 };
 
 /**
- * The six precedence steps `decideLadderMove` walks, in order (ADR-0023
- * §decision-engine, §6): the four *structural* steps evaluate a definite fact
- * already known from the replay, and the two *gate-backed* steps
+ * The seven precedence steps `decideLadderMove` walks, in order (ADR-0023
+ * §decision-engine, §6): the five *structural* steps evaluate a definite fact
+ * already known from the replay (or, for `suspected-reaction`, the region-delta
+ * tripwire against the skin observations), and the two *gate-backed* steps
  * (`skin-worsening`, `cadence`) run a gate that can be permissive absent data.
  */
 export type LadderPrecedenceStepName =
   | 'permanent-or-empty'
   | 'ceiling'
   | 'reaction'
+  | 'suspected-reaction'
   | 'skin-worsening'
   | 'cadence'
   | 'advance-or-dwell';
@@ -751,7 +887,7 @@ export type LadderPrecedenceStepName =
  * it are `not-reached`; a step that passes without firing is `passed-confirmed`,
  * except the two gate-backed steps which may instead report `passed-no-data`
  * when their gate was permissive only because no data existed to hold against.
- * The four structural steps never report `passed-no-data`.
+ * The five structural steps never report `passed-no-data`.
  */
 export type LadderPrecedenceStepStatus =
   | 'not-reached'
@@ -771,6 +907,7 @@ export type LadderPrecedenceStepDetail =
   | { step: 'permanent-or-empty' }
   | { step: 'ceiling' }
   | { step: 'reaction' }
+  | { step: 'suspected-reaction' }
   | { step: 'skin-worsening'; gate: SkinStabilityGateResult; windowDays: number }
   | { step: 'cadence'; gate: CadenceGateResult; cadenceDays: number }
   | { step: 'advance-or-dwell' };
@@ -782,10 +919,11 @@ export type LadderPrecedenceStep = {
 };
 
 /**
- * The fixed 6-tuple of precedence steps in order, so a step can never be
+ * The fixed 7-tuple of precedence steps in order, so a step can never be
  * silently omitted from a trace. Index maps to `LadderPrecedenceStepName`.
  */
 export type LadderPrecedenceSteps = readonly [
+  LadderPrecedenceStep,
   LadderPrecedenceStep,
   LadderPrecedenceStep,
   LadderPrecedenceStep,
@@ -796,7 +934,7 @@ export type LadderPrecedenceSteps = readonly [
 
 /**
  * The whole trace: the verdict `decideLadderMove` returned (unmodified — the
- * seam synthesizes no prose), the state snapshot, the six precedence steps
+ * seam synthesizes no prose), the state snapshot, the seven precedence steps
  * exactly as walked, and the per-event `replay` of `deriveLadderState`.
  * `explainLadderMove` returns this; `decideLadderMove` returns just `.decision`
  * from the same walk, so the two cannot drift. `replay` is derived and
@@ -807,6 +945,27 @@ export type LadderExplain = {
   snapshot: LadderStateSnapshot;
   steps: LadderPrecedenceSteps;
   replay: LadderReplay;
+};
+
+/**
+ * What the `suspected-reaction` tripwire hands a judge to decide *whether* the
+ * flare was a reaction (ADR-0023 §6). It carries only facts, never a verdict —
+ * the mother remains the judge of record (ADR-0016) and confirms an ordinary
+ * `ReintroductionEvaluation` row that resolves the hold on the next replay.
+ *
+ *   - `regions` — the skin geometry that crossed: per-region severities on the
+ *     current reading (which regions flared, and how badly).
+ *   - `allergenicity` — the food's authored intrinsic allergenicity, or `null`
+ *     when the catalog authored none. Higher allergenicity weights the judgment
+ *     toward "reaction" (§6).
+ *   - `nearbyEvents` — placeholder for confounder `Event`s (teething / illness /
+ *     heat). `Event` does not exist in code yet (PRD #422); this stays a typed
+ *     empty list so this slice is not blocked on #422.
+ */
+export type SuspectedReactionPayload = {
+  regions: readonly SkinRegionRecord[];
+  allergenicity: Allergenicity | null;
+  nearbyEvents: readonly never[];
 };
 
 /**
@@ -830,6 +989,13 @@ export type LadderDecisionInput = {
   cadenceDays: number;
   /** Look-back window for the skin-stability gate — how many days back to seek a baseline. */
   stabilityWindowDays: number;
+  /**
+   * The food's authored allergenicity (`CanonicalAllergen.allergenicity`), passed
+   * through into the `suspected-reaction` payload for the judge. `null`/omitted
+   * when the catalog authored none. The engine never branches on it in this slice
+   * — it is carried, not consumed (ADR-0023 §6).
+   */
+  allergenicity?: Allergenicity | null;
   /** True for a `permanent-mother`/`permanent-baby` allergen (ADR-0012). */
   isPermanentlyEliminated?: boolean;
 };
@@ -847,10 +1013,12 @@ export type LadderDecisionInput = {
  *   2. floor exhausted (lowest rung reacts) → `ceiling-reached` (terminal);
  *   3. reaction recovery window open → `rest`; after it the ladder re-confirms
  *      the stepped-down rung in place (walk-down, never re-climb);
- *   4. skin worsened across the stability window → `hold('skin-worsening')`;
- *   5. cadence (mode-driven, `cadence ≥ latency` in confirm) not elapsed →
+ *   4. region-delta tripwire crossed against the pre-reintroduction baseline (and
+ *      unadjudicated, within the trajectory time-box) → `suspected-reaction`;
+ *   5. skin worsened across the stability window → `hold('skin-worsening')`;
+ *   6. cadence (mode-driven, `cadence ≥ latency` in confirm) not elapsed →
  *      `hold('cadence', daysRemaining)`;
- *   6. otherwise → `advance`; at the effective top (structural top, or the
+ *   7. otherwise → `advance`; at the effective top (structural top, or the
  *      walk-down ceiling), `passed` while the dwell confirmation is still
  *      running, then `settled` once it completes.
  *
@@ -896,7 +1064,7 @@ export function explainLadderMove(input: LadderDecisionInput): LadderExplain {
 /**
  * The single implementation of the ladder precedence (ADR-0023
  * §decision-engine, §6). `decideLadderMove` returns its `.decision`;
- * `explainLadderMove` returns the whole thing. The six precedence steps are
+ * `explainLadderMove` returns the whole thing. The seven precedence steps are
  * recorded as the walk executes them — `fired` on the step that produced the
  * verdict, `passed-confirmed`/`passed-no-data` on the steps passed before it,
  * and `not-reached` on every step after it — so the trace and the decision are
@@ -958,10 +1126,10 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
         : i === firedAt
           ? 'fired'
           : // Passed before the fired step. Only the two gate-backed steps
-            // (indices 3, 4) can be permissive purely for lack of data.
-            i === 3 && gates.stability.currentSeverity === null
+            // (indices 4, 5) can be permissive purely for lack of data.
+            i === 4 && gates.stability.currentSeverity === null
             ? 'passed-no-data'
-            : i === 4 && gates.cadence.daysSinceLastDose === null
+            : i === 5 && gates.cadence.daysSinceLastDose === null
               ? 'passed-no-data'
               : 'passed-confirmed';
     const stepsTuple: LadderPrecedenceSteps = [
@@ -969,8 +1137,13 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
       { name: 'ceiling', status: statusAt(1), detail: { step: 'ceiling' } },
       { name: 'reaction', status: statusAt(2), detail: { step: 'reaction' } },
       {
-        name: 'skin-worsening',
+        name: 'suspected-reaction',
         status: statusAt(3),
+        detail: { step: 'suspected-reaction' },
+      },
+      {
+        name: 'skin-worsening',
+        status: statusAt(4),
         detail: {
           step: 'skin-worsening',
           gate: gates.stability,
@@ -979,10 +1152,10 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
       },
       {
         name: 'cadence',
-        status: statusAt(4),
+        status: statusAt(5),
         detail: { step: 'cadence', gate: gates.cadence, cadenceDays: cadenceDaysEff },
       },
-      { name: 'advance-or-dwell', status: statusAt(5), detail: { step: 'advance-or-dwell' } },
+      { name: 'advance-or-dwell', status: statusAt(6), detail: { step: 'advance-or-dwell' } },
     ];
     return { decision, snapshot, steps: stepsTuple, replay };
   };
@@ -1026,7 +1199,42 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   // are about to attempt when nothing has been logged yet.
   const referenceRung = liveRung ?? steps[0]!;
 
-  // (4) Skin-stability — hold when skin has worsened across the window. A
+  // (4) Region-aware reaction tripwire (ADR-0023 §6, PRD #454). Compare the
+  //     latest skin reading on or before `today` against the pre-reintroduction
+  //     baseline — the latest reading before this allergen's first dose. Crossing
+  //     raises a first-class `suspected-reaction` hold: no advance, no ban. It is
+  //     a tripwire, not a verdict — the mother confirms an ordinary evaluation row
+  //     that resolves it on the next replay (walk-down slice). A safe offline
+  //     hold-and-defer: it self-reassesses on every replay and never touches the
+  //     network (ADR-0024). It supersedes the coarser skin-worsening hold below.
+  const baselineObs = preReintroductionBaseline(allergenId, meals, observations);
+  const currentObs = latestObservationOnOrBefore(observations, today);
+  const tripwire = reactionTripwire(baselineObs, currentObs);
+  // The hold is time-boxed: once the crossing reading ages past the trajectory
+  // time-box without an adjudicating verdict, the engine stops holding on a stale
+  // reading and re-derives from fresh data — a safe hold-and-defer, never a
+  // permanent block (ADR-0024). A crossing implies `currentObs !== null` (the
+  // detector cannot cross without a current reading), so the guard narrows it.
+  if (tripwire.crossed && currentObs !== null) {
+    const withinTimebox = today <= addDays(currentObs.date, SUSPECTED_REACTION_TIMEBOX_DAYS);
+    if (withinTimebox && !suspectedReactionResolved(allergenId, evaluations, currentObs)) {
+      return build(
+        {
+          kind: 'suspected-reaction',
+          rung: referenceRung,
+          payload: {
+            regions: currentObs.regions,
+            allergenicity: input.allergenicity ?? null,
+            nearbyEvents: [],
+          },
+        },
+        3,
+        { stability: PERMISSIVE_SKIN_STABILITY, cadence: noCadenceData },
+      );
+    }
+  }
+
+  // (5) Skin-stability — hold when skin has worsened across the window. A
   //     steady baseline (even mild eczema at severity 1) is not a hold reason;
   //     only an *increase* over the window's baseline blocks escalation.
   //     The checkpoint verdict hold is retired (ADR-0023 §6): a recorded
@@ -1041,12 +1249,12 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
         baselineSeverity: stability.baselineSeverity as RegionLevel,
         currentSeverity: stability.currentSeverity as RegionLevel,
       },
-      3,
+      4,
       { stability, cadence: noCadenceData },
     );
   }
 
-  // (5) Cadence — wait the required spacing since the last dose. The spacing is
+  // (6) Cadence — wait the required spacing since the last dose. The spacing is
   //     mode-driven: fast in probe, `≥ latency` in confirm so the engine never
   //     doses up into a window a delayed reaction to the previous dose could
   //     still be brewing in (ADR-0023 §6, PRD #454).
@@ -1059,12 +1267,12 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
         reason: 'cadence',
         daysRemaining: Math.max(0, cadenceDaysEff - (cadenceResult.daysSinceLastDose ?? 0)),
       },
-      4,
+      5,
       { stability, cadence: cadenceResult },
     );
   }
 
-  // (6) Escalate one legal step — unless the climb is already at the effective
+  // (7) Escalate one legal step — unless the climb is already at the effective
   //     top (the walk-down ceiling, or the structural top when none has walked
   //     down). At the effective top there is nowhere to climb; the rung dwells —
   //     held constant and confirmed `N` times at confirm cadence, terminal-
@@ -1079,7 +1287,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
       isPermanentlyEliminated: input.isPermanentlyEliminated,
     });
     if (nextStep !== null)
-      return build({ kind: 'advance', from: liveRung, to: nextStep }, 5, evaluatedGates);
+      return build({ kind: 'advance', from: liveRung, to: nextStep }, 6, evaluatedGates);
   }
 
   // At the effective top. `N` = number of steps in the *default* ladder for the
@@ -1094,7 +1302,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     today >= addDays(state.dwell.lastDoseDate, REACTION_LATENCY_DAYS);
   return build(
     dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung },
-    5,
+    6,
     evaluatedGates,
   );
 }

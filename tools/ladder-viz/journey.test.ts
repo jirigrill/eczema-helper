@@ -73,9 +73,9 @@ describe('replayDays — one resolved day per calendar day', () => {
     }
   });
 
-  it('every day carries the fixed 6-step trace with exactly one fired step', () => {
+  it('every day carries the fixed 7-step trace with exactly one fired step', () => {
     for (const { explain } of replayDays(RUN_INPUT)) {
-      expect(explain.steps).toHaveLength(6);
+      expect(explain.steps).toHaveLength(7);
       expect(explain.steps.filter((s) => s.status === 'fired')).toHaveLength(1);
     }
   });

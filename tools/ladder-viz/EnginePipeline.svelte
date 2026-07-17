@@ -1,4 +1,4 @@
-<!-- The engine as a linear sequence: the #521 `LadderExplain.steps` 6-tuple plus
+<!-- The engine as a linear sequence: the #521 `LadderExplain.steps` 7-tuple plus
      the verdict, rendered as a plain CSS track — no graph canvas, no camera. Each
      row gets an equal share of the column's actual height (so the layout uses
      whatever space it has, instead of a graph library's zoom-to-fit guessing),
@@ -16,11 +16,12 @@
   let { day, onJumpToReplay }: { day: DayView; onJumpToReplay?: (index: number) => void } =
     $props();
 
-  // Stable UI captions for the 6 fixed step names (part of the #521 contract).
+  // Stable UI captions for the 7 fixed step names (part of the #521 contract).
   const FN: Record<LadderPrecedenceStepName, string> = {
     'permanent-or-empty': 'resolveLadder().stages[stage] · isPermanentlyEliminated',
     ceiling: 'deriveLadderState().ceilingRung',
     reaction: 'deriveLadderState().pendingRest',
+    'suspected-reaction': 'reactionTripwire() · preReintroductionBaseline()',
     'skin-worsening': 'skinStabilityGate()',
     cadence: 'effectiveCadenceDays() · cadenceGate()',
     'advance-or-dwell': 'nextLegalStep() · dwell',
@@ -43,15 +44,19 @@
     'passed-no-data': 'ran, and passed only because nothing has been logged yet to hold it against',
   };
 
-  // The four structural steps carry no payload of their own (`detail` is just
+  // The five structural steps carry no payload of their own (`detail` is just
   // `{ step: name }`). Three of them read `LadderStateSnapshot` fields; the
-  // first instead reads the ladder's own setup (stage/elimination flag), which
-  // is NOT part of the snapshot — each gets its own accurate source label so
-  // the pane never claims a source the value didn't actually come from.
+  // first instead reads the ladder's own setup (stage/elimination flag), and
+  // `suspected-reaction` reads the skin observations against the
+  // pre-reintroduction baseline — neither part of the snapshot — so each gets
+  // its own accurate source label so the pane never claims a source the value
+  // didn't actually come from.
   const STRUCTURAL_SOURCE: Record<LadderPrecedenceStepName, string> = {
     'permanent-or-empty': "inputs — read from the ladder's own setup (not the derived state)",
     ceiling: 'inputs — read directly from the derived state (no gate payload of its own)',
     reaction: 'inputs — read directly from the derived state (no gate payload of its own)',
+    'suspected-reaction':
+      'inputs — the region-delta tripwire over the skin observations (no gate payload of its own)',
     'skin-worsening': '',
     cadence: '',
     'advance-or-dwell':
@@ -67,6 +72,7 @@
     ],
     ceiling: (d) => [{ k: 'ceilingRung', v: fmtRung(d.explain.snapshot.ceilingRung) }],
     reaction: (d) => [{ k: 'pendingRest', v: fmtPendingRest(d.explain.snapshot.pendingRest) }],
+    'suspected-reaction': () => [],
     'skin-worsening': () => [],
     cadence: () => [],
     'advance-or-dwell': (d) => [
