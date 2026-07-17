@@ -101,11 +101,16 @@ rare overlap).
   advice.
 - **D — escalate first; LOG the datum; suppress only the PROPOSER, not the
   record.** An acute reaction to a reintroduced allergen IS the `severe-reaction`
-  signal driving the safe mutation (rest → `reacted` → no auto-retest) and is what
+  signal driving the safe mutation (in the reshaped engine: a confirmed severe
+  verdict → the absorbing terminal `ceiling-reached { reason: 'severe' }`, **no
+  walk-down, no auto-retest** — ADR-0023 §6; the earlier "rest → `reacted`" wording
+  predates the clinical reshape, where a plain `reacted` now walks down) and is what
   the redirected-to doctor needs. The app stores the parent's **raw report +
   context + "flagged urgent / redirected"**; it does **not** auto-set the
   `severe-reaction` verdict — that stays parent-attributed per ADR-0016, confirmed
-  later, calmly. Storing raw words ≠ diagnosing.
+  later, calmly, via the ordinary `suspected-reaction` hold → confirm path. The
+  call-155 redirect fires at **log-time** (offline stem floor), independently of and
+  ahead of that ladder verdict. Storing raw words ≠ diagnosing.
 
 ### B — Regulatory (flagged, NOT decided here — needs external counsel)
 
