@@ -103,8 +103,12 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
   one moment; the F3 ≡ F4 walker (phase reduces to the injected `cadenceDays`).
   Decides but never writes. **`LadderDecision`** is the closed verdict union:
   `advance` · `hold` (reason `awaiting-verdict` / `flare` / `cadence`) · `rest`
-  · `step-back` · `passed` · `blocked` · `ceiling-reached`. See the ADR for the
-  gate precedence and the reaction → rest → step-back → re-test state machine.
+  · `step-back` · `passed` · `blocked` · `ceiling-reached` (reason
+  `floor-exhaustion` / `severe`). The clinical-reshape variants `settled`,
+  `adapting-decelerate`, and `suspected-reaction` are declared as types
+  (scaffolding for PRD #454, [§6](docs/adr/0023-dose-escalation-ladder.md#6-decision-engine--clinical-reshape-amendment-2026-07-14-detection-layer-2026-07-16))
+  but not yet emitted. See the ADR for the gate precedence and the
+  reaction → rest → step-back → re-test state machine.
 - **`deriveLadderState`** — the *private*, single date-ordered replay of meals +
   evaluations behind both `currentRung` and `decideLadderMove`, so the
   reaction-binding + step-back logic exists exactly once. Never exported.
