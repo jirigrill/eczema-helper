@@ -104,15 +104,31 @@ type LadderReplayState = {
    */
   mode: LadderMode;
   /**
-   * Doses landed on the top rung — the dwell count. Once the climb reaches the
-   * top, every further dose of the top rung's anchor increments this. A clean
-   * probe confirms the *top rung only*, so only the top rung dwells (dose–response
-   * is monotone); lower rungs are advanced through, never dwelt on.
+   * Top-rung dwell progress — the two facts the `settled` terminal needs, always
+   * derived and reset together (see `Dwell`). Once the climb reaches the top,
+   * every further dose of the top rung's anchor advances the dwell; a reaction
+   * restarts it. A clean probe confirms the *top rung only*, so only the top rung
+   * dwells (dose–response is monotone); lower rungs are advanced through.
    */
-  topRungDoseCount: number;
-  /** ISO date of the most recent top-rung dose, for the `last dose + latency` terminal eval. */
-  lastTopRungDoseDate: string | null;
+  dwell: Dwell;
 };
+
+/**
+ * Top-rung dwell state — how many times the top rung has been dosed and the date
+ * of the last such dose, for the `last dose + latency` → `settled` terminal
+ * (ADR-0023 §6, PRD #454). The two fields always move together: both advance on a
+ * top-rung dose and both reset on a reaction (`NO_DWELL`), so a dose straddling a
+ * reaction can never complete a dwell.
+ */
+type Dwell = {
+  /** Doses landed on the top rung so far. */
+  count: number;
+  /** ISO date of the most recent top-rung dose, or `null` before the top is reached. */
+  lastDoseDate: string | null;
+};
+
+/** The empty dwell — no top-rung dose counted yet. Also the reaction reset. */
+const NO_DWELL: Dwell = { count: 0, lastDoseDate: null };
 
 type ReplayEvent =
   | { date: string; order: 0; kind: 'anchor'; amount: PortionKind }
@@ -176,8 +192,7 @@ function deriveLadderState(
   let ceilingRung: LadderStep | null = null;
   const reactionCounts = new Map<string, number>();
   let firstReactionSeen = false;
-  let topRungDoseCount = 0;
-  let lastTopRungDoseDate: string | null = null;
+  let dwell: Dwell = NO_DWELL;
   const topIndex = steps.length - 1;
   const topAnchor = topIndex >= 0 ? steps[topIndex]!.anchor : null;
 
@@ -194,8 +209,7 @@ function deriveLadderState(
       // each spaced re-dose thereafter increments). Only the top rung dwells —
       // a clean probe confirms the top only (dose–response is monotone).
       if (liveIndex === topIndex && topIndex >= 0 && ev.amount === topAnchor) {
-        topRungDoseCount += 1;
-        lastTopRungDoseDate = ev.date;
+        dwell = { count: dwell.count + 1, lastDoseDate: ev.date };
       }
       continue;
     }
@@ -212,9 +226,8 @@ function deriveLadderState(
     // A reaction interrupts the dwell's "held constant, tolerated" premise, so
     // the confirmation must restart: reset the top-rung dwell so `settled` can
     // never be reached by doses that straddle a reaction. (If the climb was not
-    // yet at the top these are already zero — resetting is a harmless no-op.)
-    topRungDoseCount = 0;
-    lastTopRungDoseDate = null;
+    // yet at the top the dwell is already empty — resetting is a harmless no-op.)
+    dwell = NO_DWELL;
     const reactingRung = steps[liveIndex]!;
     const count = (reactionCounts.get(reactingRung.id) ?? 0) + 1;
     reactionCounts.set(reactingRung.id, count);
@@ -251,8 +264,7 @@ function deriveLadderState(
     ceilingRung,
     reactionCounts,
     mode,
-    topRungDoseCount,
-    lastTopRungDoseDate,
+    dwell,
   };
 }
 
@@ -709,8 +721,8 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   const topRung = liveRung as LadderStep;
   const dwellTarget = (defaultLadder.stages[stage] ?? []).length;
   const dwellComplete =
-    state.topRungDoseCount >= dwellTarget &&
-    state.lastTopRungDoseDate !== null &&
-    today >= addDays(state.lastTopRungDoseDate, REACTION_LATENCY_DAYS);
+    state.dwell.count >= dwellTarget &&
+    state.dwell.lastDoseDate !== null &&
+    today >= addDays(state.dwell.lastDoseDate, REACTION_LATENCY_DAYS);
   return dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung };
 }
