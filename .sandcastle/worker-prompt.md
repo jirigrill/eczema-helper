@@ -46,16 +46,26 @@ Read `~/.claude/skills/tdd/SKILL.md` (and its companions `tests.md` and `mocking
    - Spec source: issue #{{ISSUE_NUMBER}}, fetched via `docs/agents/issue-tracker.md` (present in this repo). The skill says to run `/setup-matt-pocock-skills` if that file is missing — **do not**; it is not available in this sandbox. If the tracker doc is ever absent, skip the Spec axis's fetch and have that sub-agent report "no spec available".
    - Standards source: `docs/architecture/code-standards.md` plus the skill's smell baseline.
    - The skill spawns the two parallel sub-agents (Standards + Spec) and reports findings. **Act on them**: fix real issues the review surfaces, then re-run `just check` and `just test`. Repeat until the review is clean or the only findings are ones you can justify leaving. Do not commit an unaddressed hard violation or missing spec requirement.
+   - **Retain the aggregated report** (the skill's `## Standards` / `## Spec` output). You will paste it into the PR body in step 7. For each finding, note whether you fixed it or deliberately left it — and if left, why. A clean review is just "no findings" under each axis.
 6. **Commit** — make a single git commit. The message MUST:
    - Start with `RALPH:` prefix
    - Include the task completed and any PRD reference
    - List key decisions made
    - List files changed
    - Note any blockers for the next iteration
-7. **PR** — push the branch and open a PR:
+7. **PR** — push the branch and open a PR. The body MUST have a `## Code review` section holding the retained report from step 5:
    ```
    git push -u origin agent/ralph-issue-{{ISSUE_NUMBER}}
-   gh pr create --title "RALPH: <summary>" --body "Closes #{{ISSUE_NUMBER}}\n\n<what changed and why>"
+   gh pr create --title "RALPH: <summary>" --body "$(cat <<'BODY'
+   Closes #{{ISSUE_NUMBER}}
+
+   <what changed and why>
+
+   ## Code review
+
+   <the aggregated Standards + Spec report from step 5, verbatim, with a note per finding on whether it was fixed or deliberately left and why. Write "No findings." under an axis that was clean.>
+   BODY
+   )"
    ```
    Do NOT close the issue manually — GitHub closes it automatically when the PR merges.
 
