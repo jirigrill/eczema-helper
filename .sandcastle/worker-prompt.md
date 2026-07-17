@@ -43,7 +43,7 @@ Read `~/.claude/skills/tdd/SKILL.md` (and its companions `tests.md` and `mocking
 4. **Verify** — run `just check` and `just test` before reviewing. Fix any failures before proceeding.
 5. **Review** — run a full code review of your changes before committing, following the vendored `code-review` skill (`~/.claude/skills/code-review/SKILL.md`):
    - Fixed point: `main` (you branched from it). The skill diffs `git diff main...HEAD`; since you have not committed yet, run it against your working tree — `git diff main`.
-   - Spec source: issue #{{ISSUE_NUMBER}} (fetch it via `docs/agents/issue-tracker.md`, already present in this repo).
+   - Spec source: issue #{{ISSUE_NUMBER}}, fetched via `docs/agents/issue-tracker.md` (present in this repo). The skill says to run `/setup-matt-pocock-skills` if that file is missing — **do not**; it is not available in this sandbox. If the tracker doc is ever absent, skip the Spec axis's fetch and have that sub-agent report "no spec available".
    - Standards source: `docs/architecture/code-standards.md` plus the skill's smell baseline.
    - The skill spawns the two parallel sub-agents (Standards + Spec) and reports findings. **Act on them**: fix real issues the review surfaces, then re-run `just check` and `just test`. Repeat until the review is clean or the only findings are ones you can justify leaving. Do not commit an unaddressed hard violation or missing spec requirement.
 6. **Commit** — make a single git commit. The message MUST:
