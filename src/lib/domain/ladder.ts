@@ -11,7 +11,6 @@ import type {
 } from '$lib/domain/models';
 import { overallSeverity } from '$lib/domain/models';
 import {
-  MAX_RUNG_REACTIONS,
   REACTION_LATENCY_DAYS,
   REST_PHASE_DAYS_CLEAR,
   REST_PHASE_DAYS_MILD,
@@ -68,17 +67,15 @@ function restDaysFor(outcome: AllergenOutcome): number {
       : REST_PHASE_DAYS_SEVERE;
 }
 
-/** A reaction still in effect: the rung that reacted and how recovery unwinds. */
-export type PendingReaction = {
-  /** The rung the reaction bound to (highest live rung dosed on or before the verdict). */
+/** A reaction still resting: the stepped-down rung and when its recovery ends. */
+export type PendingRest = {
+  /** The rung the ladder stepped **down** to after the reaction (the reacting rung − 1). */
   rung: LadderStep;
   outcome: AllergenOutcome;
   /** ISO date the reaction verdict was recorded. */
   date: string;
   /** ISO date the rest window ends — `date + restDaysFor(outcome)` (ADR-0016). */
   until: string;
-  /** Last-passing rung to step back to and re-test — the rung directly below `rung`. */
-  stepBackTo: LadderStep;
 };
 
 /**
@@ -89,14 +86,17 @@ export type PendingReaction = {
 type LadderReplayState = {
   /** Highest rung logged and not reacted-against (reaction-aware `currentRung`). */
   liveRung: LadderStep | null;
-  /** Rung to retreat to when a reaction's rest elapses; `liveRung` when none pending. */
-  lastPassingRung: LadderStep | null;
-  /** The reaction still in effect (rest/step-back), or `null` once cleared by a clean verdict. */
-  pendingReaction: PendingReaction | null;
-  /** A rung confirmed as a ceiling — per-rung cap hit or floor exhausted. Terminal. */
+  /**
+   * Whether the live rung is at the effective top — the highest rung the climb
+   * may still reach, which starts at the structural top and drops one rung per
+   * confirmed reaction (the walk-down cap). At the effective top the engine
+   * dwells rather than advancing; below it the engine climbs.
+   */
+  atEffectiveTop: boolean;
+  /** A reaction still resting (walk-down recovery window), or `null` when none is open. */
+  pendingRest: PendingRest | null;
+  /** A rung confirmed as a terminal ceiling — floor exhausted. Terminal. */
   ceilingRung: LadderStep | null;
-  /** How many times each rung (by id) has reacted across the whole history. */
-  reactionCounts: ReadonlyMap<string, number>;
   /**
    * Probe/confirm mode, derived — never persisted (ADR-0023 §6, PRD #454).
    * `probe` before the first reaction; `confirm` once a reaction has been seen
@@ -104,30 +104,31 @@ type LadderReplayState = {
    */
   mode: LadderMode;
   /**
-   * Top-rung dwell progress — the two facts the `settled` terminal needs, always
-   * derived and reset together (see `Dwell`). Once the climb reaches the top,
-   * every further dose of the top rung's anchor advances the dwell; a reaction
-   * restarts it. A clean probe confirms the *top rung only*, so only the top rung
-   * dwells (dose–response is monotone); lower rungs are advanced through.
+   * Effective-top dwell progress — the two facts the `settled` terminal needs,
+   * always derived and reset together (see `Dwell`). Once the climb reaches the
+   * effective top, every further dose of that rung's anchor advances the dwell;
+   * a reaction restarts it. A clean probe confirms the *top rung only*, so only
+   * the effective top dwells (dose–response is monotone); lower rungs are
+   * advanced through.
    */
   dwell: Dwell;
 };
 
 /**
- * Top-rung dwell state — how many times the top rung has been dosed and the date
- * of the last such dose, for the `last dose + latency` → `settled` terminal
- * (ADR-0023 §6, PRD #454). The two fields always move together: both advance on a
- * top-rung dose and both reset on a reaction (`NO_DWELL`), so a dose straddling a
- * reaction can never complete a dwell.
+ * Effective-top dwell state — how many times the effective top rung has been
+ * dosed and the date of the last such dose, for the `last dose + latency` →
+ * `settled` terminal (ADR-0023 §6, PRD #454). The two fields always move
+ * together: both advance on an effective-top dose and both reset on a reaction
+ * (`NO_DWELL`), so a dose straddling a reaction can never complete a dwell.
  */
 export type Dwell = {
-  /** Doses landed on the top rung so far. */
+  /** Doses landed on the effective top rung so far. */
   count: number;
-  /** ISO date of the most recent top-rung dose, or `null` before the top is reached. */
+  /** ISO date of the most recent effective-top dose, or `null` before the top is reached. */
   lastDoseDate: string | null;
 };
 
-/** The empty dwell — no top-rung dose counted yet. Also the reaction reset. */
+/** The empty dwell — no effective-top dose counted yet. Also the reaction reset. */
 const NO_DWELL: Dwell = { count: 0, lastDoseDate: null };
 
 type ReplayEvent =
@@ -140,24 +141,31 @@ type ReplayEvent =
  *
  * The climb is anchor-driven exactly as the original `currentRung` walk: a meal
  * whose item anchors the next step advances the live rung. A reaction verdict
- * dated D binds to the highest still-live rung whose anchor was logged in a meal
- * on or before D (meals sort before same-date evaluations), drops the live rung
- * one step, and opens that rung for a re-test — so a reaction is a *temporary*
- * setback: a later clean re-dose re-advances, and a `tolerated` verdict clears
- * the pending reaction entirely. A reaction on the lowest rung (nowhere lower to
- * retreat) or the `MAX_RUNG_REACTIONS`-th reaction on one rung is a confirmed
- * ceiling — a single unified terminal that defers to human care (ADR-0023,
- * ADR-0024); the engine never sets a `permanent-*` status itself (ADR-0012).
+ * dated D binds to the highest still-live rung — the highest rung dosed on or
+ * before D (meals sort before same-date evaluations, so a same-day dose counts).
+ * Under confirm cadence ≥ latency that rung is also the single rung inside the
+ * `[D − latency, D]` attribution window; the probe (cadence 1) binds coarsely to
+ * the same top rung, corrected later by the downward confirm walk. The reaction
+ * **walks the ladder down one rung** and caps the reacting rung forever — it is
+ * *never re-climbed* (ADR-0023 §6, PRD #454). The stepped-down rung must be
+ * re-confirmed by its own dwell before it settles; a single earlier climb-past
+ * exposure does not count. A `tolerated` verdict only clears the recovery rest
+ * window. A reaction on the lowest rung (nowhere lower to retreat) is a confirmed
+ * ceiling that defers to human care (ADR-0023, ADR-0024); the engine never sets
+ * a `permanent-*` status itself (ADR-0012).
  *
- * It also derives the probe/confirm **mode** and the top-rung **dwell** count
- * (ADR-0023 §6, PRD #454) purely from the same replay — no persisted flag: the
- * mode is `confirm` once any reaction has been seen or the climb has reached the
- * top rung, `probe` otherwise; the dwell count is how many times the top rung's
- * anchor has been dosed. `decideLadderMove` turns those into cadence and the
- * `settled` terminal.
+ * It also derives the probe/confirm **mode** and the effective-top **dwell**
+ * count (ADR-0023 §6, PRD #454) purely from the same replay — no persisted flag:
+ * the mode is `confirm` once any reaction has been seen or the climb has reached
+ * the effective top, `probe` otherwise; the dwell count is how many times the
+ * effective top rung's anchor has been dosed since it became the top.
+ * `decideLadderMove` turns those into cadence and the `settled` terminal.
  *
  * Written exactly once so `currentRung` and `decideLadderMove` cannot drift on
- * how a reaction moves the rung. Never exported.
+ * how a reaction moves the rung. Never exported. When a `trace` sink is passed
+ * (visualizer-only), the loop records one `LadderReplayStep` per event and the
+ * initial frame — the single loop stays the one implementation (no parallel
+ * traced replay); the production decision path pays only the `if (trace)` guards.
  */
 function deriveLadderState(
   allergenId: LadderAllergenId,
@@ -195,24 +203,23 @@ function deriveLadderState(
 
   let liveIndex = -1; // highest step reached
   let nextStepIdx = 0; // next step the climb is trying to reach
-  let pendingReaction: PendingReaction | null = null;
+  let pendingRest: PendingRest | null = null;
   let ceilingRung: LadderStep | null = null;
-  const reactionCounts = new Map<string, number>();
   let firstReactionSeen = false;
   let dwell: Dwell = NO_DWELL;
   const topIndex = steps.length - 1;
-  const topAnchor = topIndex >= 0 ? steps[topIndex]!.anchor : null;
+  // The effective top: highest rung the climb may reach. A confirmed reaction
+  // walks it down one rung (never re-climbed); it starts at the structural top.
+  let topReachableIndex = topIndex;
 
-  // Capture the loop's evolving variables as an immutable frame. `reactionCounts`
-  // is copied (not aliased) so a frame is a true point-in-time snapshot — see the
-  // maintenance contract on `LadderReplayStep`. Only built when tracing.
+  // Capture the loop's evolving variables as an immutable frame — the fields
+  // that change per event, so a before/after pair shows what one event did.
+  // Only built when tracing.
   const frame = (): LadderReplayFrame => ({
     liveRung: liveIndex >= 0 ? steps[liveIndex]! : null,
-    pendingReaction,
+    pendingRest,
     ceilingRung,
     dwell,
-    lastPassingRung: pendingReaction?.stepBackTo ?? (liveIndex >= 0 ? steps[liveIndex]! : null),
-    reactionCounts: new Map(reactionCounts),
   });
   if (trace) trace.initial = frame();
 
@@ -231,18 +238,29 @@ function deriveLadderState(
     };
 
     if (ev.kind === 'anchor') {
+      // Climb one step — but never past the walk-down ceiling. A dose at the
+      // reacting rung's anchor after a reaction cannot re-advance onto it.
       let climbed = false;
-      if (nextStepIdx < steps.length && steps[nextStepIdx]!.anchor === ev.amount) {
+      if (
+        nextStepIdx <= topReachableIndex &&
+        nextStepIdx < steps.length &&
+        steps[nextStepIdx]!.anchor === ev.amount
+      ) {
         liveIndex = nextStepIdx;
         nextStepIdx += 1;
         climbed = true;
       }
-      // Dwell counting: once the climb has reached the top rung, every dose of
-      // the top rung's anchor is a confirmation dose (the arrival dose is #1,
-      // each spaced re-dose thereafter increments). Only the top rung dwells —
-      // a clean probe confirms the top only (dose–response is monotone).
+      // Dwell counting: once the climb has reached the *effective* top (the
+      // walk-down ceiling, or the structural top when none has walked down),
+      // every dose of that rung's anchor is a confirmation dose (the arrival
+      // dose is #1, each spaced re-dose thereafter increments). Only the
+      // effective top dwells — dose–response is monotone.
       let dwelled = false;
-      if (liveIndex === topIndex && topIndex >= 0 && ev.amount === topAnchor) {
+      if (
+        liveIndex === topReachableIndex &&
+        topReachableIndex >= 0 &&
+        ev.amount === steps[topReachableIndex]!.anchor
+      ) {
         dwell = { count: dwell.count + 1, lastDoseDate: ev.date };
         dwelled = true;
       }
@@ -253,60 +271,65 @@ function deriveLadderState(
     }
 
     if (ev.outcome === 'tolerated') {
-      pendingReaction = null; // a clean verdict resolves any prior setback
+      pendingRest = null; // a clean verdict resolves any open rest window
       record('tolerated-clear');
       continue;
     }
 
-    // Reaction — bind to the highest still-live rung (nothing dosed yet ⇒ nothing
-    // to bind to).
+    // Reaction — bind to the highest still-live rung, i.e. the highest rung
+    // dosed on or before the verdict date (`liveIndex` is exactly that, since
+    // meals sort before same-date evaluations and the climb is monotone).
+    // Under confirm cadence ≥ latency that rung is also the single rung inside
+    // the `[D − latency, D]` attribution window; the probe (cadence 1) may hold
+    // several rungs in that window and binds coarsely to this same top one,
+    // corrected later by the downward confirm walk (ADR-0023 §6).
     if (liveIndex < 0) {
-      record('reaction-noop');
+      record('reaction-noop'); // nothing dosed yet ⇒ nothing to bind to
       continue;
     }
     firstReactionSeen = true; // any reaction flips the mode to confirm
     // A reaction interrupts the dwell's "held constant, tolerated" premise, so
-    // the confirmation must restart: reset the top-rung dwell so `settled` can
-    // never be reached by doses that straddle a reaction. (If the climb was not
-    // yet at the top the dwell is already empty — resetting is a harmless no-op.)
+    // the confirmation must restart: reset the dwell so `settled` can never be
+    // reached by doses that straddle a reaction.
     dwell = NO_DWELL;
     const reactingRung = steps[liveIndex]!;
-    const count = (reactionCounts.get(reactingRung.id) ?? 0) + 1;
-    reactionCounts.set(reactingRung.id, count);
 
-    if (liveIndex === 0 || count >= MAX_RUNG_REACTIONS) {
-      // Floor exhaustion (nowhere lower) or the per-rung cap — the same terminal.
+    if (liveIndex === 0) {
+      // Floor exhaustion — the lowest rung reacted, nowhere lower to retreat.
       ceilingRung = reactingRung;
-      pendingReaction = null;
+      pendingRest = null;
       record('reaction-ceiling');
       break;
     }
 
-    pendingReaction = {
-      rung: reactingRung,
+    // Walk down one rung: cap the reacting rung forever and step the live rung
+    // down to the rung below, which must now be re-confirmed by its own dwell.
+    const steppedDownIndex = liveIndex - 1;
+    topReachableIndex = steppedDownIndex;
+    liveIndex = steppedDownIndex;
+    nextStepIdx = steppedDownIndex + 1; // gated by `topReachableIndex` — cannot re-climb
+    pendingRest = {
+      rung: steps[steppedDownIndex]!,
       outcome: ev.outcome,
       date: ev.date,
       until: addDays(ev.date, restDaysFor(ev.outcome)),
-      stepBackTo: steps[liveIndex - 1]!,
     };
-    // Drop one rung and reopen the reacting rung for a re-test.
-    liveIndex -= 1;
-    nextStepIdx = liveIndex + 1;
-    record('reaction-stepback');
+    record('reaction-walkdown');
   }
 
   const liveRung = liveIndex >= 0 ? steps[liveIndex]! : null;
   // Mode: `confirm` once a reaction has been seen, or once the climb has reached
-  // the top rung (a clean probe confirms the top); `probe` otherwise. Derived,
-  // never persisted — recomputed from the same replay every time (ADR-0012).
+  // the effective top (a clean probe confirms the top); `probe` otherwise.
+  // Derived, never persisted — recomputed from the same replay every time.
   const mode: LadderMode =
-    firstReactionSeen || (topIndex >= 0 && liveIndex === topIndex) ? 'confirm' : 'probe';
+    firstReactionSeen || (topReachableIndex >= 0 && liveIndex === topReachableIndex)
+      ? 'confirm'
+      : 'probe';
   return {
     liveRung,
-    lastPassingRung: pendingReaction?.stepBackTo ?? liveRung,
-    pendingReaction,
+    atEffectiveTop: liveIndex >= 0 && liveIndex === topReachableIndex,
+    pendingRest,
     ceilingRung,
-    reactionCounts,
     mode,
     dwell,
   };
@@ -320,12 +343,12 @@ function deriveLadderState(
  *
  * `evaluations` (optional) is the mother's `ReintroductionEvaluation` history.
  * A recorded reaction (an `allergen-test` row for `allergenId` whose outcome is
- * not `tolerated`) *caps* the rung: the reacting dose drops the live rung one
- * step, so a dose that provoked a reaction never leaves the ladder standing on
- * it. This is the "not reacted-against" half of the rule — the ladder tracks
- * safely-tolerated reality, not everything ingested (Story 7). A reaction is a
- * *temporary* setback: a later clean re-dose re-advances. Omit `evaluations`
- * (or pass none) and every logged anchor counts.
+ * not `tolerated`) walks the live rung *down* one step and caps the reacting
+ * rung forever, so a dose that provoked a reaction never leaves the ladder
+ * standing on it and is never re-climbed. This is the "not reacted-against" half
+ * of the rule — the ladder tracks safely-tolerated reality, not everything
+ * ingested (Story 7). Omit `evaluations` (or pass none) and every logged anchor
+ * counts.
  *
  * Projects `liveRung` from the shared `deriveLadderState` replay (PRD #445) so
  * it and `decideLadderMove` share one definition of how a reaction moves the
@@ -553,24 +576,28 @@ export function checkpointVerdictGate(
 /**
  * One per-allergen verdict for one moment — the closed vocabulary the F3 ≡ F4
  * walker returns (PRD #445, ADR-0023 §decision-engine). `advance` with
- * `from: null` is the first move (no separate `start`); `advance` and
- * `step-back` are distinct kinds because direction and reason differ. `rest`
- * carries `until` so "re-test becomes due" is computable without re-adding
- * `days` to `today`. `blocked` carries no rung — the ladder was inert from the
- * start; `ceiling-reached` carries the rung it got stuck at.
+ * `from: null` is the first move (no separate `start`). `rest` carries `until`
+ * so "recovery ends" is computable without re-adding `days` to `today`.
+ * `blocked` carries no rung — the ladder was inert from the start;
+ * `ceiling-reached` carries the rung it got stuck at.
  *
- * Clinical-reshape variants (ADR-0023 §6, PRD #454) — declared here as
- * *types only* so later slices compile incrementally; `decideLadderMove` does
- * not emit them yet:
+ * Clinical-reshape variants (ADR-0023 §6, PRD #454):
  *   - `settled` — a dose confirmed and held at its rung (probe/confirm walk).
  *   - `adapting-decelerate` — the open adaptation window: hold flat, keep
  *     re-dosing, never push through (emitted only while the window is open).
+ *     Declared here as a *type only* — `decideLadderMove` does not emit it yet.
  *   - `suspected-reaction` — the detection tripwire: a hold that defers the
  *     "was that flare a reaction?" judgment to the mother, never an auto-ban.
+ *     Declared here as a *type only* — not emitted yet.
+ *
+ * The v1 `step-back` verdict is **retired** with the walk-down reshape (#501):
+ * a reaction no longer steps back to re-climb the reacting rung; it walks the
+ * ladder *down* and re-confirms the stepped-down rung in place, so there is no
+ * distinct "step back to re-test" move left to emit.
  *
  * `ceiling-reached` carries a discriminated `reason` (mirroring how `hold`
  * discriminates on `reason`) so severity survives in the engine output:
- * `'floor-exhaustion'` (lowest rung reacts / per-rung cap hit — see §5) or
+ * `'floor-exhaustion'` (lowest rung reacts — nowhere lower to retreat) or
  * `'severe'` (a confirmed severe reaction — the strictly-absorbing terminal,
  * §6). Only `'floor-exhaustion'` is emitted in this slice.
  */
@@ -588,7 +615,6 @@ export type LadderDecision =
       currentSeverity?: RegionLevel;
     }
   | { kind: 'rest'; rung: LadderStep; days: number; until: string }
-  | { kind: 'step-back'; from: LadderStep; to: LadderStep }
   | { kind: 'passed'; rung: LadderStep }
   | { kind: 'blocked' }
   | { kind: 'settled'; rung: LadderStep }
@@ -605,42 +631,34 @@ export type LadderDecision =
  * replay's internal shape. All fields are always present with explicit `null`s —
  * no field is ever omitted for "nothing to report."
  *
- * The first five are *verdict-facing* — a precedence step reads them. The last
- * two (`lastPassingRung`, `reactionCounts`) are the replay's *internal
- * bookkeeping*, exposed for the visualizer's replay inspector so a debugger can
- * see the scratch work behind the derivation. They are **not load-bearing**: no
- * production decision path reads them off this snapshot (ADR-0012), and they must
- * not become the source of any verdict — a consumer that needs `lastPassingRung`
- * should read `pendingReaction.stepBackTo`, which is the same value where it
- * matters.
+ * Every field is *verdict-facing* — a precedence step reads it. (The walk-down
+ * reshape, #501, retired the two former bookkeeping fields `lastPassingRung` and
+ * `reactionCounts`: walk-down keeps no per-rung reaction count, and the
+ * stepped-down rung *is* the live rung, so neither has a value left to surface.)
  */
 export type LadderStateSnapshot = {
   liveRung: LadderStep | null;
-  pendingReaction: PendingReaction | null;
+  atEffectiveTop: boolean;
+  pendingRest: PendingRest | null;
   ceilingRung: LadderStep | null;
   mode: LadderMode;
   dwell: Dwell;
-  /** Bookkeeping (visualizer-only): rung to retreat to; `liveRung` when none pending. */
-  lastPassingRung: LadderStep | null;
-  /** Bookkeeping (visualizer-only): times each rung id has reacted across history. */
-  reactionCounts: ReadonlyMap<string, number>;
 };
 
 /**
  * The state carried on each `LadderReplayStep` — the replay loop's mutable
  * variables captured at one instant (before or after an event). A structural
  * subset of `LadderReplayState`: exactly the fields that *evolve during the
- * loop*, so a before/after pair shows what one event changed. `mode` is
- * deliberately absent — it is derived once *after* the loop (never per event),
- * so the ledger sources it from `LadderStateSnapshot.mode`, not from here.
+ * loop*, so a before/after pair shows what one event changed. `mode` and
+ * `atEffectiveTop` are deliberately absent — both are derived once *after* the
+ * loop (never per event), so the ledger sources them from the
+ * `LadderStateSnapshot`, not from here.
  */
 export type LadderReplayFrame = {
   liveRung: LadderStep | null;
-  pendingReaction: PendingReaction | null;
+  pendingRest: PendingRest | null;
   ceilingRung: LadderStep | null;
   dwell: Dwell;
-  lastPassingRung: LadderStep | null;
-  reactionCounts: ReadonlyMap<string, number>;
 };
 
 /**
@@ -653,11 +671,12 @@ export type LadderReplayFrame = {
  *                           (may co-occur with `climb` on the arrival dose — the
  *                           arrival is recorded as `climb`, later re-doses as `dwell`).
  *   - `anchor-noop`       — an anchor that matched nothing; state unchanged.
- *   - `tolerated-clear`   — a `tolerated` verdict cleared any pending reaction.
- *   - `reaction-stepback` — a reaction dropped the live rung one step and opened
- *                           a pending re-test.
- *   - `reaction-ceiling`  — a reaction on the floor or at the per-rung cap; a
- *                           terminal ceiling. The loop stops after this event.
+ *   - `tolerated-clear`   — a `tolerated` verdict cleared any open rest window.
+ *   - `reaction-walkdown` — a reaction walked the live rung down one step and
+ *                           capped the reacting rung forever (never re-climbed),
+ *                           opening a recovery rest window on the stepped-down rung.
+ *   - `reaction-ceiling`  — a reaction on the floor (lowest rung, nowhere lower);
+ *                           a terminal ceiling. The loop stops after this event.
  *   - `reaction-noop`     — a reaction before anything was dosed; nothing to bind.
  */
 export type LadderReplayBranch =
@@ -665,7 +684,7 @@ export type LadderReplayBranch =
   | 'dwell'
   | 'anchor-noop'
   | 'tolerated-clear'
-  | 'reaction-stepback'
+  | 'reaction-walkdown'
   | 'reaction-ceiling'
   | 'reaction-noop';
 
@@ -691,9 +710,6 @@ export type LadderReplayBranch =
  *   • A state-changing branch that forgets to emit a step is caught by the
  *     invariant test "last replay step's `after` == the snapshot" — a red test,
  *     not silent drift.
- *   • `reactionCounts` is a mutable Map: each frame MUST store a *copy*
- *     (`new Map(...)`), never the live reference, or every frame would show the
- *     final counts.
  */
 export type LadderReplayStep = {
   event:
@@ -707,9 +723,9 @@ export type LadderReplayStep = {
 /**
  * The whole replay trace: the loop's initial frame (before any event) plus one
  * `LadderReplayStep` per replayed event, in the exact order the loop saw them.
- * The last step's `after` equals the run's `LadderStateSnapshot` (minus `mode`)
- * by construction — same replay, so the ledger's bottom row *is* the derived
- * state shown above it.
+ * The last step's `after` equals the run's `LadderStateSnapshot` (minus `mode`
+ * and `atEffectiveTop`, both derived after the loop) by construction — same
+ * replay, so the ledger's bottom row *is* the derived state shown above it.
  */
 export type LadderReplay = {
   initial: LadderReplayFrame;
@@ -828,13 +844,15 @@ export type LadderDecisionInput = {
  *
  * Gate precedence, most-overriding first (ADR-0023 §decision-engine, §6):
  *   1. permanent elimination → `blocked` (also an empty stage ladder — inert);
- *   2. floor exhausted or per-rung cap hit → `ceiling-reached` (unified terminal);
- *   3. reaction still in effect → `rest` (rest window open) then `step-back`;
+ *   2. floor exhausted (lowest rung reacts) → `ceiling-reached` (terminal);
+ *   3. reaction recovery window open → `rest`; after it the ladder re-confirms
+ *      the stepped-down rung in place (walk-down, never re-climb);
  *   4. skin worsened across the stability window → `hold('skin-worsening')`;
  *   5. cadence (mode-driven, `cadence ≥ latency` in confirm) not elapsed →
  *      `hold('cadence', daysRemaining)`;
- *   6. otherwise → `advance`; at the effective top, `passed` while the dwell
- *      confirmation is still running, then `settled` once it completes.
+ *   6. otherwise → `advance`; at the effective top (structural top, or the
+ *      walk-down ceiling), `passed` while the dwell confirmation is still
+ *      running, then `settled` once it completes.
  *
  * The checkpoint verdict hold (`awaiting-verdict`) is **retired** from this path
  * (ADR-0023 §6, PRD #454): the per-rung verdict it waited on no longer gates the
@@ -903,22 +921,19 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     // pre-event frame (all-`null`/empty), never undefined.
     initial: traceSink.initial ?? {
       liveRung: null,
-      pendingReaction: null,
+      pendingRest: null,
       ceilingRung: null,
       dwell: NO_DWELL,
-      lastPassingRung: null,
-      reactionCounts: new Map(),
     },
     steps: traceSink.steps,
   };
   const snapshot: LadderStateSnapshot = {
     liveRung: state.liveRung,
-    pendingReaction: state.pendingReaction,
+    atEffectiveTop: state.atEffectiveTop,
+    pendingRest: state.pendingRest,
     ceilingRung: state.ceilingRung,
     mode: state.mode,
     dwell: state.dwell,
-    lastPassingRung: state.lastPassingRung,
-    reactionCounts: state.reactionCounts,
   };
 
   // The two gate-backed steps' effective thresholds are known up front (both are
@@ -981,9 +996,9 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     });
   }
 
-  // (2) Ceiling — per-rung cap or floor exhaustion. Terminal; defers to human.
-  // The `severe` reason is authored on the union but not emitted here yet — the
-  // severe-reaction branch lands in a later slice (ADR-0023 §6, PRD #454).
+  // (2) Ceiling — floor exhaustion (the lowest rung reacted). Terminal; defers
+  // to human. The `severe` reason is authored on the union but not emitted here
+  // yet — the severe-reaction branch lands in a later slice (ADR-0023 §6).
   if (state.ceilingRung) {
     return build(
       { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' },
@@ -992,14 +1007,17 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     );
   }
 
-  // (3) A reaction still in effect: rest while the recovery window is open, then
-  //     step back to the last-passing rung to re-test.
-  if (state.pendingReaction) {
-    const { rung, outcome, until, stepBackTo } = state.pendingReaction;
-    const gates = { stability: PERMISSIVE_SKIN_STABILITY, cadence: noCadenceData };
-    if (today <= until)
-      return build({ kind: 'rest', rung, days: restDaysFor(outcome), until }, 2, gates);
-    return build({ kind: 'step-back', from: rung, to: stepBackTo }, 2, gates);
+  // (3) A reaction still resting: hold through the recovery window (ADR-0016).
+  //     After the window the ladder does **not** re-climb the reacting rung
+  //     (walk-down, PRD #454 §6); it falls through to re-confirm the
+  //     stepped-down rung via its own dwell — so `reaction` only fires while the
+  //     window is open, then yields to the gates below.
+  if (state.pendingRest && today <= state.pendingRest.until) {
+    const { rung, outcome, until } = state.pendingRest;
+    return build({ kind: 'rest', rung, days: restDaysFor(outcome), until }, 2, {
+      stability: PERMISSIVE_SKIN_STABILITY,
+      cadence: noCadenceData,
+    });
   }
 
   const liveRung = state.liveRung;
@@ -1046,24 +1064,28 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     );
   }
 
-  // (6) Escalate one legal step. At the effective top there is nowhere to climb;
-  //     instead the top rung dwells — held constant and confirmed `N` times at
-  //     confirm cadence, terminal-evaluated at `last top dose + latency`. Only
-  //     once the dwell completes is the rung `settled`; before then it reads as
-  //     `passed` (a clean probe confirms the top rung only — dose–response is
-  //     monotone). `isPermanentlyEliminated` is already handled at (1); pass it
-  //     through so this stays consistent with `nextLegalStep`'s own contract.
-  const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
-    isPermanentlyEliminated: input.isPermanentlyEliminated,
-  });
+  // (6) Escalate one legal step — unless the climb is already at the effective
+  //     top (the walk-down ceiling, or the structural top when none has walked
+  //     down). At the effective top there is nowhere to climb; the rung dwells —
+  //     held constant and confirmed `N` times at confirm cadence, terminal-
+  //     evaluated at `last top dose + latency`. Only once the dwell completes is
+  //     the rung `settled`; before then it reads as `passed` (a clean probe
+  //     confirms the effective top rung only — dose–response is monotone).
+  //     `isPermanentlyEliminated` is already handled at (1); pass it through so
+  //     this stays consistent with `nextLegalStep`'s own contract.
   const evaluatedGates = { stability, cadence: cadenceResult };
-  if (nextStep !== null)
-    return build({ kind: 'advance', from: liveRung, to: nextStep }, 5, evaluatedGates);
+  if (!state.atEffectiveTop) {
+    const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
+      isPermanentlyEliminated: input.isPermanentlyEliminated,
+    });
+    if (nextStep !== null)
+      return build({ kind: 'advance', from: liveRung, to: nextStep }, 5, evaluatedGates);
+  }
 
   // At the effective top. `N` = number of steps in the *default* ladder for the
   // stage (a finely-graded, usually more cautious allergen is confirmed more
-  // thoroughly). Dwell complete once the top rung has been dosed `N` times and
-  // the latency window since the last of those doses has elapsed.
+  // thoroughly). Dwell complete once the effective top has been dosed `N` times
+  // and the latency window since the last of those doses has elapsed.
   const topRung = liveRung as LadderStep;
   const dwellTarget = (defaultLadder.stages[stage] ?? []).length;
   const dwellComplete =

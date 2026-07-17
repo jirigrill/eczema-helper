@@ -35,11 +35,11 @@ export const SEV_LABEL = ['klidné', 'mírné', 'střední', 'silné'];
 // the maintenance contract on `LadderReplayStep`).
 export const REPLAY_BRANCH_LABEL: Record<LadderReplayBranch, string> = {
   climb: 'dose matched next rung → climbed',
-  dwell: 're-dose at top rung → dwell +1',
+  dwell: 're-dose at effective top → dwell +1',
   'anchor-noop': "dose didn't match next rung → ignored",
-  'tolerated-clear': 'tolerated → cleared pending reaction',
-  'reaction-stepback': 'reaction → dropped one rung, reopened for re-test',
-  'reaction-ceiling': 'reaction on floor / cap hit → ceiling (terminal)',
+  'tolerated-clear': 'tolerated → cleared rest window',
+  'reaction-walkdown': 'reaction → walked down one rung, capped it forever',
+  'reaction-ceiling': 'reaction on floor → ceiling (terminal)',
   'reaction-noop': 'reaction before any dose → nothing to bind',
 };
 
@@ -49,35 +49,35 @@ export const REPLAY_BRANCH_LABEL: Record<LadderReplayBranch, string> = {
 export function fmtRung(r: { dose: string } | null): string {
   return r ? r.dose : 'null';
 }
-export function fmtPendingReaction(p: LadderStateSnapshot['pendingReaction']): string {
+export function fmtPendingRest(p: LadderStateSnapshot['pendingRest']): string {
   return p ? `${p.rung.dose} · until ${p.until || '—'}` : 'null';
 }
 export function fmtDwell(d: LadderStateSnapshot['dwell']): string {
   return `${d.count}× · ${d.lastDoseDate ?? '—'}`;
 }
-export function fmtReactionCounts(m: LadderStateSnapshot['reactionCounts']): string {
-  if (m.size === 0) return 'none';
-  return [...m.entries()].map(([id, n]) => `${id}×${n}`).join(', ');
+export function fmtBool(b: boolean): string {
+  return b ? 'yes' : 'no';
 }
 
 // One replayed event as a short label — the ledger's "event" column.
-export function fmtReplayEvent(e: LadderReplayStep['event'], rungForAmount: (a: string) => string): string {
+export function fmtReplayEvent(
+  e: LadderReplayStep['event'],
+  rungForAmount: (a: string) => string,
+): string {
   return e.kind === 'anchor'
     ? `▲ dose ${rungForAmount(e.amount)} · ${e.date}`
     : `● ${OUTCOME_LABEL[e.outcome]} · ${e.date}`;
 }
 
-// The 6 replay-frame fields as label/value rows, in a fixed order so every
-// ledger row lines up column-for-column. Reuses the snapshot formatters, so the
-// ledger's last row reads identically to the SnapshotBar by construction.
+// The replay-frame fields as label/value rows, in a fixed order so every ledger
+// row lines up column-for-column. Reuses the snapshot formatters, so the ledger's
+// last row reads identically to the SnapshotBar's evolving fields by construction.
 export function replayFrameCells(f: LadderReplayFrame): { k: string; v: string }[] {
   return [
     { k: 'liveRung', v: fmtRung(f.liveRung) },
-    { k: 'pendingReaction', v: fmtPendingReaction(f.pendingReaction) },
+    { k: 'pendingRest', v: fmtPendingRest(f.pendingRest) },
     { k: 'ceilingRung', v: fmtRung(f.ceilingRung) },
     { k: 'dwell', v: fmtDwell(f.dwell) },
-    { k: 'lastPassingRung', v: fmtRung(f.lastPassingRung) },
-    { k: 'reactionCounts', v: fmtReactionCounts(f.reactionCounts) },
   ];
 }
 
@@ -86,20 +86,24 @@ export function replayFrameCells(f: LadderReplayFrame): { k: string; v: string }
 // the same `k` labels as `replayFrameCells`.
 export function changedFrameKeys(before: LadderReplayFrame, after: LadderReplayFrame): Set<string> {
   const b = new Map(replayFrameCells(before).map((c) => [c.k, c.v]));
-  return new Set(replayFrameCells(after).filter((c) => b.get(c.k) !== c.v).map((c) => c.k));
+  return new Set(
+    replayFrameCells(after)
+      .filter((c) => b.get(c.k) !== c.v)
+      .map((c) => c.k),
+  );
 }
 
-// Back-links: which replay step set the current `ceilingRung` / `pendingReaction`.
+// Back-links: which replay step set the current `ceilingRung` / `pendingRest`.
 // Pure find-index over the domain's trace — no logic. `null` when unset.
 export function ceilingSetByStep(replay: LadderReplay): number | null {
   const i = replay.steps.findIndex((s) => s.branch === 'reaction-ceiling');
   return i === -1 ? null : i;
 }
-export function pendingReactionSetByStep(replay: LadderReplay): number | null {
-  // The last stepback still standing (a later tolerated-clear would have reset it).
+export function pendingRestSetByStep(replay: LadderReplay): number | null {
+  // The last walk-down still standing (a later tolerated-clear would have reset it).
   for (let i = replay.steps.length - 1; i >= 0; i--) {
     const b = replay.steps[i]!.branch;
-    if (b === 'reaction-stepback') return i;
+    if (b === 'reaction-walkdown') return i;
     if (b === 'tolerated-clear') return null;
   }
   return null;
@@ -129,9 +133,9 @@ export interface ReplayView {
   /** The initial frame (before any event) as label/value rows. */
   initialCells: { k: string; v: string }[];
   rows: ReplayRowView[];
-  /** Back-links: which row set the current ceiling / pending reaction (null when unset). */
+  /** Back-links: which row set the current ceiling / pending rest (null when unset). */
   ceilingSetBy: number | null;
-  pendingReactionSetBy: number | null;
+  pendingRestSetBy: number | null;
 }
 
 export interface DayView {
@@ -158,11 +162,11 @@ function verdictLabel(v: LadderDecision): string {
     case 'advance':
       return `advance → ${v.to.dose}`;
     case 'hold':
-      return v.reason === 'cadence' ? `hold — wait ${v.daysRemaining}d (cadence)` : `hold — skin worsening`;
+      return v.reason === 'cadence'
+        ? `hold — wait ${v.daysRemaining}d (cadence)`
+        : `hold — skin worsening`;
     case 'rest':
       return `rest until ${v.until}`;
-    case 'step-back':
-      return `step back → ${v.to.dose}`;
     case 'passed':
       return `passed (confirming top)`;
     case 'settled':
@@ -186,7 +190,6 @@ function verdictTone(v: LadderDecision): 'go' | 'hold' | 'stop' {
       return 'go';
     case 'hold':
     case 'rest':
-    case 'step-back':
     case 'adapting-decelerate':
     case 'suspected-reaction':
       return 'hold';
@@ -239,7 +242,7 @@ export function computeDay(run: JourneyRun, date: string): DayView | null {
       };
     }),
     ceilingSetBy: ceilingSetByStep(explain.replay),
-    pendingReactionSetBy: pendingReactionSetByStep(explain.replay),
+    pendingRestSetBy: pendingRestSetByStep(explain.replay),
   };
 
   return {
@@ -256,7 +259,11 @@ export function computeDay(run: JourneyRun, date: string): DayView | null {
       meals: dayMeals.map((m) => {
         const item = m.items[0]!;
         const rung = steps.find((s) => s.anchor === item.amount);
-        return { time: m.createdAt.slice(11, 16), text: item.name, dose: rung?.dose ?? String(item.amount) };
+        return {
+          time: m.createdAt.slice(11, 16),
+          text: item.name,
+          dose: rung?.dose ?? String(item.amount),
+        };
       }),
       skin: dayObs.map((o) => {
         const lvl = (o.regions[0]?.level ?? 0) as RegionLevel;
