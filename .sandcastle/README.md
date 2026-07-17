@@ -66,6 +66,7 @@ git branch -D agent/ralph-issue-<N>  # delete stale branches
 | `main.ts` | Orchestrator — planner + batch execution |
 | `plan-prompt.md` | Planner agent prompt — reads PRD, outputs dependency JSON |
 | `worker-prompt.md` | Worker agent prompt — TDD workflow, PR creation |
+| `skills/` | Agent skills vendored from `~/.agents/skills`, copied into the image at `~/.claude/skills` (worker prompt uses `tdd` and `code-review`). Re-sync when a source skill changes. |
 | `Dockerfile` | Sandbox image — Node 22 + Bun + just + gh CLI + Playwright + Claude Code |
 | `.env.example` | Template for secrets |
 
