@@ -43,6 +43,14 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Add Claude to PATH
 ENV PATH="/home/agent/.local/bin:$PATH"
 
+# Vendor the agent skills the worker prompt references (currently `tdd`).
+# The canonical skills live at ~/.agents/skills on the host — outside this
+# repo, so Docker can't COPY them directly. `just sandcastle-build` is not
+# involved: these are committed real files under .sandcastle/skills/, kept in
+# sync with the source skill. Placed at ~/.claude/skills so the in-container
+# path matches the reference in worker-prompt.md.
+COPY --chown=agent:agent skills /home/agent/.claude/skills
+
 # Warm the Bun install cache at /home/agent/.bun/install/cache by installing
 # dependencies once in a scratch directory. The bind-mounted worktree at
 # /home/agent/workspace overlays anything at that path at runtime, so we
