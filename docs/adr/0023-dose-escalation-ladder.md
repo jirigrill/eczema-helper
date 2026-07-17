@@ -10,7 +10,7 @@ A later clinical refinement of that recommendation logic (probe a small dose the
 
 ---
 
-**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section. The **clinical reshape** (probe/confirm walk-down, skin-driven region-aware reactions) is accepted design but not yet implemented; it is scoped in [PRD #454](https://github.com/jirigrill/eczema-helper/issues/454) — see [§6](#6-decision-engine--clinical-reshape-amendment-2026-07-14) below, which supersedes the reaction/cadence semantics in §5 where they conflict once built.
+**Status:** Accepted — types + curated data + derivation landed (PR #430, 2026-07-07). Consumer migration + legacy `AllergenProtocol`/`ProtocolDay` deletion landed (PRD #421 PR B / issue #429, 2026-07-08). Deterministic decision engine (`decideLadderMove`) landed (PRD #445 / issue #447, 2026-07-12); see [Decision engine](#5-decision-engine-decideladdermove-prd-445) below. Rung-scale open question resolved 2026-07-05 by PRD [#421](https://github.com/jirigrill/eczema-helper/issues/421); see [Rung-scale resolution](#rung-scale-resolution-2026-07-05) below. Per-rung Czech text location deviates from ADR-0014 — see the PR #430 amendment in that section. The **clinical reshape** (probe/confirm walk-down, skin-driven region-aware reactions) is accepted design but not yet implemented; it is scoped in [PRD #454](https://github.com/jirigrill/eczema-helper/issues/454) — see [§6](#6-decision-engine--clinical-reshape-amendment-2026-07-14-detection-layer-2026-07-16) below, which supersedes the reaction/cadence semantics in §5 where they conflict once built. Its **reaction-detection layer** was reshaped by wayfinder map [#491](https://github.com/jirigrill/eczema-helper/issues/491) (2026-07-16): the region detector is a tripwire raising a `suspected-reaction` hold, never an auto-ban — see §6.
 **Date:** 2026-07-05
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
 **Extends:** the AllergenStatus lifecycle and Dexie-persistence invariants (now in CONTEXT.md).
@@ -262,6 +262,41 @@ Reasoning:
   `LadderStep.dose` (inlined on the catalog record — see amendment above), not
   in `lib/strings/`.
 
-## 6. Decision-engine — clinical reshape (amendment 2026-07-14)
+## 6. Decision-engine — clinical reshape (amendment 2026-07-14, detection layer 2026-07-16)
 
 The clinical reshape (probe/confirm walk, walk-down on reaction, skin-driven region-aware reactions) is **not yet implemented**; it is scoped in [PRD #454](https://github.com/jirigrill/eczema-helper/issues/454). Once built it supersedes the reaction/cadence semantics in §5 where they conflict.
+
+The reshape has two halves. The **escalation** half (probe/confirm, walk-down, `settled`, `cadence ≥ latency`) is a sound deterministic menu of legal moves — the vocabulary §3's LLM proposer picks among. The **reaction-detection/attribution** half — *is this flare a reaction, and to which rung?* — was reshaped separately by wayfinder map [#491](https://github.com/jirigrill/eczema-helper/issues/491) (2026-07-16). This section records the detection decisions; the escalation half stays as PRD #454 scopes it.
+
+### The detection principle: the engine emits a hold, it never auto-bans
+
+A skin flare during reintroduction has three possible causes — the food (a reaction), an external confounder (teething / illness / heat / a new irritant), or benign adaptation (transient worsening that settles under continued exposure). Skin data alone cannot separate them; only the trajectory over the following days can. So the deterministic engine **must not** collapse a threshold crossing into `reaction → walk-down → ban`. Instead:
+
+- The region-aware detector (PRD #454's `stop = (maxRegionΔ ≥ 2) OR (regionsWithΔ≥1 > 0.5 × trackedRegions)`) is **demoted from an auto-verdict to a tripwire**. Crossing it raises a first-class **`suspected-reaction` hold** — no advance, no ban — carrying the payload a judge needs: **skin geometry + nearby `Event`s + the food's authored allergenicity**.
+- The **mother is always the constitutional judge of record** (ADR-0016, unrevised). A reaction verdict re-enters only as an ordinary **`ReintroductionEvaluation`** row she confirms. `decideLadderMove` stays a pure replay that reads confirmed rows and never calls the network; a confirmed row resolves the hold to walk-down (or clears it) on the next replay.
+- An **LLM (online) or deterministic heuristic (offline) drafts** the verdict the mother one-tap confirms. The draft lives only at the UI/proposal edge (ADR-0026); the engine never knows who drafted the row it reads. A reaction verdict can never block on the network (ADR-0024).
+
+This closes the architectural gap the earlier design left: the judgment that most needs flexibility — *was that flare actually a reaction?* — now has a seam for both the LLM and the mother, instead of being hard-coded as a fixed skin threshold inside the engine.
+
+### The adaptation window: a first-class derived state
+
+Between "clean advance" and "reaction → walk-down" sits a **decelerated-continuation** state the earlier design lacked. `deriveLadderState` gains a replay state **`pendingAdaptation`** and a new `LadderDecision` variant **`adapting-decelerate`** (emitted *only* while the window is open):
+
+- **Opens** on: first contact with the food **+** a sub-threshold flare **+** the food's authored **`allergenicity: 'low'`**. A high-allergen food goes straight to the reaction path; a threshold-crossing day-1 flare is a reaction regardless of class.
+- **Response:** hold the dose flat, keep re-dosing, **never push through** — this is not OIT (which stays out of scope; supervised-care territory, ADR-0024).
+- **Exits** (window = 2 days, tunable): crosses threshold → reaction (walk-down); trending down → `settled` (dose kept, resume in **confirm cadence, never fast probe**); the ambiguous middle raises the `suspected-reaction` hold and defers to the mother's judgment, drawn on the flare-vs-dose trajectory.
+
+Adaptation stays **fully derived** (ADR-0012, no drift); the only authored addition is the `allergenicity` field on ladder data.
+
+### What ships now vs later — the cut line
+
+Map #491's reconciliation ([#495](https://github.com/jirigrill/eczema-helper/issues/495)) draws the ship-now cut line at the **`suspected-reaction` hold boundary**, *not* the escalation-vs-detection split — because a naive "escalation now, detection later" would ship an auto-banning walk-down that this section already rules illegal, only to tear it out.
+
+- **Ships now** (re-scoped PRD #454 — the whole *derived, LLM-free* engine up to the hold): probe/confirm (both flip triggers, incl. the adaptation-window entry), `settled`, `cadence ≥ latency` **unchanged**, the walk-down **mechanic driven by a confirmed `ReintroductionEvaluation` row**, the detector **demoted to a tripwire**, `pendingAdaptation` + `adapting-decelerate`, and `suspected-reaction` as a first-class decision.
+- **Waits** (execution/UI follow-up, ADR-0026): the draft path (LLM/heuristic pre-fill), draft caching, the confirm UI, and the BFF/prompt.
+
+**`cadence ≥ latency` is untouched by the seam.** It is a dosing-safety rule (never dose up into a brewing delayed reaction), not an attribution convenience — a faster human/LLM judgment does not earn closer dosing. The seam decides *whether* a flare is a reaction, never *which rung* or *how fast to dose*.
+
+### Severe reactions — still an open item on the response branch
+
+Whether a `severe-reaction` walks down + re-confirms or routes straight to the terminal (defer to human, no auto-retest) remains the pre-existing PRD #454 OPEN decision, on the *response* branch — resolved separately. **Guardrail:** even a severe reaction routes through the `suspected-reaction` hold → confirmed-row path; there is no engine auto-fire carve-out for any case.

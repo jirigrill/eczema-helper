@@ -82,6 +82,20 @@ parent-attributed. Consequence (safer escalation): the dose-nudge folds skin in 
 "3 days since last dose **and** skin calm → suggest bump" — so an
 exposure-increasing move checks the baby is not already flaring.
 
+**Reaction-verdict special case (amendment 2026-07-16, map [#491](https://github.com/jirigrill/eczema-helper/issues/491)).**
+When the ladder engine's region detector raises a `suspected-reaction` hold
+(ADR-0023 §6), the LLM (online) or a deterministic heuristic (offline) **drafts** a
+reaction verdict from the hold's payload (skin geometry + nearby `Event`s + food
+allergenicity). This is a `derived-signal` proposal, but its **disposition is an
+ordinary `ReintroductionEvaluation` row** (the existing ADR-0016 reaction-attribution
+fact) — **not** a new `ScheduleProposal` variant and **not** a new persisted record.
+The draft only pre-fills the mother's confirm screen; on her one-tap confirm it is
+saved as the evaluation row, which `decideLadderMove` replays to resolve the hold.
+Rejected a dedicated `ScheduleProposal` reaction-verdict variant: it would duplicate
+the verdict path (two places a reaction can live) and re-open the audit story that
+`ReintroductionEvaluation` already owns. The LLM is the *preferred drafter, never a
+gate* — a reaction verdict can never block on the network (ADR-0024).
+
 ### Validator — deep, reusing engine legality
 
 Before any suggestion applies it must pass the **same protocol-legality checks the
@@ -119,6 +133,17 @@ lifetime ⇒ no staleness.
   session, producing a *fresh* suggestion.
 - **Idempotency:** mark-applied-once guards double-tap; duplicate generation is
   moot (generate + decide is one step).
+
+**Reaction-verdict draft caching (amendment 2026-07-16).** The one exception to
+"generate + decide is one step" is the reaction-verdict draft, which the mother may
+re-open before confirming: the **draft is cached, keyed on the hold's payload, and
+regenerated only when the input changed** (a new day of skin trajectory or a new
+`Event` — which is exactly the adaptation-vs-reaction signal). A same-day re-open
+with unchanged input serves the cache; the draft is still consumed into a confirmed
+`ReintroductionEvaluation` row on tap, never left live to re-query. The **derived
+ladder state is never cached** — cheap, offline, deterministic, and caching it
+re-introduces the drift ADR-0012 exists to kill. The row stores a *fact*; replay
+derives the *consequences*.
 
 ### Audit table + versioning
 
