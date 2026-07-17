@@ -297,6 +297,11 @@ Map #491's reconciliation ([#495](https://github.com/jirigrill/eczema-helper/iss
 
 **`cadence ≥ latency` is untouched by the seam.** It is a dosing-safety rule (never dose up into a brewing delayed reaction), not an attribution convenience — a faster human/LLM judgment does not earn closer dosing. The seam decides *whether* a flare is a reaction, never *which rung* or *how fast to dose*.
 
-### Severe reactions — still an open item on the response branch
+### Severe reactions — resolved (2026-07-17)
 
-Whether a `severe-reaction` walks down + re-confirms or routes straight to the terminal (defer to human, no auto-retest) remains the pre-existing PRD #454 OPEN decision, on the *response* branch — resolved separately. **Guardrail:** even a severe reaction routes through the `suspected-reaction` hold → confirmed-row path; there is no engine auto-fire carve-out for any case.
+A `severe-reaction` is a **real engine-visible verdict** (picked on the confirm screen alongside mild/clear), not merely a redirect-layer flag; `decideLadderMove` branches on it. Confirming it derives the terminal **`ceiling-reached { reason: 'severe' }`** — the *existing* defer-to-human terminal, carrying a discriminated `reason: 'floor-exhaustion' | 'severe'` so severity survives in the engine *output* (mirroring how `hold` already discriminates on `reason`) rather than being flattened and rehydrated from the row. It does **not** walk down + re-confirm: re-exposing the child after a dangerous reaction is exactly what must not happen at home.
+
+- **Same path, no bypass.** Severe routes through the ordinary `suspected-reaction` hold → mother-confirmed `ReintroductionEvaluation` row, like every other reaction. The **call-155 redirect + urgent raw-log fire independently at log-time** via ADR-0024's offline stem floor — they never wait on the ladder verdict — so the ladder verdict stays parent-attributed and calm ("confirmed later, calmly", ADR-0024 §D).
+- **Strictly absorbing.** The engine never schedules a re-challenge out of `ceiling-reached { reason: 'severe' }`; the only exit is a human changing the underlying facts (a doctor clears it → the mother edits/removes the verdict row or adds a `ladder_override`), after which replay re-derives. Identical absorbing behaviour to `floor-exhaustion`; the two differ only in Czech copy + the redirect that already fired.
+
+This resolves the PRD #454 OPEN item and unblocks coding the reaction branch. The **regulatory** question (is generated rationale "medical advice" under EU MDR, ADR-0024 §B) is a separate legal determination, untouched here; the **Czech copy** for the severe terminal is a UI/strings task, not decided here.
