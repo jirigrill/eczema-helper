@@ -119,7 +119,7 @@ The "it's really ~4 buckets" intuition is served **as a derived projection, not 
 
 Do not "simplify" this union into nested kinds without replacing the lost per-payload exhaustiveness — the flatness is load-bearing, not an oversight.
 
-Applying a verdict, and any UI rendering, is out of scope for the engine (PRD #423 / a follow-up UI pass). `scripts/simulate.ts` drives the engine and prints a `verdict:` line per allergen.
+Applying a verdict, and any UI rendering, is out of scope for the engine (PRD #423 / a follow-up UI pass). `scripts/simulate.ts` drives the engine and prints a `verdict:` line per allergen; its scripted `scenario`s assert the reshaped verdicts against the engine — see the parity table in §6.
 
 ## Consequences
 
@@ -171,3 +171,26 @@ The ship-now boundary is the **`suspected-reaction` hold**, *not* the escalation
 - **Waits** (execution/UI, ADR-0026): the draft path (LLM/heuristic pre-fill), draft caching, the confirm UI, the BFF/prompt.
 
 **`cadence ≥ latency` is untouched by the seam** — it is a dosing-safety rule (never dose up into a brewing delayed reaction), not an attribution convenience. The seam decides *whether* a flare is a reaction, never *which rung* or *how fast to dose*.
+
+### Simulator parity expectations
+
+`scripts/simulate.ts` is the end-to-end parity harness for the reshaped engine ([#505](https://github.com/jirigrill/eczema-helper/issues/505)). It invents no logic — it drives the mother's real REPL commands and reads back `decideLadderMove`, so a green scenario is a parity check against the domain engine itself. Run `scenario all` (or `scenario <name>`) inside `just simulate`; each scenario asserts a *verdict tag* (the variant `kind` plus the inner discriminant that `hold` and `ceiling-reached` carry).
+
+This table is the parity contract: every reshaped verdict, the scenario that exercises it, and whether the engine emits it today or the variant is still type-only scaffolding.
+
+| Verdict tag | Scenario | Status |
+|---|---|---|
+| `advance` (probe, 1-day gap) | `probe-to-confirm` | emitted |
+| `hold:cadence` (confirm ≥ latency at the top) | `probe-to-confirm` | emitted |
+| `passed` → `settled` (top-rung dwell, N = default steps) | `dwell-to-settled` | emitted |
+| `rest` (delayed reaction binds to one rung under confirm cadence) | `delayed-attribution` | emitted |
+| `rest` → `step-back` (reaction recovery → re-test below) | `walk-down-and-retest` | emitted |
+| `ceiling-reached:floor-exhaustion` (lowest rung reacts) | `floor-exhaustion` | emitted |
+| `ceiling-reached:floor-exhaustion` (per-rung cap = `MAX_RUNG_REACTIONS`) | `per-rung-cap` | emitted |
+| `hold:skin-worsening` (trend gate outranks cadence) | `skin-worsening-hold` | emitted |
+| `blocked` (permanent elimination) | `permanent-blocked` | emitted |
+| `adapting-decelerate` (adaptation window: open + trending-down / crossing / ambiguous exits) | *pending* | scaffolded — [#503](https://github.com/jirigrill/eczema-helper/issues/503) |
+| `suspected-reaction` (region-detector tripwire: crossing + non-crossing) | *pending* | scaffolded — [#502](https://github.com/jirigrill/eczema-helper/issues/502) |
+| `ceiling-reached:severe` (confirmed severe reaction — strictly absorbing) | *pending* | scaffolded — [#504](https://github.com/jirigrill/eczema-helper/issues/504) |
+
+`formatVerdict` renders **every** variant above — including the three scaffolded ones — so the exhaustive switch stays green as the union's emitters land. The three *pending* rows cannot be driven as scenarios yet: `decideLadderMove` does not emit them (the adaptation window, the region-aware detector, and the severe terminal are unbuilt), and the harness must not fake an engine effect the engine does not produce. The one authored input the adaptation window will gate on — `allergenicity` — is already surfaced per allergen in the render, so those scenarios become drivable the moment their emitters (#502–#504) land; this table then gains their scenario names.
