@@ -1,6 +1,6 @@
 // Three-collection catalog — families, allergens, foods (ADR-0017 slice 2 / issue #227).
 // Ids derive from the data; types are structurally enforced at compile time.
-import type { Ladder } from '$lib/domain/canonical-allergen';
+import type { Allergenicity, Ladder } from '$lib/domain/canonical-allergen';
 
 // ── Families ──────────────────────────────────────────────────
 
@@ -37,8 +37,18 @@ type AllergenRecord = {
   aliases: readonly string[];
   allergenOrder?: number;
   ladder?: Ladder;
+  allergenicity?: Allergenicity;
 };
 
+// `allergenicity` values below are **curator-tunable, not clinically stamped**
+// (ADR-0023 §6), but the tiers are evidence-based: `high` = FDA big-9 / EU
+// Annex II recognized major allergens; `low` = not a major allergen and
+// reactions typically mild/non-IgE (OAS) or rare; `moderate` = occasional /
+// vasoactive-amine / OAS triggers. Rationale + sources per food:
+// docs/research/food-allergenicity-tiers.md. Authored only on ladder-bearing
+// allergens (the adaptation window it gates exists only during reintroduction).
+// Only the `low` boundary is engine-load-bearing today (adaptation-window
+// eligibility). `low`: legumes, carrot-root-veg, oats, chicken, beef.
 export const ALLERGENS = [
   // ── Core protocol allergens ───────────────────────────────
 
@@ -48,6 +58,7 @@ export const ALLERGENS = [
     icon: '🫘',
     aliases: ['legumes', 'luštěniny'],
     allergenOrder: 1,
+    allergenicity: 'low',
     ladder: {
       allergenId: 'legumes',
       stages: {
@@ -133,6 +144,7 @@ export const ALLERGENS = [
     icon: '🥕',
     aliases: ['carrot', 'mrkev', 'kořenová zelenina'],
     allergenOrder: 2,
+    allergenicity: 'low',
     ladder: {
       allergenId: 'carrot-root-veg',
       stages: {
@@ -218,6 +230,7 @@ export const ALLERGENS = [
     icon: '🍅',
     aliases: ['tomatoes', 'rajčata', 'rajče', 'rajský'],
     allergenOrder: 3,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'tomatoes',
       stages: {
@@ -303,6 +316,7 @@ export const ALLERGENS = [
     icon: '🥭',
     aliases: ['exotic-fruit', 'exotické ovoce'],
     allergenOrder: 4,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'exotic-fruit',
       stages: {
@@ -388,6 +402,7 @@ export const ALLERGENS = [
     icon: '🍋',
     aliases: ['citrus', 'citrony', 'pomeranče', 'mandarinky', 'grapefruit'],
     allergenOrder: 5,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'citrus',
       stages: {
@@ -473,6 +488,7 @@ export const ALLERGENS = [
     icon: '🌾',
     aliases: ['wheat', 'pšenice', 'lepek', 'gluten'],
     allergenOrder: 6,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'wheat',
       stages: {
@@ -560,6 +576,7 @@ export const ALLERGENS = [
     icon: '🌾',
     aliases: ['oats', 'oves', 'ovesný'],
     allergenOrder: 7,
+    allergenicity: 'low',
     ladder: {
       allergenId: 'oats',
       stages: {
@@ -615,6 +632,7 @@ export const ALLERGENS = [
     icon: '🥚',
     aliases: ['eggs', 'vejce', 'vaječný'],
     allergenOrder: 8,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'eggs',
       stages: {
@@ -702,6 +720,7 @@ export const ALLERGENS = [
     icon: '🍗',
     aliases: ['chicken', 'kuřecí maso', 'kuřecí'],
     allergenOrder: 9,
+    allergenicity: 'low',
     ladder: {
       allergenId: 'chicken',
       stages: {
@@ -794,6 +813,7 @@ export const ALLERGENS = [
     icon: '🐟',
     aliases: ['fish', 'ryba', 'ryby'],
     allergenOrder: 10,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'fish',
       stages: {
@@ -872,6 +892,7 @@ export const ALLERGENS = [
     icon: '🥛',
     aliases: ['dairy', 'milk', 'mleko', 'mléčné výrobky'],
     allergenOrder: 11,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'dairy',
       stages: {
@@ -1011,6 +1032,7 @@ export const ALLERGENS = [
     icon: '🍓',
     aliases: ['raspberries', 'maliny', 'malina', 'rybíz', 'ostružiny', 'currants', 'blackberries'],
     allergenOrder: 12,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'raspberries',
       stages: {
@@ -1100,6 +1122,7 @@ export const ALLERGENS = [
     icon: '🍓',
     aliases: ['strawberries', 'jahody', 'jahoda'],
     allergenOrder: 13,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'strawberries',
       stages: {
@@ -1195,6 +1218,7 @@ export const ALLERGENS = [
       'semínka a mák',
     ],
     allergenOrder: 14,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'sesame',
       stages: {
@@ -1235,6 +1259,7 @@ export const ALLERGENS = [
     icon: '🫘',
     aliases: ['soy', 'soja', 'sója'],
     allergenOrder: 15,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'soy',
       stages: {
@@ -1330,6 +1355,7 @@ export const ALLERGENS = [
     icon: '🥜',
     aliases: ['nuts', 'ořechy', 'mandle', 'vlašské ořechy', 'kešu', 'lískové ořechy'],
     allergenOrder: 16,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'nuts',
       stages: {
@@ -1420,6 +1446,7 @@ export const ALLERGENS = [
     icon: '🐄',
     aliases: ['beef', 'hovězí', 'telecí', 'cow protein', 'BSA'],
     allergenOrder: 17,
+    allergenicity: 'low',
     ladder: {
       allergenId: 'beef',
       stages: {
@@ -1512,6 +1539,7 @@ export const ALLERGENS = [
     icon: '🍫',
     aliases: ['chocolate', 'čokoláda', 'kakao', 'cocoa'],
     allergenOrder: 18,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'cocoa',
       stages: {
@@ -1609,6 +1637,7 @@ export const ALLERGENS = [
     icon: '🍯',
     aliases: ['honey', 'med'],
     allergenOrder: 19,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'honey',
       stages: {
@@ -1697,6 +1726,7 @@ export const ALLERGENS = [
       'caraway',
     ],
     allergenOrder: 20,
+    allergenicity: 'moderate',
     ladder: {
       allergenId: 'spices-herbs',
       stages: {
@@ -1736,6 +1766,7 @@ export const ALLERGENS = [
     icon: '🥜',
     aliases: ['peanuts', 'arašídy', 'podzemnice olejná'],
     allergenOrder: 21,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'peanuts',
       stages: {
@@ -1828,6 +1859,7 @@ export const ALLERGENS = [
     icon: '🦐',
     aliases: ['shellfish', 'korýši', 'měkkýši', 'krevety', 'krab', 'mušle'],
     allergenOrder: 22,
+    allergenicity: 'high',
     ladder: {
       allergenId: 'shellfish',
       stages: {

@@ -56,7 +56,32 @@ export type Ladder = {
   stages: Partial<Record<FeedingStage, readonly LadderStep[]>>;
 };
 
-/** A single self-contained allergen record. `ladder` presence determines reintroducibility. */
+/**
+ * How allergenic a food is — the one authored input the derived adaptation
+ * window needs (ADR-0023 §6). The engine (`deriveLadderState`, not yet built)
+ * only distinguishes `'low'`: a `'low'` food is eligible for the
+ * decelerated-continuation *adaptation window* on a first-contact sub-threshold
+ * flare, whereas anything higher routes straight to the reaction path.
+ *
+ * The three-level scale is **tunable curator policy, not a clinically stamped
+ * classification** — an ordinal placeholder. Order is meaningful (`low` <
+ * `moderate` < `high`); only the `low` boundary is engine-load-bearing today,
+ * so `moderate`/`high` are free to be split or renumbered later without
+ * touching engine code.
+ */
+export const ALLERGENICITY_LEVELS = ['low', 'moderate', 'high'] as const;
+export type Allergenicity = (typeof ALLERGENICITY_LEVELS)[number];
+
+/**
+ * A single self-contained allergen record. `ladder` presence determines
+ * reintroducibility.
+ *
+ * `allergenicity` is an intrinsic property of the allergen (not the dose
+ * progression), so it lives here rather than on `Ladder`. It is authored
+ * only where a `ladder` is present — the adaptation window it gates exists
+ * only during reintroduction — and a catalog invariant test enforces that
+ * pairing (ADR-0023 §6).
+ */
 export type CanonicalAllergen = {
   id: string;
   icon: string;
@@ -65,4 +90,5 @@ export type CanonicalAllergen = {
   allergenOrder?: number;
   source?: string;
   ladder?: Ladder;
+  allergenicity?: Allergenicity;
 };

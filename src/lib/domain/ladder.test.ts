@@ -740,7 +740,10 @@ describe('decideLadderMove', () => {
     { id: 'e2', anchor: 'teaspoon', isEvaluationCheckpoint: true, dose: 'd2' },
     { id: 'e3', anchor: 'spoon', isEvaluationCheckpoint: false, dose: 'd3' },
   ];
-  const engineLadder: Ladder = { allergenId: 'eggs', stages: { breastfed: engineSteps } };
+  const engineLadder: Ladder = {
+    allergenId: 'eggs',
+    stages: { breastfed: engineSteps },
+  };
 
   function decInput(overrides: Partial<LadderDecisionInput>): LadderDecisionInput {
     return {
