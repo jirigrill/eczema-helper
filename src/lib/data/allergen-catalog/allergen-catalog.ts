@@ -40,13 +40,15 @@ type AllergenRecord = {
   allergenicity?: Allergenicity;
 };
 
-// `allergenicity` values below are **curator-tunable placeholders**, not
-// clinically stamped classifications (ADR-0023 §6). Authored only on
-// ladder-bearing allergens (the adaptation window it gates exists only during
-// reintroduction). Only the `low` boundary is engine-load-bearing today
-// (adaptation-window eligibility); `moderate`/`high` are grouped by rough
-// anaphylaxis/reaction-risk convention and free to be re-graded.
-// `low`: legumes, carrot-root-veg, oats, chicken, beef.
+// `allergenicity` values below are **curator-tunable, not clinically stamped**
+// (ADR-0023 §6), but the tiers are evidence-based: `high` = FDA big-9 / EU
+// Annex II recognized major allergens; `low` = not a major allergen and
+// reactions typically mild/non-IgE (OAS) or rare; `moderate` = occasional /
+// vasoactive-amine / OAS triggers. Rationale + sources per food:
+// docs/research/food-allergenicity-tiers.md. Authored only on ladder-bearing
+// allergens (the adaptation window it gates exists only during reintroduction).
+// Only the `low` boundary is engine-load-bearing today (adaptation-window
+// eligibility). `low`: legumes, carrot-root-veg, oats, chicken, beef.
 export const ALLERGENS = [
   // ── Core protocol allergens ───────────────────────────────
 
