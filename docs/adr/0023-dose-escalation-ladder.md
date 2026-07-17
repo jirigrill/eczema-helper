@@ -286,7 +286,7 @@ Between "clean advance" and "reaction → walk-down" sits a **decelerated-contin
 - **Response:** hold the dose flat, keep re-dosing, **never push through** — this is not OIT (which stays out of scope; supervised-care territory, ADR-0024).
 - **Exits** (window = 2 days, tunable): crosses threshold → reaction (walk-down); trending down → `settled` (dose kept, resume in **confirm cadence, never fast probe**); the ambiguous middle raises the `suspected-reaction` hold and defers to the mother's judgment, drawn on the flare-vs-dose trajectory.
 
-Adaptation stays **fully derived** (ADR-0012, no drift); the only authored addition is the `allergenicity` field on ladder data.
+Adaptation stays **fully derived** (ADR-0012, no drift); the only authored addition is the `allergenicity` field. It is an **intrinsic property of the allergen, not the dose progression**, so it lives on the `CanonicalAllergen` record (optional `allergenicity`), *not* on `Ladder` — authored only where a `ladder` is present (the adaptation window it gates exists only during reintroduction) and paired with it by a catalog invariant test. Landed in [#499](https://github.com/jirigrill/eczema-helper/issues/499) (type + curated placeholder data, no engine consumer yet).
 
 ### What ships now vs later — the cut line
 

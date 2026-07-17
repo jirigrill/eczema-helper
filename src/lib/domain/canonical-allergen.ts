@@ -42,6 +42,21 @@ export type LadderStep = {
 };
 
 /**
+ * Per-allergen dose ladder, keyed by feeding stage. Not every allergen has
+ * data for every stage — e.g. a source table tested in the child only leaves
+ * `breastfed` absent.
+ *
+ * `allergenId` is typed `string` (rather than the derived `LadderAllergenId`)
+ * to break a circular type: `LadderAllergenId` is inferred from the catalog
+ * which now embeds `Ladder` records. Consumers that need the narrow type read
+ * the parent allergen record's `id` directly.
+ */
+export type Ladder = {
+  allergenId: string;
+  stages: Partial<Record<FeedingStage, readonly LadderStep[]>>;
+};
+
+/**
  * How allergenic a food is — the one authored input the derived adaptation
  * window needs (ADR-0023 §6). The engine (`deriveLadderState`, not yet built)
  * only distinguishes `'low'`: a `'low'` food is eligible for the
@@ -58,24 +73,15 @@ export const ALLERGENICITY_LEVELS = ['low', 'moderate', 'high'] as const;
 export type Allergenicity = (typeof ALLERGENICITY_LEVELS)[number];
 
 /**
- * Per-allergen dose ladder, keyed by feeding stage. Not every allergen has
- * data for every stage — e.g. a source table tested in the child only leaves
- * `breastfed` absent.
+ * A single self-contained allergen record. `ladder` presence determines
+ * reintroducibility.
  *
- * `allergenId` is typed `string` (rather than the derived `LadderAllergenId`)
- * to break a circular type: `LadderAllergenId` is inferred from the catalog
- * which now embeds `Ladder` records. Consumers that need the narrow type read
- * the parent allergen record's `id` directly.
- *
- * `allergenicity` gates the derived adaptation window; see `Allergenicity`.
+ * `allergenicity` is an intrinsic property of the allergen (not the dose
+ * progression), so it lives here rather than on `Ladder`. It is authored
+ * only where a `ladder` is present — the adaptation window it gates exists
+ * only during reintroduction — and a catalog invariant test enforces that
+ * pairing (ADR-0023 §6).
  */
-export type Ladder = {
-  allergenId: string;
-  allergenicity: Allergenicity;
-  stages: Partial<Record<FeedingStage, readonly LadderStep[]>>;
-};
-
-/** A single self-contained allergen record. `ladder` presence determines reintroducibility. */
 export type CanonicalAllergen = {
   id: string;
   icon: string;
@@ -84,4 +90,5 @@ export type CanonicalAllergen = {
   allergenOrder?: number;
   source?: string;
   ladder?: Ladder;
+  allergenicity?: Allergenicity;
 };

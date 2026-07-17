@@ -33,7 +33,6 @@ async function waitFor<T>(
 function makeLadder(allergenId: string): Ladder {
   return {
     allergenId,
-    allergenicity: 'low',
     stages: {
       breastfed: [
         { id: `${allergenId}-1`, anchor: 'pinch', isEvaluationCheckpoint: false, dose: 'špetka' },

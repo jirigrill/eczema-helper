@@ -1,5 +1,5 @@
 import type { CatalogFamily } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { Ladder } from '$lib/domain/canonical-allergen';
+import type { Allergenicity, Ladder } from '$lib/domain/canonical-allergen';
 
 /**
  * Shape returned by the canonical catalog port. The concrete data source
@@ -12,6 +12,7 @@ export type CatalogAllergen = {
   icon: string;
   aliases: readonly string[];
   ladder?: Ladder;
+  allergenicity?: Allergenicity;
 };
 
 type CatalogFood = {

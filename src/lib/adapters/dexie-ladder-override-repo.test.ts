@@ -25,7 +25,6 @@ function makeLadder(allergenId: string, steps?: readonly LadderStep[]): Ladder {
   ];
   return {
     allergenId,
-    allergenicity: 'low',
     stages: {
       breastfed: steps ?? defaultSteps,
     },
@@ -77,7 +76,6 @@ describe('DexieLadderOverrideRepo', () => {
   it('persists a multi-stage ladder with all stages preserved', async () => {
     const ladder: Ladder = {
       allergenId: 'vejce',
-      allergenicity: 'low',
       stages: {
         breastfed: [{ id: 'bf-1', anchor: 'pinch', isEvaluationCheckpoint: false, dose: 'špetka' }],
         mixed: [

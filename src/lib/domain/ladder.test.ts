@@ -64,7 +64,6 @@ const eggsSteps: readonly LadderStep[] = [
 
 const eggsLadder: Ladder = {
   allergenId: 'eggs',
-  allergenicity: 'high',
   stages: { breastfed: eggsSteps },
 };
 
@@ -584,7 +583,6 @@ describe('ALLERGENS ladders', () => {
 describe('resolveLadder', () => {
   const defaultLadder: Ladder = {
     allergenId: 'eggs',
-    allergenicity: 'high',
     stages: {
       breastfed: [
         {
@@ -615,7 +613,6 @@ describe('resolveLadder', () => {
 
   const overrideLadder: Ladder = {
     allergenId: 'eggs',
-    allergenicity: 'high',
     stages: {
       breastfed: [
         {
@@ -745,7 +742,6 @@ describe('decideLadderMove', () => {
   ];
   const engineLadder: Ladder = {
     allergenId: 'eggs',
-    allergenicity: 'high',
     stages: { breastfed: engineSteps },
   };
 
@@ -1020,7 +1016,6 @@ describe('decideLadderMove', () => {
   it('fires passed at the effective top when an override shortens the ladder', () => {
     const override: Ladder = {
       allergenId: 'eggs',
-      allergenicity: 'high',
       stages: {
         breastfed: [
           { id: 'o1', anchor: 'pinch', isEvaluationCheckpoint: false, dose: 'override top' },

@@ -71,21 +71,24 @@ FeedingStage](#ladder--ladderstep--feedingstage)).
 The dose-escalation model — sole per-allergen dose-progression shape as of PRD
 #421 PR B, per [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).
 
-- **`Ladder`** — `{ allergenId: string, allergenicity: Allergenicity, stages:
-  Partial<Record<FeedingStage, readonly LadderStep[]>> }` on the optional
-  `ladder` field of a `CanonicalAllergen`. `allergenId` is typed `string`, not
-  `LadderAllergenId`, to avoid a circular type (`LadderAllergenId` is inferred
-  from the catalog the ladder lives inside).
+- **`Ladder`** — `{ allergenId: string, stages: Partial<Record<FeedingStage,
+  readonly LadderStep[]>> }` on the optional `ladder` field of a
+  `CanonicalAllergen`. `allergenId` is typed `string`, not `LadderAllergenId`,
+  to avoid a circular type (`LadderAllergenId` is inferred from the catalog the
+  ladder lives inside).
 - **`Allergenicity`** — `'low' | 'moderate' | 'high'`, the one authored input
-  the derived *adaptation window* needs (ADR-0023 §6). The scale is **tunable
-  curator policy, an ordinal placeholder — not a clinically stamped
-  classification**. Order is meaningful, but only the `low` boundary is
-  engine-load-bearing today: a `'low'` food is eligible for the
-  decelerated-continuation window on a first-contact sub-threshold flare;
+  the derived *adaptation window* needs (ADR-0023 §6). It is an **intrinsic
+  property of the allergen, not the dose progression**, so it lives on the
+  optional `allergenicity` field of a `CanonicalAllergen` (not on `Ladder`),
+  authored only where a `ladder` is present and paired with it by a catalog
+  invariant test. The scale is **tunable curator policy, an ordinal placeholder
+  — not a clinically stamped classification**. Order is meaningful, but only the
+  `low` boundary is engine-load-bearing today: a `'low'` food is eligible for
+  the decelerated-continuation window on a first-contact sub-threshold flare;
   anything higher routes straight to the reaction path. No engine consumes it
-  yet — `deriveLadderState` will read it once PRD #454 lands. Authored per
-  ladder in `allergen-catalog.ts`; `moderate`/`high` are grouped by rough
-  reaction-risk convention and free to be re-graded.
+  yet — `deriveLadderState` will read it once PRD #454 lands. Authored in
+  `allergen-catalog.ts`; `moderate`/`high` are grouped by rough reaction-risk
+  convention and free to be re-graded.
 - **`FeedingStage`** — `'breastfed' | 'mixed' | 'solids'`, mirroring the three
   table variants in the source protocols (Pekárková, Matoušková): "plně kojené
   dítě (bez příkrmů)" / "kojené dítě + příkrmy" / "dítě plně na příkrmech". Not
