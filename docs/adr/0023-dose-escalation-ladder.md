@@ -109,6 +109,16 @@ A closed discriminated union. Each variant answers a distinct "what now?" that a
 
 The **v2 reshape (§6)** adds three variants (`settled`, `adapting-decelerate`, `suspected-reaction`) and turns `ceiling-reached` into `ceiling-reached { reason }`. That is additive, not a re-cut of the existing seven; see §6 and [#498](https://github.com/jirigrill/eczema-helper/issues/498).
 
+### Why flat variants, not ~4 nested kinds
+
+Ten flat variants invites the reasonable objection *"that's over-modeled — this is really move / pause / decide / done."* That collapsed view is correct at the **concept** level, and the ten variants are indeed three-or-four concepts wearing more hats: `advance`/`step-back` are one *move* split by direction; `hold`/`rest`/`adapting-decelerate` are one *pause* split by cause (wait vs stop vs keep-dosing-flat); `passed`/`blocked`/`ceiling-reached` are one *terminal* split by reason. The information is irreducible — each split drives a different instruction to the mother or a different screen — but it could be packaged as ~4 top-level kinds with discriminated payloads (`{ kind: 'move'; direction } | { kind: 'pause'; mode } | { kind: 'decide' } | { kind: 'terminal'; outcome }`).
+
+**We keep the flat union deliberately, for one reason: compiler-enforced exhaustiveness on the cases where correctness is safety-critical.** With flat kinds, a `switch (kind)` forces every consumer (the `formatVerdict` render, the future confirm UI, ADR-0026's deep validator) to handle every state — so *"never offer 'advance' after a `ceiling-reached { severe }`"* is a compile error if missed, not a runtime bug. Nesting moves the dangerous distinctions (`severe` vs `floor-exhaustion`; `reaction-rest` vs `adapting`) *inside* a payload the top-level switch doesn't check unless every consumer also writes a second exhaustive inner switch. The flat shape is uglier to read but strictly safer, and safety dominates for a tool dosing an infant.
+
+The "it's really ~4 buckets" intuition is served **as a derived projection, not by re-cutting the union**: a `summarize(decision): 'progressing' | 'waiting' | 'needs-you' | 'done'` helper gives the UI its coarse view over the fine-grained union without discarding the payload the engine and validator need. Coarse for humans, precise for the compiler.
+
+Do not "simplify" this union into nested kinds without replacing the lost per-payload exhaustiveness — the flatness is load-bearing, not an oversight.
+
 Applying a verdict, and any UI rendering, is out of scope for the engine (PRD #423 / a follow-up UI pass). `scripts/simulate.ts` drives the engine and prints a `verdict:` line per allergen.
 
 ## Consequences
