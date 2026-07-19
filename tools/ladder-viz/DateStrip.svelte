@@ -1,7 +1,7 @@
 <!-- PROTOTYPE — throwaway (ticket #522). Date scrubber — pure calendar
      navigation, nothing else. Move forward/back with the arrows or ←/→. -->
 <script lang="ts">
-  import { DAYS } from './engine';
+  import { DAYS } from './scenario';
 
   let { selected = $bindable() }: { selected: string } = $props();
 

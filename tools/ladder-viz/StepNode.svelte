@@ -1,15 +1,53 @@
-<!-- PROTOTYPE — throwaway (ticket #522). Custom Svelte Flow node: one
-     precedence step, titled with the real code identifier it evaluates.
-     Collapsed shows the output; click to unroll the full inputs → output. -->
+<!-- PROTOTYPE — throwaway (ticket #522). Custom Svelte Flow node: ONE element
+     of the #521 `LadderExplain.steps` 6-tuple, rendered generically. It knows
+     nothing about the engine's logic — it reflects over whatever `detail`/
+     `status` the seam hands it. Gate-backed steps show their gate result's
+     fields as-is (a new field appears with no change here); structural steps
+     cross-reference the snapshot. Click to unroll. -->
 <script lang="ts">
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-  import type { StepView } from './engine';
+  import type { LadderPrecedenceStep, LadderPrecedenceStepName } from './seam';
 
   let { data }: NodeProps = $props();
-  const step = $derived(data.step as StepView);
+  const step = $derived(data.step as LadderPrecedenceStep);
   const index = $derived(data.index as number);
   const tone = $derived((data.tone as 'go' | 'hold' | 'stop') ?? 'go');
   const expanded = $derived(data.expanded as boolean);
+
+  // Stable UI captions for the 6 fixed step names (part of the #521 contract).
+  const FN: Record<LadderPrecedenceStepName, string> = {
+    'permanent-or-empty': 'resolveLadder().stages[stage] · isPermanentlyEliminated',
+    ceiling: 'deriveLadderState().ceilingRung',
+    reaction: 'deriveLadderState().pendingReaction',
+    'skin-worsening': 'skinStabilityGate()',
+    cadence: 'effectiveCadenceDays() · cadenceGate()',
+    'advance-or-dwell': 'nextLegalStep() · dwell',
+  };
+  const SNAP_REF: Record<LadderPrecedenceStepName, string> = {
+    'permanent-or-empty': 'snapshot: liveRung / rung count',
+    ceiling: 'snapshot.ceilingRung',
+    reaction: 'snapshot.pendingReaction',
+    'skin-worsening': '',
+    cadence: '',
+    'advance-or-dwell': 'snapshot.liveRung · dwell',
+  };
+
+  const gateBacked = $derived('gate' in step.detail);
+
+  function fmt(v: unknown): string {
+    if (v === null || v === undefined) return 'null';
+    if (typeof v === 'object') return 'dose' in (v as Record<string, unknown>) ? String((v as { dose: string }).dose) : JSON.stringify(v);
+    return String(v);
+  }
+  // Reflect over the gate result object + its paired threshold — generic.
+  const gateRows = $derived.by<{ k: string; v: string }[]>(() => {
+    if (!('gate' in step.detail)) return [];
+    const d = step.detail;
+    const rows = Object.entries(d.gate).map(([k, v]) => ({ k, v: fmt(v) }));
+    if ('windowDays' in d) rows.push({ k: 'windowDays', v: String(d.windowDays) });
+    if ('cadenceDays' in d) rows.push({ k: 'cadenceDays (effective)', v: String(d.cadenceDays) });
+    return rows;
+  });
 </script>
 
 <div class="node status-{step.status} tone-{tone}" class:expanded>
@@ -18,8 +56,11 @@
   <div class="head">
     <span class="idx">{index}</span>
     <div class="titles">
-      <code class="fn">{step.fn}</code>
-      <div class="note">{step.note}</div>
+      <div class="name-row">
+        <code class="name">{step.name}</code>
+        <span class="src {gateBacked ? 'live' : 'recon'}">{gateBacked ? 'live read' : 'reconstructed · #521'}</span>
+      </div>
+      <code class="fn">{FN[step.name]}</code>
     </div>
     <span class="badge">{step.status}</span>
     <span class="chev">{expanded ? '▾' : '▸'}</span>
@@ -27,24 +68,24 @@
 
   {#if expanded}
     <div class="io">
-      <div class="io-title">inputs</div>
-      {#each step.inputs as inp (inp.label)}
-        <div class="row"><code class="k">{inp.label}</code><span class="v">{inp.value}</span></div>
-      {/each}
+      {#if gateBacked}
+        <div class="io-title">gate result — read from the engine</div>
+        {#each gateRows as r (r.k)}
+          <div class="row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
+        {/each}
+      {:else}
+        <div class="io-title">no payload — evidence in the snapshot</div>
+        <div class="ref">{SNAP_REF[step.name]}</div>
+      {/if}
     </div>
   {/if}
-
-  <div class="output">
-    <span class="out-tag">output</span>
-    <span class="out-val">{step.output}</span>
-  </div>
 
   <Handle type="source" position={Position.Bottom} />
 </div>
 
 <style>
   .node {
-    width: 440px;
+    width: 460px;
     border: 1.5px solid var(--hair);
     border-radius: 12px;
     background: var(--surface);
@@ -53,13 +94,7 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     cursor: pointer;
   }
-  .head {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 14px;
-    background: var(--surface-2);
-  }
+  .head { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: var(--surface-2); }
   .idx {
     font-variant-numeric: tabular-nums;
     font-weight: 700;
@@ -75,57 +110,32 @@
     font-size: 12px;
   }
   .titles { flex: 1; min-width: 0; }
-  .fn {
-    display: block;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ink);
-    line-height: 1.35;
-    word-break: break-word;
-  }
-  .note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 700; color: var(--ink); }
+  .src { font-size: 9px; text-transform: uppercase; letter-spacing: 0.03em; padding: 1px 6px; border-radius: 999px; font-weight: 600; }
+  .src.live { background: color-mix(in srgb, var(--go) 15%, var(--surface)); color: var(--go); }
+  .src.recon { background: var(--hair); color: var(--muted); }
+  .fn { display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); margin-top: 3px; word-break: break-word; }
   .badge {
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     padding: 3px 8px;
     border-radius: 999px;
     background: var(--hair);
     color: var(--muted);
     flex: none;
     font-weight: 600;
+    white-space: nowrap;
   }
-  .chev { color: var(--muted); font-size: 11px; flex: none; margin-top: 2px; }
+  .chev { color: var(--muted); font-size: 11px; flex: none; margin-top: 3px; }
 
   .io { padding: 10px 14px; border-top: 1px solid var(--hair); }
-  .io-title {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
+  .io-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
   .row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.9; align-items: baseline; }
   .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
   .v { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-
-  .output {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 10px 14px;
-    border-top: 1px solid var(--hair);
-    background: var(--surface);
-  }
-  .out-tag {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    flex: none;
-  }
-  .out-val { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
 
   /* fired — this step produced the verdict; colored by the verdict's tone */
   .tone-go { --fired: var(--go); }
@@ -134,10 +144,11 @@
   .status-fired { border-color: var(--fired); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fired) 20%, transparent); }
   .status-fired .head { background: color-mix(in srgb, var(--fired) 12%, var(--surface)); }
   .status-fired .badge { background: var(--fired); color: white; }
-  .status-fired .output .out-val { color: var(--fired); }
 
   /* passed — cascade flowed through */
-  .status-passed .out-val { color: var(--muted); }
+  .status-passed-confirmed .badge { background: color-mix(in srgb, var(--go) 16%, var(--surface)); color: var(--go); }
+  .status-passed-no-data { opacity: 0.85; }
+  .status-passed-no-data .badge { background: var(--hair); color: var(--muted); }
 
   /* not-reached — short-circuited before this step */
   .status-not-reached { opacity: 0.4; }

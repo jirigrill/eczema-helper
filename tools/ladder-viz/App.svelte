@@ -1,15 +1,18 @@
 <!-- PROTOTYPE — throwaway (ticket #522). Ladder-engine inspector.
-     Two zones, condensed: a left "situation" column (ladder + the day's inputs,
-     with a manual editor in manual mode) and the engine pipeline resolving to
-     the verdict on the right. The date strip on top is pure calendar nav.
-     Everything is driven by the REAL engine (see engine.ts). -->
+     Two zones: a left "situation" column (ladder + the day's inputs, with a
+     manual editor in manual mode) and the engine pipeline resolving to the
+     verdict on the right, under a once-shown snapshot bar.
+     Every component here renders the #521 `LadderExplain` shape + pure data —
+     none import engine decision logic. All engine contact is in adapter.ts. -->
 <script lang="ts">
-  import { computeDay, DAYS, SCENARIO, emptyEvents, type ScenarioEvents } from './engine';
+  import { computeDay } from './adapter';
+  import { DAYS, SCENARIO, emptyEvents, type ScenarioEvents } from './scenario';
   import DateStrip from './DateStrip.svelte';
   import LadderRail from './LadderRail.svelte';
   import EnginePipeline from './EnginePipeline.svelte';
   import InputsPanel from './InputsPanel.svelte';
   import ManualEditor from './ManualEditor.svelte';
+  import SnapshotBar from './SnapshotBar.svelte';
 
   let mode = $state<'scenario' | 'manual'>('scenario');
   let manual = $state<ScenarioEvents>(emptyEvents());
@@ -47,9 +50,10 @@
 
     <section class="col engine">
       <div class="col-h">
-        engine · 6-step precedence pipeline
-        <span class="note">trace reconstructed from public gates — #521 seam pending · click a node to unroll</span>
+        engine · #521 explainLadderMove trace
+        <span class="note">read-only — rendered from the seam shape; reconstructed in adapter.ts until #521 ships · click a node to unroll</span>
       </div>
+      <SnapshotBar snapshot={day.explain.snapshot} />
       <div class="flow"><EnginePipeline {day} /></div>
     </section>
   </main>
@@ -57,14 +61,7 @@
 
 <style>
   .app { display: flex; flex-direction: column; height: 100vh; }
-  .topbar {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 9px 16px;
-    background: var(--ink);
-    color: white;
-  }
+  .topbar { display: flex; align-items: center; gap: 18px; padding: 9px 16px; background: var(--ink); color: white; }
   .brand { font-weight: 700; letter-spacing: 0.01em; }
   .proto { font-size: 10px; text-transform: uppercase; background: rgba(255, 255, 255, 0.16); padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
 

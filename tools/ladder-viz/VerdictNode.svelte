@@ -1,5 +1,7 @@
-<!-- PROTOTYPE — throwaway (ticket #522). Terminal node: the engine's overall
-     output for the day, so the pipeline visibly resolves to one verdict. -->
+<!-- PROTOTYPE — throwaway (ticket #522). Terminal node: the engine's actual
+     output — `LadderExplain.decision`, the raw LadderDecision — pretty-printed.
+     The seam synthesizes no prose (#521); this dumps whatever fields the
+     variant that fired carries. -->
 <script lang="ts">
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 
@@ -8,28 +10,32 @@
 
 <div class="verdict tone-{data.tone}">
   <Handle type="target" position={Position.Top} />
-  <div class="eyebrow">engine verdict · {data.date}</div>
+  <div class="eyebrow">engine verdict · LadderDecision · {data.date}</div>
   <div class="label">{data.label}</div>
-  <code class="raw">{data.raw}</code>
+  <pre class="raw">{data.json}</pre>
 </div>
 
 <style>
   .verdict {
-    width: 440px;
+    width: 460px;
     border-radius: 12px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     color: white;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   }
-  .eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; }
-  .label { font-size: 18px; font-weight: 700; margin: 3px 0 6px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
+  .label { font-size: 20px; font-weight: 800; margin: 4px 0 10px; }
   .raw {
     display: block;
-    font-size: 11px;
-    background: rgba(0, 0, 0, 0.18);
-    padding: 5px 7px;
-    border-radius: 6px;
-    word-break: break-all;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    background: rgba(0, 0, 0, 0.22);
+    padding: 12px 14px;
+    border-radius: 8px;
+    white-space: pre;
+    overflow-x: auto;
   }
   .tone-go { background: var(--go); }
   .tone-hold { background: var(--hold); }

@@ -3,7 +3,7 @@
 <script lang="ts">
   import { SvelteFlowProvider } from '@xyflow/svelte';
   import FlowInner from './FlowInner.svelte';
-  import type { DayView } from './engine';
+  import type { DayView } from './adapter';
 
   let { day }: { day: DayView } = $props();
 </script>

@@ -4,14 +4,7 @@
      Everything flows straight into `computeDay` — same code path as the
      canned scenario. -->
 <script lang="ts">
-  import {
-    dose,
-    skin,
-    evaluation,
-    STEPS,
-    emptyEvents,
-    type ScenarioEvents,
-  } from './engine';
+  import { dose, skin, evaluation, STEPS, emptyEvents, type ScenarioEvents } from './scenario';
   import type { AllergenOutcome, RegionLevel } from '$lib/domain/models';
 
   let { events = $bindable(), date }: { events: ScenarioEvents; date: string } = $props();

@@ -3,7 +3,8 @@
      date — the raw evidence the engine reasoned over — plus the derived
      snapshot the gates read. -->
 <script lang="ts">
-  import { OUTCOME_LABEL, type DayView } from './engine';
+  import { OUTCOME_LABEL } from './scenario';
+  import type { DayView } from './adapter';
 
   let { day }: { day: DayView } = $props();
 
@@ -53,14 +54,6 @@
       </div>
     {/each}
   {/if}
-
-  <div class="snap">
-    <div class="snap-h">derived state <span class="recon">reconstructed · #521 pending</span></div>
-    <div class="row"><span class="k">live rung</span><span class="v">{day.snapshot.liveRung}</span></div>
-    <div class="row"><span class="k">mode</span><span class="v">{day.snapshot.mode}</span></div>
-    <div class="row"><span class="k">days since dose</span><span class="v">{day.snapshot.daysSinceDose}</span></div>
-    <div class="row"><span class="k">skin trend</span><span class="v">{day.snapshot.skinTrend}</span></div>
-  </div>
 </div>
 
 <style>
@@ -91,11 +84,4 @@
   .sev-1 { background: #5a8b5a; }
   .sev-2 { background: #c9a227; }
   .sev-3 { background: #b84444; }
-
-  .snap { margin-top: 12px; padding: 11px; border: 1px solid var(--hair); border-radius: 10px; background: var(--surface-2); }
-  .snap-h { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 7px; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-  .recon { text-transform: none; letter-spacing: 0; font-size: 10px; opacity: 0.7; }
-  .row { display: flex; justify-content: space-between; line-height: 1.8; }
-  .k { color: var(--muted); }
-  .v { font-weight: 600; }
 </style>

@@ -2,7 +2,7 @@
      current run's position highlighted (the ladder never re-flows, only the
      highlight moves as you scrub). Compact — stacks above the inputs. -->
 <script lang="ts">
-  import type { DayView } from './engine';
+  import type { DayView } from './adapter';
 
   let { day }: { day: DayView } = $props();
 </script>
@@ -10,7 +10,7 @@
 <div class="rail">
   <div class="hd">
     <span class="title">peanut ladder</span>
-    <span class="mode">{day.snapshot.mode} · live: {day.snapshot.liveRung}</span>
+    <span class="mode">{day.explain.snapshot.mode} · live: {day.liveRungLabel}</span>
   </div>
   <div class="rungs">
     {#each [...day.rungs].reverse() as r (r.id)}

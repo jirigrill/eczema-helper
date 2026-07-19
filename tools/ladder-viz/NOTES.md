@@ -15,11 +15,11 @@ the right. The date strip on top is pure calendar navigation.
    reaction logged on the selected day as cards (dose pill, severity chip, tone).
 3. **Engine as a state machine** — the pipeline (Svelte Flow) renders the fixed
    6-step precedence as a **locked, single-column** canvas (no pan / no zoom / no
-   drag; it re-frames itself on expand). Each node is titled with the **real code
-   identifier** it evaluates (`skinStabilityGate()`, `cadenceGate()`,
-   `deriveLadderState().pendingReaction`, …), shows its output, and **unrolls its
-   full inputs on click**. The firing node is tone-highlighted; short-circuited
-   nodes are dimmed.
+   drag; it re-frames itself on expand). Each node is one element of the #521
+   `LadderExplain.steps` tuple, titled with its canonical seam name + the real
+   code identifier it evaluates, showing its status and — on click — its detail.
+   The firing node is tone-highlighted; short-circuited nodes are dimmed. The
+   `LadderStateSnapshot` shows once, in a bar above the pipeline.
 4. **Overall engine output** — the verdict node terminates the column; a pill in
    the header echoes it.
 5. **Whole ladder + current run** — the ladder rail draws every rung persistently
@@ -36,28 +36,56 @@ click the active one to clear it. Every entry flows through the *same*
 `computeDay` → `decideLadderMove` path as the scenario, so you can hand-drive the
 real engine day by day and watch the pipeline respond.
 
-## Driven by the REAL engine
+## Read-only by construction (the point)
 
-Unlike the first (library-selection) prototype, every verdict + gate reading is
-produced by the actual domain functions in `src/lib/domain` — `decideLadderMove`,
-`currentRung`, `cadenceGate`, `skinStabilityGate`, `nextLegalStep`. Only the
-*scenario* is canned: one allergen (peanut), a real 4-rung `Ladder`, and a
-~28-day history (`engine.ts`) authored to walk a real spread of the union —
-advance → cadence-hold → skin-worsening hold → rest → step-back → tolerated-clear
-→ re-climb → passed (top) → late reaction re-opens.
+**The visualizer copies no engine logic and is independent of the engine.** The
+files are split so this is structural, not a promise:
+
+- `scenario.ts` — pure data: the ladder, the event builders, the canned history,
+  the calendar. Constructs domain records; contains no decision logic.
+- `seam.ts` — a **verbatim mirror of the #521 `explainLadderMove` contract**
+  (`LadderExplain = { decision, snapshot, steps }`). The read-only surface the UI
+  renders.
+- `adapter.ts` — **the ONLY file that touches the engine.** It `import`s
+  `$lib/domain` and reconstructs a `LadderExplain` for one day. Every Svelte
+  component imports only `seam.ts` types + `scenario.ts` data — never
+  `$lib/domain` decision logic. So a gate added or changed in the engine can, at
+  most, touch this one file.
+
+### Why reconstruct at all — and how little
+
+#521 (the explain/trace seam) is **designed but not yet implemented** (its ticket
+is closed; the code is the "F hand-off build"). Until `explainLadderMove` exists,
+`adapter.ts` reconstructs its output. It does so **read-only**: it calls the real
+`decideLadderMove` + the real public gates (`cadenceGate`, `skinStabilityGate`,
+`currentRung`, `nextLegalStep`, `effectiveCadenceDays`) and renders what they
+return. Gate-backed steps carry the gate's *actual result object*, rendered
+generically (`Object.entries`) — a new gate field shows up with **zero** UI
+change, and each such node is tagged **`live read`** in the UI.
+
+The only genuinely reconstructed bits are the four the engine keeps private
+today — the precedence order (which step fired), `mode`, `pendingReaction`,
+`dwell` — each labelled **`reconstructed · #521`** in the UI so the coupling is
+auditable at a glance. Gate *outputs* are read; only these private *internals*
+are inferred.
+
+### When #521's F build ships
+
+`adapter.ts`'s reconstruction collapses to:
+
+```ts
+import { explainLadderMove } from '$lib/domain/ladder';
+export const buildExplain = explainLadderMove;
+```
+
+`seam.ts` is deleted (its types come from `$lib` instead). **No Svelte component
+changes** — they already render `LadderExplain`. That is the independence goal,
+proven end-to-end by this prototype.
 
 `other:<allergenId>` food ids let meals register as doses without wiring the food
-catalog (the engine's `foodTriggers` slices the prefix).
-
-### Faithfulness caveat (the #521 seam)
-
-The engine returns only the final `LadderDecision`, not a per-step trace. So the
-6-step trace here is **reconstructed** from the public gates + the real verdict —
-exactly what `scripts/simulate.ts` already does. Two derived values (`mode`, and
-therefore the effective cadence) are recomputed with the documented rule because
-`deriveLadderState` is private. The UI flags this ("trace reconstructed from
-public gates — #521 seam pending"). When the explain/trace seam (#521) is built,
-the real visualizer should read the trace from it and delete this reconstruction.
+catalog (the engine's `foodTriggers` slices the prefix). The canned scenario walks
+a real spread of the union: advance → cadence-hold → skin-worsening → rest →
+step-back → tolerated-clear → re-climb → passed (top) → late reaction re-opens.
 
 ## Toolchain wiring (unchanged from the library decision)
 

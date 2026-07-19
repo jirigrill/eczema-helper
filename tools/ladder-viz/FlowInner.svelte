@@ -1,50 +1,60 @@
 <!-- PROTOTYPE — throwaway (ticket #522). The engine as a state machine: the
-     fixed 6-step precedence pipeline as a locked, single-column Svelte Flow
-     canvas (no pan / no zoom / no drag). Each step is a node titled with the
-     real code identifier; click a node to unroll its inputs. The column
-     resolves into the verdict node at the bottom. Re-frames itself (fitView)
-     whenever a node expands or the day changes. -->
+     #521 `LadderExplain.steps` 6-tuple rendered as a locked, single-column
+     Svelte Flow canvas (no pan / no zoom / no drag). Each node is one seam
+     step; click to unroll its detail. The column resolves into the verdict
+     node. Re-frames itself (fitView) on expand / day change. This component
+     maps the seam tuple to nodes — it holds NO engine knowledge. -->
 <script lang="ts">
   import { SvelteFlow, Background, useSvelteFlow, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import StepNode from './StepNode.svelte';
   import VerdictNode from './VerdictNode.svelte';
-  import type { DayView } from './engine';
+  import type { DayView } from './adapter';
+  import type { LadderPrecedenceStep } from './seam';
 
   let { day }: { day: DayView } = $props();
 
   const nodeTypes = { step: StepNode, verdict: VerdictNode };
   const { fitView } = useSvelteFlow();
 
-  // Which step nodes are unrolled. Persists across day changes.
+  // Which step nodes are unrolled (keyed by the seam step name). Persists.
   let expanded = $state<Set<string>>(new Set());
 
-  const COLLAPSED = 104;
+  const COLLAPSED = 112;
   const GAP = 30;
-  function heightOf(inputsLen: number, isExpanded: boolean): number {
-    return isExpanded ? COLLAPSED + 26 + inputsLen * 26 : COLLAPSED;
+  function rowCount(step: LadderPrecedenceStep): number {
+    if ('gate' in step.detail) {
+      let n = Object.keys(step.detail.gate).length;
+      if ('windowDays' in step.detail) n++;
+      if ('cadenceDays' in step.detail) n++;
+      return n;
+    }
+    return 1;
+  }
+  function heightOf(step: LadderPrecedenceStep, isExpanded: boolean): number {
+    return isExpanded ? COLLAPSED + 34 + rowCount(step) * 26 : COLLAPSED;
   }
 
   const nodes = $derived.by<Node[]>(() => {
     const out: Node[] = [];
     let y = 0;
-    day.steps.forEach((step, i) => {
-      const isExpanded = expanded.has(step.key);
+    day.explain.steps.forEach((step, i) => {
+      const isExpanded = expanded.has(step.name);
       out.push({
-        id: `s${i}`,
+        id: step.name,
         type: 'step',
         position: { x: 0, y },
         data: { step, index: i + 1, tone: day.verdictTone, expanded: isExpanded },
         draggable: false,
         selectable: false,
       });
-      y += heightOf(step.inputs.length, isExpanded) + GAP;
+      y += heightOf(step, isExpanded) + GAP;
     });
     out.push({
       id: 'verdict',
       type: 'verdict',
       position: { x: 0, y: y + 10 },
-      data: { label: day.verdictLabel, tone: day.verdictTone, date: day.date, raw: JSON.stringify(day.verdict) },
+      data: { label: day.verdictLabel, tone: day.verdictTone, date: day.date, json: day.verdictJson },
       draggable: false,
       selectable: false,
     });
@@ -53,20 +63,21 @@
 
   const edges = $derived.by<Edge[]>(() => {
     const es: Edge[] = [];
+    const steps = day.explain.steps;
     const toneColor =
       day.verdictTone === 'go' ? 'var(--go)' : day.verdictTone === 'hold' ? 'var(--hold)' : 'var(--stop)';
-    for (let i = 0; i < day.steps.length - 1; i++) {
-      const reached = day.steps[i]!.status !== 'not-reached' && day.steps[i + 1]!.status !== 'not-reached';
+    for (let i = 0; i < steps.length - 1; i++) {
+      const reached = steps[i]!.status !== 'not-reached' && steps[i + 1]!.status !== 'not-reached';
       es.push({
         id: `e${i}`,
-        source: `s${i}`,
-        target: `s${i + 1}`,
+        source: steps[i]!.name,
+        target: steps[i + 1]!.name,
         style: reached ? 'stroke:#9aa3af; stroke-width:1.5;' : 'stroke:#d9dde3; stroke-dasharray:4 4;',
       });
     }
     es.push({
       id: 'e-verdict',
-      source: `s${day.steps.length - 1}`,
+      source: steps[steps.length - 1]!.name,
       target: 'verdict',
       animated: true,
       style: `stroke:${toneColor}; stroke-width:2.5;`,
@@ -75,11 +86,11 @@
   });
 
   function onNodeClick({ node }: { node: Node }) {
-    const key = (node.data as { step?: { key: string } }).step?.key;
-    if (!key) return;
+    const name = (node.data as { step?: { name: string } }).step?.name;
+    if (!name) return;
     const next = new Set(expanded);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
     expanded = next;
   }
 
