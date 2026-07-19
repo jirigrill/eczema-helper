@@ -14,42 +14,46 @@ export type NodeStyle = {
   future: boolean;
 };
 
-/** The three arms in the vocabulary the engine does not emit yet (#519). */
-const FUTURE_KINDS: ReadonlySet<JourneyNodeKind> = new Set([
-  'adapting-decelerate',
-  'suspected-reaction',
-  'ceiling-severe',
-]);
-
-const LABELS: Record<JourneyNodeKind, string> = {
-  'not-started': 'not started',
-  climbing: 'climbing',
-  'holding-cadence': 'holding · cadence',
-  'holding-skin': 'holding · skin worsening',
-  resting: 'resting',
-  'stepped-back': 'stepped back',
-  dwelling: 'dwelling',
-  settled: 'settled ✓',
-  'ceiling-floor-exhaustion': 'ceiling · floor exhaustion ✗',
-  blocked: 'blocked ✗',
-  'adapting-decelerate': 'adapting · decelerate',
-  'suspected-reaction': 'suspected reaction',
-  'ceiling-severe': 'ceiling · severe ✗',
+/**
+ * The single source of truth for every journey node kind's presentation —
+ * label, terminal role, and whether it is a future arm the engine does not emit
+ * yet (#519), rendered greyed. Keyed exhaustively by `JourneyNodeKind`, so a
+ * new kind added to the vocabulary breaks the build here until it is styled.
+ * `label`, `terminal`, and `future` no longer drift across three parallel maps.
+ */
+const NODE_STYLES: Record<JourneyNodeKind, NodeStyle> = {
+  'not-started': { label: 'not started', terminal: 'entry', future: false },
+  climbing: { label: 'climbing', terminal: 'none', future: false },
+  'holding-cadence': { label: 'holding · cadence', terminal: 'none', future: false },
+  'holding-skin': { label: 'holding · skin worsening', terminal: 'none', future: false },
+  resting: { label: 'resting', terminal: 'none', future: false },
+  'stepped-back': { label: 'stepped back', terminal: 'none', future: false },
+  dwelling: { label: 'dwelling', terminal: 'none', future: false },
+  settled: { label: 'settled ✓', terminal: 'settled', future: false },
+  'ceiling-floor-exhaustion': {
+    label: 'ceiling · floor exhaustion ✗',
+    terminal: 'absorbing',
+    future: false,
+  },
+  blocked: { label: 'blocked ✗', terminal: 'absorbing', future: false },
+  'adapting-decelerate': { label: 'adapting · decelerate', terminal: 'none', future: true },
+  'suspected-reaction': { label: 'suspected reaction', terminal: 'none', future: true },
+  'ceiling-severe': { label: 'ceiling · severe ✗', terminal: 'absorbing', future: true },
 };
-
-function terminalOf(kind: JourneyNodeKind): NodeTerminal {
-  if (kind === 'not-started') return 'entry';
-  if (kind === 'settled') return 'settled';
-  if (kind === 'blocked' || kind === 'ceiling-floor-exhaustion' || kind === 'ceiling-severe') {
-    return 'absorbing';
-  }
-  return 'none';
-}
 
 /** Presentation for one journey node kind — label, terminal role, greyed-ness. */
 export function nodeStyle(kind: JourneyNodeKind): NodeStyle {
-  return { label: LABELS[kind], terminal: terminalOf(kind), future: FUTURE_KINDS.has(kind) };
+  return NODE_STYLES[kind];
 }
+
+/**
+ * The future arms in vocabulary order — the single source both the styling and
+ * the off-spine node list draw from (#519). A future arm the engine actually
+ * emits appears on the spine instead; the caller filters those out.
+ */
+export const FUTURE_KINDS: JourneyNodeKind[] = (Object.keys(NODE_STYLES) as JourneyNodeKind[]).filter(
+  (kind) => NODE_STYLES[kind].future,
+);
 
 /** Short Czech-day label for a box's date span (single day vs a range). */
 export function spanLabel(fromDate: string, toDate: string): string {

@@ -2,8 +2,8 @@
   import { SvelteFlow, Background, Controls, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import DayNode from './DayNode.svelte';
-  import { replayJourney, type JourneyNodeKind } from './journey';
-  import { spanLabel } from './node-style';
+  import { replayJourney } from './journey';
+  import { FUTURE_KINDS, spanLabel } from './node-style';
   import { ALLERGEN_ID, RUN_INPUT } from './scenario';
 
   const nodeTypes = { day: DayNode };
@@ -30,10 +30,11 @@
     animated: day.kind === 'resting',
   }));
 
-  // The 3 future arms the engine never emits yet — greyed, off the spine, so the
-  // vocabulary is future-complete (#519). They light up the day the engine emits them.
-  const FUTURE: JourneyNodeKind[] = ['adapting-decelerate', 'suspected-reaction', 'ceiling-severe'];
-  const futureNodes: Node[] = FUTURE.map((kind, i) => ({
+  // The future arms greyed off the spine, so the vocabulary is future-complete
+  // (#519). Any future arm this run actually reached already renders on the spine,
+  // so it is dropped here — a kind is never drawn twice.
+  const spineKinds = new Set(journey.map((day) => day.kind));
+  const futureNodes: Node[] = FUTURE_KINDS.filter((kind) => !spineKinds.has(kind)).map((kind, i) => ({
     id: `f${i}`,
     type: 'day',
     position: { x: i * COL_GAP, y: 180 },
