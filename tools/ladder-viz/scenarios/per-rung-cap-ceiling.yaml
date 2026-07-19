@@ -1,0 +1,48 @@
+# Per-rung cap ceiling (#523 scenario 4). Builds on the reaction cycle: after a
+# step-back and re-climb back to the same rung, a SECOND reaction at that rung
+# hits MAX_RUNG_REACTIONS (policy.ts) and terminates the run — it is the per-rung
+# count, not the floor, that ends it (the engine's ceiling terminal is shared).
+allergen: eggs
+phase: reintroduction
+stage: breastfed
+
+days:
+  - date: 2026-06-01
+    events:
+      - meal: portion # rung 1
+  - date: 2026-06-02
+    events: []
+  - date: 2026-06-03
+    events:
+      - meal: portion # rung 2
+  - date: 2026-06-04
+    events:
+      - eval: mild-reaction # first reaction at rung 2 → rest
+  - date: 2026-06-05
+    events: []
+  - date: 2026-06-06
+    events: []
+  - date: 2026-06-07
+    events: []
+  - date: 2026-06-08
+    events: [] # rest elapses → stepped back to rung 1
+  - date: 2026-06-09
+    events: []
+  - date: 2026-06-10
+    events: []
+  - date: 2026-06-11
+    events: []
+  - date: 2026-06-12
+    events:
+      - meal: portion # re-dose the stepped-back rung
+  - date: 2026-06-13
+    events:
+      - eval: tolerated # clean verdict → re-climb toward rung 2
+  - date: 2026-06-14
+    events:
+      - meal: portion # back at rung 2
+  - date: 2026-06-15
+    events:
+      - eval: mild-reaction # SECOND reaction at rung 2 → per-rung cap → ceiling
+  - date: 2026-06-16
+    events: []
