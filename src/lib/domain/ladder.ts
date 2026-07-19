@@ -69,7 +69,7 @@ function restDaysFor(outcome: AllergenOutcome): number {
 }
 
 /** A reaction still in effect: the rung that reacted and how recovery unwinds. */
-type PendingReaction = {
+export type PendingReaction = {
   /** The rung the reaction bound to (highest live rung dosed on or before the verdict). */
   rung: LadderStep;
   outcome: AllergenOutcome;
@@ -120,7 +120,7 @@ type LadderReplayState = {
  * top-rung dose and both reset on a reaction (`NO_DWELL`), so a dose straddling a
  * reaction can never complete a dwell.
  */
-type Dwell = {
+export type Dwell = {
   /** Doses landed on the top rung so far. */
   count: number;
   /** ISO date of the most recent top-rung dose, or `null` before the top is reached. */
@@ -431,6 +431,18 @@ export type SkinStabilityGateResult = {
 };
 
 /**
+ * The gate's "missing data ≠ hold" identity: permissive with no severities to
+ * compare. Shared by the gate's no-observation return, the trace seed for a walk
+ * that fires before it reaches skin-stability, and `simulate.ts`'s fallback — so
+ * the three sites can never drift apart.
+ */
+export const PERMISSIVE_SKIN_STABILITY: SkinStabilityGateResult = Object.freeze({
+  allowed: true,
+  baselineSeverity: null,
+  currentSeverity: null,
+});
+
+/**
  * Skin-stability gate — the trend-based successor to `skinCalmGate` inside the
  * decision engine (ADR-0023 §decision-engine). Blocks escalation when skin has
  * *worsened* across the window; a steady baseline of mild eczema is not a hold
@@ -454,7 +466,7 @@ export function skinStabilityGate(
       return a.createdAt.localeCompare(b.createdAt);
     });
   if (eligible.length === 0) {
-    return { allowed: true, baselineSeverity: null, currentSeverity: null };
+    return PERMISSIVE_SKIN_STABILITY;
   }
 
   const windowStart = addDays(today, -windowDays);
@@ -569,6 +581,99 @@ export type LadderDecision =
   | { kind: 'suspected-reaction'; rung: LadderStep }
   | { kind: 'ceiling-reached'; rung: LadderStep; reason: 'floor-exhaustion' | 'severe' };
 
+// ── Explain/trace seam (issue #528, design #521) ──────────────
+
+/**
+ * A public projection of the private `deriveLadderState` replay — exactly the
+ * five facts a visualizer renders once above the precedence trace (design #521,
+ * PRD #454). `deriveLadderState`/`LadderReplayState` stay private (they also
+ * carry `lastPassingRung`/`reactionCounts` bookkeeping never meant to be
+ * load-bearing for consumers); this decouples the seam's contract from the
+ * replay's internal shape. All five fields are always present with explicit
+ * `null`s — no field is ever omitted for "nothing to report."
+ */
+export type LadderStateSnapshot = {
+  liveRung: LadderStep | null;
+  pendingReaction: PendingReaction | null;
+  ceilingRung: LadderStep | null;
+  mode: LadderMode;
+  dwell: Dwell;
+};
+
+/**
+ * The six precedence steps `decideLadderMove` walks, in order (ADR-0023
+ * §decision-engine, §6): the four *structural* steps evaluate a definite fact
+ * already known from the replay, and the two *gate-backed* steps
+ * (`skin-worsening`, `cadence`) run a gate that can be permissive absent data.
+ */
+export type LadderPrecedenceStepName =
+  | 'permanent-or-empty'
+  | 'ceiling'
+  | 'reaction'
+  | 'skin-worsening'
+  | 'cadence'
+  | 'advance-or-dwell';
+
+/**
+ * How one precedence step resolved: `fired` = produced the verdict; steps after
+ * it are `not-reached`; a step that passes without firing is `passed-confirmed`,
+ * except the two gate-backed steps which may instead report `passed-no-data`
+ * when their gate was permissive only because no data existed to hold against.
+ * The four structural steps never report `passed-no-data`.
+ */
+export type LadderPrecedenceStepStatus =
+  | 'not-reached'
+  | 'fired'
+  | 'passed-confirmed'
+  | 'passed-no-data';
+
+/**
+ * Per-step payload, discriminated by `step`. Structural steps carry only their
+ * name — their evidence is exactly the field already shown in `LadderStateSnapshot`,
+ * so a renderer cross-references it there rather than the seam repeating it. The
+ * two gate-backed steps carry the gate's own result paired with the *effective*,
+ * mode-adjusted threshold the walker fed it (neither gate returns its own
+ * threshold), so the trace records the number the decision actually used.
+ */
+export type LadderPrecedenceStepDetail =
+  | { step: 'permanent-or-empty' }
+  | { step: 'ceiling' }
+  | { step: 'reaction' }
+  | { step: 'skin-worsening'; gate: SkinStabilityGateResult; windowDays: number }
+  | { step: 'cadence'; gate: CadenceGateResult; cadenceDays: number }
+  | { step: 'advance-or-dwell' };
+
+export type LadderPrecedenceStep = {
+  name: LadderPrecedenceStepName;
+  status: LadderPrecedenceStepStatus;
+  detail: LadderPrecedenceStepDetail;
+};
+
+/**
+ * The fixed 6-tuple of precedence steps in order, so a step can never be
+ * silently omitted from a trace. Index maps to `LadderPrecedenceStepName`.
+ */
+export type LadderPrecedenceSteps = readonly [
+  LadderPrecedenceStep,
+  LadderPrecedenceStep,
+  LadderPrecedenceStep,
+  LadderPrecedenceStep,
+  LadderPrecedenceStep,
+  LadderPrecedenceStep,
+];
+
+/**
+ * The whole trace: the verdict `decideLadderMove` returned (unmodified — the
+ * seam synthesizes no prose), the state snapshot, and the six precedence steps
+ * exactly as walked. `explainLadderMove` returns this; `decideLadderMove`
+ * returns just `.decision` from the same walk, so the two cannot drift.
+ */
+export type LadderExplain = {
+  decision: LadderDecision;
+  snapshot: LadderStateSnapshot;
+  steps: LadderPrecedenceSteps;
+};
+
 /**
  * Single-object input to `decideLadderMove` — raw history plus the ladder
  * context for one allergen, one feeding stage, one day. The engine calls the
@@ -637,32 +742,126 @@ export type LadderDecisionInput = {
  * ladder (`resolveLadder`), never the raw default.
  */
 export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
+  return walkLadderPrecedence(input).decision;
+}
+
+/**
+ * Explain seam (issue #528, design #521): the whole trace behind one
+ * `decideLadderMove` verdict — the decision, a `LadderStateSnapshot`, and the
+ * six precedence steps exactly as walked. Runs the *same* `walkLadderPrecedence`
+ * the production path does, so the trace can never drift from the decision.
+ * Pure and derived (ADR-0012): reruns from the same history are identical.
+ */
+export function explainLadderMove(input: LadderDecisionInput): LadderExplain {
+  return walkLadderPrecedence(input);
+}
+
+/**
+ * The single implementation of the ladder precedence (ADR-0023
+ * §decision-engine, §6). `decideLadderMove` returns its `.decision`;
+ * `explainLadderMove` returns the whole thing. The six precedence steps are
+ * recorded as the walk executes them — `fired` on the step that produced the
+ * verdict, `passed-confirmed`/`passed-no-data` on the steps passed before it,
+ * and `not-reached` on every step after it — so the trace and the decision are
+ * the same code path by construction. Building the step objects is the only
+ * added cost on the production path: no extra gate call, replay, or behavior.
+ */
+function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   const { allergenId, meals, evaluations, observations, defaultLadder, override, stage, today } =
     input;
 
-  // (1) Permanent elimination — the ladder is inert regardless of history.
-  if (input.isPermanentlyEliminated) return { kind: 'blocked' };
-
   const steps = resolveLadder(defaultLadder, override).stages[stage] ?? [];
-  // No rungs for this stage: nothing to walk — the same rung-less "inert"
-  // verdict as a permanently-eliminated allergen.
-  if (steps.length === 0) return { kind: 'blocked' };
-
+  // Derived even when the ladder is inert (permanent / empty stage): the replay
+  // is pure and does not change the verdict, but populates a real snapshot for
+  // the trace. On an empty stage it returns the all-`null`/`probe` identity.
   const state = deriveLadderState(allergenId, meals, evaluations, steps);
+  const snapshot: LadderStateSnapshot = {
+    liveRung: state.liveRung,
+    pendingReaction: state.pendingReaction,
+    ceilingRung: state.ceilingRung,
+    mode: state.mode,
+    dwell: state.dwell,
+  };
+
+  // The two gate-backed steps' effective thresholds are known up front (both are
+  // pure functions of the input and the derived mode), so a not-reached gate
+  // still reports its real threshold, consistently with skin-worsening.
+  const cadenceDaysEff = effectiveCadenceDays(state.mode, input.cadenceDays);
+  // The permissive "gate never ran" identity: a branch that fires before it
+  // reaches a gate passes this in, so the trace records "no data" for the gates
+  // it never evaluated (skin-stability's counterpart is PERMISSIVE_SKIN_STABILITY).
+  const noCadenceData: CadenceGateResult = { allowed: true, daysSinceLastDose: null };
+
+  // `build` reports only the gate results it is handed — never closed-over
+  // mutable state — so the trace can't depend on the walk's evaluation order.
+  const build = (
+    decision: LadderDecision,
+    firedAt: number,
+    gates: { stability: SkinStabilityGateResult; cadence: CadenceGateResult },
+  ): LadderExplain => {
+    const statusAt = (i: number): LadderPrecedenceStepStatus =>
+      i > firedAt
+        ? 'not-reached'
+        : i === firedAt
+          ? 'fired'
+          : // Passed before the fired step. Only the two gate-backed steps
+            // (indices 3, 4) can be permissive purely for lack of data.
+            i === 3 && gates.stability.currentSeverity === null
+            ? 'passed-no-data'
+            : i === 4 && gates.cadence.daysSinceLastDose === null
+              ? 'passed-no-data'
+              : 'passed-confirmed';
+    const stepsTuple: LadderPrecedenceSteps = [
+      { name: 'permanent-or-empty', status: statusAt(0), detail: { step: 'permanent-or-empty' } },
+      { name: 'ceiling', status: statusAt(1), detail: { step: 'ceiling' } },
+      { name: 'reaction', status: statusAt(2), detail: { step: 'reaction' } },
+      {
+        name: 'skin-worsening',
+        status: statusAt(3),
+        detail: {
+          step: 'skin-worsening',
+          gate: gates.stability,
+          windowDays: input.stabilityWindowDays,
+        },
+      },
+      {
+        name: 'cadence',
+        status: statusAt(4),
+        detail: { step: 'cadence', gate: gates.cadence, cadenceDays: cadenceDaysEff },
+      },
+      { name: 'advance-or-dwell', status: statusAt(5), detail: { step: 'advance-or-dwell' } },
+    ];
+    return { decision, snapshot, steps: stepsTuple };
+  };
+
+  // (1) Permanent elimination or an empty stage ladder — the ladder is inert
+  //     regardless of history.
+  if (input.isPermanentlyEliminated || steps.length === 0) {
+    return build({ kind: 'blocked' }, 0, {
+      stability: PERMISSIVE_SKIN_STABILITY,
+      cadence: noCadenceData,
+    });
+  }
 
   // (2) Ceiling — per-rung cap or floor exhaustion. Terminal; defers to human.
   // The `severe` reason is authored on the union but not emitted here yet — the
   // severe-reaction branch lands in a later slice (ADR-0023 §6, PRD #454).
   if (state.ceilingRung) {
-    return { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' };
+    return build(
+      { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' },
+      1,
+      { stability: PERMISSIVE_SKIN_STABILITY, cadence: noCadenceData },
+    );
   }
 
   // (3) A reaction still in effect: rest while the recovery window is open, then
   //     step back to the last-passing rung to re-test.
   if (state.pendingReaction) {
     const { rung, outcome, until, stepBackTo } = state.pendingReaction;
-    if (today <= until) return { kind: 'rest', rung, days: restDaysFor(outcome), until };
-    return { kind: 'step-back', from: rung, to: stepBackTo };
+    const gates = { stability: PERMISSIVE_SKIN_STABILITY, cadence: noCadenceData };
+    if (today <= until)
+      return build({ kind: 'rest', rung, days: restDaysFor(outcome), until }, 2, gates);
+    return build({ kind: 'step-back', from: rung, to: stepBackTo }, 2, gates);
   }
 
   const liveRung = state.liveRung;
@@ -678,28 +877,35 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   //     reaction is caught at (3); skin state is the surviving pre-cadence gate.
   const stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
   if (!stability.allowed) {
-    return {
-      kind: 'hold',
-      rung: referenceRung,
-      reason: 'skin-worsening',
-      baselineSeverity: stability.baselineSeverity as RegionLevel,
-      currentSeverity: stability.currentSeverity as RegionLevel,
-    };
+    return build(
+      {
+        kind: 'hold',
+        rung: referenceRung,
+        reason: 'skin-worsening',
+        baselineSeverity: stability.baselineSeverity as RegionLevel,
+        currentSeverity: stability.currentSeverity as RegionLevel,
+      },
+      3,
+      { stability, cadence: noCadenceData },
+    );
   }
 
   // (5) Cadence — wait the required spacing since the last dose. The spacing is
   //     mode-driven: fast in probe, `≥ latency` in confirm so the engine never
   //     doses up into a window a delayed reaction to the previous dose could
   //     still be brewing in (ADR-0023 §6, PRD #454).
-  const cadenceDays = effectiveCadenceDays(state.mode, input.cadenceDays);
-  const cadence = cadenceGate(allergenId, meals, today, cadenceDays);
-  if (!cadence.allowed) {
-    return {
-      kind: 'hold',
-      rung: referenceRung,
-      reason: 'cadence',
-      daysRemaining: Math.max(0, cadenceDays - (cadence.daysSinceLastDose ?? 0)),
-    };
+  const cadenceResult = cadenceGate(allergenId, meals, today, cadenceDaysEff);
+  if (!cadenceResult.allowed) {
+    return build(
+      {
+        kind: 'hold',
+        rung: referenceRung,
+        reason: 'cadence',
+        daysRemaining: Math.max(0, cadenceDaysEff - (cadenceResult.daysSinceLastDose ?? 0)),
+      },
+      4,
+      { stability, cadence: cadenceResult },
+    );
   }
 
   // (6) Escalate one legal step. At the effective top there is nowhere to climb;
@@ -712,7 +918,9 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
   const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
     isPermanentlyEliminated: input.isPermanentlyEliminated,
   });
-  if (nextStep !== null) return { kind: 'advance', from: liveRung, to: nextStep };
+  const evaluatedGates = { stability, cadence: cadenceResult };
+  if (nextStep !== null)
+    return build({ kind: 'advance', from: liveRung, to: nextStep }, 5, evaluatedGates);
 
   // At the effective top. `N` = number of steps in the *default* ladder for the
   // stage (a finely-graded, usually more cautious allergen is confirmed more
@@ -724,5 +932,9 @@ export function decideLadderMove(input: LadderDecisionInput): LadderDecision {
     state.dwell.count >= dwellTarget &&
     state.dwell.lastDoseDate !== null &&
     today >= addDays(state.dwell.lastDoseDate, REACTION_LATENCY_DAYS);
-  return dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung };
+  return build(
+    dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung },
+    5,
+    evaluatedGates,
+  );
 }
