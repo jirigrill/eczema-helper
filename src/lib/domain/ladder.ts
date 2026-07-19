@@ -431,6 +431,18 @@ export type SkinStabilityGateResult = {
 };
 
 /**
+ * The gate's "missing data ≠ hold" identity: permissive with no severities to
+ * compare. Shared by the gate's no-observation return, the trace seed for a walk
+ * that fires before it reaches skin-stability, and `simulate.ts`'s fallback — so
+ * the three sites can never drift apart.
+ */
+export const PERMISSIVE_SKIN_STABILITY: SkinStabilityGateResult = Object.freeze({
+  allowed: true,
+  baselineSeverity: null,
+  currentSeverity: null,
+});
+
+/**
  * Skin-stability gate — the trend-based successor to `skinCalmGate` inside the
  * decision engine (ADR-0023 §decision-engine). Blocks escalation when skin has
  * *worsened* across the window; a steady baseline of mild eczema is not a hold
@@ -454,7 +466,7 @@ export function skinStabilityGate(
       return a.createdAt.localeCompare(b.createdAt);
     });
   if (eligible.length === 0) {
-    return { allowed: true, baselineSeverity: null, currentSeverity: null };
+    return PERMISSIVE_SKIN_STABILITY;
   }
 
   const windowStart = addDays(today, -windowDays);
@@ -771,16 +783,14 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     dwell: state.dwell,
   };
 
-  // The two gate-backed steps' results and effective thresholds, seeded to the
-  // permissive identity until the walk reaches them (so a trace that fired
-  // earlier records "no data" for the gates it never ran).
-  let cadenceDaysEff = 0;
+  // The two gate-backed steps' effective thresholds are known up front (both are
+  // pure functions of the input and the derived mode), so a not-reached gate
+  // still reports its real threshold, consistently with skin-worsening. Their
+  // *gate results* are seeded to the permissive identity until the walk reaches
+  // them, so a trace that fired earlier records "no data" for gates it never ran.
+  const cadenceDaysEff = effectiveCadenceDays(state.mode, input.cadenceDays);
   let cadenceResult: CadenceGateResult = { allowed: true, daysSinceLastDose: null };
-  let stability: SkinStabilityGateResult = {
-    allowed: true,
-    baselineSeverity: null,
-    currentSeverity: null,
-  };
+  let stability: SkinStabilityGateResult = PERMISSIVE_SKIN_STABILITY;
   const build = (decision: LadderDecision, firedAt: number): LadderExplain => {
     const statusAt = (i: number): LadderPrecedenceStepStatus =>
       i > firedAt
@@ -870,7 +880,6 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   //     mode-driven: fast in probe, `≥ latency` in confirm so the engine never
   //     doses up into a window a delayed reaction to the previous dose could
   //     still be brewing in (ADR-0023 §6, PRD #454).
-  cadenceDaysEff = effectiveCadenceDays(state.mode, input.cadenceDays);
   cadenceResult = cadenceGate(allergenId, meals, today, cadenceDaysEff);
   if (!cadenceResult.allowed) {
     return build(

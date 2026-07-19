@@ -43,6 +43,7 @@ import {
   skinCalmGate,
   checkpointVerdictGate,
   explainLadderMove,
+  PERMISSIVE_SKIN_STABILITY,
   resolveLadder,
   type Ladder,
   type LadderStep,
@@ -451,6 +452,8 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
     isPermanentlyEliminated: isPermanent,
   });
   const move = explain.decision;
+  // `steps` is the fixed 6-tuple (issue #528): both names are always present, so
+  // `.find` can never miss here.
   const cadenceStep = explain.steps.find((s) => s.name === 'cadence')!;
   const stabilityStep = explain.steps.find((s) => s.name === 'skin-worsening')!;
   const cadence = cadenceStep.detail.step === 'cadence' ? cadenceStep.detail.gate : null;
@@ -459,7 +462,7 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
   const stability =
     stabilityStep.detail.step === 'skin-worsening'
       ? stabilityStep.detail.gate
-      : { allowed: true, baselineSeverity: null, currentSeverity: null };
+      : PERMISSIVE_SKIN_STABILITY;
   traceCall('explainLadderMove.steps[cadence]', [`effective=${effectiveCadence}`], JSON.stringify(cadence));
   traceCall('explainLadderMove.steps[skin-worsening]', [`window=${stabilityWindowDays()}`], JSON.stringify(stability));
 

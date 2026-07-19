@@ -1339,8 +1339,12 @@ describe('decideLadderMove', () => {
         baselineSeverity: 0,
         currentSeverity: 2,
       });
-      // Cadence is downstream of the fired skin step and was never evaluated.
+      // Cadence is downstream of the fired skin step and was never evaluated,
+      // but it still reports its real effective threshold (probe mode, injected
+      // cadenceDays=1) — consistently with how skin-worsening carries windowDays.
       expect(steps[4].status).toBe('not-reached');
+      if (steps[4].detail.step !== 'cadence') throw new Error('wrong detail');
+      expect(steps[4].detail.cadenceDays).toBe(1);
     });
 
     it('fires cadence and carries the gate result with the effective, mode-adjusted threshold', () => {
