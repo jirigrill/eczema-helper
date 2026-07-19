@@ -785,13 +785,20 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
 
   // The two gate-backed steps' effective thresholds are known up front (both are
   // pure functions of the input and the derived mode), so a not-reached gate
-  // still reports its real threshold, consistently with skin-worsening. Their
-  // *gate results* are seeded to the permissive identity until the walk reaches
-  // them, so a trace that fired earlier records "no data" for gates it never ran.
+  // still reports its real threshold, consistently with skin-worsening.
   const cadenceDaysEff = effectiveCadenceDays(state.mode, input.cadenceDays);
-  let cadenceResult: CadenceGateResult = { allowed: true, daysSinceLastDose: null };
-  let stability: SkinStabilityGateResult = PERMISSIVE_SKIN_STABILITY;
-  const build = (decision: LadderDecision, firedAt: number): LadderExplain => {
+  // The permissive "gate never ran" identity: a branch that fires before it
+  // reaches a gate passes this in, so the trace records "no data" for the gates
+  // it never evaluated (skin-stability's counterpart is PERMISSIVE_SKIN_STABILITY).
+  const noCadenceData: CadenceGateResult = { allowed: true, daysSinceLastDose: null };
+
+  // `build` reports only the gate results it is handed — never closed-over
+  // mutable state — so the trace can't depend on the walk's evaluation order.
+  const build = (
+    decision: LadderDecision,
+    firedAt: number,
+    gates: { stability: SkinStabilityGateResult; cadence: CadenceGateResult },
+  ): LadderExplain => {
     const statusAt = (i: number): LadderPrecedenceStepStatus =>
       i > firedAt
         ? 'not-reached'
@@ -799,9 +806,9 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
           ? 'fired'
           : // Passed before the fired step. Only the two gate-backed steps
             // (indices 3, 4) can be permissive purely for lack of data.
-            i === 3 && stability.currentSeverity === null
+            i === 3 && gates.stability.currentSeverity === null
             ? 'passed-no-data'
-            : i === 4 && cadenceResult.daysSinceLastDose === null
+            : i === 4 && gates.cadence.daysSinceLastDose === null
               ? 'passed-no-data'
               : 'passed-confirmed';
     const stepsTuple: LadderPrecedenceSteps = [
@@ -813,14 +820,14 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
         status: statusAt(3),
         detail: {
           step: 'skin-worsening',
-          gate: stability,
+          gate: gates.stability,
           windowDays: input.stabilityWindowDays,
         },
       },
       {
         name: 'cadence',
         status: statusAt(4),
-        detail: { step: 'cadence', gate: cadenceResult, cadenceDays: cadenceDaysEff },
+        detail: { step: 'cadence', gate: gates.cadence, cadenceDays: cadenceDaysEff },
       },
       { name: 'advance-or-dwell', status: statusAt(5), detail: { step: 'advance-or-dwell' } },
     ];
@@ -830,7 +837,10 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   // (1) Permanent elimination or an empty stage ladder — the ladder is inert
   //     regardless of history.
   if (input.isPermanentlyEliminated || steps.length === 0) {
-    return build({ kind: 'blocked' }, 0);
+    return build({ kind: 'blocked' }, 0, {
+      stability: PERMISSIVE_SKIN_STABILITY,
+      cadence: noCadenceData,
+    });
   }
 
   // (2) Ceiling — per-rung cap or floor exhaustion. Terminal; defers to human.
@@ -840,6 +850,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     return build(
       { kind: 'ceiling-reached', rung: state.ceilingRung, reason: 'floor-exhaustion' },
       1,
+      { stability: PERMISSIVE_SKIN_STABILITY, cadence: noCadenceData },
     );
   }
 
@@ -847,8 +858,10 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   //     step back to the last-passing rung to re-test.
   if (state.pendingReaction) {
     const { rung, outcome, until, stepBackTo } = state.pendingReaction;
-    if (today <= until) return build({ kind: 'rest', rung, days: restDaysFor(outcome), until }, 2);
-    return build({ kind: 'step-back', from: rung, to: stepBackTo }, 2);
+    const gates = { stability: PERMISSIVE_SKIN_STABILITY, cadence: noCadenceData };
+    if (today <= until)
+      return build({ kind: 'rest', rung, days: restDaysFor(outcome), until }, 2, gates);
+    return build({ kind: 'step-back', from: rung, to: stepBackTo }, 2, gates);
   }
 
   const liveRung = state.liveRung;
@@ -862,7 +875,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   //     only an *increase* over the window's baseline blocks escalation.
   //     The checkpoint verdict hold is retired (ADR-0023 §6): a recorded
   //     reaction is caught at (3); skin state is the surviving pre-cadence gate.
-  stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
+  const stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
   if (!stability.allowed) {
     return build(
       {
@@ -873,6 +886,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
         currentSeverity: stability.currentSeverity as RegionLevel,
       },
       3,
+      { stability, cadence: noCadenceData },
     );
   }
 
@@ -880,7 +894,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   //     mode-driven: fast in probe, `≥ latency` in confirm so the engine never
   //     doses up into a window a delayed reaction to the previous dose could
   //     still be brewing in (ADR-0023 §6, PRD #454).
-  cadenceResult = cadenceGate(allergenId, meals, today, cadenceDaysEff);
+  const cadenceResult = cadenceGate(allergenId, meals, today, cadenceDaysEff);
   if (!cadenceResult.allowed) {
     return build(
       {
@@ -890,6 +904,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
         daysRemaining: Math.max(0, cadenceDaysEff - (cadenceResult.daysSinceLastDose ?? 0)),
       },
       4,
+      { stability, cadence: cadenceResult },
     );
   }
 
@@ -903,7 +918,9 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   const nextStep = nextLegalStep(liveRung, defaultLadder, stage, override, {
     isPermanentlyEliminated: input.isPermanentlyEliminated,
   });
-  if (nextStep !== null) return build({ kind: 'advance', from: liveRung, to: nextStep }, 5);
+  const evaluatedGates = { stability, cadence: cadenceResult };
+  if (nextStep !== null)
+    return build({ kind: 'advance', from: liveRung, to: nextStep }, 5, evaluatedGates);
 
   // At the effective top. `N` = number of steps in the *default* ladder for the
   // stage (a finely-graded, usually more cautious allergen is confirmed more
@@ -918,5 +935,6 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   return build(
     dwellComplete ? { kind: 'settled', rung: topRung } : { kind: 'passed', rung: topRung },
     5,
+    evaluatedGates,
   );
 }
