@@ -2,8 +2,9 @@
 //
 // Unlike the first prototype (hand-authored verdicts), every verdict + gate
 // reading below comes from the actual domain functions in `src/lib/domain`.
-// Only the *scenario* (one allergen's ~28-day history) is canned; the logic is
-// real, so the visualizer shows what `decideLadderMove` actually does.
+// Only the *events* are supplied by the tool — either the canned scenario
+// (`SCENARIO`) or events the user logs in manual mode. The logic is real, so
+// the visualizer shows what `decideLadderMove` actually does.
 //
 // The 6-step precedence trace is reconstructed here from the public gates +
 // the real verdict (exactly what `scripts/simulate.ts` does today). The #521
@@ -30,20 +31,19 @@ import type {
 } from '$lib/domain/models';
 import {
   REINTRODUCTION_CADENCE_DAYS,
-  SKIN_STABILITY_WINDOW_DAYS,
   effectiveCadenceDays,
   stabilityWindowFor,
   type LadderMode,
 } from '$lib/domain/policy';
 
-// ── The scenario: one allergen, one real ladder, one canned history ──────────
+// ── The ladder: one allergen, one real 4-rung ladder ─────────────────────────
 
 const ALLERGEN_ID = 'peanut';
 const STAGE: FeedingStage = 'breastfed';
 
 // A real 4-rung ladder (the engine walks whatever Ladder we hand it — no
 // catalog needed). Rung 3 is an evaluation checkpoint, rung 4 the top.
-const LADDER: Ladder = {
+export const LADDER: Ladder = {
   allergenId: ALLERGEN_ID,
   stages: {
     breastfed: [
@@ -55,22 +55,26 @@ const LADDER: Ladder = {
   },
 };
 
-const STEPS = LADDER.stages.breastfed!;
+export const STEPS = LADDER.stages.breastfed!;
+
+// ── Event builders (shared by the canned scenario + manual mode) ─────────────
 
 // `other:<id>` guarantees a meal registers as a dose for the allergen without
 // wiring up the food catalog — `foodTriggers` slices the prefix.
-function dose(date: string, rung: LadderStep, mealType: Meal['mealType'] = 'lunch'): Meal {
+export function dose(date: string, rung: LadderStep, mealType: Meal['mealType'] = 'lunch'): Meal {
   return {
-    id: `${date}:${mealType}`,
+    id: `${date}:${mealType}:${rung.id}`,
     date,
     mealType,
     actor: 'mother',
-    items: [{ id: `${date}-i`, name: `arašíd — ${rung.dose}`, foodId: `other:${ALLERGEN_ID}`, amount: rung.anchor }],
+    items: [
+      { id: `${date}-${rung.id}`, name: `arašíd — ${rung.dose}`, foodId: `other:${ALLERGEN_ID}`, amount: rung.anchor },
+    ],
     createdAt: `${date}T12:00:00`,
   };
 }
 
-function skin(date: string, level: RegionLevel, region = 'face' as const): SkinObservation {
+export function skin(date: string, level: RegionLevel, region = 'face' as const): SkinObservation {
   return {
     id: `${date}-skin`,
     date,
@@ -79,42 +83,49 @@ function skin(date: string, level: RegionLevel, region = 'face' as const): SkinO
   };
 }
 
-function evaluation(date: string, outcome: AllergenOutcome): ReintroductionEvaluation {
-  return {
-    phaseId: 'p1',
-    phaseType: 'allergen-test',
-    outcome,
-    allergenId: ALLERGEN_ID,
-    date,
-  };
+export function evaluation(date: string, outcome: AllergenOutcome): ReintroductionEvaluation {
+  return { phaseId: 'p1', phaseType: 'allergen-test', outcome, allergenId: ALLERGEN_ID, date };
+}
+
+// ── The canned scenario ──────────────────────────────────────────────────────
+
+/** The three event streams the engine replays. Swapped wholesale in manual mode. */
+export interface ScenarioEvents {
+  meals: Meal[];
+  observations: SkinObservation[];
+  evaluations: ReintroductionEvaluation[];
 }
 
 // An arc that exercises a real spread of the union. Doses are spaced so that
 // "advance" days (cadence met, next step legal) fall between dose days, and a
 // `tolerated` eval clears the reaction so the run actually re-climbs.
-const MEALS: Meal[] = [
-  dose('2026-06-01', STEPS[0]!), //  dose r1
-  dose('2026-06-03', STEPS[1]!), //  dose r2 (probe cadence 1)
-  dose('2026-06-05', STEPS[2]!), //  dose r3 (checkpoint)
-  dose('2026-06-11', STEPS[1]!), //  re-test r2 after step-back
-  dose('2026-06-15', STEPS[2]!), //  re-climb r3 (confirm cadence 3)
-  dose('2026-06-19', STEPS[3]!), //  reach top r4 — then leave a gap so `passed` shows
-];
+export const SCENARIO: ScenarioEvents = {
+  meals: [
+    dose('2026-06-01', STEPS[0]!), //  dose r1
+    dose('2026-06-03', STEPS[1]!), //  dose r2 (probe cadence 1)
+    dose('2026-06-05', STEPS[2]!), //  dose r3 (checkpoint)
+    dose('2026-06-11', STEPS[1]!), //  re-test r2 after step-back
+    dose('2026-06-15', STEPS[2]!), //  re-climb r3 (confirm cadence 3)
+    dose('2026-06-19', STEPS[3]!), //  reach top r4 — then leave a gap so `passed` shows
+  ],
+  observations: [
+    skin('2026-06-02', 1),
+    skin('2026-06-03', 1),
+    skin('2026-06-05', 2), // worsened 1→2 → skin-worsening hold on 06-05
+    skin('2026-06-08', 1),
+    skin('2026-06-12', 1),
+    skin('2026-06-20', 1),
+  ],
+  evaluations: [
+    evaluation('2026-06-06', 'mild-reaction'), // reaction at r3 → rest, then step-back
+    evaluation('2026-06-11', 'tolerated'), // clears the pending reaction → re-climb
+    evaluation('2026-06-26', 'mild-reaction'), // late reaction at top → re-opens a confirmed run
+  ],
+};
 
-const OBSERVATIONS: SkinObservation[] = [
-  skin('2026-06-02', 1),
-  skin('2026-06-03', 1),
-  skin('2026-06-05', 2), // worsened 1→2 → skin-worsening hold on 06-05
-  skin('2026-06-08', 1),
-  skin('2026-06-12', 1),
-  skin('2026-06-20', 1),
-];
-
-const EVALUATIONS: ReintroductionEvaluation[] = [
-  evaluation('2026-06-06', 'mild-reaction'), // reaction at r3 → rest, then step-back
-  evaluation('2026-06-11', 'tolerated'), // clears the pending reaction → re-climb
-  evaluation('2026-06-26', 'mild-reaction'), // late reaction at top → re-opens a confirmed run
-];
+export function emptyEvents(): ScenarioEvents {
+  return { meals: [], observations: [], evaluations: [] };
+}
 
 // Days the scrubber can visit.
 export const DAYS: string[] = Array.from({ length: 28 }, (_, i) => addISO('2026-06-01', i));
@@ -125,7 +136,10 @@ export type StepStatus = 'fired' | 'passed' | 'not-reached';
 
 export interface StepView {
   key: string;
-  label: string;
+  /** Real code identifier(s) this step evaluates — the node title (mono). */
+  fn: string;
+  /** One-line description of what the step decides (muted subtitle). */
+  note: string;
   status: StepStatus;
   /** Named input readings this step evaluated that day. */
   inputs: { label: string; value: string }[];
@@ -152,11 +166,12 @@ export interface DayView {
   verdict: LadderDecision;
   verdictLabel: string;
   verdictTone: 'go' | 'hold' | 'stop';
+  firedIndex: number;
   steps: StepView[];
   snapshot: SnapshotView;
   rungs: RungView[];
   inputs: {
-    meals: { time: string; text: string }[];
+    meals: { time: string; text: string; dose: string }[];
     skin: { level: RegionLevel; text: string }[];
     evals: { outcome: AllergenOutcome }[];
   };
@@ -238,16 +253,16 @@ const OUTCOME_LABEL: Record<AllergenOutcome, string> = {
 
 const SEV_LABEL = ['klidné', 'mírné', 'střední', 'silné'];
 
-export function computeDay(today: string): DayView {
-  const mealsSoFar = MEALS.filter((m) => m.date <= today);
-  const obsSoFar = OBSERVATIONS.filter((o) => o.date <= today);
-  const evalsSoFar = EVALUATIONS.filter((e) => e.date <= today);
+export function computeDay(today: string, events: ScenarioEvents = SCENARIO): DayView {
+  const meals = events.meals.filter((m) => m.date <= today);
+  const observations = events.observations.filter((o) => o.date <= today);
+  const evaluations = events.evaluations.filter((e) => e.date <= today);
 
   const input: LadderDecisionInput = {
     allergenId: ALLERGEN_ID,
-    meals: mealsSoFar,
-    evaluations: evalsSoFar,
-    observations: obsSoFar,
+    meals,
+    evaluations,
+    observations,
     defaultLadder: LADDER,
     stage: STAGE,
     today,
@@ -259,11 +274,12 @@ export function computeDay(today: string): DayView {
   const verdict = decideLadderMove(input);
 
   // Public readings for the per-step trace.
-  const liveRung = currentRung(ALLERGEN_ID, mealsSoFar, LADDER, STAGE, null, evalsSoFar);
-  const mode = deriveMode(liveRung, evalsSoFar);
-  const effCadence = effectiveCadenceDays(mode, REINTRODUCTION_CADENCE_DAYS);
-  const cadence = cadenceGate(ALLERGEN_ID, mealsSoFar, today, effCadence);
-  const stability = skinStabilityGate(obsSoFar, today, input.stabilityWindowDays);
+  const liveRung = currentRung(ALLERGEN_ID, meals, LADDER, STAGE, null, evaluations);
+  const mode = deriveMode(liveRung, evaluations);
+  const baseCadence = REINTRODUCTION_CADENCE_DAYS;
+  const effCadence = effectiveCadenceDays(mode, baseCadence);
+  const cadence = cadenceGate(ALLERGEN_ID, meals, today, effCadence);
+  const stability = skinStabilityGate(observations, today, input.stabilityWindowDays);
   const next = nextLegalStep(liveRung, LADDER, STAGE, null);
 
   const fired = firedIndex(verdict);
@@ -274,74 +290,100 @@ export function computeDay(today: string): DayView {
   const steps: StepView[] = [
     {
       key: 'permanent',
-      label: 'permanent / empty ladder',
+      fn: 'resolveLadder().stages[stage]',
+      note: 'permanent-elimination + empty-ladder guard',
       status: status(0),
       inputs: [
-        { label: 'permanently eliminated', value: 'no' },
+        { label: 'isPermanentlyEliminated', value: input.isPermanentlyEliminated ? 'true' : 'false' },
         { label: 'rungs in stage', value: String(STEPS.length) },
       ],
-      output: fired === 0 ? 'blocked (inert)' : 'ladder active →',
+      output: fired === 0 ? '→ blocked (inert)' : 'ladder active — continue',
     },
     {
       key: 'ceiling',
-      label: 'ceiling',
+      fn: 'deriveLadderState().ceilingRung',
+      note: 'floor exhaustion / per-rung reaction cap → terminal',
       status: status(1),
-      inputs: [{ label: 'confirmed ceiling', value: verdict.kind === 'ceiling-reached' ? 'yes' : 'none' }],
+      inputs: [
+        { label: 'ceilingRung', value: verdict.kind === 'ceiling-reached' ? verdict.rung.dose : 'null' },
+        { label: 'reason', value: verdict.kind === 'ceiling-reached' ? verdict.reason : '—' },
+      ],
       output:
-        verdict.kind === 'ceiling-reached' ? `ceiling at ${verdict.rung.dose} (${verdict.reason})` : 'no ceiling →',
+        verdict.kind === 'ceiling-reached'
+          ? `→ ceiling-reached (${verdict.reason})`
+          : 'no ceiling — continue',
     },
     {
       key: 'reaction',
-      label: 'reaction / rest',
+      fn: 'deriveLadderState().pendingReaction',
+      note: 'rest window open → rest, else step-back',
       status: status(2),
       inputs: [
         {
-          label: 'pending reaction',
+          label: 'pendingReaction',
           value:
             verdict.kind === 'rest'
-              ? `rung ${verdict.rung.dose}, until ${verdict.until}`
+              ? `rung ${verdict.rung.dose}`
               : verdict.kind === 'step-back'
-                ? `rest elapsed at ${verdict.from.dose}`
-                : 'none',
+                ? `was ${verdict.from.dose}`
+                : 'null',
+        },
+        {
+          label: verdict.kind === 'rest' ? 'until' : 'stepBackTo',
+          value:
+            verdict.kind === 'rest'
+              ? verdict.until
+              : verdict.kind === 'step-back'
+                ? verdict.to.dose
+                : '—',
         },
       ],
       output:
         verdict.kind === 'rest'
-          ? `rest ${verdict.days}d`
+          ? `→ rest ${verdict.days}d`
           : verdict.kind === 'step-back'
-            ? `step back → ${verdict.to.dose}`
-            : 'no active reaction →',
+            ? `→ step-back → ${verdict.to.dose}`
+            : 'no active reaction — continue',
     },
     {
       key: 'skin',
-      label: 'skin-worsening',
+      fn: 'skinStabilityGate()',
+      note: 'hold if skin worsened over the stability window',
       status: status(3),
       inputs: [
-        { label: 'baseline severity', value: sev(stability.baselineSeverity) },
-        { label: 'current severity', value: sev(stability.currentSeverity) },
-        { label: 'window', value: `${input.stabilityWindowDays}d` },
+        { label: 'baselineSeverity', value: sev(stability.baselineSeverity) },
+        { label: 'currentSeverity', value: sev(stability.currentSeverity) },
+        { label: 'windowDays', value: `${input.stabilityWindowDays}` },
+        { label: 'allowed', value: String(stability.allowed) },
       ],
-      output: stability.allowed ? 'skin stable →' : 'worsened → hold',
+      output: stability.allowed ? 'skin stable — continue' : "→ hold('skin-worsening')",
     },
     {
       key: 'cadence',
-      label: 'cadence',
+      fn: 'effectiveCadenceDays() · cadenceGate()',
+      note: 'minimum spacing since last dose (mode-driven)',
       status: status(4),
       inputs: [
-        { label: 'days since last dose', value: cadence.daysSinceLastDose === null ? '— (never)' : `${cadence.daysSinceLastDose}d` },
-        { label: 'required spacing', value: `${effCadence}d (${mode})` },
+        { label: 'daysSinceLastDose', value: cadence.daysSinceLastDose === null ? 'null (never)' : `${cadence.daysSinceLastDose}` },
+        { label: 'mode', value: mode },
+        { label: 'baseCadenceDays', value: `${baseCadence}` },
+        { label: 'effectiveCadenceDays', value: `${effCadence}` },
+        { label: 'allowed', value: String(cadence.allowed) },
       ],
-      output: cadence.allowed ? 'cadence met →' : `wait ${Math.max(0, effCadence - (cadence.daysSinceLastDose ?? 0))}d → hold`,
+      output: cadence.allowed
+        ? 'cadence met — continue'
+        : `→ hold('cadence', ${Math.max(0, effCadence - (cadence.daysSinceLastDose ?? 0))}d)`,
     },
     {
       key: 'advance',
-      label: 'advance / passed / settled',
+      fn: 'nextLegalStep() · dwell',
+      note: 'advance one step; at top passed → settled',
       status: status(5),
       inputs: [
-        { label: 'live rung', value: liveRung ? liveRung.dose : '— (not started)' },
-        { label: 'next legal step', value: next ? next.dose : 'at top (dwell)' },
+        { label: 'liveRung', value: liveRung ? liveRung.dose : 'null (not started)' },
+        { label: 'nextLegalStep', value: next ? next.dose : 'null (at top — dwell)' },
       ],
-      output: fired === 5 ? verdictLabel(verdict) : 'not reached',
+      output: fired === 5 ? `→ ${verdictLabel(verdict)}` : 'not reached',
     },
   ];
 
@@ -351,15 +393,16 @@ export function computeDay(today: string): DayView {
     return { id: s.id, dose: s.dose, checkpoint: s.isEvaluationCheckpoint, state };
   });
 
-  const dayMeals = MEALS.filter((m) => m.date === today);
-  const dayObs = OBSERVATIONS.filter((o) => o.date === today);
-  const dayEvals = EVALUATIONS.filter((e) => e.date === today);
+  const dayMeals = events.meals.filter((m) => m.date === today);
+  const dayObs = events.observations.filter((o) => o.date === today);
+  const dayEvals = events.evaluations.filter((e) => e.date === today);
 
   return {
     date: today,
     verdict,
     verdictLabel: verdictLabel(verdict),
     verdictTone: verdictTone(verdict),
+    firedIndex: fired,
     steps,
     snapshot: {
       liveRung: liveRung ? liveRung.dose : 'not started',
@@ -369,7 +412,10 @@ export function computeDay(today: string): DayView {
     },
     rungs,
     inputs: {
-      meals: dayMeals.map((m) => ({ time: m.createdAt.slice(11, 16), text: m.items[0]!.name })),
+      meals: dayMeals.map((m) => {
+        const rung = STEPS.find((s) => s.anchor === m.items[0]!.amount);
+        return { time: m.createdAt.slice(11, 16), text: m.items[0]!.name, dose: rung?.dose ?? String(m.items[0]!.amount) };
+      }),
       skin: dayObs.map((o) => {
         const lvl = (o.regions[0]?.level ?? 0) as RegionLevel;
         return { level: lvl, text: SEV_LABEL[lvl]! };
@@ -379,11 +425,11 @@ export function computeDay(today: string): DayView {
   };
 }
 
-export { OUTCOME_LABEL };
+export { OUTCOME_LABEL, SEV_LABEL };
 
 // Small date helper (avoids importing $lib/utils just for +N days). String
 // math via a UTC anchor so it never shifts across a local-timezone boundary.
-function addISO(iso: string, days: number): string {
+export function addISO(iso: string, days: number): string {
   const d = new Date(iso + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);

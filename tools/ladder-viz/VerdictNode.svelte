@@ -15,7 +15,7 @@
 
 <style>
   .verdict {
-    width: 320px;
+    width: 440px;
     border-radius: 12px;
     padding: 12px 14px;
     color: white;

@@ -1,13 +1,10 @@
-<!-- PROTOTYPE — throwaway (ticket #522). Date scrubber: move forward/back
-     through the calendar; each day tinted by that day's verdict so the run's
-     arc is legible at a glance. -->
+<!-- PROTOTYPE — throwaway (ticket #522). Date scrubber — pure calendar
+     navigation, nothing else. Move forward/back with the arrows or ←/→. -->
 <script lang="ts">
-  import { computeDay, DAYS } from './engine';
+  import { DAYS } from './engine';
 
   let { selected = $bindable() }: { selected: string } = $props();
 
-  // Precompute each day's tone once so the strip shows the whole trajectory.
-  const tones = DAYS.map((d) => computeDay(d).verdictTone);
   const idx = $derived(DAYS.indexOf(selected));
 
   function go(delta: number) {
@@ -21,9 +18,13 @@
     if (e.key === 'ArrowRight') go(1);
   }
 
-  function fmt(iso: string) {
-    const [, m, d] = iso.split('-');
-    return `${Number(d)}. ${Number(m)}.`;
+  function weekday(iso: string) {
+    // Czech single-letter weekday, UTC-anchored to avoid timezone drift.
+    const wd = ['ne', 'po', 'út', 'st', 'čt', 'pá', 'so'];
+    return wd[new Date(iso + 'T00:00:00Z').getUTCDay()]!;
+  }
+  function dayNum(iso: string) {
+    return Number(iso.split('-')[2]);
   }
 </script>
 
@@ -33,14 +34,9 @@
   <button class="arrow" onclick={() => go(-1)} disabled={idx <= 0} aria-label="previous day">‹</button>
   <div class="days">
     {#each DAYS as d, i (d)}
-      <button
-        id="day-{i}"
-        class="day tone-{tones[i]}"
-        class:active={d === selected}
-        onclick={() => (selected = d)}
-      >
-        <span class="dot"></span>
-        <span class="lbl">{fmt(d)}</span>
+      <button id="day-{i}" class="day" class:active={d === selected} onclick={() => (selected = d)}>
+        <span class="wd">{weekday(d)}</span>
+        <span class="num">{dayNum(d)}</span>
       </button>
     {/each}
   </div>
@@ -52,7 +48,7 @@
     display: flex;
     align-items: stretch;
     gap: 6px;
-    padding: 8px 10px;
+    padding: 8px 12px;
     background: var(--surface);
     border-bottom: 1px solid var(--hair);
   }
@@ -60,36 +56,33 @@
     border: 1px solid var(--hair);
     background: var(--surface-2);
     border-radius: 8px;
-    width: 34px;
+    width: 32px;
     font-size: 18px;
     cursor: pointer;
     color: var(--ink);
+    flex: none;
   }
   .arrow:disabled { opacity: 0.35; cursor: default; }
-  .days {
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    flex: 1;
-    scrollbar-width: thin;
-  }
+  .days { display: flex; gap: 4px; overflow-x: auto; flex: 1; scrollbar-width: thin; }
   .day {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    min-width: 52px;
-    padding: 6px 4px;
+    gap: 1px;
+    min-width: 42px;
+    padding: 5px 4px;
     border: 1px solid var(--hair);
     border-radius: 8px;
     background: var(--surface);
     cursor: pointer;
-    font-size: 11px;
     color: var(--muted);
+    flex: none;
   }
-  .day.active { border-color: var(--ink); color: var(--ink); font-weight: 700; box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 12%, transparent); }
-  .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--hair); }
-  .tone-go .dot { background: var(--go); }
-  .tone-hold .dot { background: var(--hold); }
-  .tone-stop .dot { background: var(--stop); }
+  .day .wd { font-size: 10px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .day .num { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .day.active {
+    border-color: var(--ink);
+    background: var(--ink);
+  }
+  .day.active .wd, .day.active .num { color: white; }
 </style>
