@@ -2,7 +2,8 @@
   import { SvelteFlow, Background, Controls, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import DayNode from './DayNode.svelte';
-  import { placeholderDay, replayJourney } from './journey';
+  import Cascade from './Cascade.svelte';
+  import { placeholderDay, replayJourney, type JourneyDay } from './journey';
   import { FUTURE_KINDS, spanLabel } from './node-style';
   import { ALLERGEN_ID, RUN_INPUT } from './scenario';
 
@@ -47,6 +48,17 @@
 
   const nodes: Node[] = [...spineNodes, ...futureNodes];
   const edges: Edge[] = spineEdges;
+
+  // Cascade drill-in (#531): clicking a day opens its 6-step precedence cascade.
+  // The future arms are inert vocabulary (`selectable: false`, `explain: null`),
+  // so a click on one opens nothing.
+  let selected: JourneyDay | null = $state(null);
+
+  function onnodeclick({ node }: { node: Node }) {
+    const day = node.data.day as JourneyDay;
+    selected = day.explain ? day : null;
+  }
+
 </script>
 
 <div class="app">
@@ -57,10 +69,13 @@
     >
   </header>
   <div class="canvas">
-    <SvelteFlow {nodes} {edges} {nodeTypes} fitView>
+    <SvelteFlow {nodes} {edges} {nodeTypes} {onnodeclick} fitView>
       <Background />
       <Controls />
     </SvelteFlow>
+    {#if selected}
+      <Cascade day={selected} onclose={() => (selected = null)} />
+    {/if}
   </div>
 </div>
 
@@ -89,5 +104,6 @@
   .canvas {
     flex: 1;
     min-height: 0;
+    position: relative;
   }
 </style>

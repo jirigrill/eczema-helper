@@ -1,0 +1,110 @@
+// The cascade drill-in content model (#531): a pure, library-independent
+// projection of one day's `explainLadderMove` output into the rows a renderer
+// draws. It reads *only* the seam's `LadderExplain` — it re-derives nothing, so
+// what the cascade shows can never diverge from what the engine decided (#527).
+import type {
+  LadderDecision,
+  LadderExplain,
+  LadderPrecedenceStep,
+  LadderStateSnapshot,
+} from '$lib/domain/ladder';
+
+/** One snapshot fact rendered up front — the field name and its raw value. */
+export type SnapshotRow = {
+  field: keyof LadderStateSnapshot;
+  value: LadderStateSnapshot[keyof LadderStateSnapshot];
+};
+
+/** One gate reading, ready to render: the field name and its raw value. */
+export type GateSignal = { label: string; value: boolean | number | null };
+
+/**
+ * A gate-backed step's payload: the gate's own signals paired to the *effective*
+ * (mode-adjusted) threshold the walker actually fed it — the exact comparison the
+ * gate made that day (#531). Structural steps carry no gate.
+ */
+export type CascadeGate = { threshold: number; signals: GateSignal[] };
+
+/** One field of the fired verdict's raw dump — the field name and its raw value. */
+export type VerdictField = { field: string; value: unknown };
+
+/** One precedence step, ready to render: its name, uniform status, whether it fired. */
+export type CascadeStep = {
+  name: LadderPrecedenceStep['name'];
+  status: LadderPrecedenceStep['status'];
+  fired: boolean;
+  /** Present only on the two gate-backed steps (skin-worsening, cadence). */
+  gate?: CascadeGate;
+  /**
+   * The fired `LadderDecision` variant dumped field-by-field, verbatim — present
+   * only on the step that fired, never synthesized into prose (#531).
+   */
+  verdict?: VerdictField[];
+};
+
+export type CascadeView = {
+  snapshot: SnapshotRow[];
+  steps: CascadeStep[];
+};
+
+/** The five snapshot fields, in the fixed order the cascade shows them. */
+const SNAPSHOT_FIELDS: (keyof LadderStateSnapshot)[] = [
+  'liveRung',
+  'pendingReaction',
+  'ceilingRung',
+  'mode',
+  'dwell',
+];
+
+/**
+ * The gate payload for a gate-backed step, or `undefined` for a structural step
+ * (whose evidence is the snapshot, not a gate). Reads the seam's `detail` — the
+ * gate result and effective threshold the walker recorded — and pairs them.
+ */
+function gateOf(step: LadderPrecedenceStep): CascadeGate | undefined {
+  const { detail } = step;
+  if (detail.step === 'skin-worsening') {
+    return {
+      threshold: detail.windowDays,
+      signals: [
+        { label: 'allowed', value: detail.gate.allowed },
+        { label: 'baselineSeverity', value: detail.gate.baselineSeverity },
+        { label: 'currentSeverity', value: detail.gate.currentSeverity },
+      ],
+    };
+  }
+  if (detail.step === 'cadence') {
+    return {
+      threshold: detail.cadenceDays,
+      signals: [
+        { label: 'allowed', value: detail.gate.allowed },
+        { label: 'daysSinceLastDose', value: detail.gate.daysSinceLastDose },
+      ],
+    };
+  }
+  return undefined;
+}
+
+/**
+ * The fired `LadderDecision` variant dumped field-by-field, verbatim — every own
+ * property of the decision object, in declaration order, values untouched (#531).
+ */
+function verdictDump(decision: LadderDecision): VerdictField[] {
+  return Object.entries(decision).map(([field, value]) => ({ field, value }));
+}
+
+/** Project one `LadderExplain` into the renderable cascade content model. */
+export function buildCascade(explain: LadderExplain): CascadeView {
+  const snapshot: SnapshotRow[] = SNAPSHOT_FIELDS.map((field) => ({
+    field,
+    value: explain.snapshot[field],
+  }));
+  const steps: CascadeStep[] = explain.steps.map((step) => ({
+    name: step.name,
+    status: step.status,
+    fired: step.status === 'fired',
+    gate: gateOf(step),
+    verdict: step.status === 'fired' ? verdictDump(explain.decision) : undefined,
+  }));
+  return { snapshot, steps };
+}
