@@ -115,6 +115,11 @@ dev:
 simulate *args:
     bun run scripts/simulate.ts {{args}}
 
+# Launch the ladder-engine visualizer (separate Vite root under tools/, not shipped)
+viz:
+    bunx svelte-kit sync
+    bunx vite dev --config tools/ladder-viz/vite.config.ts
+
 # Run all tests (unit + e2e)
 test:
     just test-unit
@@ -197,6 +202,7 @@ help:
     @echo ""
     @echo "Development:"
     @echo "  just dev          - Start Vite dev server"
+    @echo "  just viz          - Launch the ladder-engine visualizer"
     @echo ""
     @echo "Build:"
     @echo "  just build        - Type-check + build"
