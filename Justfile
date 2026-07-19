@@ -115,6 +115,10 @@ dev:
 simulate *args:
     bun run scripts/simulate.ts {{args}}
 
+# Run the standalone ladder-engine visualizer dev server (tools/ladder-viz — not shipped, same category as `simulate`)
+viz:
+    bunx vite dev --config tools/ladder-viz/vite.config.ts
+
 # Run all tests (unit + e2e)
 test:
     just test-unit
