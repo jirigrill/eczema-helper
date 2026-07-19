@@ -21,6 +21,7 @@ import {
   checkpointVerdictGate,
   currentRung,
   decideLadderMove,
+  explainLadderMove,
   nextLegalStep,
   resolveLadder,
   rungAtDayInPhase,
@@ -1195,6 +1196,257 @@ describe('decideLadderMove', () => {
     expect(decideLadderMove(decInput({ meals, override, today: '2026-06-04' }))).toEqual({
       kind: 'passed',
       rung: override.stages.breastfed![0],
+    });
+  });
+
+  // ── explainLadderMove trace seam (issue #528) ──
+  describe('explainLadderMove', () => {
+    // A corpus spanning every engine branch, reusing the block's fixtures.
+    const corpus: LadderDecisionInput[] = [
+      // clean climb / advance from null
+      decInput({}),
+      // advance one rung
+      decInput({ meals: [eggMeal('2026-06-01', 'pinch')], today: '2026-06-03' }),
+      // skin-worsening hold
+      decInput({
+        meals: [eggMeal('2026-06-01', 'pinch')],
+        observations: [obs('2026-06-01', 0), obs('2026-06-03', 2)],
+        today: '2026-06-03',
+      }),
+      // cadence hold
+      decInput({ meals: [eggMeal('2026-06-01', 'pinch')], cadenceDays: 3, today: '2026-06-02' }),
+      // rest (reaction still in effect)
+      decInput({
+        meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
+        evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
+        today: '2026-06-03',
+      }),
+      // ceiling-reached (floor exhaustion)
+      decInput({
+        meals: [eggMeal('2026-06-01', 'pinch')],
+        evaluations: [evaluation({ date: '2026-06-01', outcome: 'severe-reaction' })],
+        today: '2026-06-05',
+      }),
+      // blocked (permanently eliminated)
+      decInput({ isPermanentlyEliminated: true }),
+      // passed / settled at the top
+      decInput({
+        meals: [
+          eggMeal('2026-06-01', 'pinch'),
+          eggMeal('2026-06-02', 'teaspoon'),
+          eggMeal('2026-06-03', 'spoon'),
+          eggMeal('2026-06-06', 'spoon'),
+          eggMeal('2026-06-09', 'spoon'),
+        ],
+        today: '2026-06-12',
+      }),
+    ];
+
+    it('never drifts from decideLadderMove — the explained decision deep-equals the decision', () => {
+      for (const input of corpus) {
+        expect(explainLadderMove(input).decision).toEqual(decideLadderMove(input));
+      }
+    });
+
+    const NAMES_IN_ORDER = [
+      'permanent-or-empty',
+      'ceiling',
+      'reaction',
+      'skin-worsening',
+      'cadence',
+      'advance-or-dwell',
+    ];
+
+    it('always returns the six precedence step names in order, whatever fired', () => {
+      for (const input of corpus) {
+        const { steps } = explainLadderMove(input);
+        expect(steps.map((s) => s.name)).toEqual(NAMES_IN_ORDER);
+      }
+    });
+
+    it('marks exactly one step fired, with every later step not-reached', () => {
+      for (const input of corpus) {
+        const { steps } = explainLadderMove(input);
+        const firedAt = steps.findIndex((s) => s.status === 'fired');
+        expect(firedAt).toBeGreaterThanOrEqual(0);
+        expect(steps.filter((s) => s.status === 'fired')).toHaveLength(1);
+        steps.forEach((s, i) => {
+          if (i > firedAt) expect(s.status).toBe('not-reached');
+          else if (i < firedAt) expect(s.status).not.toBe('not-reached');
+        });
+      }
+    });
+
+    it('fires permanent-or-empty for a permanently-eliminated allergen', () => {
+      const { steps, decision } = explainLadderMove(decInput({ isPermanentlyEliminated: true }));
+      expect(decision).toEqual({ kind: 'blocked' });
+      expect(steps[0].status).toBe('fired');
+      expect(steps.slice(1).every((s) => s.status === 'not-reached')).toBe(true);
+    });
+
+    it('fires permanent-or-empty for an empty stage ladder', () => {
+      const emptyLadder: Ladder = { allergenId: 'eggs', stages: {} };
+      const { steps, decision } = explainLadderMove(
+        decInput({ defaultLadder: emptyLadder, isPermanentlyEliminated: false }),
+      );
+      expect(decision).toEqual({ kind: 'blocked' });
+      expect(steps[0].status).toBe('fired');
+    });
+
+    it('fires ceiling on floor exhaustion, passing permanent-or-empty first', () => {
+      const { steps, decision } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-01', 'pinch')],
+          evaluations: [evaluation({ date: '2026-06-01', outcome: 'severe-reaction' })],
+          today: '2026-06-05',
+        }),
+      );
+      expect(decision.kind).toBe('ceiling-reached');
+      expect(steps[0].status).toBe('passed-confirmed');
+      expect(steps[1].status).toBe('fired');
+      expect(steps.slice(2).every((s) => s.status === 'not-reached')).toBe(true);
+    });
+
+    it('fires reaction while a rest window is open', () => {
+      const { steps, decision } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
+          evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
+          today: '2026-06-03',
+        }),
+      );
+      expect(decision.kind).toBe('rest');
+      expect(steps[2].status).toBe('fired');
+      expect(steps.slice(3).every((s) => s.status === 'not-reached')).toBe(true);
+    });
+
+    it('fires skin-worsening and carries the gate result with the effective window', () => {
+      const { steps, decision } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-01', 'pinch')],
+          observations: [obs('2026-06-01', 0), obs('2026-06-03', 2)],
+          stabilityWindowDays: 3,
+          today: '2026-06-03',
+        }),
+      );
+      expect(decision.kind).toBe('hold');
+      const skinStep = steps[3];
+      expect(skinStep.status).toBe('fired');
+      if (skinStep.detail.step !== 'skin-worsening') throw new Error('wrong detail');
+      expect(skinStep.detail.windowDays).toBe(3);
+      expect(skinStep.detail.gate).toEqual({
+        allowed: false,
+        baselineSeverity: 0,
+        currentSeverity: 2,
+      });
+      // Cadence is downstream of the fired skin step and was never evaluated.
+      expect(steps[4].status).toBe('not-reached');
+    });
+
+    it('fires cadence and carries the gate result with the effective, mode-adjusted threshold', () => {
+      // Probe mode (no reaction yet): the effective cadence equals the injected
+      // cadenceDays (3), unraised by the latency floor.
+      const { steps, decision } = explainLadderMove(
+        decInput({ meals: [eggMeal('2026-06-01', 'pinch')], cadenceDays: 3, today: '2026-06-02' }),
+      );
+      expect(decision).toMatchObject({ kind: 'hold', reason: 'cadence' });
+      const cadenceStep = steps[4];
+      expect(cadenceStep.status).toBe('fired');
+      if (cadenceStep.detail.step !== 'cadence') throw new Error('wrong detail');
+      expect(cadenceStep.detail.cadenceDays).toBe(3);
+      expect(cadenceStep.detail.gate).toEqual({ allowed: false, daysSinceLastDose: 1 });
+      // The skin-stability step passed with no observations → passed-no-data.
+      expect(steps[3].status).toBe('passed-no-data');
+    });
+
+    it('raises the effective cadence to the latency floor in confirm mode', () => {
+      // A reaction flips the mode to confirm; the effective cadence is then
+      // max(cadenceDays=1, latency=3) = 3, and the trace records 3, not 1.
+      const { steps } = explainLadderMove(
+        decInput({
+          meals: [
+            eggMeal('2026-06-01', 'pinch'),
+            eggMeal('2026-06-02', 'teaspoon'),
+            eggMeal('2026-06-11', 'teaspoon'),
+          ],
+          evaluations: [
+            evaluation({ date: '2026-06-02', outcome: 'mild-reaction' }),
+            evaluation({ date: '2026-06-11', outcome: 'tolerated' }),
+          ],
+          cadenceDays: 1,
+          today: '2026-06-13',
+        }),
+      );
+      const cadenceStep = steps[4];
+      expect(cadenceStep.status).toBe('fired');
+      if (cadenceStep.detail.step !== 'cadence') throw new Error('wrong detail');
+      expect(cadenceStep.detail.cadenceDays).toBe(3);
+    });
+
+    it('fires advance-or-dwell on a clean advance, both gate steps passing', () => {
+      const { steps, decision } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-01', 'pinch')],
+          observations: [obs('2026-06-01', 1), obs('2026-06-03', 1)],
+          today: '2026-06-03',
+        }),
+      );
+      expect(decision.kind).toBe('advance');
+      expect(steps[3].status).toBe('passed-confirmed'); // observations present
+      expect(steps[4].status).toBe('passed-confirmed'); // a dose was logged
+      expect(steps[5].status).toBe('fired');
+    });
+
+    it('exposes the state snapshot with all five fields and explicit nulls', () => {
+      const { snapshot } = explainLadderMove(decInput({}));
+      expect(snapshot).toEqual({
+        liveRung: null,
+        pendingReaction: null,
+        ceilingRung: null,
+        mode: 'probe',
+        dwell: { count: 0, lastDoseDate: null },
+      });
+    });
+
+    it('surfaces liveRung and confirm mode in the snapshot once the top is reached', () => {
+      const { snapshot } = explainLadderMove(
+        decInput({
+          meals: [
+            eggMeal('2026-06-01', 'pinch'),
+            eggMeal('2026-06-02', 'teaspoon'),
+            eggMeal('2026-06-03', 'spoon'),
+          ],
+          today: '2026-06-07',
+        }),
+      );
+      expect(snapshot.liveRung?.id).toBe('e3');
+      expect(snapshot.mode).toBe('confirm');
+      expect(snapshot.dwell.count).toBe(1);
+      expect(snapshot.ceilingRung).toBeNull();
+    });
+
+    it('surfaces the pending reaction in the snapshot during a rest', () => {
+      const { snapshot } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
+          evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
+          today: '2026-06-03',
+        }),
+      );
+      expect(snapshot.pendingReaction?.rung.id).toBe('e2');
+      expect(snapshot.pendingReaction?.stepBackTo.id).toBe('e1');
+      expect(snapshot.pendingReaction?.outcome).toBe('mild-reaction');
+    });
+
+    it('surfaces the ceiling rung in the snapshot on a terminal', () => {
+      const { snapshot } = explainLadderMove(
+        decInput({
+          meals: [eggMeal('2026-06-01', 'pinch')],
+          evaluations: [evaluation({ date: '2026-06-01', outcome: 'severe-reaction' })],
+          today: '2026-06-05',
+        }),
+      );
+      expect(snapshot.ceilingRung?.id).toBe('e1');
     });
   });
 

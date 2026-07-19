@@ -10,8 +10,10 @@
  *
  * Scope: meals → `currentRung` → tolerance, per-stage ladder rendering,
  * in-memory per-allergen ladder overrides (issue #427, ADR-0023), the read-only
- * gate *signals* (`cadenceGate`, `skinCalmGate`, `checkpointVerdictGate`), and
- * the composed `decideLadderMove` verdict that those signals feed (PRD #445).
+ * gate *signals* — cadence and skin-stability read off the engine's own trace
+ * (`explainLadderMove`, issue #528) so they can't drift from the verdict, plus
+ * the auxiliary `skinCalmGate`/`checkpointVerdictGate` — and the composed
+ * verdict those signals feed (PRD #445).
  * The verdict line is the decision; the signals line below it is the "why".
  * The escalation/de-escalation logic lives in the domain (`decideLadderMove`),
  * not in this script — the simulator only drives and renders it.
@@ -38,11 +40,9 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import {
   currentRung,
-  cadenceGate,
   skinCalmGate,
-  skinStabilityGate,
   checkpointVerdictGate,
-  decideLadderMove,
+  explainLadderMove,
   resolveLadder,
   type Ladder,
   type LadderStep,
@@ -431,24 +431,13 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
   const rung = currentRung(allergenId, world.meals, def, stage, ovr);
   traceCall('currentRung', [`'${allergenId}'`, sumMeals(), sumLadder(def), `'${stage}'`, sumLadder(ovr)], rung?.id ?? 'null');
 
-  const cadence = cadenceGate(allergenId, world.meals, world.today, cadenceDays());
-  traceCall('cadenceGate', [`'${allergenId}'`, sumMeals(), `'${world.today}'`, String(cadenceDays())], JSON.stringify(cadence));
-
-  const skin = skinCalmGate(world.observations, world.today);
-  traceCall('skinCalmGate', [sumObs(), `'${world.today}'`], JSON.stringify(skin));
-
-  const stability = skinStabilityGate(world.observations, world.today, stabilityWindowDays());
-  traceCall(
-    'skinStabilityGate',
-    [sumObs(), `'${world.today}'`, String(stabilityWindowDays())],
-    JSON.stringify(stability)
-  );
-
-  const verdict = checkpointVerdictGate(rung, allergenId, world.evaluations);
-  traceCall('checkpointVerdictGate', [rung?.id ?? 'null', `'${allergenId}'`, sumEvals()], JSON.stringify(verdict));
-
   const isPermanent = world.permanent.has(allergenId);
-  const move = decideLadderMove({
+  // Cadence and skin-stability are the two gate-backed precedence steps. Read
+  // them off the engine's own trace (`explainLadderMove`) rather than re-calling
+  // the gates here: a second, outside reconstruction can silently drift from the
+  // verdict as the engine evolves (design #521). The `explain` walk is the same
+  // code path `decideLadderMove` runs, so trace and verdict cannot diverge.
+  const explain = explainLadderMove({
     allergenId,
     meals: world.meals,
     evaluations: world.evaluations,
@@ -461,8 +450,30 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
     stabilityWindowDays: stabilityWindowDays(),
     isPermanentlyEliminated: isPermanent,
   });
+  const move = explain.decision;
+  const cadenceStep = explain.steps.find((s) => s.name === 'cadence')!;
+  const stabilityStep = explain.steps.find((s) => s.name === 'skin-worsening')!;
+  const cadence = cadenceStep.detail.step === 'cadence' ? cadenceStep.detail.gate : null;
+  const effectiveCadence =
+    cadenceStep.detail.step === 'cadence' ? cadenceStep.detail.cadenceDays : cadenceDays();
+  const stability =
+    stabilityStep.detail.step === 'skin-worsening'
+      ? stabilityStep.detail.gate
+      : { allowed: true, baselineSeverity: null, currentSeverity: null };
+  traceCall('explainLadderMove.steps[cadence]', [`effective=${effectiveCadence}`], JSON.stringify(cadence));
+  traceCall('explainLadderMove.steps[skin-worsening]', [`window=${stabilityWindowDays()}`], JSON.stringify(stability));
+
+  // Auxiliary signals — retired from the decision path (ADR-0023 §6) but still
+  // useful context; they carry no decision-path drift risk, so they stay as
+  // direct calls rather than moving onto the seam.
+  const skin = skinCalmGate(world.observations, world.today);
+  traceCall('skinCalmGate', [sumObs(), `'${world.today}'`], JSON.stringify(skin));
+
+  const verdict = checkpointVerdictGate(rung, allergenId, world.evaluations);
+  traceCall('checkpointVerdictGate', [rung?.id ?? 'null', `'${allergenId}'`, sumEvals()], JSON.stringify(verdict));
+
   traceCall(
-    'decideLadderMove',
+    'explainLadderMove',
     [
       `{ '${allergenId}', ${sumMeals()}, ${sumEvals()}, ${sumObs()}, ` +
         `defaultLadder=${sumLadder(def)}, override=${sumLadder(ovr)}, ` +
@@ -497,10 +508,15 @@ function renderAllergen(allergenId: ProtocolAllergenId): void {
   // Composed decision (the "what to do"), with the raw signals below as its "why".
   console.log(`  ${BOLD}verdict:${RESET} ${formatVerdict(move)}`);
 
-  // Raw gate signals — the inputs `decideLadderMove` composed into the verdict above.
-  const cadenceTxt = cadence.allowed
-    ? `${GREEN}ok${RESET}`
-    : `${YELLOW}wait ${cadence.daysSinceLastDose}d/${cadenceDays()}d${RESET}`;
+  // Raw gate signals — the inputs `explainLadderMove` composed into the verdict
+  // above. `cadence`/`stability` come from the trace's gate steps; a step higher
+  // in the precedence may have fired before the cadence gate ran, in which case
+  // its detail is the not-run identity (allowed, no data).
+  const cadenceTxt = !cadence
+    ? `${DIM}—${RESET}`
+    : cadence.allowed
+      ? `${GREEN}ok${RESET}`
+      : `${YELLOW}wait ${cadence.daysSinceLastDose}d/${effectiveCadence}d${RESET}`;
   const skinTxt = skin.isFlare ? `${RED}flare ${skin.latestSeverity}${RESET}` : `${GREEN}calm${RESET}`;
   const trendTxt = stability.allowed
     ? stability.baselineSeverity !== null && stability.currentSeverity !== null

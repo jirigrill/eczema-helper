@@ -142,6 +142,26 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
 - **`deriveLadderState`** — the *private*, single date-ordered replay of meals +
   evaluations behind both `currentRung` and `decideLadderMove`, so the
   reaction-binding + step-back logic exists exactly once. Never exported.
+- **`explainLadderMove(input): LadderExplain`** (`src/lib/domain/ladder.ts`) —
+  the ladder engine's **trace/explain seam** (issue
+  [#528](https://github.com/jirigrill/eczema-helper/issues/528), design #521): a
+  pure surface returning `{ decision, snapshot, steps }` so a consumer can see
+  *why* `decideLadderMove` reached its verdict. Both functions share one internal
+  `walkLadderPrecedence`, so the trace can never drift from the decision. The
+  **`LadderStateSnapshot`** is a purpose-built public projection of five replay
+  facts (`liveRung`, `pendingReaction`, `ceilingRung`, `mode`, `dwell`) —
+  `deriveLadderState`/`LadderReplayState` stay private. `steps` is a fixed
+  **6-tuple in precedence order**; each carries a `status` (`fired` = produced
+  the verdict, `not-reached` after it, `passed-confirmed`/`passed-no-data`
+  before) and, for the two gate-backed steps, the gate result paired with the
+  effective, mode-adjusted threshold.
+- **Precedence steps** — the six ordered checks `walkLadderPrecedence` walks:
+  **`permanent-or-empty`** (inert ladder → `blocked`), **`ceiling`** (terminal),
+  **`reaction`** (rest / step-back), **`skin-worsening`** (skin-stability gate),
+  **`cadence`** (spacing gate), **`advance-or-dwell`** (climb, or dwell/`settled`
+  at the top). The first four are *structural* (a definite replay fact); the two
+  gate-backed steps (`skin-worsening`, `cadence`) may be permissive for lack of
+  data (`passed-no-data`).
 
 ---
 
