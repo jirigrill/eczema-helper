@@ -1,69 +1,69 @@
 # Prototype notes — ticket #522
 
-**Question:** pick the viz library for the standalone ladder-engine
-visualizer (map: [standalone ladder-engine visualizer](https://github.com/jirigrill/eczema-helper/issues/518)) —
-Svelte Flow vs Mermaid — by building the click-a-step → drill-into-cascade
-interaction against one hard-coded scenario and judging the feel, not the
-paper comparison.
+Throwaway ladder-engine inspector under `tools/ladder-viz/`. Run: `just viz`,
+open `http://localhost:5180/`.
 
-## Verdict: Svelte Flow (`@xyflow/svelte`)
+## What this is
 
-Both libraries render the day-spine journey (`#519`'s model) and both can
-drive the cascade drill-in (`#520`'s content spec, in `CascadePanel.svelte`,
-deliberately shared by both variants to prove the content model is
-library-independent). The difference is in the interaction:
+A single-screen developer inspector for the ladder decision engine, built to
+six requirements:
 
-- **Svelte Flow** has a first-class node click API (`onnodeclick`), free
-  pan/zoom, and nodes are real interactive elements — clicking a day and
-  seeing the cascade populate feels like *flow through the engine*, per the
-  ticket's own test. Node styling (colour by situation) and the
-  `settled → resting` back-edge are trivial to express as data.
-- **Mermaid** (`stateDiagram-v2`) is cheap to generate (a text template) but
-  **state diagrams don't support the `click` directive** — only flowcharts
-  do. Wiring the click required bypassing Mermaid's declarative API entirely
-  and querying the rendered SVG for auto-generated group ids
-  (`mermaid-graph-state-<label>-<n>`), matched by substring since the exact
-  id isn't part of Mermaid's public contract. That's a foundation the real
-  build would keep fighting, not one interaction hack. Mermaid also has no
-  built-in pan/zoom — a 14-day scenario already needs scrolling.
+1. **Date strip on top** — scrub the calendar forward/back (arrows + ←/→ keys);
+   each day tinted by that day's verdict so the run's arc is legible at a glance.
+2. **Clearly visible user inputs** — right rail shows the meals / skin / reaction
+   the mother logged on the selected day (the raw evidence).
+3. **Engine as a state machine** — center canvas (Svelte Flow) renders the fixed
+   6-step precedence pipeline; each step is a node showing its **inputs → output**,
+   the firing step highlighted (tone-colored), short-circuited steps below it
+   dimmed, resolving into the verdict node.
+4. **Overall engine output** — the verdict node terminates the pipeline; a pill
+   in the header echoes it.
+5. **Whole ladder + current run** — left rail draws every rung persistently with
+   the live rung highlighted (the ladder never re-flows; only the highlight moves
+   as you scrub).
+6. **Smart screen use** — one dense three-column screen under the strip.
 
-Confirms the map's prior favourite (map Notes, Q6).
+## Driven by the REAL engine
 
-## Toolchain wiring (graduates map's "Not yet specified: toolchain wiring")
+Unlike the first (library-selection) prototype, every verdict + gate reading is
+produced by the actual domain functions in `src/lib/domain` — `decideLadderMove`,
+`currentRung`, `cadenceGate`, `skinStabilityGate`, `nextLegalStep`. Only the
+*scenario* is canned: one allergen (peanut), a real 4-rung `Ladder`, and a
+~28-day history (`engine.ts`) authored to walk a real spread of the union —
+advance → cadence-hold → skin-worsening hold → rest → step-back → tolerated-clear
+→ re-climb → passed (top) → late reaction re-opens.
 
-- **Separate Vite root**, not a SvelteKit route: `tools/ladder-viz/vite.config.ts`,
-  its own `tools/ladder-viz/tsconfig.json` (does **not** extend
-  `.svelte-kit/tsconfig.json` — that file doesn't exist until `svelte-kit
-  sync` runs, and this tool is intentionally outside the SvelteKit app).
-  Root `tsconfig.json` excludes `tools/` so `svelte-check`/`just check`
-  never touches it.
-- **`just viz`** recipe: `bunx vite dev --config tools/ladder-viz/vite.config.ts`
-  — same shape as `just simulate`, "not shipped, same category as
-  `scripts/simulate.ts`" (map Notes).
-- **`$lib` import boundary**: the tool's `vite.config.ts` aliases `$lib` to
-  `../../src/lib`, mirroring `svelte.config.js`'s alias, so the visualizer
-  can import domain types (`LadderDecision`, etc.) directly — read-only,
-  nothing in `src/lib` depends back on `tools/`.
-  See `scenario.ts`'s `import type { LadderDecision } from '$lib/domain/ladder'`.
-  This is the concrete answer for the real build (ticket F) to follow.
-- **Svelte + Vite, no Tailwind**: styling here is plain scoped `<style>`
-  blocks — the visualizer's few UI needs (a graph, a side panel, a variant
-  bar) don't warrant pulling in Tailwind's build step for a tool this small.
-  The real build can revisit if the eventual UI grows.
+`other:<allergenId>` food ids let meals register as doses without wiring the food
+catalog (the engine's `foodTriggers` slices the prefix).
 
-## What this prototype does NOT settle
+### Faithfulness caveat (the #521 seam)
 
-- The actual explain/trace seam (#521, unresolved) — the cascade data here
-  is hand-authored to the shape that seam will eventually emit, not read
-  from `decideLadderMove`.
-- Auto-layout for the journey graph — day positions here are hard-coded
-  per the one canned scenario; the real build needs a real layout strategy
-  (Svelte Flow doesn't auto-layout out of the box; `dagre`/`elk` or a
-  simple day-index-as-x approach are the candidates, deferred to the build).
-- This code is throwaway (per map Notes: "Only the prototype ticket (D)
-  produces a throwaway artifact") — it is **not** meant to be built upon
-  directly by the eventual visualizer build ticket. It lives on this
-  branch/PR as the answer's evidence, not on `main`.
+The engine returns only the final `LadderDecision`, not a per-step trace. So the
+6-step trace here is **reconstructed** from the public gates + the real verdict —
+exactly what `scripts/simulate.ts` already does. Two derived values (`mode`, and
+therefore the effective cadence) are recomputed with the documented rule because
+`deriveLadderState` is private. The UI flags this ("trace reconstructed from
+public gates — #521 seam pending"). When the explain/trace seam (#521) is built,
+the real visualizer should read the trace from it and delete this reconstruction.
 
-Run: `just viz`, then open `http://localhost:5180/?variant=svelte-flow` or
-`?variant=mermaid` to flip between the two side by side.
+## Toolchain wiring (unchanged from the library decision)
+
+- Standalone Vite root `tools/ladder-viz/vite.config.ts`, `$lib` → `src/lib`
+  alias (import-only), `just viz` recipe.
+- `just viz` runs `svelte-kit sync` first: importing real values from `src/lib`
+  makes Vite resolve the repo-root tsconfig, whose `extends` needs the generated
+  `.svelte-kit/tsconfig.json`.
+- Svelte + Vite, `@xyflow/svelte`, no Tailwind — the tool wears a technical
+  inspector theme (`theme.css`), deliberately not the consumer app's design
+  system.
+
+## Not built / deferred to the real build (ticket #524)
+
+- `settled` / `blocked` / `ceiling-reached` arms aren't exercised by this
+  scenario (settled needs a long top-rung dwell; blocked/ceiling need special
+  setup). The rendering handles them — the scenario just doesn't reach them.
+- No manual mode (log-your-own events) — this prototype is scenario-replay only.
+- Auto-layout: node positions are computed by hand (day-index math), not a
+  layout engine.
+- Throwaway: **not** meant to be built on directly; it's the design evidence for
+  the ticket. The real visualizer starts fresh against the assembled spec.

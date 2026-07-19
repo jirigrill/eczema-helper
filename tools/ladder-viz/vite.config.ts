@@ -17,6 +17,10 @@ export default defineConfig({
       $lib: fileURLToPath(new URL('../../src/lib', import.meta.url)),
     },
   },
+  // Importing real values from src/lib makes esbuild transform those .ts files,
+  // and Vite resolves the repo-root tsconfig for them — whose `extends:
+  // ./.svelte-kit/tsconfig.json` only exists after `svelte-kit sync`. The
+  // `just viz` recipe runs sync first so that file is present.
   server: {
     port: 5180,
   },

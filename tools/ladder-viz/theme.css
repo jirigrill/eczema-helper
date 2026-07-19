@@ -1,0 +1,17 @@
+/* PROTOTYPE — throwaway (ticket #522). Dev-tool theme tokens. Intentionally a
+   technical inspector look, NOT the consumer app's design system. */
+:root {
+  --ink: #1f2430;
+  --muted: #7a828f;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --canvas: #eef0f3;
+  --hair: #e2e5ea;
+  --go: #2f9e57;
+  --hold: #d19a1e;
+  --stop: #d1483f;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); }
