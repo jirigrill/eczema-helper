@@ -122,6 +122,15 @@ export type JourneyDay = {
   enteredVia: JourneyEdgeChannel | null;
 };
 
+/**
+ * An event-less placeholder box: the synthetic `not-started` entry (dated to the
+ * run's first day) and the greyed future arms (undated). Keeps the empty-box
+ * shape in one place so the two call sites can't drift from `JourneyDay`.
+ */
+export function placeholderDay(kind: JourneyNodeKind, date = ''): JourneyDay {
+  return { kind, fromDate: date, toDate: date, events: [], explain: null, enteredVia: null };
+}
+
 /** Events logged on exactly `date`, in channel order (meal, observation, eval). */
 function eventsOn(events: RunEvents, date: string): JourneyEvent[] {
   const out: JourneyEvent[] = [];
@@ -145,16 +154,7 @@ function eventsOn(events: RunEvents, date: string): JourneyEvent[] {
  * engine's. The edge into each box carries the channel that changed the box.
  */
 export function replayJourney(run: JourneyRun): JourneyDay[] {
-  const days: JourneyDay[] = [
-    {
-      kind: 'not-started',
-      fromDate: run.days[0] ?? '',
-      toDate: run.days[0] ?? '',
-      events: [],
-      explain: null,
-      enteredVia: null,
-    },
-  ];
+  const days: JourneyDay[] = [placeholderDay('not-started', run.days[0] ?? '')];
 
   for (const today of run.days) {
     const explain = explainLadderMove({

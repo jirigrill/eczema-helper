@@ -2,7 +2,7 @@
   import { SvelteFlow, Background, Controls, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import DayNode from './DayNode.svelte';
-  import { replayJourney } from './journey';
+  import { placeholderDay, replayJourney } from './journey';
   import { FUTURE_KINDS, spanLabel } from './node-style';
   import { ALLERGEN_ID, RUN_INPUT } from './scenario';
 
@@ -39,7 +39,7 @@
     type: 'day',
     position: { x: i * COL_GAP, y: 180 },
     data: {
-      day: { kind, fromDate: '', toDate: '', events: [], explain: null, enteredVia: null },
+      day: placeholderDay(kind),
       span: 'future',
     },
     selectable: false,
