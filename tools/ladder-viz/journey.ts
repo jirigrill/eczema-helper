@@ -93,6 +93,19 @@ export type JourneyEvent =
   | { channel: 'observation'; date: string; observation: SkinObservation }
   | { channel: 'eval'; date: string; evaluation: ReintroductionEvaluation };
 
+/** One-line evidence label for an event nested in a day box (icon + summary). */
+export function eventLine(event: JourneyEvent): string {
+  if (event.channel === 'meal') {
+    const item = event.meal.items[0];
+    return `🍽 ${item ? item.name : 'dose'}`;
+  }
+  if (event.channel === 'observation') {
+    const max = event.observation.regions.reduce((m, r) => Math.max(m, r.level), 0);
+    return `🩹 skin ${max}`;
+  }
+  return `📋 ${event.evaluation.outcome}`;
+}
+
 /**
  * One collapsed box on the day-spine: a run of consecutive days that resolved to
  * the same situation, with the events logged across those days nested inside as

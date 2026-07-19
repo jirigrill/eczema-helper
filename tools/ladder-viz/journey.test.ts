@@ -3,25 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { LadderDecision } from '$lib/domain/ladder';
 
 import { journeyNodeKind, replayJourney } from './journey';
-import {
-  ALLERGEN_ID,
-  CADENCE_DAYS,
-  DAYS,
-  LADDER,
-  RUN,
-  STABILITY_WINDOW_DAYS,
-  STAGE,
-} from './scenario';
-
-const RUN_INPUT = {
-  allergenId: ALLERGEN_ID,
-  defaultLadder: LADDER,
-  stage: STAGE,
-  cadenceDays: CADENCE_DAYS,
-  stabilityWindowDays: STABILITY_WINDOW_DAYS,
-  events: RUN,
-  days: DAYS,
-};
+import { RUN_INPUT } from './scenario';
 
 describe('journeyNodeKind — LadderDecision → journey node kind', () => {
   it('maps advance to climbing', () => {

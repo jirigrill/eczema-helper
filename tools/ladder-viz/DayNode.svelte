@@ -1,24 +1,12 @@
 <script lang="ts">
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-  import type { JourneyDay } from './journey';
+  import { eventLine, type JourneyDay } from './journey';
   import { nodeStyle } from './node-style';
 
   let { data }: NodeProps = $props();
   const day = $derived(data.day as JourneyDay);
   const span = $derived(data.span as string);
   const style = $derived(nodeStyle(day.kind));
-
-  function eventLine(e: JourneyDay['events'][number]): string {
-    if (e.channel === 'meal') {
-      const item = e.meal.items[0];
-      return `🍽 ${item ? item.name : 'dose'}`;
-    }
-    if (e.channel === 'observation') {
-      const max = e.observation.regions.reduce((m, r) => Math.max(m, r.level), 0);
-      return `🩹 skin ${max}`;
-    }
-    return `📋 ${e.evaluation.outcome}`;
-  }
 </script>
 
 <div class="day-node" class:future={style.future} data-terminal={style.terminal}>

@@ -4,27 +4,11 @@
   import DayNode from './DayNode.svelte';
   import { replayJourney, type JourneyNodeKind } from './journey';
   import { spanLabel } from './node-style';
-  import {
-    ALLERGEN_ID,
-    CADENCE_DAYS,
-    DAYS,
-    LADDER,
-    RUN,
-    STABILITY_WINDOW_DAYS,
-    STAGE,
-  } from './scenario';
+  import { ALLERGEN_ID, RUN_INPUT } from './scenario';
 
   const nodeTypes = { day: DayNode };
 
-  const journey = replayJourney({
-    allergenId: ALLERGEN_ID,
-    defaultLadder: LADDER,
-    stage: STAGE,
-    cadenceDays: CADENCE_DAYS,
-    stabilityWindowDays: STABILITY_WINDOW_DAYS,
-    events: RUN,
-    days: DAYS,
-  });
+  const journey = replayJourney(RUN_INPUT);
 
   const COL_GAP = 240;
 

@@ -14,7 +14,7 @@ import type {
 } from '$lib/domain/models';
 import { cadenceForPhase, stabilityWindowFor } from '$lib/domain/policy';
 
-import type { RunEvents } from './journey';
+import type { JourneyRun, RunEvents } from './journey';
 
 export const ALLERGEN_ID: LadderAllergenId = 'peanuts';
 export const STAGE: FeedingStage = 'breastfed';
@@ -120,3 +120,19 @@ export const DAY_COUNT = 32;
 export const DAYS: readonly string[] = Array.from({ length: DAY_COUNT }, (_, i) =>
   addISO(START_DATE, i),
 );
+
+// ── The assembled run ───────────────────────────────────────────────────────
+
+/**
+ * The single `JourneyRun` the visualizer replays — assembled once here so the
+ * app and its tests drive the identical run (no duplicated literal).
+ */
+export const RUN_INPUT: JourneyRun = {
+  allergenId: ALLERGEN_ID,
+  defaultLadder: LADDER,
+  stage: STAGE,
+  cadenceDays: CADENCE_DAYS,
+  stabilityWindowDays: STABILITY_WINDOW_DAYS,
+  events: RUN,
+  days: DAYS,
+};
