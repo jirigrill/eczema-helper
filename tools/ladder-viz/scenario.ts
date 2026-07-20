@@ -1,20 +1,21 @@
-// Pure data for the hard-coded run the visualizer replays (#530). NO decision
-// logic lives here — this file only *constructs* domain records (meals / skin /
-// evaluations) that the real engine reads, plus the ladder and the calendar.
-// The engine is the single source of truth; the visualizer copies none of it.
+// The one canned run the visualizer's *tests* replay (#530). NO decision logic
+// lives here — this file only holds a hand-crafted ladder + calendar and assembles
+// domain records (meals / skin / evaluations) via the shared `run-events.ts`
+// builders, so the fixture and the two live modes construct identical records and
+// cannot drift. The engine is the single source of truth; nothing here copies it.
+// (App.svelte renders the YAML scenarios, not this run; this survives only as a
+// `replayJourney` fixture whose custom ladder reaches the reversible terminal.)
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import type {
   AllergenOutcome,
   LadderAllergenId,
   Meal,
-  MealType,
-  RegionLevel,
   ReintroductionEvaluation,
-  SkinObservation,
 } from '$lib/domain/models';
 import { cadenceForPhase, stabilityWindowFor } from '$lib/domain/policy';
 
 import type { JourneyRun, RunEvents } from './journey';
+import { addISO, evaluation as evaluationRecord, lunchMeal, skinObservation } from './run-events';
 
 export const ALLERGEN_ID: LadderAllergenId = 'peanuts';
 export const STAGE: FeedingStage = 'breastfed';
@@ -43,38 +44,27 @@ export const LADDER: Ladder = {
 export const STEPS: readonly LadderStep[] = LADDER.stages.breastfed!;
 
 // ── Event builders ──────────────────────────────────────────────────────────
+// All three delegate to the shared `run-events.ts` builders so the fixture's
+// records are byte-identical to what the live modes construct. Only `dose` needs
+// a fixture-local wrapper: it doses a *specific rung* (labelling the item by the
+// rung's dose text), where the live builder doses a bare portion amount.
 
-// `other:<id>` guarantees a meal registers as a dose for the allergen without
-// wiring up the food catalog — `foodTriggers` slices the prefix.
-export function dose(date: string, rung: LadderStep, mealType: MealType = 'lunch'): Meal {
-  return {
-    id: `${date}:${mealType}`,
-    date,
-    mealType,
-    actor: 'mother',
-    items: [
-      {
-        id: `${date}-${rung.id}`,
-        name: `arašíd — ${rung.dose}`,
-        foodId: `other:${ALLERGEN_ID}`,
-        amount: rung.anchor,
-      },
-    ],
-    createdAt: `${date}T12:00:00`,
-  };
+/** Dose the given rung — a rung-labelled meal item on the shared lunch envelope. */
+export function dose(date: string, rung: LadderStep): Meal {
+  return lunchMeal(date, {
+    id: `${date}-${rung.id}`,
+    name: `arašíd — ${rung.dose}`,
+    foodId: `other:${ALLERGEN_ID}`,
+    amount: rung.anchor,
+  });
 }
 
-export function skin(date: string, level: RegionLevel): SkinObservation {
-  return {
-    id: `${date}-skin`,
-    date,
-    createdAt: `${date}T08:00:00`,
-    regions: level === 0 ? [] : [{ id: 'face', level }],
-  };
-}
+/** A skin reading, via the shared builder. */
+export const skin = skinObservation;
 
+/** An evaluation for this fixture's allergen, via the shared builder. */
 export function evaluation(date: string, outcome: AllergenOutcome): ReintroductionEvaluation {
-  return { phaseId: 'p1', phaseType: 'allergen-test', outcome, allergenId: ALLERGEN_ID, date };
+  return evaluationRecord(ALLERGEN_ID, date, outcome);
 }
 
 /**
@@ -106,13 +96,6 @@ export const RUN: RunEvents = {
 };
 
 // ── Calendar ──────────────────────────────────────────────────────────────
-
-/** String date math via a UTC anchor so it never shifts across a local TZ. */
-export function addISO(iso: string, days: number): string {
-  const d = new Date(iso + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 /** Strict, consecutive, ascending calendar the run is replayed over (#519). */
 export const START_DATE = '2026-06-01';
