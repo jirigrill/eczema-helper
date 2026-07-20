@@ -1,7 +1,10 @@
 # Reaction → rest → step-back → re-climb (#523 scenario 2). Climb two rungs
 # cleanly, then a mild-reaction eval at the current rung opens a rest window;
 # once the window passes the run steps back to the prior rung; a clean re-dose
-# and tolerated eval there reopen the climb.
+# and tolerated eval there resolve the setback. The climb then genuinely re-opens
+# and continues: a fresh dose carries it back up to the rung that reacted, and
+# once the confirm cadence elapses the run ends in `climbing`, ready to advance
+# past that rung — not merely re-entering `climbing` at the step-back floor.
 allergen: eggs
 phase: reintroduction
 stage: breastfed
@@ -39,4 +42,15 @@ days:
     events: []
   - date: 2026-06-14
     events:
-      - eval: tolerated # clean verdict resolves the setback → re-climb
+      - eval: tolerated # clean verdict resolves the setback
+  - date: 2026-06-15
+    events: [] # confirm cadence elapses → climb re-opens
+  - date: 2026-06-16
+    events:
+      - meal: portion # re-climb carries back up to the rung that reacted
+  - date: 2026-06-17
+    events: []
+  - date: 2026-06-18
+    events: []
+  - date: 2026-06-19
+    events: [] # cadence elapses again → ends in climbing, ready to advance past it

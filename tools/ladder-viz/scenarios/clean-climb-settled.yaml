@@ -1,7 +1,10 @@
 # Clean climb → settled (#523 scenario 1). No reactions: doses climb every rung
 # at cadence-respecting intervals, reach the top rung, and the top rung is
-# re-dosed until the dwell confirmation completes → settled. A couple of skin
-# readings show that channel coexisting with a clean run.
+# re-dosed until the dwell confirmation completes → settled. The top-rung doses
+# are spaced one day past the confirm cadence, so a dwell day surfaces between
+# them (cadence elapsed, dwell not yet complete → dwelling) before the run
+# settles — the run walks climbing → dwelling → settled, not straight to settled.
+# A couple of skin readings show that channel coexisting with a clean run.
 allergen: eggs
 phase: reintroduction
 stage: breastfed
@@ -27,18 +30,22 @@ days:
   - date: 2026-06-07
     events: []
   - date: 2026-06-08
+    events: [] # cadence elapsed, dwell not yet complete → dwelling
+  - date: 2026-06-09
     events:
       - meal: package # dwell dose 2 (confirm cadence)
-  - date: 2026-06-09
-    events: []
   - date: 2026-06-10
     events: []
   - date: 2026-06-11
+    events: []
+  - date: 2026-06-12
+    events: [] # dwelling again while the confirmation runs
+  - date: 2026-06-13
     events:
       - meal: package # dwell dose 3 → dwell count reaches the ladder length
-  - date: 2026-06-12
-    events: []
-  - date: 2026-06-13
-    events: []
   - date: 2026-06-14
+    events: []
+  - date: 2026-06-15
+    events: []
+  - date: 2026-06-16
     events: [] # latency since the last top dose elapses → settled

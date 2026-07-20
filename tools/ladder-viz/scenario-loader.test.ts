@@ -202,22 +202,38 @@ describe('shipped scenarios — each replays its named distinct path (#523)', ()
   );
 
   /**
-   * Each canonical scenario must exercise a distinct path through the state model
-   * (#523) — so we assert the *situations* its replay actually visits, not merely
-   * that it parses. `visits` is the set of kinds the path must reach; `endsAt`
-   * pins a terminal box where the intent is a settled/terminal state. A scenario
-   * that silently drifts off its named path fails here instead of passing as a
-   * mere "loads OK". (Floor-exhaustion and per-rung-cap ceilings share the
-   * `ceiling-floor-exhaustion` kind — the per-rung path is distinguished by the
-   * rest→step-back it climbs through first.)
+   * Each canonical scenario must exercise the distinct path through the state
+   * model its #523 write-up describes — so we assert the *situations* its replay
+   * actually visits, not merely that it parses. A scenario that silently drifts
+   * off its named path fails here instead of passing as a mere "loads OK".
+   *
+   * - `visits` — every situation the path must reach.
+   * - `endsAt` — the terminal box, pinned wherever the write-up names a specific
+   *   end state: a settled/blocked terminal, or the resumed `climbing` a hold /
+   *   step-back is meant to lift back into (so "climbing resumes" can't regress
+   *   into a run that stalls in the hold).
+   * - `terminalRung` — floor-exhaustion and per-rung-cap ceilings share the
+   *   `ceiling-floor-exhaustion` kind, so kinds alone can't tell them apart. We
+   *   pin the live rung the ceiling fires at: the floor for floor-exhaustion,
+   *   off the floor for the per-rung cap — the whole point of scenario 4 is that
+   *   it terminates by the per-rung count, not by running out of floor.
    */
-  const PATHS: Record<string, { visits: JourneyNodeKind[]; endsAt?: JourneyNodeKind }> = {
-    'clean-climb-settled': { visits: ['climbing'], endsAt: 'settled' },
-    'reaction-rest-stepback': { visits: ['climbing', 'resting', 'stepped-back'] },
-    'floor-exhaustion-ceiling': { visits: ['ceiling-floor-exhaustion'] },
-    'per-rung-cap-ceiling': { visits: ['resting', 'stepped-back', 'ceiling-floor-exhaustion'] },
-    'skin-worsening-hold': { visits: ['holding-skin'] },
-    'cadence-hold': { visits: ['holding-cadence'] },
+  const PATHS: Record<
+    string,
+    { visits: JourneyNodeKind[]; endsAt?: JourneyNodeKind; terminalRung?: 'floor' | 'off-floor' }
+  > = {
+    'clean-climb-settled': { visits: ['climbing', 'dwelling'], endsAt: 'settled' },
+    'reaction-rest-stepback': {
+      visits: ['climbing', 'resting', 'stepped-back'],
+      endsAt: 'climbing',
+    },
+    'floor-exhaustion-ceiling': { visits: ['ceiling-floor-exhaustion'], terminalRung: 'floor' },
+    'per-rung-cap-ceiling': {
+      visits: ['resting', 'stepped-back', 'ceiling-floor-exhaustion'],
+      terminalRung: 'off-floor',
+    },
+    'skin-worsening-hold': { visits: ['holding-skin'], endsAt: 'climbing' },
+    'cadence-hold': { visits: ['holding-cadence'], endsAt: 'climbing' },
     'blocked-permanent': { visits: ['blocked'] },
   };
 
@@ -225,14 +241,29 @@ describe('shipped scenarios — each replays its named distinct path (#523)', ()
     expect([...byName.keys()].sort()).toEqual(Object.keys(PATHS).sort());
   });
 
-  it.each(Object.entries(PATHS))('%s reaches its distinct path', (name, { visits, endsAt }) => {
-    const text = byName.get(name);
-    expect(text, `scenario ${name}.yaml is missing`).toBeDefined();
+  it.each(Object.entries(PATHS))(
+    '%s reaches its distinct path',
+    (name, { visits, endsAt, terminalRung }) => {
+      const text = byName.get(name);
+      expect(text, `scenario ${name}.yaml is missing`).toBeDefined();
 
-    const journey = replayJourney(parseScenario(text!));
-    const kinds = journey.map((d) => d.kind);
+      const run = parseScenario(text!);
+      const journey = replayJourney(run);
+      const kinds = journey.map((d) => d.kind);
 
-    for (const kind of visits) expect(kinds).toContain(kind);
-    if (endsAt) expect(kinds.at(-1)).toBe(endsAt);
-  });
+      for (const kind of visits) expect(kinds).toContain(kind);
+      if (endsAt) expect(kinds.at(-1)).toBe(endsAt);
+
+      if (terminalRung) {
+        const floorRungId = run.defaultLadder.stages[run.stage]?.[0]?.id;
+        const liveRungId = journey.at(-1)?.explain?.snapshot.liveRung?.id;
+        if (terminalRung === 'floor') {
+          expect(liveRungId).toBe(floorRungId);
+        } else {
+          expect(liveRungId).toBeDefined();
+          expect(liveRungId).not.toBe(floorRungId);
+        }
+      }
+    },
+  );
 });
