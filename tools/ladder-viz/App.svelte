@@ -2,7 +2,12 @@
   import { SvelteFlow, Background, Controls, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import type { FeedingStage } from '$lib/domain/canonical-allergen';
-  import type { AllergenOutcome, LadderAllergenId, PortionKind } from '$lib/domain/models';
+  import type {
+    AllergenOutcome,
+    LadderAllergenId,
+    PortionKind,
+    RegionLevel,
+  } from '$lib/domain/models';
   import DayNode from './DayNode.svelte';
   import Cascade from './Cascade.svelte';
   import { placeholderDay, replayJourney, type JourneyDay, type JourneyRun } from './journey';
@@ -86,6 +91,13 @@
 
   function resetSession() {
     session = null;
+  }
+
+  // Each log dropdown applies its action to today, then snaps back to its
+  // placeholder so the same value can be picked twice in a row.
+  function applyLog(el: HTMLSelectElement, next: ManualSession) {
+    session = next;
+    el.selectedIndex = 0;
   }
 
   const today = $derived(session ? session.days[session.days.length - 1]! : null);
@@ -200,7 +212,9 @@
         <select bind:value={setupStage}>
           {#each STAGES as s (s)}<option value={s}>{s}</option>{/each}
         </select>
-        <label class="inline"><input type="checkbox" bind:checked={setupPermanent} /> permanent</label>
+        <label class="inline"
+          ><input type="checkbox" bind:checked={setupPermanent} /> permanent</label
+        >
         <button onclick={beginSession}>start run</button>
       </span>
     {:else}
@@ -212,29 +226,29 @@
       <span class="actions">
         · log
         <select
-          onchange={(e) => {
-            session = logMeal(session!, e.currentTarget.value as PortionKind | 'none');
-            e.currentTarget.selectedIndex = 0;
-          }}
+          onchange={(e) =>
+            applyLog(
+              e.currentTarget,
+              logMeal(session!, e.currentTarget.value as PortionKind | 'none'),
+            )}
         >
           <option value="" disabled selected>meal…</option>
           {#each PORTION_KINDS as p (p)}<option value={p}>{p}</option>{/each}
           <option value="none">none</option>
         </select>
         <select
-          onchange={(e) => {
-            session = logSkin(session!, Number(e.currentTarget.value) as 0 | 1 | 2 | 3);
-            e.currentTarget.selectedIndex = 0;
-          }}
+          onchange={(e) =>
+            applyLog(
+              e.currentTarget,
+              logSkin(session!, Number(e.currentTarget.value) as RegionLevel),
+            )}
         >
           <option value="" disabled selected>skin…</option>
           {#each [0, 1, 2, 3] as lvl (lvl)}<option value={lvl}>{lvl}</option>{/each}
         </select>
         <select
-          onchange={(e) => {
-            session = logEval(session!, e.currentTarget.value as AllergenOutcome);
-            e.currentTarget.selectedIndex = 0;
-          }}
+          onchange={(e) =>
+            applyLog(e.currentTarget, logEval(session!, e.currentTarget.value as AllergenOutcome))}
         >
           <option value="" disabled selected>eval…</option>
           {#each OUTCOMES as o (o)}<option value={o}>{o}</option>{/each}

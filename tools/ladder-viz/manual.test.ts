@@ -105,6 +105,3 @@ describe('manual mode — actions apply to today, advance-day moves today forwar
     expect(run.events.evaluations[0]?.date).toBe('2026-06-03');
   });
 });
-
-
-

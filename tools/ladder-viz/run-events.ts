@@ -66,28 +66,37 @@ export const LADDERS = new Map<LadderAllergenId, Ladder>(
   ),
 );
 
-// `other:<id>` guarantees a meal registers as a dose for the allergen without
-// wiring up the food catalog — `foodTriggers` slices the prefix (`ladder.ts`).
-function dose(allergen: LadderAllergenId, date: string, amount: PortionKind): Meal {
+// The lunch-meal envelope both a dose and a clean meal share — only the single
+// `item` differs, so it lives in one place and the two callers can't drift.
+function lunchMeal(date: string, item: Meal['items'][number]): Meal {
   return {
     id: `${date}:lunch`,
     date,
     mealType: 'lunch',
     actor: 'mother',
-    items: [{ id: `${date}-dose`, name: allergen, foodId: `other:${allergen}`, amount }],
+    items: [item],
     createdAt: `${date}T12:00:00`,
   };
 }
 
+// `other:<id>` guarantees a meal registers as a dose for the allergen without
+// wiring up the food catalog — `foodTriggers` slices the prefix (`ladder.ts`).
+function dose(allergen: LadderAllergenId, date: string, amount: PortionKind): Meal {
+  return lunchMeal(date, {
+    id: `${date}-dose`,
+    name: allergen,
+    foodId: `other:${allergen}`,
+    amount,
+  });
+}
+
 function cleanMeal(date: string): Meal {
-  return {
-    id: `${date}:lunch`,
-    date,
-    mealType: 'lunch',
-    actor: 'mother',
-    items: [{ id: `${date}-clean`, name: 'bez alergenu', foodId: 'other:none', amount: 'portion' }],
-    createdAt: `${date}T12:00:00`,
-  };
+  return lunchMeal(date, {
+    id: `${date}-clean`,
+    name: 'bez alergenu',
+    foodId: 'other:none',
+    amount: 'portion',
+  });
 }
 
 function skinObservation(date: string, level: RegionLevel): SkinObservation {
