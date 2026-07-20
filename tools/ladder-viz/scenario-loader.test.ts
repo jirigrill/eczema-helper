@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { replayJourney } from './journey';
+import { type JourneyNodeKind, replayJourney } from './journey';
 import { parseScenario } from './scenario-loader';
 
 describe('parseScenario — valid YAML → typed JourneyRun', () => {
@@ -73,6 +73,22 @@ days:`;
   - date: 2026-06-01
     events: []
   - date: 2026-06-03
+    events: []
+`;
+    expect(() => parseScenario(yaml)).toThrow();
+  });
+
+  it('rejects a non-date string as a load error', () => {
+    const yaml = `${header}
+  - date: not-a-date
+    events: []
+`;
+    expect(() => parseScenario(yaml)).toThrow();
+  });
+
+  it('rejects an impossible calendar date as a load error', () => {
+    const yaml = `${header}
+  - date: 2026-13-40
     events: []
 `;
     expect(() => parseScenario(yaml)).toThrow();
@@ -174,22 +190,49 @@ days:
   });
 });
 
-describe('shipped scenarios — every *.yaml loads', () => {
+describe('shipped scenarios — each replays its named distinct path (#523)', () => {
   const files = import.meta.glob('./scenarios/*.yaml', {
     query: '?raw',
     import: 'default',
     eager: true,
   }) as Record<string, string>;
 
-  const entries = Object.entries(files);
+  const byName = new Map(
+    Object.entries(files).map(([path, text]) => [path.replace(/^.*\/(.+)\.yaml$/, '$1'), text]),
+  );
 
-  it('ships at least one scenario', () => {
-    expect(entries.length).toBeGreaterThan(0);
+  /**
+   * Each canonical scenario must exercise a distinct path through the state model
+   * (#523) — so we assert the *situations* its replay actually visits, not merely
+   * that it parses. `visits` is the set of kinds the path must reach; `endsAt`
+   * pins a terminal box where the intent is a settled/terminal state. A scenario
+   * that silently drifts off its named path fails here instead of passing as a
+   * mere "loads OK". (Floor-exhaustion and per-rung-cap ceilings share the
+   * `ceiling-floor-exhaustion` kind — the per-rung path is distinguished by the
+   * rest→step-back it climbs through first.)
+   */
+  const PATHS: Record<string, { visits: JourneyNodeKind[]; endsAt?: JourneyNodeKind }> = {
+    'clean-climb-settled': { visits: ['climbing'], endsAt: 'settled' },
+    'reaction-rest-stepback': { visits: ['climbing', 'resting', 'stepped-back'] },
+    'floor-exhaustion-ceiling': { visits: ['ceiling-floor-exhaustion'] },
+    'per-rung-cap-ceiling': { visits: ['resting', 'stepped-back', 'ceiling-floor-exhaustion'] },
+    'skin-worsening-hold': { visits: ['holding-skin'] },
+    'cadence-hold': { visits: ['holding-cadence'] },
+    'blocked-permanent': { visits: ['blocked'] },
+  };
+
+  it('ships exactly the canonical set (#523)', () => {
+    expect([...byName.keys()].sort()).toEqual(Object.keys(PATHS).sort());
   });
 
-  it.each(entries)('%s parses + validates and replays without error', (_path, text) => {
-    const run = parseScenario(text);
-    expect(() => replayJourney(run)).not.toThrow();
-    expect(run.days.length).toBeGreaterThan(0);
+  it.each(Object.entries(PATHS))('%s reaches its distinct path', (name, { visits, endsAt }) => {
+    const text = byName.get(name);
+    expect(text, `scenario ${name}.yaml is missing`).toBeDefined();
+
+    const journey = replayJourney(parseScenario(text!));
+    const kinds = journey.map((d) => d.kind);
+
+    for (const kind of visits) expect(kinds).toContain(kind);
+    if (endsAt) expect(kinds.at(-1)).toBe(endsAt);
   });
 });

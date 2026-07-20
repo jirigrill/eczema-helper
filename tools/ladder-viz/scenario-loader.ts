@@ -33,6 +33,23 @@ const LADDERS = new Map<LadderAllergenId, Ladder>(
   ),
 );
 
+/**
+ * A real ISO calendar date (`YYYY-MM-DD`): right shape *and* a date that exists.
+ * The round-trip through the UTC anchor rejects impossible days (`2026-13-40`)
+ * that a bare regex would wave through, so a bad date is a clear load error at
+ * the boundary rather than an `Invalid Date` that only misfires later in
+ * `nextISO`/`assertStrictDates`.
+ */
+function isRealISODate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(value + 'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+const isoDate = z
+  .string()
+  .refine(isRealISODate, { message: 'date must be a real ISO calendar date (YYYY-MM-DD)' });
+
 const mealEvent = z.object({ meal: z.union([z.enum(PORTION_KINDS), z.literal('none')]) });
 const skinEvent = z.object({
   skin: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
@@ -56,7 +73,7 @@ const scenarioSchema = z.object({
   permanent: z.boolean().default(false),
   days: z.array(
     z.object({
-      date: z.string(),
+      date: isoDate,
       events: z.array(dayEvent).default([]),
     }),
   ),
@@ -110,6 +127,7 @@ function nextISO(iso: string): string {
  */
 function assertStrictDates(dates: readonly string[]): void {
   for (let i = 1; i < dates.length; i++) {
+    // `i` runs 1..length-1, so both indices are in bounds (safe `!`).
     const prev = dates[i - 1]!;
     const curr = dates[i]!;
     const expected = nextISO(prev);
@@ -156,14 +174,20 @@ export function parseScenario(yamlText: string): JourneyRun {
         meals.push(event.meal === 'none' ? cleanMeal(day.date) : dose(day.date, event.meal));
       } else if ('skin' in event) {
         observations.push(skin(day.date, event.skin));
-      } else {
+      } else if ('eval' in event) {
         evaluations.push(evaluation(day.date, event.eval));
+      } else {
+        // A new `dayEvent` variant must be handled above — never silently
+        // dropped or miscategorized (matches the engine's `never` guard).
+        const _exhaustive: never = event;
+        throw new Error(`scenario: unknown event kind ${JSON.stringify(_exhaustive)}`);
       }
     }
   }
 
   return {
     allergenId: allergen,
+    // `allergenId.refine` already asserted `LADDERS.has(allergen)` (safe `!`).
     defaultLadder: LADDERS.get(allergen)!,
     stage: doc.stage,
     cadenceDays: cadenceForPhase(doc.phase),
