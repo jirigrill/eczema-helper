@@ -15,7 +15,7 @@ export type SnapshotRow = {
   value: LadderStateSnapshot[keyof LadderStateSnapshot];
 };
 
-/** One gate reading, ready to render: the field name and its raw value. */
+/** One gate reading, ready to render: its label and raw value. */
 export type GateSignal = { label: string; value: boolean | number | null };
 
 /**
@@ -52,14 +52,24 @@ export type CascadeView = {
   steps: CascadeStep[];
 };
 
-/** The five snapshot fields, in the fixed order the cascade shows them. */
-const SNAPSHOT_FIELDS: (keyof LadderStateSnapshot)[] = [
-  'liveRung',
-  'pendingReaction',
-  'ceilingRung',
-  'mode',
-  'dwell',
-];
+/**
+ * The display order of every snapshot field. Keyed exhaustively by
+ * `LadderStateSnapshot`, so a field added to the seam breaks the build here until
+ * it is placed — the cascade can never silently omit one (#531), matching the
+ * exhaustive-guard discipline the sibling `node-style.ts` uses.
+ */
+const SNAPSHOT_ORDER: Record<keyof LadderStateSnapshot, number> = {
+  liveRung: 0,
+  pendingReaction: 1,
+  ceilingRung: 2,
+  mode: 3,
+  dwell: 4,
+};
+
+/** The snapshot fields in fixed display order — derived from the exhaustive map. */
+const SNAPSHOT_FIELDS = (Object.keys(SNAPSHOT_ORDER) as (keyof LadderStateSnapshot)[]).sort(
+  (a, b) => SNAPSHOT_ORDER[a] - SNAPSHOT_ORDER[b],
+);
 
 /**
  * The gate payload for a gate-backed step, or `undefined` for a structural step
@@ -104,13 +114,16 @@ export function buildCascade(explain: LadderExplain): CascadeView {
     field,
     value: explain.snapshot[field],
   }));
-  const steps: CascadeStep[] = explain.steps.map((step) => ({
-    name: step.name,
-    status: step.status,
-    fired: step.status === 'fired',
-    gate: gateOf(step),
-    verdict: step.status === 'fired' ? verdictDump(explain.decision) : undefined,
-    verdictKind: step.status === 'fired' ? explain.decision.kind : undefined,
-  }));
+  const steps: CascadeStep[] = explain.steps.map((step) => {
+    const fired = step.status === 'fired';
+    return {
+      name: step.name,
+      status: step.status,
+      fired,
+      gate: gateOf(step),
+      verdict: fired ? verdictDump(explain.decision) : undefined,
+      verdictKind: fired ? explain.decision.kind : undefined,
+    };
+  });
   return { snapshot, steps };
 }

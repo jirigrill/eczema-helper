@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { LadderPrecedenceStepStatus } from '$lib/domain/ladder';
   import type { JourneyDay } from './journey';
   import { buildCascade } from './cascade';
   import { nodeStyle, spanLabel } from './node-style';
@@ -22,13 +23,18 @@
     return String(value);
   }
 
-  const STATUS_LABEL: Record<string, string> = {
+  const STATUS_LABEL: Record<LadderPrecedenceStepStatus, string> = {
     'not-reached': 'not reached',
     fired: 'FIRED',
     'passed-confirmed': 'passed (confirmed)',
     'passed-no-data': 'passed (no data)',
   };
 </script>
+
+{#snippet kv(label: string, value: unknown)}
+  <dt>{label}</dt>
+  <dd class:null={value === null}>{fmt(value)}</dd>
+{/snippet}
 
 <aside class="cascade">
   <header>
@@ -46,8 +52,7 @@
       <h3>Snapshot</h3>
       <dl class="snapshot">
         {#each view.snapshot as row (row.field)}
-          <dt>{row.field}</dt>
-          <dd class:null={row.value === null}>{fmt(row.value)}</dd>
+          {@render kv(row.field, row.value)}
         {/each}
       </dl>
     </section>
@@ -59,16 +64,14 @@
           <li data-status={step.status} class:fired={step.fired}>
             <div class="step-head">
               <span class="step-name">{step.name}</span>
-              <span class="step-status">{STATUS_LABEL[step.status] ?? step.status}</span>
+              <span class="step-status">{STATUS_LABEL[step.status]}</span>
             </div>
 
             {#if step.gate}
               <dl class="gate">
-                <dt>effective threshold</dt>
-                <dd>{step.gate.threshold}</dd>
+                {@render kv('effective threshold', step.gate.threshold)}
                 {#each step.gate.signals as signal (signal.label)}
-                  <dt>{signal.label}</dt>
-                  <dd class:null={signal.value === null}>{fmt(signal.value)}</dd>
+                  {@render kv(signal.label, signal.value)}
                 {/each}
               </dl>
             {/if}
@@ -78,8 +81,7 @@
                 <div class="verdict-label">verdict — raw {step.verdictKind}</div>
                 <dl>
                   {#each step.verdict as field (field.field)}
-                    <dt>{field.field}</dt>
-                    <dd class:null={field.value === null}>{fmt(field.value)}</dd>
+                    {@render kv(field.field, field.value)}
                   {/each}
                 </dl>
               </div>
