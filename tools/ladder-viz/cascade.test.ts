@@ -194,6 +194,9 @@ describe('buildCascade — verdict as a raw field dump at the fired step', () =>
     const fired = view.steps.find((s) => s.fired);
     expect(fired?.name).toBe('cadence');
     expect(view.steps.filter((s) => s.verdict !== undefined)).toHaveLength(1);
+    // The discriminant is lifted out too, and rides the fired step only.
+    expect(fired?.verdictKind).toBe(explain.decision.kind);
+    expect(view.steps.filter((s) => s.verdictKind !== undefined)).toHaveLength(1);
     // A raw field dump: one entry per field of the decision object, values verbatim.
     const dump = Object.fromEntries((fired!.verdict ?? []).map((f) => [f.field, f.value]));
     expect(dump).toEqual({ ...explain.decision });

@@ -40,6 +40,11 @@ export type CascadeStep = {
    * only on the step that fired, never synthesized into prose (#531).
    */
   verdict?: VerdictField[];
+  /**
+   * The fired decision's discriminant, lifted out so a renderer can label the
+   * dump without re-reading `verdict` — present only on the step that fired.
+   */
+  verdictKind?: LadderDecision['kind'];
 };
 
 export type CascadeView = {
@@ -105,6 +110,7 @@ export function buildCascade(explain: LadderExplain): CascadeView {
     fired: step.status === 'fired',
     gate: gateOf(step),
     verdict: step.status === 'fired' ? verdictDump(explain.decision) : undefined,
+    verdictKind: step.status === 'fired' ? explain.decision.kind : undefined,
   }));
   return { snapshot, steps };
 }

@@ -75,9 +75,7 @@
 
             {#if step.verdict}
               <div class="verdict">
-                <div class="verdict-label">
-                  verdict — raw {fmt(step.verdict.find((f) => f.field === 'kind')?.value)}
-                </div>
+                <div class="verdict-label">verdict — raw {step.verdictKind}</div>
                 <dl>
                   {#each step.verdict as field (field.field)}
                     <dt>{field.field}</dt>
