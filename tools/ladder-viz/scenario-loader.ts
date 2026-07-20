@@ -64,28 +64,26 @@ const scenarioSchema = z.object({
 
 type ScenarioDoc = z.infer<typeof scenarioSchema>;
 
-// `other:<id>` guarantees a meal registers as a dose for the allergen without
-// wiring up the food catalog — `foodTriggers` slices the prefix (`ladder.ts`).
-function dose(allergen: LadderAllergenId, date: string, amount: PortionKind): Meal {
+// The lunch meal shell every dose/clean entry shares — only the single item
+// differs, so both builders fill it in rather than repeating the envelope.
+function lunchMeal(date: string, item: Meal['items'][number]): Meal {
   return {
     id: `${date}:lunch`,
     date,
     mealType: 'lunch',
     actor: 'mother',
-    items: [{ id: `${date}-dose`, name: allergen, foodId: `other:${allergen}`, amount }],
+    items: [item],
     createdAt: `${date}T12:00:00`,
   };
 }
 
 function cleanMeal(date: string): Meal {
-  return {
-    id: `${date}:lunch`,
-    date,
-    mealType: 'lunch',
-    actor: 'mother',
-    items: [{ id: `${date}-clean`, name: 'bez alergenu', foodId: 'other:none', amount: 'portion' }],
-    createdAt: `${date}T12:00:00`,
-  };
+  return lunchMeal(date, {
+    id: `${date}-clean`,
+    name: 'bez alergenu',
+    foodId: 'other:none',
+    amount: 'portion',
+  });
 }
 
 function skin(date: string, level: RegionLevel): SkinObservation {
@@ -95,14 +93,6 @@ function skin(date: string, level: RegionLevel): SkinObservation {
     createdAt: `${date}T08:00:00`,
     regions: level === 0 ? [] : [{ id: 'face', level }],
   };
-}
-
-function evaluation(
-  allergen: LadderAllergenId,
-  date: string,
-  outcome: (typeof OUTCOMES)[number],
-): ReintroductionEvaluation {
-  return { phaseId: 'p1', phaseType: 'allergen-test', outcome, allergenId: allergen, date };
 }
 
 /** String date math via a UTC anchor so it never shifts across a local TZ. */
@@ -139,6 +129,23 @@ export function parseScenario(yamlText: string): JourneyRun {
 
   const allergen = doc.allergen;
 
+  // `allergen` is fixed for the whole file, so the allergen-bearing builders close
+  // over it here instead of threading it through every call alongside the date.
+  // `other:<id>` guarantees a meal registers as a dose without wiring up the food
+  // catalog — `foodTriggers` slices the prefix (`ladder.ts`).
+  const dose = (date: string, amount: PortionKind): Meal =>
+    lunchMeal(date, { id: `${date}-dose`, name: allergen, foodId: `other:${allergen}`, amount });
+  const evaluation = (
+    date: string,
+    outcome: (typeof OUTCOMES)[number],
+  ): ReintroductionEvaluation => ({
+    phaseId: 'p1',
+    phaseType: 'allergen-test',
+    outcome,
+    allergenId: allergen,
+    date,
+  });
+
   const meals: Meal[] = [];
   const observations: SkinObservation[] = [];
   const evaluations: ReintroductionEvaluation[] = [];
@@ -146,13 +153,11 @@ export function parseScenario(yamlText: string): JourneyRun {
   for (const day of doc.days) {
     for (const event of day.events) {
       if ('meal' in event) {
-        meals.push(
-          event.meal === 'none' ? cleanMeal(day.date) : dose(allergen, day.date, event.meal),
-        );
+        meals.push(event.meal === 'none' ? cleanMeal(day.date) : dose(day.date, event.meal));
       } else if ('skin' in event) {
         observations.push(skin(day.date, event.skin));
       } else {
-        evaluations.push(evaluation(allergen, day.date, event.eval));
+        evaluations.push(evaluation(day.date, event.eval));
       }
     }
   }
