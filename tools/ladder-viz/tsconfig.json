@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "types": ["svelte", "node"],
+    "types": ["svelte", "node", "vite/client"],
     "baseUrl": ".",
     "paths": { "$lib/*": ["../../src/lib/*"] }
   },

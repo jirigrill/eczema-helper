@@ -80,6 +80,8 @@ export type JourneyRun = {
   stage: FeedingStage;
   cadenceDays: number;
   stabilityWindowDays: number;
+  /** True for a `permanent-mother`/`permanent-baby` allergen — blocked from day one (ADR-0012). */
+  isPermanentlyEliminated?: boolean;
   events: RunEvents;
   days: readonly string[];
 };
@@ -167,6 +169,7 @@ export function replayJourney(run: JourneyRun): JourneyDay[] {
       today,
       cadenceDays: run.cadenceDays,
       stabilityWindowDays: run.stabilityWindowDays,
+      isPermanentlyEliminated: run.isPermanentlyEliminated,
     });
     const kind = journeyNodeKind(explain.decision);
     const dayEvents = eventsOn(run.events, today);

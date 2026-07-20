@@ -1,0 +1,16 @@
+# Floor-exhaustion ceiling (#523 scenario 3). A reaction at the lowest rung —
+# nowhere lower to retreat to — is an immediate ceiling-reached(floor-exhaustion),
+# with no rest / step-back cycle.
+allergen: eggs
+phase: reintroduction
+stage: breastfed
+
+days:
+  - date: 2026-06-01
+    events:
+      - meal: portion # rung 1 (the floor)
+  - date: 2026-06-02
+    events:
+      - eval: mild-reaction # reaction at the floor → ceiling, absorbing
+  - date: 2026-06-03
+    events: []
