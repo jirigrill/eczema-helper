@@ -2,36 +2,25 @@
 // cascade render (#532, PRD #527). The YAML is Zod-validated on load — a typo,
 // a bad enum, an unknown allergen, or a non-strict date sequence is a loud load
 // error, never a silently-reconstructed run. NO decision logic lives here: the
-// loader only *constructs* the domain records (meals / skin / evaluations) the
-// real engine reads, exactly like the hard-coded `scenario.ts` it replaces.
+// loader only validates + shapes external input, then hands it to the shared
+// `buildRun` (`run-events.ts`) that manual mode also uses, so the two modes are
+// genuinely one event stream and cannot drift.
 import { load as parseYaml } from 'js-yaml';
 import { z } from 'zod';
 
-import { ALLERGENS } from '$lib/data/allergen-catalog';
-import type { Ladder } from '$lib/domain/canonical-allergen';
-import type {
-  LadderAllergenId,
-  Meal,
-  PortionKind,
-  RegionLevel,
-  ReintroductionEvaluation,
-  SkinObservation,
-} from '$lib/domain/models';
-import { cadenceForPhase, stabilityWindowFor } from '$lib/domain/policy';
+import type { LadderAllergenId } from '$lib/domain/models';
 
 import type { JourneyRun } from './journey';
-
-const PORTION_KINDS = ['pinch', 'teaspoon', 'spoon', 'portion', 'package'] as const;
-const OUTCOMES = ['tolerated', 'mild-reaction', 'clear-reaction', 'severe-reaction'] as const;
-const PHASES = ['tolerance-building', 'reintroduction'] as const;
-const STAGES = ['breastfed', 'mixed', 'solids'] as const;
-
-/** The ladder-bearing catalog allergens, keyed by id — the engine walks these. */
-const LADDERS = new Map<LadderAllergenId, Ladder>(
-  ALLERGENS.flatMap((a) =>
-    'ladder' in a && a.ladder ? [[a.id as LadderAllergenId, a.ladder as Ladder]] : [],
-  ),
-);
+import {
+  buildRun,
+  LADDERS,
+  nextISO,
+  OUTCOMES,
+  PHASES,
+  PORTION_KINDS,
+  STAGES,
+  type RunEvent,
+} from './run-events';
 
 /**
  * A real ISO calendar date (`YYYY-MM-DD`): right shape *and* a date that exists.
@@ -50,11 +39,13 @@ const isoDate = z
   .string()
   .refine(isRealISODate, { message: 'date must be a real ISO calendar date (YYYY-MM-DD)' });
 
-const mealEvent = z.object({ meal: z.union([z.enum(PORTION_KINDS), z.literal('none')]) });
+const mealEvent = z.object({
+  meal: z.union([z.enum([...PORTION_KINDS]), z.literal('none')]),
+});
 const skinEvent = z.object({
   skin: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
 });
-const evalEvent = z.object({ eval: z.enum(OUTCOMES) });
+const evalEvent = z.object({ eval: z.enum([...OUTCOMES]) });
 const dayEvent = z.union([mealEvent, skinEvent, evalEvent]);
 
 // `allergen` is external input, so it is validated at this boundary against the
@@ -68,8 +59,8 @@ const allergenId = z
 
 const scenarioSchema = z.object({
   allergen: allergenId,
-  phase: z.enum(PHASES),
-  stage: z.enum(STAGES),
+  phase: z.enum([...PHASES]),
+  stage: z.enum([...STAGES]),
   permanent: z.boolean().default(false),
   days: z.array(
     z.object({
@@ -80,44 +71,6 @@ const scenarioSchema = z.object({
 });
 
 type ScenarioDoc = z.infer<typeof scenarioSchema>;
-
-// The lunch meal shell every dose/clean entry shares — only the single item
-// differs, so both builders fill it in rather than repeating the envelope.
-function lunchMeal(date: string, item: Meal['items'][number]): Meal {
-  return {
-    id: `${date}:lunch`,
-    date,
-    mealType: 'lunch',
-    actor: 'mother',
-    items: [item],
-    createdAt: `${date}T12:00:00`,
-  };
-}
-
-function cleanMeal(date: string): Meal {
-  return lunchMeal(date, {
-    id: `${date}-clean`,
-    name: 'bez alergenu',
-    foodId: 'other:none',
-    amount: 'portion',
-  });
-}
-
-function skin(date: string, level: RegionLevel): SkinObservation {
-  return {
-    id: `${date}-skin`,
-    date,
-    createdAt: `${date}T08:00:00`,
-    regions: level === 0 ? [] : [{ id: 'face', level }],
-  };
-}
-
-/** String date math via a UTC anchor so it never shifts across a local TZ. */
-function nextISO(iso: string): string {
-  const d = new Date(iso + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
 
 /**
  * Enforce strict, consecutive, ascending dates (#523): the author lists every
@@ -139,61 +92,20 @@ function assertStrictDates(dates: readonly string[]): void {
   }
 }
 
+/** Flatten a scenario's `days: [{date, events}]` into the shared dated events. */
+function flattenEvents(doc: ScenarioDoc): RunEvent[] {
+  return doc.days.flatMap((day) => day.events.map((event) => ({ ...event, date: day.date })));
+}
+
 /** Parse + Zod-validate one scenario's YAML into the shared `JourneyRun`. */
 export function parseScenario(yamlText: string): JourneyRun {
   const doc: ScenarioDoc = scenarioSchema.parse(parseYaml(yamlText));
   const dates = doc.days.map((d) => d.date);
   assertStrictDates(dates);
 
-  const allergen = doc.allergen;
-
-  // `allergen` is fixed for the whole file, so the allergen-bearing builders close
-  // over it here instead of threading it through every call alongside the date.
-  // `other:<id>` guarantees a meal registers as a dose without wiring up the food
-  // catalog — `foodTriggers` slices the prefix (`ladder.ts`).
-  const dose = (date: string, amount: PortionKind): Meal =>
-    lunchMeal(date, { id: `${date}-dose`, name: allergen, foodId: `other:${allergen}`, amount });
-  const evaluation = (
-    date: string,
-    outcome: (typeof OUTCOMES)[number],
-  ): ReintroductionEvaluation => ({
-    phaseId: 'p1',
-    phaseType: 'allergen-test',
-    outcome,
-    allergenId: allergen,
-    date,
-  });
-
-  const meals: Meal[] = [];
-  const observations: SkinObservation[] = [];
-  const evaluations: ReintroductionEvaluation[] = [];
-
-  for (const day of doc.days) {
-    for (const event of day.events) {
-      if ('meal' in event) {
-        meals.push(event.meal === 'none' ? cleanMeal(day.date) : dose(day.date, event.meal));
-      } else if ('skin' in event) {
-        observations.push(skin(day.date, event.skin));
-      } else if ('eval' in event) {
-        evaluations.push(evaluation(day.date, event.eval));
-      } else {
-        // A new `dayEvent` variant must be handled above — never silently
-        // dropped or miscategorized (matches the engine's `never` guard).
-        const _exhaustive: never = event;
-        throw new Error(`scenario: unknown event kind ${JSON.stringify(_exhaustive)}`);
-      }
-    }
-  }
-
-  return {
-    allergenId: allergen,
-    // `allergenId.refine` already asserted `LADDERS.has(allergen)` (safe `!`).
-    defaultLadder: LADDERS.get(allergen)!,
-    stage: doc.stage,
-    cadenceDays: cadenceForPhase(doc.phase),
-    stabilityWindowDays: stabilityWindowFor(doc.phase),
-    isPermanentlyEliminated: doc.permanent,
-    events: { meals, observations, evaluations },
-    days: dates,
-  } satisfies JourneyRun;
+  return buildRun(
+    { allergen: doc.allergen, phase: doc.phase, stage: doc.stage, permanent: doc.permanent },
+    dates,
+    flattenEvents(doc),
+  );
 }
