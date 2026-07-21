@@ -83,7 +83,7 @@ A single pure function `decideLadderMove(input): LadderDecision` in `ladder.ts` 
 6. cadence not elapsed → `hold('cadence', daysRemaining)` — the spacing is now **mode-driven** (§6): probe cadence = the injected phase cadence (1 in F4, 3 in F3), confirm `cadence ≥ latency`
 7. otherwise → `advance`; at the top, `passed` while the dwell runs, then `settled` once it completes (§6)
 
-A recorded reaction outranks the rhythm gates; skin state outranks cadence (never advance while skin trends worse, even when the clock allows). A **steady baseline is not a hold reason** — mild eczema steady at severity 1 through the window is escalation-eligible; only an *increase* over the window's baseline blocks. The skin gate is `skinStabilityGate(observations, today, stabilityWindowDays)` with `stabilityWindowDays = max(cadenceDays, 3)` (`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day cadence from shrinking the safety window below a readable trend). `skinCalmGate` remains only as a UI "is there a flare right now?" signal, out of the decision path.
+A recorded reaction outranks the rhythm gates; skin state outranks cadence (never advance while skin trends worse, even when the clock allows). A **steady baseline is not a hold reason** — mild eczema steady at severity 1 through the window is escalation-eligible; only an *increase* over the window's baseline blocks. The skin gate is `skinStabilityGate(observations, today, stabilityWindowDays)` with `stabilityWindowDays = max(cadenceDays, 3)` (`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day cadence from shrinking the safety window below a readable trend).
 
 **Reaction → rest → step-back → re-test.** A checkpoint reaction yields `rest(days)` keyed to severity (ADR-0016 `REST_PHASE_DAYS_*`). When the window elapses (`today` past `until`), the engine surfaces `step-back` to the **last-passing rung** (directly below the reacting one) and re-tests — auto-due, but still a mother-logged meal. A clean re-test re-advances: a reaction is a *temporary* setback, not a cap. A rung that reacts `MAX_RUNG_REACTIONS` times, and the floor case (lowest rung reacts, nowhere lower to retreat), unify into the *same* terminal `ceiling-reached`. The engine never converts a terminal into a `permanent-*` status itself (ADR-0012 / ADR-0024) — it defers to human care.
 
@@ -119,7 +119,7 @@ The "it's really ~4 buckets" intuition is served **as a derived projection, not 
 
 Do not "simplify" this union into nested kinds without replacing the lost per-payload exhaustiveness — the flatness is load-bearing, not an oversight.
 
-Applying a verdict, and any UI rendering, is out of scope for the engine (PRD #423 / a follow-up UI pass). `scripts/simulate.ts` drives the engine and prints a `verdict:` line per allergen.
+Applying a verdict, and any UI rendering, is out of scope for the engine (PRD #423 / a follow-up UI pass). `tools/ladder-viz` drives the engine to replay and inspect that verdict per allergen.
 
 ## Consequences
 

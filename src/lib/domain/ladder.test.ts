@@ -25,7 +25,6 @@ import {
   nextLegalStep,
   resolveLadder,
   rungAtDayInPhase,
-  skinCalmGate,
   skinStabilityGate,
 } from './ladder';
 import type { Ladder, LadderDecisionInput, LadderStep } from './ladder';
@@ -355,8 +354,6 @@ describe('cadenceGate', () => {
   });
 });
 
-// ── skinCalmGate ──────────────────────────────────────────────
-
 function obs(
   date: string,
   level: 0 | 1 | 2 | 3,
@@ -370,36 +367,6 @@ function obs(
     ...(overrides ?? {}),
   };
 }
-
-describe('skinCalmGate', () => {
-  it('holds escalation when the latest observation shows any active region (flare)', () => {
-    const observations: SkinObservation[] = [
-      obs('2026-06-01', 0),
-      obs('2026-06-02', 2), // flare
-    ];
-    const result = skinCalmGate(observations, '2026-06-02');
-    expect(result.allowed).toBe(false);
-    expect(result.isFlare).toBe(true);
-  });
-
-  it('releases escalation once the latest observation returns to klidné', () => {
-    const observations: SkinObservation[] = [
-      obs('2026-06-01', 2), // earlier flare
-      obs('2026-06-03', 0), // calm
-    ];
-    const result = skinCalmGate(observations, '2026-06-03');
-    expect(result.allowed).toBe(true);
-    expect(result.isFlare).toBe(false);
-    expect(result.latestSeverity).toBe(0);
-  });
-
-  it('ignores observations after `today` — future observations do not gate a past date', () => {
-    const observations: SkinObservation[] = [obs('2026-06-01', 0), obs('2026-06-05', 3)];
-    const result = skinCalmGate(observations, '2026-06-02');
-    expect(result.allowed).toBe(true);
-    expect(result.isFlare).toBe(false);
-  });
-});
 
 // ── skinStabilityGate ─────────────────────────────────────────
 

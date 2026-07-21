@@ -111,10 +111,6 @@ setup-hooks:
 dev:
     bun run dev -- --host 0.0.0.0
 
-# Run allergen ladder simulator (no args → DEFAULT_TESTED_ALLERGENS; pass allergen ids and/or phase=tolerance-building|reintroduction, verbose=true|false)
-simulate *args:
-    bun run scripts/simulate.ts {{args}}
-
 # Launch the ladder-engine visualizer (separate Vite root under tools/, not shipped)
 viz:
     bunx svelte-kit sync

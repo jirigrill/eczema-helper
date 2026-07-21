@@ -3,8 +3,8 @@
 // journey and cascade render identically regardless of which mode built the run.
 // It mirrors the scenario shape exactly: a run setup fixed at session start, and
 // the same three per-day event kinds applied to "today", plus advance-day. It is
-// NOT a free-form live editor and carries none of `simulate.ts`'s mid-run
-// stage/phase/permanent switches. NO decision logic lives here — like the
+// NOT a free-form live editor and carries none of the old CLI simulator's
+// mid-run stage/phase/permanent switches. NO decision logic lives here — like the
 // scenario loader, it only *constructs* the domain records the engine reads.
 import type { AllergenOutcome, PortionKind, RegionLevel } from '$lib/domain/models';
 
