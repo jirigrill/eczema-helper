@@ -43,22 +43,30 @@
   };
 
   // The four structural steps carry no payload of their own (`detail` is just
-  // `{ step: name }`) — their real evidence is these `LadderStateSnapshot`
-  // fields (plus, for the very first step, the ladder setup itself). Reading
-  // the LIVE VALUES here (not just naming the field) is what makes "why did
-  // this fire" answerable without leaving the pane.
+  // `{ step: name }`). Three of them read `LadderStateSnapshot` fields; the
+  // first instead reads the ladder's own setup (stage/elimination flag), which
+  // is NOT part of the snapshot — each gets its own accurate source label so
+  // the pane never claims a source the value didn't actually come from.
+  const STRUCTURAL_SOURCE: Record<LadderPrecedenceStepName, string> = {
+    'permanent-or-empty': "inputs — read from the ladder's own setup (not the derived state)",
+    ceiling: 'inputs — read directly from the derived state (no gate payload of its own)',
+    reaction: 'inputs — read directly from the derived state (no gate payload of its own)',
+    'skin-worsening': '',
+    cadence: '',
+    'advance-or-dwell': 'inputs — read directly from the derived state (no gate payload of its own)',
+  };
   const STRUCTURAL_INPUTS: Record<LadderPrecedenceStepName, (day: DayView) => { k: string; v: string }[]> = {
     'permanent-or-empty': (d) => [
       { k: 'isPermanentlyEliminated', v: String(d.isPermanentlyEliminated) },
       { k: 'stage rung count', v: String(d.rungs.length) },
     ],
-    ceiling: (d) => [{ k: 'derived state · ceilingRung', v: fmtRung(d.explain.snapshot.ceilingRung) }],
-    reaction: (d) => [{ k: 'derived state · pendingReaction', v: fmtPendingReaction(d.explain.snapshot.pendingReaction) }],
+    ceiling: (d) => [{ k: 'ceilingRung', v: fmtRung(d.explain.snapshot.ceilingRung) }],
+    reaction: (d) => [{ k: 'pendingReaction', v: fmtPendingReaction(d.explain.snapshot.pendingReaction) }],
     'skin-worsening': () => [],
     cadence: () => [],
     'advance-or-dwell': (d) => [
-      { k: 'derived state · liveRung', v: fmtRung(d.explain.snapshot.liveRung) },
-      { k: 'derived state · dwell', v: fmtDwell(d.explain.snapshot.dwell) },
+      { k: 'liveRung', v: fmtRung(d.explain.snapshot.liveRung) },
+      { k: 'dwell', v: fmtDwell(d.explain.snapshot.dwell) },
     ],
   };
 
@@ -68,14 +76,21 @@
       return 'dose' in (v as Record<string, unknown>) ? String((v as { dose: string }).dose) : JSON.stringify(v);
     return String(v);
   }
-  // Reflect over the gate result object + its paired threshold — generic.
-  function gateRows(step: LadderPrecedenceStep): { k: string; v: string }[] {
+  // The gate's own result bundles what it read (inputs) with what it decided
+  // (`allowed`, its own local output) in one object — split them so the pane
+  // never lists a gate's verdict under an "inputs" heading.
+  function gateInputRows(step: LadderPrecedenceStep): { k: string; v: string }[] {
     if (!('gate' in step.detail)) return [];
     const d = step.detail;
-    const rows = Object.entries(d.gate).map(([k, v]) => ({ k, v: fmt(v) }));
+    const rows = Object.entries(d.gate)
+      .filter(([k]) => k !== 'allowed')
+      .map(([k, v]) => ({ k, v: fmt(v) }));
     if ('windowDays' in d) rows.push({ k: 'windowDays', v: String(d.windowDays) });
     if ('cadenceDays' in d) rows.push({ k: 'cadenceDays (effective)', v: String(d.cadenceDays) });
     return rows;
+  }
+  function gateAllowed(step: LadderPrecedenceStep): boolean | undefined {
+    return 'gate' in step.detail ? step.detail.gate.allowed : undefined;
   }
 
   // The selected row's detail is shown in the side pane; 'decision' or null both
@@ -129,19 +144,21 @@
       <div class="d-status" title={STATUS_HINT[selectedStep.status]}>{STATUS_LABEL[selectedStep.status]}</div>
 
       {#if 'gate' in selectedStep.detail}
-        <div class="d-sub">inputs — gate result read from the engine</div>
-        {#each gateRows(selectedStep) as r (r.k)}
+        <div class="d-sub">inputs — what the gate read</div>
+        {#each gateInputRows(selectedStep) as r (r.k)}
           <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
         {/each}
+        <div class="d-sub d-output">gate output — what it decided</div>
+        <div class="d-row"><code class="k">allowed</code><span class="v">{gateAllowed(selectedStep)}</span></div>
       {:else}
-        <div class="d-sub">inputs — this step carries no payload of its own; its evidence lives in the derived state</div>
+        <div class="d-sub">{STRUCTURAL_SOURCE[selectedStep.name]}</div>
         {#each STRUCTURAL_INPUTS[selectedStep.name](day) as r (r.k)}
           <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
         {/each}
       {/if}
 
       {#if selectedStep.status === 'fired'}
-        <div class="d-sub d-output">output — this step produced today's decision</div>
+        <div class="d-sub d-output">engine decision — this step produced it</div>
         <div class="d-label">{day.verdictLabel}</div>
         <pre class="d-json">{day.verdictJson}</pre>
       {/if}
