@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LadderDecision } from '$lib/domain/ladder';
+import { explainLadderMove } from '$lib/domain/ladder';
 
-import { journeyNodeKind, replayJourney } from './journey';
+import { journeyNodeKind, replayDays, resolveDay } from './journey';
 import { RUN_INPUT } from './scenario';
 
-describe('journeyNodeKind — LadderDecision → journey node kind', () => {
+describe('journeyNodeKind — LadderDecision → journey situation', () => {
   it('maps advance to climbing', () => {
     const decision: LadderDecision = {
       kind: 'advance',
@@ -15,13 +16,8 @@ describe('journeyNodeKind — LadderDecision → journey node kind', () => {
     expect(journeyNodeKind(decision)).toBe('climbing');
   });
 
-  it('splits hold by reason: cadence → holding-cadence, skin-worsening → holding-skin', () => {
-    const rung = {
-      id: 'r2',
-      anchor: 'teaspoon' as const,
-      isEvaluationCheckpoint: false,
-      dose: '¼',
-    };
+  it('splits hold by reason and maps the remaining arms', () => {
+    const rung = { id: 'r2', anchor: 'teaspoon' as const, isEvaluationCheckpoint: false, dose: '¼' };
     expect(journeyNodeKind({ kind: 'hold', rung, reason: 'cadence', daysRemaining: 2 })).toBe(
       'holding-cadence',
     );
@@ -34,10 +30,6 @@ describe('journeyNodeKind — LadderDecision → journey node kind', () => {
         currentSeverity: 2,
       }),
     ).toBe('holding-skin');
-  });
-
-  it('maps the remaining live arms and splits ceiling-reached by reason', () => {
-    const rung = { id: 'r3', anchor: 'spoon' as const, isEvaluationCheckpoint: false, dose: '½' };
     expect(journeyNodeKind({ kind: 'rest', rung, days: 7, until: '2026-06-10' })).toBe('resting');
     expect(journeyNodeKind({ kind: 'step-back', from: rung, to: rung })).toBe('stepped-back');
     expect(journeyNodeKind({ kind: 'passed', rung })).toBe('dwelling');
@@ -50,83 +42,50 @@ describe('journeyNodeKind — LadderDecision → journey node kind', () => {
       'ceiling-severe',
     );
   });
+});
 
-  it('maps the future arms the engine does not emit yet', () => {
-    const rung = { id: 'r1', anchor: 'pinch' as const, isEvaluationCheckpoint: false, dose: 'x' };
-    expect(journeyNodeKind({ kind: 'adapting-decelerate', rung })).toBe('adapting-decelerate');
-    expect(journeyNodeKind({ kind: 'suspected-reaction', rung })).toBe('suspected-reaction');
+describe('replayDays — one resolved day per calendar day', () => {
+  it('resolves exactly one day per calendar day, in order', () => {
+    const days = replayDays(RUN_INPUT);
+    expect(days).toHaveLength(RUN_INPUT.days.length);
+    expect(days.map((d) => d.date)).toEqual([...RUN_INPUT.days]);
+  });
+
+  it('each day is the real explainLadderMove over the history clipped to that day', () => {
+    for (const { date, explain } of replayDays(RUN_INPUT)) {
+      const expected = explainLadderMove({
+        allergenId: RUN_INPUT.allergenId,
+        meals: RUN_INPUT.events.meals.filter((m) => m.date <= date),
+        evaluations: RUN_INPUT.events.evaluations.filter((e) => e.date <= date),
+        observations: RUN_INPUT.events.observations.filter((o) => o.date <= date),
+        defaultLadder: RUN_INPUT.defaultLadder,
+        stage: RUN_INPUT.stage,
+        today: date,
+        cadenceDays: RUN_INPUT.cadenceDays,
+        stabilityWindowDays: RUN_INPUT.stabilityWindowDays,
+        isPermanentlyEliminated: RUN_INPUT.isPermanentlyEliminated,
+      });
+      expect(explain.decision).toEqual(expected.decision);
+    }
+  });
+
+  it('every day carries the fixed 6-step trace with exactly one fired step', () => {
+    for (const { explain } of replayDays(RUN_INPUT)) {
+      expect(explain.steps).toHaveLength(6);
+      expect(explain.steps.filter((s) => s.status === 'fired')).toHaveLength(1);
+    }
   });
 });
 
-describe('replayJourney — day-spine of collapsed situations', () => {
-  it('prepends the synthetic not-started entry node before any engine verdict', () => {
-    const days = replayJourney(RUN_INPUT);
-    expect(days[0]?.kind).toBe('not-started');
+describe('resolveDay — a single day of a run', () => {
+  it('matches the same day from a full replay', () => {
+    const date = RUN_INPUT.days[3]!;
+    expect(resolveDay(RUN_INPUT, date)?.explain).toEqual(
+      replayDays(RUN_INPUT).find((d) => d.date === date)?.explain,
+    );
   });
 
-  it('collapses consecutive identical boxes into one node per distinct situation', () => {
-    const kinds = replayJourney(RUN_INPUT).map((d) => d.kind);
-    // Independently derived by replaying explainLadderMove day-by-day over RUN:
-    // a probe climb, a skin-worsening hold, the top-rung dwell, settle, then a
-    // late reaction re-opens the run (rest → step-back).
-    expect(kinds).toEqual([
-      'not-started',
-      'holding-cadence',
-      'climbing',
-      'holding-skin',
-      'holding-cadence',
-      'settled',
-      'resting',
-      'stepped-back',
-    ]);
-  });
-
-  it('has no two adjacent boxes of the same kind (collapse invariant)', () => {
-    const kinds = replayJourney(RUN_INPUT).map((d) => d.kind);
-    for (let i = 1; i < kinds.length; i++) {
-      expect(kinds[i]).not.toBe(kinds[i - 1]);
-    }
-  });
-
-  it('nests the events logged within a box span inside that box', () => {
-    const days = replayJourney(RUN_INPUT);
-    // The skin-worsening hold spans 06-04..06-05; the reading that triggered it
-    // (severity 2 on 06-04) is nested as evidence inside that box.
-    const skinBox = days.find((d) => d.kind === 'holding-skin');
-    expect(skinBox?.events.map((e) => e.channel)).toContain('observation');
-    expect(
-      skinBox?.events.some(
-        (e) => e.channel === 'observation' && e.observation.date === '2026-06-04',
-      ),
-    ).toBe(true);
-  });
-
-  it('nests a day’s events in channel order (meal, observation, eval)', () => {
-    const days = replayJourney(RUN_INPUT);
-    // Every nested event's date falls within its box's [fromDate, toDate] span.
-    for (const box of days) {
-      for (const event of box.events) {
-        expect(event.date >= box.fromDate && event.date <= box.toDate).toBe(true);
-      }
-    }
-  });
-
-  it('keeps the honest settled → resting edge for the reversible terminal', () => {
-    const days = replayJourney(RUN_INPUT);
-    const settledIdx = days.findIndex((d) => d.kind === 'settled');
-    expect(settledIdx).toBeGreaterThan(-1);
-    // The reversible terminal (#519): a late reaction after settling re-opens
-    // the run, so `resting` follows `settled` — the one edge out of settled.
-    expect(days[settledIdx + 1]?.kind).toBe('resting');
-    // That re-open was driven by the mild-reaction evaluation channel.
-    expect(days[settledIdx + 1]?.enteredVia).toBe('eval');
-  });
-
-  it('labels a time-triggered transition as the time channel when no event fired', () => {
-    const days = replayJourney(RUN_INPUT);
-    // `settled` opens once the dwell latency elapses with no event that day —
-    // a pure `time` transition, not a meal/observation/eval.
-    const settled = days.find((d) => d.kind === 'settled');
-    expect(settled?.enteredVia).toBe('time');
+  it('returns null for a date outside the calendar', () => {
+    expect(resolveDay(RUN_INPUT, '1999-01-01')).toBeNull();
   });
 });

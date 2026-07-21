@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type JourneyNodeKind, replayJourney } from './journey';
+import { type JourneyNodeKind, journeyNodeKind, replayDays } from './journey';
 import { parseScenario } from './scenario-loader';
 
 describe('parseScenario — valid YAML → typed JourneyRun', () => {
@@ -182,8 +182,7 @@ days:
       - meal: teaspoon
 `;
     const run = parseScenario(yaml);
-    const journey = replayJourney(run);
-    const kinds = journey.map((d) => d.kind);
+    const kinds = replayDays(run).map((d) => journeyNodeKind(d.explain.decision));
     // A permanently-eliminated allergen is blocked regardless of doses logged.
     expect(kinds).toContain('blocked');
     expect(kinds).not.toContain('climbing');
@@ -248,15 +247,15 @@ describe('shipped scenarios — each replays its named distinct path (#523)', ()
       expect(text, `scenario ${name}.yaml is missing`).toBeDefined();
 
       const run = parseScenario(text!);
-      const journey = replayJourney(run);
-      const kinds = journey.map((d) => d.kind);
+      const days = replayDays(run);
+      const kinds = days.map((d) => journeyNodeKind(d.explain.decision));
 
       for (const kind of visits) expect(kinds).toContain(kind);
       if (endsAt) expect(kinds.at(-1)).toBe(endsAt);
 
       if (terminalRung) {
         const floorRungId = run.defaultLadder.stages[run.stage]?.[0]?.id;
-        const liveRungId = journey.at(-1)?.explain?.snapshot.liveRung?.id;
+        const liveRungId = days.at(-1)?.explain.snapshot.liveRung?.id;
         if (terminalRung === 'floor') {
           expect(liveRungId).toBe(floorRungId);
         } else {
