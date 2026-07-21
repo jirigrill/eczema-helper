@@ -1,7 +1,7 @@
 <!-- Ladder-engine single-day inspector. Two zones: a left "situation" column
      (ladder + the day's inputs, with a manual editor in manual mode) and the
-     engine pipeline resolving to the verdict on the right, under a snapshot bar.
-     Every component renders the real #521 `LadderExplain` shape (from
+     engine pipeline resolving to the decision on the right, under a derived-state
+     bar. Every component renders the real #521 `LadderExplain` shape (from
      `$lib/domain/ladder` via `computeDay`) — none import engine decision logic. -->
 <script lang="ts">
   import type { FeedingStage } from '$lib/domain/canonical-allergen';
@@ -145,7 +145,7 @@
 
     {#if day}
       <div class="verdict">
-        <span class="vlabel">verdict</span>
+        <span class="vlabel">decision</span>
         <span class="verdict-pill tone-{day.verdictTone}" title={day.verdictLabel}>{day.verdictLabel}</span>
       </div>
     {/if}
@@ -173,7 +173,7 @@
       <section class="col engine">
         <div class="col-h">
           engine · explainLadderMove trace
-          <span class="note">read-only — rendered from the real seam shape · click a node to unroll</span>
+          <span class="note">read-only — rendered from the real seam shape · click a step to see its detail</span>
         </div>
         <SnapshotBar snapshot={day.explain.snapshot} />
         <div class="flow"><EnginePipeline {day} /></div>

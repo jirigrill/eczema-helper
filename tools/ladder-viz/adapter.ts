@@ -5,7 +5,7 @@
 // come straight from the engine seam; this only labels and lays them out. Since
 // #521's F build landed, `explainLadderMove` is a real export and nothing is
 // reconstructed (the prototype's old `seam.ts`/`buildExplain` are gone).
-import type { LadderDecision } from '$lib/domain/ladder';
+import type { LadderDecision, LadderStateSnapshot } from '$lib/domain/ladder';
 import type { AllergenOutcome, RegionLevel } from '$lib/domain/models';
 
 import type { DayResolution, JourneyRun } from './journey';
@@ -21,6 +21,19 @@ export const OUTCOME_LABEL: Record<AllergenOutcome, string> = {
 };
 
 export const SEV_LABEL = ['klidné', 'mírné', 'střední', 'silné'];
+
+// Shared formatters for `LadderStateSnapshot` fields — used by the snapshot bar
+// and by the engine pipeline's structural-step detail, so the two can never
+// disagree on how a null rung or an empty dwell reads.
+export function fmtRung(r: { dose: string } | null): string {
+  return r ? r.dose : 'null';
+}
+export function fmtPendingReaction(p: LadderStateSnapshot['pendingReaction']): string {
+  return p ? `${p.rung.dose} · until ${p.until || '—'}` : 'null';
+}
+export function fmtDwell(d: LadderStateSnapshot['dwell']): string {
+  return `${d.count}× · ${d.lastDoseDate ?? '—'}`;
+}
 
 // ── View-model ────────────────────────────────────────────────────────────────
 
@@ -38,6 +51,7 @@ export interface DayView {
   verdictTone: 'go' | 'hold' | 'stop';
   verdictJson: string;
   rungs: RungView[];
+  isPermanentlyEliminated: boolean;
   allergenLabel: string;
   inputs: {
     meals: { time: string; text: string; dose: string }[];
@@ -124,6 +138,7 @@ export function computeDay(run: JourneyRun, date: string): DayView | null {
     verdictTone: verdictTone(decision),
     verdictJson: JSON.stringify(decision, null, 2),
     rungs,
+    isPermanentlyEliminated: run.isPermanentlyEliminated ?? false,
     allergenLabel: run.allergenId,
     inputs: {
       meals: dayMeals.map((m) => {

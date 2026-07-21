@@ -1,27 +1,35 @@
 <!-- The `LadderStateSnapshot` (from the real #521 seam), shown once above the
-     pipeline — the derived state the structural steps cross-reference. All 5
-     fields always present, explicit nulls. -->
+     pipeline — the ladder state as computed for this day, which the structural
+     steps in the pipeline cross-reference instead of repeating. All 5 fields
+     always present, explicit nulls. Labelled "derived state" rather than the
+     seam's own "snapshot" — "snapshot" reads as stale/historical, which this
+     isn't (it's recomputed fresh for the selected day); the tooltip still names
+     the real type for anyone tracing back to the seam. -->
 <script lang="ts">
   import type { LadderStateSnapshot } from '$lib/domain/ladder';
 
-  let { snapshot }: { snapshot: LadderStateSnapshot } = $props();
+  import { fmtDwell, fmtPendingReaction, fmtRung } from './adapter';
 
-  const dose = (r: { dose: string } | null) => (r ? r.dose : 'null');
+  let { snapshot }: { snapshot: LadderStateSnapshot } = $props();
 </script>
 
 <div class="bar">
   <span class="tag">
-    snapshot
-    <span class="info" title="LadderStateSnapshot — derived engine state the steps below cross-reference, not the raw logged inputs">?</span>
+    derived state
+    <span
+      class="info"
+      title="LadderStateSnapshot — the ladder's state as computed for this day (not raw logged inputs, not history)"
+      >?</span
+    >
   </span>
-  <div class="cell"><span class="k">liveRung</span><span class="v">{dose(snapshot.liveRung)}</span></div>
+  <div class="cell"><span class="k">liveRung</span><span class="v">{fmtRung(snapshot.liveRung)}</span></div>
   <div class="cell"><span class="k">mode</span><span class="v">{snapshot.mode}</span></div>
   <div class="cell">
     <span class="k">pendingReaction</span>
-    <span class="v">{snapshot.pendingReaction ? `${snapshot.pendingReaction.rung.dose} · until ${snapshot.pendingReaction.until || '—'}` : 'null'}</span>
+    <span class="v">{fmtPendingReaction(snapshot.pendingReaction)}</span>
   </div>
-  <div class="cell"><span class="k">ceilingRung</span><span class="v">{dose(snapshot.ceilingRung)}</span></div>
-  <div class="cell"><span class="k">dwell</span><span class="v">{snapshot.dwell.count}× · {snapshot.dwell.lastDoseDate ?? '—'}</span></div>
+  <div class="cell"><span class="k">ceilingRung</span><span class="v">{fmtRung(snapshot.ceilingRung)}</span></div>
+  <div class="cell"><span class="k">dwell</span><span class="v">{fmtDwell(snapshot.dwell)}</span></div>
 </div>
 
 <style>

@@ -6,8 +6,12 @@
      the row in place — so nothing else ever resizes or re-frames. This component
      maps the seam tuple to rows; it holds NO engine knowledge. -->
 <script lang="ts">
-  import type { LadderPrecedenceStep, LadderPrecedenceStepName } from '$lib/domain/ladder';
-  import type { DayView } from './adapter';
+  import type {
+    LadderPrecedenceStep,
+    LadderPrecedenceStepName,
+    LadderPrecedenceStepStatus,
+  } from '$lib/domain/ladder';
+  import { fmtDwell, fmtPendingReaction, fmtRung, type DayView } from './adapter';
 
   let { day }: { day: DayView } = $props();
 
@@ -20,13 +24,42 @@
     cadence: 'effectiveCadenceDays() · cadenceGate()',
     'advance-or-dwell': 'nextLegalStep() · dwell',
   };
-  const SNAP_REF: Record<LadderPrecedenceStepName, string> = {
-    'permanent-or-empty': 'snapshot: liveRung / rung count',
-    ceiling: 'snapshot.ceilingRung',
-    reaction: 'snapshot.pendingReaction',
-    'skin-worsening': '',
-    cadence: '',
-    'advance-or-dwell': 'snapshot.liveRung · dwell',
+
+  // Plain-English gloss for each seam status value — the raw enum name
+  // ("passed-confirmed" vs. "passed-no-data") reads as one word and hides the
+  // distinction that matters: whether the step passed on real evidence, or
+  // only because there's nothing logged yet to hold it against.
+  const STATUS_LABEL: Record<LadderPrecedenceStepStatus, string> = {
+    fired: 'fired — produced the decision',
+    'not-reached': 'not reached',
+    'passed-confirmed': 'passed — confirmed by evidence',
+    'passed-no-data': 'passed — no data yet',
+  };
+  const STATUS_HINT: Record<LadderPrecedenceStepStatus, string> = {
+    fired: "this step's branch produced today's decision",
+    'not-reached': 'an earlier step already produced the decision; this one never ran',
+    'passed-confirmed': 'ran, and passed because real logged evidence said so',
+    'passed-no-data': 'ran, and passed only because nothing has been logged yet to hold it against',
+  };
+
+  // The four structural steps carry no payload of their own (`detail` is just
+  // `{ step: name }`) — their real evidence is these `LadderStateSnapshot`
+  // fields (plus, for the very first step, the ladder setup itself). Reading
+  // the LIVE VALUES here (not just naming the field) is what makes "why did
+  // this fire" answerable without leaving the pane.
+  const STRUCTURAL_INPUTS: Record<LadderPrecedenceStepName, (day: DayView) => { k: string; v: string }[]> = {
+    'permanent-or-empty': (d) => [
+      { k: 'isPermanentlyEliminated', v: String(d.isPermanentlyEliminated) },
+      { k: 'stage rung count', v: String(d.rungs.length) },
+    ],
+    ceiling: (d) => [{ k: 'derived state · ceilingRung', v: fmtRung(d.explain.snapshot.ceilingRung) }],
+    reaction: (d) => [{ k: 'derived state · pendingReaction', v: fmtPendingReaction(d.explain.snapshot.pendingReaction) }],
+    'skin-worsening': () => [],
+    cadence: () => [],
+    'advance-or-dwell': (d) => [
+      { k: 'derived state · liveRung', v: fmtRung(d.explain.snapshot.liveRung) },
+      { k: 'derived state · dwell', v: fmtDwell(d.explain.snapshot.dwell) },
+    ],
   };
 
   function fmt(v: unknown): string {
@@ -45,15 +78,15 @@
     return rows;
   }
 
-  // The selected row's detail is shown in the side pane; 'verdict' or null both
-  // show the verdict (null is the default, before anything's been clicked).
-  let selected = $state<LadderPrecedenceStepName | 'verdict' | null>(null);
+  // The selected row's detail is shown in the side pane; 'decision' or null both
+  // show the decision (null is the default, before anything's been clicked).
+  let selected = $state<LadderPrecedenceStepName | 'decision' | null>(null);
 
   const selectedStep = $derived(
-    selected && selected !== 'verdict' ? day.explain.steps.find((s) => s.name === selected) : undefined,
+    selected && selected !== 'decision' ? day.explain.steps.find((s) => s.name === selected) : undefined,
   );
 
-  function toggle(name: LadderPrecedenceStepName | 'verdict') {
+  function toggle(name: LadderPrecedenceStepName | 'decision') {
     selected = selected === name ? null : name;
   }
 </script>
@@ -72,38 +105,48 @@
           <code class="name">{step.name}</code>
           <code class="fn">{FN[step.name]}</code>
         </div>
-        <span class="badge">{step.status}</span>
+        <span class="badge" title={STATUS_HINT[step.status]}>{STATUS_LABEL[step.status]}</span>
       </button>
     {/each}
     <button
       type="button"
-      class="row verdict-row tone-{day.verdictTone}"
-      class:sel={selected === 'verdict' || selected === null}
-      onclick={() => toggle('verdict')}
+      class="row decision-row tone-{day.verdictTone}"
+      class:sel={selected === 'decision' || selected === null}
+      onclick={() => toggle('decision')}
     >
       <span class="idx">✓</span>
       <div class="titles">
-        <code class="name">verdict</code>
+        <code class="name">decision</code>
         <code class="fn">LadderExplain.decision</code>
       </div>
-      <span class="badge verdict-badge" title={day.verdictLabel}>{day.verdictLabel}</span>
+      <span class="badge decision-badge" title={day.verdictLabel}>{day.verdictLabel}</span>
     </button>
   </div>
 
   <div class="detail">
     {#if selectedStep}
       <div class="d-title">{selectedStep.name} · {FN[selectedStep.name]}</div>
+      <div class="d-status" title={STATUS_HINT[selectedStep.status]}>{STATUS_LABEL[selectedStep.status]}</div>
+
       {#if 'gate' in selectedStep.detail}
-        <div class="d-sub">gate result — read from the engine</div>
+        <div class="d-sub">inputs — gate result read from the engine</div>
         {#each gateRows(selectedStep) as r (r.k)}
           <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
         {/each}
       {:else}
-        <div class="d-sub">no payload — evidence in the snapshot</div>
-        <div class="ref">{SNAP_REF[selectedStep.name]}</div>
+        <div class="d-sub">inputs — this step carries no payload of its own; its evidence lives in the derived state</div>
+        {#each STRUCTURAL_INPUTS[selectedStep.name](day) as r (r.k)}
+          <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
+        {/each}
+      {/if}
+
+      {#if selectedStep.status === 'fired'}
+        <div class="d-sub d-output">output — this step produced today's decision</div>
+        <div class="d-label">{day.verdictLabel}</div>
+        <pre class="d-json">{day.verdictJson}</pre>
       {/if}
     {:else}
-      <div class="d-title">engine verdict · LadderDecision · {day.date}</div>
+      <div class="d-title">engine decision · LadderDecision · {day.date}</div>
       <div class="d-label">{day.verdictLabel}</div>
       <pre class="d-json">{day.verdictJson}</pre>
     {/if}
@@ -160,9 +203,9 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  .verdict-badge { max-width: 220px; overflow: hidden; text-overflow: ellipsis; text-transform: none; letter-spacing: 0; }
+  .decision-badge { max-width: 220px; overflow: hidden; text-overflow: ellipsis; text-transform: none; letter-spacing: 0; }
 
-  /* fired — this step produced the verdict; colored by the verdict's tone */
+  /* fired — this step produced the decision; colored by the decision's tone */
   .tone-go { --fired: var(--go); }
   .tone-hold { --fired: var(--hold); }
   .tone-stop { --fired: var(--stop); }
@@ -178,10 +221,10 @@
   /* not-reached — short-circuited before this step */
   .status-not-reached { opacity: 0.45; }
 
-  .verdict-row { border-style: dashed; }
-  .verdict-row.tone-go { background: color-mix(in srgb, var(--go) 8%, var(--surface)); }
-  .verdict-row.tone-hold { background: color-mix(in srgb, var(--hold) 8%, var(--surface)); }
-  .verdict-row.tone-stop { background: color-mix(in srgb, var(--stop) 8%, var(--surface)); }
+  .decision-row { border-style: dashed; }
+  .decision-row.tone-go { background: color-mix(in srgb, var(--go) 8%, var(--surface)); }
+  .decision-row.tone-hold { background: color-mix(in srgb, var(--hold) 8%, var(--surface)); }
+  .decision-row.tone-stop { background: color-mix(in srgb, var(--stop) 8%, var(--surface)); }
 
   .detail {
     flex: 1 1 44%;
@@ -192,12 +235,13 @@
     background: var(--surface);
     padding: 16px 18px;
   }
-  .d-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .d-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .d-status { display: inline-block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 14px; cursor: help; border-bottom: 1px dotted var(--muted); }
   .d-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
+  .d-output { margin-top: 16px; }
   .d-row { display: flex; justify-content: space-between; gap: 12px; line-height: 2.1; align-items: baseline; font-size: 13px; border-bottom: 1px solid var(--hair); }
   .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
   .v { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-  .ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
 
   .d-label { font-size: 22px; font-weight: 800; margin: 0 0 12px; color: var(--ink); }
   .d-json {
