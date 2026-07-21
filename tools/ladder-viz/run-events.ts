@@ -39,10 +39,15 @@ export const PHASES: readonly ReintroductionPhase[] = ['tolerance-building', 're
 export const STAGES: readonly FeedingStage[] = ['breastfed', 'mixed', 'solids'];
 
 /** String date math via a UTC anchor so it never shifts across a local TZ. */
-export function nextISO(iso: string): string {
+export function addISO(iso: string, days: number): string {
   const d = new Date(iso + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/** The next consecutive calendar day — one step of `addISO`, the common case. */
+export function nextISO(iso: string): string {
+  return addISO(iso, 1);
 }
 
 /** The run setup both modes fix at session start — a scenario header's fields. */
@@ -67,8 +72,10 @@ export const LADDERS = new Map<LadderAllergenId, Ladder>(
 );
 
 // The lunch-meal envelope both a dose and a clean meal share — only the single
-// `item` differs, so it lives in one place and the two callers can't drift.
-function lunchMeal(date: string, item: Meal['items'][number]): Meal {
+// `item` differs, so it lives in one place and the two callers can't drift. Also
+// the one meal envelope the `scenario.ts` test fixture builds its rung doses on,
+// so the fixture and the two live modes construct identical meal records.
+export function lunchMeal(date: string, item: Meal['items'][number]): Meal {
   return {
     id: `${date}:lunch`,
     date,
@@ -99,7 +106,7 @@ function cleanMeal(date: string): Meal {
   });
 }
 
-function skinObservation(date: string, level: RegionLevel): SkinObservation {
+export function skinObservation(date: string, level: RegionLevel): SkinObservation {
   return {
     id: `${date}-skin`,
     date,
@@ -108,7 +115,7 @@ function skinObservation(date: string, level: RegionLevel): SkinObservation {
   };
 }
 
-function evaluation(
+export function evaluation(
   allergen: LadderAllergenId,
   date: string,
   outcome: AllergenOutcome,

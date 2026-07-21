@@ -3,10 +3,12 @@
 // draws. It reads *only* the seam's `LadderExplain` — it re-derives nothing, so
 // what the cascade shows can never diverge from what the engine decided (#527).
 import type {
+  CadenceGateResult,
   LadderDecision,
   LadderExplain,
   LadderPrecedenceStep,
   LadderStateSnapshot,
+  SkinStabilityGateResult,
 } from '$lib/domain/ladder';
 
 /** One snapshot fact rendered up front — the field name and its raw value. */
@@ -72,6 +74,17 @@ const SNAPSHOT_FIELDS = (Object.keys(SNAPSHOT_ORDER) as (keyof LadderStateSnapsh
 );
 
 /**
+ * Every field of a gate result as an ordered signal list — derived generically
+ * (like `verdictDump`), not hand-listed, so a signal added to a gate result
+ * surfaces automatically and can never be silently dropped from the cascade
+ * (#531). Field order is the gate literal's declaration order (both `ladder.ts`
+ * gates return plain object literals), matching `verdictDump`'s assumption.
+ */
+function signalsOf(gate: SkinStabilityGateResult | CadenceGateResult): GateSignal[] {
+  return Object.entries(gate).map(([label, value]) => ({ label, value }));
+}
+
+/**
  * The gate payload for a gate-backed step, or `undefined` for a structural step
  * (whose evidence is the snapshot, not a gate). Reads the seam's `detail` — the
  * gate result and effective threshold the walker recorded — and pairs them.
@@ -79,23 +92,10 @@ const SNAPSHOT_FIELDS = (Object.keys(SNAPSHOT_ORDER) as (keyof LadderStateSnapsh
 function gateOf(step: LadderPrecedenceStep): CascadeGate | undefined {
   const { detail } = step;
   if (detail.step === 'skin-worsening') {
-    return {
-      threshold: detail.windowDays,
-      signals: [
-        { label: 'allowed', value: detail.gate.allowed },
-        { label: 'baselineSeverity', value: detail.gate.baselineSeverity },
-        { label: 'currentSeverity', value: detail.gate.currentSeverity },
-      ],
-    };
+    return { threshold: detail.windowDays, signals: signalsOf(detail.gate) };
   }
   if (detail.step === 'cadence') {
-    return {
-      threshold: detail.cadenceDays,
-      signals: [
-        { label: 'allowed', value: detail.gate.allowed },
-        { label: 'daysSinceLastDose', value: detail.gate.daysSinceLastDose },
-      ],
-    };
+    return { threshold: detail.cadenceDays, signals: signalsOf(detail.gate) };
   }
   return undefined;
 }
