@@ -1,12 +1,15 @@
 <!-- The engine as a state machine: the #521 `LadderExplain.steps` 6-tuple
      rendered as a locked, diagonal-cascade Svelte Flow canvas (no pan / no zoom /
      no drag). Each node is one seam step; click to unroll its detail. Steps step
-     down-and-right so fitView has both canvas dimensions to spread across —
-     a pure vertical column forces a tighter zoom-to-fit than the viewport's
-     aspect ratio needs, which is why nodes used to render smaller than they
-     have to. The cascade resolves into the verdict node. This component maps
-     the seam tuple to nodes — it holds NO engine knowledge. -->
+     down-and-right, and the horizontal step size is solved from the container's
+     own measured aspect ratio so the cascade's bounding box matches the viewport
+     shape — a mismatched box forces fitView to zoom to whichever axis is
+     tightest, leaving the other axis's space unused (which is why nodes used to
+     render smaller than they have to). The cascade resolves into the verdict
+     node. This component maps the seam tuple to nodes — it holds NO engine
+     knowledge. -->
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { SvelteFlow, Background, useSvelteFlow, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import type { LadderPrecedenceStep } from '$lib/domain/ladder';
@@ -22,9 +25,10 @@
   // Which step nodes are unrolled (keyed by the seam step name). Persists.
   let expanded = $state<Set<string>>(new Set());
 
+  const STEP_W = 460; // matches StepNode/VerdictNode's fixed CSS width
   const COLLAPSED = 112;
   const GAP = 30;
-  const X_STEP = 190; // horizontal advance per step, so the cascade uses width, not just height
+  const MIN_X_STEP = 60;
   function rowCount(step: LadderPrecedenceStep): number {
     if ('gate' in step.detail) {
       let n = Object.keys(step.detail.gate).length;
@@ -37,6 +41,39 @@
   function heightOf(step: LadderPrecedenceStep, isExpanded: boolean): number {
     return isExpanded ? COLLAPSED + 34 + rowCount(step) * 26 : COLLAPSED;
   }
+
+  // Measured live so the layout adapts to whatever space the engine column
+  // actually has, rather than a guessed constant.
+  let wrapper = $state<HTMLDivElement>();
+  let containerAspect = $state(1.6);
+  onMount(() => {
+    if (!wrapper) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) containerAspect = width / height;
+    });
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  });
+
+  const totalHeight = $derived.by(() => {
+    let y = 0;
+    day.explain.steps.forEach((step) => {
+      y += heightOf(step, expanded.has(step.name)) + GAP;
+    });
+    return y + 190; // room for the verdict node
+  });
+
+  // Solve the per-step horizontal advance so the cascade's overall bounding
+  // box (STEP_W + steps × xStep, by totalHeight) matches the container's
+  // aspect ratio — that's what lets fitView zoom in as far as the space allows.
+  const xStep = $derived.by(() => {
+    const desiredWidth = totalHeight * containerAspect;
+    const perStep = (desiredWidth - STEP_W) / day.explain.steps.length;
+    return Math.max(MIN_X_STEP, perStep);
+  });
 
   const nodes = $derived.by<Node[]>(() => {
     const out: Node[] = [];
@@ -53,7 +90,7 @@
         selectable: false,
       });
       y += heightOf(step, isExpanded) + GAP;
-      x += X_STEP;
+      x += xStep;
     });
     out.push({
       id: 'verdict',
@@ -99,34 +136,46 @@
     expanded = next;
   }
 
-  // Re-frame only when the day itself changes — an operator expanding a step
-  // should see that node unroll and later nodes shift down, not the whole
-  // canvas zoom. `fitView`'s own `fitView` prop covers the very first mount.
+  // Re-frame when the day changes or the container is (re)measured — both are
+  // genuine size/content changes. An operator expanding a step should just see
+  // that node unroll and later nodes shift along the cascade, not the whole
+  // canvas zoom, so `expanded` is deliberately not a dependency here.
   let lastDate: string | null = null;
+  let lastAspect: number | null = null;
   $effect(() => {
-    if (day.date === lastDate) return;
+    if (day.date === lastDate && containerAspect === lastAspect) return;
     lastDate = day.date;
-    const t = setTimeout(() => fitView({ padding: 0.12, duration: 200, maxZoom: 1 }), 60);
+    lastAspect = containerAspect;
+    const t = setTimeout(() => fitView({ padding: 0.08, duration: 200, maxZoom: 1.8 }), 60);
     return () => clearTimeout(t);
   });
 </script>
 
-<SvelteFlow
-  {nodes}
-  {edges}
-  {nodeTypes}
-  fitView
-  fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
-  nodesDraggable={false}
-  nodesConnectable={false}
-  elementsSelectable={false}
-  panOnDrag={false}
-  panOnScroll={false}
-  zoomOnScroll={false}
-  zoomOnPinch={false}
-  zoomOnDoubleClick={false}
-  preventScrolling={false}
-  onnodeclick={onNodeClick}
->
-  <Background bgColor="var(--canvas)" patternColor="#dfe3e9" />
-</SvelteFlow>
+<div class="wrapper" bind:this={wrapper}>
+  <SvelteFlow
+    {nodes}
+    {edges}
+    {nodeTypes}
+    fitView
+    fitViewOptions={{ padding: 0.08, maxZoom: 1.8 }}
+    nodesDraggable={false}
+    nodesConnectable={false}
+    elementsSelectable={false}
+    panOnDrag={false}
+    panOnScroll={false}
+    zoomOnScroll={false}
+    zoomOnPinch={false}
+    zoomOnDoubleClick={false}
+    preventScrolling={false}
+    onnodeclick={onNodeClick}
+  >
+    <Background bgColor="var(--canvas)" patternColor="#dfe3e9" />
+  </SvelteFlow>
+</div>
+
+<style>
+  .wrapper {
+    width: 100%;
+    height: 100%;
+  }
+</style>

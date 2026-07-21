@@ -5,7 +5,7 @@
      `$lib/domain/ladder` via `computeDay`) — none import engine decision logic. -->
 <script lang="ts">
   import type { FeedingStage } from '$lib/domain/canonical-allergen';
-  import type { LadderAllergenId } from '$lib/domain/models';
+  import type { LadderAllergenId, PortionKind } from '$lib/domain/models';
 
   import { computeDay } from './adapter';
   import DateStrip from './DateStrip.svelte';
@@ -92,6 +92,18 @@
 
   const day = $derived(run && selected ? computeDay(run, selected) : null);
   const rungs = $derived(run ? (run.defaultLadder.stages[run.stage] ?? []) : []);
+
+  // The day's dose is set by clicking a rung on the Ladder Rail — the single
+  // place manual mode edits it, so it isn't echoed by a second dose picker.
+  const curDoseAnchor = $derived(
+    manualEvents.find(
+      (e): e is Extract<RunEvent, { meal: unknown }> => e.date === selected && 'meal' in e,
+    )?.meal,
+  );
+  function toggleDose(anchor: PortionKind) {
+    const kept = manualEvents.filter((e) => !(e.date === selected && 'meal' in e));
+    manualEvents = curDoseAnchor === anchor ? kept : [...kept, { date: selected, meal: anchor }];
+  }
 </script>
 
 <div class="app">
@@ -149,9 +161,12 @@
     <main class="grid">
       <aside class="col situation">
         {#if mode === 'manual'}
-          <ManualEditor bind:events={manualEvents} date={selected} {rungs} />
+          <ManualEditor bind:events={manualEvents} date={selected} />
         {/if}
-        <LadderRail {day} />
+        <LadderRail
+          {day}
+          manual={mode === 'manual' ? { rungs, current: curDoseAnchor, onToggle: toggleDose } : undefined}
+        />
         <InputsPanel {day} />
       </aside>
 
@@ -168,7 +183,7 @@
 </div>
 
 <style>
-  .app { display: flex; flex-direction: column; height: 100vh; }
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
   .topbar { display: flex; align-items: center; gap: 18px; padding: 9px 16px; background: var(--ink); color: white; flex-wrap: wrap; }
   .brand { font-weight: 700; letter-spacing: 0.01em; }
 
