@@ -1,24 +1,16 @@
 <!-- Manual mode: log your own events on the selected day and watch the REAL
-     engine react. One dose / one skin reading / one reaction verdict per day
-     (clicking the active one clears it). Events flow into the shared `buildRun`
-     (run-events.ts) — the SAME event stream scenario replay uses, so both modes
-     drive the identical engine path and cannot drift. -->
+     engine react. One skin reading / one reaction verdict per day (clicking the
+     active one clears it); the day's dose is picked directly on the Ladder Rail,
+     not here, so the dose isn't echoed in two editors at once. Events flow into
+     the shared `buildRun` (run-events.ts) — the SAME event stream scenario
+     replay uses, so both modes drive the identical engine path and cannot drift. -->
 <script lang="ts">
-  import type { LadderStep } from '$lib/domain/canonical-allergen';
-  import type { AllergenOutcome, PortionKind, RegionLevel } from '$lib/domain/models';
+  import type { AllergenOutcome, RegionLevel } from '$lib/domain/models';
 
   import type { RunEvent } from './run-events';
 
-  let {
-    events = $bindable(),
-    date,
-    rungs,
-  }: { events: RunEvent[]; date: string; rungs: readonly LadderStep[] } = $props();
+  let { events = $bindable(), date }: { events: RunEvent[]; date: string } = $props();
 
-  const curMeal = $derived(
-    events.find((e): e is Extract<RunEvent, { meal: unknown }> => e.date === date && 'meal' in e)
-      ?.meal,
-  );
   const curSkin = $derived(
     events.find((e): e is Extract<RunEvent, { skin: unknown }> => e.date === date && 'skin' in e)
       ?.skin,
@@ -34,9 +26,6 @@
     events = next ? [...kept, next] : kept;
   }
 
-  function setDose(anchor: PortionKind) {
-    replace((e) => 'meal' in e, curMeal === anchor ? null : { date, meal: anchor });
-  }
   function setSkin(level: RegionLevel) {
     replace((e) => 'skin' in e, curSkin === level ? null : { date, skin: level });
   }
@@ -61,15 +50,6 @@
     <span class="tag">manual</span>
     <span class="on">log on {date}</span>
     <button class="reset" onclick={clearDay} disabled={dayCount === 0}>clear day</button>
-  </div>
-
-  <div class="group">
-    <div class="glabel">dose (rung)</div>
-    <div class="btns">
-      {#each rungs as s (s.id)}
-        <button class="chip" class:sel={curMeal === s.anchor} onclick={() => setDose(s.anchor)}>{s.dose}</button>
-      {/each}
-    </div>
   </div>
 
   <div class="group">

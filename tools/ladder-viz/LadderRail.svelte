@@ -1,26 +1,54 @@
 <!-- The whole ladder, always visible; the current run's position highlighted
      (the ladder never re-flows, only the highlight moves as you scrub). Compact —
-     stacks above the inputs. -->
+     stacks above the inputs. In manual mode, this IS the dose picker (`manual`
+     prop) — clicking a rung sets/clears that day's dose, so the ladder position
+     and the day's logged dose are a single control instead of two echoes of the
+     same value. -->
 <script lang="ts">
+  import type { LadderStep } from '$lib/domain/canonical-allergen';
+  import type { PortionKind } from '$lib/domain/models';
+
   import type { DayView } from './adapter';
 
-  let { day }: { day: DayView } = $props();
+  let {
+    day,
+    manual,
+  }: {
+    day: DayView;
+    manual?: {
+      rungs: readonly LadderStep[];
+      current: PortionKind | 'none' | undefined;
+      onToggle: (anchor: PortionKind) => void;
+    };
+  } = $props();
+
+  function anchorFor(id: string): PortionKind | undefined {
+    return manual?.rungs.find((s) => s.id === id)?.anchor;
+  }
 </script>
 
 <div class="rail">
   <div class="hd">
     <span class="title">{day.allergenLabel} ladder</span>
-    <span class="mode">{day.explain.snapshot.mode} · live: {day.liveRungLabel}</span>
+    <span class="mode">{day.explain.snapshot.mode}</span>
   </div>
   <div class="rungs">
     {#each [...day.rungs].reverse() as r (r.id)}
-      <div class="rung state-{r.state}">
+      {@const anchor = anchorFor(r.id)}
+      <button
+        type="button"
+        class="rung state-{r.state}"
+        class:clickable={!!manual}
+        class:sel={manual && anchor !== undefined && anchor === manual.current}
+        disabled={!manual || anchor === undefined}
+        onclick={() => manual && anchor !== undefined && manual.onToggle(anchor)}
+      >
         <span class="mark">
           {#if r.state === 'passed'}✓{:else if r.state === 'current'}▶{:else}·{/if}
         </span>
         <span class="dose">{r.dose}</span>
         {#if r.checkpoint}<span class="chk">checkpoint</span>{/if}
-      </div>
+      </button>
     {/each}
     <div class="rung state-{day.rungs.some((r) => r.state !== 'ahead') ? 'passed' : 'ahead'}">
       <span class="mark">·</span><span class="dose start">start</span>
@@ -43,7 +71,15 @@
     border-radius: 8px;
     font-size: 13px;
     background: var(--surface);
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+    cursor: default;
   }
+  .rung.clickable:not(:disabled) { cursor: pointer; }
+  .rung.clickable:not(:disabled):hover { border-color: var(--ink); }
+  .rung.sel { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, var(--surface)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 18%, transparent); }
   .mark { width: 14px; text-align: center; color: var(--muted); }
   .dose { font-weight: 600; }
   .dose.start { color: var(--muted); font-weight: 400; }
@@ -52,5 +88,6 @@
   .state-passed .mark { color: var(--go); }
   .state-current { border-color: var(--go); background: color-mix(in srgb, var(--go) 10%, var(--surface)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--go) 22%, transparent); }
   .state-current .mark { color: var(--go); }
+  .state-current.sel { border-color: var(--ink); }
   .state-ahead { opacity: 0.5; }
 </style>

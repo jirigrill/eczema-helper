@@ -20,6 +20,9 @@ body {
   margin: 0;
   background: var(--canvas);
 }
+/* min-height (not height) so the page can grow taller than the viewport and
+   scroll normally when browser zoom makes fixed-px content no longer fit —
+   a hard 100vh clipped the page with nowhere to pan to. */
 #app {
-  height: 100vh;
+  min-height: 100vh;
 }

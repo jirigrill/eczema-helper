@@ -1,11 +1,11 @@
 <!-- Ladder-engine single-day inspector. Two zones: a left "situation" column
      (ladder + the day's inputs, with a manual editor in manual mode) and the
-     engine pipeline resolving to the verdict on the right, under a snapshot bar.
-     Every component renders the real #521 `LadderExplain` shape (from
+     engine pipeline resolving to the decision on the right, under a derived-state
+     bar. Every component renders the real #521 `LadderExplain` shape (from
      `$lib/domain/ladder` via `computeDay`) — none import engine decision logic. -->
 <script lang="ts">
   import type { FeedingStage } from '$lib/domain/canonical-allergen';
-  import type { LadderAllergenId } from '$lib/domain/models';
+  import type { LadderAllergenId, PortionKind } from '$lib/domain/models';
 
   import { computeDay } from './adapter';
   import DateStrip from './DateStrip.svelte';
@@ -92,6 +92,18 @@
 
   const day = $derived(run && selected ? computeDay(run, selected) : null);
   const rungs = $derived(run ? (run.defaultLadder.stages[run.stage] ?? []) : []);
+
+  // The day's dose is set by clicking a rung on the Ladder Rail — the single
+  // place manual mode edits it, so it isn't echoed by a second dose picker.
+  const curDoseAnchor = $derived(
+    manualEvents.find(
+      (e): e is Extract<RunEvent, { meal: unknown }> => e.date === selected && 'meal' in e,
+    )?.meal,
+  );
+  function toggleDose(anchor: PortionKind) {
+    const kept = manualEvents.filter((e) => !(e.date === selected && 'meal' in e));
+    manualEvents = curDoseAnchor === anchor ? kept : [...kept, { date: selected, meal: anchor }];
+  }
 </script>
 
 <div class="app">
@@ -133,8 +145,8 @@
 
     {#if day}
       <div class="verdict">
-        <span class="vlabel">verdict</span>
-        <span class="verdict-pill tone-{day.verdictTone}">{day.verdictLabel}</span>
+        <span class="vlabel">decision</span>
+        <span class="verdict-pill tone-{day.verdictTone}" title={day.verdictLabel}>{day.verdictLabel}</span>
       </div>
     {/if}
   </header>
@@ -149,17 +161,16 @@
     <main class="grid">
       <aside class="col situation">
         {#if mode === 'manual'}
-          <ManualEditor bind:events={manualEvents} date={selected} {rungs} />
+          <ManualEditor bind:events={manualEvents} date={selected} />
         {/if}
-        <LadderRail {day} />
+        <LadderRail
+          {day}
+          manual={mode === 'manual' ? { rungs, current: curDoseAnchor, onToggle: toggleDose } : undefined}
+        />
         <InputsPanel {day} />
       </aside>
 
       <section class="col engine">
-        <div class="col-h">
-          engine · explainLadderMove trace
-          <span class="note">read-only — rendered from the real seam shape · click a node to unroll</span>
-        </div>
         <SnapshotBar snapshot={day.explain.snapshot} />
         <div class="flow"><EnginePipeline {day} /></div>
       </section>
@@ -168,7 +179,7 @@
 </div>
 
 <style>
-  .app { display: flex; flex-direction: column; height: 100vh; }
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
   .topbar { display: flex; align-items: center; gap: 18px; padding: 9px 16px; background: var(--ink); color: white; flex-wrap: wrap; }
   .brand { font-weight: 700; letter-spacing: 0.01em; }
 
@@ -199,9 +210,18 @@
   }
   .reset:disabled { opacity: 0.4; cursor: default; }
 
-  .verdict { margin-left: auto; display: flex; align-items: center; gap: 9px; }
-  .vlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
-  .verdict-pill { font-weight: 700; padding: 5px 14px; border-radius: 999px; color: white; }
+  .verdict { margin-left: auto; display: flex; align-items: center; gap: 9px; flex: none; max-width: 45%; }
+  .vlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; flex: none; }
+  .verdict-pill {
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 999px;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
   .tone-go { background: var(--go); }
   .tone-hold { background: var(--hold); }
   .tone-stop { background: var(--stop); }
@@ -212,18 +232,5 @@
   .col { min-height: 0; }
   .col.situation { border-right: 1px solid var(--hair); background: var(--surface); overflow-y: auto; display: flex; flex-direction: column; }
   .col.engine { display: flex; flex-direction: column; background: var(--canvas); }
-  .col-h {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 8px 14px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    border-bottom: 1px solid var(--hair);
-    background: var(--surface);
-  }
-  .note { text-transform: none; letter-spacing: 0; font-size: 10px; opacity: 0.75; }
   .flow { flex: 1; min-height: 0; }
 </style>
