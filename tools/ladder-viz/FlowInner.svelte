@@ -1,9 +1,11 @@
 <!-- The engine as a state machine: the #521 `LadderExplain.steps` 6-tuple
-     rendered as a locked, single-column Svelte Flow canvas (no pan / no zoom /
-     no drag). Each node is one seam step; click to unroll its detail. The column
-     resolves into the verdict node. Re-frames itself (fitView) on expand / day
-     change. This component maps the seam tuple to nodes — it holds NO engine
-     knowledge. -->
+     rendered as a locked, diagonal-cascade Svelte Flow canvas (no pan / no zoom /
+     no drag). Each node is one seam step; click to unroll its detail. Steps step
+     down-and-right so fitView has both canvas dimensions to spread across —
+     a pure vertical column forces a tighter zoom-to-fit than the viewport's
+     aspect ratio needs, which is why nodes used to render smaller than they
+     have to. The cascade resolves into the verdict node. This component maps
+     the seam tuple to nodes — it holds NO engine knowledge. -->
 <script lang="ts">
   import { SvelteFlow, Background, useSvelteFlow, type Node, type Edge } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
@@ -22,6 +24,7 @@
 
   const COLLAPSED = 112;
   const GAP = 30;
+  const X_STEP = 190; // horizontal advance per step, so the cascade uses width, not just height
   function rowCount(step: LadderPrecedenceStep): number {
     if ('gate' in step.detail) {
       let n = Object.keys(step.detail.gate).length;
@@ -37,23 +40,25 @@
 
   const nodes = $derived.by<Node[]>(() => {
     const out: Node[] = [];
+    let x = 0;
     let y = 0;
     day.explain.steps.forEach((step, i) => {
       const isExpanded = expanded.has(step.name);
       out.push({
         id: step.name,
         type: 'step',
-        position: { x: 0, y },
+        position: { x, y },
         data: { step, index: i + 1, tone: day.verdictTone, expanded: isExpanded },
         draggable: false,
         selectable: false,
       });
       y += heightOf(step, isExpanded) + GAP;
+      x += X_STEP;
     });
     out.push({
       id: 'verdict',
       type: 'verdict',
-      position: { x: 0, y: y + 10 },
+      position: { x, y: y + 10 },
       data: { label: day.verdictLabel, tone: day.verdictTone, date: day.date, json: day.verdictJson },
       draggable: false,
       selectable: false,
@@ -94,9 +99,13 @@
     expanded = next;
   }
 
-  // Keep the whole column framed as it grows/shrinks or the day changes.
+  // Re-frame only when the day itself changes — an operator expanding a step
+  // should see that node unroll and later nodes shift down, not the whole
+  // canvas zoom. `fitView`'s own `fitView` prop covers the very first mount.
+  let lastDate: string | null = null;
   $effect(() => {
-    void nodes;
+    if (day.date === lastDate) return;
+    lastDate = day.date;
     const t = setTimeout(() => fitView({ padding: 0.12, duration: 200, maxZoom: 1 }), 60);
     return () => clearTimeout(t);
   });

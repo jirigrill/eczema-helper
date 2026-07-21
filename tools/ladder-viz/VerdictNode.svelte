@@ -5,12 +5,13 @@
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 
   let { data }: NodeProps = $props();
+  const label = $derived(data.label as string);
 </script>
 
 <div class="verdict tone-{data.tone}">
   <Handle type="target" position={Position.Top} />
   <div class="eyebrow">engine verdict · LadderDecision · {data.date}</div>
-  <div class="label">{data.label}</div>
+  <div class="label" title={label}>{label}</div>
   <pre class="raw">{data.json}</pre>
 </div>
 
@@ -23,7 +24,16 @@
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   }
   .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
-  .label { font-size: 20px; font-weight: 800; margin: 4px 0 10px; }
+  .label {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 4px 0 10px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
   .raw {
     display: block;
     margin: 0;

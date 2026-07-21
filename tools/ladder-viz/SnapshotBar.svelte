@@ -10,7 +10,8 @@
 </script>
 
 <div class="bar">
-  <span class="tag">snapshot</span>
+  <span class="tag" title="LadderStateSnapshot — derived engine state the steps below cross-reference, not raw logged inputs">snapshot</span>
+  <span class="hint">derived engine state, cross-referenced by the steps below — not the raw logged inputs</span>
   <div class="cell"><span class="k">liveRung</span><span class="v">{dose(snapshot.liveRung)}</span></div>
   <div class="cell"><span class="k">mode</span><span class="v">{snapshot.mode}</span></div>
   <div class="cell">
@@ -42,6 +43,7 @@
     border-radius: 999px;
     flex: none;
   }
+  .hint { font-size: 11px; color: var(--muted); font-style: italic; flex: none; }
   .cell { display: flex; flex-direction: column; gap: 1px; }
   .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: var(--muted); }
   .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }

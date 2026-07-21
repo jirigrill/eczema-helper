@@ -134,7 +134,7 @@
     {#if day}
       <div class="verdict">
         <span class="vlabel">verdict</span>
-        <span class="verdict-pill tone-{day.verdictTone}">{day.verdictLabel}</span>
+        <span class="verdict-pill tone-{day.verdictTone}" title={day.verdictLabel}>{day.verdictLabel}</span>
       </div>
     {/if}
   </header>
@@ -199,9 +199,18 @@
   }
   .reset:disabled { opacity: 0.4; cursor: default; }
 
-  .verdict { margin-left: auto; display: flex; align-items: center; gap: 9px; }
-  .vlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
-  .verdict-pill { font-weight: 700; padding: 5px 14px; border-radius: 999px; color: white; }
+  .verdict { margin-left: auto; display: flex; align-items: center; gap: 9px; flex: none; max-width: 45%; }
+  .vlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; flex: none; }
+  .verdict-pill {
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 999px;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
   .tone-go { background: var(--go); }
   .tone-hold { background: var(--hold); }
   .tone-stop { background: var(--stop); }

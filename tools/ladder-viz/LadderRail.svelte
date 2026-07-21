@@ -10,7 +10,7 @@
 <div class="rail">
   <div class="hd">
     <span class="title">{day.allergenLabel} ladder</span>
-    <span class="mode">{day.explain.snapshot.mode} · live: {day.liveRungLabel}</span>
+    <span class="mode">{day.explain.snapshot.mode}</span>
   </div>
   <div class="rungs">
     {#each [...day.rungs].reverse() as r (r.id)}

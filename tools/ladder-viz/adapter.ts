@@ -38,7 +38,6 @@ export interface DayView {
   verdictTone: 'go' | 'hold' | 'stop';
   verdictJson: string;
   rungs: RungView[];
-  liveRungLabel: string;
   allergenLabel: string;
   inputs: {
     meals: { time: string; text: string; dose: string }[];
@@ -125,7 +124,6 @@ export function computeDay(run: JourneyRun, date: string): DayView | null {
     verdictTone: verdictTone(decision),
     verdictJson: JSON.stringify(decision, null, 2),
     rungs,
-    liveRungLabel: liveRung ? liveRung.dose : 'not started',
     allergenLabel: run.allergenId,
     inputs: {
       meals: dayMeals.map((m) => {
