@@ -76,18 +76,26 @@
       return 'dose' in (v as Record<string, unknown>) ? String((v as { dose: string }).dose) : JSON.stringify(v);
     return String(v);
   }
-  // The gate's own result bundles what it read (inputs) with what it decided
-  // (`allowed`, its own local output) in one object — split them so the pane
-  // never lists a gate's verdict under an "inputs" heading.
-  function gateInputRows(step: LadderPrecedenceStep): { k: string; v: string }[] {
+  // The threshold (windowDays / effective cadenceDays) is a pure function of
+  // config + mode — the engine computes it up front regardless of whether this
+  // step ever runs, so it's real even on a not-reached step.
+  function gateConfigRows(step: LadderPrecedenceStep): { k: string; v: string }[] {
     if (!('gate' in step.detail)) return [];
     const d = step.detail;
-    const rows = Object.entries(d.gate)
+    if ('windowDays' in d) return [{ k: 'windowDays', v: String(d.windowDays) }];
+    if ('cadenceDays' in d) return [{ k: 'cadenceDays (effective)', v: String(d.cadenceDays) }];
+    return [];
+  }
+  // The gate's own result (what it read + `allowed`, what it decided) — ONLY
+  // genuine when the step actually ran. On a `not-reached` step the engine
+  // substitutes a fixed "never evaluated" identity here instead of a real read
+  // (ladder.ts: `PERMISSIVE_SKIN_STABILITY` / `noCadenceData`), so these rows
+  // are a placeholder, not evidence, whenever `status === 'not-reached'`.
+  function gateReadRows(step: LadderPrecedenceStep): { k: string; v: string }[] {
+    if (!('gate' in step.detail)) return [];
+    return Object.entries(step.detail.gate)
       .filter(([k]) => k !== 'allowed')
       .map(([k, v]) => ({ k, v: fmt(v) }));
-    if ('windowDays' in d) rows.push({ k: 'windowDays', v: String(d.windowDays) });
-    if ('cadenceDays' in d) rows.push({ k: 'cadenceDays (effective)', v: String(d.cadenceDays) });
-    return rows;
   }
   function gateAllowed(step: LadderPrecedenceStep): boolean | undefined {
     return 'gate' in step.detail ? step.detail.gate.allowed : undefined;
@@ -144,11 +152,27 @@
       <div class="d-status" title={STATUS_HINT[selectedStep.status]}>{STATUS_LABEL[selectedStep.status]}</div>
 
       {#if 'gate' in selectedStep.detail}
-        <div class="d-sub">inputs — what the gate read</div>
-        {#each gateInputRows(selectedStep) as r (r.k)}
+        <div class="d-sub">config — computed up front regardless of whether this step runs</div>
+        {#each gateConfigRows(selectedStep) as r (r.k)}
           <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
         {/each}
-        <div class="d-sub d-output">gate output — what it decided</div>
+
+        {#if selectedStep.status === 'not-reached'}
+          <div class="d-note">
+            not reached — an earlier step already produced the decision, so this gate never actually ran. The
+            rows below are a fixed "never evaluated" placeholder (always <code>allowed: true</code>, no data),
+            not a real read — they're not evidence about today.
+          </div>
+          <div class="d-sub">placeholder — this gate never read anything</div>
+        {:else}
+          <div class="d-sub">inputs — what the gate read</div>
+        {/if}
+        {#each gateReadRows(selectedStep) as r (r.k)}
+          <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
+        {/each}
+        <div class="d-sub d-output">
+          {selectedStep.status === 'not-reached' ? 'placeholder output — fixed, not decided' : 'gate output — what it decided'}
+        </div>
         <div class="d-row"><code class="k">allowed</code><span class="v">{gateAllowed(selectedStep)}</span></div>
       {:else}
         <div class="d-sub">{STRUCTURAL_SOURCE[selectedStep.name]}</div>
@@ -254,8 +278,20 @@
   }
   .d-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .d-status { display: inline-block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 14px; cursor: help; border-bottom: 1px dotted var(--muted); }
-  .d-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
+  .d-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; margin-top: 14px; }
+  .d-sub:first-of-type { margin-top: 0; }
   .d-output { margin-top: 16px; }
+  .d-note {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--hold);
+    background: color-mix(in srgb, var(--hold) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--hold) 30%, var(--surface));
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 12px 0 4px;
+  }
+  .d-note code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .d-row { display: flex; justify-content: space-between; gap: 12px; line-height: 2.1; align-items: baseline; font-size: 13px; border-bottom: 1px solid var(--hair); }
   .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
   .v { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }

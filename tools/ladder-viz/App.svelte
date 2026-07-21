@@ -171,10 +171,6 @@
       </aside>
 
       <section class="col engine">
-        <div class="col-h">
-          engine · explainLadderMove trace
-          <span class="note">read-only — rendered from the real seam shape · click a step to see its detail</span>
-        </div>
         <SnapshotBar snapshot={day.explain.snapshot} />
         <div class="flow"><EnginePipeline {day} /></div>
       </section>
@@ -236,18 +232,5 @@
   .col { min-height: 0; }
   .col.situation { border-right: 1px solid var(--hair); background: var(--surface); overflow-y: auto; display: flex; flex-direction: column; }
   .col.engine { display: flex; flex-direction: column; background: var(--canvas); }
-  .col-h {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 8px 14px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    border-bottom: 1px solid var(--hair);
-    background: var(--surface);
-  }
-  .note { text-transform: none; letter-spacing: 0; font-size: 10px; opacity: 0.75; }
   .flow { flex: 1; min-height: 0; }
 </style>
