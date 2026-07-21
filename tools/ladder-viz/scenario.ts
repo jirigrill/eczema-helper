@@ -4,7 +4,7 @@
 // builders, so the fixture and the two live modes construct identical records and
 // cannot drift. The engine is the single source of truth; nothing here copies it.
 // (App.svelte renders the YAML scenarios, not this run; this survives only as a
-// `replayJourney` fixture whose custom ladder reaches the reversible terminal.)
+// `replayDays` fixture whose custom ladder exercises a real spread of verdicts.)
 import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import type {
   AllergenOutcome,

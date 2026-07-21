@@ -1,46 +1,37 @@
+<!-- Ladder-engine single-day inspector. Two zones: a left "situation" column
+     (ladder + the day's inputs, with a manual editor in manual mode) and the
+     engine pipeline resolving to the verdict on the right, under a snapshot bar.
+     Every component renders the real #521 `LadderExplain` shape (from
+     `$lib/domain/ladder` via `computeDay`) — none import engine decision logic. -->
 <script lang="ts">
-  import { SvelteFlow, Background, Controls, type Node, type Edge } from '@xyflow/svelte';
-  import '@xyflow/svelte/dist/style.css';
   import type { FeedingStage } from '$lib/domain/canonical-allergen';
-  import type {
-    AllergenOutcome,
-    LadderAllergenId,
-    PortionKind,
-    RegionLevel,
-  } from '$lib/domain/models';
-  import DayNode from './DayNode.svelte';
-  import Cascade from './Cascade.svelte';
-  import { placeholderDay, replayJourney, type JourneyDay, type JourneyRun } from './journey';
+  import type { LadderAllergenId } from '$lib/domain/models';
+
+  import { computeDay } from './adapter';
+  import DateStrip from './DateStrip.svelte';
+  import EnginePipeline from './EnginePipeline.svelte';
+  import InputsPanel from './InputsPanel.svelte';
+  import type { JourneyRun } from './journey';
+  import LadderRail from './LadderRail.svelte';
+  import ManualEditor from './ManualEditor.svelte';
   import {
-    advanceDay,
-    logEval,
-    logMeal,
-    logSkin,
-    startManualRun,
-    toRun,
-    type ManualSession,
-  } from './manual';
-  import { FUTURE_KINDS, spanLabel } from './node-style';
-  import { parseScenario } from './scenario-loader';
-  import {
+    addISO,
+    buildRun,
     LADDERS,
-    OUTCOMES,
     PHASES,
-    PORTION_KINDS,
     STAGES,
     type ReintroductionPhase,
-    type RunSetup,
+    type RunEvent,
   } from './run-events';
-
-  const nodeTypes = { day: DayNode };
+  import { parseScenario } from './scenario-loader';
+  import SnapshotBar from './SnapshotBar.svelte';
 
   type Mode = 'scenario' | 'manual';
   let mode = $state<Mode>('scenario');
 
-  // ── Scenario replay mode (#532) ────────────────────────────────────────────
-
+  // ── Scenario replay mode ─────────────────────────────────────────────────────
   // Every `scenarios/*.yaml` is loaded as raw text at build time and parsed +
-  // Zod-validated on demand (#532). A malformed scenario throws in `parseScenario`,
+  // Zod-validated on demand. A malformed scenario throws in `parseScenario`,
   // surfaced in the header rather than silently dropped.
   const files = import.meta.glob('./scenarios/*.yaml', {
     query: '?raw',
@@ -64,145 +55,66 @@
     }
   });
 
-  // ── Manual mode (#533) ──────────────────────────────────────────────────────
-
-  // The run setup fields — the same as a scenario header — editable ONLY before
-  // the session starts. Once started they are frozen inside the `ManualSession`
-  // and never re-exposed: no mid-run stage/phase/permanent switch exists.
+  // ── Manual mode ──────────────────────────────────────────────────────────────
+  // A free per-day editor over a fixed calendar, building the SAME `JourneyRun`
+  // scenario replay produces via the shared `buildRun`. Setup stays editable; the
+  // event stream is the single source both modes feed the engine.
   const ALLERGENS: LadderAllergenId[] = [...LADDERS.keys()].sort();
+  const MANUAL_START = '2026-06-01';
+  const MANUAL_DAYS = Array.from({ length: 28 }, (_, i) => addISO(MANUAL_START, i));
 
-  let setupAllergen: LadderAllergenId = $state(ALLERGENS[0] ?? 'peanuts');
-  let setupPhase: ReintroductionPhase = $state('reintroduction');
-  let setupStage: FeedingStage = $state('breastfed');
+  let setupAllergen = $state<LadderAllergenId>(ALLERGENS[0] ?? 'peanuts');
+  let setupPhase = $state<ReintroductionPhase>('reintroduction');
+  let setupStage = $state<FeedingStage>('breastfed');
   let setupPermanent = $state(false);
+  let manualEvents = $state<RunEvent[]>([]);
 
-  let session = $state<ManualSession | null>(null);
-  const started = $derived(session !== null);
-
-  function beginSession() {
-    const setup: RunSetup = {
-      allergen: setupAllergen,
-      phase: setupPhase,
-      stage: setupStage,
-      permanent: setupPermanent,
-    };
-    session = startManualRun(setup);
-  }
-
-  function resetSession() {
-    session = null;
-  }
-
-  // Each log dropdown applies its action to today, then snaps back to its
-  // placeholder so the same value can be picked twice in a row.
-  function applyLog(el: HTMLSelectElement, next: ManualSession) {
-    session = next;
-    el.selectedIndex = 0;
-  }
-
-  const today = $derived(session ? session.days[session.days.length - 1]! : null);
-
-  // ── Shared render — both modes are projected onto one `JourneyRun` ───────────
-
-  const run = $derived<JourneyRun | null>(
-    mode === 'manual' ? (session ? toRun(session) : null) : scenarioRun.run,
+  const manualRun = $derived<JourneyRun>(
+    buildRun(
+      { allergen: setupAllergen, phase: setupPhase, stage: setupStage, permanent: setupPermanent },
+      MANUAL_DAYS,
+      manualEvents,
+    ),
   );
+
+  // ── Shared render — one `JourneyRun`, one selected day ───────────────────────
+  const run = $derived<JourneyRun | null>(mode === 'manual' ? manualRun : scenarioRun.run);
   const loadError = $derived<string | null>(mode === 'manual' ? null : scenarioRun.error);
 
-  const journey = $derived(run ? replayJourney(run) : []);
+  let selected = $state('');
 
-  const COL_GAP = 240;
-
-  // The day-spine: one node per collapsed box, laid left→right.
-  const spineNodes = $derived<Node[]>(
-    journey.map((day, i) => ({
-      id: `d${i}`,
-      type: 'day',
-      position: { x: i * COL_GAP, y: 0 },
-      data: { day, span: spanLabel(day.fromDate, day.toDate) },
-    })),
-  );
-
-  // Edges come from replay, never a frozen adjacency matrix (#519): each is the
-  // day-boundary where the box changed, labelled with the channel that changed it.
-  const spineEdges = $derived<Edge[]>(
-    journey.slice(1).map((day, i) => ({
-      id: `e${i}`,
-      source: `d${i}`,
-      target: `d${i + 1}`,
-      label: day.enteredVia ?? '',
-      animated: day.kind === 'resting',
-    })),
-  );
-
-  // The future arms greyed off the spine, so the vocabulary is future-complete
-  // (#519). Any future arm this run actually reached already renders on the spine,
-  // so it is dropped here — a kind is never drawn twice.
-  const spineKinds = $derived(new Set(journey.map((day) => day.kind)));
-  const futureNodes = $derived<Node[]>(
-    FUTURE_KINDS.filter((kind) => !spineKinds.has(kind)).map((kind, i) => ({
-      id: `f${i}`,
-      type: 'day',
-      position: { x: i * COL_GAP, y: 180 },
-      data: {
-        day: placeholderDay(kind),
-        span: 'future',
-      },
-      selectable: false,
-    })),
-  );
-
-  const nodes = $derived<Node[]>([...spineNodes, ...futureNodes]);
-  const edges = $derived<Edge[]>(spineEdges);
-
-  // Cascade drill-in (#531): clicking a day opens its 6-step precedence cascade.
-  // The future arms are inert vocabulary (`selectable: false`, `explain: null`),
-  // so a click on one opens nothing.
-  let selected: JourneyDay | null = $state(null);
-
-  // Switching scenarios, modes, or any run change drops any open cascade — the
-  // clicked day belongs to the run we're leaving.
+  // Keep the selected day inside the current run's calendar: on any run change,
+  // if the day left with the old run, snap to a day a few in (or the first).
   $effect(() => {
-    void run;
-    void mode;
-    selected = null;
+    const days = run?.days ?? [];
+    if (!days.includes(selected)) selected = days[Math.min(4, days.length - 1)] ?? '';
   });
 
-  function onnodeclick({ node }: { node: Node }) {
-    const day = node.data.day as JourneyDay;
-    selected = day.explain ? day : null;
-  }
-
-  // Re-fit the graph whenever the source run changes (scenario switch, or a manual
-  // action that grows the spine) so a long run stays framed.
-  const fitKey = $derived(
-    mode === 'manual' ? `manual:${journey.length}` : `scenario:${selectedScenario}`,
-  );
+  const day = $derived(run && selected ? computeDay(run, selected) : null);
+  const rungs = $derived(run ? (run.defaultLadder.stages[run.stage] ?? []) : []);
 </script>
 
 <div class="app">
-  <header>
-    <strong>Ladder engine journey</strong>
-    <label>
-      · mode
-      <select bind:value={mode}>
-        <option value="scenario">scenario</option>
-        <option value="manual">manual</option>
-      </select>
-    </label>
+  <header class="topbar">
+    <div class="brand">ladder-engine inspector</div>
+
+    <div class="mode-toggle">
+      <button class:on={mode === 'scenario'} onclick={() => (mode = 'scenario')}>scenario</button>
+      <button class:on={mode === 'manual'} onclick={() => (mode = 'manual')}>manual</button>
+    </div>
 
     {#if mode === 'scenario'}
-      <label>
-        · scenario
+      <label class="picker">
+        scenario
         <select bind:value={selectedScenario}>
           {#each scenarios as scenario (scenario.name)}
             <option value={scenario.name}>{scenario.name}</option>
           {/each}
         </select>
       </label>
-    {:else if !started}
-      <span class="setup">
-        · setup
+    {:else}
+      <span class="picker">
+        setup
         <select bind:value={setupAllergen}>
           {#each ALLERGENS as a (a)}<option value={a}>{a}</option>{/each}
         </select>
@@ -212,124 +124,106 @@
         <select bind:value={setupStage}>
           {#each STAGES as s (s)}<option value={s}>{s}</option>{/each}
         </select>
-        <label class="inline"
-          ><input type="checkbox" bind:checked={setupPermanent} /> permanent</label
-        >
-        <button onclick={beginSession}>start run</button>
-      </span>
-    {:else}
-      <span class="setup">
-        · {session!.setup.allergen} · {session!.setup.phase} · {session!.setup.stage}
-        {session!.setup.permanent ? ' · permanent' : ''} · today
-        <code>{today}</code>
-      </span>
-      <span class="actions">
-        · log
-        <select
-          onchange={(e) =>
-            applyLog(
-              e.currentTarget,
-              logMeal(session!, e.currentTarget.value as PortionKind | 'none'),
-            )}
-        >
-          <option value="" disabled selected>meal…</option>
-          {#each PORTION_KINDS as p (p)}<option value={p}>{p}</option>{/each}
-          <option value="none">none</option>
-        </select>
-        <select
-          onchange={(e) =>
-            applyLog(
-              e.currentTarget,
-              logSkin(session!, Number(e.currentTarget.value) as RegionLevel),
-            )}
-        >
-          <option value="" disabled selected>skin…</option>
-          {#each [0, 1, 2, 3] as lvl (lvl)}<option value={lvl}>{lvl}</option>{/each}
-        </select>
-        <select
-          onchange={(e) =>
-            applyLog(e.currentTarget, logEval(session!, e.currentTarget.value as AllergenOutcome))}
-        >
-          <option value="" disabled selected>eval…</option>
-          {#each OUTCOMES as o (o)}<option value={o}>{o}</option>{/each}
-        </select>
-        <button onclick={() => (session = advanceDay(session!))}>advance day ▸</button>
-        <button class="reset" onclick={resetSession}>reset</button>
+        <label class="inline"><input type="checkbox" bind:checked={setupPermanent} /> permanent</label>
+        <button class="reset" onclick={() => (manualEvents = [])} disabled={manualEvents.length === 0}>
+          clear all
+        </button>
       </span>
     {/if}
 
-    {#if run}
-      <span>· {run.allergenId} · replayed through <code>explainLadderMove</code></span>
-    {/if}
-    {#if loadError}
-      <span class="error">· load error: {loadError}</span>
+    {#if day}
+      <div class="verdict">
+        <span class="vlabel">verdict</span>
+        <span class="verdict-pill tone-{day.verdictTone}">{day.verdictLabel}</span>
+      </div>
     {/if}
   </header>
-  <div class="canvas">
-    {#key fitKey}
-      <SvelteFlow {nodes} {edges} {nodeTypes} {onnodeclick} fitView>
-        <Background />
-        <Controls />
-      </SvelteFlow>
-    {/key}
-    {#if selected}
-      <Cascade day={selected} onclose={() => (selected = null)} />
-    {/if}
-  </div>
+
+  {#if loadError}
+    <div class="error">load error: {loadError}</div>
+  {/if}
+
+  {#if run && day}
+    <DateStrip days={run.days} bind:selected />
+
+    <main class="grid">
+      <aside class="col situation">
+        {#if mode === 'manual'}
+          <ManualEditor bind:events={manualEvents} date={selected} {rungs} />
+        {/if}
+        <LadderRail {day} />
+        <InputsPanel {day} />
+      </aside>
+
+      <section class="col engine">
+        <div class="col-h">
+          engine · explainLadderMove trace
+          <span class="note">read-only — rendered from the real seam shape · click a node to unroll</span>
+        </div>
+        <SnapshotBar snapshot={day.explain.snapshot} />
+        <div class="flow"><EnginePipeline {day} /></div>
+      </section>
+    </main>
+  {/if}
 </div>
 
 <style>
-  .app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    font-family: system-ui, sans-serif;
-  }
-  header {
-    padding: 10px 14px;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 14px;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  header span {
-    color: #64748b;
-  }
-  header label {
-    color: #64748b;
-  }
-  header label.inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-  }
-  header select {
-    font-size: 13px;
-    padding: 2px 4px;
-  }
-  header button {
-    font-size: 13px;
-    padding: 2px 8px;
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  .topbar { display: flex; align-items: center; gap: 18px; padding: 9px 16px; background: var(--ink); color: white; flex-wrap: wrap; }
+  .brand { font-weight: 700; letter-spacing: 0.01em; }
+
+  .mode-toggle { display: flex; gap: 2px; background: rgba(255, 255, 255, 0.1); padding: 2px; border-radius: 8px; }
+  .mode-toggle button {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
     cursor: pointer;
   }
-  header button.reset {
-    color: #b91c1c;
+  .mode-toggle button.on { background: var(--surface); color: var(--ink); }
+
+  .picker { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+  .picker .inline { display: inline-flex; align-items: center; gap: 3px; }
+  .picker select { font-size: 12px; padding: 2px 4px; border-radius: 6px; }
+  .reset {
+    font-size: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
   }
-  header code {
-    font-size: 12px;
-    background: #f1f5f9;
-    padding: 1px 4px;
-    border-radius: 4px;
+  .reset:disabled { opacity: 0.4; cursor: default; }
+
+  .verdict { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+  .vlabel { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+  .verdict-pill { font-weight: 700; padding: 5px 14px; border-radius: 999px; color: white; }
+  .tone-go { background: var(--go); }
+  .tone-hold { background: var(--hold); }
+  .tone-stop { background: var(--stop); }
+
+  .error { padding: 8px 16px; background: color-mix(in srgb, var(--stop) 12%, var(--surface)); color: var(--stop); font-size: 13px; }
+
+  .grid { flex: 1; display: grid; grid-template-columns: 320px 1fr; min-height: 0; }
+  .col { min-height: 0; }
+  .col.situation { border-right: 1px solid var(--hair); background: var(--surface); overflow-y: auto; display: flex; flex-direction: column; }
+  .col.engine { display: flex; flex-direction: column; background: var(--canvas); }
+  .col-h {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 14px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hair);
+    background: var(--surface);
   }
-  header .error {
-    color: #b91c1c;
-  }
-  .canvas {
-    flex: 1;
-    min-height: 0;
-    position: relative;
-  }
+  .note { text-transform: none; letter-spacing: 0; font-size: 10px; opacity: 0.75; }
+  .flow { flex: 1; min-height: 0; }
 </style>
