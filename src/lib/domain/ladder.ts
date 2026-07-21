@@ -391,35 +391,6 @@ export function cadenceGate(
   return { allowed: elapsed >= cadenceDays, daysSinceLastDose: elapsed };
 }
 
-export type SkinCalmGateResult = {
-  /** Whether escalation is allowed — false while the baby is currently flaring. */
-  allowed: boolean;
-  /** True when the latest observation on or before `today` shows any active region. */
-  isFlare: boolean;
-  /** Day-overall severity of the most recent observation, or `null` when none exists. */
-  latestSeverity: RegionLevel | null;
-};
-
-/**
- * Skin-calm gate — holds escalation while the baby is currently flaring.
- * A flare is defined as `overallSeverity > 0` on the most recent observation
- * on or before `today`. With no observation the gate is permissive (nothing
- * to hold against); consumers that require positive confirmation of calm
- * should combine this with a "did the mother log skin today?" check.
- */
-export function skinCalmGate(observations: SkinObservation[], today: string): SkinCalmGateResult {
-  const eligible = observations.filter((o) => o.date <= today);
-  if (eligible.length === 0) return { allowed: true, isFlare: false, latestSeverity: null };
-
-  eligible.sort((a, b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return a.createdAt.localeCompare(b.createdAt);
-  });
-  const latest = eligible[eligible.length - 1]!;
-  const severity = overallSeverity(latest);
-  return { allowed: severity === 0, isFlare: severity > 0, latestSeverity: severity };
-}
-
 export type SkinStabilityGateResult = {
   /** Whether escalation is allowed — false when skin severity has increased across the window. */
   allowed: boolean;
@@ -432,9 +403,9 @@ export type SkinStabilityGateResult = {
 
 /**
  * The gate's "missing data ≠ hold" identity: permissive with no severities to
- * compare. Shared by the gate's no-observation return, the trace seed for a walk
- * that fires before it reaches skin-stability, and `simulate.ts`'s fallback — so
- * the three sites can never drift apart.
+ * compare. Shared by the gate's no-observation return and the trace seed for
+ * a walk that fires before it reaches skin-stability — so the two sites can
+ * never drift apart.
  */
 export const PERMISSIVE_SKIN_STABILITY: SkinStabilityGateResult = Object.freeze({
   allowed: true,
@@ -443,8 +414,8 @@ export const PERMISSIVE_SKIN_STABILITY: SkinStabilityGateResult = Object.freeze(
 });
 
 /**
- * Skin-stability gate — the trend-based successor to `skinCalmGate` inside the
- * decision engine (ADR-0023 §decision-engine). Blocks escalation when skin has
+ * Skin-stability gate — the trend-based skin gate inside the decision engine
+ * (ADR-0023 §decision-engine). Blocks escalation when skin has
  * *worsened* across the window; a steady baseline of mild eczema is not a hold
  * reason. Baseline priority: first observation inside `[today - windowDays, today]`
  * if any exists (start-of-window reading), otherwise the most recent observation
@@ -497,11 +468,11 @@ export type CheckpointVerdictGateResult = {
 
 /**
  * Checkpoint-verdict gate — the phase-level evaluation, distinct from the
- * day-to-day `skinCalmGate`. Holds escalation at an `isEvaluationCheckpoint`
+ * day-to-day skin-stability gate. Holds escalation at an `isEvaluationCheckpoint`
  * rung until a verdict is recorded for `allergenId`; permissive at any
  * non-checkpoint rung (nothing to evaluate there).
  *
- * Unlike `skinCalmGate`, an unrecorded verdict blocks — a checkpoint is a
+ * Unlike the skin-stability gate, an unrecorded verdict blocks — a checkpoint is a
  * deliberate decision point, not a background signal to default open on.
  *
  * `evaluations` is the mother's full `ReintroductionEvaluation` history;

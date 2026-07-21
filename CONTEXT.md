@@ -283,8 +283,8 @@ express through the function signature. `currentRung` is **reaction-aware**
 "highest rung logged **and not reacted-against**".
 
 **Decision engine (`decideLadderMove`, PRD #445).** The deterministic brain that
-composes `currentRung` + the three gates (`cadenceGate`, `skinCalmGate`,
-`checkpointVerdictGate`) into one per-allergen **verdict** — the closed
+composes `currentRung` + its gates (`cadenceGate`, `skinStabilityGate`)
+into one per-allergen **verdict** — the closed
 `LadderDecision` union (`advance` · `hold` · `rest` · `step-back` · `passed` ·
 `blocked` · `ceiling-reached`). It is the F3 ≡ F4 walker: it never branches on
 phase; the phase difference reduces to the injected `cadenceDays`
