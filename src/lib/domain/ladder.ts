@@ -555,13 +555,20 @@ export type LadderDecision =
 // ── Explain/trace seam (issue #528, design #521) ──────────────
 
 /**
- * A public projection of the private `deriveLadderState` replay — exactly the
- * five facts a visualizer renders once above the precedence trace (design #521,
- * PRD #454). `deriveLadderState`/`LadderReplayState` stay private (they also
- * carry `lastPassingRung`/`reactionCounts` bookkeeping never meant to be
- * load-bearing for consumers); this decouples the seam's contract from the
- * replay's internal shape. All five fields are always present with explicit
- * `null`s — no field is ever omitted for "nothing to report."
+ * A public projection of the `deriveLadderState` replay — the facts a visualizer
+ * renders above the precedence trace (design #521, PRD #454). `deriveLadderState`/
+ * `LadderReplayState` stay private; this decouples the seam's contract from the
+ * replay's internal shape. All fields are always present with explicit `null`s —
+ * no field is ever omitted for "nothing to report."
+ *
+ * The first five are *verdict-facing* — a precedence step reads them. The last
+ * two (`lastPassingRung`, `reactionCounts`) are the replay's *internal
+ * bookkeeping*, exposed for the visualizer's replay inspector so a debugger can
+ * see the scratch work behind the derivation. They are **not load-bearing**: no
+ * production decision path reads them off this snapshot (ADR-0012), and they must
+ * not become the source of any verdict — a consumer that needs `lastPassingRung`
+ * should read `pendingReaction.stepBackTo`, which is the same value where it
+ * matters.
  */
 export type LadderStateSnapshot = {
   liveRung: LadderStep | null;
@@ -569,6 +576,10 @@ export type LadderStateSnapshot = {
   ceilingRung: LadderStep | null;
   mode: LadderMode;
   dwell: Dwell;
+  /** Bookkeeping (visualizer-only): rung to retreat to; `liveRung` when none pending. */
+  lastPassingRung: LadderStep | null;
+  /** Bookkeeping (visualizer-only): times each rung id has reacted across history. */
+  reactionCounts: ReadonlyMap<string, number>;
 };
 
 /**
@@ -752,6 +763,8 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
     ceilingRung: state.ceilingRung,
     mode: state.mode,
     dwell: state.dwell,
+    lastPassingRung: state.lastPassingRung,
+    reactionCounts: state.reactionCounts,
   };
 
   // The two gate-backed steps' effective thresholds are known up front (both are

@@ -1368,7 +1368,7 @@ describe('decideLadderMove', () => {
       expect(steps[5].status).toBe('fired');
     });
 
-    it('exposes the state snapshot with all five fields and explicit nulls', () => {
+    it('exposes the state snapshot with all seven fields and explicit nulls', () => {
       const { snapshot } = explainLadderMove(decInput({}));
       expect(snapshot).toEqual({
         liveRung: null,
@@ -1376,6 +1376,8 @@ describe('decideLadderMove', () => {
         ceilingRung: null,
         mode: 'probe',
         dwell: { count: 0, lastDoseDate: null },
+        lastPassingRung: null,
+        reactionCounts: new Map(),
       });
     });
 

@@ -34,6 +34,10 @@ export function fmtPendingReaction(p: LadderStateSnapshot['pendingReaction']): s
 export function fmtDwell(d: LadderStateSnapshot['dwell']): string {
   return `${d.count}× · ${d.lastDoseDate ?? '—'}`;
 }
+export function fmtReactionCounts(m: LadderStateSnapshot['reactionCounts']): string {
+  if (m.size === 0) return 'none';
+  return [...m.entries()].map(([id, n]) => `${id}×${n}`).join(', ');
+}
 
 // ── View-model ────────────────────────────────────────────────────────────────
 
