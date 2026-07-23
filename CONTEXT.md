@@ -283,27 +283,31 @@ express through the function signature. `currentRung` is **reaction-aware**
 "highest rung logged **and not reacted-against**".
 
 **Decision engine (`decideLadderMove`, PRD #445).** The deterministic brain that
-composes `currentRung` + its gates (`cadenceGate`, `skinStabilityGate`)
-into one per-allergen **verdict** — the closed
-`LadderDecision` union (`advance` · `hold` · `rest` · `step-back` · `passed` ·
-`blocked` · `ceiling-reached`). It is the F3 ≡ F4 walker: it never branches on
+composes `currentRung` + its gates (`cadenceGate`, `skinStabilityGate`) into one
+per-allergen **verdict** — the closed
+`LadderDecision` union (`advance` · `hold` · `rest` · `passed` · `settled` ·
+`blocked` · `ceiling-reached { reason }`; the v1 `step-back` variant was retired
+by the §6 walk-down, #501). It is the F3 ≡ F4 walker: it never branches on
 phase; the phase difference reduces to the injected `cadenceDays`
 (`cadenceForPhase` in `policy.ts`). Invariants:
 
 - **Decide, never write.** The engine returns a verdict and performs no
   persistence or schedule mutation; the mother still logs every dose herself.
   It is the single definition of a legal move that the PRD #423 proposer reuses.
-- **Fixed gate precedence** (most-overriding first): permanent → ceiling →
-  reaction (rest, then step-back) → awaiting-verdict → flare → cadence →
-  advance/passed. Safety/clinical gates dominate rhythm gates.
-- **A reaction is a temporary setback.** Reaction → `rest` (length by severity,
-  ADR-0016) → `step-back` to the last-passing rung → clean re-test re-advances.
-  A rung reacting `MAX_RUNG_REACTIONS` times, or the lowest rung reacting
-  (floor exhaustion), collapses into one terminal `ceiling-reached` that defers
-  to human care — the engine never sets a `permanent-*` status itself.
+- **Fixed gate precedence** (most-overriding first): permanent → ceiling
+  (floor exhaustion) → reaction recovery `rest` → skin-worsening → cadence →
+  advance/passed/settled. Safety/clinical gates dominate rhythm gates.
+- **A reaction walks the ladder down (no re-climb).** A confirmed reaction binds
+  within the latency window `[D − latency, D]`, caps the reacting rung forever,
+  and steps down one rung; recovery `rest` (length by severity, ADR-0016) sits on
+  the stepped-down rung, which is then re-confirmed by its own dwell (a single
+  earlier climb-past exposure does not count). A second reaction cascades; the
+  lowest rung reacting (floor exhaustion) is the terminal `ceiling-reached` that
+  defers to human care — the engine never sets a `permanent-*` status itself.
+  (`MAX_RUNG_REACTIONS` retired — unreachable once re-climb is gone; #501.)
 - **One shared replay.** A private `deriveLadderState` replays meals +
   evaluations in date order once; `currentRung` and `decideLadderMove` both read
-  it, so reaction-binding + step-back logic exists exactly once.
+  it, so reaction-binding + walk-down logic exists exactly once.
 
 ### Family / Allergen / Food — the three-level catalog
 

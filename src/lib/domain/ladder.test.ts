@@ -9,11 +9,7 @@ import type {
   ReintroductionEvaluation,
   SkinObservation,
 } from '$lib/domain/models';
-import {
-  MAX_RUNG_REACTIONS,
-  REST_PHASE_DAYS_CLEAR,
-  REST_PHASE_DAYS_MILD,
-} from '$lib/domain/policy';
+import { REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_MILD } from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
 
 import {
@@ -869,72 +865,116 @@ describe('decideLadderMove', () => {
       });
     });
 
-    it('rests on a recorded checkpoint reaction rather than holding for a verdict', () => {
+    it('rests on the stepped-down rung after a reaction rather than holding for a verdict', () => {
       const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')];
       const evaluations = [evaluation({ date: '2026-06-02', outcome: 'clear-reaction' })];
       const move = decideLadderMove(decInput({ meals, evaluations, today: '2026-06-02' }));
+      // e2 reacted → walk down to e1; the recovery rest is on the stepped-down rung.
       expect(move).toEqual({
         kind: 'rest',
-        rung: engineSteps[1],
+        rung: engineSteps[0],
         days: REST_PHASE_DAYS_CLEAR,
         until: addDays('2026-06-02', REST_PHASE_DAYS_CLEAR),
       });
     });
   });
 
-  // ── Reaction cycle: rest → step-back → clean re-test → re-advance ──
-  describe('reaction cycle', () => {
+  // ── Walk-down on a confirmed reaction: step down one rung, never re-climb ──
+  // PRD #454 stories #6, #7; ADR-0023 §6. A confirmed non-tolerated verdict
+  // steps the ladder down one rung and caps the reacting rung permanently — a
+  // later dose at the reacting anchor never re-advances onto it.
+  describe('walk-down', () => {
     const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')];
     const evaluations = [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })];
-    const until = addDays('2026-06-02', REST_PHASE_DAYS_MILD);
 
-    it('rests while the recovery window is open', () => {
-      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-03' }))).toEqual({
-        kind: 'rest',
-        rung: engineSteps[1],
-        days: REST_PHASE_DAYS_MILD,
-        until,
-      });
+    it('steps down to the rung below and never climbs back to the reacting rung', () => {
+      // e2 reacted on 06-02. Under walk-down the ladder caps at e1 (the rung
+      // below) and never re-climbs e2. With only the stepped-down rung dosed so
+      // far, e1 is the effective top being confirmed — the engine must not
+      // advance onto e2. (v1 would `advance` e1→e2, treating the reaction as a
+      // temporary setback; walk-down forbids that.)
+      const move = decideLadderMove(decInput({ meals, evaluations, today: '2026-06-20' }));
+      expect(move).not.toEqual(expect.objectContaining({ kind: 'advance', to: engineSteps[1] }));
     });
 
-    it('steps back to the last-passing rung once the rest has elapsed', () => {
-      expect(decideLadderMove(decInput({ meals, evaluations, today: addDays(until, 1) }))).toEqual({
-        kind: 'step-back',
-        from: engineSteps[1],
-        to: engineSteps[0],
-      });
-    });
+    // A walk-down to e2 (from a top-rung e3 reaction), then a full re-confirm
+    // dwell on e2. N = 3 default steps; confirm cadence = latency = 3 d.
+    const climbToTop = [
+      eggMeal('2026-06-01', 'pinch'),
+      eggMeal('2026-06-02', 'teaspoon'),
+      eggMeal('2026-06-03', 'spoon'), // reaches e3
+    ];
+    const topReaction = [evaluation({ date: '2026-06-03', outcome: 'mild-reaction' })];
 
-    it('re-advances after a clean re-test — a reaction is a temporary setback', () => {
-      const retestMeals = [...meals, eggMeal('2026-06-11', 'teaspoon')];
-      const retestEvals = [
-        ...evaluations,
-        evaluation({ date: '2026-06-11', outcome: 'tolerated' }),
+    it('holds the stepped-down rung as passed until its own dwell completes', () => {
+      // e3 reacts → down to e2. The single earlier climb-past teaspoon (06-02)
+      // does not count; after the rest, two fresh e2 doses (06-07, 06-10) are
+      // only 2 of the 3 required — e2 reads `passed`, not yet `settled`.
+      const meals = [
+        ...climbToTop,
+        eggMeal('2026-06-07', 'teaspoon'),
+        eggMeal('2026-06-10', 'teaspoon'),
       ];
-      // A reaction has flipped the mode to confirm, so the re-climb honours the
-      // confirm cadence (≥ latency = 3 d): teaspoon re-dosed 06-11, today 06-14.
       expect(
-        decideLadderMove(
-          decInput({ meals: retestMeals, evaluations: retestEvals, today: '2026-06-14' }),
-        ),
-      ).toEqual({ kind: 'advance', from: engineSteps[1], to: engineSteps[2] });
+        decideLadderMove(decInput({ meals, evaluations: topReaction, today: '2026-06-13' })),
+      ).toEqual({
+        kind: 'passed',
+        rung: engineSteps[1],
+      });
+    });
+
+    it('reports the stepped-down rung settled only after a full dwell + latency window', () => {
+      // Three fresh e2 doses (06-07, 06-10, 06-13) after the walk-down complete
+      // the N=3 dwell; terminal eval at last dose (06-13) + latency (3) = 06-16.
+      const meals = [
+        ...climbToTop,
+        eggMeal('2026-06-07', 'teaspoon'),
+        eggMeal('2026-06-10', 'teaspoon'),
+        eggMeal('2026-06-13', 'teaspoon'),
+      ];
+      expect(
+        decideLadderMove(decInput({ meals, evaluations: topReaction, today: '2026-06-16' })),
+      ).toEqual({
+        kind: 'settled',
+        rung: engineSteps[1],
+      });
+    });
+
+    it('does not count the single earlier climb-past exposure toward the stepped-down dwell', () => {
+      // Only two fresh e2 doses after the walk-down (06-07, 06-10). If the
+      // 06-02 climb-past teaspoon counted, N=3 would already be met and 06-13
+      // (past 06-10 + latency) would read `settled`. It must read `passed`.
+      const meals = [
+        ...climbToTop,
+        eggMeal('2026-06-07', 'teaspoon'),
+        eggMeal('2026-06-10', 'teaspoon'),
+      ];
+      expect(
+        decideLadderMove(decInput({ meals, evaluations: topReaction, today: '2026-06-16' })),
+      ).toEqual({
+        kind: 'passed',
+        rung: engineSteps[1],
+      });
     });
   });
 
   // ── Reaction binding by date ──
-  // A verdict dated D binds to the highest rung whose anchor was dosed on or
-  // before D. The replay orders a same-date meal *before* a same-date eval, so
-  // a dose logged the same day the reaction is recorded still counts as the
-  // reacting rung. This pins that ordering — flip it and the reaction would
-  // bind one rung lower.
+  // A verdict dated D binds to the highest rung whose anchor was dosed in the
+  // latency window `[D − latency, D]` (under confirm cadence ≥ latency the
+  // window holds exactly one rung). The replay orders a same-date meal *before*
+  // a same-date eval, so a dose logged the same day the reaction is recorded
+  // still counts as the reacting rung. This pins that ordering — flip it and the
+  // reaction would bind one rung lower.
   describe('reaction binding by date', () => {
-    it('binds a same-day reaction to the rung dosed that same day, not the rung below', () => {
+    it('binds a same-day reaction to the rung dosed that same day, then walks down from it', () => {
       const meals = [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')];
       const evaluations = [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })];
-      // teaspoon (e2) dosed on 06-02 → the 06-02 reaction rests at e2, not e1.
+      // teaspoon (e2) dosed on 06-02 → the 06-02 reaction binds to e2 and walks
+      // down to e1 (rest at e1). Had it bound to e1 instead, the lowest rung
+      // would have reacted → floor-exhaustion, so the rest at e1 proves the bind.
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-03' }))).toEqual({
         kind: 'rest',
-        rung: engineSteps[1],
+        rung: engineSteps[0],
         days: REST_PHASE_DAYS_MILD,
         until: addDays('2026-06-02', REST_PHASE_DAYS_MILD),
       });
@@ -955,21 +995,27 @@ describe('decideLadderMove', () => {
 
   // ── Terminals ──
   describe('terminals', () => {
-    it('reports ceiling-reached when a rung reacts up to the per-rung cap', () => {
+    it('cascades further down on a second reaction — never re-climbing either reacting rung', () => {
+      // Climb to e3, react on e3 (06-03) → walk down to e2. After the rest,
+      // re-confirm e2 with a fresh teaspoon dose (06-10) that also reacts →
+      // cascade down to e1. During e1's recovery the rest binds to e1: the
+      // second reaction stepped down from e2, proving the cascade (had e2 not
+      // stepped down first, the second reaction would have bound to e3).
       const meals = [
         eggMeal('2026-06-01', 'pinch'),
         eggMeal('2026-06-02', 'teaspoon'),
-        eggMeal('2026-06-11', 'teaspoon'),
+        eggMeal('2026-06-03', 'spoon'),
+        eggMeal('2026-06-10', 'teaspoon'), // re-confirm the stepped-down e2
       ];
       const evaluations = [
-        evaluation({ date: '2026-06-02', outcome: 'mild-reaction' }),
-        evaluation({ date: '2026-06-11', outcome: 'mild-reaction' }),
+        evaluation({ date: '2026-06-03', outcome: 'mild-reaction' }), // e3 reacts → down to e2
+        evaluation({ date: '2026-06-10', outcome: 'mild-reaction' }), // e2 reacts → down to e1
       ];
-      expect(MAX_RUNG_REACTIONS).toBe(2); // pin the fixture to the constant
-      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-20' }))).toEqual({
-        kind: 'ceiling-reached',
-        rung: engineSteps[1],
-        reason: 'floor-exhaustion',
+      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-11' }))).toEqual({
+        kind: 'rest',
+        rung: engineSteps[0],
+        days: REST_PHASE_DAYS_MILD,
+        until: addDays('2026-06-10', REST_PHASE_DAYS_MILD),
       });
     });
 
@@ -977,6 +1023,28 @@ describe('decideLadderMove', () => {
       const meals = [eggMeal('2026-06-01', 'pinch')];
       const evaluations = [evaluation({ date: '2026-06-01', outcome: 'severe-reaction' })];
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-05' }))).toEqual({
+        kind: 'ceiling-reached',
+        rung: engineSteps[0],
+        reason: 'floor-exhaustion',
+      });
+    });
+
+    it('reports floor-exhaustion when a cascade of reactions reaches the lowest rung', () => {
+      // e3 reacts → down to e2; e2 reacts → down to e1; e1 (the floor) reacts →
+      // nowhere lower to retreat → ceiling-reached { floor-exhaustion }.
+      const meals = [
+        eggMeal('2026-06-01', 'pinch'),
+        eggMeal('2026-06-02', 'teaspoon'),
+        eggMeal('2026-06-03', 'spoon'),
+        eggMeal('2026-06-10', 'teaspoon'), // re-confirm e2
+        eggMeal('2026-06-17', 'pinch'), // re-confirm e1
+      ];
+      const evaluations = [
+        evaluation({ date: '2026-06-03', outcome: 'mild-reaction' }),
+        evaluation({ date: '2026-06-10', outcome: 'mild-reaction' }),
+        evaluation({ date: '2026-06-17', outcome: 'mild-reaction' }), // floor reacts
+      ];
+      expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-25' }))).toEqual({
         kind: 'ceiling-reached',
         rung: engineSteps[0],
         reason: 'floor-exhaustion',
@@ -993,9 +1061,9 @@ describe('decideLadderMove', () => {
   });
 
   // ── v2 clinical reshape: probe/confirm mode, dwell, settled (ADR-0023 §6) ──
-  // The escalation half of PRD #454. Reactions still flow through the existing
-  // verdict path (rest/step-back/ceiling) — walk-down is a later slice. These
-  // assert only the returned `LadderDecision`, never the private mode/dwell.
+  // The escalation half of PRD #454. Reactions now walk the ladder down (see the
+  // walk-down block above). These assert only the returned `LadderDecision`,
+  // never the private mode/dwell.
   describe('probe/confirm reshape', () => {
     // A full clean climb to the top, then repeated top-rung doses spaced at the
     // confirm cadence (≥ latency = 3 d). N = 3 default steps.
@@ -1017,21 +1085,19 @@ describe('decideLadderMove', () => {
     });
 
     it('slows to confirm cadence (≥ latency) once a reaction has been seen', () => {
-      // Reaction on e2 flips to confirm; step back to e1, re-dose e1, re-climb to
-      // e2 via teaspoon. A 2-day gap would advance in probe but is below the
-      // confirm cadence (3), so the engine holds.
+      // Reaction on e2 flips to confirm and walks down to e1. Re-confirming e1
+      // must honour the confirm cadence (≥ latency = 3 d): a fresh pinch dosed
+      // 06-11, a 2-day gap would advance in probe but is below confirm cadence,
+      // so the engine holds on the stepped-down rung e1.
       const meals = [
         eggMeal('2026-06-01', 'pinch'),
         eggMeal('2026-06-02', 'teaspoon'),
-        eggMeal('2026-06-11', 'teaspoon'), // re-climb to e2
+        eggMeal('2026-06-11', 'pinch'), // re-confirm the stepped-down e1
       ];
-      const evaluations = [
-        evaluation({ date: '2026-06-02', outcome: 'mild-reaction' }),
-        evaluation({ date: '2026-06-11', outcome: 'tolerated' }),
-      ];
+      const evaluations = [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })];
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-13' }))).toEqual({
         kind: 'hold',
-        rung: engineSteps[1],
+        rung: engineSteps[0],
         reason: 'cadence',
         daysRemaining: 1,
       });
@@ -1041,12 +1107,12 @@ describe('decideLadderMove', () => {
       // At the top the mode is confirm, so the dwell doses are ≥ 3 d apart and
       // the [D − latency, D] attribution window holds exactly one rung. The last
       // top dose is 06-06; a reaction dated 06-08 falls in its window and binds
-      // to the top rung e3 (rest at e3), not an earlier rung.
+      // to the top rung e3 — which then walks down to e2 (rest at e2).
       const meals = [...cleanClimb, spoon('2026-06-06')];
       const evaluations = [evaluation({ date: '2026-06-08', outcome: 'mild-reaction' })];
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-09' }))).toEqual({
         kind: 'rest',
-        rung: engineSteps[2],
+        rung: engineSteps[1],
         days: REST_PHASE_DAYS_MILD,
         until: addDays('2026-06-08', REST_PHASE_DAYS_MILD),
       });
@@ -1120,27 +1186,24 @@ describe('decideLadderMove', () => {
       expect(second).toEqual(first); // pure recompute, nothing persisted
     });
 
-    it('restarts the dwell after a top-rung reaction — doses straddling it never settle', () => {
+    it('restarts the dwell on the stepped-down rung after a walk-down — a lone fresh dose never settles', () => {
       // Two top-rung dwell doses (06-03, 06-06), then a reaction at the top on
-      // 06-07 steps back to e2 and interrupts the dwell. After the rest the
-      // mother re-climbs to e3 with a single fresh top dose (06-14). The dwell
-      // must restart from zero, so a single fresh dose is not a completed dwell:
-      // the top reads `passed`, not `settled` — the reset guards against calling
-      // a dose tolerated on the strength of exposures that straddle a reaction.
+      // 06-07 walks the ladder down to e2 (e3 is capped, never re-climbed). The
+      // mother re-confirms e2 with a single fresh teaspoon dose (06-14). The
+      // stepped-down rung's dwell restarts from zero, so one fresh dose is not a
+      // completed dwell: e2 reads `passed`, not `settled` — the reset guards
+      // against trusting the rung on a single earlier climb-past exposure.
       const meals = [
         ...cleanClimb, // e1, e2, e3 (top dose #1 on 06-03)
         spoon('2026-06-06'), // top dose #2
-        eggMeal('2026-06-14', 'spoon'), // re-climb top dose (fresh dwell #1)
+        eggMeal('2026-06-14', 'teaspoon'), // re-confirm the stepped-down e2 (fresh dwell #1)
       ];
-      const evaluations = [
-        evaluation({ date: '2026-06-07', outcome: 'mild-reaction' }),
-        evaluation({ date: '2026-06-14', outcome: 'tolerated' }), // clears the setback
-      ];
-      // 06-17 clears the confirm cadence since the fresh top dose (06-14); with
+      const evaluations = [evaluation({ date: '2026-06-07', outcome: 'mild-reaction' })];
+      // 06-17 clears the confirm cadence since the fresh e2 dose (06-14); with
       // the dwell reset, only 1 of 3 required doses has accrued → passed.
       expect(decideLadderMove(decInput({ meals, evaluations, today: '2026-06-17' }))).toEqual({
         kind: 'passed',
-        rung: engineSteps[2],
+        rung: engineSteps[1],
       });
     });
   });
@@ -1368,16 +1431,15 @@ describe('decideLadderMove', () => {
       expect(steps[5].status).toBe('fired');
     });
 
-    it('exposes the state snapshot with all seven fields and explicit nulls', () => {
+    it('exposes the state snapshot with all six fields and explicit nulls', () => {
       const { snapshot } = explainLadderMove(decInput({}));
       expect(snapshot).toEqual({
         liveRung: null,
-        pendingReaction: null,
+        atEffectiveTop: false,
+        pendingRest: null,
         ceilingRung: null,
         mode: 'probe',
         dwell: { count: 0, lastDoseDate: null },
-        lastPassingRung: null,
-        reactionCounts: new Map(),
       });
     });
 
@@ -1398,7 +1460,7 @@ describe('decideLadderMove', () => {
       expect(snapshot.ceilingRung).toBeNull();
     });
 
-    it('surfaces the pending reaction in the snapshot during a rest', () => {
+    it('surfaces the pending rest on the stepped-down rung in the snapshot during a rest', () => {
       const { snapshot } = explainLadderMove(
         decInput({
           meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
@@ -1406,9 +1468,9 @@ describe('decideLadderMove', () => {
           today: '2026-06-03',
         }),
       );
-      expect(snapshot.pendingReaction?.rung.id).toBe('e2');
-      expect(snapshot.pendingReaction?.stepBackTo.id).toBe('e1');
-      expect(snapshot.pendingReaction?.outcome).toBe('mild-reaction');
+      // e2 reacted → walk down to e1; the rest window sits on the stepped-down rung.
+      expect(snapshot.pendingRest?.rung.id).toBe('e1');
+      expect(snapshot.pendingRest?.outcome).toBe('mild-reaction');
     });
 
     it('surfaces the ceiling rung in the snapshot on a terminal', () => {
@@ -1428,11 +1490,9 @@ describe('decideLadderMove', () => {
         const { replay } = explainLadderMove(decInput({}));
         expect(replay.initial).toEqual({
           liveRung: null,
-          pendingReaction: null,
+          pendingRest: null,
           ceilingRung: null,
           dwell: { count: 0, lastDoseDate: null },
-          lastPassingRung: null,
-          reactionCounts: new Map(),
         });
         expect(replay.steps).toEqual([]); // nothing logged
       });
@@ -1449,7 +1509,7 @@ describe('decideLadderMove', () => {
         expect(replay.steps.map((s) => [s.event.kind, s.branch])).toEqual([
           ['anchor', 'climb'],
           ['anchor', 'climb'],
-          ['eval', 'reaction-stepback'],
+          ['eval', 'reaction-walkdown'],
         ]);
       });
 
@@ -1503,7 +1563,7 @@ describe('decideLadderMove', () => {
         expect(replay.steps.map((s) => s.branch)).toEqual(['climb', 'reaction-ceiling']);
       });
 
-      it("the last step's `after` equals the snapshot (minus mode) — the ledger's bottom row", () => {
+      it("the last step's `after` equals the snapshot's evolving fields — the ledger's bottom row", () => {
         const input = decInput({
           meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
           evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
@@ -1511,35 +1571,15 @@ describe('decideLadderMove', () => {
         });
         const { snapshot, replay } = explainLadderMove(input);
         const last = replay.steps.at(-1)!.after;
+        // The frame carries only the loop's evolving fields — `mode` and
+        // `atEffectiveTop` are derived after the loop, so they live on the
+        // snapshot but never on a frame.
         expect(last).toEqual({
           liveRung: snapshot.liveRung,
-          pendingReaction: snapshot.pendingReaction,
+          pendingRest: snapshot.pendingRest,
           ceilingRung: snapshot.ceilingRung,
           dwell: snapshot.dwell,
-          lastPassingRung: snapshot.lastPassingRung,
-          reactionCounts: snapshot.reactionCounts,
         });
-      });
-
-      it('captures reactionCounts as an independent copy per frame (no aliasing)', () => {
-        // e2 reacts twice: the first stepback frame must still show count 1 even
-        // after the loop mutated the shared map to 2.
-        const { replay } = explainLadderMove(
-          decInput({
-            meals: [
-              eggMeal('2026-06-01', 'pinch'),
-              eggMeal('2026-06-02', 'teaspoon'),
-              eggMeal('2026-06-10', 'teaspoon'),
-            ],
-            evaluations: [
-              evaluation({ date: '2026-06-02', outcome: 'mild-reaction' }),
-              evaluation({ date: '2026-06-10', outcome: 'mild-reaction' }),
-            ],
-            today: '2026-06-12',
-          }),
-        );
-        const firstReaction = replay.steps.find((s) => s.branch === 'reaction-stepback')!;
-        expect(firstReaction.after.reactionCounts.get('e2')).toBe(1);
       });
 
       it('is pure — a re-run is deep-equal', () => {

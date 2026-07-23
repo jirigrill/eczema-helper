@@ -21,7 +21,6 @@ export type JourneyNodeKind =
   | 'holding-cadence'
   | 'holding-skin'
   | 'resting'
-  | 'stepped-back'
   | 'dwelling'
   | 'settled'
   | 'ceiling-floor-exhaustion'
@@ -44,8 +43,6 @@ export function journeyNodeKind(decision: LadderDecision): JourneyNodeKind {
       return decision.reason === 'skin-worsening' ? 'holding-skin' : 'holding-cadence';
     case 'rest':
       return 'resting';
-    case 'step-back':
-      return 'stepped-back';
     case 'passed':
       return 'dwelling';
     case 'settled':

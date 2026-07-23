@@ -17,7 +17,12 @@ describe('journeyNodeKind — LadderDecision → journey situation', () => {
   });
 
   it('splits hold by reason and maps the remaining arms', () => {
-    const rung = { id: 'r2', anchor: 'teaspoon' as const, isEvaluationCheckpoint: false, dose: '¼' };
+    const rung = {
+      id: 'r2',
+      anchor: 'teaspoon' as const,
+      isEvaluationCheckpoint: false,
+      dose: '¼',
+    };
     expect(journeyNodeKind({ kind: 'hold', rung, reason: 'cadence', daysRemaining: 2 })).toBe(
       'holding-cadence',
     );
@@ -31,7 +36,6 @@ describe('journeyNodeKind — LadderDecision → journey situation', () => {
       }),
     ).toBe('holding-skin');
     expect(journeyNodeKind({ kind: 'rest', rung, days: 7, until: '2026-06-10' })).toBe('resting');
-    expect(journeyNodeKind({ kind: 'step-back', from: rung, to: rung })).toBe('stepped-back');
     expect(journeyNodeKind({ kind: 'passed', rung })).toBe('dwelling');
     expect(journeyNodeKind({ kind: 'settled', rung })).toBe('settled');
     expect(journeyNodeKind({ kind: 'blocked' })).toBe('blocked');

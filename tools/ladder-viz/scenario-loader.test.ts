@@ -208,29 +208,26 @@ describe('shipped scenarios — each replays its named distinct path (#523)', ()
    *
    * - `visits` — every situation the path must reach.
    * - `endsAt` — the terminal box, pinned wherever the write-up names a specific
-   *   end state: a settled/blocked terminal, or the resumed `climbing` a hold /
-   *   step-back is meant to lift back into (so "climbing resumes" can't regress
-   *   into a run that stalls in the hold).
-   * - `terminalRung` — floor-exhaustion and per-rung-cap ceilings share the
-   *   `ceiling-floor-exhaustion` kind, so kinds alone can't tell them apart. We
-   *   pin the live rung the ceiling fires at: the floor for floor-exhaustion,
-   *   off the floor for the per-rung cap — the whole point of scenario 4 is that
-   *   it terminates by the per-rung count, not by running out of floor.
+   *   end state: a settled/blocked terminal, or the resumed `climbing` a hold is
+   *   meant to lift back into (so "climbing resumes" can't regress into a run
+   *   that stalls in the hold).
+   * - `terminalRung` — pins the live rung the run's terminal fires at: `floor`
+   *   for floor-exhaustion (the lowest rung reacts, nowhere lower), `off-floor`
+   *   for the walk-down scenario (it settles on the stepped-down rung, BELOW the
+   *   rung that reacted but not at the floor — the whole point of the reshape is
+   *   that a reaction walks down and re-confirms in place, never re-climbs).
    */
   const PATHS: Record<
     string,
     { visits: JourneyNodeKind[]; endsAt?: JourneyNodeKind; terminalRung?: 'floor' | 'off-floor' }
   > = {
     'clean-climb-settled': { visits: ['climbing', 'dwelling'], endsAt: 'settled' },
-    'reaction-rest-stepback': {
-      visits: ['climbing', 'resting', 'stepped-back'],
-      endsAt: 'climbing',
-    },
-    'floor-exhaustion-ceiling': { visits: ['ceiling-floor-exhaustion'], terminalRung: 'floor' },
-    'per-rung-cap-ceiling': {
-      visits: ['resting', 'stepped-back', 'ceiling-floor-exhaustion'],
+    'reaction-walkdown': {
+      visits: ['climbing', 'resting', 'dwelling'],
+      endsAt: 'settled',
       terminalRung: 'off-floor',
     },
+    'floor-exhaustion-ceiling': { visits: ['ceiling-floor-exhaustion'], terminalRung: 'floor' },
     'skin-worsening-hold': { visits: ['holding-skin'], endsAt: 'climbing' },
     'cadence-hold': { visits: ['holding-cadence'], endsAt: 'climbing' },
     'blocked-permanent': { visits: ['blocked'] },

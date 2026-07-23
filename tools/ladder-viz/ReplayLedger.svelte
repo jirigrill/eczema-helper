@@ -16,7 +16,7 @@
   }: { day: DayView; focus?: number | null; open?: boolean } = $props();
 
   const replay = $derived(day.replay);
-  const fieldKeys = ['liveRung', 'pendingReaction', 'ceilingRung', 'dwell', 'lastPassingRung', 'reactionCounts'];
+  const fieldKeys = ['liveRung', 'pendingRest', 'ceilingRung', 'dwell'];
 
   // Open the panel when a back-link targets a row inside it.
   $effect(() => {
@@ -34,7 +34,9 @@
 
   {#if open}
     {#if replay.rows.length === 0}
-      <div class="empty">no events replayed for this day — the initial frame is the whole story</div>
+      <div class="empty">
+        no events replayed for this day — the initial frame is the whole story
+      </div>
     {/if}
     <div class="scroll">
       <table>
@@ -77,7 +79,10 @@
 </div>
 
 <style>
-  .ledger { border-top: 1px solid var(--hair); background: var(--surface); }
+  .ledger {
+    border-top: 1px solid var(--hair);
+    background: var(--surface);
+  }
   .head {
     display: flex;
     align-items: center;
@@ -92,23 +97,101 @@
     cursor: pointer;
     text-align: left;
   }
-  .caret { display: inline-block; transition: transform 0.1s; color: var(--muted); }
-  .caret.open { transform: rotate(90deg); }
-  .count { font-size: 11px; font-weight: 600; color: var(--muted); }
-  .hint { margin-left: auto; font-size: 10px; font-weight: 500; color: var(--muted); }
-  .empty { padding: 10px 14px; font-size: 12px; color: var(--muted); }
-  .scroll { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: 12px; }
-  th, td { padding: 5px 9px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--hair); }
-  th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; background: var(--surface); position: sticky; top: 0; }
-  .c-idx { color: var(--muted); font-variant-numeric: tabular-nums; width: 1%; }
-  .c-branch code.b { display: inline-block; margin-right: 7px; font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--canvas); color: var(--ink); }
-  .c-field { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); }
-  .c-field.changed { color: var(--ink); font-weight: 700; background: rgba(47, 158, 87, 0.1); }
-  tr.initial td { color: var(--muted); font-style: italic; }
-  tr.terminal { background: rgba(209, 72, 63, 0.06); }
-  tr.focused { outline: 2px solid var(--hold); outline-offset: -2px; }
-  tfoot td { border-bottom: none; }
-  tfoot .foot { font-size: 9px; text-transform: uppercase; color: var(--muted); }
-  tfoot .c-event { font-size: 10px; color: var(--muted); font-style: italic; }
+  .caret {
+    display: inline-block;
+    transition: transform 0.1s;
+    color: var(--muted);
+  }
+  .caret.open {
+    transform: rotate(90deg);
+  }
+  .count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .hint {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .empty {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .scroll {
+    overflow-x: auto;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+  th,
+  td {
+    padding: 5px 9px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--hair);
+  }
+  th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+  }
+  .c-idx {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    width: 1%;
+  }
+  .c-branch code.b {
+    display: inline-block;
+    margin-right: 7px;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--canvas);
+    color: var(--ink);
+  }
+  .c-field {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .c-field.changed {
+    color: var(--ink);
+    font-weight: 700;
+    background: rgba(47, 158, 87, 0.1);
+  }
+  tr.initial td {
+    color: var(--muted);
+    font-style: italic;
+  }
+  tr.terminal {
+    background: rgba(209, 72, 63, 0.06);
+  }
+  tr.focused {
+    outline: 2px solid var(--hold);
+    outline-offset: -2px;
+  }
+  tfoot td {
+    border-bottom: none;
+  }
+  tfoot .foot {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  tfoot .c-event {
+    font-size: 10px;
+    color: var(--muted);
+    font-style: italic;
+  }
 </style>

@@ -10,7 +10,7 @@ A clinical refinement of that recommendation logic (probe a small dose then conf
 
 ---
 
-**Status:** Accepted, implemented (v1). Types + curated data + rung derivation + the deterministic `decideLadderMove` engine are landed and green. The **clinical reshape** (§6) is accepted design, in progress: its **escalation half** — probe/confirm mode (derived, no persisted flag), `reactionLatencyDays` with `cadence ≥ latency` in confirm, the top-rung dwell → `settled` terminal, and the retired checkpoint hold — is **landed** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)). The reaction-detection layer is a *tripwire that raises a hold, never an auto-ban*, and severe reactions derive a terminal `ceiling-reached { reason: 'severe' }` — both still unbuilt (walk-down + detection are later slices). The v2 type scaffolding landed in [#498](https://github.com/jirigrill/eczema-helper/issues/498).
+**Status:** Accepted, implemented (v1). Types + curated data + rung derivation + the deterministic `decideLadderMove` engine are landed and green. The **clinical reshape** (§6) is accepted design, in progress: its **escalation half** — probe/confirm mode (derived, no persisted flag), `reactionLatencyDays` with `cadence ≥ latency` in confirm, the top-rung dwell → `settled` terminal, and the retired checkpoint hold — is **landed** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)); the **walk-down** on a confirmed reaction (step down one rung, never re-climb; re-confirm the stepped-down rung; floor-exhaustion terminal; `MAX_RUNG_REACTIONS` retired) is **landed** ([#501](https://github.com/jirigrill/eczema-helper/issues/501)). The reaction-detection layer is a *tripwire that raises a hold, never an auto-ban*, and severe reactions derive a terminal `ceiling-reached { reason: 'severe' }` — both still unbuilt (detection + the `suspected-reaction` hold are later slices). The v2 type scaffolding landed in [#498](https://github.com/jirigrill/eczema-helper/issues/498).
 **Date:** 2026-07-05 (last substantive amendment 2026-07-17)
 **Source:** [Program Engine Shape audit](../research/program-engine-shape.md) §2b Gap 1, §3 Ladder, §5 sequence #1.
 **Extends:** the `AllergenStatus` lifecycle and Dexie-persistence invariants (CONTEXT.md).
@@ -69,15 +69,15 @@ The ladder is pure/deterministic and LLM-independent, so it is sequenced first �
 
 A single pure function `decideLadderMove(input): LadderDecision` in `ladder.ts` composes the derived rung and the read-only gates into one recommendation. It is the F3 ≡ F4 walker — it never branches on phase. It **decides but never writes**; the mother still logs every dose herself.
 
-**One shared replay.** A single private helper (`deriveLadderState`, never exported) replays meals + evaluations in date order **once**, producing `{ liveRung, lastPassingRung, pendingReaction, ceilingRung, reactionCounts }`. `currentRung` projects `liveRung` from it, so `currentRung` and `decideLadderMove` cannot drift and the reaction-binding + step-back logic is written exactly once.
+**One shared replay.** A single private helper (`deriveLadderState`, never exported) replays meals + evaluations in date order **once**, producing `{ liveRung, ceilingIndex, pendingRest, ceilingRung, mode, dwell }`. `currentRung` projects `liveRung` from it, so `currentRung` and `decideLadderMove` cannot drift and the reaction-binding + walk-down logic is written exactly once. (`ceilingIndex` is the walk-down cap — the highest rung the climb may reach, dropped one rung per confirmed reaction; §6, [#501](https://github.com/jirigrill/eczema-helper/issues/501).)
 
 **Phase → cadence injection.** The engine takes `cadenceDays` as an explicit value; the caller sources it from `cadenceForPhase(phase)` in `policy.ts`. The engine never derives F3-vs-F4.
 
 **Gate precedence — most-overriding first.** Safety/clinical gates dominate rhythm gates:
 
 1. permanent elimination → `blocked`
-2. floor exhausted or per-rung cap (`MAX_RUNG_REACTIONS`) hit → `ceiling-reached`
-3. reaction still in effect → `rest` (window open), then `step-back`
+2. floor exhausted (lowest rung reacts, nowhere lower to retreat) → `ceiling-reached` — **superseded by §6** ([#501](https://github.com/jirigrill/eczema-helper/issues/501)): the per-rung `MAX_RUNG_REACTIONS` cap is retired (unreachable once re-climb is gone); floor exhaustion is the sole reaction terminal
+3. reaction recovery window open → `rest`; after it the ladder **walks down** and re-confirms the stepped-down rung in place — **superseded by §6** ([#501](https://github.com/jirigrill/eczema-helper/issues/501)): the v1 `step-back` re-climb is retired
 4. checkpoint awaiting a verdict → `hold('awaiting-verdict')` — **retired by §6** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)): the per-rung verdict this waited on no longer gates the engine; `isEvaluationCheckpoint` survives only as a UI nudge and `checkpointVerdictGate` stays exported for that read
 5. skin worsened across the stability window → `hold('skin-worsening', baseline→current)`
 6. cadence not elapsed → `hold('cadence', daysRemaining)` — the spacing is now **mode-driven** (§6): probe cadence = the injected phase cadence (1 in F4, 3 in F3), confirm `cadence ≥ latency`
@@ -85,7 +85,7 @@ A single pure function `decideLadderMove(input): LadderDecision` in `ladder.ts` 
 
 A recorded reaction outranks the rhythm gates; skin state outranks cadence (never advance while skin trends worse, even when the clock allows). A **steady baseline is not a hold reason** — mild eczema steady at severity 1 through the window is escalation-eligible; only an *increase* over the window's baseline blocks. The skin gate is `skinStabilityGate(observations, today, stabilityWindowDays)` with `stabilityWindowDays = max(cadenceDays, 3)` (`stabilityWindowFor` in `policy.ts`; the 3-day floor keeps reintroduction's 1-day cadence from shrinking the safety window below a readable trend).
 
-**Reaction → rest → step-back → re-test.** A checkpoint reaction yields `rest(days)` keyed to severity (ADR-0016 `REST_PHASE_DAYS_*`). When the window elapses (`today` past `until`), the engine surfaces `step-back` to the **last-passing rung** (directly below the reacting one) and re-tests — auto-due, but still a mother-logged meal. A clean re-test re-advances: a reaction is a *temporary* setback, not a cap. A rung that reacts `MAX_RUNG_REACTIONS` times, and the floor case (lowest rung reacts, nowhere lower to retreat), unify into the *same* terminal `ceiling-reached`. The engine never converts a terminal into a `permanent-*` status itself (ADR-0012 / ADR-0024) — it defers to human care.
+**Reaction → walk-down → re-confirm.** *(§6 [#501](https://github.com/jirigrill/eczema-helper/issues/501) — supersedes the v1 rest → step-back → re-test cycle.)* A confirmed reaction yields `rest(days)` keyed to severity (ADR-0016 `REST_PHASE_DAYS_*`) on the **stepped-down** rung during recovery. The reaction binds within the latency window `[D − latency, D]` (one rung in confirm), **caps the reacting rung forever** (never re-climbed), and steps the ladder down one rung. That stepped-down rung is **re-confirmed by its own dwell** before it settles — a single earlier climb-past exposure does not count. A second reaction cascades further down; the floor case (lowest rung reacts, nowhere lower to retreat) is the terminal `ceiling-reached` (`MAX_RUNG_REACTIONS` retired). The engine never converts a terminal into a `permanent-*` status itself (ADR-0012 / ADR-0024) — it defers to human care.
 
 ### `LadderDecision` — the verdict vocabulary
 
@@ -95,19 +95,20 @@ A closed discriminated union. Each variant answers a distinct "what now?" that a
 |---|---|---|---|
 | `advance` | `from: LadderStep \| null`, `to` | Move up one rung; `from: null` is the first move | Directional + shows both rungs; `from: null` avoids a separate `start` variant |
 | `hold` | `rung`, `reason`, optional `daysRemaining` / `baseline+currentSeverity` | Stay put for a *rhythm/awaiting* reason (cadence, skin-worsening, awaiting-verdict) | Discriminates on `reason` internally rather than 3 top-level kinds — the consumer treats "wait" uniformly |
-| `rest` | `rung`, `days`, `until` | Reaction recovery window is open; do nothing until `until` | Distinct from `hold`: it is a *reaction* state with a computable due date, not a rhythm wait |
-| `step-back` | `from`, `to` | Reaction window elapsed; retreat to last-passing rung and re-test | Opposite direction + different cause from `advance`; renders and reasons differently |
+| `rest` | `rung`, `days`, `until` | Reaction recovery window is open; do nothing until `until` (`rung` is the stepped-down rung after §6 walk-down) | Distinct from `hold`: it is a *reaction* state with a computable due date, not a rhythm wait |
 | `passed` | `rung` | Reached and cleared the top rung — ladder complete (success) | A *good* terminal; must not read as `blocked`/`ceiling-reached` |
 | `blocked` | *(none)* | Ladder was inert from the start — permanent elimination, or a stage with no rungs | Carries no rung by construction; collapsing into `ceiling-reached` would force a fake rung |
-| `ceiling-reached` | `rung` | Stuck: per-rung cap or floor exhaustion — defer to clinician (a *bad* terminal) | Distinct from `passed` (failure vs success) and from `blocked` (has a rung, was walked) |
+| `ceiling-reached` | `rung`, `reason` | Stuck: floor exhaustion (or, §6, a severe reaction) — defer to clinician (a *bad* terminal) | Distinct from `passed` (failure vs success) and from `blocked` (has a rung, was walked) |
 
-**Are all needed / can they be optimized?** Yes, all seven are load-bearing and the union is already close to minimal:
+The v1 `step-back` variant (retreat to the last-passing rung and re-test) was **retired by §6** ([#501](https://github.com/jirigrill/eczema-helper/issues/501)): a reaction now walks the ladder *down* and re-confirms the stepped-down rung in place, so there is no distinct re-climb move to emit.
+
+**Are all needed / can they be optimized?** Yes, each is load-bearing and the union is already close to minimal:
 
 - `blocked` vs `ceiling-reached` vs `passed` are three genuinely different terminals — never-started, stuck-with-a-rung, and completed-at-top. They render different copy and gate different follow-ups; merging any pair loses information a consumer needs (a rung that doesn't exist for `blocked`, success-vs-failure for the others).
-- `advance` / `step-back` and `hold` / `rest` are the two direction/cause pairs. They look mergeable but aren't: direction and cause drive different UI and different downstream engine behaviour (`rest` has a due date; `step-back` triggers a re-test).
-- The one deliberate *compression* already made: the three "wait" reasons are folded into `hold`'s `reason` discriminant rather than three top-level kinds. This is the right axis — consumers branch on "advance vs wait vs retreat vs terminal" first, then on reason.
+- `hold` / `rest` are a cause pair. They look mergeable but aren't: cause drives different UI and different downstream engine behaviour (`rest` has a due date; `hold` is a rhythm/skin wait).
+- The one deliberate *compression* already made: the "wait" reasons are folded into `hold`'s `reason` discriminant rather than separate top-level kinds. This is the right axis — consumers branch on "advance vs wait vs terminal" first, then on reason.
 
-The **v2 reshape (§6)** adds three variants (`settled`, `adapting-decelerate`, `suspected-reaction`) and turns `ceiling-reached` into `ceiling-reached { reason }`. That is additive, not a re-cut of the existing seven; see §6 and [#498](https://github.com/jirigrill/eczema-helper/issues/498).
+The **v2 reshape (§6)** adds `settled`, `adapting-decelerate`, and `suspected-reaction`, turns `ceiling-reached` into `ceiling-reached { reason }`, and retires `step-back`; see §6 and [#498](https://github.com/jirigrill/eczema-helper/issues/498).
 
 ### Why flat variants, not ~4 nested kinds
 
@@ -167,7 +168,7 @@ The **regulatory** question (is generated rationale "medical advice" under EU MD
 
 The ship-now boundary is the **`suspected-reaction` hold**, *not* the escalation-vs-detection split (a naive "escalation now, detection later" would ship an auto-banning walk-down this section already rules illegal, only to tear it out).
 
-- **Ships now** (re-scoped PRD #454 — the derived, LLM-free engine up to the hold): probe/confirm (incl. adaptation-window entry), `settled`, `cadence ≥ latency` unchanged, the walk-down mechanic driven by a *confirmed* `ReintroductionEvaluation` row, the detector demoted to a tripwire, `pendingAdaptation` + `adapting-decelerate`, and `suspected-reaction` as a first-class decision. **Landed so far** ([#500](https://github.com/jirigrill/eczema-helper/issues/500)): the escalation half — probe/confirm mode + `cadence ≥ latency` + top-rung dwell → `settled` + the retired checkpoint hold. Reactions still flow through the v1 verdict path (rest/step-back/ceiling); walk-down, the tripwire detector, `pendingAdaptation`/`adapting-decelerate`, and `suspected-reaction` are still pending.
+- **Ships now** (re-scoped PRD #454 — the derived, LLM-free engine up to the hold): probe/confirm (incl. adaptation-window entry), `settled`, `cadence ≥ latency` unchanged, the walk-down mechanic driven by a *confirmed* `ReintroductionEvaluation` row, the detector demoted to a tripwire, `pendingAdaptation` + `adapting-decelerate`, and `suspected-reaction` as a first-class decision. **Landed so far**: the escalation half — probe/confirm mode + `cadence ≥ latency` + top-rung dwell → `settled` + the retired checkpoint hold ([#500](https://github.com/jirigrill/eczema-helper/issues/500)); and the **walk-down** on a confirmed reaction — step down one rung, never re-climb, re-confirm the stepped-down rung via its own dwell, floor-exhaustion terminal, `MAX_RUNG_REACTIONS` retired ([#501](https://github.com/jirigrill/eczema-helper/issues/501)). Still pending: the tripwire detector, `pendingAdaptation`/`adapting-decelerate`, and `suspected-reaction`.
 - **Waits** (execution/UI, ADR-0026): the draft path (LLM/heuristic pre-fill), draft caching, the confirm UI, the BFF/prompt.
 
 **`cadence ≥ latency` is untouched by the seam** — it is a dosing-safety rule (never dose up into a brewing delayed reaction), not an attribution convenience. The seam decides *whether* a flare is a reaction, never *which rung* or *how fast to dose*.

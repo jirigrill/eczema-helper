@@ -72,7 +72,9 @@ export function evaluation(date: string, outcome: AllergenOutcome): Reintroducti
  * reversible terminal so the honest `settled → resting` edge (#519) actually
  * renders: a fast probe climb that hits a skin-worsening hold, reaches the top
  * rung, dwells and *settles*, then a late top-rung reaction re-opens the settled
- * run into `rest` and `step-back`. Days with no event still resolve — the
+ * run: the reaction walks the ladder *down* one rung (capping the top forever)
+ * and `rest`s on the stepped-down rung, which then re-confirms in place. Days
+ * with no event still resolve — the
  * time-triggered transitions (cadence elapsing, skin window clearing, dwell
  * latency met, settle) are the whole point of a day-by-day replay.
  */

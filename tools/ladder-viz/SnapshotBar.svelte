@@ -1,17 +1,16 @@
 <!-- The `LadderStateSnapshot` (from the real #521 seam), shown once above the
      pipeline — the ladder state as computed for this day, which the structural
-     steps in the pipeline cross-reference instead of repeating. All 7 fields
-     always present, explicit nulls. The first five are verdict-facing (a
-     precedence step reads them); the last two (lastPassingRung, reactionCounts)
-     are the replay's internal bookkeeping — shown here for debugging, marked
-     with a divider, never read by a decision. Labelled "derived state" rather
-     than the seam's own "snapshot" — "snapshot" reads as stale/historical, which
-     this isn't (it's recomputed fresh for the selected day); the tooltip still
-     names the real type for anyone tracing back to the seam. -->
+     steps in the pipeline cross-reference instead of repeating. All 6 fields
+     always present, explicit nulls, and every one verdict-facing (a precedence
+     step reads it). The walk-down reshape (#501) retired the two former
+     bookkeeping fields. Labelled "derived state" rather than the seam's own
+     "snapshot" — "snapshot" reads as stale/historical, which this isn't (it's
+     recomputed fresh for the selected day); the tooltip still names the real
+     type for anyone tracing back to the seam. -->
 <script lang="ts">
   import type { LadderStateSnapshot } from '$lib/domain/ladder';
 
-  import { fmtDwell, fmtPendingReaction, fmtReactionCounts, fmtRung } from './adapter';
+  import { fmtBool, fmtDwell, fmtPendingRest, fmtRung } from './adapter';
 
   let { snapshot }: { snapshot: LadderStateSnapshot } = $props();
 </script>
@@ -25,23 +24,23 @@
       >?</span
     >
   </span>
-  <div class="cell"><span class="k">liveRung</span><span class="v">{fmtRung(snapshot.liveRung)}</span></div>
+  <div class="cell">
+    <span class="k">liveRung</span><span class="v">{fmtRung(snapshot.liveRung)}</span>
+  </div>
   <div class="cell"><span class="k">mode</span><span class="v">{snapshot.mode}</span></div>
   <div class="cell">
-    <span class="k">pendingReaction</span>
-    <span class="v">{fmtPendingReaction(snapshot.pendingReaction)}</span>
+    <span class="k">atEffectiveTop</span>
+    <span class="v">{fmtBool(snapshot.atEffectiveTop)}</span>
   </div>
-  <div class="cell"><span class="k">ceilingRung</span><span class="v">{fmtRung(snapshot.ceilingRung)}</span></div>
-  <div class="cell"><span class="k">dwell</span><span class="v">{fmtDwell(snapshot.dwell)}</span></div>
-
-  <span class="sep" title="internal bookkeeping — computed by the replay, never read by a decision">bookkeeping</span>
-  <div class="cell muted">
-    <span class="k">lastPassingRung</span>
-    <span class="v">{fmtRung(snapshot.lastPassingRung)}</span>
+  <div class="cell">
+    <span class="k">pendingRest</span>
+    <span class="v">{fmtPendingRest(snapshot.pendingRest)}</span>
   </div>
-  <div class="cell muted">
-    <span class="k">reactionCounts</span>
-    <span class="v">{fmtReactionCounts(snapshot.reactionCounts)}</span>
+  <div class="cell">
+    <span class="k">ceilingRung</span><span class="v">{fmtRung(snapshot.ceilingRung)}</span>
+  </div>
+  <div class="cell">
+    <span class="k">dwell</span><span class="v">{fmtDwell(snapshot.dwell)}</span>
   </div>
 </div>
 
@@ -82,21 +81,19 @@
     letter-spacing: 0;
     cursor: help;
   }
-  .cell { display: flex; flex-direction: column; gap: 1px; }
-  .cell.muted .v { color: var(--muted); font-weight: 500; }
-  .sep {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-    color: var(--muted);
-    padding-left: 14px;
-    border-left: 1px dashed var(--hair);
-    align-self: stretch;
-    display: inline-flex;
-    align-items: center;
-    cursor: help;
+  .cell {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
   }
-  .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: var(--muted); }
-  .v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .k {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .v {
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
 </style>

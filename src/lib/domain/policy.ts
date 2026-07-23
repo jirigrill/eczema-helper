@@ -119,16 +119,6 @@ export const REINTRODUCTION_CADENCE_DAYS = 1;
 export const REACTION_LATENCY_DAYS = 3;
 
 /**
- * How many times one ladder rung may react before the decision engine treats it
- * as a confirmed ceiling and stops re-attempting it (ADR-0023). A single
- * reaction is a temporary setback — rest, step back, re-test; reacting this many
- * times converts the rung into a terminal `ceiling-reached` and defers to human
- * care (ADR-0024 medical-scope boundary). Never converts an allergen to a
- * `permanent-*` status itself (ADR-0012).
- */
-export const MAX_RUNG_REACTIONS = 2;
-
-/**
  * Look-back window for the skin-stability gate (ADR-0023 §decision-engine).
  * Held to `max(cadenceDays, 3)` by `stabilityWindowFor`; three days is the
  * shortest span in which "skin got worse" reads as a genuine trend rather
