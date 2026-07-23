@@ -20,6 +20,7 @@
   import { rungAtDayInPhase } from '$lib/domain/ladder';
   import { V1_FEEDING_STAGE } from '$lib/domain/canonical-allergen';
   import { parseDayQuery } from '$lib/utils/day-query';
+  import Chip from '$lib/components/Chip.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
@@ -523,6 +524,48 @@
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
 
+  // ── PROTOTYPE (#556) — actor-selection UX, three variants ─────────
+  // THROWAWAY. Answers: "how does the mother pick mother-vs-child when
+  // composing a meal, gated by feeding stage?" `FeedingStage` and the real
+  // actor plumbing (#553/#554-adjacent work) don't exist yet, so the stage
+  // is faked via `?stage=` and the actor pick is local view state only —
+  // nothing here touches MealEditor, Dexie, or Meal.actor. Delete this
+  // whole block (search "PROTOTYPE (#556)") plus PrototypeSwitcher once a
+  // variant is picked; see NOTES.md next to this file.
+  type ProtoStage = 'breastfed' | 'mixed' | 'solids';
+  const protoStages = ['breastfed', 'mixed', 'solids'] as const;
+  const protoVariants = ['A', 'B', 'C'] as const;
+  type ProtoVariant = (typeof protoVariants)[number];
+  const protoVariantNames: Record<ProtoVariant, string> = {
+    A: 'Top pill row',
+    B: 'Compact header badge',
+    C: 'Integrated content tabs',
+  };
+  const protoStageParam = page.url.searchParams.get('stage');
+  const protoStage: ProtoStage = (
+    protoStages as readonly string[]
+  ).includes(protoStageParam ?? '')
+    ? (protoStageParam as ProtoStage)
+    : 'mixed';
+  const protoVariantParam = page.url.searchParams.get('variant');
+  const protoVariant: ProtoVariant = (
+    protoVariants as readonly string[]
+  ).includes(protoVariantParam ?? '')
+    ? (protoVariantParam as ProtoVariant)
+    : 'A';
+  let protoActor = $state<'mother' | 'child'>('mother');
+  const protoImpliedActor = $derived(protoStage === 'solids' ? 'child' : 'mother');
+
+  function protoSetParam(key: 'variant' | 'stage', value: string): void {
+    const url = new URL(page.url);
+    url.searchParams.set(key, value);
+    void goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
+  }
+  function protoCycle<T extends string>(list: readonly T[], current: T, dir: 1 | -1): T {
+    const i = list.indexOf(current);
+    return list[(i + dir + list.length) % list.length] ?? current;
+  }
+
   // ── Empty-meal hint (issue #268) ──────────────────────────
   // Shown only while editing an existing meal whose working list is empty —
   // so the user is told to use Smazat instead of trying to "save zero foods".
@@ -559,6 +602,22 @@
     <PageHeader title={headerTitle()} variant="large" onBack={handleBack} bordered={false}>
       {#snippet right()}
         <p class="body-muted">{formatDateLongCs(targetDate)}</p>
+        <!-- PROTOTYPE (#556) variant B — compact actor badge beside the date -->
+        {#if import.meta.env.DEV && protoVariant === 'B'}
+          {#if protoStage === 'mixed'}
+            <Chip
+              active={true}
+              class="ml-2 px-2.5 py-1 text-[11px]"
+              onclick={() => (protoActor = protoActor === 'mother' ? 'child' : 'mother')}
+            >
+              {protoActor === 'mother' ? 'Já' : 'Miminko'}
+            </Chip>
+          {:else}
+            <span class="caption text-text-muted ml-2">
+              {protoImpliedActor === 'mother' ? 'Já' : 'Miminko'}
+            </span>
+          {/if}
+        {/if}
         {#if editingExisting && !drilledFamily}
           <button
             type="button"
@@ -571,6 +630,39 @@
     </PageHeader>
 
     <!-- Meal type is fixed at entry (ADR-0018) — no pills here. -->
+    {#if import.meta.env.DEV && protoVariant === 'A' && !drilledFamily}
+      <!-- PROTOTYPE (#556) variant A — top actor pill row, mixed-stage only -->
+      <div class="px-4 pb-3">
+        {#if protoStage === 'mixed'}
+          <div class="flex gap-1.5">
+            <button
+              type="button"
+              class="flex-1 rounded-full py-1.5 text-[11px] transition-colors
+                {protoActor === 'mother'
+                ? 'bg-primary font-semibold text-white'
+                : 'bg-surface-dark text-text-muted font-medium'}"
+              onclick={() => (protoActor = 'mother')}
+            >
+              Já
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-full py-1.5 text-[11px] transition-colors
+                {protoActor === 'child'
+                ? 'bg-primary font-semibold text-white'
+                : 'bg-surface-dark text-text-muted font-medium'}"
+              onclick={() => (protoActor = 'child')}
+            >
+              Miminko
+            </button>
+          </div>
+        {:else}
+          <p class="caption text-text-muted px-1">
+            Zapisujete za: {protoImpliedActor === 'mother' ? 'Já' : 'Miminko'}
+          </p>
+        {/if}
+      </div>
+    {/if}
     {#if !drilledFamily}
       <!-- Dosing guidance during reintroduction -->
       {#if reintroInfo}
@@ -617,6 +709,40 @@
         />
       {:else}
         <div role="presentation" onclick={handleGridContainerClick}>
+          <!-- PROTOTYPE (#556) variant C — actor tabs integrated with content -->
+          {#if import.meta.env.DEV && protoVariant === 'C'}
+            {#if protoStage === 'mixed'}
+              <div class="border-border mb-4 flex gap-4 border-b">
+                <button
+                  type="button"
+                  class="pb-2 text-sm transition-colors
+                    {protoActor === 'mother'
+                    ? 'border-primary text-primary border-b-2 font-semibold'
+                    : 'text-text-muted border-b-2 border-transparent font-medium'}"
+                  onclick={() => (protoActor = 'mother')}
+                >
+                  Já
+                </button>
+                <button
+                  type="button"
+                  class="pb-2 text-sm transition-colors
+                    {protoActor === 'child'
+                    ? 'border-primary text-primary border-b-2 font-semibold'
+                    : 'text-text-muted border-b-2 border-transparent font-medium'}"
+                  onclick={() => (protoActor = 'child')}
+                >
+                  Miminko
+                </button>
+              </div>
+              <!-- Real dual-actor data doesn't exist yet (#554 follow-up) — the
+                   grid/list below always shows the same working meal regardless
+                   of the tab. This mockup is only checking tab placement/feel. -->
+            {:else}
+              <p class="eyebrow text-text-muted mb-3">
+                Krmíte: {protoImpliedActor === 'mother' ? 'Já' : 'Miminko'}
+              </p>
+            {/if}
+          {/if}
           <!-- Confirmed foods summary (editable working list) -->
           {#if hasConfirmed || gridEditingFoodId}
             <div class="mb-5">
@@ -724,6 +850,44 @@
     </button>
   </div>
 </div>
+
+{#if import.meta.env.DEV}
+  <!-- PROTOTYPE (#556) switcher — deviates from the skill's default
+       bottom-center placement because the real sticky CTA already owns
+       that strip; top-right stays clear of every variant. -->
+  <div
+    class="bg-text fixed top-2 right-2 z-50 flex flex-col gap-1 rounded-xl px-3 py-2 text-white shadow-lg"
+  >
+    <div class="flex items-center gap-2 text-xs">
+      <button
+        type="button"
+        aria-label="Previous variant"
+        onclick={() => protoSetParam('variant', protoCycle(protoVariants, protoVariant, -1))}
+        >←</button
+      >
+      <span class="font-semibold">{protoVariant} — {protoVariantNames[protoVariant]}</span>
+      <button
+        type="button"
+        aria-label="Next variant"
+        onclick={() => protoSetParam('variant', protoCycle(protoVariants, protoVariant, 1))}
+        >→</button
+      >
+    </div>
+    <div class="flex items-center gap-2 text-xs opacity-80">
+      <button
+        type="button"
+        aria-label="Previous stage"
+        onclick={() => protoSetParam('stage', protoCycle(protoStages, protoStage, -1))}>←</button
+      >
+      <span>stage: {protoStage}</span>
+      <button
+        type="button"
+        aria-label="Next stage"
+        onclick={() => protoSetParam('stage', protoCycle(protoStages, protoStage, 1))}>→</button
+      >
+    </div>
+  </div>
+{/if}
 
 {#if saveErrorMessage}
   <Toast
