@@ -65,9 +65,12 @@
   <p class="canvas-sub">
     Standalone static mock — no build, no seeded data, opens straight in a browser. Three structurally
     different layouts for a day-view slot showing both the mother's and the child's meal separately, plus the
-    single-actor collapse for <code>breastfed</code>/<code>solids</code> feeding stages. Fixture day: breakfast
-    has a mother-only conflict (jogurt vs. dairy elimination), lunch has both actors logged with no conflict,
-    snack is empty for both, dinner has a baby-only conflict (peanut trace) with no mother meal logged.
+    single-actor collapse for <code>breastfed</code>/<code>solids</code> feeding stages. Fixture day
+    deliberately varies item count per slot — <strong>breakfast: 1 item</strong> (mother, with a conflict),
+    <strong>lunch: 3 items</strong> each (both actors, no conflict), <strong>snack: 5 items</strong> (mother,
+    longer names, one conflicting), <strong>dinner: 5 items</strong> (baby, longer names, one baby-only
+    conflict) — so each variant can be judged with a single item, a short list, and a long, wrapping/truncating
+    one.
   </p>
 
   <div class="phone">
@@ -98,19 +101,57 @@
   };
 
   // slot -> { mother: {items:[{name, conflict}], conflictAllergens: []} | 'empty', baby: ... }
+  // Item counts deliberately vary — 1 / 3 / 5 per slot, snack and dinner
+  // using longer names — so each variant is judged with a single item, a
+  // typical short list, and a long, wrapping/truncating one.
   const FIXTURE = {
     breakfast: {
       mother: { items: [{ name: 'Jogurt', conflict: true }], conflictAllergens: ['Mléčné výrobky'] },
       baby: 'empty',
     },
     lunch: {
-      mother: { items: [{ name: 'Kuřecí polévka', conflict: false }], conflictAllergens: [] },
-      baby: { items: [{ name: 'Rýžová kaše', conflict: false }], conflictAllergens: [] },
+      mother: {
+        items: [
+          { name: 'Kuřecí polévka', conflict: false },
+          { name: 'Bramborová kaše', conflict: false },
+          { name: 'Dušená mrkev', conflict: false },
+        ],
+        conflictAllergens: [],
+      },
+      baby: {
+        items: [
+          { name: 'Rýžová kaše', conflict: false },
+          { name: 'Banánové pyré', conflict: false },
+          { name: 'Hruškové pyré', conflict: false },
+        ],
+        conflictAllergens: [],
+      },
     },
-    snack: { mother: 'empty', baby: 'empty' },
+    snack: {
+      mother: {
+        items: [
+          { name: 'Celozrnný chléb s máslem', conflict: false },
+          { name: 'Domácí jablečný kompot', conflict: false },
+          { name: 'Řecký jogurt s medem', conflict: true },
+          { name: 'Vitamínový nápoj se zázvorem', conflict: false },
+          { name: 'Ovesné sušenky se skořicí', conflict: false },
+        ],
+        conflictAllergens: ['Mléčné výrobky'],
+      },
+      baby: 'empty',
+    },
     dinner: {
       mother: 'empty',
-      baby: { items: [{ name: 'Arašídové máslo (stopa)', conflict: true }], conflictAllergens: ['Arašídy'] },
+      baby: {
+        items: [
+          { name: 'Dušená brokolice', conflict: false },
+          { name: 'Vařené brambory', conflict: false },
+          { name: 'Kuřecí prsa na páře', conflict: false },
+          { name: 'Arašídové máslo (stopa)', conflict: true },
+          { name: 'Banánové pyré s ovesnými vločkami', conflict: false },
+        ],
+        conflictAllergens: ['Arašídy'],
+      },
     },
   };
 

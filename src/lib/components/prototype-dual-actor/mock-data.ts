@@ -29,12 +29,24 @@ const catalog = new BundledCatalogAdapter();
 
 const MEAL_TYPE_ORDER: MealType[] = ['breakfast', 'lunch', 'snack', 'dinner'];
 
-// Mock baby solids — deliberately includes one item that only conflicts for
-// the baby (peanuts, via BABY_ONLY_ALLERGEN below) to demonstrate an
-// actor-aware conflict badge that the mother's own row would never show.
+// Mock baby solids — item counts deliberately vary per slot (lunch: 3,
+// dinner: 5, with longer names) so the variants can be judged with a short
+// list and a long, wrapping/truncating one. Dinner also includes an item
+// that only conflicts for the baby (peanuts, via BABY_ONLY_ALLERGEN below)
+// to demonstrate an actor-aware conflict badge the mother's row never shows.
 const MOCK_BABY_ITEMS: Partial<Record<MealType, { name: string; foodId: string }[]>> = {
-  lunch: [{ name: 'Rýžová kaše', foodId: 'other:rice' }],
-  dinner: [{ name: 'Arašídové máslo (stopa)', foodId: 'other:peanuts' }],
+  lunch: [
+    { name: 'Rýžová kaše', foodId: 'other:rice' },
+    { name: 'Banánové pyré', foodId: 'other:banana' },
+    { name: 'Hruškové pyré', foodId: 'other:pear' },
+  ],
+  dinner: [
+    { name: 'Dušená brokolice', foodId: 'other:broccoli' },
+    { name: 'Vařené brambory', foodId: 'other:potato' },
+    { name: 'Kuřecí prsa na páře', foodId: 'other:chicken' },
+    { name: 'Arašídové máslo (stopa)', foodId: 'other:peanuts' },
+    { name: 'Banánové pyré s ovesnými vločkami', foodId: 'other:oats' },
+  ],
 };
 
 const BABY_ONLY_ALLERGEN = 'peanuts';
@@ -55,7 +67,13 @@ function toRenderMeal(
   return { items: renderItems, conflictAllergens };
 }
 
-/** Fixture mother meals for the standalone prototype page (no real IndexedDB data needed). */
+/**
+ * Fixture mother meals for the standalone prototype page (no real IndexedDB
+ * data needed). Item counts deliberately vary — breakfast: 1, lunch: 3,
+ * snack: 5 with longer names — to see each variant with a single item, a
+ * typical short list, and a long, wrapping/truncating one. Dinner is left
+ * unset (empty state) so the baby-only dinner slot below has a contrast.
+ */
 export function fixtureMotherMeals(date: string): Meal[] {
   return [
     {
@@ -71,7 +89,25 @@ export function fixtureMotherMeals(date: string): Meal[] {
       date,
       mealType: 'lunch',
       actor: 'mother',
-      items: [{ id: '1', name: 'Kuřecí polévka', foodId: 'other:rice', amount: 'portion' }],
+      items: [
+        { id: '1', name: 'Kuřecí polévka', foodId: 'other:rice', amount: 'portion' },
+        { id: '2', name: 'Bramborová kaše', foodId: 'other:potato', amount: 'portion' },
+        { id: '3', name: 'Dušená mrkev', foodId: 'other:carrot', amount: 'portion' },
+      ],
+      createdAt: new Date().toISOString(),
+    } as Meal,
+    {
+      id: `${date}:snack` as Meal['id'],
+      date,
+      mealType: 'snack',
+      actor: 'mother',
+      items: [
+        { id: '1', name: 'Celozrnný chléb s máslem', foodId: 'other:wheat', amount: 'portion' },
+        { id: '2', name: 'Domácí jablečný kompot', foodId: 'other:apple', amount: 'portion' },
+        { id: '3', name: 'Řecký jogurt s medem', foodId: 'other:dairy', amount: 'portion' },
+        { id: '4', name: 'Vitamínový nápoj se zázvorem', foodId: 'other:ginger', amount: 'portion' },
+        { id: '5', name: 'Ovesné sušenky se skořicí', foodId: 'other:oats', amount: 'portion' },
+      ],
       createdAt: new Date().toISOString(),
     } as Meal,
   ];
