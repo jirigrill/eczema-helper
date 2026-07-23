@@ -164,6 +164,13 @@ function deriveLadderState(
   meals: Meal[],
   evaluations: readonly ReintroductionEvaluation[],
   steps: readonly LadderStep[],
+  /**
+   * Optional trace sink (visualizer-only). When provided, the loop appends one
+   * `LadderReplayStep` per event and sets `.initial` — the single loop stays the
+   * one implementation (no parallel traced replay). Omitted on the production
+   * decision path, which pays nothing beyond the `if (trace)` guards.
+   */
+  trace?: { initial?: LadderReplayFrame; steps: LadderReplayStep[] },
 ): LadderReplayState {
   // Build one chronological event stream. Meal anchors (climb) carry `order: 0`
   // and evaluations (verdicts) carry `order: 1`, so a same-day dose is replayed
@@ -196,32 +203,67 @@ function deriveLadderState(
   const topIndex = steps.length - 1;
   const topAnchor = topIndex >= 0 ? steps[topIndex]!.anchor : null;
 
+  // Capture the loop's evolving variables as an immutable frame. `reactionCounts`
+  // is copied (not aliased) so a frame is a true point-in-time snapshot — see the
+  // maintenance contract on `LadderReplayStep`. Only built when tracing.
+  const frame = (): LadderReplayFrame => ({
+    liveRung: liveIndex >= 0 ? steps[liveIndex]! : null,
+    pendingReaction,
+    ceilingRung,
+    dwell,
+    lastPassingRung: pendingReaction?.stepBackTo ?? (liveIndex >= 0 ? steps[liveIndex]! : null),
+    reactionCounts: new Map(reactionCounts),
+  });
+  if (trace) trace.initial = frame();
+
   for (const ev of events) {
     if (ceilingRung) break; // terminal — nothing that follows can move the ladder
 
+    const before = trace ? frame() : null;
+    // Record one traced step for this event, classified by the branch it took.
+    const record = (branch: LadderReplayBranch) => {
+      if (!trace) return;
+      const event =
+        ev.kind === 'anchor'
+          ? ({ kind: 'anchor', date: ev.date, amount: ev.amount } as const)
+          : ({ kind: 'eval', date: ev.date, outcome: ev.outcome } as const);
+      trace.steps.push({ event, branch, before: before!, after: frame() });
+    };
+
     if (ev.kind === 'anchor') {
+      let climbed = false;
       if (nextStepIdx < steps.length && steps[nextStepIdx]!.anchor === ev.amount) {
         liveIndex = nextStepIdx;
         nextStepIdx += 1;
+        climbed = true;
       }
       // Dwell counting: once the climb has reached the top rung, every dose of
       // the top rung's anchor is a confirmation dose (the arrival dose is #1,
       // each spaced re-dose thereafter increments). Only the top rung dwells —
       // a clean probe confirms the top only (dose–response is monotone).
+      let dwelled = false;
       if (liveIndex === topIndex && topIndex >= 0 && ev.amount === topAnchor) {
         dwell = { count: dwell.count + 1, lastDoseDate: ev.date };
+        dwelled = true;
       }
+      // The arrival dose both climbs and increments the dwell; it is recorded as
+      // `climb` (the rung move is the salient event) — a later re-dose is `dwell`.
+      record(climbed ? 'climb' : dwelled ? 'dwell' : 'anchor-noop');
       continue;
     }
 
     if (ev.outcome === 'tolerated') {
       pendingReaction = null; // a clean verdict resolves any prior setback
+      record('tolerated-clear');
       continue;
     }
 
     // Reaction — bind to the highest still-live rung (nothing dosed yet ⇒ nothing
     // to bind to).
-    if (liveIndex < 0) continue;
+    if (liveIndex < 0) {
+      record('reaction-noop');
+      continue;
+    }
     firstReactionSeen = true; // any reaction flips the mode to confirm
     // A reaction interrupts the dwell's "held constant, tolerated" premise, so
     // the confirmation must restart: reset the top-rung dwell so `settled` can
@@ -236,6 +278,7 @@ function deriveLadderState(
       // Floor exhaustion (nowhere lower) or the per-rung cap — the same terminal.
       ceilingRung = reactingRung;
       pendingReaction = null;
+      record('reaction-ceiling');
       break;
     }
 
@@ -249,6 +292,7 @@ function deriveLadderState(
     // Drop one rung and reopen the reacting rung for a re-test.
     liveIndex -= 1;
     nextStepIdx = liveIndex + 1;
+    record('reaction-stepback');
   }
 
   const liveRung = liveIndex >= 0 ? steps[liveIndex]! : null;
@@ -583,6 +627,96 @@ export type LadderStateSnapshot = {
 };
 
 /**
+ * The state carried on each `LadderReplayStep` — the replay loop's mutable
+ * variables captured at one instant (before or after an event). A structural
+ * subset of `LadderReplayState`: exactly the fields that *evolve during the
+ * loop*, so a before/after pair shows what one event changed. `mode` is
+ * deliberately absent — it is derived once *after* the loop (never per event),
+ * so the ledger sources it from `LadderStateSnapshot.mode`, not from here.
+ */
+export type LadderReplayFrame = {
+  liveRung: LadderStep | null;
+  pendingReaction: PendingReaction | null;
+  ceilingRung: LadderStep | null;
+  dwell: Dwell;
+  lastPassingRung: LadderStep | null;
+  reactionCounts: ReadonlyMap<string, number>;
+};
+
+/**
+ * Which branch of the `deriveLadderState` loop one event took. This is the
+ * *classification the domain emits* — the ladder-viz adapter maps each value to
+ * display prose but never decides the branch itself (no logic in the tool).
+ *
+ *   - `climb`             — an anchor matched the next step; the live rung rose.
+ *   - `dwell`             — an anchor of the top rung's dose; the dwell count rose
+ *                           (may co-occur with `climb` on the arrival dose — the
+ *                           arrival is recorded as `climb`, later re-doses as `dwell`).
+ *   - `anchor-noop`       — an anchor that matched nothing; state unchanged.
+ *   - `tolerated-clear`   — a `tolerated` verdict cleared any pending reaction.
+ *   - `reaction-stepback` — a reaction dropped the live rung one step and opened
+ *                           a pending re-test.
+ *   - `reaction-ceiling`  — a reaction on the floor or at the per-rung cap; a
+ *                           terminal ceiling. The loop stops after this event.
+ *   - `reaction-noop`     — a reaction before anything was dosed; nothing to bind.
+ */
+export type LadderReplayBranch =
+  | 'climb'
+  | 'dwell'
+  | 'anchor-noop'
+  | 'tolerated-clear'
+  | 'reaction-stepback'
+  | 'reaction-ceiling'
+  | 'reaction-noop';
+
+/**
+ * One replayed event and what the `deriveLadderState` loop did with it: the raw
+ * event, the `branch` it took, and the loop state `before`/`after` that event.
+ * `explainLadderMove` collects these into `LadderExplain.replay` for the
+ * ladder-viz replay ledger. Purely derived and **non-load-bearing** (ADR-0012):
+ * no production decision path reads `replay` — it is assembled and attached,
+ * never fed back into a verdict.
+ *
+ * ── MAINTENANCE CONTRACT (read before changing `deriveLadderState`) ──
+ * This trace mirrors the *branch structure* of the `deriveLadderState` loop, and
+ * nothing else. Therefore:
+ *   • Changes to `decideLadderMove`, the gates, precedence order, or the
+ *     `LadderDecision` union do **not** touch this type or the ledger — they live
+ *     one layer up, over the state this loop produces.
+ *   • Only a change to the *loop's branch structure* forces a change here: a new
+ *     event kind or a new state transition needs (1) a new `LadderReplayBranch`
+ *     value emitted at the new branch in `deriveLadderState`, and (2) a matching
+ *     label in `tools/ladder-viz/adapter.ts`. Miss (2) and a row is mislabelled,
+ *     never mis-decided.
+ *   • A state-changing branch that forgets to emit a step is caught by the
+ *     invariant test "last replay step's `after` == the snapshot" — a red test,
+ *     not silent drift.
+ *   • `reactionCounts` is a mutable Map: each frame MUST store a *copy*
+ *     (`new Map(...)`), never the live reference, or every frame would show the
+ *     final counts.
+ */
+export type LadderReplayStep = {
+  event:
+    | { kind: 'anchor'; date: string; amount: PortionKind }
+    | { kind: 'eval'; date: string; outcome: AllergenOutcome };
+  branch: LadderReplayBranch;
+  before: LadderReplayFrame;
+  after: LadderReplayFrame;
+};
+
+/**
+ * The whole replay trace: the loop's initial frame (before any event) plus one
+ * `LadderReplayStep` per replayed event, in the exact order the loop saw them.
+ * The last step's `after` equals the run's `LadderStateSnapshot` (minus `mode`)
+ * by construction — same replay, so the ledger's bottom row *is* the derived
+ * state shown above it.
+ */
+export type LadderReplay = {
+  initial: LadderReplayFrame;
+  steps: readonly LadderReplayStep[];
+};
+
+/**
  * The six precedence steps `decideLadderMove` walks, in order (ADR-0023
  * §decision-engine, §6): the four *structural* steps evaluate a definite fact
  * already known from the replay, and the two *gate-backed* steps
@@ -646,14 +780,17 @@ export type LadderPrecedenceSteps = readonly [
 
 /**
  * The whole trace: the verdict `decideLadderMove` returned (unmodified — the
- * seam synthesizes no prose), the state snapshot, and the six precedence steps
- * exactly as walked. `explainLadderMove` returns this; `decideLadderMove`
- * returns just `.decision` from the same walk, so the two cannot drift.
+ * seam synthesizes no prose), the state snapshot, the six precedence steps
+ * exactly as walked, and the per-event `replay` of `deriveLadderState`.
+ * `explainLadderMove` returns this; `decideLadderMove` returns just `.decision`
+ * from the same walk, so the two cannot drift. `replay` is derived and
+ * non-load-bearing (ADR-0012) — see `LadderReplayStep`'s maintenance contract.
  */
 export type LadderExplain = {
   decision: LadderDecision;
   snapshot: LadderStateSnapshot;
   steps: LadderPrecedenceSteps;
+  replay: LadderReplay;
 };
 
 /**
@@ -756,7 +893,24 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
   // Derived even when the ladder is inert (permanent / empty stage): the replay
   // is pure and does not change the verdict, but populates a real snapshot for
   // the trace. On an empty stage it returns the all-`null`/`probe` identity.
-  const state = deriveLadderState(allergenId, meals, evaluations, steps);
+  // The trace sink collects the per-event replay for `LadderExplain.replay`;
+  // `explainLadderMove` and `decideLadderMove` share this one walk, so both the
+  // decision and the trace come from the same replay (never a second one).
+  const traceSink: { initial?: LadderReplayFrame; steps: LadderReplayStep[] } = { steps: [] };
+  const state = deriveLadderState(allergenId, meals, evaluations, steps, traceSink);
+  const replay: LadderReplay = {
+    // On an empty stage the loop runs zero events; `initial` is still the loop's
+    // pre-event frame (all-`null`/empty), never undefined.
+    initial: traceSink.initial ?? {
+      liveRung: null,
+      pendingReaction: null,
+      ceilingRung: null,
+      dwell: NO_DWELL,
+      lastPassingRung: null,
+      reactionCounts: new Map(),
+    },
+    steps: traceSink.steps,
+  };
   const snapshot: LadderStateSnapshot = {
     liveRung: state.liveRung,
     pendingReaction: state.pendingReaction,
@@ -815,7 +969,7 @@ function walkLadderPrecedence(input: LadderDecisionInput): LadderExplain {
       },
       { name: 'advance-or-dwell', status: statusAt(5), detail: { step: 'advance-or-dwell' } },
     ];
-    return { decision, snapshot, steps: stepsTuple };
+    return { decision, snapshot, steps: stepsTuple, replay };
   };
 
   // (1) Permanent elimination or an empty stage ladder — the ladder is inert

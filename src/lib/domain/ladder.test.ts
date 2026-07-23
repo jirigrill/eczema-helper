@@ -1421,6 +1421,136 @@ describe('decideLadderMove', () => {
       );
       expect(snapshot.ceilingRung?.id).toBe('e1');
     });
+
+    // ── replay trace (per-event deriveLadderState trace for ladder-viz) ──
+    describe('replay trace', () => {
+      it('has the all-null/empty initial frame before any event', () => {
+        const { replay } = explainLadderMove(decInput({}));
+        expect(replay.initial).toEqual({
+          liveRung: null,
+          pendingReaction: null,
+          ceilingRung: null,
+          dwell: { count: 0, lastDoseDate: null },
+          lastPassingRung: null,
+          reactionCounts: new Map(),
+        });
+        expect(replay.steps).toEqual([]); // nothing logged
+      });
+
+      it('emits one step per replayed event, in date order', () => {
+        const { replay } = explainLadderMove(
+          decInput({
+            meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
+            evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
+            today: '2026-06-03',
+          }),
+        );
+        // 2 anchors + 1 eval, meal-before-eval on the shared 06-02 date.
+        expect(replay.steps.map((s) => [s.event.kind, s.branch])).toEqual([
+          ['anchor', 'climb'],
+          ['anchor', 'climb'],
+          ['eval', 'reaction-stepback'],
+        ]);
+      });
+
+      it('classifies every branch across a representative history', () => {
+        const { replay } = explainLadderMove(
+          decInput({
+            meals: [
+              eggMeal('2026-06-01', 'pinch'), // climb → e1
+              eggMeal('2026-06-02', 'spoon'), // anchor-noop (next wants teaspoon)
+              eggMeal('2026-06-03', 'teaspoon'), // climb → e2
+              eggMeal('2026-06-05', 'spoon'), // climb → e3 (top)
+              eggMeal('2026-06-07', 'spoon'), // dwell (re-dose at top)
+            ],
+            evaluations: [evaluation({ date: '2026-06-06', outcome: 'tolerated' })], // tolerated-clear
+            today: '2026-06-08',
+          }),
+        );
+        expect(replay.steps.map((s) => s.branch)).toEqual([
+          'climb',
+          'anchor-noop',
+          'climb',
+          'climb',
+          'tolerated-clear',
+          'dwell',
+        ]);
+      });
+
+      it('records reaction-noop when a reaction precedes any dose', () => {
+        const { replay } = explainLadderMove(
+          decInput({
+            evaluations: [evaluation({ date: '2026-06-01', outcome: 'mild-reaction' })],
+            today: '2026-06-02',
+          }),
+        );
+        expect(replay.steps).toHaveLength(1);
+        expect(replay.steps[0]!.branch).toBe('reaction-noop');
+      });
+
+      it('records reaction-ceiling and stops the trace at the terminal', () => {
+        const { replay } = explainLadderMove(
+          decInput({
+            meals: [eggMeal('2026-06-01', 'pinch')],
+            evaluations: [
+              evaluation({ date: '2026-06-01', outcome: 'severe-reaction' }),
+              // A later meal must NOT appear — the loop breaks at the ceiling.
+              evaluation({ date: '2026-06-03', outcome: 'tolerated' }),
+            ],
+            today: '2026-06-05',
+          }),
+        );
+        expect(replay.steps.map((s) => s.branch)).toEqual(['climb', 'reaction-ceiling']);
+      });
+
+      it("the last step's `after` equals the snapshot (minus mode) — the ledger's bottom row", () => {
+        const input = decInput({
+          meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
+          evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
+          today: '2026-06-03',
+        });
+        const { snapshot, replay } = explainLadderMove(input);
+        const last = replay.steps.at(-1)!.after;
+        expect(last).toEqual({
+          liveRung: snapshot.liveRung,
+          pendingReaction: snapshot.pendingReaction,
+          ceilingRung: snapshot.ceilingRung,
+          dwell: snapshot.dwell,
+          lastPassingRung: snapshot.lastPassingRung,
+          reactionCounts: snapshot.reactionCounts,
+        });
+      });
+
+      it('captures reactionCounts as an independent copy per frame (no aliasing)', () => {
+        // e2 reacts twice: the first stepback frame must still show count 1 even
+        // after the loop mutated the shared map to 2.
+        const { replay } = explainLadderMove(
+          decInput({
+            meals: [
+              eggMeal('2026-06-01', 'pinch'),
+              eggMeal('2026-06-02', 'teaspoon'),
+              eggMeal('2026-06-10', 'teaspoon'),
+            ],
+            evaluations: [
+              evaluation({ date: '2026-06-02', outcome: 'mild-reaction' }),
+              evaluation({ date: '2026-06-10', outcome: 'mild-reaction' }),
+            ],
+            today: '2026-06-12',
+          }),
+        );
+        const firstReaction = replay.steps.find((s) => s.branch === 'reaction-stepback')!;
+        expect(firstReaction.after.reactionCounts.get('e2')).toBe(1);
+      });
+
+      it('is pure — a re-run is deep-equal', () => {
+        const input = decInput({
+          meals: [eggMeal('2026-06-01', 'pinch'), eggMeal('2026-06-02', 'teaspoon')],
+          evaluations: [evaluation({ date: '2026-06-02', outcome: 'mild-reaction' })],
+          today: '2026-06-03',
+        });
+        expect(explainLadderMove(input).replay).toEqual(explainLadderMove(input).replay);
+      });
+    });
   });
 
   // ── currentRung reaction-awareness (shared replay through the projection) ──
