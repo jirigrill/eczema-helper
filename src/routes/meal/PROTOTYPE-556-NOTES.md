@@ -6,7 +6,15 @@ Throwaway code lives inline in `src/routes/meal/+page.svelte`, guarded by `impor
 
 ## Try it
 
-`bun run dev` → `/meal?type=lunch&variant=A&stage=mixed` (swap `variant`=A/B/C and `stage`=breastfed/mixed/solids, or use the floating switcher pinned top-right).
+**Easiest — standalone file, no dev server:** `open docs/design/actor-selection-556.html`.
+All three variants render side by side, each with its own `breastfed|mixed|solids` toggle and
+clickable actor control. Sidesteps the dev PWA service worker + onboarding redirect that make
+hard-navigating to `/meal?...` unreliable under `bun run dev`.
+
+**In-app (fiddly):** `bun run dev`, reach `/meal` via the day-view FAB (not a direct URL —
+the dev service worker's `navigateFallback: '/'` intercepts fresh navigations and the root
+layout bounces you to `/day/<today>`), then use the DEV-only switcher pill (top-right) or
+`?variant=`/`?stage=` params.
 
 ## Three variants
 

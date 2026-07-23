@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actor selection UX — prototyp (#556)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      primary: '#8B4557', 'primary-light': '#C4A4AB',
+      surface: '#FAF8F8', 'surface-dark': '#EDE8E9',
+      text: '#3D2B2F', 'text-muted': '#7A6468',
+      border: '#E4DBDD',
+      danger: '#B84444', success: '#5A8B5A', warning: '#C9A227',
+    },
+    borderRadius: { pill: '9999px' },
+  }}}
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #E8E4E5; min-height: 100vh; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #3D2B2F; }
+  .canvas { padding: 36px 32px 96px; }
+  .canvas-eyebrow { color: #7A6468; font-size: 12px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; font-family: ui-monospace, monospace; }
+  .canvas-heading { font-size: 24px; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
+  .canvas-sub { color: #7A6468; font-size: 13px; line-height: 1.6; margin-bottom: 32px; max-width: 920px; }
+  .phone-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .phone-col { width: 300px; }
+  .phone-label { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: #3D2B2F; margin-bottom: 2px; }
+  .phone-sub { font-size: 11px; color: #7A6468; line-height: 1.5; margin-bottom: 10px; min-height: 42px; }
+  .phone { width: 300px; height: 620px; background: #FAF8F8; border-radius: 34px; border: 8px solid #2A1E21; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.18); display: flex; flex-direction: column; }
+  .eyebrow { color: #7A6468; font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 600; }
+  .caption { font-size: 12px; }
+  .stage-picker { display: inline-flex; gap: 4px; background: #EDE8E9; padding: 3px; border-radius: 9999px; margin-bottom: 12px; }
+  .stage-picker button { font-family: ui-monospace, monospace; font-size: 11px; padding: 4px 10px; border-radius: 9999px; border: none; background: transparent; color: #7A6468; cursor: pointer; }
+  .stage-picker button.on { background: #8B4557; color: #fff; font-weight: 600; }
+  .grid-tile { background: #fff; border: 1px solid #E4DBDD; border-radius: 14px; padding: 10px 6px; text-align: center; font-size: 11px; color: #3D2B2F; }
+  .grid-tile .ic { font-size: 20px; display: block; margin-bottom: 3px; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <p class="canvas-eyebrow">Prototyp · issue #556</p>
+  <h1 class="canvas-heading">Výběr aktéra při zápisu jídla</h1>
+  <p class="canvas-sub">
+    Tři varianty ovládacího prvku „za koho zapisuji“ (matka / miminko), řízené fází krmení
+    (<code>feedingStage</code>). Přepni fázi u každého telefonu tlačítky nahoře:
+    <strong>breastfed</strong> a <strong>solids</strong> mají jediného aktéra (žádná volba,
+    jen tichý štítek); <strong>mixed</strong> nabízí přepínač matka/miminko. Klik na aktéra
+    ho přepne. Throwaway mockup k reakci — copy „Já / Miminko“ je placeholder.
+  </p>
+
+  <div class="phone-row" id="row"></div>
+</div>
+
+<script>
+  const FAMILIES = [
+    ['🥛','Mléko'],['🥚','Vejce'],['🌾','Lepek'],['🥜','Ořechy'],
+    ['🐟','Ryby'],['🫘','Sója'],['🍎','Ovoce'],['🥦','Zelenina'],
+  ];
+
+  function impliedActor(stage) { return stage === 'solids' ? 'child' : 'mother'; }
+  function label(a) { return a === 'mother' ? 'Já' : 'Miminko'; }
+
+  // shared inner content: confirmed list + family grid + notes
+  function bodyContent() {
+    return `
+      <p class="eyebrow" style="margin-bottom:8px">Potvrzené potraviny</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px">
+        <div style="background:#fff;border:1px solid #E4DBDD;border-radius:12px;padding:9px 12px;font-size:13px;display:flex;justify-content:space-between">
+          <span>Rýže</span><span style="color:#7A6468;font-size:11px">1 porce · vařené</span>
+        </div>
+        <div style="background:#fff;border:1px solid #E4DBDD;border-radius:12px;padding:9px 12px;font-size:13px;display:flex;justify-content:space-between">
+          <span>Mrkev</span><span style="color:#7A6468;font-size:11px">½ porce · dušené</span>
+        </div>
+      </div>
+      <p class="eyebrow" style="margin-bottom:8px">Všechny kategorie</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:18px">
+        ${FAMILIES.map(([ic,n]) => `<div class="grid-tile"><span class="ic">${ic}</span>${n}</div>`).join('')}
+      </div>
+      <p class="eyebrow" style="margin-bottom:8px">Poznámka k jídlu</p>
+      <div style="background:#fff;border:1px solid #E4DBDD;border-radius:12px;padding:10px 12px;font-size:12px;color:#B7A9AC;height:46px">Volitelná poznámka…</div>
+    `;
+  }
+
+  function cta() {
+    return `<div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 18px;background:linear-gradient(to top,#FAF8F8 70%,transparent)">
+      <div style="background:#8B4557;color:#fff;text-align:center;font-size:13px;font-weight:600;padding:11px;border-radius:12px">Uložit Oběd</div>
+    </div>`;
+  }
+
+  // ── Variant A: top pill row ─────────────────────────────
+  function variantA(stage, actor) {
+    const header = `
+      <div style="padding:16px 16px 4px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div><h2 style="font-size:22px;font-weight:800">Oběd</h2></div>
+          <p style="font-size:12px;color:#7A6468">23. 7.</p>
+        </div>
+      </div>`;
+    let picker;
+    if (stage === 'mixed') {
+      picker = `<div style="padding:6px 16px 10px"><div style="display:flex;gap:6px">
+        <button data-act="mother" style="flex:1;padding:7px;border-radius:9999px;border:none;font-size:12px;cursor:pointer;${actor==='mother'?'background:#8B4557;color:#fff;font-weight:600':'background:#EDE8E9;color:#7A6468'}">Já</button>
+        <button data-act="child" style="flex:1;padding:7px;border-radius:9999px;border:none;font-size:12px;cursor:pointer;${actor==='child'?'background:#8B4557;color:#fff;font-weight:600':'background:#EDE8E9;color:#7A6468'}">Miminko</button>
+      </div></div>`;
+    } else {
+      picker = `<div style="padding:2px 16px 10px"><p class="caption" style="color:#7A6468">Zapisujete za: ${label(impliedActor(stage))}</p></div>`;
+    }
+    return header + picker + `<div style="flex:1;overflow:auto;padding:6px 16px 90px">${bodyContent()}</div>` + cta();
+  }
+
+  // ── Variant B: compact header badge ─────────────────────
+  function variantB(stage, actor) {
+    let badge;
+    if (stage === 'mixed') {
+      badge = `<button data-act="toggle" style="margin-top:6px;padding:4px 12px;border-radius:9999px;border:none;background:#8B4557;color:#fff;font-size:11px;font-weight:600;cursor:pointer">${label(actor)}</button>`;
+    } else {
+      badge = `<span class="caption" style="color:#7A6468;display:block;margin-top:6px">${label(impliedActor(stage))}</span>`;
+    }
+    const header = `
+      <div style="padding:16px 16px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <h2 style="font-size:22px;font-weight:800">Oběd</h2>
+          <div style="text-align:right"><p style="font-size:12px;color:#7A6468">23. 7.</p>${badge}</div>
+        </div>
+      </div>`;
+    return header + `<div style="flex:1;overflow:auto;padding:2px 16px 90px">${bodyContent()}</div>` + cta();
+  }
+
+  // ── Variant C: integrated content tabs ──────────────────
+  function variantC(stage, actor) {
+    const header = `
+      <div style="padding:16px 16px 8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <h2 style="font-size:22px;font-weight:800">Oběd</h2>
+          <p style="font-size:12px;color:#7A6468">23. 7.</p>
+        </div>
+      </div>`;
+    let tabs;
+    if (stage === 'mixed') {
+      const tab = (a,txt) => `<button data-act="${a}" style="padding-bottom:8px;font-size:14px;background:none;border:none;cursor:pointer;${actor===a?'color:#8B4557;font-weight:700;border-bottom:2px solid #8B4557':'color:#7A6468;border-bottom:2px solid transparent'}">${txt}</button>`;
+      tabs = `<div style="display:flex;gap:18px;padding:0 16px;border-bottom:1px solid #E4DBDD;margin-bottom:14px">${tab('mother','Já')}${tab('child','Miminko')}</div>`;
+    } else {
+      tabs = `<div style="padding:0 16px 12px"><p class="eyebrow" style="color:#7A6468">Krmíte: ${label(impliedActor(stage))}</p></div>`;
+    }
+    return header + tabs + `<div style="flex:1;overflow:auto;padding:0 16px 90px">${bodyContent()}</div>` + cta();
+  }
+
+  const VARIANTS = {
+    A: { name: 'Top pill row', sub: 'Přepínač na celou šířku ve slotu, kde dřív byly meal-type pills (ADR-0018). Volba jako první-třídní řádek pod hlavičkou.', render: variantA },
+    B: { name: 'Compact header badge', sub: 'Malý chip vedle data v hlavičce, klik přepne aktéra. Nejmenší stopa — volba jako vzácná, sekundární akce.', render: variantB },
+    C: { name: 'Integrated content tabs', sub: 'Dvě záložky nad obsahem, roluje s obsahem místo lepení v hlavičce. „Který seznam vidím“, ne nastavení.', render: variantC },
+  };
+
+  const state = { A:{stage:'mixed',actor:'mother'}, B:{stage:'mixed',actor:'mother'}, C:{stage:'mixed',actor:'mother'} };
+
+  function render() {
+    const row = document.getElementById('row');
+    row.innerHTML = Object.entries(VARIANTS).map(([k,v]) => {
+      const s = state[k];
+      const stageBtns = ['breastfed','mixed','solids'].map(st =>
+        `<button data-var="${k}" data-stage="${st}" class="${s.stage===st?'on':''}">${st}</button>`).join('');
+      return `<div class="phone-col">
+        <p class="phone-label">${k} — ${v.name}</p>
+        <p class="phone-sub">${v.sub}</p>
+        <div class="stage-picker">${stageBtns}</div>
+        <div class="phone" data-phone="${k}">${v.render(s.stage, s.actor)}</div>
+      </div>`;
+    }).join('');
+
+    // stage buttons
+    row.querySelectorAll('.stage-picker button').forEach(b => b.onclick = () => {
+      const k = b.dataset.var; state[k].stage = b.dataset.stage;
+      // reset actor to the implied one on single-actor stages
+      if (state[k].stage !== 'mixed') state[k].actor = impliedActor(state[k].stage);
+      render();
+    });
+    // actor controls inside each phone
+    row.querySelectorAll('.phone').forEach(ph => {
+      const k = ph.dataset.phone;
+      ph.querySelectorAll('[data-act]').forEach(el => el.onclick = () => {
+        const a = el.dataset.act;
+        state[k].actor = a === 'toggle' ? (state[k].actor==='mother'?'child':'mother') : a;
+        render();
+      });
+    });
+  }
+  render();
+</script>
+</body>
+</html>
