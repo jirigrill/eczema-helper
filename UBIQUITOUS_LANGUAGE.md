@@ -145,16 +145,29 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
 - **`explainLadderMove(input): LadderExplain`** (`src/lib/domain/ladder.ts`) —
   the ladder engine's **trace/explain seam** (issue
   [#528](https://github.com/jirigrill/eczema-helper/issues/528), design #521): a
-  pure surface returning `{ decision, snapshot, steps }` so a consumer can see
-  *why* `decideLadderMove` reached its verdict. Both functions share one internal
-  `walkLadderPrecedence`, so the trace can never drift from the decision. The
-  **`LadderStateSnapshot`** is a purpose-built public projection of five replay
-  facts (`liveRung`, `pendingReaction`, `ceilingRung`, `mode`, `dwell`) —
-  `deriveLadderState`/`LadderReplayState` stay private. `steps` is a fixed
-  **6-tuple in precedence order**; each carries a `status` (`fired` = produced
-  the verdict, `not-reached` after it, `passed-confirmed`/`passed-no-data`
+  pure surface returning `{ decision, snapshot, steps, replay }` so a consumer can
+  see *why* `decideLadderMove` reached its verdict. Both functions share one
+  internal `walkLadderPrecedence`, so the trace can never drift from the decision.
+  The **`LadderStateSnapshot`** is a purpose-built public projection of the replay
+  facts: five *verdict-facing* (`liveRung`, `pendingReaction`, `ceilingRung`,
+  `mode`, `dwell`) plus two *bookkeeping* fields (`lastPassingRung`,
+  `reactionCounts`) exposed for the visualizer and explicitly **non-load-bearing**
+  (ADR-0012); `deriveLadderState`/`LadderReplayState` stay private. `steps` is a
+  fixed **6-tuple in precedence order**; each carries a `status` (`fired` =
+  produced the verdict, `not-reached` after it, `passed-confirmed`/`passed-no-data`
   before) and, for the two gate-backed steps, the gate result paired with the
   effective, mode-adjusted threshold.
+- **Replay trace** (**`LadderReplay`** = `{ initial, steps }`, `src/lib/domain/ladder.ts`)
+  — the per-event trace of the private `deriveLadderState` loop, carried on
+  `LadderExplain.replay` for the ladder-viz replay ledger. One **`LadderReplayStep`**
+  per replayed event holds the event, the **`LadderReplayBranch`** the loop took
+  (`climb`, `dwell`, `anchor-noop`, `tolerated-clear`, `reaction-stepback`,
+  `reaction-ceiling`, `reaction-noop`), and the loop's `before`/`after`
+  **`LadderReplayFrame`**. Produced by instrumenting the *real* loop via an
+  optional sink (no parallel replay); derived and non-load-bearing (ADR-0012). The
+  last step's `after` equals the run's `LadderStateSnapshot` (minus `mode`) by
+  construction. The branch classification is emitted by the *domain*; the viz
+  adapter only *labels* it — see the maintenance contract on `LadderReplayStep`.
 - **Precedence steps** — the six ordered checks `walkLadderPrecedence` walks:
   **`permanent-or-empty`** (inert ladder → `blocked`), **`ceiling`** (terminal),
   **`reaction`** (rest / step-back), **`skin-worsening`** (skin-stability gate),

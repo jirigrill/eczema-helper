@@ -13,7 +13,10 @@
   } from '$lib/domain/ladder';
   import { fmtDwell, fmtPendingReaction, fmtRung, type DayView } from './adapter';
 
-  let { day }: { day: DayView } = $props();
+  let {
+    day,
+    onJumpToReplay,
+  }: { day: DayView; onJumpToReplay?: (index: number) => void } = $props();
 
   // Stable UI captions for the 6 fixed step names (part of the #521 contract).
   const FN: Record<LadderPrecedenceStepName, string> = {
@@ -179,6 +182,16 @@
         {#each STRUCTURAL_INPUTS[selectedStep.name](day) as r (r.k)}
           <div class="d-row"><code class="k">{r.k}</code><span class="v">{r.v}</span></div>
         {/each}
+        {#if selectedStep.name === 'ceiling' && day.replay.ceilingSetBy !== null}
+          <button type="button" class="d-link" onclick={() => onJumpToReplay?.(day.replay.ceilingSetBy!)}>
+            set by replay event #{day.replay.ceilingSetBy + 1} →
+          </button>
+        {/if}
+        {#if selectedStep.name === 'reaction' && day.replay.pendingReactionSetBy !== null}
+          <button type="button" class="d-link" onclick={() => onJumpToReplay?.(day.replay.pendingReactionSetBy!)}>
+            set by replay event #{day.replay.pendingReactionSetBy + 1} →
+          </button>
+        {/if}
       {/if}
 
       {#if selectedStep.status === 'fired'}
@@ -297,6 +310,19 @@
   .v { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 
   .d-label { font-size: 22px; font-weight: 800; margin: 0 0 12px; color: var(--ink); }
+  .d-link {
+    margin-top: 10px;
+    border: 1px solid var(--hair);
+    background: var(--surface-2);
+    color: var(--ink);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .d-link:hover { border-color: var(--hold); }
   .d-json {
     display: block;
     margin: 0;

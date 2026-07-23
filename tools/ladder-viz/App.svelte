@@ -14,6 +14,7 @@
   import type { JourneyRun } from './journey';
   import LadderRail from './LadderRail.svelte';
   import ManualEditor from './ManualEditor.svelte';
+  import ReplayLedger from './ReplayLedger.svelte';
   import {
     addISO,
     buildRun,
@@ -92,6 +93,16 @@
 
   const day = $derived(run && selected ? computeDay(run, selected) : null);
   const rungs = $derived(run ? (run.defaultLadder.stages[run.stage] ?? []) : []);
+
+  // Shared replay-ledger state: a pipeline back-link sets `replayFocus` to a row
+  // index and opens the ledger; the ledger highlights that row. Reset when the
+  // selected day changes so a stale focus never highlights the wrong day's row.
+  let replayFocus = $state<number | null>(null);
+  let ledgerOpen = $state(false);
+  $effect(() => {
+    void selected; // re-run when the selected day changes
+    replayFocus = null;
+  });
 
   // The day's dose is set by clicking a rung on the Ladder Rail — the single
   // place manual mode edits it, so it isn't echoed by a second dose picker.
@@ -172,7 +183,10 @@
 
       <section class="col engine">
         <SnapshotBar snapshot={day.explain.snapshot} />
-        <div class="flow"><EnginePipeline {day} /></div>
+        <div class="flow">
+          <EnginePipeline {day} onJumpToReplay={(i) => { replayFocus = i; ledgerOpen = true; }} />
+        </div>
+        <ReplayLedger {day} focus={replayFocus} bind:open={ledgerOpen} />
       </section>
     </main>
   {/if}

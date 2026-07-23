@@ -5,7 +5,14 @@
 // come straight from the engine seam; this only labels and lays them out. Since
 // #521's F build landed, `explainLadderMove` is a real export and nothing is
 // reconstructed (the prototype's old `seam.ts`/`buildExplain` are gone).
-import type { LadderDecision, LadderStateSnapshot } from '$lib/domain/ladder';
+import type {
+  LadderDecision,
+  LadderReplay,
+  LadderReplayBranch,
+  LadderReplayFrame,
+  LadderReplayStep,
+  LadderStateSnapshot,
+} from '$lib/domain/ladder';
 import type { AllergenOutcome, RegionLevel } from '$lib/domain/models';
 
 import type { DayResolution, JourneyRun } from './journey';
@@ -22,6 +29,20 @@ export const OUTCOME_LABEL: Record<AllergenOutcome, string> = {
 
 export const SEV_LABEL = ['klidné', 'mírné', 'střední', 'silné'];
 
+// Display prose for each `LadderReplayBranch`. The DOMAIN decides the branch
+// (emitted on the replay trace); this map only NAMES it — no classification
+// logic here. When `deriveLadderState` gains a branch, add its label here (see
+// the maintenance contract on `LadderReplayStep`).
+export const REPLAY_BRANCH_LABEL: Record<LadderReplayBranch, string> = {
+  climb: 'dose matched next rung → climbed',
+  dwell: 're-dose at top rung → dwell +1',
+  'anchor-noop': "dose didn't match next rung → ignored",
+  'tolerated-clear': 'tolerated → cleared pending reaction',
+  'reaction-stepback': 'reaction → dropped one rung, reopened for re-test',
+  'reaction-ceiling': 'reaction on floor / cap hit → ceiling (terminal)',
+  'reaction-noop': 'reaction before any dose → nothing to bind',
+};
+
 // Shared formatters for `LadderStateSnapshot` fields — used by the snapshot bar
 // and by the engine pipeline's structural-step detail, so the two can never
 // disagree on how a null rung or an empty dwell reads.
@@ -34,6 +55,55 @@ export function fmtPendingReaction(p: LadderStateSnapshot['pendingReaction']): s
 export function fmtDwell(d: LadderStateSnapshot['dwell']): string {
   return `${d.count}× · ${d.lastDoseDate ?? '—'}`;
 }
+export function fmtReactionCounts(m: LadderStateSnapshot['reactionCounts']): string {
+  if (m.size === 0) return 'none';
+  return [...m.entries()].map(([id, n]) => `${id}×${n}`).join(', ');
+}
+
+// One replayed event as a short label — the ledger's "event" column.
+export function fmtReplayEvent(e: LadderReplayStep['event'], rungForAmount: (a: string) => string): string {
+  return e.kind === 'anchor'
+    ? `▲ dose ${rungForAmount(e.amount)} · ${e.date}`
+    : `● ${OUTCOME_LABEL[e.outcome]} · ${e.date}`;
+}
+
+// The 6 replay-frame fields as label/value rows, in a fixed order so every
+// ledger row lines up column-for-column. Reuses the snapshot formatters, so the
+// ledger's last row reads identically to the SnapshotBar by construction.
+export function replayFrameCells(f: LadderReplayFrame): { k: string; v: string }[] {
+  return [
+    { k: 'liveRung', v: fmtRung(f.liveRung) },
+    { k: 'pendingReaction', v: fmtPendingReaction(f.pendingReaction) },
+    { k: 'ceilingRung', v: fmtRung(f.ceilingRung) },
+    { k: 'dwell', v: fmtDwell(f.dwell) },
+    { k: 'lastPassingRung', v: fmtRung(f.lastPassingRung) },
+    { k: 'reactionCounts', v: fmtReactionCounts(f.reactionCounts) },
+  ];
+}
+
+// Which frame fields changed across an event — pure diff of the domain's own
+// before/after frames (comparison for highlighting, never computation). Keyed by
+// the same `k` labels as `replayFrameCells`.
+export function changedFrameKeys(before: LadderReplayFrame, after: LadderReplayFrame): Set<string> {
+  const b = new Map(replayFrameCells(before).map((c) => [c.k, c.v]));
+  return new Set(replayFrameCells(after).filter((c) => b.get(c.k) !== c.v).map((c) => c.k));
+}
+
+// Back-links: which replay step set the current `ceilingRung` / `pendingReaction`.
+// Pure find-index over the domain's trace — no logic. `null` when unset.
+export function ceilingSetByStep(replay: LadderReplay): number | null {
+  const i = replay.steps.findIndex((s) => s.branch === 'reaction-ceiling');
+  return i === -1 ? null : i;
+}
+export function pendingReactionSetByStep(replay: LadderReplay): number | null {
+  // The last stepback still standing (a later tolerated-clear would have reset it).
+  for (let i = replay.steps.length - 1; i >= 0; i--) {
+    const b = replay.steps[i]!.branch;
+    if (b === 'reaction-stepback') return i;
+    if (b === 'tolerated-clear') return null;
+  }
+  return null;
+}
 
 // ── View-model ────────────────────────────────────────────────────────────────
 
@@ -42,6 +112,26 @@ export interface RungView {
   dose: string;
   checkpoint: boolean;
   state: 'passed' | 'current' | 'ahead';
+}
+
+export interface ReplayRowView {
+  /** Index into the domain `replay.steps` (back-link target). */
+  index: number;
+  event: string;
+  branch: LadderReplayBranch;
+  branchLabel: string;
+  /** Resulting-state cells (the 6 frame fields), with `changed` flagged. */
+  cells: { k: string; v: string; changed: boolean }[];
+  terminal: boolean;
+}
+
+export interface ReplayView {
+  /** The initial frame (before any event) as label/value rows. */
+  initialCells: { k: string; v: string }[];
+  rows: ReplayRowView[];
+  /** Back-links: which row set the current ceiling / pending reaction (null when unset). */
+  ceilingSetBy: number | null;
+  pendingReactionSetBy: number | null;
 }
 
 export interface DayView {
@@ -53,6 +143,7 @@ export interface DayView {
   rungs: RungView[];
   isPermanentlyEliminated: boolean;
   allergenLabel: string;
+  replay: ReplayView;
   inputs: {
     meals: { time: string; text: string; dose: string }[];
     skin: { level: RegionLevel; text: string }[];
@@ -131,6 +222,26 @@ export function computeDay(run: JourneyRun, date: string): DayView | null {
   const dayObs = run.events.observations.filter((o) => o.date === date);
   const dayEvals = run.events.evaluations.filter((e) => e.date === date);
 
+  // Replay ledger view — pre-formatted from the domain's own `replay` trace.
+  const rungForAmount = (amount: string): string =>
+    steps.find((s) => s.anchor === amount)?.dose ?? amount;
+  const replay: ReplayView = {
+    initialCells: replayFrameCells(explain.replay.initial),
+    rows: explain.replay.steps.map((step, index) => {
+      const changed = changedFrameKeys(step.before, step.after);
+      return {
+        index,
+        event: fmtReplayEvent(step.event, rungForAmount),
+        branch: step.branch,
+        branchLabel: REPLAY_BRANCH_LABEL[step.branch],
+        cells: replayFrameCells(step.after).map((c) => ({ ...c, changed: changed.has(c.k) })),
+        terminal: step.branch === 'reaction-ceiling',
+      };
+    }),
+    ceilingSetBy: ceilingSetByStep(explain.replay),
+    pendingReactionSetBy: pendingReactionSetByStep(explain.replay),
+  };
+
   return {
     date,
     explain,
@@ -140,6 +251,7 @@ export function computeDay(run: JourneyRun, date: string): DayView | null {
     rungs,
     isPermanentlyEliminated: run.isPermanentlyEliminated ?? false,
     allergenLabel: run.allergenId,
+    replay,
     inputs: {
       meals: dayMeals.map((m) => {
         const item = m.items[0]!;
