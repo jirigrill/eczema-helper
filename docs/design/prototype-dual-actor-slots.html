@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atopic Helper — Prototype: dual-actor day-view slot (#557)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    primary: '#8B4557', 'primary-light': '#C4A4AB',
+    surface: '#FAF8F8', 'surface-dark': '#EDE8E9',
+    text: '#3D2B2F', 'text-muted': '#7A6468',
+    danger: '#B84444', success: '#5A8B5A', warning: '#C9A227',
+  }}}}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { background: #E8E4E5; min-height: 100vh; margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #3D2B2F; }
+
+  .canvas { width: 100%; padding: 40px 20px 140px; max-width: 720px; margin: 0 auto; }
+  .canvas-eyebrow { color: #7A6468; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; font-weight: 500; margin-bottom: 6px; font-family: ui-monospace, SFMono-Regular, "SF Mono", monospace; }
+  .canvas-heading { color: #3D2B2F; font-size: 24px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; margin-bottom: 8px; }
+  .canvas-sub { color: #7A6468; font-size: 13px; line-height: 1.6; margin-bottom: 28px; }
+
+  .phone {
+    width: 380px; margin: 0 auto; background: #FAF8F8; border-radius: 24px;
+    border: 1px solid #EDE8E9; box-shadow: 0 8px 32px rgba(0,0,0,0.12); padding: 16px;
+  }
+
+  /* switcher bar */
+  .switcher {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px; background: rgba(23,17,18,0.92); color: #fff;
+    border-radius: 9999px; padding: 8px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 100;
+    font-size: 12px;
+  }
+  .switcher button { color: #fff; background: rgba(255,255,255,0.08); border: none; border-radius: 9999px;
+    padding: 4px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; }
+  .switcher button.arrow { background: none; font-size: 16px; padding: 0 4px; line-height: 1; }
+  .switcher .label { min-width: 9rem; text-align: center; font-weight: 600; }
+  .switcher .stage-label { min-width: 5.5rem; text-align: center; font-weight: 500; }
+  .switcher .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.25); }
+
+  .icon-circle { width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; }
+  .icon-circle.plain { background: #fff; color: #8B4557; }
+  .icon-circle.conflict { background: rgba(184,68,68,0.15); color: #B84444; }
+  .icon-circle.empty { background: #fff; color: rgba(122,100,104,0.5); }
+  .icon-circle svg { width: 20px; height: 20px; }
+
+  .pill-conflict { background: rgba(184,68,68,0.15); color: #B84444; border-radius: 9999px;
+    padding: 2px 6px; font-size: 10px; font-weight: 600; }
+  .actor-tag { border: 1px solid #EDE8E9; color: #7A6468; border-radius: 9999px; padding: 2px 6px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+  .divider { border-top: 1px solid #EDE8E9; }
+  .divider:first-child { border-top: none; }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+  <div class="canvas-eyebrow">Prototype · wayfinder ticket #557</div>
+  <h1 class="canvas-heading">Day-view dual-actor slot layout</h1>
+  <p class="canvas-sub">
+    Standalone static mock — no build, no seeded data, opens straight in a browser. Three structurally
+    different layouts for a day-view slot showing both the mother's and the child's meal separately, plus the
+    single-actor collapse for <code>breastfed</code>/<code>solids</code> feeding stages. Fixture day: breakfast
+    has a mother-only conflict (jogurt vs. dairy elimination), lunch has both actors logged with no conflict,
+    snack is empty for both, dinner has a baby-only conflict (peanut trace) with no mother meal logged.
+  </p>
+
+  <div class="phone">
+    <div class="mb-2" style="color:#7A6468; font-size:10px; font-weight:600; letter-spacing:0.4px; text-transform:uppercase;">Jídla</div>
+    <div id="slots"></div>
+  </div>
+</div>
+
+<div class="switcher">
+  <button class="arrow" onclick="cycleVariant(-1)" aria-label="Previous variant">‹</button>
+  <span class="label" id="variant-label"></span>
+  <button class="arrow" onclick="cycleVariant(1)" aria-label="Next variant">›</button>
+  <span class="sep"></span>
+  <button onclick="cycleStage(-1)">‹ stage</button>
+  <span class="stage-label" id="stage-label"></span>
+  <button onclick="cycleStage(1)">stage ›</button>
+</div>
+
+<script>
+  // ---- Fixture data (mirrors src/lib/components/prototype-dual-actor/mock-data.ts) ----
+  const MEAL_TYPES = ['breakfast', 'lunch', 'snack', 'dinner'];
+  const MEAL_LABEL = { breakfast: 'Snídaně', lunch: 'Oběd', snack: 'Svačina', dinner: 'Večeře' };
+  const ICONS = {
+    breakfast: '<path d="M5 17h14"/><path d="M3 21h18"/><path d="M7 17a5 5 0 0 1 10 0"/><path d="M12 4v3"/><path d="M5.5 8.5 7 10"/><path d="M18.5 8.5 17 10"/><path d="M3 13h2"/><path d="M19 13h2"/>',
+    lunch: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2"/><path d="M12 19v2"/><path d="M3 12h2"/><path d="M19 12h2"/><path d="m5.6 5.6 1.4 1.4"/><path d="m17 17 1.4 1.4"/><path d="m5.6 18.4 1.4-1.4"/><path d="m17 7 1.4-1.4"/>',
+    snack: '<path d="M12 7c-1.2-1.6-3-2.4-4.6-2.1C5.6 5.2 4 7 4 9.5c0 4 3 9 6 9 1 0 1.5-.4 2-.4s1 .4 2 .4c3 0 6-5 6-9 0-2.5-1.6-4.3-3.4-4.6C14.9 4.6 13.2 5.4 12 7Z"/><path d="M12 7V4"/><path d="M12 5c1-1.5 2.5-2 4-2-.2 1.6-1.3 2.8-2.8 3"/>',
+    dinner: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+  };
+
+  // slot -> { mother: {items:[{name, conflict}], conflictAllergens: []} | 'empty', baby: ... }
+  const FIXTURE = {
+    breakfast: {
+      mother: { items: [{ name: 'Jogurt', conflict: true }], conflictAllergens: ['Mléčné výrobky'] },
+      baby: 'empty',
+    },
+    lunch: {
+      mother: { items: [{ name: 'Kuřecí polévka', conflict: false }], conflictAllergens: [] },
+      baby: { items: [{ name: 'Rýžová kaše', conflict: false }], conflictAllergens: [] },
+    },
+    snack: { mother: 'empty', baby: 'empty' },
+    dinner: {
+      mother: 'empty',
+      baby: { items: [{ name: 'Arašídové máslo (stopa)', conflict: true }], conflictAllergens: ['Arašídy'] },
+    },
+  };
+
+  // stage -> which actors are eligible at all
+  const ELIGIBLE = {
+    breastfed: { mother: true, baby: false },
+    mixed: { mother: true, baby: true },
+    solids: { mother: false, baby: true },
+  };
+
+  const VARIANTS = [
+    { key: 'A', name: 'Split columns' },
+    { key: 'B', name: 'Stacked rows' },
+    { key: 'C', name: 'Accordion' },
+  ];
+  const STAGES = ['breastfed', 'mixed', 'solids'];
+
+  let variantIdx = 0;
+  let stageIdx = 1; // default 'mixed'
+  const openSlots = new Set();
+
+  function actorRow(label, actor, state, showTag) {
+    if (state === 'not-eligible') return '';
+    const tag = showTag ? `<span class="actor-tag mt-0.5">${label}</span>` : '';
+    let body;
+    if (state === 'empty') {
+      body = `<div class="text-primary text-[11px]">+ Zapsat</div>`;
+    } else {
+      const pills = state.conflictAllergens.map((a) => `<span class="pill-conflict">⚠ ${a}</span>`).join(' ');
+      const items = state.items
+        .map((i) => `<span class="${i.conflict ? 'text-danger font-medium' : ''}">${i.name}</span>`)
+        .join('<span> · </span>');
+      body = `<div class="flex flex-wrap items-center gap-1 mb-0.5">${pills}</div><div class="text-text-muted truncate text-[11px]">${items}</div>`;
+    }
+    return `<div class="flex items-start gap-2 py-1">${tag}<div class="min-w-0 flex-1">${body}</div></div>`;
+  }
+
+  function renderVariantA() {
+    const eligible = ELIGIBLE[STAGES[stageIdx]];
+    return MEAL_TYPES.map((type) => {
+      const f = FIXTURE[type];
+      const bothEligible = eligible.mother && eligible.baby;
+      const half = (label, state) => {
+        if (!eligible[label === 'Matka' ? 'mother' : 'baby']) return '';
+        const eyebrow = bothEligible ? `<div class="text-text-muted mb-0.5 text-[9px] font-bold tracking-wide uppercase">${label}</div>` : '';
+        let body;
+        if (state === 'empty') body = `<div class="text-primary text-[11px]">+</div>`;
+        else {
+          const pills = state.conflictAllergens.map((a) => `<span class="pill-conflict">⚠ ${a}</span>`).join(' ');
+          const items = state.items.map((i) => `<span class="${i.conflict ? 'text-danger font-medium' : ''}">${i.name}</span>`).join('<span> · </span>');
+          body = `<div class="flex flex-wrap items-center gap-1">${pills}</div><div class="text-text-muted truncate text-[11px]">${items}</div>`;
+        }
+        return `<div class="${bothEligible ? (label === 'Matka' ? 'pr-2' : 'pl-2 border-l border-surface-dark') : ''}">${eyebrow}${body}</div>`;
+      };
+      return `
+        <div class="py-2 divider">
+          <div class="mb-1 flex items-center gap-2 px-0.5 text-text-muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
+            <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
+          </div>
+          <div class="${bothEligible ? 'grid grid-cols-2' : ''}">
+            ${half('Matka', f.mother)}${half('Dítě', f.baby)}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderVariantB() {
+    const eligible = ELIGIBLE[STAGES[stageIdx]];
+    return MEAL_TYPES.map((type) => {
+      const f = FIXTURE[type];
+      const rows = [];
+      if (eligible.mother) rows.push(['Matka', f.mother]);
+      if (eligible.baby) rows.push(['Dítě', f.baby]);
+      const showTag = rows.length > 1;
+      return `
+        <div class="py-2 divider">
+          <div class="flex items-center gap-2 px-0.5 pb-1 text-text-muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
+            <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
+          </div>
+          <div class="pl-6">
+            ${rows.map(([label, state]) => actorRow(label, label, state, showTag)).join('')}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderVariantC() {
+    const eligible = ELIGIBLE[STAGES[stageIdx]];
+    return MEAL_TYPES.map((type) => {
+      const f = FIXTURE[type];
+      const bothEligible = eligible.mother && eligible.baby;
+      const isOpen = openSlots.has(type);
+      const conflictAny =
+        (f.mother !== 'empty' && f.mother !== 'not-eligible' && eligible.mother && f.mother.conflictAllergens.length) ||
+        (f.baby !== 'empty' && f.baby !== 'not-eligible' && eligible.baby && f.baby.conflictAllergens.length);
+      const summaryOf = (label, state) => {
+        if (state === 'empty') return `${label}: —`;
+        return `${label}: ${state.items.map((i) => i.name).join(', ')}`;
+      };
+      let summary = '';
+      if (bothEligible) summary = `${summaryOf('Matka', f.mother)} · ${summaryOf('Dítě', f.baby)}`;
+      else if (eligible.mother && f.mother !== 'empty') summary = f.mother.items.map((i) => i.name).join(' · ');
+      else if (eligible.baby && f.baby !== 'empty') summary = f.baby.items.map((i) => i.name).join(' · ');
+
+      const detail =
+        bothEligible && isOpen
+          ? `<div class="mt-1.5 pl-12">${actorRow('Matka', 'mother', f.mother, true)}${actorRow('Dítě', 'baby', f.baby, true)}</div>`
+          : '';
+
+      return `
+        <div class="py-2 divider">
+          <button class="flex w-full items-center gap-3 text-left" onclick="${bothEligible ? `toggleSlot('${type}')` : ''}" style="background:none;border:none;padding:0;cursor:${bothEligible ? 'pointer' : 'default'};">
+            <div class="icon-circle ${conflictAny ? 'conflict' : 'plain'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">${ICONS[type]}</svg>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</div>
+              ${summary ? `<div class="text-text-muted truncate text-[11px]">${summary}</div>` : ''}
+            </div>
+            <span class="text-text-muted text-sm">${bothEligible ? (isOpen ? '⌄' : '›') : '›'}</span>
+          </button>
+          ${detail}
+        </div>`;
+    }).join('');
+  }
+
+  function toggleSlot(type) {
+    openSlots.has(type) ? openSlots.delete(type) : openSlots.add(type);
+    render();
+  }
+
+  function render() {
+    const v = VARIANTS[variantIdx];
+    document.getElementById('variant-label').textContent = `${v.key} — ${v.name}`;
+    document.getElementById('stage-label').textContent = STAGES[stageIdx];
+    const slotsEl = document.getElementById('slots');
+    if (v.key === 'A') slotsEl.innerHTML = renderVariantA();
+    else if (v.key === 'B') slotsEl.innerHTML = renderVariantB();
+    else slotsEl.innerHTML = renderVariantC();
+
+    const url = new URL(window.location);
+    url.searchParams.set('variant', v.key);
+    url.searchParams.set('stage', STAGES[stageIdx]);
+    window.history.replaceState({}, '', url);
+  }
+
+  function cycleVariant(dir) {
+    variantIdx = (variantIdx + dir + VARIANTS.length) % VARIANTS.length;
+    render();
+  }
+  function cycleStage(dir) {
+    stageIdx = (stageIdx + dir + STAGES.length) % STAGES.length;
+    render();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowLeft') cycleVariant(-1);
+    if (e.key === 'ArrowRight') cycleVariant(1);
+  });
+
+  // init from URL if present
+  (function initFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('variant');
+    const s = params.get('stage');
+    if (v) {
+      const idx = VARIANTS.findIndex((x) => x.key === v.toUpperCase());
+      if (idx >= 0) variantIdx = idx;
+    }
+    if (s) {
+      const idx = STAGES.indexOf(s);
+      if (idx >= 0) stageIdx = idx;
+    }
+  })();
+
+  render();
+</script>
+
+</body>
+</html>

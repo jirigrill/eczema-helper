@@ -55,6 +55,30 @@ function toRenderMeal(
   return { items: renderItems, conflictAllergens };
 }
 
+/** Fixture mother meals for the standalone prototype page (no real IndexedDB data needed). */
+export function fixtureMotherMeals(date: string): Meal[] {
+  return [
+    {
+      id: `${date}:breakfast` as Meal['id'],
+      date,
+      mealType: 'breakfast',
+      actor: 'mother',
+      items: [{ id: '1', name: 'Jogurt', foodId: 'other:dairy', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    } as Meal,
+    {
+      id: `${date}:lunch` as Meal['id'],
+      date,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: '1', name: 'Kuřecí polévka', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    } as Meal,
+  ];
+}
+
+export const FIXTURE_ELIMINATED_TODAY = ['dairy'];
+
 /**
  * Builds the per-slot, per-actor read model the variants render from.
  * `stage` governs which actors are eligible at all (the collapse case);

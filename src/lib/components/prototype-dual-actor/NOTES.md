@@ -11,6 +11,12 @@ separately? Three structurally different layouts, switchable via
 route (mother's meals are real data; the baby side is mocked in `mock-data.ts`
 since #554's actor-keyed migration is decided but not yet built).
 
+**Easiest way to test:** open `docs/design/prototype-dual-actor-slots.html`
+directly in a browser — no dev server, no seeded IndexedDB data, plain
+static HTML/JS re-implementing the same three variants with fixture data.
+The `/day/[date]?variant=` wiring below stays useful for seeing the layout
+sit against the *real* app chrome once you've picked a favorite.
+
 - **A — Split columns.** Each slot divides into two columns (reuses the
   existing "Smím / Vyhýbej se" `grid-cols-2 divide-x` primitive already on
   this page). Actor label sits as an eyebrow atop each half.
@@ -32,7 +38,7 @@ user)._ Flip through `?variant=A/B/C` × `?stage=breastfed/mixed/solids` on
 `/day/<any-date>`, then record here (or directly on issue #557) which one
 wins, or which bits of each to combine. Once decided:
 
-- Delete the losing variants, `PrototypeSwitcher.svelte`, and the `?variant=`
-  branch in `+page.svelte`.
+- Delete the losing variants, `PrototypeSwitcher.svelte`, the `?variant=`
+  branch in `+page.svelte`, and `docs/design/prototype-dual-actor-slots.html`.
 - Fold the winning layout into `MealCard.svelte` for real, wired to real
   per-actor `Meal` data (this prototype's mock data goes away entirely).
