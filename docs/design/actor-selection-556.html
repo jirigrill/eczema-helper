@@ -153,8 +153,8 @@
   }
 
   const VARIANTS = {
-    A: { name: 'Top pill row', sub: 'Přepínač na celou šířku ve slotu po meal-type pills (ADR-0018). Volba jako první-třídní řádek pod hlavičkou.', render: variantA },
-    C: { name: 'Content tabs ✓ ZVOLENO', sub: 'ZVOLENÁ varianta (#556). Dvě záložky nad obsahem — sedí na model dvou samostatných záznamů (date:mealType:actor), velké terče, žádná kolize s ⋯ menu. Při buildu připnout do sticky hlavičky.', render: variantC },
+    A: { name: 'Top pill row ✓ ZVOLENO', sub: 'ZVOLENÁ varianta (#556). Dvě pilulky na celou šířku pod hlavičkou, mixed-only. Znovupoužívá existující Chip.svelte — žádná nová komponenta; sedí na pill idiom DESIGN.md; stejný vzor jako Settings feeding-stage picker (#553). Velké terče, žádná kolize s ⋯ menu.', render: variantA },
+    C: { name: 'Content tabs', sub: 'Dvě záložky nad obsahem — sedí na model dvou samostatných záznamů, ale je to nová komponenta a tab-underline není v pill idiomu DESIGN.md.', render: variantC },
     D: { name: 'Dual compose', sub: 'Žádný přepínač — v mixed obě sekce na jedné obrazovce, zapíšeš oba naráz. Sedí na coupled-attribution rozhodnutí mapy.', render: variantD },
     E: { name: 'Fixed at entry', sub: 'Aktér zvolen u FAB PŘED /meal, stejná gramatika jako meal-type (ADR-0018). Na obrazovce jen identita + „Změnit“, žádné přepínání.', render: variantE },
     F: { name: 'Sliding toggle (top-right)', sub: 'Umístění jako E — malý prvek vpravo nahoře pod datem — ale sliding segmented toggle Já–Miminko, thumb klouže při volbě.', render: variantF },
