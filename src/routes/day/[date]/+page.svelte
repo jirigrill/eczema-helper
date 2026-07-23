@@ -15,6 +15,11 @@
   import SkinObservationCard from '$lib/components/SkinObservationCard.svelte';
   import SkinPhotoCard from '$lib/components/SkinPhotoCard.svelte';
   import MealCard from '$lib/components/MealCard.svelte';
+  import VariantA from '$lib/components/prototype-dual-actor/VariantA.svelte';
+  import VariantB from '$lib/components/prototype-dual-actor/VariantB.svelte';
+  import VariantC from '$lib/components/prototype-dual-actor/VariantC.svelte';
+  import PrototypeSwitcher from '$lib/components/prototype-dual-actor/PrototypeSwitcher.svelte';
+  import { buildDualSlots, type FeedingStageDemo } from '$lib/components/prototype-dual-actor/mock-data';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
   import PhaseBadge from '$lib/components/PhaseBadge.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
@@ -100,6 +105,19 @@
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
   }
+
+  // PROTOTYPE — wayfinder ticket #557. `?variant=A|B|C` swaps the meal card
+  // for a dual-actor mock; absent, the real MealCard renders unchanged.
+  // Not gated on NODE_ENV since this is a worktree-only prototype meant for
+  // review before merge, not code that ships — delete alongside the rest of
+  // `prototype-dual-actor/` once a variant is picked.
+  const prototypeVariant = $derived(page.url.searchParams.get('variant'));
+  const prototypeStage = $derived(
+    (page.url.searchParams.get('stage') as FeedingStageDemo | null) ?? 'mixed',
+  );
+  const dualSlots = $derived(
+    ctx.status === 'ready' ? buildDualSlots(meals, ctx.eliminatedToday, prototypeStage) : [],
+  );
 </script>
 
 <div class="mx-auto max-w-lg">
@@ -297,7 +315,15 @@
         </div>
 
         <!-- Meal card -->
-        <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
+        {#if prototypeVariant === 'A'}
+          <VariantA date={selectedDate} slots={dualSlots} />
+        {:else if prototypeVariant === 'B'}
+          <VariantB date={selectedDate} slots={dualSlots} />
+        {:else if prototypeVariant === 'C'}
+          <VariantC date={selectedDate} slots={dualSlots} />
+        {:else}
+          <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
+        {/if}
 
         <!-- Bottom hint -->
         <div class="text-text-muted/70 mt-2 flex items-center justify-center gap-2 text-[11px]">
@@ -318,3 +344,7 @@
     {/if}
   </div>
 </div>
+
+{#if prototypeVariant}
+  <PrototypeSwitcher variant={prototypeVariant} stage={prototypeStage} />
+{/if}
