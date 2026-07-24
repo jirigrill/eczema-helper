@@ -550,8 +550,23 @@ what the mother recorded eating on a `MealItem`. Distinct from a `LadderStep`,
 which is the protocol-prescribed dosing instruction during reintroduction. See ADR-0014.
 
 ### Actor
-→ Defined in `CONTEXT.md`. The person whose food intake a `Meal` describes. Always
-`'mother'`.
+The person whose food intake a `Meal` describes — `'mother' | 'baby'`, a named
+type in `models.ts`. `getEligibleActors(stage)` gates who may log at the live
+[FeedingStage](#ladder--ladderstep--feedingstage): `breastfed → [mother]`,
+`mixed → [mother, baby]`, `solids → [baby]`. Every `Meal` carries its `actor`
+in the composite `MealId` (`date:mealType:actor`).
+
+### Actor Picker
+*Czech labels: `Já` (mother) / `Miminko` (baby)*
+
+The `/meal` control — a full-width `Chip.svelte` pill row pinned in the sticky
+header — by which the mother chooses whose meal she is logging. Shown **only**
+when more than one [Actor](#actor) is eligible (i.e. `mixed`); single-actor
+stages render no picker and no label, the actor being implicit. Selecting a pill
+re-opens the [MealEditor](#mealeditor) on that actor's slot. Swap-on-dirty
+handling is tracked separately (issue #562).
+→ See spec [issue #564](https://github.com/jirigrill/eczema-helper/issues/564)
+and [issue #569](https://github.com/jirigrill/eczema-helper/issues/569).
 
 ### Working Meal / Working List
 *Czech: Rozdělané jídlo*

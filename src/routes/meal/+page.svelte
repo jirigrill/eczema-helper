@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { PortionKind, PreparationMethod } from '$lib/domain/models';
+  import type { Actor, PortionKind, PreparationMethod } from '$lib/domain/models';
+  import { getEligibleActors } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -9,6 +10,7 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, reintroDayLabel } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
+  import { actorConfig } from '$lib/config/actors';
   import { portionStrings } from '$lib/strings/portions';
   import { preparationStrings } from '$lib/strings/preparations';
   import { familyStrings } from '$lib/strings/families';
@@ -22,6 +24,7 @@
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import Chip from '$lib/components/Chip.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
   import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
@@ -57,6 +60,11 @@
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
   const raw = $derived($scheduleRaw);
   const feedingStage = $derived($settingsContext?.feedingStage ?? null);
+  // Who may log at the live feeding stage (spec #564): `breastfed → [mother]`,
+  // `mixed → [mother, baby]`, `solids → [baby]`. Drives the actor picker — the
+  // pill row shows only when more than one actor is eligible (`mixed`).
+  const eligibleActors = $derived<Actor[]>(feedingStage ? getEligibleActors(feedingStage) : []);
+  const showActorPicker = $derived(eligibleActors.length > 1);
   const catalog = new BundledCatalogAdapter();
   const ctx = $derived(
     raw.status === 'ready' && feedingStage
@@ -97,6 +105,32 @@
   }
   const selectedMealType: MealTypeKind = isMealType(urlType) ? urlType : 'lunch';
 
+  // ── Actor selection (issue #569) ─────────────────────────
+  // The actor whose meal is being composed. In a single-actor stage it stays
+  // fixed on the implicit actor; in `mixed` the picker pills flip it. The
+  // editor is (re)opened for `${date}:${mealType}:${actor}` so the meal writes
+  // to the correct slot. Seeded to `mother` (a breastfed newborn's intake is
+  // the mother's); a `$effect` below snaps it to the stage's implicit actor
+  // once the live feeding stage resolves (e.g. `baby` under solids).
+  let selectedActor = $state<Actor>('mother');
+  // The `date:mealType:actor` slot the editor is opened against. Reactive on
+  // `selectedActor` so the picker's `open`/`applyUndo` calls always target the
+  // current actor's record.
+  const currentSlot = $derived({
+    date: targetDate,
+    mealType: selectedMealType,
+    actor: selectedActor,
+  });
+
+  function selectActor(actor: Actor): void {
+    if (actor === selectedActor) return;
+    selectedActor = actor;
+    // Re-open the editor for the newly-selected actor's slot so the working
+    // meal reflects that actor's record (or an empty compose). Swap-on-dirty
+    // handling (autosave vs. discard) is a separate concern — issue #562.
+    void editor.open(currentSlot, eliminatedToday);
+  }
+
   // ── Editor + slot hydration on mount ─────────────────────
   // The MealEditor (PRD #284) owns the meal lifecycle from open to finalize:
   // load, hydration, working-meal mutation, and save. The route reaches
@@ -135,15 +169,23 @@
       // `eliminatedToday` is threaded so per-food danger styling and the red
       // CTA reappear after undo.
       clearBuffer();
-      const slot = { date: targetDate, mealType: selectedMealType, actor: 'mother' as const };
-      void editor.applyUndo(slot, buf, eliminatedToday);
+      void editor.applyUndo(currentSlot, buf, eliminatedToday);
       return;
     }
 
-    void editor.open(
-      { date: targetDate, mealType: selectedMealType, actor: 'mother' },
-      eliminatedToday,
-    );
+    void editor.open(currentSlot, eliminatedToday);
+  });
+
+  // When the feeding stage resolves asynchronously after mount and the seeded
+  // actor is no longer eligible (e.g. solids landing while `selectedActor`
+  // still defaulted to `mother`), snap to the stage's implicit actor and
+  // re-open on its slot. `selectActor` no-ops when already correct, so this
+  // fires at most once per stage change.
+  $effect(() => {
+    const [implicit] = eligibleActors;
+    if (implicit && !eligibleActors.includes(selectedActor)) {
+      selectActor(implicit);
+    }
   });
 
   // Keep the editor's elimination window in sync when the schedule loads
@@ -553,7 +595,7 @@
     const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
       targetDate,
       selectedMealType,
-      'mother',
+      selectedActor,
     );
     if (!result.ok) {
       saveErrorMessage = result.error;
@@ -582,6 +624,20 @@
         {/if}
       {/snippet}
     </PageHeader>
+
+    <!-- Actor picker (issue #569): full-width Já / Miminko pills, shown only
+         in `mixed` where more than one actor may log. Single-actor stages
+         render no picker — the actor is implicit. Hidden while drilled into a
+         family so the pills don't compete with the drill-in chrome. -->
+    {#if showActorPicker && !drilledFamily}
+      <div class="flex gap-2 px-4 pt-2 pb-1">
+        {#each eligibleActors as actor (actor)}
+          <Chip active={actor === selectedActor} class="flex-1" onclick={() => selectActor(actor)}>
+            {actorConfig(actor).label}
+          </Chip>
+        {/each}
+      </div>
+    {/if}
 
     <!-- Meal type is fixed at entry (ADR-0018) — no pills here. -->
     {#if !drilledFamily}
