@@ -32,6 +32,7 @@ function minimalAnswers(overrides: Partial<QuestionnaireAnswers> = {}): Question
     programStartDate: '2026-05-01',
     babyBirthDate: '2026-01-01',
     completedAt: '2026-05-01T00:00:00.000Z',
+    feedingStage: 'breastfed',
     ...overrides,
   };
 }

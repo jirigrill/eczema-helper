@@ -1,10 +1,21 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import type { FeedingStage } from '$lib/domain/models';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
+  import { feedingStageOptions } from '$lib/config/feeding-stages';
   import { protocolSession } from '$lib/stores/protocol-session';
+  import { settingsContext } from '$lib/stores/settings-context';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
+  import Chip from '$lib/components/Chip.svelte';
+
+  const feedingStage = $derived($settingsContext?.feedingStage ?? null);
+
+  function selectFeedingStage(stage: FeedingStage) {
+    if (stage === feedingStage) return;
+    void protocolSession.setFeedingStage(stage);
+  }
 
   async function resetPrototype() {
     await protocolSession.reset();
@@ -30,6 +41,23 @@
   <PageHeader title={commonStrings.settings.heading} onBack={() => history.back()} />
 
   <div class="flex flex-col gap-4 px-4 pt-4 pb-10">
+    <section class="flex flex-col gap-3">
+      <div>
+        <h2 class="card-heading">{commonStrings.settings.feedingStageHeading}</h2>
+        <p class="body-muted">{commonStrings.settings.feedingStageHint}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {#each feedingStageOptions as option}
+          <Chip
+            active={option.value === feedingStage}
+            onclick={() => selectFeedingStage(option.value)}
+          >
+            {option.label}
+          </Chip>
+        {/each}
+      </div>
+    </section>
+
     <p class="body-muted">{commonStrings.settings.resetWarning}</p>
     <Button color="danger" onclick={resetPrototype}>{actionStrings.restart}</Button>
   </div>

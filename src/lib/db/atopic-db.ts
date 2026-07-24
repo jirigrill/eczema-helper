@@ -7,12 +7,14 @@ import type {
   Meal,
   QuestionnaireAnswers,
   ReintroductionEvaluation,
+  SettingsData,
   SkinObservation,
   SkinPhoto,
 } from '$lib/domain/models';
 
 type AnswersRow = QuestionnaireAnswers & { id: string };
 type ScheduleRow = GeneratedSchedule & { id: string };
+type SettingsRow = SettingsData & { id: string };
 
 export const SINGLETON_ID = 'singleton';
 
@@ -25,6 +27,7 @@ export class AtopicDb extends Dexie {
   harvest_candidates!: EntityTable<HarvestCandidate, 'normalizedKey'>;
   evaluations!: EntityTable<ReintroductionEvaluation, 'phaseId'>;
   ladder_overrides!: EntityTable<Ladder, 'allergenId'>;
+  settings!: EntityTable<SettingsRow, 'id'>;
 
   constructor(options?: { indexedDB?: IDBFactory; IDBKeyRange?: typeof IDBKeyRange }) {
     super('atopic-helper', options);
@@ -141,6 +144,20 @@ export class AtopicDb extends Dexie {
       .upgrade(async (tx) => {
         await tx.table('meals').clear();
       });
+    // v11: adds settings table (issue #567). Singleton &id row holding the live
+    // master switch(es) — feedingStage today, room for more. Kept off `schedule`
+    // so retest/verdict rebuilds can't overwrite it. No data migration — new table.
+    this.version(11).stores({
+      answers: '&id',
+      schedule: '&id',
+      meals: '&id, date',
+      skin_observations: '&id, date',
+      photos: '&id, observationId',
+      harvest_candidates: '&normalizedKey, status',
+      evaluations: '&phaseId, date',
+      ladder_overrides: '&allergenId',
+      settings: '&id',
+    });
   }
 }
 

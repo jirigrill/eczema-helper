@@ -12,6 +12,7 @@
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import Button from '$lib/components/Button.svelte';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
+  import type { FeedingStage } from '$lib/domain/models';
   import { DEFAULT_TESTED_ALLERGENS } from '$lib/domain/policy';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
@@ -33,6 +34,9 @@
   let motherAllergies = $state<string[]>([]);
   let babyAllergies = $state<string[]>([]);
   let programStartDate = $state(new Date().toISOString().split('T')[0]!);
+  // v1 tracks a breastfed newborn (ADR-0001); onboarding seeds this default and
+  // the live master switch is changed later in Settings (#567).
+  const feedingStage: FeedingStage = 'breastfed';
 
   // Drill-in state for steps 3 and 4
   let motherDrillFamily = $state<FamilyId | null>(null);
@@ -93,6 +97,7 @@
       programStartDate,
       completedAt: new Date().toISOString(),
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
+      feedingStage,
     });
     return formatDateLongCs(schedule.estimatedEndDate);
   });
@@ -164,6 +169,7 @@
       programStartDate,
       completedAt: new Date().toISOString(),
       testedAllergens: DEFAULT_TESTED_ALLERGENS,
+      feedingStage,
     });
     const result = await protocolSession.startProtocol(answers);
     if (!result.ok) {

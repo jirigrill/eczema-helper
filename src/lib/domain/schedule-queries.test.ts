@@ -445,13 +445,13 @@ const dairyReintroSchedule: GeneratedSchedule = {
 describe('getReintroductionDayInfo', () => {
   it('day 5 of a 6-day dairy reintro is NOT the evaluation day', () => {
     // Tracer bullet: dairy has 6 protocol days — only the last day is evaluation.
-    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-31', catalog); // day 5
+    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-31', catalog, 'breastfed'); // day 5
     expect(info).not.toBeNull();
     expect(info!.isEvaluationDay).toBe(false);
   });
 
   it('day 6 of a 6-day dairy reintro IS the evaluation day', () => {
-    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-06-01', catalog); // day 6
+    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-06-01', catalog, 'breastfed'); // day 6
     expect(info).not.toBeNull();
     expect(info!.isEvaluationDay).toBe(true);
   });
@@ -472,15 +472,42 @@ describe('getReintroductionDayInfo', () => {
         }),
       ],
     };
-    const info = getReintroductionDayInfo(eliminationSchedule, '2026-05-10', catalog);
+    const info = getReintroductionDayInfo(eliminationSchedule, '2026-05-10', catalog, 'breastfed');
     expect(info).toBeNull();
   });
 
   it('returned struct has no label or guidance fields', () => {
-    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-27', catalog); // day 1
+    const info = getReintroductionDayInfo(dairyReintroSchedule, '2026-05-27', catalog, 'breastfed'); // day 1
     expect(info).not.toBeNull();
     expect('label' in info!).toBe(false);
     expect('guidance' in info!).toBe(false);
+  });
+
+  it('resolves the rung against the passed feedingStage, not a fixed stage', () => {
+    // legumes: breastfed ladder is 3 rungs (checkpoint on day 3); the mixed
+    // ladder is 4 rungs (checkpoint on day 4). Day 3 therefore diverges by stage.
+    const legumesReintro: GeneratedSchedule = {
+      permanentMother: [],
+      permanentBaby: [],
+      startDate: '2026-05-01',
+      estimatedEndDate: '2026-07-01',
+      phases: [
+        phase({
+          id: 'reintro-legumes',
+          type: 'reintroduction',
+          startDate: '2026-05-27',
+          endDate: '2026-05-30',
+          allergenIds: ['legumes'],
+        }),
+      ],
+    };
+    const day3 = '2026-05-29';
+    expect(
+      getReintroductionDayInfo(legumesReintro, day3, catalog, 'breastfed')!.isEvaluationDay,
+    ).toBe(true);
+    expect(getReintroductionDayInfo(legumesReintro, day3, catalog, 'mixed')!.isEvaluationDay).toBe(
+      false,
+    );
   });
 });
 
@@ -529,7 +556,7 @@ describe('getReintroductionDayInfo — ladder drives isEvaluationDay', () => {
       const date = addDays(startDate, dayIndex);
       const expected = breastfed[dayIndex]!.isEvaluationCheckpoint;
       it(`${allergen.id} day ${dayIndex + 1}/${totalDays} → isEvaluationDay=${expected}`, () => {
-        const info = getReintroductionDayInfo(schedule, date, catalog);
+        const info = getReintroductionDayInfo(schedule, date, catalog, 'breastfed');
         expect(info).not.toBeNull();
         expect(info!.isEvaluationDay).toBe(expected);
       });
@@ -547,6 +574,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   programStartDate: '2026-05-01',
   completedAt: '2026-05-01T10:00:00.000Z',
   testedAllergens: ['dairy', 'eggs'],
+  feedingStage: 'breastfed',
 };
 
 // reintro schedule: dairy reintro 2026-05-27→05-31
@@ -579,6 +607,7 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       '2026-05-28',
       catalog,
+      'breastfed',
     );
     expect(ctx.schedule).toBe(reintroSchedule);
     expect(ctx.answers).toBe(sampleAnswers);
@@ -590,6 +619,7 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       today,
       catalog,
+      'breastfed',
     );
     expect(ctx.allergenStatuses).toEqual(getAllergenStatuses(reintroSchedule, today));
   });
@@ -600,6 +630,7 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       today,
       catalog,
+      'breastfed',
     );
     expect(ctx.eliminatedToday).toEqual(getEliminatedSlugsForDate(reintroSchedule, today));
   });
@@ -610,8 +641,11 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       today,
       catalog,
+      'breastfed',
     );
-    expect(ctx.reintroInfo).toEqual(getReintroductionDayInfo(reintroSchedule, today, catalog));
+    expect(ctx.reintroInfo).toEqual(
+      getReintroductionDayInfo(reintroSchedule, today, catalog, 'breastfed'),
+    );
   });
 
   it('progress equals getScheduleProgress(schedule, today)', () => {
@@ -620,6 +654,7 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       today,
       catalog,
+      'breastfed',
     );
     expect(ctx.progress).toEqual(getScheduleProgress(reintroSchedule, today));
   });
@@ -630,6 +665,7 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       '2026-05-28',
       catalog,
+      'breastfed',
     );
     expect(ctx.reintroInfo?.allergenId).toBe('dairy');
     expect(ctx.eliminatedToday).not.toContain('dairy');
@@ -640,6 +676,7 @@ describe('buildScheduleContext', () => {
       { schedule: reintroSchedule, answers: sampleAnswers },
       '2026-05-28',
       catalog,
+      'breastfed',
     );
     expect(ctx).not.toHaveProperty('status');
   });

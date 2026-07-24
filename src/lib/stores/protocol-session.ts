@@ -1,8 +1,9 @@
 import { DexieEvaluationRepository } from '$lib/adapters/dexie-evaluation-repository';
 import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
-import { DexieQuestionnaireRepository } from '$lib/adapters/dexie-questionnaire-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { db } from '$lib/db/atopic-db';
+import { DexieSettingsRepository } from '$lib/adapters/dexie-settings-repository';
+import { SINGLETON_ID, db } from '$lib/db/atopic-db';
+import type { FeedingStage } from '$lib/domain/models';
 import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
 import type {
   AllergenOutcome,
@@ -20,17 +21,29 @@ import type { RetestRejection } from '$lib/domain/schedule-builder';
 import { scheduleContext } from '$lib/stores/schedule-context';
 import type { Result } from '$lib/types/result';
 
-const questionnaireRepo = new DexieQuestionnaireRepository(db);
 const scheduleRepo = new DexieScheduleRepository(db);
+const settingsRepo = new DexieSettingsRepository(db);
 const harvestRepo = new DexieHarvestCandidateRepository(db);
 const evaluationRepo = new DexieEvaluationRepository(db);
 
 async function startProtocol(answers: QuestionnaireAnswers): Promise<Result<void, string>> {
   const schedule = generateSchedule(answers);
-  const saveAnswers = await questionnaireRepo.save(answers);
-  if (!saveAnswers.ok) return saveAnswers;
-  const saveSchedule = await scheduleRepo.save(schedule);
-  if (!saveSchedule.ok) return saveSchedule;
+  // One onboarding-completion transaction: answers, the derived schedule, and the
+  // settings master switch (seeded from answers.feedingStage) commit together or
+  // not at all — the settings singleton is never left unseeded behind a schedule
+  // (#567). Raw `db.*.put` rather than the repositories: the repo `save()` methods
+  // catch and return `Result` instead of throwing, so a failure inside them would
+  // not abort the surrounding Dexie transaction. The store layer owns `db`
+  // directly (see docs/architecture/ports-and-adapters.md §Stores layer).
+  try {
+    await db.transaction('rw', db.answers, db.schedule, db.settings, async () => {
+      await db.answers.put({ id: SINGLETON_ID, ...answers });
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      await db.settings.put({ id: SINGLETON_ID, feedingStage: answers.feedingStage });
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 
   const now = new Date().toISOString();
   const names = extractOtherSlugs(answers);
@@ -72,7 +85,12 @@ async function removeReTest(allergenId: string, today: string): Promise<Result<v
 }
 
 async function reset(): Promise<void> {
-  await Promise.all([db.answers.clear(), db.schedule.clear(), db.evaluations.clear()]);
+  await Promise.all([
+    db.answers.clear(),
+    db.schedule.clear(),
+    db.evaluations.clear(),
+    db.settings.clear(),
+  ]);
 }
 
 async function recordVerdict(evaluation: ReintroductionEvaluation): Promise<Result<void, string>> {
@@ -96,6 +114,12 @@ async function recordVerdict(evaluation: ReintroductionEvaluation): Promise<Resu
   return { ok: true, data: undefined };
 }
 
+async function setFeedingStage(feedingStage: FeedingStage): Promise<Result<void, string>> {
+  const current = await settingsRepo.load();
+  if (!current.ok) return current;
+  return settingsRepo.save({ ...current.data, feedingStage });
+}
+
 async function _loadReadySchedule() {
   const loaded = await scheduleRepo.load();
   if (!loaded.ok) return { ok: false as const, error: loaded.error };
@@ -109,5 +133,6 @@ export const protocolSession = {
   appendReTests,
   removeReTest,
   recordVerdict,
+  setFeedingStage,
   reset,
 };

@@ -90,6 +90,8 @@ export const commonStrings = {
     heading: 'Nastavení',
     resetWarning:
       'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
+    feedingStageHeading: 'Způsob krmení',
+    feedingStageHint: 'Určuje, podle které varianty dávkovacího žebříčku se řídí znovuzavádění.',
   },
 
   // ── Onboarding questionnaire ───────────────────────────────

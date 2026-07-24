@@ -24,6 +24,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   programStartDate: '2025-06-01',
   completedAt: '2025-06-01T10:00:00.000Z',
   testedAllergens: DEFAULT_TESTED_ALLERGENS,
+  feedingStage: 'breastfed',
 };
 
 // ── Helper: wait for liveQuery to propagate ──────────────────────────────────
@@ -74,6 +75,7 @@ describe('protocolSession', () => {
     expect(typeof mod.protocolSession.startProtocol).toBe('function');
     expect(typeof mod.protocolSession.appendReTests).toBe('function');
     expect(typeof mod.protocolSession.removeReTest).toBe('function');
+    expect(typeof mod.protocolSession.setFeedingStage).toBe('function');
     expect(typeof mod.protocolSession.reset).toBe('function');
   });
 
@@ -102,6 +104,31 @@ describe('protocolSession', () => {
       const readyState = state as { status: 'ready'; answers: QuestionnaireAnswers };
       expect(readyState.answers.eczemaSeverity).toBe('moderate');
     }
+  });
+
+  it('startProtocol seeds the settings singleton from answers.feedingStage', async () => {
+    const { protocolSession } = await import('./protocol-session');
+    const { db } = await import('$lib/db/atopic-db');
+    const { DexieSettingsRepository } = await import('$lib/adapters/dexie-settings-repository');
+
+    await protocolSession.startProtocol({ ...sampleAnswers, feedingStage: 'solids' });
+
+    const settings = await new DexieSettingsRepository(db).load();
+    expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'solids' } });
+  });
+
+  it('setFeedingStage persists the new stage to the settings singleton', async () => {
+    const { protocolSession } = await import('./protocol-session');
+    const { db } = await import('$lib/db/atopic-db');
+    const { DexieSettingsRepository } = await import('$lib/adapters/dexie-settings-repository');
+
+    await protocolSession.startProtocol({ ...sampleAnswers, feedingStage: 'breastfed' });
+
+    const result = await protocolSession.setFeedingStage('mixed');
+    expect(result).toMatchObject({ ok: true });
+
+    const settings = await new DexieSettingsRepository(db).load();
+    expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'mixed' } });
   });
 
   it('appendReTests saves updated schedule and returns Ok', async () => {

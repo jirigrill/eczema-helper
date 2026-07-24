@@ -1,9 +1,13 @@
+import { writable } from 'svelte/store';
+
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { SettingsData } from '$lib/domain/models';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
 
 const mockReset = vi.fn();
+const mockSetFeedingStage = vi.fn();
 const mockGoto = vi.fn();
 
 // Mimics the real store's behaviour right after reset() resolves: it still
@@ -16,12 +20,16 @@ const mockSubscribe = vi.fn((cb: (ctx: ScheduleContext) => void) => {
   return () => {};
 });
 
+const settings = writable<SettingsData | null>({ feedingStage: 'breastfed' });
+
 vi.mock('$lib/stores/protocol-session', () => ({
   protocolSession: {
     subscribe: mockSubscribe,
     reset: mockReset,
+    setFeedingStage: mockSetFeedingStage,
   },
 }));
+vi.mock('$lib/stores/settings-context', () => ({ settingsContext: settings }));
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 
 describe('settings/+page.svelte', () => {
@@ -44,5 +52,22 @@ describe('settings/+page.svelte', () => {
     await Promise.resolve();
 
     expect(mockGoto).toHaveBeenCalledWith('/');
+  });
+
+  it('renders a pill for each feeding stage with the current one active', async () => {
+    settings.set({ feedingStage: 'breastfed' });
+    const { default: SettingsPage } = await import('./+page.svelte');
+    const { getByText } = render(SettingsPage);
+    const active = getByText('Plně kojené');
+    expect(active.closest('button')).toHaveAttribute('data-active', 'true');
+    expect(getByText('Kojené + příkrmy').closest('button')).toHaveAttribute('data-active', 'false');
+  });
+
+  it('persists the picked feeding stage via protocolSession.setFeedingStage', async () => {
+    settings.set({ feedingStage: 'breastfed' });
+    const { default: SettingsPage } = await import('./+page.svelte');
+    const { getByText } = render(SettingsPage);
+    await fireEvent.click(getByText('Plně na příkrmech'));
+    expect(mockSetFeedingStage).toHaveBeenCalledWith('solids');
   });
 });
