@@ -19,7 +19,6 @@
   import PrototypeSwitcher from '$lib/components/prototype-dual-actor/PrototypeSwitcher.svelte';
   import {
     buildDualSlots,
-    type EmptyStyle,
     type FeedingStageDemo,
   } from '$lib/components/prototype-dual-actor/mock-data';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
@@ -109,14 +108,12 @@
   }
 
   // PROTOTYPE — wayfinder ticket #557. `?dualActor=1` swaps the meal card
-  // for the winning dual-actor layout; absent, the real MealCard renders
-  // unchanged. `?empty=1-4` picks the still-undecided empty-actor-slot
-  // treatment. Not gated on NODE_ENV since this is a worktree-only
-  // prototype meant for review before merge, not code that ships — delete
-  // alongside the rest of `prototype-dual-actor/` once folded into
-  // MealCard for real.
+  // for the settled dual-actor layout; absent, the real MealCard renders
+  // unchanged. `?stage=` drives the single-actor collapse case. Not gated on
+  // NODE_ENV since this is a worktree-only prototype meant for review before
+  // merge, not code that ships — delete alongside the rest of
+  // `prototype-dual-actor/` once folded into MealCard for real.
   const showDualActor = $derived(page.url.searchParams.get('dualActor') === '1');
-  const prototypeEmpty = $derived(page.url.searchParams.get('empty') ?? '1');
   const prototypeStage = $derived(
     (page.url.searchParams.get('stage') as FeedingStageDemo | null) ?? 'mixed',
   );
@@ -321,11 +318,7 @@
 
         <!-- Meal card -->
         {#if showDualActor}
-          <VariantB
-            date={selectedDate}
-            slots={dualSlots}
-            emptyStyle={(Number(prototypeEmpty) as EmptyStyle) ?? 1}
-          />
+          <VariantB date={selectedDate} slots={dualSlots} />
         {:else}
           <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
         {/if}
@@ -351,5 +344,5 @@
 </div>
 
 {#if showDualActor}
-  <PrototypeSwitcher empty={prototypeEmpty} stage={prototypeStage} />
+  <PrototypeSwitcher stage={prototypeStage} />
 {/if}

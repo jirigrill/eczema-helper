@@ -38,9 +38,7 @@
   .switcher button { color: #fff; background: rgba(255,255,255,0.08); border: none; border-radius: 9999px;
     padding: 4px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; }
   .switcher button.arrow { background: none; font-size: 16px; padding: 0 4px; line-height: 1; }
-  .switcher .label { min-width: 11rem; text-align: center; font-weight: 600; }
   .switcher .stage-label { min-width: 5.5rem; text-align: center; font-weight: 500; }
-  .switcher .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.25); }
 
   .pill-conflict { background: rgba(184,68,68,0.15); color: #B84444; border-radius: 9999px;
     padding: 2px 6px; font-size: 10px; font-weight: 600; }
@@ -54,21 +52,22 @@
   .item-text .sep { color: #7A6468; }
   .chip-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
 
-  .empty-cta { display: inline-block; background: rgba(139,69,87,0.05); border: 1px dashed rgba(139,69,87,0.3);
-    border-radius: 9999px; padding: 2px 10px; font-size: 11px; color: #8B4557; }
+  .empty-plus { color: #8B4557; font-size: 18px; line-height: 1; }
+  .section-arrow { color: #7A6468; font-size: 20px; line-height: 1; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <div class="canvas">
   <div class="canvas-eyebrow">Prototype · wayfinder ticket #557</div>
-  <h1 class="canvas-heading">Day-view dual-actor slot — Variant B refined</h1>
+  <h1 class="canvas-heading">Day-view dual-actor slot — settled</h1>
   <p class="canvas-sub">
-    Winner from the first round was <strong>B — stacked rows</strong>. This refines it: actors are labelled
-    <strong>"Já"</strong> / <strong>"Miminko"</strong>, each row keeps the trailing <strong>›</strong> arrow into
-    the meal editor, and a conflict allergen is shown <strong>once per meal section</strong> (deduplicated
-    across both actors) instead of repeated per actor. Foods are plain wrapping text — nothing is truncated.
-    Still undecided: how an actor's <strong>empty slot</strong> should look — cycle through four options below.
+    Layout: <strong>stacked rows</strong>, actors labelled <strong>"Já"</strong> / <strong>"Miminko"</strong>.
+    A conflict allergen shows <strong>once per meal section</strong> (deduplicated across both actors). Foods are
+    plain wrapping text — nothing truncated. Empty actor slot = a single <strong>"+"</strong>. A single
+    <strong>"›"</strong> arrow sits vertically centered against the whole section (one tap target into the meal
+    editor) rather than one arrow per row. Below: the three fill states — <strong>completely empty</strong>,
+    <strong>one actor only</strong>, <strong>both actors</strong>.
   </p>
 
   <div class="phone">
@@ -78,10 +77,6 @@
 </div>
 
 <div class="switcher">
-  <button class="arrow" onclick="cycleEmpty(-1)" aria-label="Previous empty-state option">‹</button>
-  <span class="label" id="empty-label"></span>
-  <button class="arrow" onclick="cycleEmpty(1)" aria-label="Next empty-state option">›</button>
-  <span class="sep"></span>
   <button onclick="cycleStage(-1)">‹ stage</button>
   <span class="stage-label" id="stage-label"></span>
   <button onclick="cycleStage(1)">stage ›</button>
@@ -98,13 +93,14 @@
     dinner: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
   };
 
-  // slot -> { mother: {items:[{name, conflict}], conflictAllergens: []} | 'empty', baby: ... }
-  // Item counts deliberately vary — 1 / 3 / 5 per slot, snack and dinner
-  // using longer names — so the layout is judged with a single item, a
-  // typical short list, and a long, wrapping one.
+  // The three fill states, one per meal slot:
+  //   breakfast — completely empty (both actors "+")
+  //   lunch     — one actor only (mother logged, baby empty)
+  //   snack     — both actors logged (mother has a conflict)
+  //   dinner    — both actors logged (baby-only conflict via Arašídy)
   const FIXTURE = {
     breakfast: {
-      mother: { items: [{ name: 'Jogurt', conflict: true }], conflictAllergens: ['Mléčné výrobky'] },
+      mother: 'empty',
       baby: 'empty',
     },
     lunch: {
@@ -116,14 +112,7 @@
         ],
         conflictAllergens: [],
       },
-      baby: {
-        items: [
-          { name: 'Rýžová kaše', conflict: false },
-          { name: 'Banánové pyré', conflict: false },
-          { name: 'Hruškové pyré', conflict: false },
-        ],
-        conflictAllergens: [],
-      },
+      baby: 'empty',
     },
     snack: {
       mother: {
@@ -136,10 +125,23 @@
         ],
         conflictAllergens: ['Mléčné výrobky'],
       },
-      baby: 'empty',
+      baby: {
+        items: [
+          { name: 'Rýžová kaše', conflict: false },
+          { name: 'Banánové pyré', conflict: false },
+          { name: 'Hruškové pyré', conflict: false },
+        ],
+        conflictAllergens: [],
+      },
     },
     dinner: {
-      mother: 'empty',
+      mother: {
+        items: [
+          { name: 'Zeleninový vývar', conflict: false },
+          { name: 'Rýže s dušenou zeleninou', conflict: false },
+        ],
+        conflictAllergens: [],
+      },
       baby: {
         items: [
           { name: 'Dušená brokolice', conflict: false },
@@ -153,22 +155,14 @@
     },
   };
 
-  // stage -> which actors are eligible at all
+  // stage -> which actors are eligible at all (single-actor collapse case)
   const ELIGIBLE = {
     breastfed: { mother: true, baby: false },
     mixed: { mother: true, baby: true },
     solids: { mother: false, baby: true },
   };
 
-  const EMPTY_STYLES = [
-    { key: 1, name: '"+ Zapsat" link' },
-    { key: 2, name: '"Nezapsáno" muted' },
-    { key: 3, name: 'Dashed CTA pill' },
-    { key: 4, name: '"+" icon only' },
-  ];
   const STAGES = ['breastfed', 'mixed', 'solids'];
-
-  let emptyIdx = 0;
   let stageIdx = 1; // default 'mixed'
 
   function itemsText(items) {
@@ -177,16 +171,8 @@
       .join('<span class="sep"> · </span>')}</div>`;
   }
 
-  function emptyBody() {
-    const style = EMPTY_STYLES[emptyIdx].key;
-    if (style === 1) return `<div class="text-primary text-[11px]">+ Zapsat</div>`;
-    if (style === 2) return `<div class="text-text-muted text-[11px]">Nezapsáno</div>`;
-    if (style === 3) return `<span class="empty-cta">+ Přidat</span>`;
-    return `<div class="text-primary text-lg leading-none">+</div>`;
-  }
-
   function actorBody(state) {
-    if (state === 'empty') return emptyBody();
+    if (state === 'empty') return `<div class="empty-plus">+</div>`;
     return itemsText(state.items);
   }
 
@@ -209,43 +195,41 @@
       : '';
 
     const rowsHtml = rows
-      .map(([label, actorKey, state]) => {
+      .map(([label, , state]) => {
         const tag = showTag ? `<span class="actor-tag mt-0.5">${label}</span>` : '';
         return `
-          <a href="/meal?type=${type}&actor=${actorKey}" class="flex items-start gap-2 py-1">
+          <div class="flex items-start gap-2 py-1">
             ${tag}
             <div class="min-w-0 flex-1">${actorBody(state)}</div>
-            <span class="text-text-muted text-sm" style="margin-top:1px;">›</span>
-          </a>`;
+          </div>`;
       })
       .join('');
 
+    // One arrow, vertically centered against the whole section — a single
+    // tap target into the meal editor, not one arrow per actor row.
     return `
-      <div class="py-2 divider">
-        <div class="flex items-center gap-2 px-0.5 pb-1 text-text-muted">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
-          <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
+      <a href="/meal?type=${type}" class="flex items-center gap-2 py-2 divider">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 px-0.5 pb-1 text-text-muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
+            <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
+          </div>
+          ${headerPills}
+          <div class="pl-6">${rowsHtml}</div>
         </div>
-        ${headerPills}
-        <div class="pl-6">${rowsHtml}</div>
-      </div>`;
+        <span class="section-arrow">›</span>
+      </a>`;
   }
 
   function render() {
-    document.getElementById('empty-label').textContent = `${EMPTY_STYLES[emptyIdx].key} — ${EMPTY_STYLES[emptyIdx].name}`;
     document.getElementById('stage-label').textContent = STAGES[stageIdx];
     document.getElementById('slots').innerHTML = MEAL_TYPES.map(renderSlot).join('');
 
     const url = new URL(window.location);
-    url.searchParams.set('empty', EMPTY_STYLES[emptyIdx].key);
     url.searchParams.set('stage', STAGES[stageIdx]);
     window.history.replaceState({}, '', url);
   }
 
-  function cycleEmpty(dir) {
-    emptyIdx = (emptyIdx + dir + EMPTY_STYLES.length) % EMPTY_STYLES.length;
-    render();
-  }
   function cycleStage(dir) {
     stageIdx = (stageIdx + dir + STAGES.length) % STAGES.length;
     render();
@@ -254,19 +238,13 @@
   document.addEventListener('keydown', (e) => {
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-    if (e.key === 'ArrowLeft') cycleEmpty(-1);
-    if (e.key === 'ArrowRight') cycleEmpty(1);
+    if (e.key === 'ArrowLeft') cycleStage(-1);
+    if (e.key === 'ArrowRight') cycleStage(1);
   });
 
   // init from URL if present
   (function initFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const e = params.get('empty');
-    const s = params.get('stage');
-    if (e) {
-      const idx = EMPTY_STYLES.findIndex((x) => String(x.key) === e);
-      if (idx >= 0) emptyIdx = idx;
-    }
+    const s = new URLSearchParams(window.location.search).get('stage');
     if (s) {
       const idx = STAGES.indexOf(s);
       if (idx >= 0) stageIdx = idx;

@@ -14,7 +14,6 @@ is **stacked rows** — each eligible actor gets its own always-visible row
 under a shared slot header. Refined per human feedback:
 
 - Actors are labelled **"Já"** and **"Miminko"**, not "Matka"/"Dítě".
-- Each row keeps the trailing **"›"** arrow into the meal editor.
 - A conflict allergen is shown **once per meal section**, deduplicated
   across both actors, instead of repeated per actor row.
 - Foods are plain wrapping text (no chips/pills) — nothing is ever
@@ -23,32 +22,26 @@ under a shared slot header. Refined per human feedback:
 - Collapses to today's exact single-row `MealCard` look (no tag, no header
   split) when only one actor is eligible for the current `?stage=`.
 
-**Still open: the empty-actor-slot treatment.** When one actor has logged a
-meal and the other hasn't, what does the empty row look like? Four options,
-cycled via `?empty=1-4`:
+**Empty-actor-slot treatment: settled** — a single **"+"** (was option 4 of
+four candidates: "+ Zapsat" link / "Nezapsáno" muted / dashed CTA pill /
+"+" icon). Minimal, matches today's single-actor `MealCard` empty state.
 
-1. `"+ Zapsat"` — primary-colored link text (explicit CTA)
-2. `"Nezapsáno"` — muted descriptive text, no CTA emphasis
-3. Dashed CTA pill — `"+ Přidat"` in a primary-tinted dashed pill (reuses
-   DESIGN.md's `card-empty-cta` pattern)
-4. `"+"` icon only — no words, minimal (closest to today's single-actor
-   `MealCard` empty state)
+**Section arrow: settled** — a single **"›"** vertically centered against
+the whole meal section (one tap target into the meal editor), not one arrow
+per actor row.
 
 **Easiest way to test:** open `docs/design/prototype-dual-actor-slots.html`
-directly in a browser — no dev server, no seeded IndexedDB data. The real
-`/day/[date]?dualActor=1&empty=1-4&stage=` wiring stays useful for seeing it
-sit against the *real* app chrome.
+directly in a browser — no dev server, no seeded IndexedDB data. It shows
+the three fill states (completely empty / one actor only / both actors). The
+real `/day/[date]?dualActor=1&stage=` wiring stays useful for seeing it sit
+against the *real* app chrome.
 
 ## Verdict
 
-_Empty-state choice not yet recorded — awaiting human reaction (this is a
-HITL ticket per the wayfinder map's ticket-type convention; the agent
-doesn't pick for the user)._ Flip through `?empty=1-4` ×
-`?stage=breastfed/mixed/solids` on `/day/<any-date>?dualActor=1`, then
-record here (or directly on issue #557) which empty-state option wins, or
-which bits to combine. Once decided:
+**Layout, empty state, and section arrow are all settled** (see above).
+Once merged/actioned:
 
-- Delete `PrototypeSwitcher.svelte`, the `?dualActor=`/`?empty=` branch in
+- Delete `PrototypeSwitcher.svelte`, the `?dualActor=` branch in
   `+page.svelte`, and `docs/design/prototype-dual-actor-slots.html`.
 - Fold the winning layout into `MealCard.svelte` for real, wired to real
   per-actor `Meal` data (this prototype's mock data goes away entirely).

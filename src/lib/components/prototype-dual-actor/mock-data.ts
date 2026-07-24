@@ -13,9 +13,6 @@ import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 export type FeedingStageDemo = 'breastfed' | 'mixed' | 'solids';
 
-/** Which of the 4 empty-actor-slot treatments to render — see ActorBody.svelte. */
-export type EmptyStyle = 1 | 2 | 3 | 4;
-
 export type RenderItem = { name: string; conflict: boolean };
 export type RenderMeal = { items: RenderItem[]; conflictAllergens: string[] };
 export type ActorState =
@@ -33,13 +30,13 @@ const catalog = new BundledCatalogAdapter();
 
 const MEAL_TYPE_ORDER: MealType[] = ['breakfast', 'lunch', 'snack', 'dinner'];
 
-// Mock baby solids — item counts deliberately vary per slot (lunch: 3,
-// dinner: 5, with longer names) so the variants can be judged with a short
-// list and a long, wrapping/truncating one. Dinner also includes an item
-// that only conflicts for the baby (peanuts, via BABY_ONLY_ALLERGEN below)
-// to demonstrate an actor-aware conflict badge the mother's row never shows.
+// Mock baby solids — the baby is logged only in snack + dinner (breakfast is
+// completely empty, lunch is mother-only) so the read model exercises all
+// three fill states. Dinner also includes an item that only conflicts for
+// the baby (peanuts, via BABY_ONLY_ALLERGEN below) to demonstrate the merged
+// section-level conflict badge picking up a baby-only allergen.
 const MOCK_BABY_ITEMS: Partial<Record<MealType, { name: string; foodId: string }[]>> = {
-  lunch: [
+  snack: [
     { name: 'Rýžová kaše', foodId: 'other:rice' },
     { name: 'Banánové pyré', foodId: 'other:banana' },
     { name: 'Hruškové pyré', foodId: 'other:pear' },
@@ -72,22 +69,13 @@ function toRenderMeal(
 }
 
 /**
- * Fixture mother meals for the standalone prototype page (no real IndexedDB
- * data needed). Item counts deliberately vary — breakfast: 1, lunch: 3,
- * snack: 5 with longer names — to see each variant with a single item, a
- * typical short list, and a long, wrapping/truncating one. Dinner is left
- * unset (empty state) so the baby-only dinner slot below has a contrast.
+ * Fixture mother meals exercising the three fill states with the baby data
+ * above: breakfast is left unset (→ completely empty, since baby is also
+ * empty there), lunch is mother-only (baby empty), snack + dinner have both
+ * actors. Item counts vary (3 / 5 / 2) to see short and long, wrapping lists.
  */
 export function fixtureMotherMeals(date: string): Meal[] {
   return [
-    {
-      id: `${date}:breakfast` as Meal['id'],
-      date,
-      mealType: 'breakfast',
-      actor: 'mother',
-      items: [{ id: '1', name: 'Jogurt', foodId: 'other:dairy', amount: 'portion' }],
-      createdAt: new Date().toISOString(),
-    } as Meal,
     {
       id: `${date}:lunch` as Meal['id'],
       date,
@@ -111,6 +99,17 @@ export function fixtureMotherMeals(date: string): Meal[] {
         { id: '3', name: 'Řecký jogurt s medem', foodId: 'other:dairy', amount: 'portion' },
         { id: '4', name: 'Vitamínový nápoj se zázvorem', foodId: 'other:ginger', amount: 'portion' },
         { id: '5', name: 'Ovesné sušenky se skořicí', foodId: 'other:oats', amount: 'portion' },
+      ],
+      createdAt: new Date().toISOString(),
+    } as Meal,
+    {
+      id: `${date}:dinner` as Meal['id'],
+      date,
+      mealType: 'dinner',
+      actor: 'mother',
+      items: [
+        { id: '1', name: 'Zeleninový vývar', foodId: 'other:carrot', amount: 'portion' },
+        { id: '2', name: 'Rýže s dušenou zeleninou', foodId: 'other:rice', amount: 'portion' },
       ],
       createdAt: new Date().toISOString(),
     } as Meal,
