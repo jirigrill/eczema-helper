@@ -38,16 +38,9 @@
   .switcher button { color: #fff; background: rgba(255,255,255,0.08); border: none; border-radius: 9999px;
     padding: 4px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; }
   .switcher button.arrow { background: none; font-size: 16px; padding: 0 4px; line-height: 1; }
-  .switcher .label { min-width: 9rem; text-align: center; font-weight: 600; }
+  .switcher .label { min-width: 11rem; text-align: center; font-weight: 600; }
   .switcher .stage-label { min-width: 5.5rem; text-align: center; font-weight: 500; }
   .switcher .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.25); }
-
-  .icon-circle { width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center;
-    justify-content: center; flex-shrink: 0; }
-  .icon-circle.plain { background: #fff; color: #8B4557; }
-  .icon-circle.conflict { background: rgba(184,68,68,0.15); color: #B84444; }
-  .icon-circle.empty { background: #fff; color: rgba(122,100,104,0.5); }
-  .icon-circle svg { width: 20px; height: 20px; }
 
   .pill-conflict { background: rgba(184,68,68,0.15); color: #B84444; border-radius: 9999px;
     padding: 2px 6px; font-size: 10px; font-weight: 600; }
@@ -61,28 +54,21 @@
   .item-text .sep { color: #7A6468; }
   .chip-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
 
-  .twin-card { border: 1px solid #EDE8E9; border-radius: 12px; padding: 8px 10px; background: #FAF8F8; }
-
-  .actor-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-  .actor-tab { flex: 1; text-align: center; padding: 6px 0; border-radius: 9999px; font-size: 12px;
-    font-weight: 600; background: #EDE8E9; color: #7A6468; border: none; cursor: pointer; }
-  .actor-tab.active { background: #8B4557; color: #fff; }
+  .empty-cta { display: inline-block; background: rgba(139,69,87,0.05); border: 1px dashed rgba(139,69,87,0.3);
+    border-radius: 9999px; padding: 2px 10px; font-size: 11px; color: #8B4557; }
 </style>
 </head>
 <body>
 
 <div class="canvas">
   <div class="canvas-eyebrow">Prototype · wayfinder ticket #557</div>
-  <h1 class="canvas-heading">Day-view dual-actor slot layout</h1>
+  <h1 class="canvas-heading">Day-view dual-actor slot — Variant B refined</h1>
   <p class="canvas-sub">
-    Standalone static mock — no build, no seeded data, opens straight in a browser. Six structurally
-    different layouts for a day-view slot showing both the mother's and the child's meal separately, plus the
-    single-actor collapse for <code>breastfed</code>/<code>solids</code> feeding stages. Foods are plain text,
-    wrapping onto as many lines as needed — nothing is truncated, cut off, or shown as a chip/pill. Fixture day
-    deliberately varies item count per slot —
-    <strong>breakfast: 1 item</strong> (mother, with a conflict), <strong>lunch: 3 items</strong> each (both
-    actors, no conflict), <strong>snack: 5 items</strong> (mother, longer names, one conflicting),
-    <strong>dinner: 5 items</strong> (baby, longer names, one baby-only conflict).
+    Winner from the first round was <strong>B — stacked rows</strong>. This refines it: actors are labelled
+    <strong>"Já"</strong> / <strong>"Miminko"</strong>, each row keeps the trailing <strong>›</strong> arrow into
+    the meal editor, and a conflict allergen is shown <strong>once per meal section</strong> (deduplicated
+    across both actors) instead of repeated per actor. Foods are plain wrapping text — nothing is truncated.
+    Still undecided: how an actor's <strong>empty slot</strong> should look — cycle through four options below.
   </p>
 
   <div class="phone">
@@ -92,9 +78,9 @@
 </div>
 
 <div class="switcher">
-  <button class="arrow" onclick="cycleVariant(-1)" aria-label="Previous variant">‹</button>
-  <span class="label" id="variant-label"></span>
-  <button class="arrow" onclick="cycleVariant(1)" aria-label="Next variant">›</button>
+  <button class="arrow" onclick="cycleEmpty(-1)" aria-label="Previous empty-state option">‹</button>
+  <span class="label" id="empty-label"></span>
+  <button class="arrow" onclick="cycleEmpty(1)" aria-label="Next empty-state option">›</button>
   <span class="sep"></span>
   <button onclick="cycleStage(-1)">‹ stage</button>
   <span class="stage-label" id="stage-label"></span>
@@ -114,8 +100,8 @@
 
   // slot -> { mother: {items:[{name, conflict}], conflictAllergens: []} | 'empty', baby: ... }
   // Item counts deliberately vary — 1 / 3 / 5 per slot, snack and dinner
-  // using longer names — so each variant is judged with a single item, a
-  // typical short list, and a long, wrapping/truncating one.
+  // using longer names — so the layout is judged with a single item, a
+  // typical short list, and a long, wrapping one.
   const FIXTURE = {
     breakfast: {
       mother: { items: [{ name: 'Jogurt', conflict: true }], conflictAllergens: ['Mléčné výrobky'] },
@@ -174,253 +160,90 @@
     solids: { mother: false, baby: true },
   };
 
-  const VARIANTS = [
-    { key: 'A', name: 'Split columns' },
-    { key: 'B', name: 'Stacked rows' },
-    { key: 'C', name: 'Accordion' },
-    { key: 'D', name: 'Twin cards' },
-    { key: 'E', name: 'Actor tabs' },
-    { key: 'F', name: 'Accordion, spaced' },
+  const EMPTY_STYLES = [
+    { key: 1, name: '"+ Zapsat" link' },
+    { key: 2, name: '"Nezapsáno" muted' },
+    { key: 3, name: 'Dashed CTA pill' },
+    { key: 4, name: '"+" icon only' },
   ];
   const STAGES = ['breastfed', 'mixed', 'solids'];
 
-  let variantIdx = 0;
+  let emptyIdx = 0;
   let stageIdx = 1; // default 'mixed'
-  const openSlots = new Set();
-  let selectedActor = 'mother'; // for Variant E only
 
-  // Plain text, "·"-separated, wrapping normally across as many lines as
-  // needed — nothing is ever truncated or cut off, regardless of how many
-  // items or how long the names are.
   function itemsText(items) {
     return `<div class="item-text">${items
       .map((i) => `<span class="${i.conflict ? 'conflict' : ''}">${i.name}</span>`)
       .join('<span class="sep"> · </span>')}</div>`;
   }
 
-  function conflictPills(conflictAllergens) {
-    if (!conflictAllergens.length) return '';
-    return `<div class="chip-wrap mb-1">${conflictAllergens
-      .map((a) => `<span class="pill-conflict">⚠ ${a}</span>`)
-      .join('')}</div>`;
+  function emptyBody() {
+    const style = EMPTY_STYLES[emptyIdx].key;
+    if (style === 1) return `<div class="text-primary text-[11px]">+ Zapsat</div>`;
+    if (style === 2) return `<div class="text-text-muted text-[11px]">Nezapsáno</div>`;
+    if (style === 3) return `<span class="empty-cta">+ Přidat</span>`;
+    return `<div class="text-primary text-lg leading-none">+</div>`;
   }
 
   function actorBody(state) {
-    if (state === 'empty') return `<div class="text-primary text-[11px]">+ Zapsat</div>`;
-    return `${conflictPills(state.conflictAllergens)}${itemsText(state.items)}`;
+    if (state === 'empty') return emptyBody();
+    return itemsText(state.items);
   }
 
-  function actorRow(label, state, showTag) {
-    if (state === 'not-eligible') return '';
-    const tag = showTag ? `<span class="actor-tag mt-0.5">${label}</span>` : '';
-    return `<div class="flex items-start gap-2 py-1">${tag}<div class="min-w-0 flex-1">${actorBody(state)}</div></div>`;
-  }
-
-  function renderVariantA() {
+  function renderSlot(type) {
     const eligible = ELIGIBLE[STAGES[stageIdx]];
-    return MEAL_TYPES.map((type) => {
-      const f = FIXTURE[type];
-      const bothEligible = eligible.mother && eligible.baby;
-      const half = (label, actorKey, state) => {
-        if (!eligible[actorKey]) return '';
-        const eyebrow = bothEligible ? `<div class="text-text-muted mb-1 text-[9px] font-bold tracking-wide uppercase">${label}</div>` : '';
-        return `<div class="${bothEligible ? (actorKey === 'mother' ? 'pr-2' : 'pl-2 border-l border-surface-dark') : ''}">${eyebrow}${actorBody(state)}</div>`;
-      };
-      return `
-        <div class="py-2 divider">
-          <div class="mb-1 flex items-center gap-2 px-0.5 text-text-muted">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
-            <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
-          </div>
-          <div class="${bothEligible ? 'grid grid-cols-2' : ''}">
-            ${half('Matka', 'mother', f.mother)}${half('Dítě', 'baby', f.baby)}
-          </div>
-        </div>`;
-    }).join('');
-  }
+    const f = FIXTURE[type];
+    const rows = [];
+    if (eligible.mother) rows.push(['Já', 'mother', f.mother]);
+    if (eligible.baby) rows.push(['Miminko', 'baby', f.baby]);
+    const showTag = rows.length > 1;
 
-  function renderVariantB() {
-    const eligible = ELIGIBLE[STAGES[stageIdx]];
-    return MEAL_TYPES.map((type) => {
-      const f = FIXTURE[type];
-      const rows = [];
-      if (eligible.mother) rows.push(['Matka', f.mother]);
-      if (eligible.baby) rows.push(['Dítě', f.baby]);
-      const showTag = rows.length > 1;
-      return `
-        <div class="py-2 divider">
-          <div class="flex items-center gap-2 px-0.5 pb-1 text-text-muted">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
-            <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
-          </div>
-          <div class="pl-6">
-            ${rows.map(([label, state]) => actorRow(label, state, showTag)).join('')}
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  // Shared by Variant C (tight) and Variant F (spaced): a collapsed
-  // summary row that expands into two full actor groups on tap. `spaced`
-  // controls the breathing room between the Matka and Dítě groups once
-  // expanded — that's the only difference between C and F.
-  function renderAccordion(spaced) {
-    const eligible = ELIGIBLE[STAGES[stageIdx]];
-    return MEAL_TYPES.map((type) => {
-      const f = FIXTURE[type];
-      const bothEligible = eligible.mother && eligible.baby;
-      const isOpen = openSlots.has(type);
-      const conflictAny =
-        (f.mother !== 'empty' && f.mother !== 'not-eligible' && eligible.mother && f.mother.conflictAllergens.length) ||
-        (f.baby !== 'empty' && f.baby !== 'not-eligible' && eligible.baby && f.baby.conflictAllergens.length);
-      const summaryOf = (label, state) => {
-        if (state === 'empty') return `${label}: —`;
-        return `${label}: ${state.items.map((i) => i.name).join(', ')}`;
-      };
-      let summary = '';
-      if (bothEligible) summary = `${summaryOf('Matka', f.mother)} · ${summaryOf('Dítě', f.baby)}`;
-      else if (eligible.mother && f.mother !== 'empty') summary = f.mother.items.map((i) => i.name).join(' · ');
-      else if (eligible.baby && f.baby !== 'empty') summary = f.baby.items.map((i) => i.name).join(' · ');
-
-      const separator = spaced
-        ? `<div class="my-4 border-t border-surface-dark"></div>`
-        : '';
-      const detail =
-        bothEligible && isOpen
-          ? `<div class="${spaced ? 'mt-3' : 'mt-1.5'} pl-12">${actorRow('Matka', f.mother, true)}${separator}${actorRow('Dítě', f.baby, true)}</div>`
-          : '';
-
-      return `
-        <div class="py-2 divider">
-          <button class="flex w-full items-center gap-3 text-left" onclick="${bothEligible ? `toggleSlot('${type}')` : ''}" style="background:none;border:none;padding:0;cursor:${bothEligible ? 'pointer' : 'default'};">
-            <div class="icon-circle ${conflictAny ? 'conflict' : 'plain'}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">${ICONS[type]}</svg>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</div>
-              ${summary && !isOpen ? `<div class="text-text-muted text-[11px]">${summary}</div>` : ''}
-            </div>
-            <span class="text-text-muted text-sm">${bothEligible ? (isOpen ? '⌄' : '›') : '›'}</span>
-          </button>
-          ${detail}
-        </div>`;
-    }).join('');
-  }
-
-  function renderVariantC() {
-    return renderAccordion(false);
-  }
-
-  // Variant F — accordion, spaced: identical interaction to C, but the two
-  // expanded groups get generous vertical space and a light divider between
-  // them instead of sitting close together, so "Matka" and "Dítě" read as
-  // clearly separate groups rather than a tight stacked list.
-  function renderVariantF() {
-    return renderAccordion(true);
-  }
-
-  // Variant D — twin cards: each eligible actor gets its own bordered card,
-  // stacked full-width, with generous room for wrapping chips. Collapses to
-  // a plain borderless row (today's look) when only one actor is eligible.
-  function renderVariantD() {
-    const eligible = ELIGIBLE[STAGES[stageIdx]];
-    return MEAL_TYPES.map((type) => {
-      const f = FIXTURE[type];
-      const bothEligible = eligible.mother && eligible.baby;
-      const card = (label, actorKey, state) => {
-        if (!eligible[actorKey]) return '';
-        if (!bothEligible) return `<div>${actorBody(state)}</div>`;
-        return `
-          <div class="twin-card">
-            <div class="text-text-muted mb-1 text-[9px] font-bold tracking-wide uppercase">${label}</div>
-            ${actorBody(state)}
-          </div>`;
-      };
-      return `
-        <div class="py-2 divider">
-          <div class="mb-1.5 flex items-center gap-2 px-0.5 text-text-muted">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
-            <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
-          </div>
-          <div class="${bothEligible ? 'flex flex-col gap-2' : ''}">
-            ${card('Matka', 'mother', f.mother)}${card('Dítě', 'baby', f.baby)}
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  // Variant E — actor tabs: a segmented control above the whole meal list
-  // switches between "Matka" and "Dítě" full slot lists (each identical in
-  // shape to today's single-actor MealCard). Never combines both actors in
-  // one row, so there's nothing to squeeze — and the tab bar itself
-  // disappears when only one actor is eligible this stage (the collapse
-  // case), leaving exactly today's MealCard.
-  function renderVariantE() {
-    const eligible = ELIGIBLE[STAGES[stageIdx]];
-    const actors = [];
-    if (eligible.mother) actors.push('mother');
-    if (eligible.baby) actors.push('baby');
-    if (!actors.includes(selectedActor)) selectedActor = actors[0];
-    const showTabs = actors.length > 1;
-
-    const tabs = showTabs
-      ? `<div class="actor-tabs">
-          <button class="actor-tab ${selectedActor === 'mother' ? 'active' : ''}" onclick="selectActor('mother')">Matka</button>
-          <button class="actor-tab ${selectedActor === 'baby' ? 'active' : ''}" onclick="selectActor('baby')">Dítě</button>
-        </div>`
+    // Conflict allergens are shown once per meal section, deduplicated
+    // across both actors — not repeated per actor row.
+    const merged = new Set();
+    rows.forEach(([, , state]) => {
+      if (state !== 'empty') state.conflictAllergens.forEach((a) => merged.add(a));
+    });
+    const headerPills = merged.size
+      ? `<div class="chip-wrap mb-1 ml-6">${[...merged].map((a) => `<span class="pill-conflict">⚠ ${a}</span>`).join('')}</div>`
       : '';
 
-    const rows = MEAL_TYPES.map((type) => {
-      const state = FIXTURE[type][selectedActor];
-      const conflict = state !== 'empty' && state.conflictAllergens.length > 0;
-      return `
-        <div class="flex items-start gap-3 py-2 divider">
-          <div class="icon-circle ${conflict ? 'conflict' : 'plain'}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">${ICONS[type]}</svg>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="text-text mb-1 text-sm font-semibold">${MEAL_LABEL[type]}</div>
-            ${actorBody(state)}
-          </div>
-        </div>`;
-    }).join('');
+    const rowsHtml = rows
+      .map(([label, actorKey, state]) => {
+        const tag = showTag ? `<span class="actor-tag mt-0.5">${label}</span>` : '';
+        return `
+          <a href="/meal?type=${type}&actor=${actorKey}" class="flex items-start gap-2 py-1">
+            ${tag}
+            <div class="min-w-0 flex-1">${actorBody(state)}</div>
+            <span class="text-text-muted text-sm" style="margin-top:1px;">›</span>
+          </a>`;
+      })
+      .join('');
 
-    return `${tabs}${rows}`;
-  }
-
-  function toggleSlot(type) {
-    openSlots.has(type) ? openSlots.delete(type) : openSlots.add(type);
-    render();
-  }
-
-  function selectActor(actor) {
-    selectedActor = actor;
-    render();
+    return `
+      <div class="py-2 divider">
+        <div class="flex items-center gap-2 px-0.5 pb-1 text-text-muted">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
+          <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
+        </div>
+        ${headerPills}
+        <div class="pl-6">${rowsHtml}</div>
+      </div>`;
   }
 
   function render() {
-    const v = VARIANTS[variantIdx];
-    document.getElementById('variant-label').textContent = `${v.key} — ${v.name}`;
+    document.getElementById('empty-label').textContent = `${EMPTY_STYLES[emptyIdx].key} — ${EMPTY_STYLES[emptyIdx].name}`;
     document.getElementById('stage-label').textContent = STAGES[stageIdx];
-    const slotsEl = document.getElementById('slots');
-    const renderers = {
-      A: renderVariantA,
-      B: renderVariantB,
-      C: renderVariantC,
-      D: renderVariantD,
-      E: renderVariantE,
-      F: renderVariantF,
-    };
-    slotsEl.innerHTML = renderers[v.key]();
+    document.getElementById('slots').innerHTML = MEAL_TYPES.map(renderSlot).join('');
 
     const url = new URL(window.location);
-    url.searchParams.set('variant', v.key);
+    url.searchParams.set('empty', EMPTY_STYLES[emptyIdx].key);
     url.searchParams.set('stage', STAGES[stageIdx]);
     window.history.replaceState({}, '', url);
   }
 
-  function cycleVariant(dir) {
-    variantIdx = (variantIdx + dir + VARIANTS.length) % VARIANTS.length;
+  function cycleEmpty(dir) {
+    emptyIdx = (emptyIdx + dir + EMPTY_STYLES.length) % EMPTY_STYLES.length;
     render();
   }
   function cycleStage(dir) {
@@ -431,18 +254,18 @@
   document.addEventListener('keydown', (e) => {
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-    if (e.key === 'ArrowLeft') cycleVariant(-1);
-    if (e.key === 'ArrowRight') cycleVariant(1);
+    if (e.key === 'ArrowLeft') cycleEmpty(-1);
+    if (e.key === 'ArrowRight') cycleEmpty(1);
   });
 
   // init from URL if present
   (function initFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    const v = params.get('variant');
+    const e = params.get('empty');
     const s = params.get('stage');
-    if (v) {
-      const idx = VARIANTS.findIndex((x) => x.key === v.toUpperCase());
-      if (idx >= 0) variantIdx = idx;
+    if (e) {
+      const idx = EMPTY_STYLES.findIndex((x) => String(x.key) === e);
+      if (idx >= 0) emptyIdx = idx;
     }
     if (s) {
       const idx = STAGES.indexOf(s);

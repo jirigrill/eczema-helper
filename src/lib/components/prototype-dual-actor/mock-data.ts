@@ -1,16 +1,20 @@
 // PROTOTYPE — wayfinder ticket #557 (day-view dual-actor slot layout).
 // Throwaway: answers "how does a slot show mother + child separately", not
 // production code. Delete this whole `prototype-dual-actor/` directory once
-// a variant is chosen and folded into MealCard.
+// folded into MealCard for real.
 //
-// Real data has no `actor: 'baby'` meals yet (issue #554's key migration is a
-// decided-but-unbuilt follow-up), so this file fabricates a plausible baby
-// side for each slot to make the three variants judgeable.
+// Winner of the layout round: Variant B (stacked actor rows) — see
+// VariantB.svelte. Real data has no `actor: 'baby'` meals yet (issue #554's
+// key migration is a decided-but-unbuilt follow-up), so this file fabricates
+// a plausible baby side for each slot.
 
 import type { Meal, MealType } from '$lib/domain/models';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 
 export type FeedingStageDemo = 'breastfed' | 'mixed' | 'solids';
+
+/** Which of the 4 empty-actor-slot treatments to render — see ActorBody.svelte. */
+export type EmptyStyle = 1 | 2 | 3 | 4;
 
 export type RenderItem = { name: string; conflict: boolean };
 export type RenderMeal = { items: RenderItem[]; conflictAllergens: string[] };

@@ -1,30 +1,29 @@
 <script lang="ts">
-  // PROTOTYPE — shared per-actor body for #557's variants: conflict pills
-  // plus the item list as plain wrapping text (no chips/pills on foods —
-  // dropped after human review). Wraps onto as many lines as needed;
-  // nothing is ever truncated or cut off, regardless of item count or name
-  // length.
-  import { categoryStrings } from '$lib/strings/categories';
-  import type { ActorState } from './mock-data';
+  // PROTOTYPE — shared per-actor body for #557's variant B: the item list as
+  // plain wrapping text (no chips/pills on foods). Wraps onto as many lines
+  // as needed; nothing is ever truncated or cut off. Conflict allergens are
+  // NOT rendered here — they're shown once per meal section, deduplicated
+  // across actors, by the caller (see VariantB.svelte).
+  import type { ActorState, EmptyStyle } from './mock-data';
 
-  let { state }: { state: ActorState } = $props();
+  let { state, emptyStyle }: { state: ActorState; emptyStyle: EmptyStyle } = $props();
 </script>
 
 {#if state.status === 'empty'}
-  <div class="text-primary text-[11px]">+ Zapsat</div>
-{:else if state.status === 'logged'}
-  {@const r = state.render}
-  {#if r.conflictAllergens.length > 0}
-    <div class="mb-1 flex flex-wrap gap-1">
-      {#each r.conflictAllergens as a}
-        <span class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-          >⚠ {categoryStrings[a as keyof typeof categoryStrings]?.name ?? a}</span
-        >
-      {/each}
-    </div>
+  {#if emptyStyle === 1}
+    <div class="text-primary text-[11px]">+ Zapsat</div>
+  {:else if emptyStyle === 2}
+    <div class="text-text-muted text-[11px]">Nezapsáno</div>
+  {:else if emptyStyle === 3}
+    <span class="bg-primary/5 border-primary/30 text-primary rounded-full border border-dashed px-2.5 py-0.5 text-[11px]"
+      >+ Přidat</span
+    >
+  {:else}
+    <div class="text-primary text-lg leading-none">+</div>
   {/if}
+{:else if state.status === 'logged'}
   <div class="text-text-muted text-[11px] leading-relaxed">
-    {#each r.items as item, i}
+    {#each state.render.items as item, i}
       {#if i > 0}<span> · </span>{/if}<span class={item.conflict ? 'text-danger font-medium' : ''}
         >{item.name}</span
       >
