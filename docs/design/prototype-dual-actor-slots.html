@@ -42,8 +42,8 @@
 
   .pill-conflict { background: rgba(184,68,68,0.15); color: #B84444; border-radius: 9999px;
     padding: 2px 6px; font-size: 10px; font-weight: 600; }
-  .actor-tag { border: 1px solid #EDE8E9; color: #7A6468; border-radius: 9999px; padding: 2px 6px;
-    font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+  .actor-icon { width: 22px; height: 22px; flex-shrink: 0; border: 1px solid #EDE8E9;
+    border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #7A6468; }
   .divider { border-top: 1px solid #EDE8E9; }
   .divider:first-child { border-top: none; }
 
@@ -54,6 +54,7 @@
 
   .empty-plus { color: #8B4557; font-size: 18px; line-height: 1; }
   .section-arrow { color: #7A6468; font-size: 20px; line-height: 1; flex-shrink: 0; }
+  .section-plus { color: #8B4557; font-size: 22px; line-height: 1; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -62,12 +63,13 @@
   <div class="canvas-eyebrow">Prototype · wayfinder ticket #557</div>
   <h1 class="canvas-heading">Day-view dual-actor slot — settled</h1>
   <p class="canvas-sub">
-    Layout: <strong>stacked rows</strong>, actors labelled <strong>"Já"</strong> / <strong>"Miminko"</strong>.
-    A conflict allergen shows <strong>once per meal section</strong> (deduplicated across both actors). Foods are
-    plain wrapping text — nothing truncated. Empty actor slot = a single <strong>"+"</strong>. A single
-    <strong>"›"</strong> arrow sits vertically centered against the whole section (one tap target into the meal
-    editor) rather than one arrow per row. Below: the three fill states — <strong>completely empty</strong>,
-    <strong>one actor only</strong>, <strong>both actors</strong>.
+    Layout: <strong>stacked rows</strong>, each actor marked by a fixed-width round icon (mother / baby, like the
+    meal-type icons) so rows stay aligned. A conflict allergen shows <strong>once per meal section</strong>
+    (deduplicated across both actors). Foods are plain wrapping text — nothing truncated. An empty actor row is a
+    single <strong>"+"</strong>; when <strong>both</strong> actors are empty the whole section collapses to one
+    <strong>"+"</strong> where the arrow sits. Otherwise a single <strong>"›"</strong> arrow sits vertically
+    centered against the section (one tap target into the meal editor). Below: the three fill states —
+    <strong>completely empty</strong>, <strong>one actor only</strong>, <strong>both actors</strong>.
   </p>
 
   <div class="phone">
@@ -92,6 +94,15 @@
     snack: '<path d="M12 7c-1.2-1.6-3-2.4-4.6-2.1C5.6 5.2 4 7 4 9.5c0 4 3 9 6 9 1 0 1.5-.4 2-.4s1 .4 2 .4c3 0 6-5 6-9 0-2.5-1.6-4.3-3.4-4.6C14.9 4.6 13.2 5.4 12 7Z"/><path d="M12 7V4"/><path d="M12 5c1-1.5 2.5-2 4-2-.2 1.6-1.3 2.8-2.8 3"/>',
     dinner: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
   };
+  // Round actor badges (Lucide user / baby), fixed width so "Já" and
+  // "Miminko" rows always align — replaces the old variable-width text tags.
+  const ACTOR_ICON = {
+    mother: '<circle cx="12" cy="8" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
+    baby: '<path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M17 5c.5.6.8 1.4.8 2.2 0 .8-.3 1.6-.8 2.2"/><path d="M12 3a9 9 0 0 0-9 9 9 9 0 0 0 9 9 9 9 0 0 0 9-9 9 9 0 0 0-3-6.7"/>',
+  };
+  function actorIcon(actor) {
+    return `<span class="actor-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:13px;height:13px">${ACTOR_ICON[actor]}</svg></span>`;
+  }
 
   // The three fill states, one per meal slot:
   //   breakfast — completely empty (both actors "+")
@@ -180,33 +191,41 @@
     const eligible = ELIGIBLE[STAGES[stageIdx]];
     const f = FIXTURE[type];
     const rows = [];
-    if (eligible.mother) rows.push(['Já', 'mother', f.mother]);
-    if (eligible.baby) rows.push(['Miminko', 'baby', f.baby]);
-    const showTag = rows.length > 1;
+    if (eligible.mother) rows.push(['mother', f.mother]);
+    if (eligible.baby) rows.push(['baby', f.baby]);
+    const showIcon = rows.length > 1;
+    const allEmpty = rows.every(([, state]) => state === 'empty');
 
     // Conflict allergens are shown once per meal section, deduplicated
     // across both actors — not repeated per actor row.
     const merged = new Set();
-    rows.forEach(([, , state]) => {
+    rows.forEach(([, state]) => {
       if (state !== 'empty') state.conflictAllergens.forEach((a) => merged.add(a));
     });
     const headerPills = merged.size
       ? `<div class="chip-wrap mb-1 ml-6">${[...merged].map((a) => `<span class="pill-conflict">⚠ ${a}</span>`).join('')}</div>`
       : '';
 
-    const rowsHtml = rows
-      .map(([label, , state]) => {
-        const tag = showTag ? `<span class="actor-tag mt-0.5">${label}</span>` : '';
-        return `
-          <div class="flex items-start gap-2 py-1">
-            ${tag}
-            <div class="min-w-0 flex-1">${actorBody(state)}</div>
-          </div>`;
-      })
-      .join('');
+    // Nothing logged for either actor → the whole section collapses to a
+    // single "+" where the arrow would be (like today's empty MealCard);
+    // no per-actor rows.
+    const body = allEmpty
+      ? ''
+      : `<div class="pl-6">${rows
+          .map(([actor, state]) => {
+            const icon = showIcon ? actorIcon(actor) : '';
+            return `
+              <div class="flex items-start gap-2 py-1">
+                ${icon}
+                <div class="min-w-0 flex-1">${actorBody(state)}</div>
+              </div>`;
+          })
+          .join('')}</div>`;
 
-    // One arrow, vertically centered against the whole section — a single
-    // tap target into the meal editor, not one arrow per actor row.
+    // One indicator, vertically centered against the whole section: "+" when
+    // fully empty (add first entry), otherwise "›" into the meal editor.
+    const right = allEmpty ? `<span class="section-plus">+</span>` : `<span class="section-arrow">›</span>`;
+
     return `
       <a href="/meal?type=${type}" class="flex items-center gap-2 py-2 divider">
         <div class="min-w-0 flex-1">
@@ -215,9 +234,9 @@
             <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
           </div>
           ${headerPills}
-          <div class="pl-6">${rowsHtml}</div>
+          ${body}
         </div>
-        <span class="section-arrow">›</span>
+        ${right}
       </a>`;
   }
 
