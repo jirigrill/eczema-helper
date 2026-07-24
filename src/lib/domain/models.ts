@@ -106,7 +106,8 @@ export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
  * reserved for the dual-actor build (spec #564); until a feeding-stage source
  * exists, `getEligibleActors` gates who may log.
  */
-export type Actor = 'mother' | 'baby';
+export const ACTORS = ['mother', 'baby'] as const;
+export type Actor = (typeof ACTORS)[number];
 
 /**
  * Feeding stage a ladder's dose steps apply to, mirroring the three table
