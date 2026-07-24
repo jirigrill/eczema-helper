@@ -45,7 +45,15 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const photos = $derived(fromStore(photoSession).current);
 
   const raw = $derived(rawStore.current);
-  const feedingStage = $derived(settingsStore.current?.feedingStage ?? null);
+  // Mirror scheduleContext's feedingStage resolution (#567): the live settings
+  // master switch wins, but until its liveQuery emits the row (or for a directly
+  // seeded schedule with no settings row) fall back to answers.feedingStage —
+  // the value onboarding uses to seed settings, so it is authoritative, not
+  // invented. Without the fallback the day view hangs at 'loading' forever.
+  const settingsStage = $derived(settingsStore.current?.feedingStage ?? null);
+  const feedingStage = $derived(
+    settingsStage ?? (raw.status === 'ready' ? (raw.answers.feedingStage ?? null) : null),
+  );
 
   const ctx = $derived(
     raw.status === 'ready' && feedingStage
