@@ -15,12 +15,6 @@
   import SkinObservationCard from '$lib/components/SkinObservationCard.svelte';
   import SkinPhotoCard from '$lib/components/SkinPhotoCard.svelte';
   import MealCard from '$lib/components/MealCard.svelte';
-  import VariantB from '$lib/components/prototype-dual-actor/VariantB.svelte';
-  import PrototypeSwitcher from '$lib/components/prototype-dual-actor/PrototypeSwitcher.svelte';
-  import {
-    buildDualSlots,
-    type FeedingStageDemo,
-  } from '$lib/components/prototype-dual-actor/mock-data';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
   import PhaseBadge from '$lib/components/PhaseBadge.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
@@ -106,20 +100,6 @@
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
   }
-
-  // PROTOTYPE — wayfinder ticket #557. `?dualActor=1` swaps the meal card
-  // for the settled dual-actor layout; absent, the real MealCard renders
-  // unchanged. `?stage=` drives the single-actor collapse case. Not gated on
-  // NODE_ENV since this is a worktree-only prototype meant for review before
-  // merge, not code that ships — delete alongside the rest of
-  // `prototype-dual-actor/` once folded into MealCard for real.
-  const showDualActor = $derived(page.url.searchParams.get('dualActor') === '1');
-  const prototypeStage = $derived(
-    (page.url.searchParams.get('stage') as FeedingStageDemo | null) ?? 'mixed',
-  );
-  const dualSlots = $derived(
-    ctx.status === 'ready' ? buildDualSlots(meals, ctx.eliminatedToday, prototypeStage) : [],
-  );
 </script>
 
 <div class="mx-auto max-w-lg">
@@ -317,11 +297,7 @@
         </div>
 
         <!-- Meal card -->
-        {#if showDualActor}
-          <VariantB date={selectedDate} slots={dualSlots} />
-        {:else}
-          <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
-        {/if}
+        <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
 
         <!-- Bottom hint -->
         <div class="text-text-muted/70 mt-2 flex items-center justify-center gap-2 text-[11px]">
@@ -342,7 +318,3 @@
     {/if}
   </div>
 </div>
-
-{#if showDualActor}
-  <PrototypeSwitcher stage={prototypeStage} />
-{/if}
