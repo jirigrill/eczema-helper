@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+import { OUT_OF_WINDOW_ERROR } from '$lib/adapters/loggable-window-guard';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { db } from '$lib/db/atopic-db';
+import { db, SINGLETON_ID } from '$lib/db/atopic-db';
+import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 import type { Meal } from '$lib/domain/models';
 import {
   confirmFood,
@@ -662,5 +664,89 @@ describe('createMealEditor — eliminatedFoodIds + hasConflicts', () => {
 
     expect(editor.eliminatedFoodIds.has('kravske-mleko')).toBe(true);
     expect(editor.hasConflicts).toBe(true);
+  });
+});
+
+describe('createMealEditor — swapActor()', () => {
+  it('autosaves the departing actor (confirmed foods + notes) and reloads the target slot', async () => {
+    const date = '2025-01-10';
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
+    editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
+    editor.notes = 'maminka jedla brambory';
+
+    await editor.swapActor({ date, mealType: 'lunch', actor: 'baby' });
+
+    // Target reloaded: baby slot is empty, so editor is in fresh compose framing.
+    expect(editor.editingExisting).toBe(false);
+    expect(editor.confirmedFoods).toEqual([]);
+    expect(editor.notes).toBe('');
+
+    // Departing (mother) slot was autosaved — visible by swapping back.
+    await editor.swapActor({ date, mealType: 'lunch', actor: 'mother' });
+    expect(editor.editingExisting).toBe(true);
+    expect(editor.confirmedFoods.map((f) => f.foodId)).toEqual(['brambory']);
+    expect(editor.notes).toBe('maminka jedla brambory');
+  });
+
+  it('drops an in-editing (drilled-in, unconfirmed) food from the departing autosave', async () => {
+    const date = '2025-01-11';
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'dinner', actor: 'mother' });
+
+    editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
+    editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
+    // A second food left drilled-in (editing), never confirmed.
+    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
+
+    await editor.swapActor({ date, mealType: 'dinner', actor: 'baby' });
+    await editor.swapActor({ date, mealType: 'dinner', actor: 'mother' });
+
+    // Only the confirmed food survived; the editing one was dropped.
+    expect(editor.confirmedFoods.map((f) => f.foodId)).toEqual(['brambory']);
+  });
+
+  it('no-ops when the departing meal is empty — nothing is persisted, target still reloads', async () => {
+    const date = '2025-01-12';
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'breakfast', actor: 'mother' });
+
+    const result = await editor.swapActor({ date, mealType: 'breakfast', actor: 'baby' });
+
+    expect(result).toMatchObject({ ok: true });
+    // Target reloaded into fresh compose framing.
+    expect(editor.editingExisting).toBe(false);
+
+    // Nothing was written for the empty mother slot: swapping back stays compose.
+    await editor.swapActor({ date, mealType: 'breakfast', actor: 'mother' });
+    expect(editor.editingExisting).toBe(false);
+    expect(editor.confirmedFoods).toEqual([]);
+  });
+
+  it('aborts on finalize failure: current actor stays active, working meal preserved, error returned', async () => {
+    // A schedule makes the loggable-window guard reject an out-of-window write,
+    // giving a genuine `save` failure through the real repository — no mocks.
+    await db.schedule.put({ id: SINGLETON_ID, ...makeSchedule() });
+    try {
+      const outOfWindow = '2024-01-01';
+      const editor = createMealEditor();
+      await editor.open({ date: outOfWindow, mealType: 'lunch', actor: 'mother' });
+
+      editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
+      editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
+      editor.notes = 'nezmizí';
+
+      const result = await editor.swapActor({ date: outOfWindow, mealType: 'lunch', actor: 'baby' });
+
+      // Swap aborted: the failing Result surfaces for the CTA error path.
+      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+      // Current (mother) actor stays active with its working meal intact.
+      expect(editor.confirmedFoods.map((f) => f.foodId)).toEqual(['brambory']);
+      expect(editor.notes).toBe('nezmizí');
+    } finally {
+      await db.schedule.clear();
+    }
   });
 });
