@@ -39,10 +39,11 @@
     padding: 4px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; }
   .switcher button.arrow { background: none; font-size: 16px; padding: 0 4px; line-height: 1; }
   .switcher .stage-label { min-width: 5.5rem; text-align: center; font-weight: 500; }
+  .switcher .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.25); }
 
   .pill-conflict { background: rgba(184,68,68,0.15); color: #B84444; border-radius: 9999px;
     padding: 2px 6px; font-size: 10px; font-weight: 600; }
-  .actor-icon { width: 22px; height: 22px; flex-shrink: 0; border: 1px solid #EDE8E9;
+  .actor-icon { width: 30px; height: 30px; flex-shrink: 0; border: 1px solid #EDE8E9;
     border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #7A6468; }
   .divider { border-top: 1px solid #EDE8E9; }
   .divider:first-child { border-top: none; }
@@ -52,9 +53,10 @@
   .item-text .sep { color: #7A6468; }
   .chip-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
 
-  .empty-plus { color: #8B4557; font-size: 18px; line-height: 1; }
-  .section-arrow { color: #7A6468; font-size: 20px; line-height: 1; flex-shrink: 0; }
-  .section-plus { color: #8B4557; font-size: 22px; line-height: 1; flex-shrink: 0; }
+  /* Fixed-width right rail so the row "+" and the "›" share one column. */
+  .glyph-cell { width: 20px; display: flex; justify-content: center; flex-shrink: 0; }
+  .glyph-arrow { color: #7A6468; font-size: 20px; line-height: 1; }
+  .glyph-plus { color: #8B4557; font-size: 20px; line-height: 1; }
 </style>
 </head>
 <body>
@@ -63,12 +65,12 @@
   <div class="canvas-eyebrow">Prototype · wayfinder ticket #557</div>
   <h1 class="canvas-heading">Day-view dual-actor slot — settled</h1>
   <p class="canvas-sub">
-    Layout: <strong>stacked rows</strong>, each actor marked by a fixed-width round icon (mother / baby, like the
-    meal-type icons) so rows stay aligned. A conflict allergen shows <strong>once per meal section</strong>
-    (deduplicated across both actors). Foods are plain wrapping text — nothing truncated. An empty actor row is a
-    single <strong>"+"</strong>; when <strong>both</strong> actors are empty the whole section collapses to one
-    <strong>"+"</strong> where the arrow sits. Otherwise a single <strong>"›"</strong> arrow sits vertically
-    centered against the section (one tap target into the meal editor). Below: the three fill states —
+    Layout: <strong>stacked rows</strong>, each actor marked by a fixed-width round icon (mother / baby) so rows
+    stay aligned. <strong>Cycle the icon set</strong> below to compare candidate mother/baby pictograms. A
+    conflict allergen shows <strong>once per meal section</strong> (deduplicated across both actors); foods are
+    plain wrapping text — nothing truncated. Each row's indicator lives in one right rail so the <strong>"+"</strong>
+    (empty actor) lines up under the <strong>"›"</strong> (logged actor → meal editor); when <strong>both</strong>
+    actors are empty the section collapses to a single <strong>"+"</strong>. Below: the three fill states —
     <strong>completely empty</strong>, <strong>one actor only</strong>, <strong>both actors</strong>.
   </p>
 
@@ -79,6 +81,10 @@
 </div>
 
 <div class="switcher">
+  <button class="arrow" onclick="cycleIcon(-1)" aria-label="Previous icon set">‹</button>
+  <span class="label" id="icon-label" style="min-width:12rem;text-align:center;font-weight:600;"></span>
+  <button class="arrow" onclick="cycleIcon(1)" aria-label="Next icon set">›</button>
+  <span class="sep"></span>
   <button onclick="cycleStage(-1)">‹ stage</button>
   <span class="stage-label" id="stage-label"></span>
   <button onclick="cycleStage(1)">stage ›</button>
@@ -96,13 +102,36 @@
   };
   // Round actor badges (Lucide user / baby), fixed width so "Já" and
   // "Miminko" rows always align — replaces the old variable-width text tags.
-  const ACTOR_ICON = {
-    // mother — woman (head + flared dress); baby — child in a diaper.
-    mother: '<circle cx="12" cy="5" r="3"/><path d="M12 8c-1.6 0-2.7 1-3.1 2.6L7 19h2.2l.8 3h4l.8-3H17l-1.9-8.4C14.7 9 13.6 8 12 8Z"/>',
-    baby: '<circle cx="12" cy="5" r="2.5"/><path d="M8 11c0-1.6 1.6-2.7 4-2.7s4 1.1 4 2.7v1.2c0 2-1.8 3.1-4 3.1s-4-1.1-4-3.1V11Z"/><path d="M10 12h4"/><path d="M8 11.3 5.5 13.3"/><path d="M16 11.3 18.5 13.3"/><path d="M10.5 15.4 9.6 18.2"/><path d="M13.5 15.4 14.4 18.2"/>',
-  };
+  // Several candidate icon sets to compare — cycle with the "icons" switcher.
+  // Typical mother pictograms: a woman figure, the ♀ Venus symbol, a
+  // woman-with-hair bust, a generic person. Typical baby pictograms: a baby
+  // face, a pacifier, a baby bottle, a onesie/bodysuit.
+  const ICON_SETS = [
+    {
+      name: 'Postavy (žena + tvář)',
+      mother: '<circle cx="12" cy="5" r="3"/><path d="M12 8c-1.7 0-2.9 1.1-3.3 2.8L6.7 20h2.4l.9 3h4l.9-3h2.4l-1.9-9.2C15 9.1 13.7 8 12 8Z"/>',
+      baby: '<circle cx="12" cy="12" r="9"/><path d="M9 11h.01"/><path d="M15 11h.01"/><path d="M9.5 15.5c.7.5 1.6.8 2.5.8s1.8-.3 2.5-.8"/>',
+    },
+    {
+      name: 'Symboly (♀ + dudlík)',
+      mother: '<circle cx="12" cy="8" r="5"/><path d="M12 13v7"/><path d="M9 17h6"/>',
+      baby: '<ellipse cx="12" cy="7" rx="4" ry="2.3"/><path d="M12 9.3v1.4"/><circle cx="12" cy="15" r="4.3"/>',
+    },
+    {
+      name: 'Objekty (silueta + láhev)',
+      mother: '<path d="M12 3c-2.9 0-4.8 2-4.8 5 0 1.4.5 2.6.9 3.3C6.5 12 5.5 13.5 5.5 16v1.5h13V16c0-2.5-1-4-2.6-4.7.4-.7.9-1.9.9-3.3 0-3-1.9-5-4.8-5Z"/>',
+      baby: '<path d="M10 3h4"/><path d="M10.5 3v2.2"/><path d="M13.5 3v2.2"/><rect x="8.3" y="5.2" width="7.4" height="15" rx="2.4"/><path d="M9 10h6"/><path d="M9 13h6"/>',
+    },
+    {
+      name: 'Osoba + dupačky',
+      mother: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+      baby: '<path d="M9 4c.6 1 1.8 1.5 3 1.5S14.4 5 15 4"/><path d="M9 4 7.5 7 6 8v3l1.8-.6V20h8.4V10.4L18 11V8l-1.5-1L15 4"/><path d="M10.2 20v-1.6h3.6V20"/>',
+    },
+  ];
+  let iconIdx = 0;
+
   function actorIcon(actor) {
-    return `<span class="actor-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:13px;height:13px">${ACTOR_ICON[actor]}</svg></span>`;
+    return `<span class="actor-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:18px;height:18px">${ICON_SETS[iconIdx][actor]}</svg></span>`;
   }
 
   // The three fill states, one per meal slot:
@@ -207,51 +236,61 @@
       ? `<div class="chip-wrap mb-1 ml-6">${[...merged].map((a) => `<span class="pill-conflict">⚠ ${a}</span>`).join('')}</div>`
       : '';
 
+    const arrowCell = `<span class="glyph-cell"><span class="glyph-arrow">›</span></span>`;
+    const plusCell = `<span class="glyph-cell"><span class="glyph-plus">+</span></span>`;
+
     // Nothing logged for either actor → the whole section collapses to a
-    // single "+" where the arrow would be (like today's empty MealCard);
-    // no per-actor rows.
+    // single "+" on the header line, in the right rail (like today's empty
+    // MealCard); no per-actor rows.
+    const headerRightCell = allEmpty ? plusCell : arrowCell;
+
+    // Per actor row indicator, all in the same fixed-width right rail so the
+    // "+" (empty actor) lines up in the same column as the "›" (logged actor
+    // → its meal editor).
     const body = allEmpty
       ? ''
       : `<div class="pl-6">${rows
           .map(([actor, state]) => {
             const icon = showIcon ? actorIcon(actor) : '';
-            // Empty actor row → push the "+" to the right edge of the row.
-            const bodyClass = state === 'empty' ? 'flex flex-1 justify-end' : 'min-w-0 flex-1';
+            const cell = state === 'empty' ? plusCell : arrowCell;
             return `
-              <div class="flex items-start gap-2 py-1">
+              <div class="flex items-center gap-2 py-1">
                 ${icon}
-                <div class="${bodyClass}">${actorBody(state)}</div>
+                <div class="min-w-0 flex-1">${state === 'empty' ? '' : actorBody(state)}</div>
+                ${cell}
               </div>`;
           })
           .join('')}</div>`;
 
-    // One indicator, vertically centered against the whole section: "+" when
-    // fully empty (add first entry), otherwise "›" into the meal editor.
-    const right = allEmpty ? `<span class="section-plus">+</span>` : `<span class="section-arrow">›</span>`;
-
     return `
-      <a href="/meal?type=${type}" class="flex items-center gap-2 py-2 divider">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2 px-0.5 pb-1 text-text-muted">
+      <a href="/meal?type=${type}" class="block py-2 divider">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 px-0.5 pb-1 flex-1 text-text-muted">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px">${ICONS[type]}</svg>
             <span class="text-text text-sm font-semibold">${MEAL_LABEL[type]}</span>
           </div>
-          ${headerPills}
-          ${body}
+          ${allEmpty ? headerRightCell : `<span class="glyph-cell"></span>`}
         </div>
-        ${right}
+        ${headerPills}
+        ${body}
       </a>`;
   }
 
   function render() {
+    document.getElementById('icon-label').textContent = `${iconIdx + 1}/${ICON_SETS.length} — ${ICON_SETS[iconIdx].name}`;
     document.getElementById('stage-label').textContent = STAGES[stageIdx];
     document.getElementById('slots').innerHTML = MEAL_TYPES.map(renderSlot).join('');
 
     const url = new URL(window.location);
+    url.searchParams.set('icons', String(iconIdx + 1));
     url.searchParams.set('stage', STAGES[stageIdx]);
     window.history.replaceState({}, '', url);
   }
 
+  function cycleIcon(dir) {
+    iconIdx = (iconIdx + dir + ICON_SETS.length) % ICON_SETS.length;
+    render();
+  }
   function cycleStage(dir) {
     stageIdx = (stageIdx + dir + STAGES.length) % STAGES.length;
     render();
@@ -260,13 +299,19 @@
   document.addEventListener('keydown', (e) => {
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-    if (e.key === 'ArrowLeft') cycleStage(-1);
-    if (e.key === 'ArrowRight') cycleStage(1);
+    if (e.key === 'ArrowLeft') cycleIcon(-1);
+    if (e.key === 'ArrowRight') cycleIcon(1);
   });
 
   // init from URL if present
   (function initFromUrl() {
-    const s = new URLSearchParams(window.location.search).get('stage');
+    const params = new URLSearchParams(window.location.search);
+    const ic = params.get('icons');
+    const s = params.get('stage');
+    if (ic) {
+      const idx = Number(ic) - 1;
+      if (idx >= 0 && idx < ICON_SETS.length) iconIdx = idx;
+    }
     if (s) {
       const idx = STAGES.indexOf(s);
       if (idx >= 0) stageIdx = idx;
