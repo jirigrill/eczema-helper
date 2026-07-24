@@ -126,12 +126,15 @@
       // `eliminatedToday` is threaded so per-food danger styling and the red
       // CTA reappear after undo.
       clearBuffer();
-      const slot = { date: targetDate, mealType: selectedMealType };
+      const slot = { date: targetDate, mealType: selectedMealType, actor: 'mother' as const };
       void editor.applyUndo(slot, buf, eliminatedToday);
       return;
     }
 
-    void editor.open({ date: targetDate, mealType: selectedMealType }, eliminatedToday);
+    void editor.open(
+      { date: targetDate, mealType: selectedMealType, actor: 'mother' },
+      eliminatedToday,
+    );
   });
 
   // Keep the editor's elimination window in sync when the schedule loads
@@ -541,6 +544,7 @@
     const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
       targetDate,
       selectedMealType,
+      'mother',
     );
     if (!result.ok) {
       saveErrorMessage = result.error;

@@ -121,6 +121,26 @@ export class AtopicDb extends Dexie {
       evaluations: '&phaseId, date',
       ladder_overrides: '&allergenId',
     });
+    // v10: MealId becomes the 3-part composite `${date}:${mealType}:${actor}`
+    // (issue #566, spec #564). The `meals` store schema (`'&id, date'`) is
+    // unchanged, but old 2-part-keyed rows are queried by the `date` index and
+    // would leak into results and break on the 3-part `parseMealId`, so the
+    // table is wiped on upgrade — following the v7/v8 wipe-on-shape-change
+    // precedent (no meal data worth preserving, confirmed with user).
+    this.version(10)
+      .stores({
+        answers: '&id',
+        schedule: '&id',
+        meals: '&id, date',
+        skin_observations: '&id, date',
+        photos: '&id, observationId',
+        harvest_candidates: '&normalizedKey, status',
+        evaluations: '&phaseId, date',
+        ladder_overrides: '&allergenId',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('meals').clear();
+      });
   }
 }
 

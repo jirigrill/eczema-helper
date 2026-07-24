@@ -408,7 +408,7 @@ describe('isNonEmpty', () => {
 // ── finalizeWorkingMeal ──────────────────────────────────────
 
 describe('finalizeWorkingMeal', () => {
-  const SLOT = { date: '2026-05-27', mealType: 'lunch' as const };
+  const SLOT = { date: '2026-05-27', mealType: 'lunch' as const, actor: 'mother' as const };
   const NOW = '2026-05-27T12:00:00.000Z';
 
   it('returns null when the working meal has no confirmed items (empty no-op)', () => {
@@ -434,13 +434,13 @@ describe('finalizeWorkingMeal', () => {
     expect(result!.updatedAt).toBe(NOW);
   });
 
-  it('sets id to `${date}:${mealType}` composite key', () => {
+  it('sets id to `${date}:${mealType}:${actor}` composite key', () => {
     const meal = mealWithConfirmed();
     const result = finalizeWorkingMeal(SLOT, meal, '', null, NOW);
-    expect(result!.id).toBe('2026-05-27:lunch');
+    expect(result!.id).toBe('2026-05-27:lunch:mother');
   });
 
-  it('carries date, mealType, and actor=mother', () => {
+  it('carries date, mealType, and actor from the slot', () => {
     const meal = mealWithConfirmed();
     const result = finalizeWorkingMeal(SLOT, meal, '', null, NOW);
     expect(result).toMatchObject({

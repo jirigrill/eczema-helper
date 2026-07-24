@@ -1,10 +1,11 @@
+import Dexie from 'dexie';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 import type { Meal, MealItem } from '$lib/domain/models';
-import { PREPARATION_METHODS } from '$lib/domain/models';
+import { PREPARATION_METHODS, mealId } from '$lib/domain/models';
 import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
 
@@ -15,11 +16,12 @@ import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
 // ── Helpers ───────────────────────────────────────────────────
 
 function makeMeal(date: string, mealType: Meal['mealType'], overrides?: Partial<Meal>): Meal {
+  const actor = overrides?.actor ?? 'mother';
   return {
-    id: `${date}:${mealType}`,
+    id: mealId(date, mealType, actor),
     date,
     mealType,
-    actor: 'mother',
+    actor,
     items: [],
     createdAt: `${date}T08:00:00.000Z`,
     ...overrides,
@@ -51,14 +53,17 @@ describe('DexieMealRepository', () => {
   // ── Slice 1: round-trip ──────────────────────────────────────
 
   it('returns Ok(null) when slot has nothing saved', async () => {
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toEqual({ ok: true, data: null });
   });
 
   it('saves a meal and loads it back by slot', async () => {
     const meal = makeMeal('2026-05-27', 'lunch', { notes: 'test note' });
     expect(await repo.save(meal)).toMatchObject({ ok: true });
-    expect(await repo.loadBySlot('2026-05-27', 'lunch')).toEqual({ ok: true, data: meal });
+    expect(await repo.loadBySlot('2026-05-27', 'lunch', 'mother')).toEqual({
+      ok: true,
+      data: meal,
+    });
   });
 
   // ── Slice 2: upsert ──────────────────────────────────────────
@@ -71,7 +76,7 @@ describe('DexieMealRepository', () => {
     await repo.save(second);
 
     // loadBySlot returns the updated data
-    expect(await repo.loadBySlot('2026-05-27', 'lunch')).toMatchObject({
+    expect(await repo.loadBySlot('2026-05-27', 'lunch', 'mother')).toMatchObject({
       ok: true,
       data: second,
     });
@@ -109,13 +114,16 @@ describe('DexieMealRepository', () => {
       createdAt: '2026-05-27T07:30:45.123Z',
     });
     await repo.save(meal);
-    expect(await repo.loadBySlot('2026-05-27', 'breakfast')).toEqual({ ok: true, data: meal });
+    expect(await repo.loadBySlot('2026-05-27', 'breakfast', 'mother')).toEqual({
+      ok: true,
+      data: meal,
+    });
   });
 
   it('Meal without notes loads with notes absent', async () => {
     const meal = makeMeal('2026-05-27', 'snack');
     await repo.save(meal);
-    const result = await repo.loadBySlot('2026-05-27', 'snack');
+    const result = await repo.loadBySlot('2026-05-27', 'snack', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.notes).toBeUndefined();
   });
@@ -123,14 +131,14 @@ describe('DexieMealRepository', () => {
   it('actor: baby persists correctly', async () => {
     const meal = makeMeal('2026-05-27', 'lunch', { actor: 'baby' });
     await repo.save(meal);
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'baby');
     expect(result).toMatchObject({ ok: true, data: { actor: 'baby' } });
   });
 
   it('createdAt ISO string is preserved exactly', async () => {
     const meal = makeMeal('2026-05-27', 'dinner', { createdAt: '2026-05-27T19:45:00.000Z' });
     await repo.save(meal);
-    const result = await repo.loadBySlot('2026-05-27', 'dinner');
+    const result = await repo.loadBySlot('2026-05-27', 'dinner', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.createdAt).toBe('2026-05-27T19:45:00.000Z');
   });
@@ -146,7 +154,7 @@ describe('DexieMealRepository', () => {
     });
     const meal = makeMeal('2026-05-27', 'breakfast', { items: [item] });
     await repo.save(meal);
-    const result = await repo.loadBySlot('2026-05-27', 'breakfast');
+    const result = await repo.loadBySlot('2026-05-27', 'breakfast', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]).toEqual(item);
   });
@@ -155,7 +163,7 @@ describe('DexieMealRepository', () => {
     const item = makeItem('item-1', { name: 'Rýže', foodId: 'ryze', amount: 'spoon' });
     // no preparationMethod
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBeUndefined();
   });
@@ -163,7 +171,7 @@ describe('DexieMealRepository', () => {
   it('MealItem with catalog foodId persists correctly', async () => {
     const item = makeItem('item-1', { foodId: 'kravske-mleko' });
     await repo.save(makeMeal('2026-05-27', 'snack', { items: [item] }));
-    const result = await repo.loadBySlot('2026-05-27', 'snack');
+    const result = await repo.loadBySlot('2026-05-27', 'snack', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]!.foodId).toBe('kravske-mleko');
   });
@@ -171,7 +179,7 @@ describe('DexieMealRepository', () => {
   it('MealItem with custom foodId persists correctly', async () => {
     const item = makeItem('item-1', { foodId: 'other:vlastni-jidlo' });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]!.foodId).toBe('other:vlastni-jidlo');
   });
@@ -188,7 +196,7 @@ describe('DexieMealRepository', () => {
       }),
     ];
     await repo.save(makeMeal('2026-05-27', 'breakfast', { items }));
-    const result = await repo.loadBySlot('2026-05-27', 'breakfast');
+    const result = await repo.loadBySlot('2026-05-27', 'breakfast', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items).toEqual(items);
   });
@@ -198,7 +206,7 @@ describe('DexieMealRepository', () => {
   it.each(PREPARATION_METHODS)('preparationMethod "%s" round-trips', async (method) => {
     const item = makeItem('item-1', { preparationMethod: method });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBe(method);
   });
@@ -215,7 +223,7 @@ describe('DexieMealRepository', () => {
     await repo.save(first);
     await repo.save(second);
 
-    const result = await repo.loadBySlot('2026-05-27', 'dinner');
+    const result = await repo.loadBySlot('2026-05-27', 'dinner', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.data?.items).toHaveLength(1);
@@ -235,7 +243,7 @@ describe('DexieMealRepository', () => {
         items: [{ ...base, preparationMethod: 'baked' }],
       }),
     );
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBe('baked');
   });
@@ -245,7 +253,7 @@ describe('DexieMealRepository', () => {
     const withoutMethod = makeItem('item-1'); // preparationMethod absent
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withMethod] }));
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [withoutMethod] }));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items[0]!.preparationMethod).toBeUndefined();
   });
@@ -255,7 +263,7 @@ describe('DexieMealRepository', () => {
     const oneItem = [makeItem('item-1')];
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: twoItems }));
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: oneItem }));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
     if (result.ok) expect(result.data?.items).toHaveLength(1);
   });
@@ -272,8 +280,8 @@ describe('DexieMealRepository', () => {
     await repo.save(lunch);
     await repo.save(dinner);
 
-    const lunchResult = await repo.loadBySlot('2026-05-27', 'lunch');
-    const dinnerResult = await repo.loadBySlot('2026-05-27', 'dinner');
+    const lunchResult = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
+    const dinnerResult = await repo.loadBySlot('2026-05-27', 'dinner', 'mother');
     expect(lunchResult).toMatchObject({ ok: true });
     expect(dinnerResult).toMatchObject({ ok: true });
     if (lunchResult.ok) expect(lunchResult.data?.items[0]!.name).toBe('Oběd');
@@ -283,34 +291,46 @@ describe('DexieMealRepository', () => {
   it('saving one slot does not affect another slot on the same date', async () => {
     await repo.save(makeMeal('2026-05-27', 'breakfast'));
     // lunch slot untouched
-    expect(await repo.loadBySlot('2026-05-27', 'lunch')).toEqual({ ok: true, data: null });
+    expect(await repo.loadBySlot('2026-05-27', 'lunch', 'mother')).toEqual({
+      ok: true,
+      data: null,
+    });
   });
 
   // ── remove: clears a slot (explicit "Smazat jídlo" action, issue #268) ──
 
   it('remove deletes the meal occupying a slot', async () => {
     await repo.save(makeMeal('2026-05-27', 'lunch'));
-    expect(await repo.remove('2026-05-27', 'lunch')).toEqual({ ok: true, data: undefined });
-    expect(await repo.loadBySlot('2026-05-27', 'lunch')).toEqual({ ok: true, data: null });
+    expect(await repo.remove('2026-05-27', 'lunch', 'mother')).toEqual({
+      ok: true,
+      data: undefined,
+    });
+    expect(await repo.loadBySlot('2026-05-27', 'lunch', 'mother')).toEqual({
+      ok: true,
+      data: null,
+    });
   });
 
   it('remove only affects the targeted slot', async () => {
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [makeItem('keep')] }));
     await repo.save(makeMeal('2026-05-27', 'dinner', { items: [makeItem('gone')] }));
-    await repo.remove('2026-05-27', 'dinner');
-    const lunch = await repo.loadBySlot('2026-05-27', 'lunch');
-    const dinner = await repo.loadBySlot('2026-05-27', 'dinner');
+    await repo.remove('2026-05-27', 'dinner', 'mother');
+    const lunch = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
+    const dinner = await repo.loadBySlot('2026-05-27', 'dinner', 'mother');
     expect(lunch.ok && lunch.data?.items[0]!.id).toBe('keep');
     expect(dinner).toEqual({ ok: true, data: null });
   });
 
   it('remove on an empty slot is a no-op Ok', async () => {
-    expect(await repo.remove('2026-05-27', 'snack')).toEqual({ ok: true, data: undefined });
+    expect(await repo.remove('2026-05-27', 'snack', 'mother')).toEqual({
+      ok: true,
+      data: undefined,
+    });
   });
 
   it('remove returns Err when DB throws', async () => {
     vi.spyOn(db.meals, 'delete').mockRejectedValueOnce(new Error('delete fail'));
-    const result = await repo.remove('2026-05-27', 'lunch');
+    const result = await repo.remove('2026-05-27', 'lunch', 'mother');
     expect(result).toEqual({ ok: false, error: 'delete fail' });
   });
 
@@ -324,7 +344,7 @@ describe('DexieMealRepository', () => {
 
   it('loadBySlot returns Err when DB throws', async () => {
     vi.spyOn(db.meals, 'get').mockRejectedValueOnce(new Error('read fail'));
-    const result = await repo.loadBySlot('2026-05-27', 'lunch');
+    const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toEqual({ ok: false, error: 'read fail' });
   });
 
@@ -361,7 +381,7 @@ describe('DexieMealRepository', () => {
       const result = await repo.save(makeMeal(tooEarly, 'lunch'));
       expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
 
-      const persisted = await repo.loadBySlot(tooEarly, 'lunch');
+      const persisted = await repo.loadBySlot(tooEarly, 'lunch', 'mother');
       expect(persisted).toEqual({ ok: true, data: null });
     });
 
@@ -380,7 +400,7 @@ describe('DexieMealRepository', () => {
       const result = await repo.save(makeMeal(tooLate, 'lunch'));
       expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
 
-      const persisted = await repo.loadBySlot(tooLate, 'lunch');
+      const persisted = await repo.loadBySlot(tooLate, 'lunch', 'mother');
       expect(persisted).toEqual({ ok: true, data: null });
     });
 
@@ -403,7 +423,7 @@ describe('DexieMealRepository', () => {
       const result = await repo.save(makeMeal(staleDate, 'lunch', { notes: 'second' }));
       expect(result).toMatchObject({ ok: true });
 
-      const persisted = await repo.loadBySlot(staleDate, 'lunch');
+      const persisted = await repo.loadBySlot(staleDate, 'lunch', 'mother');
       expect(persisted).toMatchObject({ ok: true, data: { notes: 'second' } });
     });
 
@@ -414,6 +434,75 @@ describe('DexieMealRepository', () => {
 
       const result = await repo.save(makeMeal(tooEarly, 'dinner'));
       expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+    });
+  });
+
+  // ── Dexie v10 migration: wipe the meals table on the 3-part MealId bump ──
+  //
+  // The composite key changes from `${date}:${mealType}` to
+  // `${date}:${mealType}:${actor}`. Old 2-part-keyed rows are queried by the
+  // `date` index and would leak into results and break on the 3-part
+  // `parseMealId`, so v10 clears the table on upgrade (v7/v8 wipe precedent).
+  describe('v10 migration wipe', () => {
+    const DB_NAME = 'atopic-helper';
+
+    // Seed a legacy row through a bare Dexie declaring only up to the v9 meals
+    // schema — mirrors a client that last wrote under the 2-part key — then
+    // close it so the real AtopicDb can reopen the same store and run the v10
+    // upgrade.
+    async function seedLegacyMealRow(indexedDB: IDBFactory): Promise<void> {
+      const legacy = new Dexie(DB_NAME, { indexedDB, IDBKeyRange });
+      legacy.version(9).stores({
+        answers: '&id',
+        schedule: '&id',
+        meals: '&id, date',
+        skin_observations: '&id, date',
+        photos: '&id, observationId',
+        harvest_candidates: '&normalizedKey, status',
+        evaluations: '&phaseId, date',
+        ladder_overrides: '&allergenId',
+      });
+      await legacy.open();
+      // A row keyed by the OLD 2-part composite key.
+      await legacy.table('meals').put({
+        id: '2026-05-27:lunch',
+        date: '2026-05-27',
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [],
+        createdAt: '2026-05-27T08:00:00.000Z',
+      });
+      legacy.close();
+    }
+
+    it('clears pre-existing meal rows when upgrading to v10', async () => {
+      const indexedDB = new IDBFactory();
+      await seedLegacyMealRow(indexedDB);
+
+      const upgraded = new AtopicDb({ indexedDB, IDBKeyRange });
+      await upgraded.open();
+      const count = await upgraded.meals.count();
+      upgraded.close();
+
+      expect(count).toBe(0);
+    });
+
+    it('post-upgrade loadBySlot returns cleanly for both actors', async () => {
+      const indexedDB = new IDBFactory();
+      await seedLegacyMealRow(indexedDB);
+
+      const upgraded = new AtopicDb({ indexedDB, IDBKeyRange });
+      const repo = new DexieMealRepository(upgraded, new DexieScheduleRepository(upgraded));
+
+      expect(await repo.loadBySlot('2026-05-27', 'lunch', 'mother')).toEqual({
+        ok: true,
+        data: null,
+      });
+      expect(await repo.loadBySlot('2026-05-27', 'lunch', 'baby')).toEqual({
+        ok: true,
+        data: null,
+      });
+      upgraded.close();
     });
   });
 });

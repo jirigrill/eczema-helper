@@ -9,7 +9,7 @@ import MealCard from './MealCard.svelte';
 
 function makeMeal(overrides?: Partial<Meal>): Meal {
   return {
-    id: '2026-05-31:breakfast',
+    id: '2026-05-31:breakfast:mother',
     date: '2026-05-31',
     mealType: 'breakfast',
     actor: 'mother',
@@ -96,7 +96,7 @@ describe('MealCard', () => {
     'row for %s links to /meal with that exact type',
     async (mealType) => {
       const meal = makeMeal({
-        id: `2026-05-31:${mealType}`,
+        id: `2026-05-31:${mealType}:mother`,
         mealType,
         items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
       });
@@ -173,7 +173,7 @@ describe('MealCard', () => {
     'meal-type marker for %s renders an <svg> icon, not the legacy emoji',
     async (mealType, emoji) => {
       const meal = makeMeal({
-        id: `2026-05-31:${mealType}`,
+        id: `2026-05-31:${mealType}:mother`,
         mealType,
         items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
       });

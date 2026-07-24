@@ -1,6 +1,13 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { Meal, MealItem, MealType, PortionKind, PreparationMethod } from '$lib/domain/models';
+import type {
+  Actor,
+  Meal,
+  MealItem,
+  MealType,
+  PortionKind,
+  PreparationMethod,
+} from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { randomUUID } from '$lib/utils/uuid';
 
@@ -358,7 +365,7 @@ export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
  * has no confirmed items (empty-meal no-op).
  */
 export function finalizeWorkingMeal(
-  slot: { date: string; mealType: MealType },
+  slot: { date: string; mealType: MealType; actor: Actor },
   meal: WorkingMeal,
   notes: string,
   loadedCreatedAt: string | null,
@@ -368,10 +375,10 @@ export function finalizeWorkingMeal(
   if (items.length === 0) return null;
   const trimmedNotes = notes.trim();
   return {
-    id: mealId(slot.date, slot.mealType),
+    id: mealId(slot.date, slot.mealType, slot.actor),
     date: slot.date,
     mealType: slot.mealType,
-    actor: 'mother',
+    actor: slot.actor,
     items,
     notes: trimmedNotes || undefined,
     createdAt: loadedCreatedAt ?? now,

@@ -59,7 +59,7 @@ async function seedLunchWithBrambory(page: Page) {
     const path = '/src/lib/db/atopic-db.ts';
     const { db } = await import(/* @vite-ignore */ path);
     await db.meals.put({
-      id: `${date}:lunch`,
+      id: `${date}:lunch:mother`,
       date,
       mealType: 'lunch',
       actor: 'mother',
@@ -180,7 +180,7 @@ test('delete-undo on a past day restores the meal to that day, not today', async
     const path = '/src/lib/db/atopic-db.ts';
     const { db } = await import(/* @vite-ignore */ path);
     await db.meals.put({
-      id: `${date}:breakfast`,
+      id: `${date}:breakfast:mother`,
       date,
       mealType: 'breakfast',
       actor: 'mother',
@@ -210,8 +210,8 @@ test('delete-undo on a past day restores the meal to that day, not today', async
   const persisted = await page.evaluate(async ({ y, t }) => {
     const path = '/src/lib/db/atopic-db.ts';
     const { db } = await import(/* @vite-ignore */ path);
-    const onYesterday = await db.meals.get(`${y}:breakfast`);
-    const onToday = await db.meals.get(`${t}:breakfast`);
+    const onYesterday = await db.meals.get(`${y}:breakfast:mother`);
+    const onToday = await db.meals.get(`${t}:breakfast:mother`);
     return { onYesterday: !!onYesterday, onToday: !!onToday };
   }, { y: yesterday, t: today });
   expect(persisted.onYesterday).toBe(true);
@@ -238,7 +238,7 @@ test('save on edit-update preserves the original createdAt and stamps updatedAt'
   const persisted = await page.evaluate(async (date) => {
     const path = '/src/lib/db/atopic-db.ts';
     const { db } = await import(/* @vite-ignore */ path);
-    const m = await db.meals.get(`${date}:lunch`);
+    const m = await db.meals.get(`${date}:lunch:mother`);
     return { createdAt: m?.createdAt, updatedAt: m?.updatedAt, notes: m?.notes };
   }, today);
 

@@ -513,7 +513,7 @@ describe('meal/+page.svelte', () => {
 
   function lunchWithBramboryMeal(): Meal {
     return {
-      id: '2025-06-13:lunch',
+      id: '2025-06-13:lunch:mother',
       date: '2025-06-13',
       mealType: 'lunch',
       actor: 'mother',

@@ -1,5 +1,5 @@
 import type { AtopicDb } from '$lib/db/atopic-db';
-import type { Meal, MealType } from '$lib/domain/models';
+import type { Actor, Meal, MealType } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import type { MealRepository } from '$lib/domain/ports/meal-repository';
 import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
@@ -35,9 +35,13 @@ export class DexieMealRepository implements MealRepository {
     }
   }
 
-  async loadBySlot(date: string, mealType: MealType): Promise<Result<Meal | null, string>> {
+  async loadBySlot(
+    date: string,
+    mealType: MealType,
+    actor: Actor,
+  ): Promise<Result<Meal | null, string>> {
     try {
-      const row = await this.db.meals.get(mealId(date, mealType));
+      const row = await this.db.meals.get(mealId(date, mealType, actor));
       return { ok: true, data: row ?? null };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -53,9 +57,9 @@ export class DexieMealRepository implements MealRepository {
     }
   }
 
-  async remove(date: string, mealType: MealType): Promise<Result<void, string>> {
+  async remove(date: string, mealType: MealType, actor: Actor): Promise<Result<void, string>> {
     try {
-      await this.db.meals.delete(mealId(date, mealType));
+      await this.db.meals.delete(mealId(date, mealType, actor));
       return { ok: true, data: undefined };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };

@@ -40,7 +40,7 @@ async function seedMeal(page: Page, date: string, mealType: string) {
       const path = '/src/lib/db/atopic-db.ts';
       const { db } = await import(/* @vite-ignore */ path);
       await db.meals.put({
-        id: `${date}:${mealType}`,
+        id: `${date}:${mealType}:mother`,
         date,
         mealType,
         actor: 'mother',

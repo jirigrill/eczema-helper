@@ -495,7 +495,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     mockScheduleRaw.set(readyRawToday);
     liveMeals = [
       {
-        id: `${today}:lunch`,
+        id: `${today}:lunch:mother`,
         date: today,
         mealType: 'lunch',
         actor: 'mother',
@@ -521,7 +521,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     mockScheduleRaw.set(readyRawToday);
     liveMeals = [
       {
-        id: `${today}:lunch`,
+        id: `${today}:lunch:mother`,
         date: today,
         mealType: 'lunch',
         actor: 'mother',
@@ -564,7 +564,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     mockScheduleRaw.set(readyRawToday);
     liveMeals = [
       {
-        id: `${today}:breakfast`,
+        id: `${today}:breakfast:mother`,
         date: today,
         mealType: 'breakfast',
         actor: 'mother',
@@ -685,7 +685,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     mockPage.params.date = today;
     liveMeals = [
       {
-        id: `${today}:lunch`,
+        id: `${today}:lunch:mother`,
         date: today,
         mealType: 'lunch',
         actor: 'mother',
@@ -747,7 +747,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     mockPage.params.date = today;
     liveMeals = [
       {
-        id: `${today}:lunch`,
+        id: `${today}:lunch:mother`,
         date: today,
         mealType: 'lunch',
         actor: 'mother',

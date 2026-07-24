@@ -462,19 +462,20 @@ See ADR-0012.
 ### Meal
 *Czech: Jídlo*
 
-A record of the mother's food intake for one date+mealType slot. Fields: `id`
-(`MealId`), `date`, `mealType`, `items` (list of `MealItem`), `actor` (always
-`'mother'`), optional `notes` (free-text observation), `createdAt` (ISO
-datetime string — rendered as Czech `HH:MM` at display sites, never stored
-formatted; see ADR-0014). Meals are day-granular — no user-facing time of day.
-→ See ADR-0003.
+A record of food intake for one date+mealType+actor slot. Fields: `id`
+(`MealId`), `date`, `mealType`, `items` (list of `MealItem`), `actor`
+(`'mother' | 'baby'` — v1 always writes `'mother'`), optional `notes` (free-text
+observation), `createdAt` (ISO datetime string — rendered as Czech `HH:MM` at
+display sites, never stored formatted; see ADR-0014). Meals are day-granular —
+no user-facing time of day. → See ADR-0003.
 
 ### MealId
 *Czech: —* (internal key, not user-visible)
 
-Deterministic composite key for a `Meal`: `` `${date}:${mealType}` `` (e.g.
-`"2026-05-27:lunch"`). Enforces the one-meal-per-slot invariant at both the
-type level and the Dexie unique index (`&id`). Never a random UUID.
+Deterministic composite key for a `Meal`: `` `${date}:${mealType}:${actor}` ``
+(e.g. `"2026-05-27:lunch:mother"`). Enforces the one-meal-per-slot-per-actor
+invariant at both the type level and the Dexie unique index (`&id`): a
+`(date, mealType)` pair can hold up to one meal per actor. Never a random UUID.
 
 ### MealType
 *Czech: Typ jídla*

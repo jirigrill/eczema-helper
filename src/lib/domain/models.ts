@@ -138,20 +138,24 @@ export function getEligibleActors(stage: FeedingStage): Actor[] {
   }
 }
 
-/** Composite key enforcing the one-meal-per-slot invariant: `"${date}:${mealType}"` */
-export type MealId = `${string}:${MealType}`;
+/**
+ * Composite key enforcing the one-meal-per-slot-per-actor invariant:
+ * `"${date}:${mealType}:${actor}"`. A `(date, mealType)` pair can hold up to
+ * one meal per actor.
+ */
+export type MealId = `${string}:${MealType}:${Actor}`;
 
-export function mealId(date: string, mealType: MealType): MealId {
-  return `${date}:${mealType}`;
+export function mealId(date: string, mealType: MealType, actor: Actor): MealId {
+  return `${date}:${mealType}:${actor}`;
 }
 
-export function parseMealId(id: MealId): { date: string; mealType: MealType } {
-  const [date, mealType] = id.split(':') as [string, MealType];
-  return { date, mealType };
+export function parseMealId(id: MealId): { date: string; mealType: MealType; actor: Actor } {
+  const [date, mealType, actor] = id.split(':') as [string, MealType, Actor];
+  return { date, mealType, actor };
 }
 
 export type Meal = {
-  id: MealId; // deterministic composite key — e.g. "2026-05-27:lunch"
+  id: MealId; // deterministic composite key — e.g. "2026-05-27:lunch:mother"
   date: string; // ISO date
   mealType: MealType;
   actor: Actor; // v1 hardcodes 'mother'; 'baby' reserved for the dual-actor build

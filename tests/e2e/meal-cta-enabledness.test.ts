@@ -62,7 +62,7 @@ async function seedLunchWithBrambory(page: Page) {
     const path = '/src/lib/db/atopic-db.ts';
     const { db } = await import(/* @vite-ignore */ path);
     await db.meals.put({
-      id: `${date}:lunch`,
+      id: `${date}:lunch:mother`,
       date,
       mealType: 'lunch',
       actor: 'mother',

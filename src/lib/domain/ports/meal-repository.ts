@@ -1,11 +1,11 @@
-import type { Meal, MealType } from '$lib/domain/models';
+import type { Actor, Meal, MealType } from '$lib/domain/models';
 import type { Result } from '$lib/types/result';
 
 export type MealRepository = {
-  /** Upsert a meal. A second save for the same slot (date + mealType) overwrites. */
+  /** Upsert a meal. A second save for the same slot (date + mealType + actor) overwrites. */
   save(meal: Meal): Promise<Result<void, string>>;
-  /** Load the meal for a specific date+mealType slot, or null if nothing saved yet. */
-  loadBySlot(date: string, mealType: MealType): Promise<Result<Meal | null, string>>;
+  /** Load the meal for a specific date+mealType+actor slot, or null if nothing saved yet. */
+  loadBySlot(date: string, mealType: MealType, actor: Actor): Promise<Result<Meal | null, string>>;
   /** Return all meals logged for a date, in any order. */
   listByDate(date: string): Promise<Result<Meal[], string>>;
   /**
@@ -15,5 +15,5 @@ export type MealRepository = {
    * the discard buffer before calling this so the layout's undo toast can
    * rehydrate the working list — re-Hotovo then re-persists a fresh copy.
    */
-  remove(date: string, mealType: MealType): Promise<Result<void, string>>;
+  remove(date: string, mealType: MealType, actor: Actor): Promise<Result<void, string>>;
 };
