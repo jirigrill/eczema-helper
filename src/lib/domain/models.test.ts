@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mealId, parseMealId } from './models';
+import { getEligibleActors, mealId, parseMealId } from './models';
 
 describe('mealId', () => {
   it('joins date and mealType with a colon', () => {
@@ -19,5 +19,19 @@ describe('mealId', () => {
     // the actual test — it fails the build if the error goes away.
     // @ts-expect-error '2026-05-27' is not assignable to MealType
     expect(mealId('lunch', '2026-05-27')).toBe('lunch:2026-05-27');
+  });
+});
+
+describe('getEligibleActors', () => {
+  it('breastfed → only the mother may log', () => {
+    expect(getEligibleActors('breastfed')).toEqual(['mother']);
+  });
+
+  it('mixed → both mother and baby may log', () => {
+    expect(getEligibleActors('mixed')).toEqual(['mother', 'baby']);
+  });
+
+  it('solids → only the baby may log', () => {
+    expect(getEligibleActors('solids')).toEqual(['baby']);
   });
 });

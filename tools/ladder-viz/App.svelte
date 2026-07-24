@@ -4,8 +4,7 @@
      bar. Every component renders the real #521 `LadderExplain` shape (from
      `$lib/domain/ladder` via `computeDay`) — none import engine decision logic. -->
 <script lang="ts">
-  import type { FeedingStage } from '$lib/domain/canonical-allergen';
-  import type { LadderAllergenId, PortionKind } from '$lib/domain/models';
+  import type { FeedingStage, LadderAllergenId, PortionKind } from '$lib/domain/models';
 
   import { computeDay } from './adapter';
   import DateStrip from './DateStrip.svelte';
