@@ -633,7 +633,7 @@
       <div class="flex gap-2 px-4 pt-2 pb-1">
         {#each eligibleActors as actor (actor)}
           <Chip active={actor === selectedActor} class="flex-1" onclick={() => selectActor(actor)}>
-            {actorConfig(actor).label}
+            {actorConfig[actor].label}
           </Chip>
         {/each}
       </div>

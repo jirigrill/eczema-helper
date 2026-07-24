@@ -1,15 +1,14 @@
 import type { Actor } from '$lib/domain/models';
 import { type ActorStrings, actorStrings } from '$lib/strings/actors';
 
-export type ActorConfig = ActorStrings & {
-  value: Actor;
-};
+export type ActorConfig = ActorStrings;
 
 /**
- * Config for a single actor pill. The meal picker renders one per eligible
- * actor (from `getEligibleActors`), so order there follows that list rather
- * than a fixed catalog order.
+ * Config per actor, keyed for lookup. The meal picker renders one pill per
+ * eligible actor (from `getEligibleActors`), so pill order follows that list
+ * rather than this catalog order. Mirrors `mealConfig`.
  */
-export function actorConfig(value: Actor): ActorConfig {
-  return { value, ...actorStrings[value] };
-}
+export const actorConfig = {
+  mother: { ...actorStrings.mother },
+  baby: { ...actorStrings.baby },
+} as const satisfies Record<Actor, ActorConfig>;
