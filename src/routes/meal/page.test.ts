@@ -136,6 +136,42 @@ describe('meal/+page.svelte', () => {
     expect(pillCandidates.every((b) => b === null)).toBe(true);
   });
 
+  // ── Actor picker (issue #569, spec #564) ───────────────────
+  // In `mixed` the mother chooses whose meal she's logging; in
+  // `breastfed`/`solids` a single actor is implicit — no picker.
+
+  it('renders the Já / Miminko actor pills in the mixed feeding stage', async () => {
+    setReady();
+    mockSettings.set({ feedingStage: 'mixed' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole } = render(MealPage);
+    await tick();
+    expect(getByRole('button', { name: 'Já' })).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Miminko' })).toBeInTheDocument();
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  it('renders NO actor picker in the breastfed feeding stage', async () => {
+    setReady();
+    mockSettings.set({ feedingStage: 'breastfed' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByRole } = render(MealPage);
+    await tick();
+    expect(queryByRole('button', { name: 'Já' })).toBeNull();
+    expect(queryByRole('button', { name: 'Miminko' })).toBeNull();
+  });
+
+  it('renders NO actor picker in the solids feeding stage', async () => {
+    setReady();
+    mockSettings.set({ feedingStage: 'solids' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByRole } = render(MealPage);
+    await tick();
+    expect(queryByRole('button', { name: 'Já' })).toBeNull();
+    expect(queryByRole('button', { name: 'Miminko' })).toBeNull();
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
   // ── Layout: family grid ───────────────────────────────────
 
   it('renders "Všechny kategorie" label and family grid on initial load', async () => {
@@ -511,8 +547,100 @@ describe('meal/+page.svelte', () => {
     expect(afterBramborIdx).toBe(beforeBramborIdx);
   });
 
+  // ── Actor picker routes to the actor's slot (issue #569) ─────────────────
+  // Selecting an actor pill re-opens the editor for `${date}:${mealType}:${actor}`,
+  // so the meal is composed against — and saved to — that actor's own slot.
+  // Both meals in a slot coexist under the composite key; switching pills swaps
+  // which one hydrates.
+
+  it('switching to Miminko hydrates the baby meal from its own slot', async () => {
+    setReadyWithElim();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByRole, queryByRole } = render(MealPage);
+    // Lands on the mother slot → Brambory hydrated, not Rýže.
+    await findByRole('button', { name: /^Brambory$/ });
+    expect(queryByRole('button', { name: /^Rýže$/ })).toBeNull();
+    // Tap Miminko → the baby slot hydrates: Rýže shows, Brambory gone.
+    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
+    await findByRole('button', { name: /^Rýže$/ });
+    expect(queryByRole('button', { name: /^Brambory$/ })).toBeNull();
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  it('deleting on the Miminko pill removes the baby slot, leaving the mother meal intact', async () => {
+    setReadyWithElim();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByRole } = render(MealPage);
+    await findByRole('button', { name: /^Brambory$/ });
+    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
+    await findByRole('button', { name: /^Rýže$/ });
+    // Delete via the ⋯ overflow → confirm sheet.
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
+    const babySlot = await meals.loadBySlot(today, 'lunch', 'baby');
+    const motherSlot = await meals.loadBySlot(today, 'lunch', 'mother');
+    expect(babySlot.ok && babySlot.data).toBeFalsy();
+    expect(motherSlot.ok && motherSlot.data?.items[0]?.name).toBe('Brambory');
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  it('composes for the baby slot in the solids stage (implicit single actor)', async () => {
+    setReadyWithElim();
+    mockSettings.set({ feedingStage: 'solids' });
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole } = render(MealPage);
+    // No picker in solids; the baby's meal hydrates as the implicit actor.
+    await findByRole('button', { name: /^Rýže$/ });
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
   // ── Discard guard mechanics live in the MealEditor + e2e tests ───────────
-  // Buffer-write rules are covered by `discardDescriptor` unit tests in
   // `meal-editor.test.ts`; the browser popstate gate is covered by
   // `tests/e2e/meal-discard-guard.test.ts` and `meal-dirty-discard.test.ts`.
 
