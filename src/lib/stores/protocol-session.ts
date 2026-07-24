@@ -115,6 +115,11 @@ async function recordVerdict(evaluation: ReintroductionEvaluation): Promise<Resu
 }
 
 async function setFeedingStage(feedingStage: FeedingStage): Promise<Result<void, string>> {
+  // Standalone current-value update — goes through the `SettingsRepository` port,
+  // unlike `startProtocol`'s raw `db.settings.put`. The difference is deliberate:
+  // the seed there must be atomic with answers+schedule inside one Dexie
+  // transaction (repos catch errors into `Result` and can't abort it), whereas
+  // this live edit is a single independent write the port is built to own.
   const current = await settingsRepo.load();
   if (!current.ok) return current;
   return settingsRepo.save({ ...current.data, feedingStage });

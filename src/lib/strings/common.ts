@@ -119,6 +119,8 @@ export const commonStrings = {
       moderate: { label: 'Střední', desc: 'Časté zarudnutí, svědění narušuje spánek' },
       severe: { label: 'Těžká', desc: 'Rozsáhlý ekzém, silné svědění, možné krvácení' },
     },
+    feedingStageQuestion: 'Jak je miminko krmené?',
+    feedingStageHint: 'Určuje, čí jídla zaznamenáváte — dá se změnit později v Nastavení',
 
     // Step 3 — Mother's allergies
     step3Heading: 'Moje alergie',
@@ -149,6 +151,7 @@ export const commonStrings = {
     summaryBabyAllergiesLabel: 'Potvrzené alergie miminka',
     summaryBirthLabel: 'Narození',
     summarySeverityLabel: 'Závažnost',
+    summaryFeedingStageLabel: 'Krmení',
     summaryStartEndLabel: 'Start · konec',
     summaryAge: 'Věk',
     summarySeverity: 'Závažnost',

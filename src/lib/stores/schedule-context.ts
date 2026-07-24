@@ -79,13 +79,15 @@ export const scheduleContext = derived<
     set(raw);
     return;
   }
-  // The live settings master switch owns feedingStage (#567). Onboarding seeds
-  // it from `answers.feedingStage` in the same transaction as the schedule, so
-  // when the settings liveQuery hasn't emitted the row yet (or it's genuinely
-  // absent for a directly-seeded schedule) the answers value is the authoritative
-  // seed — not an invented fallback. A live edit always re-emits a non-null row,
-  // so `settings` wins whenever it exists.
-  const feedingStage = settings?.feedingStage ?? raw.answers.feedingStage;
+  // The live settings master switch is the sole source of feedingStage (#567) —
+  // no fallback. Onboarding seeds the settings row in the same transaction as
+  // the schedule, so a ready schedule always has a settings row; we only ever
+  // wait for its liveQuery to emit. Hold at `loading` until then rather than
+  // inventing a value from `answers`.
+  if (!settings) {
+    set({ status: 'loading' });
+    return;
+  }
   const catalog = new BundledCatalogAdapter();
   set({
     status: 'ready',
@@ -93,7 +95,7 @@ export const scheduleContext = derived<
       { schedule: raw.schedule, answers: raw.answers },
       todayIso(),
       catalog,
-      feedingStage,
+      settings.feedingStage,
     ),
   });
 });

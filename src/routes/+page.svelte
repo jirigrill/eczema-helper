@@ -11,9 +11,11 @@
   import QuestionnaireSummaryRow from '$lib/components/QuestionnaireSummaryRow.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import Button from '$lib/components/Button.svelte';
+  import Chip from '$lib/components/Chip.svelte';
   import type { EczemaSeverity, QuestionnaireAnswers } from '$lib/domain/models';
   import type { FeedingStage } from '$lib/domain/models';
   import { DEFAULT_TESTED_ALLERGENS } from '$lib/domain/policy';
+  import { feedingStageOptions } from '$lib/config/feeding-stages';
   import { categoryStrings, subitemStrings } from '$lib/strings/categories';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings, allergenWordCs } from '$lib/strings/common';
@@ -34,9 +36,10 @@
   let motherAllergies = $state<string[]>([]);
   let babyAllergies = $state<string[]>([]);
   let programStartDate = $state(new Date().toISOString().split('T')[0]!);
-  // v1 tracks a breastfed newborn (ADR-0001); onboarding seeds this default and
-  // the live master switch is changed later in Settings (#567).
-  const feedingStage: FeedingStage = 'breastfed';
+  // The mother picks the baby's feeding stage here (#567); it seeds the live
+  // settings master switch and can be changed later in Settings. Defaults to
+  // 'breastfed' — the common v1 case, a breastfed newborn (ADR-0001).
+  let feedingStage = $state<FeedingStage>('breastfed');
 
   // Drill-in state for steps 3 and 4
   let motherDrillFamily = $state<FamilyId | null>(null);
@@ -283,6 +286,21 @@
           </div>
         </div>
 
+        <div>
+          <p class="body-medium mb-1">{commonStrings.onboarding.feedingStageQuestion}</p>
+          <p class="body-muted mb-3">{commonStrings.onboarding.feedingStageHint}</p>
+          <div class="flex flex-wrap gap-2">
+            {#each feedingStageOptions as option}
+              <Chip
+                active={option.value === feedingStage}
+                onclick={() => (feedingStage = option.value)}
+              >
+                {option.label}
+              </Chip>
+            {/each}
+          </div>
+        </div>
+
         <div class="mt-auto">
           <p class="body-muted mb-1 text-center">
             {commonStrings.onboarding.severityHint}
@@ -421,6 +439,11 @@
           <QuestionnaireSummaryRow
             label={commonStrings.onboarding.summarySeverityLabel}
             value={severityOptions.find((s) => s.value === severity)?.label ?? ''}
+            onEdit={() => editStep(2)}
+          />
+          <QuestionnaireSummaryRow
+            label={commonStrings.onboarding.summaryFeedingStageLabel}
+            value={feedingStageOptions.find((o) => o.value === feedingStage)?.label ?? ''}
             onEdit={() => editStep(2)}
           />
           <QuestionnaireSummaryRow
