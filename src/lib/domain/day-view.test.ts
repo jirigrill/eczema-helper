@@ -156,7 +156,7 @@ describe('dailyCompleteness', () => {
   };
 
   const mealWithItems: Meal = {
-    id: `${today}:lunch`,
+    id: `${today}:lunch:mother`,
     date: today,
     mealType: 'lunch',
     actor: 'mother',
@@ -172,7 +172,7 @@ describe('dailyCompleteness', () => {
   };
 
   const emptyMeal: Meal = {
-    id: `${today}:breakfast`,
+    id: `${today}:breakfast:mother`,
     date: today,
     mealType: 'breakfast',
     actor: 'mother',
@@ -181,7 +181,7 @@ describe('dailyCompleteness', () => {
   };
 
   const noteOnlyMeal: Meal = {
-    id: `${today}:snack`,
+    id: `${today}:snack:mother`,
     date: today,
     mealType: 'snack',
     actor: 'mother',

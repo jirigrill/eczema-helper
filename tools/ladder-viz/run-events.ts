@@ -16,6 +16,7 @@ import type {
   ReintroductionEvaluation,
   SkinObservation,
 } from '$lib/domain/models';
+import { mealId } from '$lib/domain/models';
 import { cadenceForPhase, stabilityWindowFor } from '$lib/domain/policy';
 
 import type { JourneyRun } from './journey';
@@ -78,7 +79,7 @@ export const LADDERS = new Map<LadderAllergenId, Ladder>(
 // so the fixture and the two live modes construct identical meal records.
 export function lunchMeal(date: string, item: Meal['items'][number]): Meal {
   return {
-    id: `${date}:lunch`,
+    id: mealId(date, 'lunch', 'mother'),
     date,
     mealType: 'lunch',
     actor: 'mother',

@@ -46,7 +46,7 @@ describe('createMealSession — date-scoped reactive subscription', () => {
     const date = '2024-03-10';
     const session = createMealSession(date);
     const meal: Meal = {
-      id: `${date}:snack`,
+      id: `${date}:snack:mother`,
       date,
       mealType: 'snack',
       actor: 'mother',
@@ -62,7 +62,7 @@ describe('createMealSession — date-scoped reactive subscription', () => {
     const dateA = '2024-04-01';
     const dateB = '2024-04-02';
     const mealA: Meal = {
-      id: `${dateA}:lunch`,
+      id: `${dateA}:lunch:mother`,
       date: dateA,
       mealType: 'lunch',
       actor: 'mother',

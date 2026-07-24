@@ -74,7 +74,7 @@ describe('currentRung', () => {
   it('returns the first rung when only the first-rung anchor has been logged', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -86,13 +86,13 @@ describe('currentRung', () => {
   it('advances to the second rung once a second matching anchor is logged on a later meal', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-02:breakfast',
+        id: '2026-06-02:breakfast:mother',
         date: '2026-06-02',
         mealType: 'breakfast',
         items: [{ id: 'i2', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -104,19 +104,19 @@ describe('currentRung', () => {
   it('reaches the top rung when the final anchor is logged after the earlier anchors', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-02:breakfast',
+        id: '2026-06-02:breakfast:mother',
         date: '2026-06-02',
         mealType: 'breakfast',
         items: [{ id: 'i2', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-03:lunch',
+        id: '2026-06-03:lunch:mother',
         date: '2026-06-03',
         mealType: 'lunch',
         items: [{ id: 'i3', name: 'Vejce', foodId: 'vejce', amount: 'package' }],
@@ -130,7 +130,7 @@ describe('currentRung', () => {
   it('ignores meals whose items do not match the allergen', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
@@ -142,7 +142,7 @@ describe('currentRung', () => {
   it('surfaces isEvaluationCheckpoint=false on a non-checkpoint resolved rung', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -159,25 +159,25 @@ describe('currentRung', () => {
     // reaching a rung is a permanent record of "you've been here".
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-02:breakfast',
+        id: '2026-06-02:breakfast:mother',
         date: '2026-06-02',
         mealType: 'breakfast',
         items: [{ id: 'i2', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-03:lunch',
+        id: '2026-06-03:lunch:mother',
         date: '2026-06-03',
         mealType: 'lunch',
         items: [{ id: 'i3', name: 'Vejce', foodId: 'vejce', amount: 'package' }],
       }),
       makeMeal({
-        id: '2026-06-05:breakfast',
+        id: '2026-06-05:breakfast:mother',
         date: '2026-06-05',
         mealType: 'breakfast',
         items: [{ id: 'i4', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -191,19 +191,19 @@ describe('currentRung', () => {
     // The reacting dose must not advance the rung to rung-3.
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-02:breakfast',
+        id: '2026-06-02:breakfast:mother',
         date: '2026-06-02',
         mealType: 'breakfast',
         items: [{ id: 'i2', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-03:lunch',
+        id: '2026-06-03:lunch:mother',
         date: '2026-06-03',
         mealType: 'lunch',
         items: [{ id: 'i3', name: 'Vejce', foodId: 'vejce', amount: 'package' }],
@@ -218,19 +218,19 @@ describe('currentRung', () => {
   it('a tolerated evaluation does not cap the rung', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-02:breakfast',
+        id: '2026-06-02:breakfast:mother',
         date: '2026-06-02',
         mealType: 'breakfast',
         items: [{ id: 'i2', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
       }),
       makeMeal({
-        id: '2026-06-03:lunch',
+        id: '2026-06-03:lunch:mother',
         date: '2026-06-03',
         mealType: 'lunch',
         items: [{ id: 'i3', name: 'Vejce', foodId: 'vejce', amount: 'package' }],
@@ -293,7 +293,7 @@ describe('cadenceGate', () => {
   it('blocks escalation when the last matching dose is fewer than the cadence threshold days ago', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -308,7 +308,7 @@ describe('cadenceGate', () => {
   it('unblocks once the cadence threshold has elapsed since the last dose', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -323,7 +323,7 @@ describe('cadenceGate', () => {
   it('imposes no delay when the allergen has never been dosed', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
@@ -337,7 +337,7 @@ describe('cadenceGate', () => {
   it('blocks a same-day second dose regardless of cadence value', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -614,7 +614,7 @@ describe('resolveLadder', () => {
   it('currentRung uses the override rungs when an override is passed', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:breakfast',
+        id: '2026-06-01:breakfast:mother',
         date: '2026-06-01',
         mealType: 'breakfast',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'teaspoon' }],
@@ -636,7 +636,7 @@ describe('resolveLadder', () => {
   it('currentRung falls back to the default stage when the override does not define that stage', () => {
     const meals: Meal[] = [
       makeMeal({
-        id: '2026-06-01:lunch',
+        id: '2026-06-01:lunch:mother',
         date: '2026-06-01',
         mealType: 'lunch',
         items: [{ id: 'i1', name: 'Vejce', foodId: 'vejce', amount: 'portion' }],
@@ -728,7 +728,7 @@ describe('decideLadderMove', () => {
 
   function eggMeal(date: string, amount: PortionKind): Meal {
     return makeMeal({
-      id: `${date}:breakfast`,
+      id: `${date}:breakfast:mother`,
       date,
       mealType: 'breakfast',
       items: [{ id: `i-${date}-${amount}`, name: 'Vejce', foodId: 'vejce', amount }],

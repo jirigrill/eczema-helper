@@ -581,7 +581,7 @@ function trainingSchedule(startDate: string): GeneratedSchedule {
 
 function meal(date: string, foodId: string = 'kravske-mleko'): Meal {
   return {
-    id: `${date}:lunch`,
+    id: `${date}:lunch:mother`,
     date,
     mealType: 'lunch',
     actor: 'mother',

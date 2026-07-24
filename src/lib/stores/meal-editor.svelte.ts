@@ -4,7 +4,7 @@ import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository
 import { db } from '$lib/db/atopic-db';
 import { snapshotOf, snapshotsEqual } from '$lib/domain/meal-dirtiness';
 import type { MealSnapshot } from '$lib/domain/meal-dirtiness';
-import type { AllergenId, MealItem, MealType, PortionKind } from '$lib/domain/models';
+import type { Actor, AllergenId, MealItem, MealType, PortionKind } from '$lib/domain/models';
 import { detectConflicts } from '$lib/domain/schedule-queries';
 import {
   allConfirmedFoods,
@@ -31,7 +31,7 @@ import type { Result } from '$lib/types/result';
  * touches notes directly; `finalize({notes})` writes whatever the route
  * threads through, so the route can keep `mealNotes` as its own bindable.
  */
-export type MealSlot = { date: string; mealType: MealType };
+export type MealSlot = { date: string; mealType: MealType; actor: Actor };
 
 export type FinalizeOptions = {
   /**
@@ -189,7 +189,7 @@ export function createMealEditor(): MealEditor {
   async function open(next: MealSlot, eliminatedTodayArg: AllergenId[] = []): Promise<void> {
     slot = next;
     eliminatedToday = eliminatedTodayArg;
-    const result = await meals.loadBySlot(next.date, next.mealType);
+    const result = await meals.loadBySlot(next.date, next.mealType, next.actor);
     if (result.ok && result.data) {
       workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
       editingExisting = true;
@@ -245,7 +245,7 @@ export function createMealEditor(): MealEditor {
       // disabling save and silently dropping the food on the next back-out
       // (issue #299).
       editingExisting = true;
-      const res = await meals.loadBySlot(next.date, next.mealType);
+      const res = await meals.loadBySlot(next.date, next.mealType, next.actor);
       if (res.ok && res.data) {
         loadedCreatedAt = res.data.createdAt;
         const persistedMeal = fromMealItems(res.data.items, res.data.notes ?? '');
