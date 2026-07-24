@@ -70,6 +70,7 @@
                       class="border-surface-dark text-text-muted flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border"
                     >
                       {#if row.actor === 'mother'}
+                        <!-- woman: head + flared dress -->
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
@@ -77,10 +78,11 @@
                           stroke-width="1.6"
                           class="h-[13px] w-[13px]"
                         >
-                          <circle cx="12" cy="8" r="4" />
-                          <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+                          <circle cx="12" cy="5" r="3" />
+                          <path d="M12 8c-1.6 0-2.7 1-3.1 2.6L7 19h2.2l.8 3h4l.8-3H17l-1.9-8.4C14.7 9 13.6 8 12 8Z" />
                         </svg>
                       {:else}
+                        <!-- baby: head + torso in a diaper -->
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
@@ -88,16 +90,22 @@
                           stroke-width="1.6"
                           class="h-[13px] w-[13px]"
                         >
-                          <path d="M9 12h.01" />
-                          <path d="M15 12h.01" />
-                          <path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5" />
-                          <path d="M17 5c.5.6.8 1.4.8 2.2 0 .8-.3 1.6-.8 2.2" />
-                          <path d="M12 3a9 9 0 0 0-9 9 9 9 0 0 0 9 9 9 9 0 0 0 9-9 9 9 0 0 0-3-6.7" />
+                          <circle cx="12" cy="5" r="2.5" />
+                          <path d="M8 11c0-1.6 1.6-2.7 4-2.7s4 1.1 4 2.7v1.2c0 2-1.8 3.1-4 3.1s-4-1.1-4-3.1V11Z" />
+                          <path d="M10 12h4" />
+                          <path d="M8 11.3 5.5 13.3" />
+                          <path d="M16 11.3 18.5 13.3" />
+                          <path d="M10.5 15.4 9.6 18.2" />
+                          <path d="M13.5 15.4 14.4 18.2" />
                         </svg>
                       {/if}
                     </span>
                   {/if}
-                  <div class="min-w-0 flex-1"><ActorBody state={row.state} /></div>
+                  {#if row.state.status === 'empty'}
+                    <div class="flex flex-1 justify-end"><ActorBody state={row.state} /></div>
+                  {:else}
+                    <div class="min-w-0 flex-1"><ActorBody state={row.state} /></div>
+                  {/if}
                 </div>
               {/each}
             </div>
