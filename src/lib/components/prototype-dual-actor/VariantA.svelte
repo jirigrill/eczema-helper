@@ -5,9 +5,9 @@
   // full-width column, identical to today's MealCard row, when only one
   // actor is eligible for the current feeding stage.
   import { mealConfig } from '$lib/config/meals';
-  import { categoryStrings } from '$lib/strings/categories';
   import { commonStrings } from '$lib/strings/common';
   import DayCard from '../DayCard.svelte';
+  import ActorBody from './ActorBody.svelte';
   import type { DualSlot } from './mock-data';
 
   let { date, slots }: { date: string; slots: DualSlot[] } = $props();
@@ -24,34 +24,16 @@
           <Icon class="text-text-muted h-4 w-4" />
           <span class="text-text text-sm font-semibold">{cfg.label}</span>
         </div>
-        <div class={bothEligible ? 'divide-surface-dark grid grid-cols-2 divide-x' : ''}>
+        <div class={bothEligible ? 'grid grid-cols-2' : ''}>
           {#if slot.mother.status !== 'not-eligible'}
             <a
               href="/meal?type={slot.type}&date={date}&actor=mother&returnTo=/day/{date}"
-              class="block {bothEligible ? 'pr-2' : ''}"
+              class="block {bothEligible ? 'border-surface-dark border-r pr-2' : ''}"
             >
               {#if bothEligible}
-                <div class="text-text-muted mb-0.5 text-[9px] font-bold tracking-wide uppercase">Matka</div>
+                <div class="text-text-muted mb-1 text-[9px] font-bold tracking-wide uppercase">Matka</div>
               {/if}
-              {#if slot.mother.status === 'logged'}
-                {@const r = slot.mother.render}
-                <div class="flex flex-wrap items-center gap-1">
-                  {#each r.conflictAllergens as a}
-                    <span class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                      >⚠ {categoryStrings[a as keyof typeof categoryStrings]?.name ?? a}</span
-                    >
-                  {/each}
-                </div>
-                <div class="text-text-muted truncate text-[11px]">
-                  {#each r.items as item, i}
-                    {#if i > 0}<span> · </span>{/if}<span class={item.conflict ? 'text-danger font-medium' : ''}
-                      >{item.name}</span
-                    >
-                  {/each}
-                </div>
-              {:else}
-                <div class="text-primary text-[11px]">+ {bothEligible ? '' : cfg.label}</div>
-              {/if}
+              <ActorBody state={slot.mother} />
             </a>
           {/if}
           {#if slot.baby.status !== 'not-eligible'}
@@ -60,27 +42,9 @@
               class="block {bothEligible ? 'pl-2' : ''}"
             >
               {#if bothEligible}
-                <div class="text-text-muted mb-0.5 text-[9px] font-bold tracking-wide uppercase">Dítě</div>
+                <div class="text-text-muted mb-1 text-[9px] font-bold tracking-wide uppercase">Dítě</div>
               {/if}
-              {#if slot.baby.status === 'logged'}
-                {@const r = slot.baby.render}
-                <div class="flex flex-wrap items-center gap-1">
-                  {#each r.conflictAllergens as a}
-                    <span class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                      >⚠ {categoryStrings[a as keyof typeof categoryStrings]?.name ?? a}</span
-                    >
-                  {/each}
-                </div>
-                <div class="text-text-muted truncate text-[11px]">
-                  {#each r.items as item, i}
-                    {#if i > 0}<span> · </span>{/if}<span class={item.conflict ? 'text-danger font-medium' : ''}
-                      >{item.name}</span
-                    >
-                  {/each}
-                </div>
-              {:else}
-                <div class="text-primary text-[11px]">+ {bothEligible ? '' : cfg.label}</div>
-              {/if}
+              <ActorBody state={slot.baby} />
             </a>
           {/if}
         </div>

@@ -7,6 +7,9 @@
     { key: 'A', name: 'Split columns' },
     { key: 'B', name: 'Stacked rows' },
     { key: 'C', name: 'Accordion' },
+    { key: 'D', name: 'Twin cards' },
+    { key: 'E', name: 'Actor tabs' },
+    { key: 'F', name: 'Accordion, spaced' },
   ] as const;
 
   const STAGES = ['breastfed', 'mixed', 'solids'] as const;

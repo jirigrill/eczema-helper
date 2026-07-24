@@ -4,9 +4,9 @@
   // "Matka"/"Dítě" chip. Collapses to today's exact single-row look — no
   // chip, no header split — when only one actor is eligible this stage.
   import { mealConfig } from '$lib/config/meals';
-  import { categoryStrings } from '$lib/strings/categories';
   import { commonStrings } from '$lib/strings/common';
   import DayCard from '../DayCard.svelte';
+  import ActorBody from './ActorBody.svelte';
   import type { ActorState, DualSlot } from './mock-data';
 
   let { date, slots }: { date: string; slots: DualSlot[] } = $props();
@@ -42,27 +42,7 @@
                 >{row.label}</span
               >
             {/if}
-            <div class="min-w-0 flex-1">
-              {#if row.state.status === 'logged'}
-                {@const r = row.state.render}
-                <div class="flex flex-wrap items-center gap-1">
-                  {#each r.conflictAllergens as a}
-                    <span class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                      >⚠ {categoryStrings[a as keyof typeof categoryStrings]?.name ?? a}</span
-                    >
-                  {/each}
-                </div>
-                <div class="text-text-muted truncate text-[11px]">
-                  {#each r.items as item, i}
-                    {#if i > 0}<span> · </span>{/if}<span class={item.conflict ? 'text-danger font-medium' : ''}
-                      >{item.name}</span
-                    >
-                  {/each}
-                </div>
-              {:else}
-                <div class="text-primary text-[11px]">+ Zapsat</div>
-              {/if}
-            </div>
+            <div class="min-w-0 flex-1"><ActorBody state={row.state} /></div>
           </a>
         {/each}
       </div>

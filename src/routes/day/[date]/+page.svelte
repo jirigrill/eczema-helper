@@ -18,6 +18,9 @@
   import VariantA from '$lib/components/prototype-dual-actor/VariantA.svelte';
   import VariantB from '$lib/components/prototype-dual-actor/VariantB.svelte';
   import VariantC from '$lib/components/prototype-dual-actor/VariantC.svelte';
+  import VariantD from '$lib/components/prototype-dual-actor/VariantD.svelte';
+  import VariantE from '$lib/components/prototype-dual-actor/VariantE.svelte';
+  import VariantF from '$lib/components/prototype-dual-actor/VariantF.svelte';
   import PrototypeSwitcher from '$lib/components/prototype-dual-actor/PrototypeSwitcher.svelte';
   import { buildDualSlots, type FeedingStageDemo } from '$lib/components/prototype-dual-actor/mock-data';
   import AllergenChip from '$lib/components/AllergenChip.svelte';
@@ -321,6 +324,12 @@
           <VariantB date={selectedDate} slots={dualSlots} />
         {:else if prototypeVariant === 'C'}
           <VariantC date={selectedDate} slots={dualSlots} />
+        {:else if prototypeVariant === 'D'}
+          <VariantD date={selectedDate} slots={dualSlots} />
+        {:else if prototypeVariant === 'E'}
+          <VariantE date={selectedDate} slots={dualSlots} />
+        {:else if prototypeVariant === 'F'}
+          <VariantF date={selectedDate} slots={dualSlots} />
         {:else}
           <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
         {/if}

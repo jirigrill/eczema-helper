@@ -1,9 +1,9 @@
 <script lang="ts">
-  // PROTOTYPE — Variant C: accordion. When both actors are eligible, the slot
-  // stays a single collapsed summary row ("Matka: ... · Dítě: ...") until
-  // tapped open, then reveals two full rows. When only one actor is
-  // eligible this stage there is nothing to disclose, so it degrades to
-  // today's exact single-row MealCard look, chevron included — no accordion.
+  // PROTOTYPE — Variant F: accordion, spaced. Identical interaction to
+  // Variant C, but the two expanded groups get generous vertical space and
+  // a light divider between them instead of sitting close together, so
+  // "Matka" and "Dítě" read as clearly separate groups rather than a tight
+  // stacked list.
   import { mealConfig } from '$lib/config/meals';
   import { commonStrings } from '$lib/strings/common';
   import DayCard from '../DayCard.svelte';
@@ -70,19 +70,28 @@
         </button>
 
         {#if bothEligible && isOpen}
-          <div class="mt-1.5 space-y-1.5 pl-12">
-            {#each [{ actor: 'mother', label: 'Matka', state: slot.mother }, { actor: 'baby', label: 'Dítě', state: slot.baby }] as row (row.actor)}
-              <a
-                href="/meal?type={slot.type}&date={date}&actor={row.actor}&returnTo=/day/{date}"
-                class="flex items-start gap-2"
+          <div class="mt-3 pl-12">
+            <a
+              href="/meal?type={slot.type}&date={date}&actor=mother&returnTo=/day/{date}"
+              class="flex items-start gap-2"
+            >
+              <span
+                class="border-surface-dark text-text-muted mt-0.5 shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase"
+                >Matka</span
               >
-                <span
-                  class="border-surface-dark text-text-muted mt-0.5 shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase"
-                  >{row.label}</span
-                >
-                <div class="min-w-0 flex-1"><ActorBody state={row.state} /></div>
-              </a>
-            {/each}
+              <div class="min-w-0 flex-1"><ActorBody state={slot.mother} /></div>
+            </a>
+            <div class="border-surface-dark my-4 border-t"></div>
+            <a
+              href="/meal?type={slot.type}&date={date}&actor=baby&returnTo=/day/{date}"
+              class="flex items-start gap-2"
+            >
+              <span
+                class="border-surface-dark text-text-muted mt-0.5 shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase"
+                >Dítě</span
+              >
+              <div class="min-w-0 flex-1"><ActorBody state={slot.baby} /></div>
+            </a>
           </div>
         {/if}
       </div>
