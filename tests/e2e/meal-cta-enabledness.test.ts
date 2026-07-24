@@ -21,6 +21,7 @@ async function clearDb(page: Page) {
     await db.answers.clear();
     await db.schedule.clear();
     await db.meals.clear();
+    await db.settings.clear();
     db.close();
   });
 }
@@ -40,6 +41,7 @@ async function completeOnboarding(page: Page) {
       programStartDate: start,
       completedAt: new Date().toISOString(),
       testedAllergens: [],
+      feedingStage: 'breastfed',
     });
     await db.schedule.put({
       id: 'singleton',
@@ -51,6 +53,9 @@ async function completeOnboarding(page: Page) {
         { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
       ],
     });
+    // The meal page gates its schedule context on the live feedingStage master
+    // switch (#567); onboarding seeds it, so tests bypassing onboarding must too.
+    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
   }, today);
   await page.goto(`/day/${today}`);
   await page.waitForURL(/\/day\//);
