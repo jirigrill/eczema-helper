@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { OUT_OF_WINDOW_ERROR } from '$lib/adapters/loggable-window-guard';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { db, SINGLETON_ID } from '$lib/db/atopic-db';
+import { OUT_OF_WINDOW_ERROR } from '$lib/adapters/loggable-window-guard';
+import { SINGLETON_ID, db } from '$lib/db/atopic-db';
 import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 import type { Meal } from '$lib/domain/models';
 import {
@@ -738,7 +738,11 @@ describe('createMealEditor — swapActor()', () => {
       editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
       editor.notes = 'nezmizí';
 
-      const result = await editor.swapActor({ date: outOfWindow, mealType: 'lunch', actor: 'baby' });
+      const result = await editor.swapActor({
+        date: outOfWindow,
+        mealType: 'lunch',
+        actor: 'baby',
+      });
 
       // Swap aborted: the failing Result surfaces for the CTA error path.
       expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
