@@ -131,6 +131,19 @@ describe('protocolSession', () => {
     expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'mixed' } });
   });
 
+  it('setFeedingStage seeds a fresh row when settings is unseeded', async () => {
+    const { protocolSession } = await import('./protocol-session');
+    const { db } = await import('$lib/db/atopic-db');
+    const { DexieSettingsRepository } = await import('$lib/adapters/dexie-settings-repository');
+
+    // No startProtocol — the settings singleton has never been written.
+    const result = await protocolSession.setFeedingStage('solids');
+    expect(result).toMatchObject({ ok: true });
+
+    const settings = await new DexieSettingsRepository(db).load();
+    expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'solids' } });
+  });
+
   it('appendReTests saves updated schedule and returns Ok', async () => {
     const { protocolSession } = await import('./protocol-session');
 

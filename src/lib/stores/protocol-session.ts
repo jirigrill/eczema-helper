@@ -122,7 +122,10 @@ async function setFeedingStage(feedingStage: FeedingStage): Promise<Result<void,
   // this live edit is a single independent write the port is built to own.
   const current = await settingsRepo.load();
   if (!current.ok) return current;
-  return settingsRepo.save({ ...current.data, feedingStage });
+  // Preserve any other settings on the existing row; fall back to an empty base
+  // when the row is unseeded so future SettingsData fields aren't silently
+  // dropped (spreading a `null` row would collapse to just `{ feedingStage }`).
+  return settingsRepo.save({ ...(current.data ?? {}), feedingStage });
 }
 
 async function _loadReadySchedule() {
