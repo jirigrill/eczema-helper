@@ -62,6 +62,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   programStartDate: today,
   completedAt: new Date().toISOString(),
   testedAllergens: ['dairy'],
+  feedingStage: 'breastfed',
 };
 
 const readyContext: ScheduleContext = {
@@ -227,7 +228,7 @@ describe('program timeline — regression: reacted allergen', () => {
       answers: sampleAnswers,
       allergenStatuses: statuses,
       eliminatedToday: getEliminatedSlugsForDate(reactedSchedule, today),
-      reintroInfo: getReintroductionDayInfo(reactedSchedule, today, catalog),
+      reintroInfo: getReintroductionDayInfo(reactedSchedule, today, catalog, 'breastfed'),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
 
@@ -622,7 +623,7 @@ describe('program timeline — reintroduction evaluation prompt', () => {
       answers: sampleAnswers,
       allergenStatuses: getAllergenStatuses(schedule, today),
       eliminatedToday: getEliminatedSlugsForDate(schedule, today),
-      reintroInfo: getReintroductionDayInfo(schedule, today, catalog),
+      reintroInfo: getReintroductionDayInfo(schedule, today, catalog, 'breastfed'),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
     mockScheduleContext.set(ctx);
@@ -641,7 +642,7 @@ describe('program timeline — reintroduction evaluation prompt', () => {
       answers: sampleAnswers,
       allergenStatuses: getAllergenStatuses(schedule, today),
       eliminatedToday: getEliminatedSlugsForDate(schedule, today),
-      reintroInfo: getReintroductionDayInfo(schedule, today, catalog),
+      reintroInfo: getReintroductionDayInfo(schedule, today, catalog, 'breastfed'),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
     mockScheduleContext.set(ctx);

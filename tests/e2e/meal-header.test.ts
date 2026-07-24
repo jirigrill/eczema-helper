@@ -25,6 +25,7 @@ async function clearDb(page: Page) {
     const db = new AtopicDb();
     await db.answers.clear();
     await db.schedule.clear();
+    await db.settings.clear();
     await db.meals.clear();
     db.close();
   });
@@ -45,6 +46,7 @@ async function completeOnboarding(page: Page) {
       programStartDate: start,
       completedAt: new Date().toISOString(),
       testedAllergens: [],
+      feedingStage: 'breastfed',
     });
     await db.schedule.put({
       id: 'singleton',
@@ -56,6 +58,9 @@ async function completeOnboarding(page: Page) {
         { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
       ],
     });
+    // The app derives feedingStage from the live settings master switch (#567);
+    // seed it so a directly-seeded schedule renders without going through onboarding.
+    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
   }, today);
   await page.goto(`/day/${today}`);
   await page.waitForURL(/\/day\//);

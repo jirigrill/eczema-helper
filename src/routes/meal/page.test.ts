@@ -18,6 +18,12 @@ const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 vi.mock('$lib/stores/schedule-context', () => ({
   scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
 }));
+const mockSettings = writable<{ feedingStage: 'breastfed' | 'mixed' | 'solids' } | null>({
+  feedingStage: 'breastfed',
+});
+vi.mock('$lib/stores/settings-context', () => ({
+  settingsContext: { subscribe: mockSettings.subscribe },
+}));
 vi.mock('$app/navigation', () => ({
   goto: vi.fn(),
   beforeNavigate: vi.fn(),
@@ -72,6 +78,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   programStartDate: today,
   completedAt: new Date().toISOString(),
   testedAllergens: ['dairy'],
+  feedingStage: 'breastfed',
 };
 
 const dairyEliminationSchedule: GeneratedSchedule = {

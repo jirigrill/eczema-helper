@@ -1,4 +1,4 @@
-import { readable } from 'svelte/store';
+import { derived, readable } from 'svelte/store';
 
 import { liveQuery } from 'dexie';
 
@@ -7,6 +7,7 @@ import { SINGLETON_ID, db } from '$lib/db/atopic-db';
 import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
 import { buildScheduleContext } from '$lib/domain/schedule-queries';
 import type { ReadyContext } from '$lib/domain/schedule-queries';
+import { settingsContext } from '$lib/stores/settings-context';
 import { todayIso } from '$lib/utils/date';
 
 export type ScheduleContext =
@@ -70,20 +71,31 @@ export const scheduleRaw = readable<ScheduleRaw>({ status: 'loading' }, (set) =>
   return createLiveRawSubscription(set);
 });
 
-export const scheduleContext = readable<ScheduleContext>({ status: 'loading' }, (set) => {
+export const scheduleContext = derived<
+  [typeof scheduleRaw, typeof settingsContext],
+  ScheduleContext
+>([scheduleRaw, settingsContext], ([raw, settings], set) => {
+  if (raw.status !== 'ready') {
+    set(raw);
+    return;
+  }
+  // The live settings master switch is the sole source of feedingStage (#567) —
+  // no fallback. Onboarding seeds the settings row in the same transaction as
+  // the schedule, so a ready schedule always has a settings row; we only ever
+  // wait for its liveQuery to emit. Hold at `loading` until then rather than
+  // inventing a value from `answers`.
+  if (!settings) {
+    set({ status: 'loading' });
+    return;
+  }
   const catalog = new BundledCatalogAdapter();
-  return createLiveRawSubscription((raw) => {
-    if (raw.status !== 'ready') {
-      set(raw);
-      return;
-    }
-    set({
-      status: 'ready',
-      ...buildScheduleContext(
-        { schedule: raw.schedule, answers: raw.answers },
-        todayIso(),
-        catalog,
-      ),
-    });
+  set({
+    status: 'ready',
+    ...buildScheduleContext(
+      { schedule: raw.schedule, answers: raw.answers },
+      todayIso(),
+      catalog,
+      settings.feedingStage,
+    ),
   });
 });

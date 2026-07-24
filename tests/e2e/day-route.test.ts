@@ -10,6 +10,7 @@ async function clearDb(page: Page) {
     const db = new AtopicDb();
     await db.answers.clear();
     await db.schedule.clear();
+    await db.settings.clear();
     db.close();
   });
 }
@@ -32,6 +33,7 @@ async function seedSchedule(page: Page, startDate: string) {
       programStartDate: start,
       completedAt: new Date().toISOString(),
       testedAllergens: ['dairy'],
+      feedingStage: 'breastfed',
     });
     await db.schedule.put({
       id: 'singleton',
@@ -44,6 +46,9 @@ async function seedSchedule(page: Page, startDate: string) {
         { id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: today, endDate: future },
       ],
     });
+    // The app derives feedingStage from the live settings master switch (#567);
+    // seed it so a directly-seeded schedule renders without going through onboarding.
+    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
   }, startDate);
 }
 

@@ -28,6 +28,13 @@ vi.mock('$lib/stores/schedule-context', () => ({
   scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
 }));
 
+const mockSettings = writable<{ feedingStage: 'breastfed' | 'mixed' | 'solids' } | null>({
+  feedingStage: 'breastfed',
+});
+vi.mock('$lib/stores/settings-context', () => ({
+  settingsContext: { subscribe: mockSettings.subscribe },
+}));
+
 // ── liveQuery mock ────────────────────────────────────────────
 // Each session subscribes to a different table via createDateScopedSession.
 // The mock identifies the table by tag (set by the db mock below) and emits
@@ -124,6 +131,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   programStartDate: '2025-05-01',
   completedAt: '2025-05-01T00:00:00.000Z',
   testedAllergens: ['dairy'],
+  feedingStage: 'breastfed',
 };
 
 const readyRaw: ScheduleRaw = {
@@ -157,6 +165,7 @@ const todayAnswers: QuestionnaireAnswers = {
   programStartDate: today,
   completedAt: new Date().toISOString(),
   testedAllergens: ['dairy'],
+  feedingStage: 'breastfed',
 };
 
 const readyRawToday: ScheduleRaw = {

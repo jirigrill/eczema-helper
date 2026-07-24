@@ -8,6 +8,7 @@ import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-quer
 import { createMealSession } from '$lib/stores/meal-session';
 import { scheduleRaw } from '$lib/stores/schedule-context';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
+import { settingsContext } from '$lib/stores/settings-context';
 import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
 import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
 
@@ -28,6 +29,7 @@ export type DayView = {
 export function createDayView(getParam: () => string, today: string): DayView {
   const catalog = new BundledCatalogAdapter();
   const rawStore = fromStore(scheduleRaw);
+  const settingsStore = fromStore(settingsContext);
 
   const resolved = $derived(resolveDay(getParam(), rawStore.current, today));
   const selectedDate = $derived(resolved.selectedDate);
@@ -43,18 +45,26 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const photos = $derived(fromStore(photoSession).current);
 
   const raw = $derived(rawStore.current);
+  // The live settings master switch is the sole source of feedingStage (#567) —
+  // no fallback (mirrors scheduleContext). Onboarding seeds the settings row in
+  // the same transaction as the schedule, so a ready schedule always has one;
+  // ctx holds at `loading` until the settings liveQuery emits.
+  const feedingStage = $derived(settingsStore.current?.feedingStage ?? null);
 
   const ctx = $derived(
-    raw.status === 'ready'
+    raw.status === 'ready' && feedingStage
       ? {
           status: 'ready' as const,
           ...buildScheduleContext(
             { schedule: raw.schedule, answers: raw.answers },
             selectedDate,
             catalog,
+            feedingStage,
           ),
         }
-      : raw,
+      : raw.status === 'ready'
+        ? { status: 'loading' as const }
+        : raw,
   );
 
   const phase = $derived(

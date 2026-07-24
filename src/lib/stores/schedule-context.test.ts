@@ -14,6 +14,7 @@ const sampleAnswers: QuestionnaireAnswers = {
   programStartDate: '2025-06-01',
   completedAt: '2025-06-01T10:00:00.000Z',
   testedAllergens: DEFAULT_TESTED_ALLERGENS,
+  feedingStage: 'breastfed',
 };
 
 const sampleSchedule: GeneratedSchedule = {
@@ -31,7 +32,12 @@ async function tick(ms = 80): Promise<void> {
 }
 
 async function clearDb(): Promise<void> {
-  await Promise.all([db.schedule.clear(), db.answers.clear(), db.photos.clear()]);
+  await Promise.all([
+    db.schedule.clear(),
+    db.answers.clear(),
+    db.photos.clear(),
+    db.settings.clear(),
+  ]);
 }
 
 async function waitForStatus(
@@ -58,6 +64,7 @@ async function waitForStatus(
 async function seedDb(): Promise<void> {
   await db.answers.put({ id: SINGLETON_ID, ...sampleAnswers });
   await db.schedule.put({ id: SINGLETON_ID, ...sampleSchedule });
+  await db.settings.put({ id: SINGLETON_ID, feedingStage: 'breastfed' });
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

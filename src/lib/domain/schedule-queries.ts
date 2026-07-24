@@ -1,5 +1,5 @@
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import { V1_FEEDING_STAGE } from '$lib/domain/canonical-allergen';
+import type { FeedingStage } from '$lib/domain/models';
 import type {
   AllergenId,
   AllergenStatus,
@@ -100,6 +100,7 @@ export function getReintroductionDayInfo(
   schedule: GeneratedSchedule,
   date: string,
   catalog: CanonicalCatalogPort,
+  feedingStage: FeedingStage,
 ): ReintroductionDayInfo | null {
   const phase = getPhaseForDate(schedule, date);
   if (!phase || phase.type !== 'reintroduction') return null;
@@ -110,7 +111,7 @@ export function getReintroductionDayInfo(
   const dayInPhase = daysBetween(phase.startDate, date);
   const totalDays = daysBetween(phase.startDate, phase.endDate);
 
-  const rung = catalog.get(allergenId)?.ladder?.stages[V1_FEEDING_STAGE]?.[dayInPhase - 1];
+  const rung = catalog.get(allergenId)?.ladder?.stages[feedingStage]?.[dayInPhase - 1];
   const isEvaluationDay = rung?.isEvaluationCheckpoint ?? dayInPhase === totalDays;
 
   return { dayInPhase, totalDays, allergenId, isEvaluationDay };
@@ -147,6 +148,7 @@ export function buildScheduleContext(
   raw: { schedule: GeneratedSchedule; answers: QuestionnaireAnswers },
   today: string,
   catalog: CanonicalCatalogPort,
+  feedingStage: FeedingStage,
 ): ReadyContext {
   const { schedule, answers } = raw;
   return {
@@ -154,7 +156,7 @@ export function buildScheduleContext(
     answers,
     allergenStatuses: getAllergenStatuses(schedule, today),
     eliminatedToday: getEliminatedSlugsForDate(schedule, today),
-    reintroInfo: getReintroductionDayInfo(schedule, today, catalog),
+    reintroInfo: getReintroductionDayInfo(schedule, today, catalog, feedingStage),
     progress: getScheduleProgress(schedule, today),
   };
 }

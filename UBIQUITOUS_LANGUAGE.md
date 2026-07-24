@@ -367,8 +367,10 @@ The parent's intake data collected during onboarding:
 - `babyConfirmedAllergies` — allergen slugs (permanent eliminations)
 - `testedAllergens` — ordered protocol allergen list
 - `programStartDate` — ISO date (defaults to today)
+- `feedingStage` — the `FeedingStage` picked at onboarding; seeds the `SettingsData` master switch (see [SettingsData](#settingsdata--settingscontext))
 
-Persisted by `QuestionnaireRepository`. Source of truth for `generateSchedule()`.
+Persisted to the `answers` table (via `QuestionnaireRepository`, or written directly
+inside `startProtocol`'s onboarding transaction). Source of truth for `generateSchedule()`.
 
 ### GeneratedSchedule
 
@@ -388,17 +390,32 @@ produced by the pure `buildScheduleContext()` in `schedule-queries.ts`.
 ### ReadyContext
 The six-field payload carried by the `ready` arm of `ScheduleContext`: `schedule`,
 `answers`, `allergenStatuses`, `eliminatedToday`, `reintroInfo`, `progress`. Produced
-by `buildScheduleContext(raw, today)` in `src/lib/domain/schedule-queries.ts` — a pure
-projection with no DB dependency.
+by `buildScheduleContext(raw, today, catalog, feedingStage)` in
+`src/lib/domain/schedule-queries.ts` — a pure projection with no DB dependency. The
+`feedingStage` argument (from [SettingsData](#settingsdata--settingscontext)) picks
+which ladder-stage variant `reintroInfo` resolves against.
+
+### SettingsData / settingsContext
+
+The user-controlled **live master switch(es)**, held in a dedicated `settings` Dexie
+singleton row (keyed by `SINGLETON_ID`, mirroring `answers`/`schedule`). Today it holds
+`feedingStage: FeedingStage`, with room for future settings. Deliberately **off**
+`GeneratedSchedule` so retest/verdict rebuilds cannot overwrite it. Persisted by
+`SettingsRepository` (port + `DexieSettingsRepository`); seeded from
+`answers.feedingStage` inside the same onboarding-completion transaction as the schedule.
+`settingsContext` (`src/lib/stores/settings-context.ts`) is the `liveQuery`-backed
+reactive store consumers read for the live value; changed live from the Settings screen
+via `protocolSession.setFeedingStage()`.
 
 ### protocolSession
 
 The unified module (`src/lib/stores/protocol-session.ts`) that owns **both** reads and
 writes for the protocol seam. Exposes a `subscribe` function (delegating to
-`scheduleContext`) plus four write operations: `startProtocol(answers)`,
-`appendReTests(slugs, today)`, `removeReTest(allergenId, today)`, `reset()`. Routes that
-mutate protocol state import `protocolSession` instead of instantiating adapters
-directly. Routes that only read may still import `scheduleContext`.
+`scheduleContext`) plus write operations: `startProtocol(answers)`,
+`appendReTests(slugs, today)`, `removeReTest(allergenId, today)`, `recordVerdict(eval)`,
+`setFeedingStage(stage)`, `reset()`. Routes that mutate protocol state import
+`protocolSession` instead of instantiating adapters directly. Routes that only read may
+still import `scheduleContext`.
 
 ### skinObservationSession
 

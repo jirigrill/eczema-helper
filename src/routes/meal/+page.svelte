@@ -18,7 +18,7 @@
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext } from '$lib/domain/schedule-queries';
   import { rungAtDayInPhase } from '$lib/domain/ladder';
-  import { V1_FEEDING_STAGE } from '$lib/domain/canonical-allergen';
+  import { settingsContext } from '$lib/stores/settings-context';
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -56,10 +56,16 @@
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
   const raw = $derived($scheduleRaw);
+  const feedingStage = $derived($settingsContext?.feedingStage ?? null);
   const catalog = new BundledCatalogAdapter();
   const ctx = $derived(
-    raw.status === 'ready'
-      ? buildScheduleContext({ schedule: raw.schedule, answers: raw.answers }, targetDate, catalog)
+    raw.status === 'ready' && feedingStage
+      ? buildScheduleContext(
+          { schedule: raw.schedule, answers: raw.answers },
+          targetDate,
+          catalog,
+          feedingStage,
+        )
       : null,
   );
   const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
@@ -577,13 +583,13 @@
     <!-- Meal type is fixed at entry (ADR-0018) — no pills here. -->
     {#if !drilledFamily}
       <!-- Dosing guidance during reintroduction -->
-      {#if reintroInfo}
+      {#if reintroInfo && feedingStage}
         {@const cat = getCategoryConfig(reintroInfo.allergenId)}
         {@const rung = rungAtDayInPhase(
           catalog,
           reintroInfo.allergenId,
           reintroInfo.dayInPhase,
-          V1_FEEDING_STAGE,
+          feedingStage,
         )}
         <div class="space-y-1.5 px-4 pt-2">
           <InfoBanner variant="success">

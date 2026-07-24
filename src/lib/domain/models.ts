@@ -51,6 +51,17 @@ export type QuestionnaireAnswers = {
   programStartDate: string; // ISO date — when the program begins
   completedAt: string; // ISO datetime
   testedAllergens: LadderAllergenId[]; // protocol-only — custom slugs can't be reintroduced
+  feedingStage: FeedingStage; // seeds the live settings master switch at onboarding
+};
+
+/**
+ * The live master switch(es) the user controls, held in the dedicated `settings`
+ * singleton row — deliberately off `GeneratedSchedule` so retest/verdict rebuilds
+ * cannot overwrite them. `feedingStage` picks which ladder-stage variant the dose
+ * steps resolve to (ADR-0023). Room for future settings alongside it.
+ */
+export type SettingsData = {
+  feedingStage: FeedingStage;
 };
 
 export type PhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';

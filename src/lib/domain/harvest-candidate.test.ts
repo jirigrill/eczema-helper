@@ -164,6 +164,7 @@ function makeAnswers(overrides: Partial<QuestionnaireAnswers> = {}): Questionnai
     programStartDate: '2026-06-01',
     completedAt: '2026-06-01T10:00:00.000Z',
     testedAllergens: [],
+    feedingStage: 'breastfed',
     ...overrides,
   };
 }
