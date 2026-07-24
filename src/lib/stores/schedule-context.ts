@@ -79,13 +79,13 @@ export const scheduleContext = derived<
     set(raw);
     return;
   }
-  // Schedule + settings are seeded in one onboarding transaction, so a ready
-  // schedule with no settings row is only a momentary liveQuery race — hold at
-  // loading rather than invent a feedingStage fallback (#567).
-  if (!settings) {
-    set({ status: 'loading' });
-    return;
-  }
+  // The live settings master switch owns feedingStage (#567). Onboarding seeds
+  // it from `answers.feedingStage` in the same transaction as the schedule, so
+  // when the settings liveQuery hasn't emitted the row yet (or it's genuinely
+  // absent for a directly-seeded schedule) the answers value is the authoritative
+  // seed — not an invented fallback. A live edit always re-emits a non-null row,
+  // so `settings` wins whenever it exists.
+  const feedingStage = settings?.feedingStage ?? raw.answers.feedingStage;
   const catalog = new BundledCatalogAdapter();
   set({
     status: 'ready',
@@ -93,7 +93,7 @@ export const scheduleContext = derived<
       { schedule: raw.schedule, answers: raw.answers },
       todayIso(),
       catalog,
-      settings.feedingStage,
+      feedingStage,
     ),
   });
 });
