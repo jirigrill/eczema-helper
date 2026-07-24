@@ -13,22 +13,24 @@ columns, stacked rows, accordion, twin cards, actor tabs, accordion-spaced)
 is **stacked rows** — each eligible actor gets its own always-visible row
 under a shared slot header. Refined per human feedback:
 
-- Actors are labelled **"Já"** and **"Miminko"**, not "Matka"/"Dítě".
+- Each actor is marked by a **fixed-width round icon** (not a text tag, so
+  rows stay aligned): a **woman with a side ponytail** for the mother, a
+  **seated baby in a diaper** for the child.
 - A conflict allergen is shown **once per meal section**, deduplicated
   across both actors, instead of repeated per actor row.
 - Foods are plain wrapping text (no chips/pills) — nothing is ever
   truncated or cut off, regardless of item count (fixture varies 1/3/5
   items per slot) or name length.
-- Collapses to today's exact single-row `MealCard` look (no tag, no header
+- Collapses to today's exact single-row `MealCard` look (no icon, no header
   split) when only one actor is eligible for the current `?stage=`.
 
-**Empty-actor-slot treatment: settled** — a single **"+"** (was option 4 of
-four candidates: "+ Zapsat" link / "Nezapsáno" muted / dashed CTA pill /
-"+" icon). Minimal, matches today's single-actor `MealCard` empty state.
+**Empty-actor-slot treatment: settled** — a single **"+"**. When both actors
+are empty the whole section collapses to one "+"; when only one actor is
+empty, that row shows a "+".
 
-**Section arrow: settled** — a single **"›"** vertically centered against
-the whole meal section (one tap target into the meal editor), not one arrow
-per actor row.
+**Row indicators: settled** — each row's indicator lives in one fixed-width
+right rail so the empty-actor **"+"** lines up in the same column as the
+logged-actor **"›"** (into the meal editor).
 
 **Easiest way to test:** open `docs/design/prototype-dual-actor-slots.html`
 directly in a browser — no dev server, no seeded IndexedDB data. It shows
@@ -38,10 +40,15 @@ against the *real* app chrome.
 
 ## Verdict
 
-**Layout, empty state, and section arrow are all settled** (see above).
-Once merged/actioned:
+**APPROVED (2026-07-24)** — layout, actor icons, empty state, and row
+indicators are all settled (see above). `docs/design/prototype-dual-actor-slots.html`
+is the durable design record.
 
-- Delete `PrototypeSwitcher.svelte`, the `?dualActor=` branch in
-  `+page.svelte`, and `docs/design/prototype-dual-actor-slots.html`.
-- Fold the winning layout into `MealCard.svelte` for real, wired to real
-  per-actor `Meal` data (this prototype's mock data goes away entirely).
+Production fold-in is gated on **#554** (the `MealId` →
+`${date}:${mealType}:${actor}` key migration that gives real per-actor
+`Meal` data — this prototype fabricates the baby side). Once #554 lands:
+
+- Fold this layout into `MealCard.svelte` for real, wired to real per-actor
+  `Meal` data (this prototype's mock data goes away entirely).
+- Delete `PrototypeSwitcher.svelte` and the `?dualActor=` branch in
+  `+page.svelte` (the `docs/design/` HTML can stay as the design reference).
