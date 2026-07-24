@@ -8,7 +8,10 @@ import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
 import type { GeneratedSchedule, LadderAllergenId, QuestionnaireAnswers } from '$lib/domain/models';
 import { appendReTestPhases } from '$lib/domain/schedule-builder';
-import { getEliminatedSlugsForDate, getReintroductionDayInfo } from '$lib/domain/schedule-queries';
+import {
+  getProtocolEliminatedForDate,
+  getReintroductionDayInfo,
+} from '$lib/domain/schedule-queries';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
 
 const catalog = new BundledCatalogAdapter();
@@ -70,7 +73,9 @@ const readyContext: ScheduleContext = {
   schedule: sampleSchedule,
   answers: sampleAnswers,
   allergenStatuses: [],
-  eliminatedToday: [],
+  protocolEliminated: [],
+  permanentMother: [],
+  permanentBaby: [],
   reintroInfo: null,
   progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
 };
@@ -141,7 +146,7 @@ describe('program/+page.svelte', () => {
 });
 
 describe('ScheduleContext allergenStatuses consistency', () => {
-  it('allergenStatuses forbidden-status ids match eliminatedToday (non-reset phase)', () => {
+  it('allergenStatuses protocol-forbidden ids match getProtocolEliminatedForDate (non-reset phase)', () => {
     const scheduleWithDairy: GeneratedSchedule = {
       permanentMother: [],
       permanentBaby: [],
@@ -158,16 +163,12 @@ describe('ScheduleContext allergenStatuses consistency', () => {
       ],
     };
     const statuses = getAllergenStatuses(scheduleWithDairy, today);
-    const eliminated = getEliminatedSlugsForDate(scheduleWithDairy, today);
+    const eliminated = getProtocolEliminatedForDate(scheduleWithDairy, today);
 
     expect(statuses).toContainEqual({ allergenId: 'dairy', status: 'eliminated' });
 
     const forbiddenIds = statuses
-      .filter((s) =>
-        ['permanent-mother', 'permanent-baby', 'eliminated', 'reacted', 'not-yet-tested'].includes(
-          s.status,
-        ),
-      )
+      .filter((s) => ['eliminated', 'reacted', 'not-yet-tested'].includes(s.status))
       .map((s) => s.allergenId)
       .sort();
     expect([...eliminated].sort()).toEqual(forbiddenIds);
@@ -227,7 +228,9 @@ describe('program timeline — regression: reacted allergen', () => {
       schedule: reactedSchedule,
       answers: sampleAnswers,
       allergenStatuses: statuses,
-      eliminatedToday: getEliminatedSlugsForDate(reactedSchedule, today),
+      protocolEliminated: getProtocolEliminatedForDate(reactedSchedule, today),
+      permanentMother: reactedSchedule.permanentMother,
+      permanentBaby: reactedSchedule.permanentBaby,
       reintroInfo: getReintroductionDayInfo(reactedSchedule, today, catalog, 'breastfed'),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
@@ -269,7 +272,9 @@ describe('program timeline — permanent allergen sections', () => {
       schedule: scheduleWithMother,
       answers: sampleAnswers,
       allergenStatuses: getAllergenStatuses(scheduleWithMother, today),
-      eliminatedToday: getEliminatedSlugsForDate(scheduleWithMother, today),
+      protocolEliminated: getProtocolEliminatedForDate(scheduleWithMother, today),
+      permanentMother: scheduleWithMother.permanentMother,
+      permanentBaby: scheduleWithMother.permanentBaby,
       reintroInfo: null,
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
@@ -303,7 +308,9 @@ describe('program timeline — permanent allergen sections', () => {
       schedule: scheduleWithBaby,
       answers: { ...sampleAnswers, babyConfirmedAllergies: ['eggs'] },
       allergenStatuses: getAllergenStatuses(scheduleWithBaby, today),
-      eliminatedToday: getEliminatedSlugsForDate(scheduleWithBaby, today),
+      protocolEliminated: getProtocolEliminatedForDate(scheduleWithBaby, today),
+      permanentMother: scheduleWithBaby.permanentMother,
+      permanentBaby: scheduleWithBaby.permanentBaby,
       reintroInfo: null,
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
@@ -375,7 +382,9 @@ describe('program timeline — retest of reacted protocol allergen', () => {
     schedule: mixedVerdictSchedule,
     answers: sampleAnswers,
     allergenStatuses: getAllergenStatuses(mixedVerdictSchedule, today),
-    eliminatedToday: getEliminatedSlugsForDate(mixedVerdictSchedule, today),
+    protocolEliminated: getProtocolEliminatedForDate(mixedVerdictSchedule, today),
+    permanentMother: mixedVerdictSchedule.permanentMother,
+    permanentBaby: mixedVerdictSchedule.permanentBaby,
     reintroInfo: null,
     progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
   });
@@ -448,7 +457,9 @@ describe('program timeline — retest of reacted protocol allergen', () => {
         schedule: updated,
         answers: sampleAnswers,
         allergenStatuses: getAllergenStatuses(updated, today),
-        eliminatedToday: getEliminatedSlugsForDate(updated, today),
+        protocolEliminated: getProtocolEliminatedForDate(updated, today),
+        permanentMother: updated.permanentMother,
+        permanentBaby: updated.permanentBaby,
         reintroInfo: null,
         progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
       });
@@ -556,7 +567,9 @@ describe('program timeline — baby-confirmed retest flow (regression)', () => {
       schedule: scheduleWithBaby,
       answers: { ...sampleAnswers, babyConfirmedAllergies: ['eggs'] },
       allergenStatuses: getAllergenStatuses(scheduleWithBaby, today),
-      eliminatedToday: getEliminatedSlugsForDate(scheduleWithBaby, today),
+      protocolEliminated: getProtocolEliminatedForDate(scheduleWithBaby, today),
+      permanentMother: scheduleWithBaby.permanentMother,
+      permanentBaby: scheduleWithBaby.permanentBaby,
       reintroInfo: null,
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
@@ -622,7 +635,9 @@ describe('program timeline — reintroduction evaluation prompt', () => {
       schedule,
       answers: sampleAnswers,
       allergenStatuses: getAllergenStatuses(schedule, today),
-      eliminatedToday: getEliminatedSlugsForDate(schedule, today),
+      protocolEliminated: getProtocolEliminatedForDate(schedule, today),
+      permanentMother: schedule.permanentMother,
+      permanentBaby: schedule.permanentBaby,
       reintroInfo: getReintroductionDayInfo(schedule, today, catalog, 'breastfed'),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };
@@ -641,7 +656,9 @@ describe('program timeline — reintroduction evaluation prompt', () => {
       schedule,
       answers: sampleAnswers,
       allergenStatuses: getAllergenStatuses(schedule, today),
-      eliminatedToday: getEliminatedSlugsForDate(schedule, today),
+      protocolEliminated: getProtocolEliminatedForDate(schedule, today),
+      permanentMother: schedule.permanentMother,
+      permanentBaby: schedule.permanentBaby,
       reintroInfo: getReintroductionDayInfo(schedule, today, catalog, 'breastfed'),
       progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
     };

@@ -22,7 +22,7 @@ function makeMeal(overrides?: Partial<Meal>): Meal {
 describe('MealCard', () => {
   it('shows the section label "Dnešní jídla"', async () => {
     const { getByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [], eliminatedSlugs: [] },
     });
     await tick();
     expect(getByText('Dnešní jídla')).toBeInTheDocument();
@@ -30,7 +30,7 @@ describe('MealCard', () => {
 
   it('shows all four unlogged slots (not empty-state text) when meals array is empty', async () => {
     const { getByTestId, queryByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [], eliminatedSlugs: [] },
     });
     await tick();
     expect(getByTestId('meal-row-breakfast')).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('MealCard', () => {
       ],
     });
     const { getByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     expect(getByText(/Jogurt/)).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('MealCard', () => {
   it('renders meal type icon and label', async () => {
     const meal = makeMeal({ mealType: 'dinner' });
     const { getByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     // dinner label from mealConfig
@@ -67,7 +67,7 @@ describe('MealCard', () => {
 
   it('does NOT render a "+ Přidat" link — the Meal-Type FAB Submenu is the launcher now', async () => {
     const { queryByText, queryByTestId } = render(MealCard, {
-      props: { date: '2026-06-13', meals: [], eliminatedToday: [] },
+      props: { date: '2026-06-13', meals: [], eliminatedSlugs: [] },
     });
     await tick();
     expect(queryByText(/\+ Přidat/)).not.toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('MealCard', () => {
       items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'portion' }],
     });
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     const row = getByTestId('meal-row-breakfast');
@@ -101,7 +101,7 @@ describe('MealCard', () => {
         items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
       });
       const { getByTestId } = render(MealCard, {
-        props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+        props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
       });
       await tick();
       const row = getByTestId(`meal-row-${mealType}`);
@@ -117,7 +117,7 @@ describe('MealCard', () => {
       items: [{ id: 'i1', name: 'Jogurt', foodId: 'jogurt', amount: 'portion' }],
     });
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     const row = getByTestId('meal-row-breakfast');
@@ -133,7 +133,7 @@ describe('MealCard', () => {
 
   it('unlogged slot rows are anchor links (tappable to add meal)', async () => {
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [], eliminatedSlugs: [] },
     });
     await tick();
     expect(getByTestId('meal-row-breakfast').tagName).toBe('A');
@@ -153,7 +153,7 @@ describe('MealCard', () => {
       ],
     });
     const { queryByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     // No portion labels
@@ -178,7 +178,7 @@ describe('MealCard', () => {
         items: [{ id: 'i1', name: 'X', foodId: 'jogurt', amount: 'portion' }],
       });
       const { getByTestId, queryByText } = render(MealCard, {
-        props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+        props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
       });
       await tick();
       const row = getByTestId(`meal-row-${mealType}`);
@@ -187,12 +187,12 @@ describe('MealCard', () => {
     },
   );
 
-  it('applies warning styling to items whose food triggers are in eliminatedToday', async () => {
+  it('applies warning styling to items whose food triggers are in eliminatedSlugs', async () => {
     const meal = makeMeal({
       items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
     });
     const { container } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy'] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: ['dairy'] },
     });
     await tick();
     // The chip for a conflicting item carries a data-conflict attribute
@@ -209,7 +209,7 @@ describe('MealCard', () => {
       items: [{ id: 'i1', name: 'Ovesná kaše', foodId: 'oves', amount: 'portion' }],
     });
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     expect(getByTestId('meal-row-breakfast')).toBeInTheDocument();
@@ -220,7 +220,7 @@ describe('MealCard', () => {
 
   it('unlogged slot links to /meal with type, date, and returnTo', async () => {
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-06-15', meals: [], eliminatedToday: [] },
+      props: { date: '2026-06-15', meals: [], eliminatedSlugs: [] },
     });
     await tick();
     const row = getByTestId('meal-row-lunch');
@@ -232,7 +232,7 @@ describe('MealCard', () => {
 
   it('unlogged slot shows "+" and muted meal label', async () => {
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-06-15', meals: [], eliminatedToday: [] },
+      props: { date: '2026-06-15', meals: [], eliminatedSlugs: [] },
     });
     await tick();
     const row = getByTestId('meal-row-snack');
@@ -249,7 +249,7 @@ describe('MealCard', () => {
       ],
     });
     const { getByTestId, queryByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: [] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: [] },
     });
     await tick();
     const row = getByTestId('meal-row-breakfast');
@@ -265,7 +265,7 @@ describe('MealCard', () => {
       items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
     });
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy'] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: ['dairy'] },
     });
     await tick();
     const row = getByTestId('meal-row-lunch');
@@ -279,7 +279,7 @@ describe('MealCard', () => {
       items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
     });
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy'] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: ['dairy'] },
     });
     await tick();
     const row = getByTestId('meal-row-lunch');
@@ -300,7 +300,7 @@ describe('MealCard', () => {
       ],
     });
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [meal], eliminatedToday: ['dairy', 'soy'] },
+      props: { date: '2026-05-31', meals: [meal], eliminatedSlugs: ['dairy', 'soy'] },
     });
     await tick();
     const row = getByTestId('meal-row-dinner');

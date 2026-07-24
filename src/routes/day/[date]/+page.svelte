@@ -57,8 +57,19 @@
       : [],
   );
 
+  // Display-only merge of everything eliminated today across both actors. The
+  // ReadyContext keeps the three sets separate (spec #568); the day view's
+  // "Vyhýbej se" list and single-actor MealCard show them combined. This is an
+  // all-actors view, not the per-actor conflict rule — so it merges all three
+  // sets directly rather than going through `eliminatedFor(ctx, actor)`.
+  const eliminatedToday = $derived(
+    ctx.status === 'ready'
+      ? [...ctx.protocolEliminated, ...ctx.permanentMother, ...ctx.permanentBaby]
+      : [],
+  );
+
   const allowedProtocol = $derived(
-    ctx.status === 'ready' ? protocolSlugs.filter((s) => !ctx.eliminatedToday.includes(s)) : [],
+    ctx.status === 'ready' ? protocolSlugs.filter((s) => !eliminatedToday.includes(s)) : [],
   );
 
   const isToday = $derived(selectedDate === today);
@@ -283,9 +294,9 @@
               <div class="text-danger mb-1.5 text-[9px] font-extrabold tracking-wider uppercase">
                 {commonStrings.today.avoid}
               </div>
-              {#if ctx.eliminatedToday.length > 0}
+              {#if eliminatedToday.length > 0}
                 <div class="flex flex-wrap gap-1.5">
-                  {#each ctx.eliminatedToday as slug}
+                  {#each eliminatedToday as slug}
                     <AllergenChip {slug} color="warning" />
                   {/each}
                 </div>
@@ -297,7 +308,7 @@
         </div>
 
         <!-- Meal card -->
-        <MealCard date={selectedDate} {meals} eliminatedToday={ctx.eliminatedToday} />
+        <MealCard date={selectedDate} {meals} eliminatedSlugs={eliminatedToday} />
 
         <!-- Bottom hint -->
         <div class="text-text-muted/70 mt-2 flex items-center justify-center gap-2 text-[11px]">

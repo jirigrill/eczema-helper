@@ -304,13 +304,22 @@ Status values: `permanent-mother`, `permanent-baby`, `not-yet-tested`, `eliminat
 'baby' | 'protocol'` field so identity survives status changes. See ADR-0012.
 
 ### EliminationWindow
-→ Defined in `CONTEXT.md`. The set of allergens the mother may not eat on a given date,
-derived by `getEliminatedSlugsForDate(schedule, date)`.
+→ Defined in `CONTEXT.md`. The set of allergens an actor may not eat on a given date.
+The protocol portion is derived by `getProtocolEliminatedForDate(schedule, date)`; each
+actor's full window combines it with that actor's permanent eliminations. The canonical
+recombination is `eliminatedFor(ctx, actor)` — `[...protocolEliminated, ...permanentMother]`
+for the mother, `[...protocolEliminated, ...permanentBaby]` for the baby — so the
+"which permanent set for which actor" rule lives in one place. (Display-only "avoid
+everything across both actors" views, e.g. the day view's *Vyhýbej se* list, merge all
+three sets directly rather than through the per-actor helper.)
 
 ### Conflict Detection
 
 Identifying `MealItem`s in a logged meal that violate the current `EliminationWindow`.
-Performed by `detectConflicts(meal, eliminatedSlugs)`. Surfaces a warning before the
+Performed by `detectConflicts(items, eliminatedSlugs, catalog)` over the actor's combined
+eliminated set, returning the offending items. Its companion `conflictingAllergens(items,
+eliminatedSlugs, catalog)` returns the distinct eliminated allergens those items trigger —
+used to label the warning pills without re-walking the items. Surfaces a warning before the
 user saves a meal.
 
 ### CanonicalAllergen / Canonical Catalog
@@ -388,9 +397,12 @@ union: `loading | empty | ready | error`. Its `ready` payload is `ReadyContext`,
 produced by the pure `buildScheduleContext()` in `schedule-queries.ts`.
 
 ### ReadyContext
-The six-field payload carried by the `ready` arm of `ScheduleContext`: `schedule`,
-`answers`, `allergenStatuses`, `eliminatedToday`, `reintroInfo`, `progress`. Produced
-by `buildScheduleContext(raw, today, catalog, feedingStage)` in
+The eight-field payload carried by the `ready` arm of `ScheduleContext`: `schedule`,
+`answers`, `allergenStatuses`, `protocolEliminated`, `permanentMother`, `permanentBaby`,
+`reintroInfo`, `progress`. The three eliminated-set fields are kept **separate, never
+pre-merged**, so each consumer combines them per actor (mother meal → protocol ∪
+`permanentMother`; baby meal → protocol ∪ `permanentBaby`). Produced by
+`buildScheduleContext(raw, today, catalog, feedingStage)` in
 `src/lib/domain/schedule-queries.ts` — a pure projection with no DB dependency. The
 `feedingStage` argument (from [SettingsData](#settingsdata--settingscontext)) picks
 which ladder-stage variant `reintroInfo` resolves against.

@@ -55,7 +55,8 @@ missing wire, not a redesign.
 **The verdict is an immutable audit record. Recording a *reaction* mutates
 the schedule (inserts a `rest` phase). Status stays topology-derived.**
 
-`getAllergenStatuses` and `getEliminatedSlugsForDate` are **not changed** —
+`getAllergenStatuses` and the elimination query (`getProtocolEliminatedForDate`,
+formerly `getEliminatedSlugsForDate`) are **not changed** by this ADR —
 no new `evaluations` argument is threaded through the domain. The flow is:
 
 1. The mother records a verdict on `/evaluation`. A

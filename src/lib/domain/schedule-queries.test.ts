@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type {
+  AllergenId,
   GeneratedSchedule,
   MealItem,
   QuestionnaireAnswers,
@@ -12,10 +13,13 @@ import { addDays } from '$lib/utils/date';
 
 import { getAllergenStatuses } from './allergen-status';
 import {
+  type ReadyContext,
   buildScheduleContext,
+  conflictingAllergens,
   detectConflicts,
-  getEliminatedSlugsForDate,
+  eliminatedFor,
   getPhaseForDate,
+  getProtocolEliminatedForDate,
   getReintroductionDayInfo,
   getScheduleProgress,
   isPhaseEndForEvaluation,
@@ -215,81 +219,83 @@ describe('getPhaseForDate', () => {
   });
 });
 
-describe('getEliminatedSlugsForDate', () => {
-  it('returns only permanent eliminations during reset', () => {
+describe('getProtocolEliminatedForDate', () => {
+  it('returns no protocol eliminations during reset (permanents are not protocol)', () => {
     const schedule: GeneratedSchedule = {
       ...baseSchedule,
       permanentMother: ['soy'],
       permanentBaby: [],
     };
-    const slugs = getEliminatedSlugsForDate(schedule, '2026-05-03');
-    expect(slugs).toEqual(['soy']);
+    const slugs = getProtocolEliminatedForDate(schedule, '2026-05-03');
+    expect(slugs).toEqual([]);
   });
 
   it('returns protocol allergens during elimination phase', () => {
-    const slugs = getEliminatedSlugsForDate(baseSchedule, '2026-05-10');
+    const slugs = getProtocolEliminatedForDate(baseSchedule, '2026-05-10');
     expect(slugs).toContain('dairy');
     expect(slugs).toContain('eggs');
   });
 
-  it('excludes permanent eliminations from protocol allergens (already covered)', () => {
+  it('excludes permanent eliminations even when a permanent slug matches a protocol id', () => {
     const schedule: GeneratedSchedule = {
       ...baseSchedule,
       permanentMother: ['dairy'],
       permanentBaby: [],
     };
-    const slugs = getEliminatedSlugsForDate(schedule, '2026-05-10');
+    const slugs = getProtocolEliminatedForDate(schedule, '2026-05-10');
+    // `dairy` is a protocol allergen in the elimination phase → still eliminated
+    // via its protocol status, but never surfaced through the permanent set.
     expect(slugs).toContain('dairy');
     expect(slugs).toContain('eggs');
   });
 
   it('allows the reintroduced allergen during its reintro phase', () => {
-    const slugs = getEliminatedSlugsForDate(baseSchedule, '2026-05-28');
+    const slugs = getProtocolEliminatedForDate(baseSchedule, '2026-05-28');
     expect(slugs).not.toContain('dairy');
   });
 
   it('still eliminates other protocol allergens during reintro', () => {
-    const slugs = getEliminatedSlugsForDate(baseSchedule, '2026-05-28');
+    const slugs = getProtocolEliminatedForDate(baseSchedule, '2026-05-28');
     expect(slugs).toContain('eggs');
   });
 
   it('returns empty array before program starts', () => {
-    const slugs = getEliminatedSlugsForDate(baseSchedule, '2026-04-30');
+    const slugs = getProtocolEliminatedForDate(baseSchedule, '2026-04-30');
     expect(slugs).toEqual([]);
   });
 });
 
-describe('getEliminatedSlugsForDate — already-passed allergens', () => {
+describe('getProtocolEliminatedForDate — already-passed allergens', () => {
   // dairy reintro is followed directly by eggs reintro (no rest) → dairy is "passed"
   // during reintro-eggs: dairy allowed, eggs allowed (current), wheat eliminated
 
   it('allows an allergen that was tolerated in a previous reintro', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleWithPassedAllergen, '2026-06-01');
+    const slugs = getProtocolEliminatedForDate(scheduleWithPassedAllergen, '2026-06-01');
     expect(slugs).not.toContain('dairy');
   });
 
   it('allows the allergen currently being reintroduced', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleWithPassedAllergen, '2026-06-01');
+    const slugs = getProtocolEliminatedForDate(scheduleWithPassedAllergen, '2026-06-01');
     expect(slugs).not.toContain('eggs');
   });
 
   it('still eliminates allergens not yet reintroduced', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleWithPassedAllergen, '2026-06-01');
+    const slugs = getProtocolEliminatedForDate(scheduleWithPassedAllergen, '2026-06-01');
     expect(slugs).toContain('wheat');
   });
 });
 
-describe('getEliminatedSlugsForDate — rest phase', () => {
+describe('getProtocolEliminatedForDate — rest phase', () => {
   // dairy reintro followed by rest → dairy NOT passed (reaction triggered the rest)
   // during rest: all protocol allergens remain eliminated
 
   it('eliminates the preceding reintro allergen during rest (not passed because rest follows)', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleWithRestPhase, '2026-06-01');
+    const slugs = getProtocolEliminatedForDate(scheduleWithRestPhase, '2026-06-01');
     expect(slugs).toContain('dairy');
   });
 
   it('eliminates all other protocol allergens during rest', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleWithRestPhase, '2026-06-01');
+    const slugs = getProtocolEliminatedForDate(scheduleWithRestPhase, '2026-06-01');
     expect(slugs).toContain('eggs');
   });
 });
@@ -338,17 +344,17 @@ const scheduleReactedThenRetest: GeneratedSchedule = {
   ],
 };
 
-describe('getEliminatedSlugsForDate — reacted allergen stays eliminated', () => {
+describe('getProtocolEliminatedForDate — reacted allergen stays eliminated', () => {
   // dairy reintro → rest (reacted), then eggs reintro starts
   // dairy status is now 'reacted' → must appear in eliminated slugs during eggs reintro
 
   it('reacted allergen appears in eliminated slugs during a subsequent reintro phase', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleReactedThenRetest, '2026-06-04');
+    const slugs = getProtocolEliminatedForDate(scheduleReactedThenRetest, '2026-06-04');
     expect(slugs).toContain('dairy');
   });
 
   it('the currently-tested allergen is not eliminated during its own reintro', () => {
-    const slugs = getEliminatedSlugsForDate(scheduleReactedThenRetest, '2026-06-04');
+    const slugs = getProtocolEliminatedForDate(scheduleReactedThenRetest, '2026-06-04');
     expect(slugs).not.toContain('eggs');
   });
 });
@@ -624,7 +630,7 @@ describe('buildScheduleContext', () => {
     expect(ctx.allergenStatuses).toEqual(getAllergenStatuses(reintroSchedule, today));
   });
 
-  it('eliminatedToday equals getEliminatedSlugsForDate(schedule, today)', () => {
+  it('protocolEliminated equals getProtocolEliminatedForDate(schedule, today)', () => {
     const today = '2026-05-28';
     const ctx = buildScheduleContext(
       { schedule: reintroSchedule, answers: sampleAnswers },
@@ -632,7 +638,33 @@ describe('buildScheduleContext', () => {
       catalog,
       'breastfed',
     );
-    expect(ctx.eliminatedToday).toEqual(getEliminatedSlugsForDate(reintroSchedule, today));
+    expect(ctx.protocolEliminated).toEqual(getProtocolEliminatedForDate(reintroSchedule, today));
+  });
+
+  it('permanentMother / permanentBaby pass the schedule fields through unmerged', () => {
+    const schedule: GeneratedSchedule = {
+      ...reintroSchedule,
+      permanentMother: ['soy'],
+      permanentBaby: ['eggs'],
+    };
+    const ctx = buildScheduleContext(
+      { schedule, answers: sampleAnswers },
+      '2026-05-28',
+      catalog,
+      'breastfed',
+    );
+    expect(ctx.permanentMother).toEqual(['soy']);
+    expect(ctx.permanentBaby).toEqual(['eggs']);
+  });
+
+  it('exposes no merged eliminatedToday convenience field', () => {
+    const ctx = buildScheduleContext(
+      { schedule: reintroSchedule, answers: sampleAnswers },
+      '2026-05-28',
+      catalog,
+      'breastfed',
+    );
+    expect(ctx).not.toHaveProperty('eliminatedToday');
   });
 
   it('reintroInfo equals getReintroductionDayInfo(schedule, today)', () => {
@@ -659,7 +691,7 @@ describe('buildScheduleContext', () => {
     expect(ctx.progress).toEqual(getScheduleProgress(reintroSchedule, today));
   });
 
-  it('single-today coherence: tested allergen appears in reintroInfo but not eliminatedToday', () => {
+  it('single-today coherence: tested allergen appears in reintroInfo but not protocolEliminated', () => {
     // 2026-05-28 is day 2 of dairy reintroduction — dairy is being tested, so not forbidden
     const ctx = buildScheduleContext(
       { schedule: reintroSchedule, answers: sampleAnswers },
@@ -668,7 +700,7 @@ describe('buildScheduleContext', () => {
       'breastfed',
     );
     expect(ctx.reintroInfo?.allergenId).toBe('dairy');
-    expect(ctx.eliminatedToday).not.toContain('dairy');
+    expect(ctx.protocolEliminated).not.toContain('dairy');
   });
 
   it('result has no status key', () => {
@@ -760,6 +792,113 @@ describe('detectConflicts', () => {
     const result = detectConflicts(items, ['dairy'], catalog);
     expect(result).toHaveLength(1);
     expect(result[0]!.id).toBe('conflict');
+  });
+});
+
+describe('actor-aware conflict detection (pre-combined per-actor sets)', () => {
+  // A mother meal is checked against protocol ∪ permanentMother; a baby meal
+  // against protocol ∪ permanentBaby. When the two permanent sets diverge, the
+  // SAME foods must produce DIFFERENT conflict sets — the retirement of the
+  // merged `eliminatedToday` must not silently re-merge them.
+  const schedule: GeneratedSchedule = {
+    permanentMother: ['soy'],
+    permanentBaby: ['dairy'],
+    startDate: '2026-05-01',
+    estimatedEndDate: '2026-07-01',
+    phases: [
+      phase({
+        id: 'reset',
+        type: 'reset',
+        startDate: '2026-05-01',
+        endDate: '2026-05-05',
+      }),
+    ],
+  };
+
+  // During reset the protocol set is empty, so the only eliminations in play
+  // come from each actor's permanent set — isolating the per-actor split.
+  // Built through the canonical `eliminatedFor` helper so the test also guards
+  // that the helper picks the right permanent set per actor.
+  const ctx = {
+    protocolEliminated: getProtocolEliminatedForDate(schedule, '2026-05-03'),
+    permanentMother: schedule.permanentMother,
+    permanentBaby: schedule.permanentBaby,
+  } as ReadyContext;
+  const motherSet = eliminatedFor(ctx, 'mother');
+  const babySet = eliminatedFor(ctx, 'baby');
+
+  // sojove-mleko → soy; kravske-mleko → dairy
+  const items: MealItem[] = [item('soy', 'sojove-mleko'), item('milk', 'kravske-mleko')];
+
+  it('flags the soy food for the mother (permanentMother = soy)', () => {
+    const conflicts = detectConflicts(items, motherSet, catalog).map((i) => i.foodId);
+    expect(conflicts).toEqual(['sojove-mleko']);
+  });
+
+  it('flags the dairy food for the baby (permanentBaby = dairy)', () => {
+    const conflicts = detectConflicts(items, babySet, catalog).map((i) => i.foodId);
+    expect(conflicts).toEqual(['kravske-mleko']);
+  });
+
+  it('mother and baby conflict sets differ for the same foods (no silent re-merge)', () => {
+    const motherConflicts = detectConflicts(items, motherSet, catalog).map((i) => i.foodId);
+    const babyConflicts = detectConflicts(items, babySet, catalog).map((i) => i.foodId);
+    expect(motherConflicts).not.toEqual(babyConflicts);
+  });
+});
+
+describe('eliminatedFor', () => {
+  const ctx = {
+    protocolEliminated: ['eggs'],
+    permanentMother: ['soy'],
+    permanentBaby: ['dairy'],
+  } as ReadyContext;
+
+  it('combines protocol with the mother permanent set for a mother meal', () => {
+    expect(eliminatedFor(ctx, 'mother')).toEqual(['eggs', 'soy']);
+  });
+
+  it('combines protocol with the baby permanent set for a baby meal', () => {
+    expect(eliminatedFor(ctx, 'baby')).toEqual(['eggs', 'dairy']);
+  });
+
+  it('never merges both actors — each actor sees only its own permanent set', () => {
+    expect(eliminatedFor(ctx, 'mother')).not.toContain('dairy');
+    expect(eliminatedFor(ctx, 'baby')).not.toContain('soy');
+  });
+});
+
+describe('conflictingAllergens', () => {
+  it('returns the distinct eliminated allergens actually triggered by the items', () => {
+    // sojove-mleko → soy; kravske-mleko → dairy
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('milk', 'kravske-mleko')];
+    const result = conflictingAllergens(items, ['soy', 'dairy'], catalog);
+    expect([...result].sort()).toEqual(['dairy', 'soy']);
+  });
+
+  it('omits triggers that are not eliminated', () => {
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('milk', 'kravske-mleko')];
+    // only soy is eliminated — dairy must not appear
+    expect(conflictingAllergens(items, ['soy'], catalog)).toEqual(['soy']);
+  });
+
+  it('deduplicates when several items trigger the same allergen', () => {
+    const items: MealItem[] = [item('a', 'kravske-mleko'), item('b', 'kravske-mleko')];
+    expect(conflictingAllergens(items, ['dairy'], catalog)).toEqual(['dairy']);
+  });
+
+  it('returns empty when nothing is eliminated', () => {
+    expect(conflictingAllergens([item('a', 'kravske-mleko')], [], catalog)).toHaveLength(0);
+  });
+
+  it('agrees with detectConflicts — allergens come only from flagged items', () => {
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('rice', 'ryzove-mleko')];
+    const eliminated: AllergenId[] = ['soy', 'dairy'];
+    const flaggedItems = detectConflicts(items, eliminated, catalog);
+    const allergens = conflictingAllergens(items, eliminated, catalog);
+    // ryzove-mleko is neutral, so only soy is flagged on both paths
+    expect(flaggedItems.map((i) => i.foodId)).toEqual(['sojove-mleko']);
+    expect(allergens).toEqual(['soy']);
   });
 });
 

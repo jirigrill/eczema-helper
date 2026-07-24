@@ -118,7 +118,7 @@ describe('scheduleRaw', () => {
     expect(raw.answers).toBeDefined();
     // Must NOT contain date-derived fields that belong on the page side
     expect((raw as Record<string, unknown>).allergenStatuses).toBeUndefined();
-    expect((raw as Record<string, unknown>).eliminatedToday).toBeUndefined();
+    expect((raw as Record<string, unknown>).protocolEliminated).toBeUndefined();
     expect((raw as Record<string, unknown>).reintroInfo).toBeUndefined();
     expect((raw as Record<string, unknown>).progress).toBeUndefined();
   });
