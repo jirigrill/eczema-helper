@@ -1,13 +1,4 @@
-import type { PortionKind } from '$lib/domain/models';
-
-/**
- * Feeding stage a ladder's dose steps apply to, mirroring the three table
- * variants in the source protocols (Pekárková, Matoušková):
- * "plně kojené dítě (bez příkrmů)", "kojené dítě + příkrmy", "dítě plně na
- * příkrmech".
- */
-export const FEEDING_STAGES = ['breastfed', 'mixed', 'solids'] as const;
-export type FeedingStage = (typeof FEEDING_STAGES)[number];
+import type { FeedingStage, PortionKind } from '$lib/domain/models';
 
 /**
  * The single feeding stage v1 supports. v1 tracks a breastfed newborn on the

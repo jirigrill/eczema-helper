@@ -5,9 +5,10 @@
 // this only *constructs* the domain records (meals / skin / evaluations) the
 // real engine reads — the engine remains the single source of truth.
 import { ALLERGENS } from '$lib/data/allergen-catalog';
-import type { FeedingStage, Ladder } from '$lib/domain/canonical-allergen';
+import type { Ladder } from '$lib/domain/canonical-allergen';
 import type {
   AllergenOutcome,
+  FeedingStage,
   LadderAllergenId,
   Meal,
   PortionKind,

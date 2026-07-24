@@ -5,9 +5,10 @@
 // cannot drift. The engine is the single source of truth; nothing here copies it.
 // (App.svelte renders the YAML scenarios, not this run; this survives only as a
 // `replayDays` fixture whose custom ladder exercises a real spread of verdicts.)
-import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import type {
   AllergenOutcome,
+  FeedingStage,
   LadderAllergenId,
   Meal,
   ReintroductionEvaluation,

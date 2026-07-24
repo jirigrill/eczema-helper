@@ -100,6 +100,44 @@ export type MealItem = {
 
 export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 
+/**
+ * Who logged (or is credited with) a meal. v1 only ever writes `'mother'` — a
+ * breastfed newborn's intake is the mother's diet (ADR-0001). `'baby'` is
+ * reserved for the dual-actor build (spec #564); until a feeding-stage source
+ * exists, `getEligibleActors` gates who may log.
+ */
+export const ACTORS = ['mother', 'baby'] as const;
+export type Actor = (typeof ACTORS)[number];
+
+/**
+ * Feeding stage a ladder's dose steps apply to, mirroring the three table
+ * variants in the source protocols (Pekárková, Matoušková):
+ * "plně kojené dítě (bez příkrmů)", "kojené dítě + příkrmy", "dítě plně na
+ * příkrmech".
+ */
+export const FEEDING_STAGES = ['breastfed', 'mixed', 'solids'] as const;
+export type FeedingStage = (typeof FEEDING_STAGES)[number];
+
+/**
+ * The actors permitted to log a meal at a given feeding stage — the single
+ * source for "who may log". `breastfed → [mother]` (the newborn's intake is the
+ * mother's diet), `mixed → [mother, baby]`, `solids → [baby]`.
+ */
+export function getEligibleActors(stage: FeedingStage): Actor[] {
+  switch (stage) {
+    case 'breastfed':
+      return ['mother'];
+    case 'mixed':
+      return ['mother', 'baby'];
+    case 'solids':
+      return ['baby'];
+    default: {
+      const _exhaustive: never = stage;
+      return _exhaustive;
+    }
+  }
+}
+
 /** Composite key enforcing the one-meal-per-slot invariant: `"${date}:${mealType}"` */
 export type MealId = `${string}:${MealType}`;
 
@@ -116,7 +154,7 @@ export type Meal = {
   id: MealId; // deterministic composite key — e.g. "2026-05-27:lunch"
   date: string; // ISO date
   mealType: MealType;
-  actor: 'mother' | 'baby'; // v1 hardcodes 'mother'; 'baby' reserved for v2
+  actor: Actor; // v1 hardcodes 'mother'; 'baby' reserved for the dual-actor build
   items: MealItem[];
   notes?: string; // optional free-text observation (renamed from label)
   createdAt: string; // ISO datetime; render as Czech HH:MM at display sites (ADR-0014)

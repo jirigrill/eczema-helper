@@ -1,7 +1,8 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { FeedingStage, Ladder, LadderStep } from '$lib/domain/canonical-allergen';
+import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 import type {
   AllergenOutcome,
+  FeedingStage,
   LadderAllergenId,
   Meal,
   PortionKind,

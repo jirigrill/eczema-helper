@@ -1,7 +1,8 @@
-import type { FeedingStage, Ladder } from '$lib/domain/canonical-allergen';
+import type { Ladder } from '$lib/domain/canonical-allergen';
 import type { LadderDecision, LadderExplain } from '$lib/domain/ladder';
 import { explainLadderMove } from '$lib/domain/ladder';
 import type {
+  FeedingStage,
   LadderAllergenId,
   Meal,
   ReintroductionEvaluation,
