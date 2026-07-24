@@ -3,8 +3,8 @@ import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-can
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { DexieSettingsRepository } from '$lib/adapters/dexie-settings-repository';
 import { SINGLETON_ID, db } from '$lib/db/atopic-db';
-import type { FeedingStage } from '$lib/domain/models';
 import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
+import type { FeedingStage } from '$lib/domain/models';
 import type {
   AllergenOutcome,
   LadderAllergenId,
