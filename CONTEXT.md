@@ -11,8 +11,9 @@ crystallise; do not let it drift from the code.
 ### ScheduleContext
 Today's protocol state as the UI sees it — a reactive bundle of
 `GeneratedSchedule`, `QuestionnaireAnswers`, and derived protocol values
-(`eliminatedToday`, `reintroInfo`, `progress`) computed for the current
-date. Exposed as a discriminated union: `loading | empty | ready | error`.
+(`protocolEliminated`, `permanentMother`, `permanentBaby`, `reintroInfo`,
+`progress`) computed for the current date. Exposed as a discriminated union:
+`loading | empty | ready | error`.
 Derived fields only exist on `ready`. The `error` variant carries a string
 message from a failed repository load. This is an application-layer concept,
 not a domain concept — it is the authoritative name for what routes consume,
@@ -165,38 +166,43 @@ within 24h." Insights surface counter-examples too. Dismissals/pins are
 UI state, not domain state.
 
 ### EliminationWindow
-What the mother is forbidden to eat on a given day, derived by
-`getEliminatedSlugsForDate(schedule, date)`. The result depends on the
-current phase type:
+What an actor is forbidden to eat on a given day. It has an actor-independent
+**protocol portion**, derived by `getProtocolEliminatedForDate(schedule, date)`,
+plus that actor's own permanent eliminations. Each consumer combines them per
+actor: the mother's window is `protocol ∪ permanentMother`, the baby's window is
+`protocol ∪ permanentBaby`. A food safe for the mother but on `permanentBaby` is
+still flagged for a baby meal.
 
-| Phase | Eliminated |
+The protocol portion depends on the current phase type:
+
+| Phase | Protocol eliminated |
 |---|---|
-| `reset` | Permanent eliminations only — mother eats normally otherwise |
-| `elimination` | Permanent eliminations + all protocol allergens |
-| `reintroduction` of X | Permanent + protocol minus X (current) minus already-passed allergens |
-| `rest` | Permanent + protocol minus already-passed allergens (no current exception) |
+| `reset` | Nothing — the protocol allergens carry status `eliminated` but the mother eats them to establish a baseline |
+| `elimination` | All protocol allergens |
+| `reintroduction` of X | Protocol minus X (current) minus already-passed allergens |
+| `rest` | Protocol minus already-passed allergens (no current exception) |
 | `tolerance-building` of X | X is allowed in small doses (status `tolerance-building` → not forbidden); every other allergen follows its own current `AllergenStatus` |
-| After all phases | Permanent eliminations only |
+| After all phases | Nothing |
 
-`EliminationWindow` is now *derived from* `AllergenStatus` — the per-phase
-table above is the projection rule, but the source of truth is the status
-query. `getEliminatedSlugsForDate` works in two steps:
+The protocol portion is *derived from* `AllergenStatus` — the per-phase table
+above is the projection rule, but the source of truth is the status query.
+`getProtocolEliminatedForDate` works in two steps:
 
 1. **Reset guard.** If the active phase is `reset` (or no phase is active),
-   return only `permanentEliminations`. Protocol allergens carry status
-   `eliminated` during reset (they are inside the early-phase window), but
-   the mother eats them normally during reset to establish a baseline —
-   forbidding them here would defeat that purpose.
+   return an empty set. Protocol allergens carry status `eliminated` during
+   reset (they are inside the early-phase window), but the mother eats them
+   normally during reset to establish a baseline — forbidding them here would
+   defeat that purpose. Permanent eliminations still apply (they are combined
+   by the caller, not by this query).
 2. **Status filter.** For all other phases, return ids of allergens whose
-   status is in `{ permanent-mother, permanent-baby, eliminated, reacted,
-   not-yet-tested }`. Statuses `{ testing, passed, tolerance-building }` are
-   not forbidden.
+   status is in `{ eliminated, reacted, not-yet-tested }`. Statuses
+   `{ testing, passed, tolerance-building }` are not forbidden. Permanent
+   statuses (`permanent-mother` / `permanent-baby`) are deliberately **not**
+   returned here — they are per-actor and combined by the caller.
 
-`permanentEliminations` (the aggregate of `motherAllergies` +
-`babyConfirmedAllergies`) always applies regardless of phase type. The
-schedule stores `permanentMother` and `permanentBaby` as separate
-fields; `permanentEliminations` is the derived concatenation for the
-day-view filter.
+The schedule stores `permanentMother` and `permanentBaby` as separate fields;
+`ReadyContext` exposes both alongside `protocolEliminated` and never pre-merges
+them, so conflict detection stays actor-aware.
 
 ### AllergenStatus
 The per-allergen lifecycle state on a given calendar date, derived by

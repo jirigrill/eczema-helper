@@ -463,8 +463,8 @@
   <!-- ─── MealCard ─────────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/MealCard.svelte -->
   <div class="component-section" id="meal-card">
-    <p class="component-label">▸ <span>MealCard</span> — date, meals: Meal[], eliminatedToday: string[]</p>
-    <p class="component-desc">Single white card with internal dividers, eyebrow "Dnešní jídla". Always renders all four meal slots in order (Snídaně · Oběd · Svačina · Večeře). Three row states: (1) unlogged — muted icon (no circle), muted label, "+" on right, tappable → /meal?type=&lt;slot&gt;&date=&lt;date&gt;&returnTo=/day/&lt;date&gt;. (2) clean logged — primary icon in plain white circle, bold meal-type label, food names joined by " · " (no portion, no prep), chevron. (3) conflict logged — danger/15-tinted circle + danger icon, one "⚠ &lt;Czech allergen name&gt;" pill per distinct eliminated allergen the meal triggers, each triggering food in text-danger red, chevron. Conflict set = food's allergensForFood ∩ eliminatedToday.</p>
+    <p class="component-label">▸ <span>MealCard</span> — date, meals: Meal[], eliminatedSlugs: string[]</p>
+    <p class="component-desc">Single white card with internal dividers, eyebrow "Dnešní jídla". Always renders all four meal slots in order (Snídaně · Oběd · Svačina · Večeře). Three row states: (1) unlogged — muted icon (no circle), muted label, "+" on right, tappable → /meal?type=&lt;slot&gt;&date=&lt;date&gt;&returnTo=/day/&lt;date&gt;. (2) clean logged — primary icon in plain white circle, bold meal-type label, food names joined by " · " (no portion, no prep), chevron. (3) conflict logged — danger/15-tinted circle + danger icon, one "⚠ &lt;Czech allergen name&gt;" pill per distinct eliminated allergen the meal triggers, each triggering food in text-danger red, chevron. Conflicts come from the shared domain <code>detectConflicts(items, eliminatedSlugs)</code>; <code>eliminatedSlugs</code> is the actor's combined eliminated set (protocol ∪ that actor's permanent).</p>
     <div class="component-variants">
       <!-- Unlogged slots (all four) -->
       <div style="max-width:360px">

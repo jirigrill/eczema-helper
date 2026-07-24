@@ -68,7 +68,9 @@ const readyContext: ScheduleContext = {
   schedule: sampleSchedule,
   answers: sampleAnswers,
   allergenStatuses: [],
-  eliminatedToday: [],
+  protocolEliminated: [],
+  permanentMother: [],
+  permanentBaby: [],
   reintroInfo: null,
   progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
 };

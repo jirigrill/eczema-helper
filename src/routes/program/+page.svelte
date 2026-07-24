@@ -12,9 +12,10 @@
   } from '$lib/domain/models';
   import {
     getPhaseForDate,
-    getEliminatedSlugsForDate,
+    getProtocolEliminatedForDate,
     detectConflicts,
   } from '$lib/domain/schedule-queries';
+  import { getPermanentEliminations, overallSeverity } from '$lib/domain/models';
   import { getPhaseVerdictStatuses, filterProtocolStatuses } from '$lib/domain/allergen-status';
   import { getCategoryConfig } from '$lib/config/categories';
   import { phaseConfig } from '$lib/config/phases';
@@ -59,10 +60,8 @@
   const schedule = $derived(ctx.status === 'ready' ? ctx.schedule : null);
   const answers = $derived(ctx.status === 'ready' ? ctx.answers : null);
   const currentPhase = $derived(schedule ? getPhaseForDate(schedule, today) : null);
-  const eliminatedToday = $derived(ctx.status === 'ready' ? ctx.eliminatedToday : []);
-  import { getPermanentEliminations, overallSeverity } from '$lib/domain/models';
   const permanentSlugs = $derived(schedule ? getPermanentEliminations(schedule) : []);
-  const protocolEliminated = $derived(eliminatedToday.filter((s) => !permanentSlugs.includes(s)));
+  const protocolEliminated = $derived(ctx.status === 'ready' ? ctx.protocolEliminated : []);
   const progress = $derived(ctx.status === 'ready' ? ctx.progress : null);
   const isBeforeSchedule = $derived(!!schedule && today < schedule.startDate);
   // Declared before `isProgramDone`, which reads it.
@@ -313,7 +312,12 @@
     items: { name: string; icon: string; date: string }[];
   } {
     if (!schedule) return { count: 0, items: [] };
-    const eliminated = getEliminatedSlugsForDate(schedule, phase.startDate);
+    // Logged meals are the mother's, so combine the protocol-only set with her
+    // permanent eliminations (actor-aware conflict detection, spec #564/#568).
+    const eliminated = [
+      ...getProtocolEliminatedForDate(schedule, phase.startDate),
+      ...schedule.permanentMother,
+    ];
     const phaseEnd = phase.endDate || today;
     const conflicts: { name: string; icon: string; date: string }[] = [];
     for (const meal of meals.filter(

@@ -68,7 +68,10 @@
         )
       : null,
   );
-  const eliminatedToday = $derived(ctx?.eliminatedToday ?? []);
+  // The meal editor logs the mother's meal (actor hardcoded to 'mother' until
+  // the actor picker lands), so her eliminated set is protocol ∪ permanentMother
+  // (actor-aware conflict detection, spec #564/#568).
+  const eliminatedToday = $derived(ctx ? [...ctx.protocolEliminated, ...ctx.permanentMother] : []);
   const reintroInfo = $derived(ctx?.reintroInfo ?? null);
   // Passive hint (issue #440) — a stale row can be edited freely, but the
   // mother should know its date no longer sits inside the protocol window.

@@ -1,19 +1,21 @@
 <script lang="ts">
-  import type { Meal } from '$lib/domain/models';
+  import type { AllergenId, Meal } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
   import { categoryStrings } from '$lib/strings/categories';
   import { mealConfig } from '$lib/config/meals';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
+  import { detectConflicts } from '$lib/domain/schedule-queries';
   import DayCard from './DayCard.svelte';
 
   let {
     date,
     meals,
-    eliminatedToday,
+    eliminatedSlugs,
   }: {
     date: string;
     meals: Meal[];
-    eliminatedToday: string[];
+    /** Combined eliminated set for this meal's actor (protocol ∪ that actor's permanent). */
+    eliminatedSlugs: AllergenId[];
   } = $props();
 
   const catalog = new BundledCatalogAdapter();
@@ -38,14 +40,16 @@
       {@const cfg = mealConfig[type]}
       {@const Icon = cfg.icon}
       {#if meal}
+        {@const conflicts = detectConflicts(meal.items, eliminatedSlugs, catalog)}
+        {@const conflictItemIds = new Set(conflicts.map((c) => c.id))}
         {@const conflictAllergens = [
           ...new Set(
-            meal.items
+            conflicts
               .flatMap((item) => catalog.allergensForFood(item.foodId))
-              .filter((a) => eliminatedToday.includes(a)),
+              .filter((a) => eliminatedSlugs.includes(a as AllergenId)),
           ),
         ]}
-        {@const isConflict = conflictAllergens.length > 0}
+        {@const isConflict = conflictItemIds.size > 0}
         <a
           data-testid="meal-row-{type}"
           href="/meal?type={type}&date={meal.date}&returnTo=/day/{meal.date}"
@@ -73,8 +77,7 @@
               <div class="text-text-muted truncate text-[11px]">
                 {#each meal.items as item, i}
                   {#if i > 0}<span> · </span>{/if}
-                  {@const triggers = catalog.allergensForFood(item.foodId)}
-                  {@const itemConflict = triggers.some((t) => eliminatedToday.includes(t))}
+                  {@const itemConflict = conflictItemIds.has(item.id)}
                   <span
                     class={itemConflict ? 'text-danger font-medium' : ''}
                     data-conflict={itemConflict ? 'true' : undefined}>{item.name}</span
