@@ -59,7 +59,9 @@
 
   // Display-only merge of everything eliminated today across both actors. The
   // ReadyContext keeps the three sets separate (spec #568); the day view's
-  // "Vyhýbej se" list and single-actor MealCard show them combined.
+  // "Vyhýbej se" list and single-actor MealCard show them combined. This is an
+  // all-actors view, not the per-actor conflict rule — so it merges all three
+  // sets directly rather than going through `eliminatedFor(ctx, actor)`.
   const eliminatedToday = $derived(
     ctx.status === 'ready'
       ? [...ctx.protocolEliminated, ...ctx.permanentMother, ...ctx.permanentBaby]

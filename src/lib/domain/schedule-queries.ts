@@ -1,5 +1,5 @@
 import { getAllergenStatuses } from '$lib/domain/allergen-status';
-import type { FeedingStage } from '$lib/domain/models';
+import type { Actor, FeedingStage } from '$lib/domain/models';
 import type {
   AllergenId,
   AllergenStatus,
@@ -95,6 +95,29 @@ export function detectConflicts(
   });
 }
 
+/**
+ * The distinct eliminated allergen ids actually triggered by `items` — the
+ * intersection of every item's triggering allergens with `eliminatedSlugs`.
+ * This is the companion to `detectConflicts` (which returns the offending
+ * *items*): callers that need to label *which* allergens conflict — e.g. the
+ * warning pills on a meal row — use this instead of re-walking the items and
+ * re-filtering by hand.
+ */
+export function conflictingAllergens(
+  items: MealItem[],
+  eliminatedSlugs: AllergenId[],
+  catalog: CanonicalCatalogPort,
+): AllergenId[] {
+  if (eliminatedSlugs.length === 0) return [];
+  const triggered = new Set<AllergenId>();
+  for (const item of items) {
+    for (const t of catalog.allergensForFood(item.foodId)) {
+      if (eliminatedSlugs.includes(t as AllergenId)) triggered.add(t as AllergenId);
+    }
+  }
+  return [...triggered];
+}
+
 // ── Reintroduction day info ───────────────────────────────────
 // Dosing instructions are per-allergen; see the catalog records' ladder field (ADR-0023).
 // isEvaluationDay derives from the current rung's isEvaluationCheckpoint flag —
@@ -170,4 +193,17 @@ export function buildScheduleContext(
     reintroInfo: getReintroductionDayInfo(schedule, today, catalog, feedingStage),
     progress: getScheduleProgress(schedule, today),
   };
+}
+
+/**
+ * The eliminated set to check *one actor's* meal against: the protocol set
+ * combined with that actor's permanent eliminations. This is the deliberate
+ * per-actor recombination of `ReadyContext`'s three separate fields (spec
+ * #568 keeps them unmerged to prevent the shared-field drift that MealCard
+ * suffered). Centralised here so the "which permanent set for which actor"
+ * rule lives in one place rather than being re-spelled at each call site.
+ */
+export function eliminatedFor(ctx: ReadyContext, actor: Actor): AllergenId[] {
+  const permanent = actor === 'baby' ? ctx.permanentBaby : ctx.permanentMother;
+  return [...ctx.protocolEliminated, ...permanent];
 }

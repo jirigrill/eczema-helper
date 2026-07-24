@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type {
+  AllergenId,
   GeneratedSchedule,
   MealItem,
   QuestionnaireAnswers,
@@ -13,12 +14,15 @@ import { addDays } from '$lib/utils/date';
 import { getAllergenStatuses } from './allergen-status';
 import {
   buildScheduleContext,
+  conflictingAllergens,
   detectConflicts,
+  eliminatedFor,
   getPhaseForDate,
   getProtocolEliminatedForDate,
   getReintroductionDayInfo,
   getScheduleProgress,
   isPhaseEndForEvaluation,
+  type ReadyContext,
 } from './schedule-queries';
 
 const catalog = new BundledCatalogAdapter();
@@ -813,9 +817,15 @@ describe('actor-aware conflict detection (pre-combined per-actor sets)', () => {
 
   // During reset the protocol set is empty, so the only eliminations in play
   // come from each actor's permanent set — isolating the per-actor split.
-  const protocolEliminated = getProtocolEliminatedForDate(schedule, '2026-05-03');
-  const motherSet = [...protocolEliminated, ...schedule.permanentMother];
-  const babySet = [...protocolEliminated, ...schedule.permanentBaby];
+  // Built through the canonical `eliminatedFor` helper so the test also guards
+  // that the helper picks the right permanent set per actor.
+  const ctx = {
+    protocolEliminated: getProtocolEliminatedForDate(schedule, '2026-05-03'),
+    permanentMother: schedule.permanentMother,
+    permanentBaby: schedule.permanentBaby,
+  } as ReadyContext;
+  const motherSet = eliminatedFor(ctx, 'mother');
+  const babySet = eliminatedFor(ctx, 'baby');
 
   // sojove-mleko → soy; kravske-mleko → dairy
   const items: MealItem[] = [item('soy', 'sojove-mleko'), item('milk', 'kravske-mleko')];
@@ -834,6 +844,61 @@ describe('actor-aware conflict detection (pre-combined per-actor sets)', () => {
     const motherConflicts = detectConflicts(items, motherSet, catalog).map((i) => i.foodId);
     const babyConflicts = detectConflicts(items, babySet, catalog).map((i) => i.foodId);
     expect(motherConflicts).not.toEqual(babyConflicts);
+  });
+});
+
+describe('eliminatedFor', () => {
+  const ctx = {
+    protocolEliminated: ['eggs'],
+    permanentMother: ['soy'],
+    permanentBaby: ['dairy'],
+  } as ReadyContext;
+
+  it('combines protocol with the mother permanent set for a mother meal', () => {
+    expect(eliminatedFor(ctx, 'mother')).toEqual(['eggs', 'soy']);
+  });
+
+  it('combines protocol with the baby permanent set for a baby meal', () => {
+    expect(eliminatedFor(ctx, 'baby')).toEqual(['eggs', 'dairy']);
+  });
+
+  it('never merges both actors — each actor sees only its own permanent set', () => {
+    expect(eliminatedFor(ctx, 'mother')).not.toContain('dairy');
+    expect(eliminatedFor(ctx, 'baby')).not.toContain('soy');
+  });
+});
+
+describe('conflictingAllergens', () => {
+  it('returns the distinct eliminated allergens actually triggered by the items', () => {
+    // sojove-mleko → soy; kravske-mleko → dairy
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('milk', 'kravske-mleko')];
+    const result = conflictingAllergens(items, ['soy', 'dairy'], catalog);
+    expect([...result].sort()).toEqual(['dairy', 'soy']);
+  });
+
+  it('omits triggers that are not eliminated', () => {
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('milk', 'kravske-mleko')];
+    // only soy is eliminated — dairy must not appear
+    expect(conflictingAllergens(items, ['soy'], catalog)).toEqual(['soy']);
+  });
+
+  it('deduplicates when several items trigger the same allergen', () => {
+    const items: MealItem[] = [item('a', 'kravske-mleko'), item('b', 'kravske-mleko')];
+    expect(conflictingAllergens(items, ['dairy'], catalog)).toEqual(['dairy']);
+  });
+
+  it('returns empty when nothing is eliminated', () => {
+    expect(conflictingAllergens([item('a', 'kravske-mleko')], [], catalog)).toHaveLength(0);
+  });
+
+  it('agrees with detectConflicts — allergens come only from flagged items', () => {
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('rice', 'ryzove-mleko')];
+    const eliminated: AllergenId[] = ['soy', 'dairy'];
+    const flaggedItems = detectConflicts(items, eliminated, catalog);
+    const allergens = conflictingAllergens(items, eliminated, catalog);
+    // ryzove-mleko is neutral, so only soy is flagged on both paths
+    expect(flaggedItems.map((i) => i.foodId)).toEqual(['sojove-mleko']);
+    expect(allergens).toEqual(['soy']);
   });
 });
 

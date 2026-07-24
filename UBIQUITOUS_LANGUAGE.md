@@ -306,15 +306,21 @@ Status values: `permanent-mother`, `permanent-baby`, `not-yet-tested`, `eliminat
 ### EliminationWindow
 → Defined in `CONTEXT.md`. The set of allergens an actor may not eat on a given date.
 The protocol portion is derived by `getProtocolEliminatedForDate(schedule, date)`; each
-actor's full window combines it with that actor's permanent eliminations —
-`[...protocolEliminated, ...permanentMother]` for the mother,
-`[...protocolEliminated, ...permanentBaby]` for the baby.
+actor's full window combines it with that actor's permanent eliminations. The canonical
+recombination is `eliminatedFor(ctx, actor)` — `[...protocolEliminated, ...permanentMother]`
+for the mother, `[...protocolEliminated, ...permanentBaby]` for the baby — so the
+"which permanent set for which actor" rule lives in one place. (Display-only "avoid
+everything across both actors" views, e.g. the day view's *Vyhýbej se* list, merge all
+three sets directly rather than through the per-actor helper.)
 
 ### Conflict Detection
 
 Identifying `MealItem`s in a logged meal that violate the current `EliminationWindow`.
 Performed by `detectConflicts(items, eliminatedSlugs, catalog)` over the actor's combined
-eliminated set. Surfaces a warning before the user saves a meal.
+eliminated set, returning the offending items. Its companion `conflictingAllergens(items,
+eliminatedSlugs, catalog)` returns the distinct eliminated allergens those items trigger —
+used to label the warning pills without re-walking the items. Surfaces a warning before the
+user saves a meal.
 
 ### CanonicalAllergen / Canonical Catalog
 → Defined in `CONTEXT.md`. The curated, data-first catalog record for one

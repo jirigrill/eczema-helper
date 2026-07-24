@@ -4,7 +4,7 @@
   import { categoryStrings } from '$lib/strings/categories';
   import { mealConfig } from '$lib/config/meals';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-  import { detectConflicts } from '$lib/domain/schedule-queries';
+  import { detectConflicts, conflictingAllergens } from '$lib/domain/schedule-queries';
   import DayCard from './DayCard.svelte';
 
   let {
@@ -42,13 +42,7 @@
       {#if meal}
         {@const conflicts = detectConflicts(meal.items, eliminatedSlugs, catalog)}
         {@const conflictItemIds = new Set(conflicts.map((c) => c.id))}
-        {@const conflictAllergens = [
-          ...new Set(
-            conflicts
-              .flatMap((item) => catalog.allergensForFood(item.foodId))
-              .filter((a) => eliminatedSlugs.includes(a as AllergenId)),
-          ),
-        ]}
+        {@const conflictAllergens = conflictingAllergens(meal.items, eliminatedSlugs, catalog)}
         {@const isConflict = conflictItemIds.size > 0}
         <a
           data-testid="meal-row-{type}"
