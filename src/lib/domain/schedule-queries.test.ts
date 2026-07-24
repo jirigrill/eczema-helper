@@ -13,6 +13,7 @@ import { addDays } from '$lib/utils/date';
 
 import { getAllergenStatuses } from './allergen-status';
 import {
+  type ReadyContext,
   buildScheduleContext,
   conflictingAllergens,
   detectConflicts,
@@ -22,7 +23,6 @@ import {
   getReintroductionDayInfo,
   getScheduleProgress,
   isPhaseEndForEvaluation,
-  type ReadyContext,
 } from './schedule-queries';
 
 const catalog = new BundledCatalogAdapter();
