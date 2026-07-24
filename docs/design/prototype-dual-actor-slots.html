@@ -43,7 +43,7 @@
 
   .pill-conflict { background: rgba(184,68,68,0.15); color: #B84444; border-radius: 9999px;
     padding: 2px 6px; font-size: 10px; font-weight: 600; }
-  .actor-icon { width: 30px; height: 30px; flex-shrink: 0; border: 1px solid #EDE8E9;
+  .actor-icon { width: 32px; height: 32px; flex-shrink: 0; border: 1px solid #EDE8E9;
     border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #7A6468; }
   .divider { border-top: 1px solid #EDE8E9; }
   .divider:first-child { border-top: none; }
@@ -65,8 +65,8 @@
   <div class="canvas-eyebrow">Prototype · wayfinder ticket #557</div>
   <h1 class="canvas-heading">Day-view dual-actor slot — settled</h1>
   <p class="canvas-sub">
-    Layout: <strong>stacked rows</strong>, each actor marked by a fixed-width round icon (mother / baby) so rows
-    stay aligned. <strong>Cycle the icon set</strong> below to compare candidate mother/baby pictograms. A
+    Layout: <strong>stacked rows</strong>, each actor marked by a fixed-width round icon — a woman (side
+    ponytail) for the mother, a seated baby in a diaper for the child — so rows stay aligned. A
     conflict allergen shows <strong>once per meal section</strong> (deduplicated across both actors); foods are
     plain wrapping text — nothing truncated. Each row's indicator lives in one right rail so the <strong>"+"</strong>
     (empty actor) lines up under the <strong>"›"</strong> (logged actor → meal editor); when <strong>both</strong>
@@ -81,10 +81,6 @@
 </div>
 
 <div class="switcher">
-  <button class="arrow" onclick="cycleIcon(-1)" aria-label="Previous icon set">‹</button>
-  <span class="label" id="icon-label" style="min-width:12rem;text-align:center;font-weight:600;"></span>
-  <button class="arrow" onclick="cycleIcon(1)" aria-label="Next icon set">›</button>
-  <span class="sep"></span>
   <button onclick="cycleStage(-1)">‹ stage</button>
   <span class="stage-label" id="stage-label"></span>
   <button onclick="cycleStage(1)">stage ›</button>
@@ -102,36 +98,18 @@
   };
   // Round actor badges (Lucide user / baby), fixed width so "Já" and
   // "Miminko" rows always align — replaces the old variable-width text tags.
-  // Several candidate icon sets to compare — cycle with the "icons" switcher.
-  // Typical mother pictograms: a woman figure, the ♀ Venus symbol, a
-  // woman-with-hair bust, a generic person. Typical baby pictograms: a baby
-  // face, a pacifier, a baby bottle, a onesie/bodysuit.
-  const ICON_SETS = [
-    {
-      name: 'Postavy (žena + tvář)',
-      mother: '<circle cx="12" cy="5" r="3"/><path d="M12 8c-1.7 0-2.9 1.1-3.3 2.8L6.7 20h2.4l.9 3h4l.9-3h2.4l-1.9-9.2C15 9.1 13.7 8 12 8Z"/>',
-      baby: '<circle cx="12" cy="12" r="9"/><path d="M9 11h.01"/><path d="M15 11h.01"/><path d="M9.5 15.5c.7.5 1.6.8 2.5.8s1.8-.3 2.5-.8"/>',
-    },
-    {
-      name: 'Symboly (♀ + dudlík)',
-      mother: '<circle cx="12" cy="8" r="5"/><path d="M12 13v7"/><path d="M9 17h6"/>',
-      baby: '<ellipse cx="12" cy="7" rx="4" ry="2.3"/><path d="M12 9.3v1.4"/><circle cx="12" cy="15" r="4.3"/>',
-    },
-    {
-      name: 'Objekty (silueta + láhev)',
-      mother: '<path d="M12 3c-2.9 0-4.8 2-4.8 5 0 1.4.5 2.6.9 3.3C6.5 12 5.5 13.5 5.5 16v1.5h13V16c0-2.5-1-4-2.6-4.7.4-.7.9-1.9.9-3.3 0-3-1.9-5-4.8-5Z"/>',
-      baby: '<path d="M10 3h4"/><path d="M10.5 3v2.2"/><path d="M13.5 3v2.2"/><rect x="8.3" y="5.2" width="7.4" height="15" rx="2.4"/><path d="M9 10h6"/><path d="M9 13h6"/>',
-    },
-    {
-      name: 'Osoba + dupačky',
-      mother: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
-      baby: '<path d="M9 4c.6 1 1.8 1.5 3 1.5S14.4 5 15 4"/><path d="M9 4 7.5 7 6 8v3l1.8-.6V20h8.4V10.4L18 11V8l-1.5-1L15 4"/><path d="M10.2 20v-1.6h3.6V20"/>',
-    },
-  ];
-  let iconIdx = 0;
+  // Actor pictograms, drawn to match the requested references: mother = a
+  // woman avatar with a side ponytail + bangs + shoulders; baby = a seated
+  // infant in a diaper (curl, happy face, folded legs, triangular diaper).
+  const ACTOR_ICON = {
+    mother:
+      '<path d="M8.6 7.4c0-2.6 1.5-4.4 3.4-4.4s3.4 1.8 3.4 4.4c0 2.2-1.5 3.8-3.4 3.8s-3.4-1.6-3.4-3.8Z"/><path d="M8.9 5.8c.6-1.7 1.8-2.8 3.1-2.8s2.5 1.1 3.1 2.8"/><path d="M8.7 5.4C6.9 5.6 5.8 6.9 6 8.4c.1.9.7 1.5 1.6 1.6"/><path d="M12 11.2v1.3"/><path d="M7 21v-2.7c0-2.3 1.7-4.1 3.8-4.4"/><path d="M17 21v-2.7c0-2.3-1.7-4.1-3.8-4.4"/><path d="M10.2 13.9a5 5 0 0 1 3.6 0"/>',
+    baby:
+      '<circle cx="12" cy="6.4" r="4"/><path d="M11.4 2.6c1.5-.2 2.5 1 1.9 2.2-.3.6-.9.8-1.5.6"/><circle cx="10.2" cy="6.3" r=".85" fill="currentColor" stroke="none"/><circle cx="13.8" cy="6.3" r=".85" fill="currentColor" stroke="none"/><path d="M10.6 8c.4.4.9.6 1.4.6s1-.2 1.4-.6"/><path d="M8.7 11c-1.7.9-2.8 2.6-2.8 4.6 0 1 .7 1.9 1.7 2.1"/><path d="M15.3 11c1.7.9 2.8 2.6 2.8 4.6 0 1-.7 1.9-1.7 2.1"/><path d="M9.8 15.4h4.4l-2.2 3Z"/><path d="M6.9 17.7c-.7.5-1.6.1-1.6-.8"/><path d="M17.1 17.7c.7.5 1.6.1 1.6-.8"/>',
+  };
 
   function actorIcon(actor) {
-    return `<span class="actor-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:18px;height:18px">${ICON_SETS[iconIdx][actor]}</svg></span>`;
+    return `<span class="actor-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px">${ACTOR_ICON[actor]}</svg></span>`;
   }
 
   // The three fill states, one per meal slot:
@@ -277,20 +255,14 @@
   }
 
   function render() {
-    document.getElementById('icon-label').textContent = `${iconIdx + 1}/${ICON_SETS.length} — ${ICON_SETS[iconIdx].name}`;
     document.getElementById('stage-label').textContent = STAGES[stageIdx];
     document.getElementById('slots').innerHTML = MEAL_TYPES.map(renderSlot).join('');
 
     const url = new URL(window.location);
-    url.searchParams.set('icons', String(iconIdx + 1));
     url.searchParams.set('stage', STAGES[stageIdx]);
     window.history.replaceState({}, '', url);
   }
 
-  function cycleIcon(dir) {
-    iconIdx = (iconIdx + dir + ICON_SETS.length) % ICON_SETS.length;
-    render();
-  }
   function cycleStage(dir) {
     stageIdx = (stageIdx + dir + STAGES.length) % STAGES.length;
     render();
@@ -299,19 +271,13 @@
   document.addEventListener('keydown', (e) => {
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-    if (e.key === 'ArrowLeft') cycleIcon(-1);
-    if (e.key === 'ArrowRight') cycleIcon(1);
+    if (e.key === 'ArrowLeft') cycleStage(-1);
+    if (e.key === 'ArrowRight') cycleStage(1);
   });
 
   // init from URL if present
   (function initFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const ic = params.get('icons');
-    const s = params.get('stage');
-    if (ic) {
-      const idx = Number(ic) - 1;
-      if (idx >= 0 && idx < ICON_SETS.length) iconIdx = idx;
-    }
+    const s = new URLSearchParams(window.location.search).get('stage');
     if (s) {
       const idx = STAGES.indexOf(s);
       if (idx >= 0) stageIdx = idx;

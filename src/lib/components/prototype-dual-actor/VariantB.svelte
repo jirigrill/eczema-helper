@@ -1,9 +1,8 @@
 <script lang="ts">
   // PROTOTYPE — settled layout for #557: stacked actor rows. Each eligible
   // actor gets its own always-visible row under a shared slot header, marked
-  // by a fixed-width round icon (mother / baby). The exact pictogram is still
-  // being chosen against the static prototype's icon-set switcher — this
-  // mirrors set 1 (woman figure + baby face). A conflict allergen is shown
+  // by a fixed-width round icon: a woman (side ponytail) for the mother, a
+  // seated baby in a diaper for the child. A conflict allergen is shown
   // once per meal section — merged and deduplicated across both actors. Each
   // row's indicator sits in one right rail so an empty actor's "+" lines up
   // under a logged actor's "›" (its meal editor); when BOTH actors are empty
@@ -68,21 +67,48 @@
               <div class="flex items-center gap-2 py-1">
                 {#if showIcon}
                   <span
-                    class="border-surface-dark text-text-muted flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border"
+                    class="border-surface-dark text-text-muted flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full border"
                   >
                     {#if row.actor === 'mother'}
-                      <!-- woman: head + flared dress -->
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-[18px] w-[18px]">
-                        <circle cx="12" cy="5" r="3" />
-                        <path d="M12 8c-1.7 0-2.9 1.1-3.3 2.8L6.7 20h2.4l.9 3h4l.9-3h2.4l-1.9-9.2C15 9.1 13.7 8 12 8Z" />
+                      <!-- woman avatar: head + side ponytail + bangs + shoulders -->
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-[20px] w-[20px]"
+                      >
+                        <path d="M8.6 7.4c0-2.6 1.5-4.4 3.4-4.4s3.4 1.8 3.4 4.4c0 2.2-1.5 3.8-3.4 3.8s-3.4-1.6-3.4-3.8Z" />
+                        <path d="M8.9 5.8c.6-1.7 1.8-2.8 3.1-2.8s2.5 1.1 3.1 2.8" />
+                        <path d="M8.7 5.4C6.9 5.6 5.8 6.9 6 8.4c.1.9.7 1.5 1.6 1.6" />
+                        <path d="M12 11.2v1.3" />
+                        <path d="M7 21v-2.7c0-2.3 1.7-4.1 3.8-4.4" />
+                        <path d="M17 21v-2.7c0-2.3-1.7-4.1-3.8-4.4" />
+                        <path d="M10.2 13.9a5 5 0 0 1 3.6 0" />
                       </svg>
                     {:else}
-                      <!-- baby: face -->
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-[18px] w-[18px]">
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M9 11h.01" />
-                        <path d="M15 11h.01" />
-                        <path d="M9.5 15.5c.7.5 1.6.8 2.5.8s1.8-.3 2.5-.8" />
+                      <!-- seated baby in a diaper: curl, happy face, folded legs -->
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-[20px] w-[20px]"
+                      >
+                        <circle cx="12" cy="6.4" r="4" />
+                        <path d="M11.4 2.6c1.5-.2 2.5 1 1.9 2.2-.3.6-.9.8-1.5.6" />
+                        <circle cx="10.2" cy="6.3" r=".85" fill="currentColor" stroke="none" />
+                        <circle cx="13.8" cy="6.3" r=".85" fill="currentColor" stroke="none" />
+                        <path d="M10.6 8c.4.4.9.6 1.4.6s1-.2 1.4-.6" />
+                        <path d="M8.7 11c-1.7.9-2.8 2.6-2.8 4.6 0 1 .7 1.9 1.7 2.1" />
+                        <path d="M15.3 11c1.7.9 2.8 2.6 2.8 4.6 0 1-.7 1.9-1.7 2.1" />
+                        <path d="M9.8 15.4h4.4l-2.2 3Z" />
+                        <path d="M6.9 17.7c-.7.5-1.6.1-1.6-.8" />
+                        <path d="M17.1 17.7c.7.5 1.6.1 1.6-.8" />
                       </svg>
                     {/if}
                   </span>
