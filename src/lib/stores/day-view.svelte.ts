@@ -3,7 +3,13 @@ import { fromStore } from 'svelte/store';
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { resolveDay } from '$lib/domain/day-view';
 import type { DayViewMode } from '$lib/domain/day-view';
-import type { Meal, SchedulePhase, SkinObservation, SkinPhoto } from '$lib/domain/models';
+import type {
+  FeedingStage,
+  Meal,
+  SchedulePhase,
+  SkinObservation,
+  SkinPhoto,
+} from '$lib/domain/models';
 import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
 import { createMealSession } from '$lib/stores/meal-session';
 import { scheduleRaw } from '$lib/stores/schedule-context';
@@ -21,6 +27,8 @@ export type DayView = {
   readonly photos: SkinPhoto[];
   readonly ctx: ScheduleContext;
   readonly phase: SchedulePhase | null;
+  /** Live feeding stage (`#567`); `null` until the settings liveQuery emits. */
+  readonly feedingStage: FeedingStage | null;
   readonly mealSession: ReturnType<typeof createMealSession>;
   readonly observationSession: ReturnType<typeof createSkinObservationSession>;
   readonly photoSession: ReturnType<typeof createSkinPhotoSession>;
@@ -95,6 +103,9 @@ export function createDayView(getParam: () => string, today: string): DayView {
     },
     get phase() {
       return phase;
+    },
+    get feedingStage() {
+      return feedingStage;
     },
     get mealSession() {
       return mealSession;
