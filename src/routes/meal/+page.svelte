@@ -139,7 +139,22 @@
       return;
     }
     selectedActor = actor;
+    // Mark that a swap-autosave just landed the returning actor in a clean,
+    // saved edit. This flips the disabled "Uložit změny" dead-end into a
+    // forward "Hotovo" exit (see `isDoneState`) — but only for this
+    // swap-driven state, not for a plain clean edit opened from the day view
+    // (which keeps the established back-arrow-to-exit contract, #277/#286).
+    // Any subsequent working-meal edit clears it via `handleEdit` below.
+    swappedThisSession = true;
   }
+
+  /**
+   * True after a successful actor swap left the returning actor showing a
+   * clean, already-saved meal. Cleared the moment the user makes any edit, so
+   * a genuine change routes back through the save CTA. Never set on direct
+   * entry, so the ordinary clean-edit CTA contract is untouched.
+   */
+  let swappedThisSession = $state(false);
 
   // ── Editor + slot hydration on mount ─────────────────────
   // The MealEditor (PRD #284) owns the meal lifecycle from open to finalize:
@@ -292,6 +307,13 @@
     if (ge) {
       return `${actionStrings.save} ${ge.food.name}`;
     }
+    // Clean saved meal with nothing left to finalize (typically after a
+    // swap-on-dirty round-trip autosaved this actor's meal): the CTA reads as
+    // a forward "done" exit to `returnTo`, not a disabled dead-end whose only
+    // escape is the back arrow (issue #571 follow-up).
+    if (isDoneState) {
+      return actionStrings.done;
+    }
     if (editor.finalizeKind === 'edit') {
       return actionStrings.saveChanges;
     }
@@ -339,6 +361,26 @@
    */
   const finalizeDisabled = $derived(!drilledFamily && !gridEditingFoodId && !editor.canFinalize);
 
+  /**
+   * "Done" state (issue #571 follow-up): after an actor swap, the returning
+   * actor's clean, already-saved meal. A swap-on-dirty round-trip autosaves
+   * invisibly and leaves the returning actor with nothing to finalize — the
+   * old disabled "Uložit změny" read as "your work didn't take", so here the
+   * CTA offers a forward exit ("Hotovo" → `returnTo`) instead. Gated on
+   * `swappedThisSession` so a plain clean edit opened directly from the day
+   * view keeps the established back-arrow-to-exit contract (#277/#286); a
+   * dirty edit routes through the save CTA; a truly empty meal falls through
+   * to `showEmptyHint`.
+   */
+  const isDoneState = $derived(
+    swappedThisSession &&
+      !drilledFamily &&
+      !gridEditingFoodId &&
+      editor.finalizeKind === 'edit' &&
+      !editor.canFinalize &&
+      hasConfirmed,
+  );
+
   function handleCta(): void {
     if (drilledFamily) {
       if (currentEditingFood) {
@@ -356,6 +398,12 @@
     if (ge) {
       editor.update((m) => confirmFood(m, ge.familyId, ge.food.foodId));
       gridEditingFoodId = null;
+      return;
+    }
+    // Clean saved meal: the CTA is a forward "done" exit to the day overview,
+    // not a save (there is nothing to persist). See `isDoneState`.
+    if (isDoneState) {
+      goto(returnTo);
       return;
     }
     // Finalize: persist. Guard: a disabled CTA is a no-op (clean edit, or
@@ -792,10 +840,10 @@
       <p class="body-muted pb-2 text-center">{commonStrings.meal.emptyMealHint}</p>
     {/if}
     <button
-      aria-disabled={finalizeDisabled ? 'true' : 'false'}
+      aria-disabled={finalizeDisabled && !isDoneState ? 'true' : 'false'}
       onclick={handleCta}
       class="w-full rounded-xl py-3 text-sm font-semibold transition-all
-        {finalizeDisabled
+        {finalizeDisabled && !isDoneState
         ? 'bg-surface-dark text-text-muted cursor-default'
         : editingFoodIsEliminated ||
             familySaveHasEliminated ||

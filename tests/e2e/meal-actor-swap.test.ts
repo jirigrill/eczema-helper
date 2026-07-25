@@ -125,3 +125,31 @@ test('swap-on-dirty aborts on save failure: mother stays active and keeps her fo
   );
   await expect(page.getByText('Brambory')).toBeVisible();
 });
+
+test('swap round-trip leaves a forward "Hotovo" exit, not a dead-end disabled CTA', async ({
+  page,
+}) => {
+  const today = await seedMixedStage(page);
+
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
+
+  const motherPill = page.getByRole('button', { name: 'Já', exact: true });
+  const babyPill = page.getByRole('button', { name: 'Miminko', exact: true });
+
+  // Compose the mother's lunch, swap to the baby (autosaving the mother), then
+  // swap back. The mother's meal is now a clean, saved, non-empty edit — the
+  // state that used to leave the CTA disabled with the back arrow as the only exit.
+  await addBramboraAndCommit(page);
+  await babyPill.click();
+  await motherPill.click();
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  // The CTA now offers a forward exit: an enabled "Hotovo" that returns to the
+  // day overview (never a disabled dead-end).
+  const cta = page.getByRole('button', { name: 'Hotovo', exact: true });
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveAttribute('aria-disabled', 'false');
+  await cta.click();
+  await page.waitForURL(new RegExp(`/day/${today}`));
+});
