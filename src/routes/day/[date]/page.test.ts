@@ -208,6 +208,7 @@ const trainingScheduleToday: GeneratedSchedule = {
 beforeEach(() => {
   mockGoto.mockReset();
   mockScheduleRaw.set({ status: 'loading' });
+  mockSettings.set({ feedingStage: 'breastfed' });
   mockPage.params.date = pastDate;
   liveMeals = [];
   liveObservations = [];
@@ -783,5 +784,157 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
     const { container } = render(DayPage);
     await tick();
     expect(container.querySelectorAll('[data-testid="tolerance-reminder"]')).toHaveLength(0);
+  });
+
+  // ── #570: dual-actor day-view slot projection ──────────────────────────────
+
+  describe('dual-actor meal slots (#570)', () => {
+    it('mixed stage: a slot with both actors logged renders per-actor rows', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'mixed' });
+      liveMeals = [
+        {
+          id: `${today}:lunch:mother`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+          createdAt: `${today}T12:00:00.000Z`,
+        } satisfies Meal,
+        {
+          id: `${today}:lunch:baby`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'baby',
+          items: [{ id: 'b1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+          createdAt: `${today}T12:30:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      expect(getByTestId('meal-actor-row-mother').textContent).toMatch(/Rýže/);
+      expect(getByTestId('meal-actor-row-baby').textContent).toMatch(/Brambory/);
+    });
+
+    it('mixed stage: one actor empty shows a "+" on that row, "›" on the logged row', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'mixed' });
+      liveMeals = [
+        {
+          id: `${today}:lunch:mother`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+          createdAt: `${today}T12:00:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      expect(getByTestId('meal-actor-row-mother').textContent).toMatch(/›/);
+      expect(getByTestId('meal-actor-row-baby').textContent).toMatch(/\+/);
+    });
+
+    it('mixed stage: a shared allergen shows once per section, deduplicated across both actors', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'mixed' });
+      // A today-rooted schedule that eliminates dairy, so both actors' dairy
+      // foods conflict and the section must dedupe to a single pill.
+      const dairyEliminationToday: GeneratedSchedule = {
+        permanentMother: [],
+        permanentBaby: [],
+        startDate: today,
+        estimatedEndDate: futureDate,
+        phases: [
+          {
+            id: 'elim',
+            type: 'elimination',
+            allergenIds: ['dairy' as const],
+            startDate: today,
+            endDate: futureDate,
+          },
+        ],
+      };
+      // The protocol eliminates dairy; both actors log a dairy food.
+      liveMeals = [
+        {
+          id: `${today}:dinner:mother`,
+          date: today,
+          mealType: 'dinner',
+          actor: 'mother',
+          items: [{ id: 'm1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
+          createdAt: `${today}T18:00:00.000Z`,
+        } satisfies Meal,
+        {
+          id: `${today}:dinner:baby`,
+          date: today,
+          mealType: 'dinner',
+          actor: 'baby',
+          items: [{ id: 'b1', name: 'Jogurt', foodId: 'kravske-mleko', amount: 'portion' }],
+          createdAt: `${today}T18:30:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set({
+        status: 'ready',
+        schedule: dairyEliminationToday,
+        answers: todayAnswers,
+      });
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      const slot = getByTestId('meal-row-dinner');
+      const pills = Array.from(slot.querySelectorAll('span')).filter((el) =>
+        /^⚠\s*Mléčné výrobky$/.test(el.textContent ?? ''),
+      );
+      expect(pills).toHaveLength(1);
+    });
+
+    it('breastfed stage: the slot collapses to a single row with no actor sub-rows', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'breastfed' });
+      liveMeals = [
+        {
+          id: `${today}:lunch:mother`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+          createdAt: `${today}T12:00:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId, queryByTestId } = render(DayPage);
+      await tick();
+      expect(getByTestId('meal-row-lunch').textContent).toMatch(/Rýže/);
+      expect(queryByTestId('meal-actor-row-mother')).toBeNull();
+      expect(queryByTestId('meal-actor-row-baby')).toBeNull();
+    });
+
+    it('solids stage: the slot collapses to a single row driven by the baby-only eligible set', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'solids' });
+      liveMeals = [
+        {
+          id: `${today}:lunch:baby`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'baby',
+          items: [{ id: 'b1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+          createdAt: `${today}T12:00:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId, queryByTestId } = render(DayPage);
+      await tick();
+      expect(getByTestId('meal-row-lunch').textContent).toMatch(/Brambory/);
+      expect(queryByTestId('meal-actor-row-mother')).toBeNull();
+      expect(queryByTestId('meal-actor-row-baby')).toBeNull();
+    });
   });
 });

@@ -316,6 +316,14 @@ for the mother, `[...protocolEliminated, ...permanentBaby]` for the baby — so 
 everything across both actors" views, e.g. the day view's *Vyhýbej se* list, merge all
 three sets directly rather than through the per-actor helper.)
 
+### eliminatedByActor
+The day view's per-slot projection of [EliminationWindow](#eliminationwindow), keyed by
+actor: `Partial<Record<Actor, AllergenId[]>>`, one entry per [eligible actor](#actor)
+built from `eliminatedFor(ctx, actor)`. Passed from `src/routes/day/[date]/+page.svelte`
+into `MealCard`, which runs [Conflict Detection](#conflict-detection) per actor row so a
+mother-only permanent elimination never flags the baby's food (and vice versa). Distinct
+from the display-only all-actors *Vyhýbej se* merge.
+
 ### Conflict Detection
 
 Identifying `MealItem`s in a logged meal that violate the current `EliminationWindow`.
