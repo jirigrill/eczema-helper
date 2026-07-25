@@ -169,7 +169,7 @@ export type Meal = {
   id: MealId; // deterministic composite key — e.g. "2026-05-27:lunch:mother"
   date: string; // ISO date
   mealType: MealType;
-  actor: Actor; // v1 hardcodes 'mother'; 'baby' reserved for the dual-actor build
+  actor: Actor; // 'mother' | 'baby', governed by FeedingStage via getEligibleActors (ADR-0027)
   items: MealItem[];
   notes?: string; // optional free-text observation (renamed from label)
   createdAt: string; // ISO datetime; render as Czech HH:MM at display sites (ADR-0014)
