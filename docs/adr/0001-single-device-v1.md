@@ -13,6 +13,13 @@ The one carefully-bounded exception: when the app later asks an AI to *suggest* 
 **Status:** Accepted
 **Date:** 2026-05-11
 
+> **Amendment (ADR-0027, 2026-07-25):** The "single-**actor**" half of this ADR's
+> title is retired. Meals are now dual-actor (`mother` + `baby`) over a single
+> mirrored schedule — see [ADR-0027](0027-dual-actor-mirrored-schedule.md). This
+> is **not** a reversal of the single-*device* decision: still one phone, one
+> journal, no accounts, no sync, no server holding user data. The
+> GDPR-controller and multi-device-sync reasoning below is unchanged.
+
 > **Amendment (ADR-0026, 2026-07-05):** An LLM schedule proposer (tracked in [PRD #423](https://github.com/jirigrill/eczema-helper/issues/423)) is reached through a **stateless edge-function BFF** (prompt + schema + key only,
 > no storage bindings, client-redacted payloads). "No server" is refined to **"no
 > server *holding user data*"** — the BFF is PII-free in transit and at rest, so

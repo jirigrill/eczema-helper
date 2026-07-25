@@ -92,7 +92,10 @@ The dose-escalation model — sole per-allergen dose-progression shape as of PRD
 - **`FeedingStage`** — `'breastfed' | 'mixed' | 'solids'`, mirroring the three
   table variants in the source protocols (Pekárková, Matoušková): "plně kojené
   dítě (bez příkrmů)" / "kojené dítě + příkrmy" / "dítě plně na příkrmech". Not
-  every allergen has data for every stage.
+  every allergen has data for every stage. Beyond selecting a ladder's dose
+  variant, it is the app's **live master switch**: stored in the `settings`
+  singleton (see [SettingsData](#settingsdata--settingscontext)) and read by
+  `getEligibleActors` to gate who may log a meal.
 - **`LadderStep`** (a "rung") — `{ id: string, anchor: PortionKind,
   isEvaluationCheckpoint: boolean, dose: string }`. `anchor` reuses the shared
   `PortionKind` vocabulary; *order within the ladder*, not the anchor value
@@ -419,6 +422,16 @@ singleton row (keyed by `SINGLETON_ID`, mirroring `answers`/`schedule`). Today i
 reactive store consumers read for the live value; changed live from the Settings screen
 via `protocolSession.setFeedingStage()`.
 
+### SettingsRepository
+
+The port (`src/lib/domain/ports/settings-repository.ts`) for persisting and loading
+the `SettingsData` singleton — `save(settings)` / `load()`, both returning
+`Result<…, string>`. Single implementation `DexieSettingsRepository`
+(`src/lib/adapters/dexie-settings-repository.ts`), tested against `fake-indexeddb`.
+Reached through `protocolSession` for writes and `settingsContext` for reactive reads;
+routes never construct the adapter directly. Mirrors the `ScheduleRepository` /
+`QuestionnaireRepository` shape.
+
 ### protocolSession
 
 The unified module (`src/lib/stores/protocol-session.ts`) that owns **both** reads and
@@ -493,10 +506,12 @@ See ADR-0012.
 
 A record of food intake for one date+mealType+actor slot. Fields: `id`
 (`MealId`), `date`, `mealType`, `items` (list of `MealItem`), `actor`
-(`'mother' | 'baby'` — v1 always writes `'mother'`), optional `notes` (free-text
-observation), `createdAt` (ISO datetime string — rendered as Czech `HH:MM` at
-display sites, never stored formatted; see ADR-0014). Meals are day-granular —
-no user-facing time of day. → See ADR-0003.
+(`Actor` — `'mother' | 'baby'`, gated by the live `FeedingStage` via
+`getEligibleActors`), optional `notes` (free-text observation), `createdAt`
+(ISO datetime string — rendered as Czech `HH:MM` at display sites, never
+stored formatted; see ADR-0014). Meals are day-granular — no user-facing time
+of day. Both actors ride one mirrored schedule (see [Actor](#actor),
+ADR-0027). → See ADR-0003.
 
 ### MealId
 *Czech: —* (internal key, not user-visible)
@@ -556,6 +571,15 @@ type in `models.ts`. `getEligibleActors(stage)` gates who may log at the live
 `mixed → [mother, baby]`, `solids → [baby]`. Every `Meal` carries its `actor`
 in the composite `MealId` (`date:mealType:actor`).
 
+### getEligibleActors
+`getEligibleActors(stage: FeedingStage): Actor[]` in `models.ts` — the single
+source for "who may log at this feeding stage". Returns `breastfed → [mother]`,
+`mixed → [mother, baby]`, `solids → [baby]`. Read by the `/meal` route (drives
+the [Actor Picker](#actor-picker) visibility and the implicit-actor snap) and
+mirrored in prose by the [Actor](#actor) invariant. The mirrored-schedule
+rationale (one protocol, two permanent-elimination sets) lives in
+[ADR-0027](docs/adr/0027-dual-actor-mirrored-schedule.md).
+
 ### Actor Picker
 *Czech labels: `Já` (mother) / `Miminko` (baby)*
 
@@ -563,8 +587,9 @@ The `/meal` control — a full-width `Chip.svelte` pill row pinned in the sticky
 header — by which the mother chooses whose meal she is logging. Shown **only**
 when more than one [Actor](#actor) is eligible (i.e. `mixed`); single-actor
 stages render no picker and no label, the actor being implicit. Selecting a pill
-re-opens the [MealEditor](#mealeditor) on that actor's slot. Swap-on-dirty
-handling is tracked separately (issue #562).
+re-opens the [MealEditor](#mealeditor) on that actor's slot; a **swap-on-dirty**
+autosave (the meal-editor store's `swapActor`) persists the departing actor's
+confirmed foods before the switch (issue #571).
 → See spec [issue #564](https://github.com/jirigrill/eczema-helper/issues/564)
 and [issue #569](https://github.com/jirigrill/eczema-helper/issues/569).
 
