@@ -1,7 +1,7 @@
 import { tick } from 'svelte';
 import { writable } from 'svelte/store';
 
-import { fireEvent, render } from '@testing-library/svelte';
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -112,6 +112,9 @@ function setReady() {
 
 beforeEach(async () => {
   mockScheduleRaw.set({ status: 'loading' });
+  // Reset the feeding stage to the default so a test that changes it (and may
+  // fail before its own cleanup line) can't leak the stage into the next test.
+  mockSettings.set({ feedingStage: 'breastfed' });
   await db.meals.clear();
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
@@ -637,6 +640,91 @@ describe('meal/+page.svelte', () => {
     const { findByRole } = render(MealPage);
     // No picker in solids; the baby's meal hydrates as the implicit actor.
     await findByRole('button', { name: /^Rýže$/ });
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  // ── Actor-aware in-editor conflict detection (spec #564/#568, US14/15) ──
+  // The editor must check the working meal against the *selected* actor's
+  // eliminated set — protocol ∪ that actor's permanent allergies — not always
+  // the mother's. A baby-only permanent (permanentBaby ≠ permanentMother) must
+  // flag on the baby's meal and must NOT flag on the mother's.
+
+  // dairy is permanent for the BABY only; the mother has no permanents and the
+  // protocol eliminates nothing, so mother meals see an empty eliminated set.
+  const babyOnlyDairySchedule: GeneratedSchedule = {
+    permanentMother: [],
+    permanentBaby: ['dairy'],
+    startDate: today,
+    estimatedEndDate: future,
+    phases: [
+      { id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future },
+    ],
+  };
+  function setReadyBabyOnlyDairy() {
+    mockScheduleRaw.set({
+      status: 'ready',
+      schedule: babyOnlyDairySchedule,
+      answers: sampleAnswers,
+    });
+  }
+
+  it('flags a baby-permanent food against the baby set in the solids stage (US14)', async () => {
+    setReadyBabyOnlyDairy();
+    mockSettings.set({ feedingStage: 'solids' });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, container } = render(MealPage);
+    await tick();
+    // Compose a dairy food for the implicit baby actor and confirm it.
+    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Checked against permanentBaby → the confirmed row is danger-flagged.
+    // A hardcoded mother set (empty here) would leave it un-flagged (the H1 bug).
+    expect(container.querySelector('[data-state="danger-confirmed"]')).not.toBeNull();
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  it('does NOT flag the baby-permanent food on the mother slot, but DOES after switching to Miminko (US14/15)', async () => {
+    setReadyBabyOnlyDairy();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    // Same dairy food logged in BOTH actors' slots.
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Kravské mléko', foodId: 'kravske-mleko', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Kravské mléko', foodId: 'kravske-mleko', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByRole, container } = render(MealPage);
+    // Mother slot: dairy is not in her (empty) eliminated set → the confirmed
+    // grid row is NOT danger-flagged.
+    await findByRole('button', { name: 'Kravské mléko' });
+    await tick();
+    expect(container.querySelector('[data-state="danger-confirmed"]')).toBeNull();
+    // Switch to the baby: swap-on-dirty autosaves the (clean) mother meal, then
+    // re-opens the baby slot. Its eliminated set (permanentBaby) flips the same
+    // confirmed food into a danger-flagged row once setEliminatedToday flushes.
+    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
+    await findByRole('button', { name: 'Kravské mléko' });
+    await waitFor(() =>
+      expect(container.querySelector('[data-state="danger-confirmed"]')).not.toBeNull(),
+    );
     mockSettings.set({ feedingStage: 'breastfed' });
   });
 

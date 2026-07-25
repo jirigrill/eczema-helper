@@ -5,7 +5,7 @@
   import { mealConfig } from '$lib/config/meals';
   import { actorConfig } from '$lib/config/actors';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-  import { detectConflicts, conflictingAllergens } from '$lib/domain/schedule-queries';
+  import { mealConflicts } from '$lib/domain/schedule-queries';
   import DayCard from './DayCard.svelte';
 
   let {
@@ -41,21 +41,19 @@
 
   const slots = $derived(
     mealTypeOrder.map((type) => {
+      const merged = new Set<AllergenId>();
       const rows: ActorRow[] = eligibleActors.map((actor) => {
         const meal = meals.find((m) => m.mealType === type && m.actor === actor);
         const eliminated = eliminatedByActor[actor] ?? [];
-        const conflictItemIds = new Set(
-          meal ? detectConflicts(meal.items, eliminated, catalog).map((c) => c.id) : [],
-        );
-        return { actor, meal, conflictItemIds };
+        // One pass per meal yields both the offending item ids (to danger-style
+        // each food) and the offending allergens (merged once per section into
+        // the shared warning pills below).
+        const { itemIds, allergens } = meal
+          ? mealConflicts(meal.items, eliminated, catalog)
+          : { itemIds: new Set<string>(), allergens: [] as AllergenId[] };
+        for (const a of allergens) merged.add(a);
+        return { actor, meal, conflictItemIds: itemIds };
       });
-      const merged = new Set<AllergenId>();
-      for (const { actor, meal } of rows) {
-        if (!meal) continue;
-        for (const a of conflictingAllergens(meal.items, eliminatedByActor[actor] ?? [], catalog)) {
-          merged.add(a);
-        }
-      }
       return {
         type,
         rows,
@@ -67,7 +65,7 @@
 </script>
 
 {#snippet allergenPills(allergens: AllergenId[])}
-  {#each allergens as allergenId}
+  {#each allergens as allergenId (allergenId)}
     <span class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
       >⚠ {categoryStrings[allergenId as keyof typeof categoryStrings]?.name ?? allergenId}</span
     >
@@ -85,7 +83,7 @@
 {/snippet}
 
 {#snippet foodRun(items: MealItem[], conflictItemIds: Set<string>)}
-  {#each items as item, i}
+  {#each items as item, i (item.id)}
     {#if i > 0}<span> · </span>{/if}
     {@const itemConflict = conflictItemIds.has(item.id)}
     <span

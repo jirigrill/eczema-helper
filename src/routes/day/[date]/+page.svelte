@@ -300,7 +300,7 @@
               </div>
               {#if allowedProtocol.length > 0}
                 <div class="flex flex-wrap gap-1.5">
-                  {#each allowedProtocol as slug}
+                  {#each allowedProtocol as slug (slug)}
                     <AllergenChip {slug} />
                   {/each}
                 </div>
@@ -314,7 +314,7 @@
               </div>
               {#if eliminatedToday.length > 0}
                 <div class="flex flex-wrap gap-1.5">
-                  {#each eliminatedToday as slug}
+                  {#each eliminatedToday as slug (slug)}
                     <AllergenChip {slug} color="warning" />
                   {/each}
                 </div>

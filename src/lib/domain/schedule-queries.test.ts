@@ -23,6 +23,7 @@ import {
   getReintroductionDayInfo,
   getScheduleProgress,
   isPhaseEndForEvaluation,
+  mealConflicts,
 } from './schedule-queries';
 
 const catalog = new BundledCatalogAdapter();
@@ -899,6 +900,46 @@ describe('conflictingAllergens', () => {
     // ryzove-mleko is neutral, so only soy is flagged on both paths
     expect(flaggedItems.map((i) => i.foodId)).toEqual(['sojove-mleko']);
     expect(allergens).toEqual(['soy']);
+  });
+});
+
+describe('mealConflicts', () => {
+  it('returns both the offending item ids and the distinct offending allergens in one pass', () => {
+    const items: MealItem[] = [
+      item('soy', 'sojove-mleko'),
+      item('milk', 'kravske-mleko'),
+      item('rice', 'ryzove-mleko'),
+    ];
+    const { itemIds, allergens } = mealConflicts(items, ['soy', 'dairy'], catalog);
+    expect([...itemIds].sort()).toEqual(['milk', 'soy']);
+    expect([...allergens].sort()).toEqual(['dairy', 'soy']);
+  });
+
+  it('agrees with detectConflicts + conflictingAllergens — the two projections stay consistent', () => {
+    const items: MealItem[] = [item('soy', 'sojove-mleko'), item('rice', 'ryzove-mleko')];
+    const eliminated: AllergenId[] = ['soy', 'dairy'];
+    const combined = mealConflicts(items, eliminated, catalog);
+    expect([...combined.itemIds].sort()).toEqual(
+      detectConflicts(items, eliminated, catalog)
+        .map((i) => i.id)
+        .sort(),
+    );
+    expect([...combined.allergens].sort()).toEqual(
+      [...conflictingAllergens(items, eliminated, catalog)].sort(),
+    );
+  });
+
+  it('deduplicates an allergen shared across items but keeps every offending item id', () => {
+    const items: MealItem[] = [item('a', 'kravske-mleko'), item('b', 'kravske-mleko')];
+    const { itemIds, allergens } = mealConflicts(items, ['dairy'], catalog);
+    expect([...itemIds].sort()).toEqual(['a', 'b']);
+    expect(allergens).toEqual(['dairy']);
+  });
+
+  it('returns empty projections when nothing is eliminated', () => {
+    const { itemIds, allergens } = mealConflicts([item('a', 'kravske-mleko')], [], catalog);
+    expect(itemIds.size).toBe(0);
+    expect(allergens).toHaveLength(0);
   });
 });
 
