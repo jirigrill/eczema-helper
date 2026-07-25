@@ -471,26 +471,38 @@ On-device normalization is deliberately minimal and precision-biased
 authoritative cross-user clustering is out of scope for the on-device catalog.
 
 ### Actor
-The person whose food intake a `Meal` describes. Always `'mother'`
-(the breastfeeding mother — allergens transit to the baby via breastmilk).
-The `actor` field is reserved on `Meal` for future expansion to `'baby'`
-once solids-introduction is in scope, but only `'mother'` is written today.
+The person whose food intake a `Meal` describes — `'mother' | 'baby'`. The
+mother is the breastfeeding mother (allergens transit to the baby via
+breastmilk); the baby is a real actor from the `mixed` feeding stage onward,
+once the baby eats solids alongside the breast. Which actors may log is
+governed by the live `FeedingStage`: `getEligibleActors(stage)` returns
+`breastfed → [mother]`, `mixed → [mother, baby]`, `solids → [baby]`. Each
+`Meal` carries its `actor` in the composite `MealId` (`date:mealType:actor`),
+so a `(date, mealType)` slot holds up to one meal per actor.
 
-**Why the field exists now:** committing to dual-actor logic now would
-fork the schedule generator (mother eliminates X *and* baby solids skip X
-on a different timeline). Reserving the field is cheap; retrofitting it
-after data exists is a migration.
+**Why one schedule, not two:** the baby follows a *mirrored* schedule, not a
+second ladder — both actors are checked against the same protocol-eliminated
+set (`protocolEliminated`), differing only in their own permanent
+eliminations (`permanentMother` vs `permanentBaby`). The mother eliminates X
+and the baby avoids X on the same protocol timeline; there is no separate
+baby reintroduction ladder or second generator. `eliminatedFor(ctx, actor)`
+recombines the shared protocol set with the actor's permanent set in one
+place. See [ADR-0027](docs/adr/0027-dual-actor-mirrored-schedule.md).
 
-**Invariant:** every `Meal` has an `actor`; `actor === 'mother'`.
+**Invariant:** every `Meal` has an `actor` in `{ mother, baby }`; the actor
+is a member of `getEligibleActors(feedingStage)` at log time.
 
 ---
 
 ## Invariants
 
-- **Single device, single actor.** Runs on one phone (the mother's).
-  No accounts, no sync, no server. See [ADR-0001](docs/adr/0001-single-device-v1.md).
+- **Single device.** Runs on one phone (the mother's). No accounts, no sync,
+  no server. See [ADR-0001](docs/adr/0001-single-device-v1.md). (The app is no
+  longer single-*actor*: meals are logged for both `mother` and `baby` on one
+  mirrored schedule — see the [Actor](#actor) entry and
+  [ADR-0027](docs/adr/0027-dual-actor-mirrored-schedule.md).)
 - **No backup mechanism exists yet.** Data lives only in IndexedDB on the one device. An encrypted manual export/import (whole-state serialize + AES-256-GCM, passphrase-derived key; every record has a stable UUID) is the intended floor — not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).
-- **Meals are day-granular.** `Meal` carries `date` + `mealType` only.
+- **Meals are day-granular.** `Meal` carries `date` + `mealType` + `actor`.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
   for audit. See the [decisions log](docs/decisions-log.md) (was ADR-0003).
 - **One `Meal` per date+mealType+actor slot.** A given `(date, mealType, actor)`
