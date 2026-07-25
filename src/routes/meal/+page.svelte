@@ -144,15 +144,17 @@
     // forward "Hotovo" exit (see `isDoneState`) — but only for this
     // swap-driven state, not for a plain clean edit opened from the day view
     // (which keeps the established back-arrow-to-exit contract, #277/#286).
-    // Any subsequent working-meal edit clears it via `handleEdit` below.
+    // The flag latches on; `isDoneState` self-clears on the next edit because
+    // it also gates on `!editor.canFinalize` (any edit flips `canFinalize`).
     swappedThisSession = true;
   }
 
   /**
    * True after a successful actor swap left the returning actor showing a
-   * clean, already-saved meal. Cleared the moment the user makes any edit, so
-   * a genuine change routes back through the save CTA. Never set on direct
-   * entry, so the ordinary clean-edit CTA contract is untouched.
+   * clean, already-saved meal. Never set on direct entry, so the ordinary
+   * clean-edit CTA contract is untouched. It is not cleared explicitly — the
+   * `isDoneState` derivation stops matching the instant the user edits
+   * (`editor.canFinalize` flips), so the CTA routes back through save.
    */
   let swappedThisSession = $state(false);
 
