@@ -135,6 +135,23 @@ export type MealEditor = {
    */
   applyUndo(slot: MealSlot, buffer: DiscardedMeal, eliminatedToday?: AllergenId[]): Promise<void>;
   finalize(opts?: FinalizeOptions): Promise<Result<void, string>>;
+  /**
+   * Swap the active actor mid-compose (the `mixed`-stage pill-tap, PRD #564 /
+   * issue #571). Autosaves the departing actor via `finalize()` — confirmed
+   * foods + notes only; an in-`editing` food is dropped, an empty meal is a
+   * no-op — then reloads `target` via `open()`.
+   *
+   * The swap is silent and non-destructive: no discard-buffer toast, because
+   * the autosave is recoverable by swapping back. The discard-buffer
+   * machinery is deliberately not reused here.
+   *
+   * Aborts on save failure: if `finalize()` returns `!ok` (the only genuine
+   * silent-loss path — Dexie quota/transaction error, out-of-window write),
+   * the current actor stays active with its working meal preserved and the
+   * failing Result is returned so the caller surfaces the error via the CTA's
+   * existing error path. On success returns `{ ok: true }`.
+   */
+  swapActor(target: MealSlot, eliminatedToday?: AllergenId[]): Promise<Result<void, string>>;
 };
 
 export function createMealEditor(): MealEditor {
@@ -273,6 +290,19 @@ export function createMealEditor(): MealEditor {
     return meals.save(meal);
   }
 
+  async function swapActor(
+    target: MealSlot,
+    eliminatedTodayArg: AllergenId[] = [],
+  ): Promise<Result<void, string>> {
+    // Persist the departing actor first — Dexie is authoritative for the
+    // reload in `open()`. Abort on failure so the current actor's working
+    // meal is never silently lost.
+    const saved = await finalize();
+    if (!saved.ok) return saved;
+    await open(target, eliminatedTodayArg);
+    return { ok: true, data: undefined };
+  }
+
   return {
     get workingMeal() {
       return workingMeal;
@@ -313,5 +343,6 @@ export function createMealEditor(): MealEditor {
     discardDescriptor,
     applyUndo,
     finalize,
+    swapActor,
   };
 }
