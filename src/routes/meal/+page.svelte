@@ -122,13 +122,23 @@
     actor: selectedActor,
   });
 
-  function selectActor(actor: Actor): void {
+  async function selectActor(actor: Actor): Promise<void> {
     if (actor === selectedActor) return;
+    // Swap-on-dirty (issue #571): autosave the departing actor's confirmed
+    // foods + notes before reloading the target, so flipping between the two
+    // lists never loses work. Build the target slot explicitly — `selectedActor`
+    // (and the derived `currentSlot`) still point at the departing actor here,
+    // and must only flip once the autosave succeeds.
+    const target = { date: targetDate, mealType: selectedMealType, actor };
+    const result = await editor.swapActor(target, eliminatedToday);
+    if (!result.ok) {
+      // Abort the swap: keep the current actor active, surface the save
+      // failure via the CTA's existing error path. This is the one path that
+      // must not swap — the departing working meal is preserved.
+      saveErrorMessage = result.error;
+      return;
+    }
     selectedActor = actor;
-    // Re-open the editor for the newly-selected actor's slot so the working
-    // meal reflects that actor's record (or an empty compose). Swap-on-dirty
-    // handling (autosave vs. discard) is a separate concern — issue #562.
-    void editor.open(currentSlot, eliminatedToday);
   }
 
   // ── Editor + slot hydration on mount ─────────────────────
@@ -184,7 +194,11 @@
   $effect(() => {
     const [implicit] = eligibleActors;
     if (implicit && !eligibleActors.includes(selectedActor)) {
-      selectActor(implicit);
+      // Involuntary correction of the `mother` seed, not a user swap — flip
+      // and plain-reload. No swap-on-dirty autosave: the user never chose the
+      // departing actor, so there is no work of theirs to preserve.
+      selectedActor = implicit;
+      void editor.open(currentSlot, eliminatedToday);
     }
   });
 
