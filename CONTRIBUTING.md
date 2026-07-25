@@ -32,7 +32,9 @@ Before/after snippet, API example, or screenshot.
 
 Agent-authored PRs are expected here, not discouraged — this repo has an `AGENTS.md` and a `docs/agents/` directory. The relevant policy is how they self-identify, not whether they're allowed:
 
-- **Autonomous agent runs** (e.g. Sandcastle/`RALPH`, see `.sandcastle/README.md`) work on branch `agent/ralph-issue-<N>`, prefix every commit subject and PR title with `RALPH:`, and open the PR body with `Closes #<N>`.
+- **Autonomous agent runs** (e.g. Sandcastle/`RALPH`, see `.sandcastle/README.md`) prefix every commit subject and PR title with `RALPH:`. They run in one of two modes:
+  - **legacy** (default) — one PR per issue on branch `agent/ralph-issue-<N>`, body opens with `Closes #<N>`.
+  - **integrated** (`--mode=integrated`) — one PR per PRD on branch `agent/prd-<N>`, opened by an integrator agent after all issues are merged and the full suite is green. Body opens with a `Closes #<N>` line for **every** integrated issue (skipped ones stay open) and includes `## Integrated issues`, `## Touched during integration`, and `## Code review` sections.
 - **Human-directed AI pair-programming** (a contributor working interactively with an assistant) follows the normal branch, commit, and PR conventions below — no special prefix. The human reviews and is accountable for what's proposed before it ships.
 
 ## Branch Naming
@@ -41,7 +43,7 @@ Agent-authored PRs are expected here, not discouraged — this repo has an `AGEN
 <scope>/<short-description>
 ```
 
-Same scopes as PR titles, e.g. `fix/472-svelte-check-errors`, `docs/date-strip-prototype`. Autonomous agent branches use `agent/ralph-issue-<N>` instead (see above).
+Same scopes as PR titles, e.g. `fix/472-svelte-check-errors`, `docs/date-strip-prototype`. Autonomous agent branches use `agent/ralph-issue-<N>` (legacy mode) or `agent/prd-<N>` (integrated mode) instead (see above).
 
 ## CI
 
@@ -65,3 +67,5 @@ git checkout main
 git pull
 git branch -d <feature-branch>
 ```
+
+After an autonomous agent run, use `just sandcastle-sync` instead — squash merges diverge local `main`, so it does `git reset --hard origin/main` (never `git pull`) and prunes leftover `agent/*` branches.

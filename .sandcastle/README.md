@@ -23,10 +23,13 @@ The image bakes a warm Bun install cache from `bun.lock` (see `Dockerfile` `warm
 
 ```bash
 # Run agents for a PRD (planner + parallel workers)
-bunx tsx .sandcastle/main.ts <prd-issue-number>
+bunx tsx .sandcastle/main.ts <prd-issue-number> [--mode=legacy|integrated]
 
-# Example
+# Example — legacy mode (default): one PR per issue
 bunx tsx .sandcastle/main.ts 284
+
+# Example — integrated mode: one PR for the whole PRD
+bunx tsx .sandcastle/main.ts 284 --mode=integrated
 
 # Watch a worker's live output
 tail -f .sandcastle/logs/<logfile>.log
@@ -35,7 +38,26 @@ tail -f .sandcastle/logs/<logfile>.log
 ls -t .sandcastle/logs/
 ```
 
-## How It Works
+## Modes
+
+`--mode` selects how worker output reaches you. Default is `legacy` — the flag is
+additive, so nothing changes unless you pass `--mode=integrated`.
+
+| | `legacy` (default) | `integrated` |
+|---|---|---|
+| Worker base branch | `main` | `agent/prd-<N>` (rebased per batch) |
+| Dependent issues see blocker's code | no — built blind against `main` | yes — built on the blocker's committed code |
+| Worker failure | logged, run continues | retry once, then drop issue + its downstream subtree |
+| Review | worker self-reviews its slice once | worker loops to convergence **+** integrator reviews the whole diff |
+| PRs you review | one per issue | **one per PRD** |
+| Rebasing onto `main` | you, per branch | none — serial merges into one branch |
+
+Pick `integrated` when a PRD is a coherent feature you'd want to review and
+frontend-test as a whole. Keep PRDs reviewable-sized: a giant feature is better
+split into 2–3 smaller PRDs (each yields one digestible PR) than merged as one
+3000-line diff.
+
+## How It Works — legacy mode
 
 1. **Planner** — reads PRD issue + all linked open issues, builds a dependency graph
 2. **Batches** — topological sort produces parallelizable batches (independent issues run simultaneously, max 3)
@@ -43,13 +65,45 @@ ls -t .sandcastle/logs/
 4. **You** — review PRs, merge when satisfied
 5. **Repeat** — re-run same command; planner picks up newly unblocked issues
 
-## After PRs Merge
+## How It Works — integrated mode
+
+1. **Planner** — same dependency graph and batches as legacy.
+2. **Integration branch** — orchestrator creates `agent/prd-<N>` off `main`.
+3. **Staged batches** — each batch's workers branch off the *current* `agent/prd-<N>`,
+   run in parallel (max 3), self-review their slice to convergence, and commit.
+   When the batch finishes, its branches merge into `agent/prd-<N>` (serial, in order).
+   The next batch branches off the updated integration branch — so dependent issues
+   build on their dependencies' real committed code, not a guess against `main`.
+4. **Failure handling** — a failed worker is retried once in a fresh sandbox. If it
+   still fails, its issue **and everything transitively downstream of it** are dropped;
+   the coherent remainder still integrates. The integration branch never contains an
+   issue whose blocker was dropped.
+5. **Integrator** — after all batches, one integrator agent reviews the whole
+   `agent/prd-<N>` diff against `main`, fixes findings (logging which regions it
+   touched), and runs `just check` + `just test` (incl. Playwright E2E). Only if the
+   full suite is green does it open **one** PR (`agent/prd-<N>` → `main`, with a
+   `Closes #N` line per integrated issue). If it cannot reach green, it opens no PR and
+   reports — the branch is left intact for inspection.
+6. **End-of-run summary** — the terminal prints the PR URL + integrated issues +
+   integrator-touched log on success, or the failed stage + preserved branch + last
+   error on failure.
+7. **You** — frontend-test and squash-merge the one PR. Skipped issues stay open for a
+   later run.
+
+## After a Run Merges
 
 ```bash
-git reset --hard origin/main   # sync local main (squash merges diverge — never use git pull)
-git branch | grep agent/ralph  # check for stale local branches
-git branch -D agent/ralph-issue-<N>  # delete stale branches
+just sandcastle-sync   # git reset --hard origin/main + prune leftover agent/* locals
 ```
+
+`just sandcastle-sync` handles the one thing that must happen on your machine after a
+squash-merge (local `main` diverges — never use `git pull`) and prunes any leftover
+`agent/*` local branches in one step.
+
+- **legacy** leaves one `agent/ralph-issue-<N>` branch per merged PR — `sandcastle-sync`
+  prunes them.
+- **integrated** deletes its intermediate per-worker branches at end of run, and GitHub
+  auto-deletes `agent/prd-<N>` on merge — `sandcastle-sync` only re-syncs local `main`.
 
 ## .env Variables
 
@@ -63,9 +117,10 @@ git branch -D agent/ralph-issue-<N>  # delete stale branches
 
 | File | Purpose |
 |---|---|
-| `main.ts` | Orchestrator — planner + batch execution |
+| `main.ts` | Orchestrator — planner + batch execution; `--mode` selects legacy/integrated |
 | `plan-prompt.md` | Planner agent prompt — reads PRD, outputs dependency JSON |
-| `worker-prompt.md` | Worker agent prompt — TDD workflow, PR creation |
+| `worker-prompt.md` | Worker agent prompt — TDD workflow; opens a PR (legacy) or commits its branch for integration |
+| `integrator-prompt.md` | Integrator agent prompt (integrated mode) — whole-diff review, full suite, one PRD PR |
 | `skills/` | Agent skills vendored from `~/.agents/skills`, copied into the image at `~/.claude/skills` (worker prompt uses `tdd` and `code-review`). Re-sync when a source skill changes. |
 | `Dockerfile` | Sandbox image — Node 22 + Bun + just + gh CLI + Playwright + Claude Code |
 | `.env.example` | Template for secrets |
@@ -91,13 +146,12 @@ macOS node_modules copied into Linux container. Fixed: `bunx playwright install 
 The container runs as non-root user `agent`, so `playwright install --with-deps` can't `apt-get` OS libs. Fixed: OS-level deps are baked into the image at build time as root (`playwright install-deps` in the Dockerfile); the runtime hook only downloads the browser binary as the agent user.
 
 **Local main diverged after PR merge**
-Squash merges cause divergence. Always use `git reset --hard origin/main` after merging, never `git pull`.
+Squash merges cause divergence. Run `just sandcastle-sync` (does `git reset --hard origin/main`), never `git pull`.
 
-**Stale `agent/ralph-issue-*` branches after failures**
-Safe to delete — only failed runs leave branches behind:
-```bash
-git branch | grep agent/ralph | xargs git branch -D
-```
+**Stale `agent/*` branches after a run**
+Run `just sandcastle-sync` — it re-syncs local `main` and prunes leftover `agent/*`
+locals. In integrated mode the orchestrator already deletes its intermediate per-worker
+branches; only a failed run leaves them behind.
 
 **`CopyToWorktreeTimeoutError: Copying files to worktree timed out after 60000ms`**
 Sandcastle was copying `node_modules` (~250 MB) into each worker's worktree. Fixed: `copyToWorktree` was removed from `main.ts` — the container's `onSandboxReady: bun install` hook rebuilds `node_modules` correctly for Linux (macOS-native binaries would fail in-container anyway).

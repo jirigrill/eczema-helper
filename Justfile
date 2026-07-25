@@ -182,6 +182,20 @@ sandcastle-build:
     cp package.json bun.lock .sandcastle/
     bunx sandcastle docker build-image
 
+# Post-merge cleanup: re-sync local main + prune leftover agent/* branches
+sandcastle-sync:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git checkout main
+    git fetch origin
+    git reset --hard origin/main   # squash merges diverge — never git pull
+    stale=$(git branch --list 'agent/*' --format '%(refname:short)')
+    if [[ -n "$stale" ]]; then
+        echo "$stale" | xargs git branch -D
+    else
+        echo "No stale agent/* branches."
+    fi
+
 # ========== DEPLOYMENT ==========
 
 # Normal deploys happen automatically via CI on merge to main.
