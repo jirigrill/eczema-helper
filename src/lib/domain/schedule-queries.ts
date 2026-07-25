@@ -118,6 +118,34 @@ export function conflictingAllergens(
   return [...triggered];
 }
 
+/**
+ * Both conflict projections in a single pass over `items`: the ids of the
+ * offending *items* (like `detectConflicts`) and the distinct offending
+ * *allergens* (like `conflictingAllergens`). A meal row needs both — the item
+ * ids to danger-style each food and the allergen set to render the warning
+ * pills — so this avoids walking the items (and re-resolving
+ * `catalog.allergensForFood`) twice. Use the single-projection helpers when a
+ * caller needs only one.
+ */
+export function mealConflicts(
+  items: MealItem[],
+  eliminatedSlugs: AllergenId[],
+  catalog: CanonicalCatalogPort,
+): { itemIds: Set<string>; allergens: AllergenId[] } {
+  if (eliminatedSlugs.length === 0) return { itemIds: new Set(), allergens: [] };
+  const itemIds = new Set<string>();
+  const allergens = new Set<AllergenId>();
+  for (const item of items) {
+    for (const t of catalog.allergensForFood(item.foodId)) {
+      if (eliminatedSlugs.includes(t as AllergenId)) {
+        itemIds.add(item.id);
+        allergens.add(t as AllergenId);
+      }
+    }
+  }
+  return { itemIds, allergens: [...allergens] };
+}
+
 // ── Reintroduction day info ───────────────────────────────────
 // Dosing instructions are per-allergen; see the catalog records' ladder field (ADR-0023).
 // isEvaluationDay derives from the current rung's isEvaluationCheckpoint flag —

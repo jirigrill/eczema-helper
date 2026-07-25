@@ -288,6 +288,48 @@ describe('DexieMealRepository', () => {
     if (dinnerResult.ok) expect(dinnerResult.data?.items[0]!.name).toBe('Večeře');
   });
 
+  it('one-per-slot-per-actor: a mother meal and a baby meal coexist in the same (date, mealType)', async () => {
+    // The whole reason MealId gained a third part (spec #554): a single
+    // (date, mealType) slot must hold up to one meal PER actor, not one total.
+    const motherLunch = makeMeal('2026-05-27', 'lunch', {
+      actor: 'mother',
+      items: [makeItem('m1', { name: 'Mámino' })],
+    });
+    const babyLunch = makeMeal('2026-05-27', 'lunch', {
+      actor: 'baby',
+      items: [makeItem('b1', { name: 'Miminkovo' })],
+    });
+    await repo.save(motherLunch);
+    await repo.save(babyLunch);
+
+    // Each actor's slot returns its own record — neither overwrote the other.
+    const motherSlot = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
+    const babySlot = await repo.loadBySlot('2026-05-27', 'lunch', 'baby');
+    expect(motherSlot).toMatchObject({ ok: true });
+    expect(babySlot).toMatchObject({ ok: true });
+    if (motherSlot.ok) expect(motherSlot.data?.items[0]!.name).toBe('Mámino');
+    if (babySlot.ok) expect(babySlot.data?.items[0]!.name).toBe('Miminkovo');
+
+    // listByDate returns both as two distinct rows.
+    const list = await repo.listByDate('2026-05-27');
+    expect(list).toMatchObject({ ok: true });
+    if (list.ok) {
+      expect(list.data).toHaveLength(2);
+      expect(list.data.map((m) => m.actor).sort()).toEqual(['baby', 'mother']);
+    }
+  });
+
+  it('remove targets one actor without touching the other in the same slot', async () => {
+    await repo.save(makeMeal('2026-05-27', 'lunch', { actor: 'mother', items: [makeItem('m1')] }));
+    await repo.save(makeMeal('2026-05-27', 'lunch', { actor: 'baby', items: [makeItem('b1')] }));
+
+    await repo.remove('2026-05-27', 'lunch', 'baby');
+
+    expect(await repo.loadBySlot('2026-05-27', 'lunch', 'baby')).toEqual({ ok: true, data: null });
+    const motherSlot = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
+    expect(motherSlot.ok && motherSlot.data?.items[0]!.id).toBe('m1');
+  });
+
   it('saving one slot does not affect another slot on the same date', async () => {
     await repo.save(makeMeal('2026-05-27', 'breakfast'));
     // lunch slot untouched

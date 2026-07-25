@@ -76,10 +76,22 @@
         )
       : null,
   );
-  // The meal editor logs the mother's meal (actor hardcoded to 'mother' until
-  // the actor picker lands), so her eliminated set is protocol ∪ permanentMother
-  // (actor-aware conflict detection, spec #564/#568).
-  const eliminatedToday = $derived(ctx ? eliminatedFor(ctx, 'mother') : []);
+  // ── Actor selection (issue #569) ─────────────────────────
+  // The actor whose meal is being composed. In a single-actor stage it stays
+  // fixed on the implicit actor; in `mixed` the picker pills flip it. Declared
+  // here (above the eliminated-set derivation) because `eliminatedToday` reads
+  // it — the editor checks the working meal against the *selected* actor's set.
+  // Seeded to `mother` (a breastfed newborn's intake is the mother's); the
+  // `$effect` further down snaps it to the stage's implicit actor once the live
+  // feeding stage resolves (e.g. `baby` under solids).
+  let selectedActor = $state<Actor>('mother');
+  // The eliminated set the editor checks the working meal against is the
+  // *selected actor's* set: protocol ∪ that actor's permanent eliminations
+  // (actor-aware conflict detection, spec #564/#568). A baby meal is checked
+  // against permanentBaby, a mother meal against permanentMother — reading
+  // `selectedActor` here is what keeps in-editor conflict flagging correct
+  // after an actor swap or in a baby-only (`solids`) stage.
+  const eliminatedToday = $derived(ctx ? eliminatedFor(ctx, selectedActor) : []);
   const reintroInfo = $derived(ctx?.reintroInfo ?? null);
   // Passive hint (issue #440) — a stale row can be edited freely, but the
   // mother should know its date no longer sits inside the protocol window.
@@ -106,13 +118,7 @@
   const selectedMealType: MealTypeKind = isMealType(urlType) ? urlType : 'lunch';
 
   // ── Actor selection (issue #569) ─────────────────────────
-  // The actor whose meal is being composed. In a single-actor stage it stays
-  // fixed on the implicit actor; in `mixed` the picker pills flip it. The
-  // editor is (re)opened for `${date}:${mealType}:${actor}` so the meal writes
-  // to the correct slot. Seeded to `mother` (a breastfed newborn's intake is
-  // the mother's); a `$effect` below snaps it to the stage's implicit actor
-  // once the live feeding stage resolves (e.g. `baby` under solids).
-  let selectedActor = $state<Actor>('mother');
+  // `selectedActor` is declared above (it feeds the eliminated-set derivation).
   // The `date:mealType:actor` slot the editor is opened against. Reactive on
   // `selectedActor` so the picker's `open`/`applyUndo` calls always target the
   // current actor's record.

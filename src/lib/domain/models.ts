@@ -112,10 +112,12 @@ export type MealItem = {
 export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 
 /**
- * Who logged (or is credited with) a meal. v1 only ever writes `'mother'` — a
- * breastfed newborn's intake is the mother's diet (ADR-0001). `'baby'` is
- * reserved for the dual-actor build (spec #564); until a feeding-stage source
- * exists, `getEligibleActors` gates who may log.
+ * Who logged (or is credited with) a meal: `'mother' | 'baby'`. The baby is a
+ * real dietary actor from the `mixed` feeding stage on — its own solids intake
+ * participates in the same elimination diet (ADR-0027). Which actors may log
+ * at the current stage is governed by `getEligibleActors`; a mirrored schedule
+ * means both ride the same protocol, differing only in their permanent
+ * allergies.
  */
 export const ACTORS = ['mother', 'baby'] as const;
 export type Actor = (typeof ACTORS)[number];
