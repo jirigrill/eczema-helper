@@ -5,6 +5,9 @@
   import { evaluationsStore } from '$lib/stores/evaluations-store';
   import { evaluationHrefForPhase } from '$lib/config/evaluation';
   import { getToleranceBuildingRemindersForDate } from '$lib/domain/schedule-builder';
+  import { eliminatedFor } from '$lib/domain/schedule-queries';
+  import { getEligibleActors } from '$lib/domain/models';
+  import type { Actor, AllergenId } from '$lib/domain/models';
   import { dailyCompleteness } from '$lib/domain/day-view';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { todayIso, formatDateLongCs, formatObservationTime } from '$lib/utils/date';
@@ -59,13 +62,28 @@
 
   // Display-only merge of everything eliminated today across both actors. The
   // ReadyContext keeps the three sets separate (spec #568); the day view's
-  // "Vyhýbej se" list and single-actor MealCard show them combined. This is an
-  // all-actors view, not the per-actor conflict rule — so it merges all three
-  // sets directly rather than going through `eliminatedFor(ctx, actor)`.
+  // "Vyhýbej se" list shows them combined. This is an all-actors view, not the
+  // per-actor conflict rule — so it merges all three sets directly rather than
+  // going through `eliminatedFor(ctx, actor)`.
   const eliminatedToday = $derived(
     ctx.status === 'ready'
       ? [...ctx.protocolEliminated, ...ctx.permanentMother, ...ctx.permanentBaby]
       : [],
+  );
+
+  // Who may log at the current feeding stage (#567/#570). `breastfed → [mother]`,
+  // `mixed → [mother, baby]`, `solids → [baby]`. Drives MealCard's single-actor
+  // collapse vs. stacked per-actor rows.
+  const eligibleActors = $derived(view.feedingStage ? getEligibleActors(view.feedingStage) : []);
+
+  // Per-actor conflict set for MealCard: each eligible actor's meal is checked
+  // against protocol ∪ that actor's permanent eliminations (spec #568). Unlike
+  // `eliminatedToday`, this keeps the two actors' sets apart so a mother-only
+  // permanent elimination never flags the baby's food (and vice versa).
+  const eliminatedByActor = $derived<Partial<Record<Actor, AllergenId[]>>>(
+    ctx.status === 'ready'
+      ? Object.fromEntries(eligibleActors.map((actor) => [actor, eliminatedFor(ctx, actor)]))
+      : {},
   );
 
   const allowedProtocol = $derived(
@@ -308,7 +326,7 @@
         </div>
 
         <!-- Meal card -->
-        <MealCard date={selectedDate} {meals} eliminatedSlugs={eliminatedToday} />
+        <MealCard date={selectedDate} {meals} {eligibleActors} {eliminatedByActor} />
 
         <!-- Bottom hint -->
         <div class="text-text-muted/70 mt-2 flex items-center justify-center gap-2 text-[11px]">
