@@ -74,6 +74,16 @@
   {/each}
 {/snippet}
 
+{#snippet indicator(logged: boolean)}
+  <!-- One fixed-width right rail so an empty actor's "+" aligns with a logged
+       actor's "›" (issue #570). -->
+  {#if logged}
+    <span class="text-text-muted flex w-5 shrink-0 justify-center text-sm">›</span>
+  {:else}
+    <span class="text-primary flex w-5 shrink-0 justify-center text-lg leading-none">+</span>
+  {/if}
+{/snippet}
+
 {#snippet foodRun(items: MealItem[], conflictItemIds: Set<string>)}
   {#each items as item, i}
     {#if i > 0}<span> · </span>{/if}
@@ -107,8 +117,7 @@
             <div class="min-w-0 flex-1">
               <div class="text-text-muted/70 text-sm font-medium">{cfg.label}</div>
             </div>
-            <span class="text-primary flex w-5 shrink-0 justify-center text-lg leading-none">+</span
-            >
+            {@render indicator(false)}
           </div>
         </a>
       {:else if !stacked}
@@ -139,7 +148,7 @@
                 {@render foodRun(meal?.items ?? [], conflictItemIds)}
               </div>
             </div>
-            <span class="text-text-muted flex w-5 shrink-0 justify-center text-sm">›</span>
+            {@render indicator(true)}
           </div>
         </a>
       {:else}
@@ -173,13 +182,7 @@
                 <div class="text-text-muted min-w-0 flex-1 text-[11px]">
                   {@render foodRun(meal?.items ?? [], conflictItemIds)}
                 </div>
-                {#if meal}
-                  <span class="text-text-muted flex w-5 shrink-0 justify-center text-sm">›</span>
-                {:else}
-                  <span class="text-primary flex w-5 shrink-0 justify-center text-lg leading-none"
-                    >+</span
-                  >
-                {/if}
+                {@render indicator(!!meal)}
               </a>
             {/each}
           </div>
