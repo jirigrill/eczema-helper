@@ -157,12 +157,12 @@ test('swap round-trip leaves a forward "Hotovo" exit, not a dead-end disabled CT
 test('"Hotovo" reverts to the save CTA once the returning actor is edited again', async ({
   page,
 }) => {
-  // Guards the self-clearing contract behind not explicitly resetting
-  // `swappedThisSession`: `isDoneState` also gates on `!editor.canFinalize`, so
-  // the instant the user edits the returned-to meal it must stop reading as
-  // "done" and route back through save. Without this, "Hotovo" would persist
-  // over a dirty edit and `goto(returnTo)` would drop the change silently —
-  // the exact loss #571 exists to prevent.
+  // Guards the self-clearing contract: even while the returning actor sits in
+  // `autosavedActors`, `isDoneState` also gates on `!editor.canFinalize`, so the
+  // instant the user edits the returned-to meal it must stop reading as "done"
+  // and route back through save. Without this, "Hotovo" would persist over a
+  // dirty edit and `goto(returnTo)` would drop the change silently — the exact
+  // loss #571 exists to prevent.
   const today = await seedMixedStage(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
@@ -189,10 +189,11 @@ test('"Hotovo" reverts to the save CTA once the returning actor is edited again'
 });
 
 test('"Hotovo" never appears on a clean edit opened directly (no swap)', async ({ page }) => {
-  // The forward "Hotovo" exit is gated on `swappedThisSession`: a clean edit
-  // reached straight from the day view (never a swap) must keep the established
-  // back-arrow-to-exit contract (#277/#286), not sprout a "Hotovo" CTA. Guards
-  // against the gate being dropped and every clean edit gaining the exit.
+  // The forward "Hotovo" exit is gated on `autosavedActors.has(selectedActor)`:
+  // a clean edit reached straight from the day view (never a swap) must keep the
+  // established back-arrow-to-exit contract (#277/#286), not sprout a "Hotovo"
+  // CTA. Guards against the gate being dropped and every clean edit gaining the
+  // exit.
   const today = await seedMixedStage(page);
 
   // Save a mother lunch, then re-open it fresh — a clean, saved, non-empty
@@ -216,4 +217,55 @@ test('"Hotovo" never appears on a clean edit opened directly (no swap)', async (
 
   // No forward exit — the disabled save CTA + back arrow remains the contract.
   await expect(page.getByRole('button', { name: 'Hotovo', exact: true })).toHaveCount(0);
+});
+
+test('cycling actor tabs without editing keeps the disabled "Uložit změny" CTA (issue #587)', async ({
+  page,
+}) => {
+  // Both actors already have saved meals and nothing is composed. Merely
+  // clicking through the pills autosaves nothing, so returning to an unedited
+  // actor must keep its plain disabled "Uložit změny" — the forward "Hotovo"
+  // exit is reserved for an actor whose real work a swap just autosaved, never
+  // a clean→clean cycle.
+  const today = await seedMixedStage(page);
+
+  // Save the mother's lunch, then the baby's, each via a clean finalize (no
+  // swap involved) so both slots are pre-saved as if from a prior session.
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
+  await addBramboraAndCommit(page);
+  await page.getByRole('button', { name: 'Uložit Oběd', exact: true }).click();
+  await page.waitForURL(new RegExp(`/day/${today}`));
+
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
+  await page.getByRole('button', { name: 'Miminko', exact: true }).click();
+  await addBramboraAndCommit(page);
+  await page.getByRole('button', { name: 'Uložit Oběd', exact: true }).click();
+  await page.waitForURL(new RegExp(`/day/${today}`));
+
+  // Fresh entry: land on Já, a clean saved edit → disabled "Uložit změny".
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+  await expect(page.getByText('Brambory')).toBeVisible();
+  const motherPill = page.getByRole('button', { name: 'Já', exact: true });
+  const babyPill = page.getByRole('button', { name: 'Miminko', exact: true });
+  await expect(page.getByRole('button', { name: 'Uložit změny', exact: true })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+
+  // Cycle Miminko → Já without editing anything.
+  await babyPill.click();
+  await expect(babyPill).toHaveAttribute('data-active', 'true');
+  await motherPill.click();
+  await expect(motherPill).toHaveAttribute('data-active', 'true');
+  await expect(page.getByText('Brambory')).toBeVisible();
+
+  // Returning to the unchanged mother: still the disabled "Uložit změny", never
+  // a sticky "Hotovo".
+  await expect(page.getByRole('button', { name: 'Hotovo', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Uložit změny', exact: true })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
 });
