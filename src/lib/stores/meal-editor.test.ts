@@ -9,6 +9,7 @@ import type { Meal } from '$lib/domain/models';
 import {
   confirmFood,
   deselectFood,
+  removeFood,
   startEditing,
   updateEditingAmount,
   updateEditingPreparation,
@@ -208,6 +209,22 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
     editor.notes = 'changed';
     expect(editor.dirty).toBe(true);
     expect(editor.canFinalize).toBe(true);
+  });
+
+  it('emptying a saved meal (remove every food) is dirty but canFinalize is false (issue #586)', async () => {
+    // An empty meal is not a valid persisted state — finalize() is a silent
+    // no-op that restores the old foods. canFinalize must stay false so the
+    // save CTA disables and the empty-meal hint routes to "Smazat jídlo".
+    const date = '2024-09-06';
+    await meals.save(makeMeal({ id: `${date}:lunch:mother`, date, mealType: 'lunch' }));
+
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => removeFood(m, 'vegetables', 'brambory'));
+
+    expect(editor.dirty).toBe(true);
+    expect(editor.canFinalize).toBe(false);
   });
 });
 
