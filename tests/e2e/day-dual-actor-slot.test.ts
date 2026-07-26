@@ -113,6 +113,8 @@ test('mixed stage: a slot with both actors logged renders stacked per-actor rows
   await expect(babyRow).toBeVisible();
   await expect(motherRow).toContainText('Rýže');
   await expect(babyRow).toContainText('Brambory');
+  // Both actors filled → one chevron centered across the rows, not one per row (#585).
+  await expect(page.getByTestId('meal-row-lunch').getByText('›', { exact: true })).toHaveCount(1);
 });
 
 test('mixed stage: one actor empty shows "+" on that row, "›" on the logged row', async ({
