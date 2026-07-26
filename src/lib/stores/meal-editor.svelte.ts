@@ -68,9 +68,12 @@ export type MealEditor = {
    */
   readonly finalizeKind: FinalizeKind;
   /**
-   * Whether `finalize()` has work to do right now. Edit → dirty; compose →
-   * has any confirmed food. Drives the route's CTA enabledness for the
-   * meal-finalize action (sub-CTAs are gated separately).
+   * Whether `finalize()` has work to do right now. Edit → dirty AND non-empty
+   * (an emptied edit has no valid persisted state — `finalize()` would be a
+   * silent no-op that restores the old foods, issue #586); compose → has any
+   * confirmed food. Drives the route's CTA enabledness for the meal-finalize
+   * action (sub-CTAs are gated separately). An emptied edit falls through to
+   * the empty-meal hint that routes to "Smazat jídlo".
    */
   readonly canFinalize: boolean;
   /**
@@ -180,7 +183,10 @@ export function createMealEditor(): MealEditor {
       : !snapshotsEqual(snapshotOf(workingMeal, notes), loadSnapshot),
   );
   const finalizeKind: FinalizeKind = $derived(editingExisting ? 'edit' : 'compose');
-  const canFinalize = $derived(editingExisting ? dirty : allConfirmedFoods(workingMeal).length > 0);
+  // Confirmed-only non-empty test — distinct from `isNonEmpty` (editing-or-confirmed).
+  // An emptied edit has no valid persisted state, so it must not finalize (issue #586).
+  const hasConfirmedFood = $derived(allConfirmedFoods(workingMeal).length > 0);
+  const canFinalize = $derived(hasConfirmedFood && (!editingExisting || dirty));
   /**
    * All working-list foods that touch an eliminated allergen — computed via
    * the shared `detectConflicts`, so swapping that function later requires
