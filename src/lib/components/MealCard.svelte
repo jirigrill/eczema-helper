@@ -168,7 +168,7 @@
               {@const ActorIcon = actorConfig[actor].icon}
               <a
                 data-testid="meal-actor-row-{actor}"
-                href="/meal?type={type}&date={meal?.date ?? date}&returnTo=/day/{meal?.date ??
+                href="/meal?type={type}&date={meal?.date ?? date}&actor={actor}&returnTo=/day/{meal?.date ??
                   date}"
                 class="flex items-center gap-2 py-1"
               >

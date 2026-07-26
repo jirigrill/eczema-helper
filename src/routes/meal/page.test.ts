@@ -624,6 +624,42 @@ describe('meal/+page.svelte', () => {
     mockSettings.set({ feedingStage: 'breastfed' });
   });
 
+  // ── Incoming ?actor= pre-selects the tapped actor (issue #584) ───────────
+  // The day view carries the tapped actor into the meal editor via `?actor=`.
+  // In the mixed stage both actors are eligible, so without this the editor
+  // always seeds `mother`. Entering with `?actor=baby` must hydrate the baby's
+  // slot directly, not the mother's.
+
+  it('mixed stage: entering with ?actor=baby hydrates the baby meal', async () => {
+    setReadyWithElim();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(
+      `http://localhost/meal?type=lunch&date=${today}&actor=baby&returnTo=/day/${today}`,
+    );
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, queryByRole } = render(MealPage);
+    // Lands on the baby slot → Rýže hydrated, not Brambory.
+    await findByRole('button', { name: /^Rýže$/ });
+    expect(queryByRole('button', { name: /^Brambory$/ })).toBeNull();
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
   it('composes for the baby slot in the solids stage (implicit single actor)', async () => {
     setReadyWithElim();
     mockSettings.set({ feedingStage: 'solids' });

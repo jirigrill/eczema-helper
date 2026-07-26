@@ -839,6 +839,60 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
       expect(getByTestId('meal-actor-row-baby').textContent).toMatch(/\+/);
     });
 
+    // ── #584: tapping an actor row carries that actor into the meal editor ──
+    // In the mixed stage both actors are eligible, so the meal link must name
+    // the tapped actor via `?actor=`; otherwise the editor seeds `mother` and
+    // opens the wrong meal regardless of which row was tapped.
+
+    it('mixed stage: a filled actor row links to its own actor slot', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'mixed' });
+      liveMeals = [
+        {
+          id: `${today}:lunch:mother`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+          createdAt: `${today}T12:00:00.000Z`,
+        } satisfies Meal,
+        {
+          id: `${today}:lunch:baby`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'baby',
+          items: [{ id: 'b1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+          createdAt: `${today}T12:30:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      expect(getByTestId('meal-actor-row-baby').getAttribute('href')).toMatch(/actor=baby/);
+      expect(getByTestId('meal-actor-row-mother').getAttribute('href')).toMatch(/actor=mother/);
+    });
+
+    it('mixed stage: an empty actor row links to that empty actor slot', async () => {
+      mockPage.params.date = today;
+      mockSettings.set({ feedingStage: 'mixed' });
+      liveMeals = [
+        {
+          id: `${today}:lunch:mother`,
+          date: today,
+          mealType: 'lunch',
+          actor: 'mother',
+          items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+          createdAt: `${today}T12:00:00.000Z`,
+        } satisfies Meal,
+      ];
+      mockScheduleRaw.set(readyRawToday);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      expect(getByTestId('meal-actor-row-baby').getAttribute('href')).toMatch(/actor=baby/);
+    });
+
     it('mixed stage: a shared allergen shows once per section, deduplicated across both actors', async () => {
       mockPage.params.date = today;
       mockSettings.set({ feedingStage: 'mixed' });
