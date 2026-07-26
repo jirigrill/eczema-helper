@@ -44,4 +44,15 @@ describe('parseDayQuery', () => {
     expect(date).toBe('2025-03-01');
     expect(returnTo).toBe('/program');
   });
+
+  it('parses a valid ?actor= into the Actor type', async () => {
+    expect((await parse('?actor=baby')).actor).toBe('baby');
+    expect((await parse('?actor=mother')).actor).toBe('mother');
+  });
+
+  it('leaves actor undefined when ?actor= is absent or not a known Actor', async () => {
+    expect((await parse('')).actor).toBeUndefined();
+    expect((await parse('?actor=')).actor).toBeUndefined();
+    expect((await parse('?actor=dog')).actor).toBeUndefined();
+  });
 });
