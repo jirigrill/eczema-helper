@@ -1,5 +1,5 @@
+import { type Actor, isActor } from '$lib/domain/models';
 import { todayIso } from '$lib/utils/date';
-import { isActor, type Actor } from '$lib/domain/models';
 
 export function parseDayQuery(url: URL): { date: string; returnTo: string; actor?: Actor } {
   const date = url.searchParams.get('date') ?? todayIso();
