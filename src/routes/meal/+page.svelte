@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import type { Actor, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { getEligibleActors, isActor } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -143,6 +144,10 @@
     // (and the derived `currentSlot`) still point at the departing actor here,
     // and must only flip once the autosave succeeds.
     const target = { date: targetDate, mealType: selectedMealType, actor };
+    // Whether the departing actor has work this swap will autosave. Captured
+    // before the swap because `swapActor` reloads the editor onto the target.
+    const departingActor = selectedActor;
+    const departingHadWork = editor.canFinalize;
     const result = await editor.swapActor(target, eliminatedToday);
     if (!result.ok) {
       // Abort the swap: keep the current actor active, surface the save
@@ -152,24 +157,28 @@
       return;
     }
     selectedActor = actor;
-    // Mark that a swap-autosave just landed the returning actor in a clean,
-    // saved edit. This flips the disabled "Uložit změny" dead-end into a
-    // forward "Hotovo" exit (see `isDoneState`) — but only for this
-    // swap-driven state, not for a plain clean edit opened from the day view
-    // (which keeps the established back-arrow-to-exit contract, #277/#286).
-    // The flag latches on; `isDoneState` self-clears on the next edit because
-    // it also gates on `!editor.canFinalize` (any edit flips `canFinalize`).
-    swappedThisSession = true;
+    // Remember that the departing actor's real work was autosaved by a swap.
+    // Landing back on such an actor (now a clean, saved edit) shows the forward
+    // "Hotovo" exit as reassurance the work took (see `isDoneState`). Tracked
+    // per-actor, not as a session-wide latch: merely cycling between two
+    // already-clean saved meals autosaves nothing and adds nobody, so returning
+    // to an unedited actor keeps the plain disabled "Uložit změny" (issue #587).
+    if (departingHadWork) autosavedActors.add(departingActor);
   }
 
   /**
-   * True after a successful actor swap left the returning actor showing a
-   * clean, already-saved meal. Never set on direct entry, so the ordinary
-   * clean-edit CTA contract is untouched. It is not cleared explicitly — the
-   * `isDoneState` derivation stops matching the instant the user edits
-   * (`editor.canFinalize` flips), so the CTA routes back through save.
+   * Actors whose real work was autosaved by a swap this session. An actor lands
+   * here when the user swaps away from it while it had confirmed work; returning
+   * to it (now a clean, saved edit) shows the forward "Hotovo" exit as
+   * reassurance the work took (see `isDoneState`). Never populated on direct
+   * entry, so the ordinary clean-edit CTA contract is untouched. Tracking is
+   * per-actor rather than a session-wide flag: cycling between two already-clean
+   * saved meals autosaves nothing, adds nobody, and so leaves an unedited actor
+   * showing the plain disabled "Uložit změny" (issue #587). `isDoneState` also
+   * gates on `!editor.canFinalize`, so an actor drops out of "done" the instant
+   * it is edited again, routing the CTA back through save.
    */
-  let swappedThisSession = $state(false);
+  const autosavedActors = new SvelteSet<Actor>();
 
   // ── Editor + slot hydration on mount ─────────────────────
   // The MealEditor (PRD #284) owns the meal lifecycle from open to finalize:
@@ -377,18 +386,19 @@
   const finalizeDisabled = $derived(!drilledFamily && !gridEditingFoodId && !editor.canFinalize);
 
   /**
-   * "Done" state (issue #571 follow-up): after an actor swap, the returning
-   * actor's clean, already-saved meal. A swap-on-dirty round-trip autosaves
-   * invisibly and leaves the returning actor with nothing to finalize — the
-   * old disabled "Uložit změny" read as "your work didn't take", so here the
-   * CTA offers a forward exit ("Hotovo" → `returnTo`) instead. Gated on
-   * `swappedThisSession` so a plain clean edit opened directly from the day
-   * view keeps the established back-arrow-to-exit contract (#277/#286); a
-   * dirty edit routes through the save CTA; a truly empty meal falls through
-   * to `showEmptyHint`.
+   * "Done" state (issue #571 follow-up): the currently-selected actor's clean,
+   * already-saved meal, where a swap-on-dirty round-trip earlier autosaved that
+   * actor's work. The autosave is invisible and leaves the returning actor with
+   * nothing to finalize — the old disabled "Uložit změny" read as "your work
+   * didn't take", so here the CTA offers a forward exit ("Hotovo" → `returnTo`)
+   * instead. Gated on `autosavedActors.has(selectedActor)` so a plain clean edit
+   * opened directly from the day view keeps the established back-arrow-to-exit
+   * contract (#277/#286), and merely cycling between two unedited saved actors
+   * never triggers it (#587); a dirty edit routes through the save CTA; a truly
+   * empty meal falls through to `showEmptyHint`.
    */
   const isDoneState = $derived(
-    swappedThisSession &&
+    autosavedActors.has(selectedActor) &&
       !drilledFamily &&
       !gridEditingFoodId &&
       editor.finalizeKind === 'edit' &&
