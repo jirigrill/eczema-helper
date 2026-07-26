@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { Actor, PortionKind, PreparationMethod } from '$lib/domain/models';
-  import { getEligibleActors } from '$lib/domain/models';
+  import { getEligibleActors, isActor } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
@@ -81,10 +81,17 @@
   // fixed on the implicit actor; in `mixed` the picker pills flip it. Declared
   // here (above the eliminated-set derivation) because `eliminatedToday` reads
   // it — the editor checks the working meal against the *selected* actor's set.
-  // Seeded to `mother` (a breastfed newborn's intake is the mother's); the
-  // `$effect` further down snaps it to the stage's implicit actor once the live
-  // feeding stage resolves (e.g. `baby` under solids).
-  let selectedActor = $state<Actor>('mother');
+  // Seeded from `?actor=` (issue #584): the day view carries the tapped actor
+  // in, so in the `mixed` stage tapping the baby's row lands on the baby's meal
+  // rather than always defaulting to the mother. Falls back to `mother` (a
+  // breastfed newborn's intake is the mother's) when the param is absent or
+  // invalid; the `$effect` further down still snaps it to the stage's implicit
+  // actor once the live feeding stage resolves (e.g. an out-of-stage `?actor=`).
+  function parseActorParam(url: URL): Actor {
+    const raw = url.searchParams.get('actor');
+    return isActor(raw) ? raw : 'mother';
+  }
+  let selectedActor = $state<Actor>(parseActorParam(page.url));
   // The eliminated set the editor checks the working meal against is the
   // *selected actor's* set: protocol ∪ that actor's permanent eliminations
   // (actor-aware conflict detection, spec #564/#568). A baby meal is checked

@@ -122,6 +122,11 @@ export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 export const ACTORS = ['mother', 'baby'] as const;
 export type Actor = (typeof ACTORS)[number];
 
+/** Narrows an untrusted string (e.g. a `?actor=` URL param) to a known `Actor`. */
+export function isActor(raw: string | null): raw is Actor {
+  return raw !== null && (ACTORS as readonly string[]).includes(raw);
+}
+
 /**
  * Feeding stage a ladder's dose steps apply to, mirroring the three table
  * variants in the source protocols (Pekárková, Matoušková):
