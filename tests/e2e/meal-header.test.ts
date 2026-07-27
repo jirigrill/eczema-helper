@@ -128,13 +128,17 @@ test('Smazat jídlo confirm button uses bg-primary (bordeaux), not bg-danger (re
   const today = new Date().toISOString().split('T')[0];
   await page.waitForURL(`**/day/${today}`);
 
-  // Re-enter edit mode and open the destructive-confirm sheet.
+  // Re-enter edit mode, open the ⋯ overflow, and pick "Smazat jídlo" to open
+  // the destructive-confirm sheet.
   await page.getByTestId('meal-row-lunch').click();
   await page.waitForURL(/\/meal\?type=lunch/);
   await page.getByRole('button', { name: 'Více' }).click();
+  await page.getByTestId('overflow-delete').click();
 
-  // The "Smazat jídlo" confirm button is bordeaux (bg-primary), not red.
-  const deleteBtn = page.getByRole('button', { name: 'Smazat jídlo' });
+  // The confirm sheet's "Smazat jídlo" button is bordeaux (bg-primary), not red.
+  const deleteBtn = page
+    .getByRole('dialog', { name: 'Smazat jídlo?' })
+    .getByRole('button', { name: 'Smazat jídlo' });
   await expect(deleteBtn).toBeVisible();
   await expect(deleteBtn).toHaveClass(/bg-primary/);
   await expect(deleteBtn).not.toHaveClass(/bg-danger/);

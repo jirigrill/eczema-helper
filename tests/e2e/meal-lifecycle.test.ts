@@ -186,9 +186,13 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
   await page.waitForURL(/\/meal\?type=lunch/);
   await expect(page.getByText('Kravské mléko')).toBeVisible();
 
-  // Open the ⋯ overflow and confirm "Smazat jídlo".
+  // Open the ⋯ overflow, pick "Smazat jídlo", then confirm on the sheet.
   await page.getByRole('button', { name: 'Více' }).click();
-  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+  await page.getByTestId('overflow-delete').click();
+  await page
+    .getByRole('dialog', { name: 'Smazat jídlo?' })
+    .getByRole('button', { name: 'Smazat jídlo' })
+    .click();
 
   // Lands on the day; the lunch slot is empty (no food rendered).
   await page.waitForURL(`**/day/${today}`);
@@ -239,9 +243,13 @@ test('meal delete failure: shows an error toast, stays on /meal, no undo offered
     db.meals.delete = () => Promise.reject(new Error('QuotaExceededError'));
   });
 
-  // Open the ⋯ overflow and confirm "Smazat jídlo".
+  // Open the ⋯ overflow, pick "Smazat jídlo", then confirm on the sheet.
   await page.getByRole('button', { name: 'Více' }).click();
-  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+  await page.getByTestId('overflow-delete').click();
+  await page
+    .getByRole('dialog', { name: 'Smazat jídlo?' })
+    .getByRole('button', { name: 'Smazat jídlo' })
+    .click();
 
   // Error surfaced and the user is NOT navigated away — the meal is not treated
   // as deleted.
