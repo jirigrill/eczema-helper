@@ -702,9 +702,10 @@ Guard", which made empty-save a no-op and routed the user to Smazat instead; for
 "Empty-Hotovo Guard".) → See issues #268, #586, #588.
 
 ### Copy a meal / Merge (copy)
-*Czech: Zkopírovat jídlo*
+*Czech: Kopírovat jídlo* (overflow action) / *Kam zkopírovat?* (picker heading) / *Kopírovat sem* (per-slot target)
 
-Copying a saved `Meal` into another slot (another day, meal type, or actor).
+Copying a saved `Meal` into another slot (another day or meal type — the actor
+is always the source's; a copy is **same-actor**).
 The pure assembler `copyMealInto` (`src/lib/domain/working-meal.ts`) produces
 the destination `Meal` plus the items the copy added. Into an **empty** slot it
 composes a new meal (fresh `MealId` + `createdAt`, no note, no `updatedAt`).
@@ -719,12 +720,16 @@ copying a meal onto its own slot — is a **no-op** (`meal: null`, `added: []`).
 The flow (spec #599, issue #606): the `⋯` overflow on the meal editor exposes
 **Kopírovat jídlo** (only when the source meal has ≥1 food) → a **destination
 picker** (reused `DayStrip` + `FabActionSheet` slot sheet, actor fixed to the
-source). Confirm resolves the merge target actor-scoped via
-`loadBySlot(destDate, destSlot, source.actor)`, calls `copyMealInto`, and on a
+source; out-of-window destination *dates* are pre-disabled). Confirm resolves the
+merge target actor-scoped via `loadBySlot(destDate, destSlot, source.actor)` —
+**actor-scoped occupancy**, so the other actor's meal in the same visual cell is
+untouched — calls `copyMealInto`, and on a
 successful `save()` writes a **`meal-copy` discard descriptor** (undo reverses
 the write: delete the created meal, or drop just the added items and restore the
 prior `updatedAt`). Any manual edit/delete/further copy of the destination slot
 invalidates that descriptor (US-17), so undo can never trim hand-added food.
+Actor **eligibility is not re-checked** on the destination date (the actor is
+never chosen). → See CONTEXT.md "Copy Meal" for both flow-level invariants.
 
 ---
 
