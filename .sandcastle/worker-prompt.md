@@ -40,12 +40,12 @@ Read `~/.claude/skills/tdd/SKILL.md` (and its companions `tests.md` and `mocking
 
 **Mocking** — mock at system boundaries only (external APIs, time/randomness, sometimes DB/filesystem). Never mock your own modules or internal collaborators. At boundaries, inject dependencies rather than constructing them, and prefer SDK-style per-operation interfaces over one generic fetcher.
 
-4. **Verify** — run `just check` and `just test` before reviewing. Fix any failures before proceeding.
+4. **Verify** — run `just ci` (mirrors GitHub CI: prettier `--check`, eslint, type check, build, unit + E2E) before reviewing. Fix any failures before proceeding; if prettier reports issues, run `just fmt`.
 5. **Review** — run a full code review of your changes, following the vendored `code-review` skill (`~/.claude/skills/code-review/SKILL.md`), and **loop it to convergence** — do not review once and self-judge. Repeat review → fix → re-verify until the only findings left are ones you can explicitly justify leaving:
    - Fixed point: `main` (you branched from your base). The skill diffs against the base; since you have not committed yet, run it against your working tree — `git diff main`.
    - Spec source: issue #{{ISSUE_NUMBER}}, fetched via `docs/agents/issue-tracker.md` (present in this repo). The skill says to run `/setup-matt-pocock-skills` if that file is missing — **do not**; it is not available in this sandbox. If the tracker doc is ever absent, skip the Spec axis's fetch and have that sub-agent report "no spec available".
    - Standards source: `docs/architecture/code-standards.md` plus the skill's smell baseline.
-   - The skill spawns the two parallel sub-agents (Standards + Spec) and reports findings. **Act on them each pass**: fix real issues, then re-run `just check` and `just test`. Re-run the review. Stop only when a pass surfaces no new actionable findings. Do not finish with an unaddressed hard violation or missing spec requirement.
+   - The skill spawns the two parallel sub-agents (Standards + Spec) and reports findings. **Act on them each pass**: fix real issues, then re-run `just ci`. Re-run the review. Stop only when a pass surfaces no new actionable findings. Do not finish with an unaddressed hard violation or missing spec requirement.
    - **Retain the final aggregated report** (the skill's `## Standards` / `## Spec` output). For each finding, note whether you fixed it or deliberately left it — and if left, why. A clean review is just "no findings" under each axis. You will need this report in the finish step.
 
 {{FINISH_INSTRUCTIONS}}
@@ -53,7 +53,7 @@ Read `~/.claude/skills/tdd/SKILL.md` (and its companions `tests.md` and `mocking
 ## Rules
 
 - Work on issue #{{ISSUE_NUMBER}} only.
-- Do not commit until `just check` and `just test` both pass.
+- Do not commit until `just ci` passes.
 - Do not leave commented-out code or TODO comments in committed code.
 - If blocked (missing context, failing tests you cannot fix, external dependency), leave a comment on the issue and output the completion signal without committing.
 

@@ -35,16 +35,17 @@ You are on `{{INTEGRATION_BRANCH}}`. Do not switch branches. Do not touch `main`
      `/setup-matt-pocock-skills` — it is not available in this sandbox; if the tracker
      doc is absent, have the Spec sub-agent report "no spec available".
    - **Loop to convergence**: fix findings — including ones localized inside a single
-     issue's code that its worker's own review missed — then re-run `just check` +
-     `just test` and re-review. Stop only when a pass surfaces no new actionable
+     issue's code that its worker's own review missed — then re-run `just ci`
+     and re-review. Stop only when a pass surfaces no new actionable
      findings.
    - **Log every region you touch** while fixing. You will list these in the PR body so
      the human reviewer knows which code was authored during integration rather than by
      the original worker.
 
-2. **Full suite gate** — run `just check` and `just test` (the latter runs unit tests
-   **and** Playwright E2E). Everything MUST be green.
-   - If you **cannot** get the full suite green after a reasonable effort, **do NOT open a
+2. **Full CI gate** — run `just ci`. This mirrors GitHub CI exactly: prettier `--check`,
+   eslint, type check, build, unit tests, **and** Playwright E2E. Everything MUST be green.
+   If any prettier issue is reported, run `just fmt` to fix it, commit, then re-run `just ci`.
+   - If you **cannot** get `just ci` green after a reasonable effort, **do NOT open a
      PR**. Instead, output a `<report>` block (format below) describing what failed, and
      stop. Leave the branch as-is for human inspection.
 
@@ -96,7 +97,7 @@ On success (PR open):
 On failure (could not reach green — no PR opened):
 
 <report>
-FAILED: <which stage — whole-diff review / just check / unit tests / E2E>
+FAILED: <which stage — whole-diff review / just ci (format / lint / type / build / unit / E2E)>
 <the failing output, trimmed to the relevant part>
 </report>
 <promise>COMPLETE</promise>

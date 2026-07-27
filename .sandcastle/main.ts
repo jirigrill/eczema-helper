@@ -214,9 +214,14 @@ async function runLegacy() {
 // ── Integrated: workers branch off the integration branch (per batch), their
 // branches merge into it in order, and one integrator opens a single PRD PR.
 async function runIntegrated() {
-  // Fresh integration branch off origin/main.
+  // Fresh integration branch off origin/main. Detach the host HEAD first: if it
+  // is parked on INTEGRATION_BRANCH (e.g. a leftover checkout from a prior run),
+  // `git branch -f` below would fail, and the integrator's worktree can't share
+  // a branch that's checked out here.
   git('fetch', 'origin');
+  git('checkout', '--detach', '--quiet', 'HEAD');
   git('branch', '-f', INTEGRATION_BRANCH, 'origin/main');
+  git('checkout', INTEGRATION_BRANCH);
   console.log(`\nIntegration branch ${INTEGRATION_BRANCH} created off origin/main`);
 
   const integrated: Issue[] = []; // succeeded + merged, in dependency order
@@ -279,7 +284,10 @@ async function runIntegrated() {
   }
 
   // Integrator: whole-diff review + full suite + one PR (branch checked out).
-  git('checkout', INTEGRATION_BRANCH);
+  // Detach the host HEAD off INTEGRATION_BRANCH — the integrator materializes it
+  // in its own worktree, and git forbids the same branch in two worktrees. The
+  // branch ref already points at the fully-merged result from the batches above.
+  git('checkout', '--detach', '--quiet', INTEGRATION_BRANCH);
   const integratedList = integrated.map((i) => `- #${i.number}: ${i.title}`).join('\n');
 
   console.log(`\n=== Integrator (${integrated.length} issue(s)) ===\n`);
