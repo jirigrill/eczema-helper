@@ -57,6 +57,23 @@ New picker directions (see the "Destination picker — round 2" switcher in the 
   intersection of the two centred rows is the target cell. Day wheel is clipped at today (can't
   scroll into the future); mealtype wheel pre-centred on the source slot. Occupied target →
   confirmation reads "sloučit".
+- **D′ · DayStrip + slot sheet (real components, INTERACTIVE)** — the recommended direction, drawn
+  from the app's existing idioms rather than new UI: a horizontal **DayStrip** (snap-scroll,
+  future days greyed + unclickable, today-ring; mirrors `DayStrip.svelte`) picks the day, and the
+  **ADR-0018 meal-type sheet** overrides the slot. Slot defaults to the source (Oběd), so the
+  primary act is choosing a day. Fully interactive in the prototype: tapping days / "změnit"
+  updates a live target line and flips the confirm button between **Kopírovat sem** and
+  **Sloučit sem** by occupancy. Ships almost no new component. Set as the default picker variant.
+
+### Recommendation (agent, 2026-07-27)
+
+- **Best fit to current design:** **D′**. The app already owns both halves — `DayStrip` for the
+  day, the ADR-0018 meal-type sheet for the slot. **H (wheel) is the worst fit** — no wheel/carousel
+  exists anywhere; DESIGN.md leans on flat cards + snap-scroll strips and resists iOS-native chrome.
+- **Best UX for the common case** ("fed her the same thing again" = same slot, nearby day): **D′**
+  as the general choice (slot pre-filled, day is one tap on a strip); **E** is fewest taps but only
+  for the 2–3 most-recent targets; **F** is most error-resistant but costs the most navigation.
+- Net: **D′** wins both axes and is the interactive artifact to react to.
 
 
 <!-- Fill in the chosen entry variant + chosen picker variant, plus any tweaks, then this

@@ -417,10 +417,160 @@ function wheelColumn(labels, centerIdx, capNote) {
 }
 
 
+// ---- D′ — interactive, built from the app's real components ------------------
+// Reuses the app idioms: a horizontal DayStrip (snap-scroll, future-clamped,
+// today-ring) for the day, and the ADR-0018 meal-type sheet for the slot.
+// Slot defaults to the SOURCE slot (Oběd); day is the primary choice. Live.
+
+// A window ending today (Po 5. 5.). occupied marks days whose slots are filled
+// → merge targets. dow letters are Czech two-char.
+const DOW = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+const STRIP_DAYS = (() => {
+  const out = [];
+  // today = Po 5. 5. → its weekday index in DOW is 1 (Po). Walk offsets back/fwd.
+  for (let off = -10; off <= 3; off++) {
+    out.push({
+      off,
+      num: 5 + off, // linear day-of-month for the mock (5. 5. is today)
+      dow: DOW[(((1 + off) % 7) + 7) % 7],
+      isToday: off === 0,
+      isFuture: off > 0,
+      // Fabricated occupancy so merge is demonstrable.
+      occupied:
+        off === -3 ? ['lunch', 'dinner'] : off === 0 ? ['breakfast', 'lunch'] : off === -2 ? ['breakfast'] : [],
+    });
+  }
+  return out;
+})();
+
+// Live selection state for D′.
+const dp = { sourceSlot: 'lunch', dayOff: -1, slot: 'lunch', sheetOpen: false };
+
+function dpTargetDay() {
+  return STRIP_DAYS.find((d) => d.off === dp.dayOff);
+}
+function dpOccupied() {
+  const day = dpTargetDay();
+  return day ? day.occupied.includes(dp.slot) : false;
+}
+
+// One DayStrip cell, faithful to DayStrip.svelte (w-10, snap-center, ring dot).
+function dpDayCell(d) {
+  const selected = d.off === dp.dayOff;
+  const base = selected ? 'bg-primary text-white' : d.isFuture ? 'text-text-muted/50' : 'text-text-muted';
+  const lunchOcc = d.occupied.includes('lunch');
+  return `
+    <button data-dp-day="${d.off}" ${d.isFuture ? 'disabled' : ''}
+      class="flex w-10 shrink-0 snap-center flex-col items-center gap-1 rounded-lg py-2 ${base} ${d.isFuture ? 'cursor-not-allowed' : ''}">
+      <span class="text-[10px] uppercase ${selected ? 'opacity-80' : ''}">${d.dow}</span>
+      <span class="text-sm font-semibold">${d.num}</span>
+      ${
+        d.isToday && !selected
+          ? '<span class="ring-primary h-1.5 w-1.5 rounded-full ring-1 bg-transparent"></span>'
+          : d.isToday && selected
+            ? '<span class="h-1.5 w-1.5 rounded-full ring-1 ring-white bg-white/30"></span>'
+            : selected
+              ? '<span class="h-1.5 w-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>'
+              : lunchOcc
+                ? '<span class="h-1.5 w-1.5 rounded-full bg-primary/30"></span>'
+                : '<span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>'
+      }
+    </button>`;
+}
+
+// The ADR-0018 meal-type sheet (4 rows), reused for the slot override.
+function dpSlotSheet() {
+  if (!dp.sheetOpen) return '';
+  const day = dpTargetDay();
+  return `
+    <div data-dp-scrim class="absolute inset-0 z-[60] bg-black/30"></div>
+    <div class="absolute inset-x-0 bottom-0 z-[70]">
+      <div class="mx-2 mb-2 rounded-2xl border border-surface-dark bg-white p-2 shadow-lg">
+        <div class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Do kterého jídla?</div>
+        ${SLOTS.map((s) => {
+          const occ = day.occupied.includes(s.key);
+          const sel = s.key === dp.slot;
+          return `<button data-dp-slot="${s.key}" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm ${
+            sel ? 'bg-primary/5 text-primary font-semibold' : 'text-text'
+          } hover:bg-surface-dark">
+            <span class="flex h-6 w-6 items-center justify-center">${s.glyph}</span>
+            ${s.label}
+            ${occ ? '<span class="ml-auto text-[11px] text-primary/80">obsazeno → sloučit</span>' : sel ? '<span class="ml-auto text-primary">✓</span>' : ''}
+          </button>`;
+        }).join('')}
+      </div>
+      <div data-dp-scrim class="mx-2 mb-3 rounded-2xl bg-white p-3 text-center text-sm font-semibold text-primary shadow-lg">Zrušit</div>
+    </div>`;
+}
+
+DEST.dprime = () => {
+  const day = dpTargetDay();
+  const slot = SLOTS.find((s) => s.key === dp.slot);
+  const occupied = dpOccupied();
+  const dayLabel = day.isToday ? 'dnes' : day.off === -1 ? 'včera' : `${day.dow} ${day.num}. 5.`;
+  return (
+    pickerHeader() +
+    `<div class="px-5 pb-4">
+      <div class="eyebrow mb-2">Do kterého dne?</div>
+      <div class="-mx-1 mb-4 overflow-hidden">
+        <div id="dp-strip" class="flex snap-x gap-1 overflow-x-auto scroll-smooth pb-1" style="scrollbar-width:none">
+          ${STRIP_DAYS.map(dpDayCell).join('')}
+        </div>
+      </div>
+
+      <div class="eyebrow mb-2">Jídlo</div>
+      <button data-dp-openslot class="mb-4 flex w-full items-center gap-3 rounded-xl border border-surface-dark bg-white px-3 py-3 text-left hover:border-primary">
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary">${slot.glyph}</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-semibold">${slot.label}</div>
+          <div class="text-[11px] text-text-muted">${dp.slot === dp.sourceSlot ? 'stejný slot jako zdroj' : 'změněno'}</div>
+        </div>
+        <span class="text-[11px] text-text-muted">změnit ›</span>
+      </button>
+
+      <div class="rounded-xl px-3 py-2 text-center text-[12px] ${occupied ? 'bg-primary/10 text-primary' : 'bg-surface-dark/60 text-text-muted'}">
+        Cíl: <b class="${occupied ? 'text-primary' : 'text-text'}">${dayLabel} · ${slot.label}</b>
+        ${occupied ? ' — obsazeno, <b>sloučí se</b>' : ' — volné'}
+      </div>
+      <button class="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">
+        ${occupied ? 'Sloučit sem' : 'Kopírovat sem'}
+      </button>
+    </div>` +
+    dpSlotSheet() +
+    hint('D′ složené z <b>reálných komponent</b>: horizontální <b>DayStrip</b> (snap-scroll, budoucí dny zašedlé + neklikací, kroužek u dneška) pro den; <b>meal-type sheet z ADR-0018</b> pro změnu slotu. Slot předvyplněný na zdroj (Oběd) — hlavní volba je den. Interaktivní: klepej na dny / „změnit“; cíl a tlačítko se přepínají „Kopírovat“ ↔ „Sloučit“ podle obsazenosti.')
+  );
+};
+
+// Post-render wiring for D′ (the switcher only sets innerHTML).
+function wireDprime() {
+  const root = destFrames;
+  root.querySelectorAll('[data-dp-day]').forEach((b) =>
+    b.addEventListener('click', () => {
+      dp.dayOff = Number(b.dataset.dpDay);
+      rerenderDprime();
+    }),
+  );
+  const open = root.querySelector('[data-dp-openslot]');
+  if (open) open.addEventListener('click', () => { dp.sheetOpen = true; rerenderDprime(); });
+  root.querySelectorAll('[data-dp-slot]').forEach((b) =>
+    b.addEventListener('click', () => { dp.slot = b.dataset.dpSlot; dp.sheetOpen = false; rerenderDprime(); }),
+  );
+  root.querySelectorAll('[data-dp-scrim]').forEach((s) =>
+    s.addEventListener('click', () => { dp.sheetOpen = false; rerenderDprime(); }),
+  );
+  const sel = root.querySelector(`[data-dp-day="${dp.dayOff}"]`);
+  if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
+}
+function rerenderDprime() {
+  destFrames.innerHTML = phone(DEST_TAGS.dprime, DEST.dprime());
+  wireDprime();
+}
+
 const entryFrames = document.getElementById('entry-frames');
 const destFrames = document.getElementById('dest-frames');
 const ENTRY_TAGS = { icon: 'A · Ikona na řádku', menu: 'B · ⋯ menu', editor: 'C · V editoru ✓ LOCKED' };
 const DEST_TAGS = {
+  dprime: "D′ · DayStrip + slot sheet (real)",
   wheel: 'H · Válce den × typ',
   grid: 'A · Mřížka (rejected)',
   list: 'B · Seznam (rejected)',
@@ -445,6 +595,7 @@ switcher(
 switcher(
   'dest-switch',
   [
+    { key: 'dprime', label: "D′ · DayStrip + slot sheet ★ interaktivní" },
     { key: 'wheel', label: 'H · Válce (den × typ)' },
     { key: 'sameSlot', label: 'D · Stejný slot, jiný den' },
     { key: 'quick', label: 'E · Rychlé cíle' },
@@ -455,6 +606,7 @@ switcher(
   ],
   (k) => {
     destFrames.innerHTML = phone(DEST_TAGS[k], DEST[k]());
+    if (k === 'dprime') wireDprime();
   },
 );
 
