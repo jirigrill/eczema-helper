@@ -1,6 +1,7 @@
 import { tick } from 'svelte';
 import { writable } from 'svelte/store';
 
+import * as navigation from '$app/navigation';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +11,7 @@ import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
-import { writeBuffer } from '$lib/stores/discard-buffer';
+import { clearBuffer, writeBuffer } from '$lib/stores/discard-buffer';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
 const catalog = new BundledCatalogAdapter();
@@ -120,6 +121,7 @@ beforeEach(async () => {
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
   mockHarvestStore.set([]);
+  mockDiscardBuffer.set(null);
 });
 
 describe('meal/+page.svelte', () => {
@@ -681,8 +683,10 @@ describe('meal/+page.svelte', () => {
     await findByRole('button', { name: /^Brambory$/ });
     await fireEvent.click(getByRole('button', { name: 'Miminko' }));
     await findByRole('button', { name: /^Rýže$/ });
-    // Delete via the ⋯ overflow → confirm sheet.
+    // Delete via the ⋯ overflow → action list → destructive confirm sheet.
     await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
+    await tick();
     await fireEvent.click(getByRole('button', { name: 'Smazat jídlo' }));
     await tick();
     const babySlot = await meals.loadBySlot(today, 'lunch', 'baby');
@@ -876,7 +880,7 @@ describe('meal/+page.svelte', () => {
     expect(await findByRole('button', { name: 'Více' })).toBeInTheDocument();
   });
 
-  it('tapping ⋯ opens the confirm sheet with "Smazat jídlo" + "Zrušit"', async () => {
+  it('tapping ⋯ opens the action list with "Smazat jídlo" + "Zrušit"', async () => {
     setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
@@ -890,7 +894,7 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: 'Zrušit' })).toBeInTheDocument();
   });
 
-  it('tapping "Zrušit" in the confirm sheet closes it', async () => {
+  it('tapping "Zrušit" in the action list closes it', async () => {
     setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
@@ -910,6 +914,276 @@ describe('meal/+page.svelte', () => {
   // (`discardDescriptor('delete')`) and the e2e spec
   // `tests/e2e/meal-lifecycle.test.ts` (happy-path delete + undo plus the
   // delete-failure toast test tagged #400).
+
+  // ── Copy-meal entry point + destination picker (spec #599, issue #606) ──
+
+  it('shows "Kopírovat jídlo" in the ⋯ action list when the source meal has ≥1 food', async () => {
+    setReadyWithElim();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    expect(getByRole('button', { name: 'Kopírovat jídlo' })).toBeInTheDocument();
+  });
+
+  it('hides "Kopírovat jídlo" for a notes-only / zero-food meal (but still shows delete)', async () => {
+    setReadyWithElim();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    // An existing meal with a note but no foods — nothing to copy.
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [],
+      notes: 'jen poznámka',
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, queryByRole } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    expect(queryByRole('button', { name: 'Kopírovat jídlo' })).toBeNull();
+    // Delete stays available exactly as today.
+    expect(getByRole('button', { name: 'Smazat jídlo' })).toBeInTheDocument();
+  });
+
+  it('tapping "Kopírovat jídlo" opens the destination picker (day strip + "Kopírovat sem")', async () => {
+    setReadyWithElim();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, getByTestId } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    expect(getByTestId('day-strip')).toBeInTheDocument();
+    expect(getByRole('button', { name: 'Kopírovat sem' })).toBeInTheDocument();
+  });
+
+  it('picker: a strictly-future day is disabled (not a valid destination); today is selectable', async () => {
+    setReadyWithElim();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, container } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    // The "Kopírovat sem" button targets the currently-selected day; it starts
+    // enabled on the source day (today).
+    const pickSlot = getByRole('button', { name: 'Kopírovat sem' });
+    expect(pickSlot).toHaveAttribute('aria-disabled', 'false');
+    // Tapping a strictly-future cell must NOT change the selection to it — the
+    // pick button stays enabled on today rather than jumping to the future day.
+    const futureCell = container.querySelector(
+      `[data-testid="day-strip-cell"][data-date="${future}"]`,
+    );
+    expect(futureCell).not.toBeNull();
+    await fireEvent.click(futureCell!);
+    await tick();
+    expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
+      'aria-disabled',
+      'false',
+    );
+  });
+
+  it('picker: the loggable floor day (scheduleStart − 7) is a selectable destination', async () => {
+    setReadyWithElim();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, container } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    // scheduleStart is today; the loggable floor is today − 7 (the strip's
+    // earliest cell). Selecting it keeps the pick button enabled — the window
+    // gate uses isWithinLoggableWindow, so the floor is in-window.
+    const floor = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+    const cell = container.querySelector(`[data-testid="day-strip-cell"][data-date="${floor}"]`);
+    expect(cell).not.toBeNull();
+    await fireEvent.click(cell!);
+    await tick();
+    expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
+      'aria-disabled',
+      'false',
+    );
+  });
+
+  it('confirm copy (success): persists the destination meal, navigates to the dest day, writes a meal-copy buffer', async () => {
+    setReadyWithElim();
+    vi.mocked(writeBuffer).mockClear();
+    vi.mocked(navigation.goto).mockClear();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, getByTestId } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    // Source day is today; copy into today's DINNER slot (empty destination).
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat sem' }));
+    await tick();
+    await fireEvent.click(getByTestId('fab-meal-type-dinner'));
+    await waitFor(async () => {
+      const dinner = await meals.loadBySlot(today, 'dinner', 'mother');
+      expect(dinner.ok && dinner.data?.items[0]?.name).toBe('Brambory');
+    });
+    expect(vi.mocked(navigation.goto)).toHaveBeenCalledWith(`/day/${today}`);
+    expect(vi.mocked(writeBuffer)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'meal-copy',
+        destinationSlot: { date: today, mealType: 'dinner', actor: 'mother' },
+        destinationPreexisted: false,
+      }),
+    );
+  });
+
+  it('confirm copy (no-op): copying onto its own slot writes nothing, navigates nowhere', async () => {
+    setReadyWithElim();
+    vi.mocked(writeBuffer).mockClear();
+    vi.mocked(navigation.goto).mockClear();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, getByTestId } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    // Copy the lunch meal onto its OWN slot (today, lunch) → full overlap no-op.
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat sem' }));
+    await tick();
+    await fireEvent.click(getByTestId('fab-meal-type-lunch'));
+    await tick();
+    expect(vi.mocked(writeBuffer)).not.toHaveBeenCalled();
+    expect(vi.mocked(navigation.goto)).not.toHaveBeenCalled();
+  });
+
+  it('confirm copy (out-of-window save rejection): shows the out-of-window toast and stays put', async () => {
+    setReadyWithElim();
+    vi.mocked(writeBuffer).mockClear();
+    vi.mocked(navigation.goto).mockClear();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, getByTestId, findByText } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat sem' }));
+    await tick();
+    // Force the destination save to reject as if the day fell out of window
+    // between selection and save (the defensive Result branch). Armed right
+    // before the confirming tap so only the copy's write is affected.
+    const putSpy = vi
+      .spyOn(db.meals, 'put')
+      .mockRejectedValue(new Error('date-outside-loggable-window'));
+    vi.mocked(navigation.goto).mockClear();
+    vi.mocked(writeBuffer).mockClear();
+    try {
+      await fireEvent.click(getByTestId('fab-meal-type-dinner'));
+      expect(await findByText('Cílový den je mimo okno protokolu.')).toBeInTheDocument();
+      expect(vi.mocked(navigation.goto)).not.toHaveBeenCalled();
+      expect(vi.mocked(writeBuffer)).not.toHaveBeenCalled();
+    } finally {
+      putSpy.mockRestore();
+    }
+  });
+
+  it('US-17: a manual edit-save of the destination slot clears a stale meal-copy buffer', async () => {
+    setReadyWithElim();
+    // Simulate landing on the destination slot right after a copy: the single
+    // discard buffer holds a meal-copy for this exact slot.
+    mockDiscardBuffer.set({
+      kind: 'meal-copy',
+      destinationSlot: { date: today, mealType: 'lunch', actor: 'mother' },
+      addedItemIds: ['copied-1'],
+      destinationPreexisted: false,
+      priorUpdatedAt: undefined,
+      date: today,
+      returnTo: `/day/${today}`,
+    } as never);
+    vi.mocked(clearBuffer).mockClear();
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [
+        { id: 'copied-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' },
+        { id: 'hand-1', name: 'Rýže', foodId: 'ryze', amount: 'portion' },
+      ],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    // Dirty the destination slot with a manual edit (remove a food), then save.
+    await findByRole('button', { name: /^Brambory$/ });
+    await fireEvent.click(await findByRole('button', { name: /Odebrat Rýže/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Uložit změny' }));
+    await tick();
+    await waitFor(() => expect(vi.mocked(clearBuffer)).toHaveBeenCalled());
+  });
 
   it('empty-meal hint (saving deletes it) visible when editing an existing meal with zero foods', async () => {
     setReady();

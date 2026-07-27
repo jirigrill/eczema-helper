@@ -238,4 +238,42 @@ describe('FabActionSheet', () => {
       expect(queryByTestId('fab-action-evaluate')).not.toBeInTheDocument();
     });
   });
+
+  // ── Copy-destination mode (spec #599, issue #606) ──────────────────────
+  describe('copy-destination mode', () => {
+    it('initialMealSubmenu opens directly on the meal-type submenu (no add-meal/skin list)', () => {
+      const { getByTestId, queryByTestId } = render(FabActionSheet, {
+        props: { date: '2025-01-15', onclose: vi.fn(), initialMealSubmenu: true },
+      });
+      // The four meal-type rows are shown immediately.
+      expect(getByTestId('fab-meal-type-breakfast')).toBeInTheDocument();
+      expect(getByTestId('fab-meal-type-dinner')).toBeInTheDocument();
+      // The top-level action chooser is skipped.
+      expect(queryByTestId('fab-action-meal')).not.toBeInTheDocument();
+      expect(queryByTestId('fab-action-skin')).not.toBeInTheDocument();
+    });
+
+    it('preselectedType marks the source slot row (data-preselected="true")', () => {
+      const { getByTestId } = render(FabActionSheet, {
+        props: {
+          date: '2025-01-15',
+          onclose: vi.fn(),
+          initialMealSubmenu: true,
+          preselectedType: 'dinner' as const,
+        },
+      });
+      expect(getByTestId('fab-meal-type-dinner')).toHaveAttribute('data-preselected', 'true');
+      expect(getByTestId('fab-meal-type-lunch')).not.toHaveAttribute('data-preselected');
+    });
+
+    it('the submenu back button closes the whole sheet in copy mode (no add-meal list to return to)', async () => {
+      const onclose = vi.fn();
+      const { getByTestId } = render(FabActionSheet, {
+        props: { date: '2025-01-15', onclose, initialMealSubmenu: true },
+      });
+      await fireEvent.click(getByTestId('fab-meal-type-back'));
+      await tick();
+      expect(onclose).toHaveBeenCalledOnce();
+    });
+  });
 });

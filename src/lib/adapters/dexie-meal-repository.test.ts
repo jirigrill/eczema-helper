@@ -7,7 +7,8 @@ import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 import type { Meal, MealItem } from '$lib/domain/models';
 import { PREPARATION_METHODS, mealId } from '$lib/domain/models';
 import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
-import { addDays } from '$lib/utils/date';
+import { copyMealInto } from '$lib/domain/working-meal';
+import { addDays, todayIso } from '$lib/utils/date';
 
 import { DexieMealRepository } from './dexie-meal-repository';
 import { DexieScheduleRepository } from './dexie-schedule-repository';
@@ -476,6 +477,118 @@ describe('DexieMealRepository', () => {
 
       const result = await repo.save(makeMeal(tooEarly, 'dinner'));
       expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+    });
+  });
+
+  // ── Copy-meal loggable-window boundary (spec #599, issue #606) ──────────
+  //
+  // A copied meal is an ordinary `Meal` assembled by `copyMealInto` and
+  // persisted through the same `save()` guard as any other write. These tests
+  // pin that a copy whose *destination date* falls outside the loggable window
+  // is rejected — the guard branch this ticket's confirm flow relies on to keep
+  // the picker open and raise the out-of-window toast.
+  describe('copy-meal destination window', () => {
+    function sourceMeal(): Meal {
+      return makeMeal('2026-05-15', 'lunch', {
+        items: [makeItem('src-1', { name: 'Rýže', foodId: 'ryze' })],
+      });
+    }
+
+    // Assemble a copy into `destDate`'s dinner slot (empty destination) and
+    // persist it — mirrors the route's `copyMealInto` → `save` confirm path.
+    async function copyInto(destDate: string) {
+      const destSlot = { date: destDate, mealType: 'dinner' as const, actor: 'mother' as const };
+      const { meal } = copyMealInto(sourceMeal(), null, destSlot);
+      return repo.save(meal!);
+    }
+
+    it('rejects a copy whose destination date is outside the loggable window', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+
+      expect(await copyInto(tooEarly)).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+      expect(await repo.loadBySlot(tooEarly, 'dinner', 'mother')).toEqual({
+        ok: true,
+        data: null,
+      });
+    });
+
+    it('allows a copy landing exactly on the start-buffer floor (scheduleStart − 7)', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const floor = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS);
+
+      expect(await copyInto(floor)).toMatchObject({ ok: true });
+      const persisted = await repo.loadBySlot(floor, 'dinner', 'mother');
+      expect(persisted.ok && persisted.data?.items[0]?.name).toBe('Rýže');
+    });
+
+    it('rejects a copy one day below the start-buffer floor (scheduleStart − 8)', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const belowFloor = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
+
+      expect(await copyInto(belowFloor)).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+    });
+
+    it('allows a copy dated today (today is a valid destination)', async () => {
+      const today = todayIso();
+      // A schedule whose window comfortably contains today.
+      const schedule = makeSchedule({
+        startDate: addDays(today, -10),
+        estimatedEndDate: addDays(today, 10),
+      });
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+
+      expect(await copyInto(today)).toMatchObject({ ok: true });
+      const persisted = await repo.loadBySlot(today, 'dinner', 'mother');
+      expect(persisted.ok && persisted.data?.items[0]?.name).toBe('Rýže');
+    });
+  });
+
+  // ── Copy-meal actor-scoping (spec #599, issue #606) ─────────────────────
+  //
+  // The merge target is resolved actor-scoped via `loadBySlot(date, slot,
+  // source.actor)`. A copy into a `(date, slot)` cell that holds the OTHER
+  // actor's meal must treat the source-actor's slot as empty (compose-new) and
+  // leave the other actor's row byte-for-byte untouched.
+  describe('copy-meal actor-scoping', () => {
+    it('creates the source-actor slot as empty and leaves the other actor row untouched', async () => {
+      // The destination cell is (2026-05-20, dinner). It already holds the
+      // BABY's meal; the source is a MOTHER meal being copied here.
+      const babyDinner = makeMeal('2026-05-20', 'dinner', {
+        actor: 'baby',
+        items: [makeItem('baby-1', { name: 'Miminkovo', foodId: 'other:baby-food' })],
+        createdAt: '2026-05-20T18:00:00.000Z',
+      });
+      await repo.save(babyDinner);
+
+      const source = makeMeal('2026-05-15', 'lunch', {
+        actor: 'mother',
+        items: [makeItem('src-1', { name: 'Rýže', foodId: 'ryze' })],
+      });
+
+      // Resolve the merge target actor-scoped to the SOURCE actor (mother).
+      const targetResult = await repo.loadBySlot('2026-05-20', 'dinner', 'mother');
+      expect(targetResult).toEqual({ ok: true, data: null }); // mother slot is empty
+
+      const destSlot = {
+        date: '2026-05-20',
+        mealType: 'dinner' as const,
+        actor: 'mother' as const,
+      };
+      const { meal } = copyMealInto(source, targetResult.ok ? targetResult.data : null, destSlot);
+      await repo.save(meal!);
+
+      // The mother's slot now exists with the copied food.
+      const motherSlot = await repo.loadBySlot('2026-05-20', 'dinner', 'mother');
+      expect(motherSlot.ok && motherSlot.data?.actor).toBe('mother');
+      expect(motherSlot.ok && motherSlot.data?.items[0]?.name).toBe('Rýže');
+
+      // The baby's row in the same cell is byte-for-byte untouched.
+      const babySlot = await repo.loadBySlot('2026-05-20', 'dinner', 'baby');
+      expect(babySlot).toEqual({ ok: true, data: babyDinner });
     });
   });
 

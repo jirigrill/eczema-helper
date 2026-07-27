@@ -9,6 +9,7 @@ import type {
   ReintroductionEvaluation,
   SkinObservation,
 } from '$lib/domain/models';
+import { mealId } from '$lib/domain/models';
 import { REST_PHASE_DAYS_CLEAR, REST_PHASE_DAYS_MILD } from '$lib/domain/policy';
 import { addDays } from '$lib/utils/date';
 
@@ -24,6 +25,7 @@ import {
   skinStabilityGate,
 } from './ladder';
 import type { Ladder, LadderDecisionInput, LadderStep } from './ladder';
+import { copyMealInto } from './working-meal';
 
 // ── Fixtures ──────────────────────────────────────────────────
 
@@ -1601,5 +1603,39 @@ describe('decideLadderMove', () => {
     // A reaction bound to e2 drops the live rung to e1.
     const evaluations = [evaluation({ date: '2026-06-02', outcome: 'clear-reaction' })];
     expect(currentRung('eggs', meals, engineLadder, 'breastfed', null, evaluations)?.id).toBe('e1');
+  });
+});
+
+// ── Copy-meal ladder splice (spec #599, issue #606, US-23) ──────────────────
+//
+// The dose ladder is derived purely from the meal history — `currentRung` walks
+// the `meals` array. Copying an allergen dose onto a *past* day splices a new
+// anchor into that history, moving the ladder exactly as a hand-logged dose
+// would. No copy-aware branch exists: the copied meal is an ordinary `Meal`
+// assembled by `copyMealInto`, and the same `currentRung` derivation reads it.
+describe('copy-meal ladder splice (US-23)', () => {
+  function eggsMeal(date: string, mealType: Meal['mealType'], amount: PortionKind): Meal {
+    return makeMeal({
+      id: mealId(date, mealType, 'mother'),
+      date,
+      mealType,
+      items: [{ id: `${date}-${mealType}-item`, name: 'Vejce', foodId: 'vejce', amount }],
+    });
+  }
+
+  it('copying an eggs dose onto an earlier day advances currentRung vs the no-copy baseline', () => {
+    // Baseline: a single first-rung anchor logged on 2026-06-02 → rung-1.
+    const source = eggsMeal('2026-06-02', 'breakfast', 'portion');
+    const baseline = currentRung('eggs', [source], eggsLadder, 'breastfed');
+    expect(baseline?.id).toBe('rung-1');
+
+    // Copy that dose onto an earlier day's lunch slot (empty destination). The
+    // history now holds two distinct first-rung anchors → the ladder climbs.
+    const destSlot = { date: '2026-06-01', mealType: 'lunch' as const, actor: 'mother' as const };
+    const { meal: copied } = copyMealInto(source, null, destSlot);
+    const spliced = currentRung('eggs', [source, copied!], eggsLadder, 'breastfed');
+
+    expect(spliced?.id).toBe('rung-2');
+    expect(spliced?.id).not.toBe(baseline?.id);
   });
 });

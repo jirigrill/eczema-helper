@@ -197,6 +197,17 @@ export const commonStrings = {
      * Informational only: it never blocks saving.
      */
     outOfWindowHint: 'Toto jídlo je mimo okno aktuálního protokolu.',
+    // ── Copy meal (spec #599) ──────────────────────────────────
+    /** Heading of the copy-destination picker. */
+    copyPickerHeading: 'Kam zkopírovat?',
+    /** Success toast after a copy lands on the destination day (undoable). */
+    copiedToast: 'Zkopírováno',
+    /**
+     * Error toast when a copy's destination date falls outside the loggable
+     * window — the `save()` guard rejected it, so nothing was written and the
+     * picker stays open.
+     */
+    copyOutOfWindowToast: 'Cílový den je mimo okno protokolu.',
   },
 
   // ── Program page ──────────────────────────────────────────

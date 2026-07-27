@@ -5,10 +5,16 @@ import { writable } from 'svelte/store';
 import { fireEvent, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { GeneratedSchedule, QuestionnaireAnswers } from '$lib/domain/models';
+import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+import { db } from '$lib/db/atopic-db';
+import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import { mealId } from '$lib/domain/models';
 import { type WorkingMeal, emptyWorkingMeal } from '$lib/domain/working-meal';
 import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buffer';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
+
+const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
@@ -492,5 +498,110 @@ describe('+layout.svelte — discard toast undo', () => {
     expect(mockGoto).toHaveBeenCalledWith(
       `/meal?type=breakfast&date=${date}&actor=baby&returnTo=${encodeURIComponent(`/day/${date}`)}`,
     );
+  });
+});
+
+describe('+layout.svelte — copy-meal undo (issue #606)', () => {
+  const date = today;
+
+  beforeEach(async () => {
+    clearBuffer();
+    await db.meals.clear();
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${date}`),
+      params: { date },
+      data: {},
+    });
+    mockScheduleContext.set(readyContext);
+  });
+
+  it('shows the "Zkopírováno" toast for a meal-copy descriptor', async () => {
+    writeBuffer({
+      kind: 'meal-copy',
+      destinationSlot: { date, mealType: 'dinner', actor: 'mother' },
+      addedItemIds: ['a1'],
+      destinationPreexisted: false,
+      priorUpdatedAt: undefined,
+      date,
+      returnTo: `/day/${date}`,
+    });
+    const { getByText } = await renderLayout();
+    await tick();
+    expect(getByText('Zkopírováno')).toBeInTheDocument();
+  });
+
+  it('undo of a copy into a NEWLY-created slot deletes the created meal', async () => {
+    // The copy created (date, dinner, mother) from scratch → undo removes it.
+    await meals.save({
+      id: mealId(date, 'dinner', 'mother'),
+      date,
+      mealType: 'dinner',
+      actor: 'mother',
+      items: [{ id: 'copied-1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+      createdAt: `${date}T18:00:00.000Z`,
+    });
+    writeBuffer({
+      kind: 'meal-copy',
+      destinationSlot: { date, mealType: 'dinner', actor: 'mother' },
+      addedItemIds: ['copied-1'],
+      destinationPreexisted: false,
+      priorUpdatedAt: undefined,
+      date,
+      returnTo: `/day/${date}`,
+    });
+
+    const { getByText } = await renderLayout();
+    await tick();
+    await fireEvent.click(getByText('Zpět'));
+    await tick();
+    await vi.waitFor(async () => {
+      const slot = await meals.loadBySlot(date, 'dinner', 'mother');
+      expect(slot).toEqual({ ok: true, data: null });
+    });
+    expect(mockGoto).toHaveBeenCalledWith(`/day/${date}`);
+  });
+
+  it('undo of a copy that MERGED into an existing meal trims only the added items and restores prior updatedAt', async () => {
+    // The destination pre-existed with one food + a note + an updatedAt; the
+    // copy added a second food and re-stamped updatedAt. Undo must remove only
+    // the added food, restore the prior updatedAt, and leave prior food + note.
+    const priorUpdatedAt = `${date}T09:00:00.000Z`;
+    const merged: Meal = {
+      id: mealId(date, 'dinner', 'mother'),
+      date,
+      mealType: 'dinner',
+      actor: 'mother',
+      items: [
+        { id: 'prior-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' },
+        { id: 'added-1', name: 'Rýže', foodId: 'ryze', amount: 'portion' },
+      ],
+      notes: 'dest note',
+      createdAt: `${date}T08:00:00.000Z`,
+      updatedAt: `${date}T18:00:00.000Z`,
+    };
+    await meals.save(merged);
+    writeBuffer({
+      kind: 'meal-copy',
+      destinationSlot: { date, mealType: 'dinner', actor: 'mother' },
+      addedItemIds: ['added-1'],
+      destinationPreexisted: true,
+      priorUpdatedAt,
+      date,
+      returnTo: `/day/${date}`,
+    });
+
+    const { getByText } = await renderLayout();
+    await tick();
+    await fireEvent.click(getByText('Zpět'));
+    await tick();
+    await vi.waitFor(async () => {
+      const slot = await meals.loadBySlot(date, 'dinner', 'mother');
+      expect(slot.ok && slot.data).toBeTruthy();
+      if (slot.ok && slot.data) {
+        expect(slot.data.items.map((i) => i.id)).toEqual(['prior-1']);
+        expect(slot.data.notes).toBe('dest note');
+        expect(slot.data.updatedAt).toBe(priorUpdatedAt);
+      }
+    });
   });
 });

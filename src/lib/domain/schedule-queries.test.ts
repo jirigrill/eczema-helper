@@ -5,6 +5,7 @@ import { ALLERGENS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type {
   AllergenId,
   GeneratedSchedule,
+  Meal,
   MealItem,
   QuestionnaireAnswers,
   SchedulePhase,
@@ -25,6 +26,7 @@ import {
   isPhaseEndForEvaluation,
   mealConflicts,
 } from './schedule-queries';
+import { copyMealInto } from './working-meal';
 
 const catalog = new BundledCatalogAdapter();
 
@@ -964,5 +966,64 @@ describe('isPhaseEndForEvaluation', () => {
   it('is false on the last day of a rest phase (rest is not evaluated)', () => {
     // scheduleWithRestPhase: rest-1 05-31→06-02
     expect(isPhaseEndForEvaluation(scheduleWithRestPhase, '2026-06-02')).toBe(false);
+  });
+});
+
+// ── Copy-meal conflict re-derivation (spec #599, issue #606, US-21/US-22) ──
+//
+// A copied meal carries no conflict state of its own — conflicts are always
+// re-derived from the *destination day's* eliminated set. These tests prove
+// that indistinguishability through the real `copyMealInto` → `detectConflicts`
+// path: the destination's flags depend only on its date, never on the source's.
+// baseSchedule: dairy is eliminated 2026-05-06..2026-05-26 and allowed during
+// reintro-dairy 2026-05-27..2026-05-30.
+describe('copy-meal conflict re-derivation (US-21/US-22)', () => {
+  const DAIRY_FORBIDDEN_DAY = '2026-05-10'; // elimination phase
+  const DAIRY_ALLOWED_DAY = '2026-05-28'; // reintro-dairy phase
+
+  function dairyMeal(date: string): Meal {
+    return {
+      id: `${date}:lunch:mother`,
+      date,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [item('src-milk', 'kravske-mleko')],
+      createdAt: `${date}T12:00:00.000Z`,
+    };
+  }
+
+  it('does NOT flag a food forbidden on the source day but allowed on the destination day (US-22)', () => {
+    // Source day forbids dairy; copy the dairy meal onto a day where dairy is
+    // allowed. The copied items, checked against the destination day's set,
+    // must not be flagged.
+    const source = dairyMeal(DAIRY_FORBIDDEN_DAY);
+    const destSlot = {
+      date: DAIRY_ALLOWED_DAY,
+      mealType: 'lunch' as const,
+      actor: 'mother' as const,
+    };
+    const { meal } = copyMealInto(source, null, destSlot);
+    const destEliminated = getProtocolEliminatedForDate(baseSchedule, DAIRY_ALLOWED_DAY);
+
+    expect(destEliminated).not.toContain('dairy');
+    expect(detectConflicts(meal!.items, destEliminated, catalog)).toHaveLength(0);
+  });
+
+  it('DOES flag a food fine on the source day but forbidden on the destination day (US-21)', () => {
+    // Source day allows dairy (reintro); copy onto a day where dairy is
+    // eliminated. The copied items must be flagged against the destination set.
+    const source = dairyMeal(DAIRY_ALLOWED_DAY);
+    const destSlot = {
+      date: DAIRY_FORBIDDEN_DAY,
+      mealType: 'lunch' as const,
+      actor: 'mother' as const,
+    };
+    const { meal } = copyMealInto(source, null, destSlot);
+    const destEliminated = getProtocolEliminatedForDate(baseSchedule, DAIRY_FORBIDDEN_DAY);
+
+    expect(destEliminated).toContain('dairy');
+    const flagged = detectConflicts(meal!.items, destEliminated, catalog);
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0]!.foodId).toBe('kravske-mleko');
   });
 });
