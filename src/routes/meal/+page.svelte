@@ -185,6 +185,13 @@
   // discard buffer stay in the route and are deferred to later slices of #284.
   const editor = createMealEditor();
 
+  // One meal repository instance for the route's own direct-to-Dexie writes
+  // (delete on explicit "Smazat jídlo" and on an emptied-then-backed-out edit,
+  // issue #588). The editor holds its own for finalize/save; the route reaches
+  // Dexie only to remove a row, so a single shared adapter here keeps the two
+  // remove call sites from each hand-rolling `new DexieMealRepository(...)`.
+  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Splitting the buffer-vs-load
   // decision off from the eliminatedToday subscription is essential — when
@@ -482,6 +489,26 @@
     }
   }
 
+  /**
+   * Pair a discard descriptor with this slot's identity
+   * (`mealType`/`actor`/`date`/`returnTo`) and write it to the undo buffer.
+   * Every buffer write for this route goes through here so the slot-metadata
+   * clump lives in exactly one place — `saveMeal` (emptied-then-saved delete),
+   * `bufferDiscard` (back-out), and `handleDeleteConfirm` (explicit delete) all
+   * call it. It writes the buffer only; removing the persisted Dexie row is the
+   * caller's concern (finalize already removes on save; the other two paths
+   * call `meals.remove` themselves).
+   */
+  function writeSlotBuffer(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
+    writeBuffer({
+      ...desc,
+      mealType: selectedMealType,
+      actor: selectedActor,
+      date: targetDate,
+      returnTo,
+    });
+  }
+
   async function saveMeal(): Promise<void> {
     // Capture the delete descriptor BEFORE finalize removes the row, so an
     // emptied-then-saved meal can be undone (issue #588). finalize reports
@@ -499,13 +526,7 @@
     // only (bufferDiscard would remove a second time). deleteDesc is non-null
     // because the 'delete' intent always yields a descriptor.
     if (result.data === 'deleted' && deleteDesc) {
-      writeBuffer({
-        ...deleteDesc,
-        mealType: selectedMealType,
-        actor: selectedActor,
-        date: targetDate,
-        returnTo,
-      });
+      writeSlotBuffer(deleteDesc);
     }
     goto(returnTo);
   }
@@ -542,19 +563,9 @@
    * and Dexie is the source of truth for the day view we navigate to.
    */
   function bufferDiscard(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
-    writeBuffer({
-      ...desc,
-      mealType: selectedMealType,
-      actor: selectedActor,
-      date: targetDate,
-      returnTo,
-    });
+    writeSlotBuffer(desc);
     if (desc.kind === 'meal-delete') {
-      void new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
-        targetDate,
-        selectedMealType,
-        selectedActor,
-      );
+      void meals.remove(targetDate, selectedMealType, selectedActor);
     }
   }
 
@@ -715,23 +726,13 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
-      targetDate,
-      selectedMealType,
-      selectedActor,
-    );
+    const result = await meals.remove(targetDate, selectedMealType, selectedActor);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
     }
     if (desc) {
-      writeBuffer({
-        ...desc,
-        mealType: selectedMealType,
-        actor: selectedActor,
-        date: targetDate,
-        returnTo,
-      });
+      writeSlotBuffer(desc);
     }
     goto(returnTo);
   }
