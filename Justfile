@@ -168,6 +168,20 @@ check:
     just viz-check
     @echo "✅ All checks passed!"
 
+# Full CI gate — mirrors .github/workflows/ci.yml (all 6 jobs); uses prettier --check
+# so unformatted code fails here as it does in CI. Agents gate on this before opening a PR.
+ci:
+    bunx prettier --check "src/**/*.{ts,svelte}"
+    bunx svelte-kit sync
+    bunx eslint .
+    bun run check
+    bunx svelte-check --tsconfig ./tools/ladder-viz/tsconfig.json
+    bun run build
+    bun run test
+    bunx playwright install --with-deps chromium
+    bunx playwright test
+    @echo "✅ CI gate passed (matches GitHub CI)"
+
 # Clean build artifacts
 clean:
     rm -rf build .svelte-kit node_modules/.cache
