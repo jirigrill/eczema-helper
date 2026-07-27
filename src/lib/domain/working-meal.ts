@@ -1,13 +1,6 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
-import type {
-  Actor,
-  Meal,
-  MealItem,
-  MealType,
-  PortionKind,
-  PreparationMethod,
-} from '$lib/domain/models';
+import type { Meal, MealItem, MealSlot, PortionKind, PreparationMethod } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { randomUUID } from '$lib/utils/uuid';
 
@@ -365,7 +358,7 @@ export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
  * has no confirmed items (empty-meal no-op).
  */
 export function finalizeWorkingMeal(
-  slot: { date: string; mealType: MealType; actor: Actor },
+  slot: MealSlot,
   meal: WorkingMeal,
   notes: string,
   loadedCreatedAt: string | null,
@@ -383,5 +376,68 @@ export function finalizeWorkingMeal(
     notes: trimmedNotes || undefined,
     createdAt: loadedCreatedAt ?? now,
     ...(loadedCreatedAt !== null ? { updatedAt: now } : {}),
+  };
+}
+
+/** Result of a copy: the persistable destination `Meal`, or `null` for a no-op. */
+export type CopyMealResult = {
+  meal: Meal | null;
+  added: MealItem[];
+};
+
+/** Copy a MealItem verbatim with a freshly minted id. */
+function withFreshItemId(item: MealItem): MealItem {
+  return {
+    id: randomUUID(),
+    name: item.name,
+    foodId: item.foodId,
+    amount: item.amount,
+    preparationMethod: item.preparationMethod,
+  };
+}
+
+/**
+ * Pure heart of the copy-meal feature: assemble the persistable destination
+ * `Meal` from a source meal copied into a destination slot. The source note
+ * never travels. `target` is the meal currently occupying the destination slot,
+ * or `null` when the slot is empty.
+ *
+ * - Empty destination → compose-new: fresh `MealId`, all source items carried
+ *   with fresh ids, no note, fresh `createdAt`, no `updatedAt`.
+ * - Occupied destination → additive merge keyed by `foodId`: only foods the
+ *   destination lacks are added; the destination always wins on collision;
+ *   destination `createdAt` + `notes` preserved, `updatedAt` stamped.
+ * - No-op (`meal: null`, `added: []`) when the merge would add nothing —
+ *   covers self-copy and full overlap.
+ */
+export function copyMealInto(
+  source: Meal,
+  target: Meal | null,
+  targetSlot: MealSlot,
+  now: string = new Date().toISOString(),
+): CopyMealResult {
+  if (target === null) {
+    const items = source.items.map(withFreshItemId);
+    return {
+      meal: {
+        id: mealId(targetSlot.date, targetSlot.mealType, targetSlot.actor),
+        date: targetSlot.date,
+        mealType: targetSlot.mealType,
+        actor: targetSlot.actor,
+        items,
+        notes: undefined,
+        createdAt: now,
+      },
+      added: items,
+    };
+  }
+
+  const existingFoodIds = new Set(target.items.map((i) => i.foodId));
+  const added = source.items.filter((i) => !existingFoodIds.has(i.foodId)).map(withFreshItemId);
+  if (added.length === 0) return { meal: null, added: [] };
+
+  return {
+    meal: { ...target, items: [...target.items, ...added], updatedAt: now },
+    added,
   };
 }

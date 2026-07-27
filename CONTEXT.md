@@ -59,6 +59,33 @@ be swapped behind one call site. It takes `eliminatedToday` (an
 warning banner, the red CTA, reintro dosing) stay in the route, built on top
 of `eliminatedFoodIds`. See ADR-0018 and PRD issue #284.
 
+### Copy Meal
+Copying an existing `Meal` into another slot (another day, meal type, or
+actor). The pure assembler `copyMealInto(source, target, targetSlot, now)`
+in `src/lib/domain/working-meal.ts` computes the persistable destination
+`Meal` and the list of items the copy adds; I/O (loading `target`, writing
+the result) is the caller's job. Its **merge invariants**:
+
+- **Additive-only, destination-wins.** The merge is keyed by `foodId`. Only
+  foods the destination lacks are carried over; on any `foodId` collision the
+  destination item is kept and the source item dropped, even when their
+  portion or preparation differ. An occupied destination never loses or
+  overwrites an existing food.
+- **A copy never carries the source note.** Into an empty slot the result has
+  `notes: undefined`; into an occupied slot the destination's own note is
+  preserved unchanged. The source note never travels.
+- **Timestamps mirror ADR-0018.** Empty destination → compose-new: fresh
+  `MealId`, fresh `createdAt = now`, no `updatedAt`. Occupied destination →
+  the destination's `createdAt` is preserved and `updatedAt` is stamped `now`.
+- **No-op.** When the merge would add nothing — the destination already holds
+  every source `foodId`, including copying a meal onto its own slot — the
+  result is a no-op signal (`meal: null`, `added: []`); nothing is written.
+- Each carried `MealItem` copies `name` / `foodId` / `amount` /
+  `preparationMethod` verbatim with a freshly minted `id`.
+
+(Same-actor / actor-scoped-occupancy / eligibility rules for *which* copies
+are offered live with the copy entry-point, not with this assembler.)
+
 ### SkinObservation
 A timestamped record of what the parent observed about the baby's skin
 at a point in time: a set of per-region severities (`regions`) on a

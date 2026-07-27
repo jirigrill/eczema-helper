@@ -692,6 +692,21 @@ persisted, so there is nothing to delete). (Reverses the earlier #586 "Empty-mea
 Guard", which made empty-save a no-op and routed the user to Smazat instead; formerly
 "Empty-Hotovo Guard".) → See issues #268, #586, #588.
 
+### Copy a meal / Merge (copy)
+*Czech: Zkopírovat jídlo*
+
+Copying a saved `Meal` into another slot (another day, meal type, or actor).
+The pure assembler `copyMealInto` (`src/lib/domain/working-meal.ts`) produces
+the destination `Meal` plus the items the copy added. Into an **empty** slot it
+composes a new meal (fresh `MealId` + `createdAt`, no note, no `updatedAt`).
+Into an **occupied** slot it performs an **additive merge** keyed by `foodId`:
+only foods the destination lacks are added, the **destination always wins** on
+collision (differing portion/prep does not override), and the destination's
+`createdAt` + note are preserved while `updatedAt` is stamped. A copy that would
+add nothing — the destination already holds every source `foodId`, including
+copying a meal onto its own slot — is a **no-op** (`meal: null`, `added: []`).
+**A copy never carries the source note.** → See CONTEXT.md "Copy Meal".
+
 ---
 
 ## Assessment & Observation
