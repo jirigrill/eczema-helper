@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { Component } from 'svelte';
+
   import type { Actor, AllergenId, Meal, MealItem } from '$lib/domain/models';
   import { commonStrings } from '$lib/strings/common';
   import { categoryStrings } from '$lib/strings/categories';
@@ -64,6 +66,21 @@
   );
 </script>
 
+<!-- Single source of truth for the round icon marker so meal and actor icons
+     stay visually in sync: same size, same state-driven color. `state` picks
+     the paint; the icon itself paints via `currentColor`. -->
+{#snippet iconMarker(Icon: Component<{ class?: string }>, state: 'empty' | 'filled' | 'conflict')}
+  <div
+    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {state === 'conflict'
+      ? 'bg-danger/15 text-danger'
+      : state === 'empty'
+        ? 'text-text-muted/50 bg-white'
+        : 'text-primary bg-white'}"
+  >
+    <Icon class="h-7 w-7" />
+  </div>
+{/snippet}
+
 {#snippet allergenPills(allergens: AllergenId[])}
   {#each allergens as allergenId (allergenId)}
     <span class="bg-danger/15 text-danger rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
@@ -108,11 +125,7 @@
           class="block"
         >
           <div class="flex items-center gap-3 py-2">
-            <div
-              class="text-text-muted/50 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white"
-            >
-              <Icon class="h-5 w-5" />
-            </div>
+            {@render iconMarker(Icon, 'empty')}
             <div class="min-w-0 flex-1">
               <div class="text-text-muted/70 text-sm font-medium">{cfg.label}</div>
             </div>
@@ -130,14 +143,7 @@
           class="block"
         >
           <div class="flex items-center gap-3 py-2">
-            <div
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {conflictItemIds.size >
-              0
-                ? 'bg-danger/15 text-danger'
-                : 'text-primary bg-white'}"
-            >
-              <Icon class="h-5 w-5" />
-            </div>
+            {@render iconMarker(Icon, conflictItemIds.size > 0 ? 'conflict' : 'filled')}
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-1.5">
                 <span class="text-text text-sm font-semibold">{cfg.label}</span>
@@ -176,11 +182,10 @@
                     date}&actor={actor}&returnTo=/day/{meal?.date ?? date}"
                   class="flex items-center gap-2 py-1"
                 >
-                  <span
-                    class="border-surface-dark text-text-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full border"
-                  >
-                    <ActorIcon class="h-5 w-5" />
-                  </span>
+                  {@render iconMarker(
+                    ActorIcon,
+                    !meal ? 'empty' : conflictItemIds.size > 0 ? 'conflict' : 'filled',
+                  )}
                   <div class="text-text-muted min-w-0 flex-1 text-[11px]">
                     {@render foodRun(meal?.items ?? [], conflictItemIds)}
                   </div>
