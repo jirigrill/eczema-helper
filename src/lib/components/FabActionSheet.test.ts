@@ -62,6 +62,20 @@ describe('FabActionSheet', () => {
     expect(onclose).toHaveBeenCalledOnce();
   });
 
+  it('when onSelectMealType is supplied, tapping a meal type calls it with the MealType and does NOT navigate', async () => {
+    const onSelectMealType = vi.fn();
+    const onclose = vi.fn();
+    const { getByTestId } = render(FabActionSheet, {
+      props: { date, onclose, onSelectMealType },
+    });
+    await fireEvent.click(getByTestId('fab-action-meal'));
+    await tick();
+    await fireEvent.click(getByTestId('fab-meal-type-lunch'));
+    await tick();
+    expect(onSelectMealType).toHaveBeenCalledWith('lunch');
+    expect(gotoMock).not.toHaveBeenCalled();
+  });
+
   it('a logged meal type renders with ✓ marker (data-logged="true") and accessible "již zaznamenáno" suffix', async () => {
     const { getByTestId } = render(FabActionSheet, {
       props: { date, onclose: vi.fn(), loggedTypes: ['breakfast', 'lunch'] },
