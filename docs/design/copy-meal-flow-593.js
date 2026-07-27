@@ -458,7 +458,7 @@ function dpOccupied() {
 function dpDayCell(d) {
   const selected = d.off === dp.dayOff;
   const base = selected ? 'bg-primary text-white' : d.isFuture ? 'text-text-muted/50' : 'text-text-muted';
-  const lunchOcc = d.occupied.includes('lunch');
+  // Merge is silent — no occupied marker on the strip.
   return `
     <button data-dp-day="${d.off}" ${d.isFuture ? 'disabled' : ''}
       class="flex w-10 shrink-0 snap-center flex-col items-center gap-1 rounded-lg py-2 ${base} ${d.isFuture ? 'cursor-not-allowed' : ''}">
@@ -471,9 +471,7 @@ function dpDayCell(d) {
             ? '<span class="h-1.5 w-1.5 rounded-full ring-1 ring-white bg-white/30"></span>'
             : selected
               ? '<span class="h-1.5 w-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>'
-              : lunchOcc
-                ? '<span class="h-1.5 w-1.5 rounded-full bg-primary/30"></span>'
-                : '<span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>'
+              : '<span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>'
       }
     </button>`;
 }
@@ -481,21 +479,20 @@ function dpDayCell(d) {
 // The ADR-0018 meal-type sheet (4 rows), reused for the slot override.
 function dpSlotSheet() {
   if (!dp.sheetOpen) return '';
-  const day = dpTargetDay();
   return `
     <div data-dp-scrim class="absolute inset-0 z-[60] bg-black/30"></div>
     <div class="absolute inset-x-0 bottom-0 z-[70]">
       <div class="mx-2 mb-2 rounded-2xl border border-surface-dark bg-white p-2 shadow-lg">
         <div class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Do kterého jídla?</div>
         ${SLOTS.map((s) => {
-          const occ = day.occupied.includes(s.key);
           const sel = s.key === dp.slot;
+          // Merge is silent — no "obsazeno" marker; every slot is a plain target.
           return `<button data-dp-slot="${s.key}" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm ${
             sel ? 'bg-primary/5 text-primary font-semibold' : 'text-text'
           } hover:bg-surface-dark">
             <span class="flex h-6 w-6 items-center justify-center">${s.glyph}</span>
             ${s.label}
-            ${occ ? '<span class="ml-auto text-[11px] text-primary/80">obsazeno → sloučit</span>' : sel ? '<span class="ml-auto text-primary">✓</span>' : ''}
+            ${sel ? '<span class="ml-auto text-primary">✓</span>' : ''}
           </button>`;
         }).join('')}
       </div>
@@ -506,8 +503,8 @@ function dpSlotSheet() {
 DEST.dprime = () => {
   const day = dpTargetDay();
   const slot = SLOTS.find((s) => s.key === dp.slot);
-  const occupied = dpOccupied();
   const dayLabel = day.isToday ? 'dnes' : day.off === -1 ? 'včera' : `${day.dow} ${day.num}. 5.`;
+  // Merge is silent — the picker never mentions occupancy; confirm is always "Kopírovat sem".
   return (
     pickerHeader() +
     `<div class="px-5 pb-4">
@@ -528,16 +525,13 @@ DEST.dprime = () => {
         <span class="text-[11px] text-text-muted">změnit ›</span>
       </button>
 
-      <div class="rounded-xl px-3 py-2 text-center text-[12px] ${occupied ? 'bg-primary/10 text-primary' : 'bg-surface-dark/60 text-text-muted'}">
-        Cíl: <b class="${occupied ? 'text-primary' : 'text-text'}">${dayLabel} · ${slot.label}</b>
-        ${occupied ? ' — obsazeno, <b>sloučí se</b>' : ' — volné'}
+      <div class="rounded-xl bg-surface-dark/60 px-3 py-2 text-center text-[12px] text-text-muted">
+        Cíl: <b class="text-text">${dayLabel} · ${slot.label}</b>
       </div>
-      <button class="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">
-        ${occupied ? 'Sloučit sem' : 'Kopírovat sem'}
-      </button>
+      <button class="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">Kopírovat sem</button>
     </div>` +
     dpSlotSheet() +
-    hint('D′ složené z <b>reálných komponent</b>: horizontální <b>DayStrip</b> (snap-scroll, budoucí dny zašedlé + neklikací, kroužek u dneška) pro den; <b>meal-type sheet z ADR-0018</b> pro změnu slotu. Slot předvyplněný na zdroj (Oběd) — hlavní volba je den. Interaktivní: klepej na dny / „změnit“; cíl a tlačítko se přepínají „Kopírovat“ ↔ „Sloučit“ podle obsazenosti.')
+    hint('D′ složené z <b>reálných komponent</b>: horizontální <b>DayStrip</b> (snap-scroll, budoucí dny zašedlé + neklikací, kroužek u dneška) pro den; <b>meal-type sheet z ADR-0018</b> pro změnu slotu. Slot předvyplněný na zdroj (Oběd) — hlavní volba je den. <b>Slučování je skryté</b> — vždy jen „Kopírovat sem“; případné sloučení proběhne tiše.')
   );
 };
 

@@ -45,8 +45,19 @@ merge-on-occupied decision made visible; no modal.
 ## Verdict (2026-07-27)
 
 **Half 1 — entry point: LOCKED → C · V editoru jídla.** Copy lives as the "…" (overflow) option
-inside `MealEditor`. No affordance on the day view; no row widening. Variants A (row icon) and B
-(row ⋯ menu) are rejected.
+inside `MealEditor`, labelled **"Kopírovat jídlo"** (not "Kopírovat do…"). No affordance on the day
+view; no row widening. Variants A (row icon) and B (row ⋯ menu) are rejected.
+
+**Merge is silent (decided 2026-07-27).** The picker shows the user *nothing* about occupancy — no
+"sloučit" chips, no occupied markers on the strip/sheet, no button flip. Every target reads
+"Kopírovat sem"; if the target slot is already filled, the copy merges under the hood. The only
+post-hoc signal kept is the **undo toast** ("Zkopírováno · Vrátit") on landing — the single safety
+net, since a silent merge onto a forgotten slot is otherwise unrecoverable-looking.
+
+> ⚠ **Tension with map #592 "Collision behaviour" decision**, which specifies merge "with an undo"
+> and treats the collision as surfaced. Hiding *pre-action* merge cues is a refinement of that
+> (undo is retained); but the map decision should be updated to say the merge is **not signalled
+> before the action**, only undoable after. Flag for the spec ticket (#597) / a map amendment.
 
 **Half 2 — destination picker: none of A/B accepted.** Grid-then-slot and day-list-with-slots both
 rejected. Fresh options generated (D–G below) — awaiting user reaction to pick one.

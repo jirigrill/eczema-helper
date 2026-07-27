@@ -111,7 +111,7 @@ function screenEditor() {
     ${S.menuOpen ? overflowSheet() : ''}`);
 }
 
-// The "…" overflow action sheet — "Kopírovat do…" is the copy entry point.
+// The "…" overflow action sheet — "Kopírovat jídlo" is the copy entry point.
 function overflowSheet() {
   const item = (glyph, label, attrs, cls) => `
     <button ${attrs} class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm ${cls} hover:bg-surface-dark">
@@ -121,7 +121,7 @@ function overflowSheet() {
     <div class="absolute inset-x-0 bottom-0 z-[70]">
       <div class="mx-2 mb-2 rounded-2xl border border-surface-dark bg-white p-2 shadow-lg">
         <div class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Oběd · 5. 5.</div>
-        ${item('📋', 'Kopírovat do…', 'data-go="picker"', 'text-primary font-semibold')}
+        ${item('📋', 'Kopírovat jídlo', 'data-go="picker"', 'text-primary font-semibold')}
         ${item('✎', 'Upravit položky', 'data-menu-close', 'text-text')}
         ${item('🗑', 'Smazat jídlo', 'data-menu-close', 'text-danger')}
       </div>
@@ -133,7 +133,7 @@ function overflowSheet() {
 function dayCell(d) {
   const selected = d.off === S.dayOff;
   const base = selected ? 'bg-primary text-white' : d.isFuture ? 'text-text-muted/50' : 'text-text-muted';
-  const lunchOcc = d.occupied.includes('lunch');
+  // Merge is silent — no occupied marker on the strip; only today-ring + selection dot.
   return `
     <button data-day="${d.off}" ${d.isFuture ? 'disabled' : ''}
       class="flex w-10 shrink-0 snap-center flex-col items-center gap-1 rounded-lg py-2 ${base} ${d.isFuture ? 'cursor-not-allowed' : ''}">
@@ -142,24 +142,23 @@ function dayCell(d) {
       ${
         d.isToday && !selected ? '<span class="ring-primary h-1.5 w-1.5 rounded-full ring-1 bg-transparent"></span>'
         : selected ? '<span class="h-1.5 w-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>'
-        : lunchOcc ? '<span class="h-1.5 w-1.5 rounded-full bg-primary/30"></span>'
         : '<span class="h-1.5 w-1.5 rounded-full bg-transparent"></span>'
       }
     </button>`;
 }
 function slotSheet() {
   if (!S.sheetOpen) return '';
-  const d = dayOf(S.dayOff);
   return `
     <div data-sheet-close class="absolute inset-0 z-[60] bg-black/30"></div>
     <div class="absolute inset-x-0 bottom-0 z-[70]">
       <div class="mx-2 mb-2 rounded-2xl border border-surface-dark bg-white p-2 shadow-lg">
         <div class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Do kterého jídla?</div>
         ${SLOTS.map((s) => {
-          const occ = d.occupied.includes(s.key), sel = s.key === S.slot;
+          const sel = s.key === S.slot;
+          // Merge is silent — no "obsazeno" marker; every slot is a plain target.
           return `<button data-slot="${s.key}" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm ${sel ? 'bg-primary/5 text-primary font-semibold' : 'text-text'} hover:bg-surface-dark">
             <span class="flex h-6 w-6 items-center justify-center">${s.glyph}</span>${s.label}
-            ${occ ? '<span class="ml-auto text-[11px] text-primary/80">obsazeno → sloučit</span>' : sel ? '<span class="ml-auto text-primary">✓</span>' : ''}</button>`;
+            ${sel ? '<span class="ml-auto text-primary">✓</span>' : ''}</button>`;
         }).join('')}
       </div>
       <div data-sheet-close class="mx-2 mb-3 rounded-2xl bg-white p-3 text-center text-sm font-semibold text-primary shadow-lg">Zrušit</div>
@@ -167,7 +166,7 @@ function slotSheet() {
 }
 function screenPicker() {
   const slot = slotOf(S.slot);
-  const occ = occupiedAt(S.dayOff, S.slot);
+  // Merge is silent — the picker never mentions occupancy; confirm is always "Kopírovat sem".
   return phone("PICKER · D′", `
     <div class="sticky top-0 z-20 flex items-center gap-3 border-b border-surface-dark bg-surface px-4 py-2.5">
       <button class="text-lg leading-none text-text" data-go="editor">‹</button>
@@ -190,10 +189,10 @@ function screenPicker() {
           <div class="text-[11px] text-text-muted">${S.slot === SOURCE.slot ? 'stejný slot jako zdroj' : 'změněno'}</div></div>
         <span class="text-[11px] text-text-muted">změnit ›</span>
       </button>
-      <div class="rounded-xl px-3 py-2 text-center text-[12px] ${occ ? 'bg-primary/10 text-primary' : 'bg-surface-dark/60 text-text-muted'}">
-        Cíl: <b class="${occ ? 'text-primary' : 'text-text'}">${dayLabel(S.dayOff)} · ${slot.label}</b>${occ ? ' — obsazeno, <b>sloučí se</b>' : ' — volné'}
+      <div class="rounded-xl bg-surface-dark/60 px-3 py-2 text-center text-[12px] text-text-muted">
+        Cíl: <b class="text-text">${dayLabel(S.dayOff)} · ${slot.label}</b>
       </div>
-      <button data-go="done" class="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">${occ ? 'Sloučit sem' : 'Kopírovat sem'}</button>
+      <button data-go="done" class="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">Kopírovat sem</button>
     </div>
     ${slotSheet()}`);
 }
@@ -202,7 +201,10 @@ function screenPicker() {
 function screenDone() {
   const slot = slotOf(S.slot);
   const merged = occupiedAt(S.dayOff, S.slot);
-  const foods = merged ? 'rýže · dýně · <b>rýže · kuřecí · mrkev</b>' : 'rýže · kuřecí · mrkev';
+  // Merge is silent: the destination slot simply shows its resulting items (which,
+  // if it was occupied, now include the copied foods). No merge is announced —
+  // the toast reads the same either way, and only the undo remains as the net.
+  const foods = merged ? 'rýže · dýně · rýže · kuřecí · mrkev' : 'rýže · kuřecí · mrkev';
   return phone('CÍLOVÝ DEN + toast', `
     <div class="px-5 pt-1 pb-3"><div class="eyebrow">${dayLabel(S.dayOff)}</div><div class="text-[24px] font-bold tracking-tight">Den</div></div>
     <div class="mx-5 mb-3 rounded-2xl border border-surface-dark bg-white overflow-hidden">
@@ -217,7 +219,7 @@ function screenDone() {
       </div>
     </div>
     <div class="absolute inset-x-3 bottom-6 z-40 flex items-center gap-3 rounded-xl bg-text px-4 py-3 text-white shadow-lg">
-      <span class="text-sm">${merged ? 'Sloučeno do ' : 'Zkopírováno do '}<b>${dayLabel(S.dayOff)} · ${slot.label}</b></span>
+      <span class="text-sm">Zkopírováno do <b>${dayLabel(S.dayOff)} · ${slot.label}</b></span>
       <button data-go="editor" class="ml-auto text-sm font-semibold text-white/90 underline">Zpět</button>
       <button class="text-sm font-semibold underline">Vrátit</button>
     </div>`);
@@ -227,9 +229,9 @@ function screenDone() {
 const NOTES = {
   day: '<b>1 · Dnes.</b> Klepnutím na <b>Oběd</b> otevřeš editor toho jídla. (Entry point je uzamčený na editor — na day view žádná ikona kopírování.)',
   editor: '<b>2 · MealEditor.</b> Kopírování žije pod <b>⋯</b> vpravo nahoře. Klepni na ⋯.',
-  menu: '<b>3 · … menu.</b> Vyber <b>Kopírovat do…</b>. Ostatní akce (upravit, smazat) tu žijí vedle.',
-  picker: '<b>4 · D′ picker.</b> Slot je předvyplněný na zdroj (Oběd) — hlavní volba je den (DayStrip). Klepni na den; „změnit“ přepne slot přes sheet. Tlačítko se přepíná <b>Kopírovat</b> ↔ <b>Sloučit</b> podle obsazenosti. Potvrď.',
-  done: '<b>5 · Hotovo.</b> Přistaneš na cílovém dni, jídlo zvýrazněné, toast s <b>Vrátit</b>. Když byl cíl obsazený, položky se <b>sloučily</b> (dedup dořeší spec #595).',
+  menu: '<b>3 · … menu.</b> Vyber <b>Kopírovat jídlo</b>. Ostatní akce (upravit, smazat) tu žijí vedle.',
+  picker: '<b>4 · D′ picker.</b> Slot je předvyplněný na zdroj (Oběd) — hlavní volba je den (DayStrip). Klepni na den; „změnit“ přepne slot přes sheet. <b>O slučování se uživatelce nic neříká</b> — vždy jen „Kopírovat sem“; případné sloučení proběhne tiše. Potvrď.',
+  done: '<b>5 · Hotovo.</b> Přistaneš na cílovém dni, jídlo zvýrazněné, toast „Zkopírováno“ s <b>Vrátit</b>. Když byl cíl obsazený, položky se tiše sloučily — jediná záchrana je <b>Vrátit</b> v toastu.',
 };
 const SCREENS = { day: screenDay, editor: screenEditor, menu: screenEditor, picker: screenPicker, done: screenDone };
 
