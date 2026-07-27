@@ -31,7 +31,28 @@ merge-on-occupied (no modal, occupied slots stay pickable + marked "sloučit") �
 Both destination pickers show occupied slots as pickable, tinted, and labelled **"sloučit"** — the
 merge-on-occupied decision made visible; no modal.
 
-## Verdict — **PENDING** (awaiting user reaction, 2026-07-27)
+## Verdict (2026-07-27)
+
+**Half 1 — entry point: LOCKED → C · V editoru jídla.** Copy lives as the "…" (overflow) option
+inside `MealEditor`. No affordance on the day view; no row widening. Variants A (row icon) and B
+(row ⋯ menu) are rejected.
+
+**Half 2 — destination picker: none of A/B accepted.** Grid-then-slot and day-list-with-slots both
+rejected. Fresh options generated (D–G below) — awaiting user reaction to pick one.
+
+New picker directions (see the "Destination picker — round 2" switcher in the prototype):
+
+- **D · Stejný slot, jiný den** — the source meal type (Oběd) is pre-selected; the mother mainly
+  picks a *day* (the common case is same-slot cross-day). Slot is a one-tap override, not a
+  first-class step.
+- **E · Rychlé cíle (včera / předevčírem)** — recency shortcut chips for the most likely targets,
+  with a "jiný den" fallback into a full picker. Optimises the frequent case to a single tap.
+- **F · Režim vložení (paste mode)** — no in-picker calendar; copying arms a "paste mode" and the
+  mother navigates the normal day view to the target day, where every slot shows a paste affordance
+  (empty → "vložit sem", occupied → "sloučit sem"). Reuses the day view she already knows.
+- **G · Datum + slot (stepper)** — minimal: a Czech date stepper (‹ 4. 5. ›) hard-bounded at today,
+  plus 4 slot chips. Compact, no scrolling, explicit.
+
 
 <!-- Fill in the chosen entry variant + chosen picker variant, plus any tweaks, then this
      prototype feeds the spec ticket (#597). Delete these mockup files once folded in. -->

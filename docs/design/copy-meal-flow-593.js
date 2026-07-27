@@ -273,18 +273,115 @@ const DEST = {
     hint('Každý den je řádek se všemi 4 sloty naráz — <b>jeden tap = den + slot</b>. Budoucí dny se vůbec nezobrazí. Delší scroll, ale nejrychlejší volba.'),
 };
 
-// ---- boot -------------------------------------------------------------------
+// ---- HALF 2 round 2: fresh picker variants (D–G) ----------------------------
+// Source meal = Oběd (lunch). Days model reused from above.
+
+// D — same slot pre-selected; the mother mainly picks a DAY.
+DEST.sameSlot = () =>
+  pickerHeader() +
+  `<div class="px-5 pb-3">
+    <div class="mb-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
+      <div class="eyebrow mb-1 text-primary">Cílový slot</div>
+      <div class="flex items-center gap-2 text-sm font-semibold text-primary">☀️ Oběd <span class="ml-auto text-[11px] font-normal text-text-muted">změnit ›</span></div>
+    </div>
+    <div class="eyebrow mb-2">Do kterého dne?</div>
+    <div class="space-y-1.5">
+      ${DAYS.filter((d) => !d.future).slice().reverse().map((d) => {
+        const occ = d.occupied.includes('lunch');
+        return `<button class="flex w-full items-center gap-3 rounded-xl border ${
+          d.today ? 'border-primary' : 'border-surface-dark'
+        } bg-white px-3 py-3 text-left hover:border-primary">
+          <span class="text-sm font-semibold ${d.today ? 'text-primary' : ''}">${d.dow} ${d.dm}</span>
+          ${d.today ? '<span class="text-[10px] text-text-muted">dnes</span>' : ''}
+          <span class="ml-auto text-[11px] ${occ ? 'text-primary' : 'text-text-muted'}">${occ ? '● oběd obsazen → sloučit' : '○ oběd volný'}</span>
+        </button>`;
+      }).join('')}
+    </div>
+  </div>` +
+  hint('Slot je předvyplněný na zdrojový (Oběd) — nejčastější případ je <b>stejný slot, jiný den</b>. Vybírá se hlavně den; slot se mění jedním tapem přes „změnit“.');
+
+// E — recency shortcut chips + fallback to a full picker.
+DEST.quick = () =>
+  pickerHeader() +
+  `<div class="px-5 pb-3">
+    <div class="eyebrow mb-2">Rychlé cíle</div>
+    <div class="space-y-2">
+      <button class="flex w-full items-center gap-3 rounded-xl border border-surface-dark bg-white px-3 py-3 text-left hover:border-primary">
+        <span class="text-lg">↩︎</span>
+        <div><div class="text-sm font-semibold">Včera · Oběd</div><div class="text-[11px] text-text-muted">Ne 4. 5. — volné</div></div>
+      </button>
+      <button class="flex w-full items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3 py-3 text-left">
+        <span class="text-lg">↩︎</span>
+        <div><div class="text-sm font-semibold text-primary">Předevčírem · Oběd</div><div class="text-[11px] text-primary/80">So 3. 5. — obsazeno → sloučit</div></div>
+      </button>
+      <button class="flex w-full items-center gap-3 rounded-xl border border-surface-dark bg-white px-3 py-3 text-left hover:border-primary">
+        <span class="text-lg">📅</span>
+        <div class="text-sm font-semibold">Jiný den / slot…</div>
+      </button>
+    </div>
+  </div>` +
+  hint('Nejpravděpodobnější cíle (<b>včera</b>, <b>předevčírem</b>, stejný slot) jako jednotapové zkratky; „jiný den“ je fallback do plného pickeru. Obsazené cíle rovnou označené „sloučit“.');
+
+// F — paste mode: navigate the normal day view, tap a slot to drop.
+DEST.paste = () =>
+  `<div class="sticky top-0 z-40 bg-primary px-4 py-2 text-center text-[13px] font-semibold text-white">
+     Režim vložení · ☀️ Oběd — klepni na slot &nbsp;<span class="underline">Zrušit</span>
+   </div>` +
+  `<div class="px-5 pt-2 pb-1"><div class="eyebrow">Neděle · 4. 5.</div><div class="text-[20px] font-bold tracking-tight">Den</div></div>` +
+  `<div class="mx-5 mb-3 rounded-2xl border border-surface-dark bg-white overflow-hidden">
+     <div class="px-4 pt-3 pb-1"><div class="eyebrow">Dnešní jídla</div></div>
+     <div class="px-4 divide-y divide-surface-dark">
+       ${SLOTS.map((s) => {
+         const occ = DAYS[2].occupied.includes(s.key); // Ne 4.5. → none occupied
+         return `<div class="flex items-center gap-3 py-2.5">
+           <div class="flex h-9 w-9 items-center justify-center rounded-full bg-white ${occ ? 'text-primary' : 'text-text-muted/50'}">${s.glyph}</div>
+           <div class="min-w-0 flex-1"><div class="text-sm font-medium">${s.label}</div>${occ ? '<div class="text-[11px] text-text-muted">rýže · dýně</div>' : ''}</div>
+           <span class="rounded-lg border border-dashed border-primary/60 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary">${occ ? 'sloučit sem' : 'vložit sem'}</span>
+         </div>`;
+       }).join('')}
+     </div>
+   </div>` +
+  `<div class="mx-5 mb-3 flex items-center justify-between text-[12px] text-text-muted"><button>‹ předchozí den</button><button>dnes ›</button></div>` +
+  hint('Kopírování zapne <b>režim vložení</b> — pak listuješ normálním day view na cílový den a klepneš na slot („vložit sem“ / „sloučit sem“). Žádný nový picker; použije obrazovku, kterou už znáš. Budoucí dny nedostupné.');
+
+// G — date stepper + slot chips, minimal.
+DEST.stepper = () =>
+  pickerHeader() +
+  `<div class="px-5 pb-3">
+    <div class="eyebrow mb-2">Den</div>
+    <div class="mb-4 flex items-center justify-between rounded-xl border border-surface-dark bg-white px-3 py-3">
+      <button class="text-2xl leading-none text-text-muted">‹</button>
+      <div class="text-center"><div class="text-sm font-semibold">Neděle 4. 5.</div><div class="text-[10px] text-text-muted">včera</div></div>
+      <button class="text-2xl leading-none text-text-muted/40" title="dnes je maximum">›</button>
+    </div>
+    <div class="eyebrow mb-2">Slot</div>
+    <div class="grid grid-cols-4 gap-2">
+      ${SLOTS.map((s, i) => `<button class="rounded-lg border ${i === 1 ? 'border-primary bg-primary/5 text-primary' : 'border-surface-dark bg-white text-text'} px-2 py-2 text-center text-[11px] hover:border-primary">
+        <div>${s.glyph}</div><div class="mt-0.5 font-medium">${s.label}</div>
+      </button>`).join('')}
+    </div>
+    <button class="mt-5 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">Kopírovat sem</button>
+  </div>` +
+  hint('Minimum: <b>datum stepper</b> (‹ ›) tvrdě omezený dneškem — šipka „dopředu“ je za dnešek zašedlá — plus 4 sloty. Kompaktní, bez scrollu, explicitní potvrzení „Kopírovat sem“.');
+
 const entryFrames = document.getElementById('entry-frames');
 const destFrames = document.getElementById('dest-frames');
-const ENTRY_TAGS = { icon: 'A · Ikona na řádku', menu: 'B · ⋯ menu', editor: 'C · V editoru' };
-const DEST_TAGS = { grid: 'A · Mřížka dnů', list: 'B · Seznam dnů' };
+const ENTRY_TAGS = { icon: 'A · Ikona na řádku', menu: 'B · ⋯ menu', editor: 'C · V editoru ✓ LOCKED' };
+const DEST_TAGS = {
+  grid: 'A · Mřížka (rejected)',
+  list: 'B · Seznam (rejected)',
+  sameSlot: 'D · Stejný slot, jiný den',
+  quick: 'E · Rychlé cíle',
+  paste: 'F · Režim vložení',
+  stepper: 'G · Datum + slot',
+};
 
 switcher(
   'entry-switch',
   [
-    { key: 'icon', label: 'A · Ikona na řádku' },
-    { key: 'menu', label: 'B · ⋯ menu' },
-    { key: 'editor', label: 'C · V editoru jídla' },
+    { key: 'editor', label: 'C · V editoru jídla ✓' },
+    { key: 'icon', label: 'A · Ikona na řádku (rejected)' },
+    { key: 'menu', label: 'B · ⋯ menu (rejected)' },
   ],
   (k) => {
     entryFrames.innerHTML = phone(ENTRY_TAGS[k], ENTRY[k]());
@@ -294,8 +391,12 @@ switcher(
 switcher(
   'dest-switch',
   [
-    { key: 'grid', label: 'A · Mřížka dnů → slot' },
-    { key: 'list', label: 'B · Seznam dnů + sloty' },
+    { key: 'sameSlot', label: 'D · Stejný slot, jiný den' },
+    { key: 'quick', label: 'E · Rychlé cíle' },
+    { key: 'paste', label: 'F · Režim vložení' },
+    { key: 'stepper', label: 'G · Datum + slot' },
+    { key: 'grid', label: 'A · Mřížka (rejected)' },
+    { key: 'list', label: 'B · Seznam (rejected)' },
   ],
   (k) => {
     destFrames.innerHTML = phone(DEST_TAGS[k], DEST[k]());
