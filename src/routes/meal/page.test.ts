@@ -10,6 +10,7 @@ import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import { writeBuffer } from '$lib/stores/discard-buffer';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
 const catalog = new BundledCatalogAdapter();
@@ -926,6 +927,35 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(await findByRole('button', { name: /Odebrat Brambory/ }));
     await tick();
     expect(getByText(/uložením ho smažeš/)).toBeInTheDocument();
+  });
+
+  it('saving an emptied existing meal deletes the row and writes a meal-delete undo buffer (issue #588)', async () => {
+    // The route-level counterpart to the editor's finalize→'deleted' test: at
+    // the CTA seam, saving an emptied edit removes the Dexie row (not a silent
+    // no-op restoring the old foods, the #586 bug) and writes the delete buffer
+    // so the layout toast + undo behave like the explicit "Smazat jídlo".
+    vi.mocked(writeBuffer).mockClear();
+    setReady();
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
+    await meals.save(lunchWithBramboryMeal());
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    // Empty the meal, then save via the (now-enabled) "Uložit změny" CTA.
+    await fireEvent.click(await findByRole('button', { name: /Odebrat Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Uložit změny' }));
+    await waitFor(async () =>
+      expect(await meals.loadBySlot('2025-06-13', 'lunch', 'mother')).toEqual({
+        ok: true,
+        data: null,
+      }),
+    );
+    // The undo buffer was written as a delete (so "Jídlo smazáno" + Zpět show).
+    expect(vi.mocked(writeBuffer)).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'meal-delete', actor: 'mother', mealType: 'lunch' }),
+    );
   });
 
   it('empty-meal hint NOT visible when composing a brand-new meal with zero foods', async () => {

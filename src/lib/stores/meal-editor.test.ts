@@ -355,6 +355,50 @@ describe('createMealEditor — discardDescriptor()', () => {
       'brambory',
     ]);
   });
+
+  it('emptied edit (all foods removed, backed out) returns kind "delete" carrying the LOADED foods, not the empty live list (issue #588)', async () => {
+    // Back-out of an emptied existing edit deletes the meal (#588). The live
+    // working list is empty at this point, so the delete buffer must restore
+    // the foods as originally loaded from Dexie (`loadedWorkingMeal` fallback)
+    // — otherwise undo would re-materialize an empty meal.
+    const date = '2024-10-05b';
+    await meals.save(
+      makeMeal({ id: `${date}:lunch:mother`, date, mealType: 'lunch', notes: 'loaded notes' }),
+    );
+
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => removeFood(m, 'vegetables', 'brambory'));
+
+    // No explicit 'delete' intent — this is the back-out path, which infers the
+    // delete from the now-empty dirty edit.
+    const desc = editor.discardDescriptor();
+    expect(desc).not.toBeNull();
+    expect(desc!.kind).toBe('meal-delete');
+    expect(desc!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId))).toEqual([
+      'brambory',
+    ]);
+    expect(desc!.workingMeal.notes).toBe('loaded notes');
+  });
+
+  it('discardDescriptor("delete") on a compose-new (nothing loaded) falls back to the live working meal', async () => {
+    // Defensive branch: `loadedWorkingMeal === null` on compose-new, so the
+    // delete snapshot collapses to the live working meal. Delete intent on a
+    // compose-new is not a real user path, but the branch exists — pin it.
+    const editor = createMealEditor();
+    await editor.open({ date: '2024-10-05c', mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
+    editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
+
+    const desc = editor.discardDescriptor('delete');
+    expect(desc).not.toBeNull();
+    expect(desc!.kind).toBe('meal-delete');
+    expect(desc!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId))).toEqual([
+      'brambory',
+    ]);
+  });
 });
 
 describe('createMealEditor — applyUndo()', () => {
