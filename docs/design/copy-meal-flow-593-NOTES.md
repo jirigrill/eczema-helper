@@ -31,6 +31,17 @@ merge-on-occupied (no modal, occupied slots stay pickable + marked "sloučit") �
 Both destination pickers show occupied slots as pickable, tinted, and labelled **"sloučit"** — the
 merge-on-occupied decision made visible; no modal.
 
+## Artifacts
+
+- `copy-meal-flow-593.html` (+ `.js`) — the **variant-comparison** prototype: switch between entry
+  points (A/B/C) and destination pickers (A/B/D/E/F/G/H, D′).
+- `copy-meal-flow-593-walkthrough.html` (+ `-walkthrough.js`) — the **end-to-end interactive walk**
+  through the locked decisions: tap Oběd on the day view → MealEditor → `…` menu → "Kopírovat do…"
+  → D′ destination picker → confirm → land on the destination day with an undo toast. Clickable
+  screen-to-screen; a step rail + Zpět/Reset drive it too. The picker step is the same interactive
+  D′ (DayStrip + slot sheet, copy/merge switching, future-day clamp). Verified headlessly (jsdom):
+  all 8 flow steps advance and the confirm respects occupancy.
+
 ## Verdict (2026-07-27)
 
 **Half 1 — entry point: LOCKED → C · V editoru jídla.** Copy lives as the "…" (overflow) option
