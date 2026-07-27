@@ -46,6 +46,8 @@ export const actionStrings = {
   /** Meal delete + overflow (issue #268, ADR-0018) */
   more: 'Více', // aria-label for the ⋯ overflow trigger
   deleteMeal: 'Smazat jídlo', // destructive button on the confirm sheet
+  copyMeal: 'Kopírovat jídlo', // overflow action opening the copy-destination picker (spec #599)
+  copyHere: 'Kopírovat sem', // every meal-type target in the destination picker (spec #599)
   confirmDelete: 'Potvrdit smazání', // future-proof; not currently rendered (deleteMeal is itself the confirm verb)
 
   /** Skin observation delete (issue #394, ADR-0021 amendment) */

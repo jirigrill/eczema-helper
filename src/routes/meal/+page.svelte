@@ -1,7 +1,13 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
-  import type { Actor, PortionKind, PreparationMethod } from '$lib/domain/models';
+  import type {
+    Actor,
+    MealSlot,
+    MealType,
+    PortionKind,
+    PreparationMethod,
+  } from '$lib/domain/models';
   import { getEligibleActors } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -18,6 +24,7 @@
   import { formForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { isWithinLoggableWindow } from '$lib/domain/policy';
+  import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import { scheduleRaw } from '$lib/stores/schedule-context';
   import { buildScheduleContext, eliminatedFor } from '$lib/domain/schedule-queries';
   import { rungAtDayInPhase } from '$lib/domain/ladder';
@@ -28,6 +35,8 @@
   import Chip from '$lib/components/Chip.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
   import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
+  import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
+  import FabActionSheet from '$lib/components/FabActionSheet.svelte';
   import FamilyGrid from '$lib/components/FamilyGrid.svelte';
   import FamilyDrillIn from '$lib/components/FamilyDrillIn.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
@@ -41,6 +50,7 @@
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
+  import { copyMealInto } from '$lib/domain/working-meal';
 
   import {
     startEditing,
@@ -56,7 +66,7 @@
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
   import { writeBuffer, discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
-  import type { MealDiscardKind } from '$lib/stores/discard-buffer';
+  import type { MealDiscardKind, DiscardedMealCopy } from '$lib/stores/discard-buffer';
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
@@ -258,8 +268,16 @@
   // CTA. View state (drill-in, grid edit) and navigation stay in the route.
   const workingMeal = $derived<WorkingMeal>(editor.workingMeal);
   const editingExisting = $derived(editor.editingExisting);
-  /** True while the destructive-confirm bottom sheet is open. */
+  /** True while the ⋯ overflow action list (copy / delete) is open. */
   let overflowOpen = $state(false);
+  /** True while the destructive delete-confirm sheet is open (opened FROM the overflow list). */
+  let deleteConfirmOpen = $state(false);
+  /** True while the copy-destination picker (day strip + slot sheet) is open. */
+  let copyPickerOpen = $state(false);
+  /** The day currently selected in the copy-destination picker. Defaults to the source day. */
+  let copyDestDate = $state<string>('');
+  /** True while the copy slot sheet (FabActionSheet in copy mode) is open. */
+  let copySlotSheetOpen = $state(false);
 
   // ── View state ────────────────────────────────────────────
   // Drill-in is **shallow-routed** (issue #262): each drill-in entry pushes a
@@ -510,6 +528,12 @@
   }
 
   async function saveMeal(): Promise<void> {
+    // US-17 (issue #606): a manual edit/save of a slot that a copy just wrote
+    // to must invalidate that copy's undo buffer, so a later undo can never
+    // trim/delete food the mother added by hand after the copy. A save that
+    // itself writes a fresh buffer (emptied-then-deleted) overwrites it; a
+    // plain edit-save writes none, so clear it explicitly here.
+    invalidateStaleCopyBuffer();
     // Capture the delete descriptor BEFORE finalize removes the row, so an
     // emptied-then-saved meal can be undone (issue #588). finalize reports
     // whether it saved or deleted; only on 'deleted' do we surface the
@@ -529,6 +553,23 @@
       writeSlotBuffer(deleteDesc);
     }
     goto(returnTo);
+  }
+
+  /**
+   * US-17 buffer invalidation (issue #606). Clears the single-slot discard
+   * buffer when it holds a `meal-copy` descriptor whose destination is the slot
+   * currently being edited — so a manual edit/delete/further copy of that slot
+   * strips the stale copy-undo, which could otherwise trim or delete food the
+   * mother added by hand after the copy. A no-op for any other buffer kind or a
+   * copy targeting a different slot.
+   */
+  function invalidateStaleCopyBuffer(): void {
+    const buf = get(discardBuffer);
+    if (buf?.kind !== 'meal-copy') return;
+    const s = buf.destinationSlot;
+    if (s.date === targetDate && s.mealType === selectedMealType && s.actor === selectedActor) {
+      clearBuffer();
+    }
   }
 
   // ── Header title ──────────────────────────────────────────
@@ -721,7 +762,10 @@
 
   // ── Delete (issue #268) ───────────────────────────────────
   async function handleDeleteConfirm(): Promise<void> {
-    overflowOpen = false;
+    deleteConfirmOpen = false;
+    // US-17 (issue #606): a manual delete of a slot a copy just wrote to must
+    // invalidate that copy's undo buffer before the delete writes its own.
+    invalidateStaleCopyBuffer();
     // Capture the discard descriptor BEFORE the remove call so undo can
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
@@ -735,6 +779,111 @@
       writeSlotBuffer(desc);
     }
     goto(returnTo);
+  }
+
+  // ── Copy meal (spec #599, issue #606) ─────────────────────
+  // Variant D′: the copy affordance appears in the ⋯ overflow list only when
+  // the source meal has ≥1 food (a notes-only / zero-food meal has nothing to
+  // copy). Picking it opens a destination picker: a DayStrip (future + out-of-
+  // window days disabled) then a slot sheet pre-filled to the source slot. The
+  // actor is fixed to the source meal's actor — eligibility is NOT re-checked
+  // on the destination date; a copy re-derives conflicts from the destination
+  // day's eliminated set for free (no copy-aware branch downstream).
+  const canCopy = $derived(editingExisting && confirmedFoods.length > 0);
+
+  function openCopyPicker(): void {
+    overflowOpen = false;
+    copyDestDate = targetDate;
+    copyPickerOpen = true;
+  }
+
+  // The copy picker's own day strip: same span shape as the day overview, but
+  // the picker gates selection itself (DayStrip only greys cells). A cell is a
+  // legal destination when it is NOT strictly future AND inside the loggable
+  // window — tested via `isWithinLoggableWindow`, not just `isBeforeStart`, so
+  // a strip extended earlier by a far-back selectedDate still rejects
+  // out-of-window days.
+  const copyStripCells = $derived(
+    raw.status === 'ready'
+      ? computeDayStrip({
+          selectedDate: copyDestDate || targetDate,
+          protocolStart: raw.schedule.startDate,
+          estimatedEnd: raw.schedule.estimatedEndDate,
+          today: todayIso(),
+        }).cells
+      : [],
+  );
+
+  /** A destination day is loggable when it is not strictly future and inside the window. */
+  function isCopyDestLoggable(date: string): boolean {
+    if (raw.status !== 'ready') return false;
+    if (date > todayIso()) return false;
+    return isWithinLoggableWindow(date, raw.schedule.startDate, raw.schedule.estimatedEndDate);
+  }
+
+  function selectCopyDestDate(date: string): void {
+    if (!isCopyDestLoggable(date)) return;
+    copyDestDate = date;
+  }
+
+  function openCopySlotSheet(): void {
+    if (!isCopyDestLoggable(copyDestDate)) return;
+    copySlotSheetOpen = true;
+  }
+
+  function closeCopyPicker(): void {
+    copyPickerOpen = false;
+    copySlotSheetOpen = false;
+  }
+
+  // Resolve → assemble → save → branch on the Result. Actor is fixed to the
+  // source meal's actor, so the merge target is resolved actor-scoped
+  // (`loadBySlot(destDate, destSlot, source.actor)`): the OTHER actor's meal in
+  // the same visual cell is irrelevant and untouched.
+  async function confirmCopy(destMealType: MealType): Promise<void> {
+    const srcResult = await meals.loadBySlot(targetDate, selectedMealType, selectedActor);
+    if (!srcResult.ok || !srcResult.data) {
+      closeCopyPicker();
+      return;
+    }
+    const source = srcResult.data;
+    const destSlot: MealSlot = { date: copyDestDate, mealType: destMealType, actor: selectedActor };
+    const targetResult = await meals.loadBySlot(copyDestDate, destMealType, selectedActor);
+    if (!targetResult.ok) {
+      saveErrorMessage = targetResult.error;
+      return;
+    }
+    const target = targetResult.data;
+    const { meal, added } = copyMealInto(source, target, destSlot);
+    // No-op signal (self-copy / full overlap): write nothing, navigate nothing,
+    // no toast.
+    if (!meal) {
+      closeCopyPicker();
+      return;
+    }
+    const saveResult = await meals.save(meal);
+    if (!saveResult.ok) {
+      // Out-of-window guard (or any save failure): surface the toast and stay
+      // on the day picker — dismiss the slot sheet so the toast is readable and
+      // the mother can pick a different day. No navigation, no success toast.
+      copySlotSheetOpen = false;
+      saveErrorMessage = commonStrings.meal.copyOutOfWindowToast;
+      return;
+    }
+    // Success: capture the undo descriptor, navigate to the destination day,
+    // then raise the success toast after navigation settles.
+    const descriptor: DiscardedMealCopy = {
+      kind: 'meal-copy',
+      destinationSlot: destSlot,
+      addedItemIds: added.map((i) => i.id),
+      destinationPreexisted: target !== null,
+      priorUpdatedAt: target?.updatedAt,
+      date: copyDestDate,
+      returnTo: `/day/${copyDestDate}`,
+    };
+    closeCopyPicker();
+    goto(`/day/${copyDestDate}`);
+    writeBuffer(descriptor);
   }
 </script>
 
@@ -935,15 +1084,117 @@
 {/if}
 
 <!--
-  Destructive-confirm bottom sheet (issue #268, ADR-0018).
+  ⋯ overflow action list (issue #606). A route-local bottom-sheet menu: the
+  copy affordance (shown only when the source meal has ≥1 food) and the
+  existing delete, which opens the unchanged destructive ConfirmSheet below.
+-->
+{#if overflowOpen}
+  <div
+    role="presentation"
+    data-testid="overflow-backdrop"
+    class="fixed inset-0 z-[60] bg-black/35"
+    onclick={() => (overflowOpen = false)}
+  ></div>
+  <div
+    role="dialog"
+    aria-label={actionStrings.more}
+    class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
+    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+  >
+    {#if canCopy}
+      <button
+        type="button"
+        data-testid="overflow-copy"
+        class="border-surface-dark active:bg-surface text-text w-full border-b px-5 py-4 text-left text-[15px] font-semibold"
+        onclick={openCopyPicker}>{actionStrings.copyMeal}</button
+      >
+    {/if}
+    <button
+      type="button"
+      data-testid="overflow-delete"
+      class="active:bg-surface text-danger w-full px-5 py-4 text-left text-[15px] font-semibold"
+      onclick={() => {
+        overflowOpen = false;
+        deleteConfirmOpen = true;
+      }}>{actionStrings.deleteMeal}</button
+    >
+    <button
+      type="button"
+      class="text-text-muted active:bg-surface w-full py-4 text-center text-[13px]"
+      onclick={() => (overflowOpen = false)}>{actionStrings.cancel}</button
+    >
+  </div>
+{/if}
+
+<!--
+  Destructive-confirm bottom sheet (issue #268, ADR-0018). Delete keeps its own
+  confirmation step exactly as before — the overflow list opens this sheet.
   Extracted to ConfirmSheet (issue #390) so /skin can reuse the same shape.
 -->
 <ConfirmSheet
-  open={overflowOpen}
+  open={deleteConfirmOpen}
   heading={commonStrings.meal.deleteConfirmHeading}
   body={commonStrings.meal.deleteConfirmBody}
   confirmLabel={actionStrings.deleteMeal}
   cancelLabel={actionStrings.cancel}
   onConfirm={handleDeleteConfirm}
-  onCancel={() => (overflowOpen = false)}
+  onCancel={() => (deleteConfirmOpen = false)}
 />
+
+<!--
+  Copy-destination picker (variant D′, spec #599 / issue #606). A DayStrip whose
+  future + out-of-window days are disabled, then a slot sheet (FabActionSheet in
+  copy mode) pre-filled to the source slot. Merge is silent: every target reads
+  "Kopírovat sem", no occupancy cues.
+-->
+{#if copyPickerOpen}
+  <div
+    role="presentation"
+    data-testid="copy-picker-backdrop"
+    class="fixed inset-0 z-[60] bg-black/35"
+    onclick={closeCopyPicker}
+  ></div>
+  <div
+    role="dialog"
+    aria-label={commonStrings.meal.copyPickerHeading}
+    class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
+    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+  >
+    <div class="px-5 pt-4 pb-2 text-center">
+      <p class="text-text-muted text-[11px] tracking-wide uppercase">
+        {commonStrings.meal.copyPickerHeading}
+      </p>
+    </div>
+    <div class="border-surface-dark mx-5 border-t"></div>
+    <div class="pt-2">
+      <DayStrip
+        cells={copyStripCells}
+        today={todayIso()}
+        todayRecorded={false}
+        onselectdate={selectCopyDestDate}
+      />
+    </div>
+    <div class="px-5 pt-1 pb-2">
+      <button
+        type="button"
+        data-testid="copy-pick-slot"
+        aria-disabled={isCopyDestLoggable(copyDestDate) ? 'false' : 'true'}
+        class="w-full rounded-xl py-3 text-sm font-semibold text-white
+          {isCopyDestLoggable(copyDestDate)
+          ? 'bg-primary'
+          : 'bg-surface-dark text-text-muted cursor-default'}"
+        onclick={openCopySlotSheet}>{actionStrings.copyHere}</button
+      >
+    </div>
+  </div>
+{/if}
+
+{#if copySlotSheetOpen}
+  <FabActionSheet
+    date={copyDestDate}
+    initialMealSubmenu={true}
+    preselectedType={selectedMealType}
+    onclose={closeCopyPicker}
+    onSelectMealType={(type) => void confirmCopy(type)}
+  />
+{/if}

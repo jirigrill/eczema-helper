@@ -16,7 +16,13 @@
   import { createMealSession } from '$lib/stores/meal-session';
   import type { MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+  import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
+  import { db } from '$lib/db/atopic-db';
+  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
   import { pulseRecentreDayStrip } from '$lib/stores/day-strip-recentre';
+
+  const mealRepo = new DexieMealRepository(db, new DexieScheduleRepository(db));
 
   let { children } = $props();
 
@@ -71,9 +77,45 @@
       );
       return;
     }
+    // A copy's undo is a *reversal* of the write it made against the
+    // destination slot, not a `/meal` rehydrate: delete the created meal, or
+    // remove only the added items and restore the prior `updatedAt`. Then land
+    // on the destination day so the reverted slot is visible (issue #606).
+    if (buf.kind === 'meal-copy') {
+      void reverseCopy(buf).then(() => {
+        clearBuffer();
+        goto(buf.returnTo);
+      });
+      return;
+    }
     goto(
       `/meal?type=${buf.mealType}&date=${buf.date}&actor=${buf.actor}&returnTo=${encodeURIComponent(buf.returnTo)}`,
     );
+  }
+
+  /**
+   * Reverse a copy-meal write (issue #606). The buffer captured everything the
+   * reversal needs, so no re-derivation is required:
+   *  - `destinationPreexisted === false` → the copy created the slot; remove it.
+   *  - `destinationPreexisted === true` → the copy merged; drop only the
+   *    `addedItemIds` and restore `priorUpdatedAt` (unset it when it was
+   *    previously unset). The destination's prior foods + note stay untouched.
+   */
+  async function reverseCopy(buf: DiscardedMealCopy): Promise<void> {
+    const { date, mealType, actor } = buf.destinationSlot;
+    if (!buf.destinationPreexisted) {
+      await mealRepo.remove(date, mealType, actor);
+      return;
+    }
+    const loaded = await mealRepo.loadBySlot(date, mealType, actor);
+    if (!loaded.ok || !loaded.data) return;
+    const added = new Set(buf.addedItemIds);
+    const restored = {
+      ...loaded.data,
+      items: loaded.data.items.filter((i) => !added.has(i.id)),
+      updatedAt: buf.priorUpdatedAt,
+    };
+    await mealRepo.save(restored);
   }
 
   let discardUndoFired = $state(false);
@@ -100,6 +142,8 @@
         return commonStrings.meal.discardedEditToast;
       case 'meal-delete':
         return commonStrings.meal.deletedToast;
+      case 'meal-copy':
+        return commonStrings.meal.copiedToast;
       case 'skin-edit':
         return commonStrings.skin.discardedEditToast;
       case 'skin-delete':

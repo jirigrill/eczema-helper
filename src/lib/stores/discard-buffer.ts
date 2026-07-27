@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 
 import type {
   Actor,
+  MealSlot,
   MealType,
   SkinObservation,
   SkinPhoto,
@@ -21,7 +22,7 @@ import type { WorkingMeal } from '$lib/domain/working-meal';
  */
 export type MealDiscardKind = 'meal-compose' | 'meal-edit' | 'meal-delete';
 export type SkinDiscardKind = 'skin-edit' | 'skin-delete';
-export type DiscardKind = MealDiscardKind | SkinDiscardKind;
+export type DiscardKind = MealDiscardKind | SkinDiscardKind | 'meal-copy';
 
 export type DiscardedMeal = {
   kind: MealDiscardKind;
@@ -42,6 +43,34 @@ export type DiscardedMeal = {
    * through to today, silently moving deleted/discarded meals forward by
    * however many days the user was browsing back.
    */
+  date: string;
+  returnTo: string;
+};
+
+/**
+ * Undo descriptor for a copy-meal (spec #599, issue #606). Unlike the other
+ * meal descriptors it carries no `WorkingMeal` snapshot — a copy's undo is a
+ * *reversal* of the write it just made against the destination slot, not a
+ * rehydrate of a discarded draft. The layout's `handleDiscardUndo` routes this
+ * kind to a copy-reversal path (never the generic `/meal` rehydrate):
+ *  - `destinationPreexisted === false` → the copy created the slot, so undo
+ *    removes it entirely.
+ *  - `destinationPreexisted === true` → the copy merged into an existing meal,
+ *    so undo removes only the `addedItemIds` it added and restores
+ *    `priorUpdatedAt` (unsetting it when it was previously unset). The
+ *    destination's prior foods and note are left untouched.
+ */
+export type DiscardedMealCopy = {
+  kind: 'meal-copy';
+  /** The destination slot the copy wrote to — the reversal target. */
+  destinationSlot: MealSlot;
+  /** Ids of the items the copy added; the only items an undo may remove. */
+  addedItemIds: string[];
+  /** Whether a meal already occupied the destination slot before the copy. */
+  destinationPreexisted: boolean;
+  /** The destination's `updatedAt` before the merge, restored on undo. */
+  priorUpdatedAt: string | undefined;
+  /** Origin day + return path, mirroring the navigation contract of the other descriptors. */
   date: string;
   returnTo: string;
 };
@@ -72,7 +101,11 @@ export type DiscardedSkinDelete = {
   returnTo: string;
 };
 
-export type DiscardDescriptor = DiscardedMeal | DiscardedSkinEdit | DiscardedSkinDelete;
+export type DiscardDescriptor =
+  | DiscardedMeal
+  | DiscardedMealCopy
+  | DiscardedSkinEdit
+  | DiscardedSkinDelete;
 
 export const discardBuffer = writable<DiscardDescriptor | null>(null);
 

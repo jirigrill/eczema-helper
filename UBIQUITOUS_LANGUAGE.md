@@ -529,6 +529,15 @@ Deterministic composite key for a `Meal`: `` `${date}:${mealType}:${actor}` ``
 invariant at both the type level and the Dexie unique index (`&id`): a
 `(date, mealType)` pair can hold up to one meal per actor. Never a random UUID.
 
+### MealSlot
+*Czech: —* (internal address, not user-visible)
+
+The addressable `(date, mealType, actor)` triple a `MealId` encodes — the
+identity of a meal's slot without its contents. Named type in `models.ts`;
+`parseMealId` returns it, and copy-meal / discard-buffer code pass it around
+(e.g. `copyMealInto(..., targetSlot: MealSlot)`, `DiscardedMealCopy.destinationSlot`)
+rather than re-inlining the three fields.
+
 ### MealType
 *Czech: Typ jídla*
 
@@ -706,6 +715,16 @@ collision (differing portion/prep does not override), and the destination's
 add nothing — the destination already holds every source `foodId`, including
 copying a meal onto its own slot — is a **no-op** (`meal: null`, `added: []`).
 **A copy never carries the source note.** → See CONTEXT.md "Copy Meal".
+
+The flow (spec #599, issue #606): the `⋯` overflow on the meal editor exposes
+**Kopírovat jídlo** (only when the source meal has ≥1 food) → a **destination
+picker** (reused `DayStrip` + `FabActionSheet` slot sheet, actor fixed to the
+source). Confirm resolves the merge target actor-scoped via
+`loadBySlot(destDate, destSlot, source.actor)`, calls `copyMealInto`, and on a
+successful `save()` writes a **`meal-copy` discard descriptor** (undo reverses
+the write: delete the created meal, or drop just the added items and restore the
+prior `updatedAt`). Any manual edit/delete/further copy of the destination slot
+invalidates that descriptor (US-17), so undo can never trim hand-added food.
 
 ---
 
