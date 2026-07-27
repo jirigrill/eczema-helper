@@ -364,10 +364,64 @@ DEST.stepper = () =>
   </div>` +
   hint('Minimum: <b>datum stepper</b> (‹ ›) tvrdě omezený dneškem — šipka „dopředu“ je za dnešek zašedlá — plus 4 sloty. Kompaktní, bez scrollu, explicitní potvrzení „Kopírovat sem“.');
 
+// H — two-column vertical carousel (iOS-wheel): day wheel × mealtype wheel.
+// A fixed selection band across the middle; the intersection of the two centred
+// rows is the target cell. Day wheel is clipped at today (can't scroll future).
+DEST.wheel = () => {
+  const dayRows = DAYS.filter((d) => !d.future); // …Pá 2.5 → Po 5.5 (today), no future
+  const dayWheel = wheelColumn(
+    dayRows.map((d) => `${d.dow} ${d.dm}`),
+    2, // Ne 4.5 centred, showing headroom above/below
+    'dnes je strop',
+  );
+  const slotWheel = wheelColumn(
+    SLOTS.map((s) => `${s.glyph} ${s.label}`),
+    1, // Oběd — pre-centred on the source slot
+    null,
+  );
+  return (
+    pickerHeader() +
+    `<div class="px-5 pb-3">
+      <div class="relative overflow-hidden rounded-2xl border border-surface-dark bg-white">
+        <div class="pointer-events-none absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 border-y border-primary/40 bg-primary/5" style="height:40px"></div>
+        <div class="relative z-20 grid grid-cols-2 divide-x divide-surface-dark" style="height:200px">
+          ${dayWheel}
+          ${slotWheel}
+        </div>
+      </div>
+      <div class="mt-3 rounded-xl bg-surface-dark/60 px-3 py-2 text-center text-[12px] text-text-muted">
+        Cíl: <b class="text-text">Ne 4. 5. · Oběd</b> — volné
+      </div>
+      <button class="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white">Kopírovat sem</button>
+    </div>` +
+    hint('Dva svislé válce (jako iOS picker): <b>den</b> × <b>typ jídla</b>, každý scrolluje zvlášť; výběrový pruh uprostřed = cílová buňka. Den je zaseknutý na dnešku (nahoru už nejdou budoucí dny). Typ předvycentrovaný na zdroj (Oběd). Obsazený cíl → potvrzení řekne „sloučit“.')
+  );
+};
+
+// One wheel column: rows above/below the centred one dim with distance.
+function wheelColumn(labels, centerIdx, capNote) {
+  const rowH = 40;
+  const rows = labels
+    .map((label, i) => {
+      const dist = Math.abs(i - centerIdx);
+      const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : 0.2;
+      const weight = dist === 0 ? 'font-semibold text-text' : 'text-text-muted';
+      return `<div class="flex items-center justify-center ${weight}" style="height:${rowH}px;opacity:${opacity}">${label}</div>`;
+    })
+    .join('');
+  const pad = 80 - centerIdx * rowH; // 200px view, 40px band → centre row on the band
+  return `<div class="relative overflow-hidden text-[13px]" style="scrollbar-width:none">
+    <div style="transform:translateY(${pad}px)">${rows}</div>
+    ${capNote ? `<div class="pointer-events-none absolute left-0 right-0 top-1 text-center text-[9px] text-text-muted/70">${capNote} ↑</div>` : ''}
+  </div>`;
+}
+
+
 const entryFrames = document.getElementById('entry-frames');
 const destFrames = document.getElementById('dest-frames');
 const ENTRY_TAGS = { icon: 'A · Ikona na řádku', menu: 'B · ⋯ menu', editor: 'C · V editoru ✓ LOCKED' };
 const DEST_TAGS = {
+  wheel: 'H · Válce den × typ',
   grid: 'A · Mřížka (rejected)',
   list: 'B · Seznam (rejected)',
   sameSlot: 'D · Stejný slot, jiný den',
@@ -391,6 +445,7 @@ switcher(
 switcher(
   'dest-switch',
   [
+    { key: 'wheel', label: 'H · Válce (den × typ)' },
     { key: 'sameSlot', label: 'D · Stejný slot, jiný den' },
     { key: 'quick', label: 'E · Rychlé cíle' },
     { key: 'paste', label: 'F · Režim vložení' },

@@ -52,6 +52,11 @@ New picker directions (see the "Destination picker — round 2" switcher in the 
   (empty → "vložit sem", occupied → "sloučit sem"). Reuses the day view she already knows.
 - **G · Datum + slot (stepper)** — minimal: a Czech date stepper (‹ 4. 5. ›) hard-bounded at today,
   plus 4 slot chips. Compact, no scrolling, explicit.
+- **H · Válce — den × typ** (user idea) — two independent iOS-style vertical wheels side by side:
+  a **day** wheel and a **mealtype** wheel, each scrolling under a fixed centre selection band; the
+  intersection of the two centred rows is the target cell. Day wheel is clipped at today (can't
+  scroll into the future); mealtype wheel pre-centred on the source slot. Occupied target →
+  confirmation reads "sloučit".
 
 
 <!-- Fill in the chosen entry variant + chosen picker variant, plus any tweaks, then this
