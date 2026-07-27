@@ -211,10 +211,10 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
     expect(editor.canFinalize).toBe(true);
   });
 
-  it('emptying a saved meal (remove every food) is dirty but canFinalize is false (issue #586)', async () => {
-    // An empty meal is not a valid persisted state — finalize() is a silent
-    // no-op that restores the old foods. canFinalize must stay false so the
-    // save CTA disables and the empty-meal hint routes to "Smazat jídlo".
+  it('emptying a saved meal (remove every food) is dirty and canFinalize is true — finalize deletes it (issue #588)', async () => {
+    // Emptying a previously-saved meal deletes it (issue #588, reversing #586's
+    // no-op rule): canFinalize stays true so the save CTA is enabled, and
+    // finalize() removes the row and reports 'deleted'.
     const date = '2024-09-06';
     await meals.save(makeMeal({ id: `${date}:lunch:mother`, date, mealType: 'lunch' }));
 
@@ -224,7 +224,13 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
     editor.update((m) => removeFood(m, 'vegetables', 'brambory'));
 
     expect(editor.dirty).toBe(true);
-    expect(editor.canFinalize).toBe(false);
+    expect(editor.canFinalize).toBe(true);
+
+    const result = await editor.finalize();
+    expect(result).toEqual({ ok: true, data: 'deleted' });
+    // The row is gone.
+    const loaded = await meals.loadBySlot(date, 'lunch', 'mother');
+    expect(loaded).toEqual({ ok: true, data: null });
   });
 });
 

@@ -56,6 +56,7 @@
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
   import { writeBuffer, discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+  import type { MealDiscardKind } from '$lib/stores/discard-buffer';
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
@@ -482,12 +483,29 @@
   }
 
   async function saveMeal(): Promise<void> {
+    // Capture the delete descriptor BEFORE finalize removes the row, so an
+    // emptied-then-saved meal can be undone (issue #588). finalize reports
+    // whether it saved or deleted; only on 'deleted' do we surface the
+    // delete toast — a normal save navigates back silently as before.
+    const deleteDesc = editor.discardDescriptor('delete');
     const result = await editor.finalize();
     if (!result.ok) {
       // Surface the failure and stay on the meal page — navigating away would
       // silently evict the unsaved working meal.
       saveErrorMessage = result.error;
       return;
+    }
+    // finalize already removed the row on 'deleted' — write the undo buffer
+    // only (bufferDiscard would remove a second time). deleteDesc is non-null
+    // because the 'delete' intent always yields a descriptor.
+    if (result.data === 'deleted' && deleteDesc) {
+      writeBuffer({
+        ...deleteDesc,
+        mealType: selectedMealType,
+        actor: selectedActor,
+        date: targetDate,
+        returnTo,
+      });
     }
     goto(returnTo);
   }
@@ -516,11 +534,37 @@
   }
 
   /**
+   * Pair a discard descriptor with the slot metadata and write it to the
+   * buffer. When the descriptor is a `meal-delete` produced by *emptying* an
+   * existing edit (issue #588), the persisted row must also be removed — the
+   * editor only removes on `finalize()`, and a back-out never calls finalize.
+   * Removal is fire-and-forget: the buffer (and thus undo) is already written,
+   * and Dexie is the source of truth for the day view we navigate to.
+   */
+  function bufferDiscard(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
+    writeBuffer({
+      ...desc,
+      mealType: selectedMealType,
+      actor: selectedActor,
+      date: targetDate,
+      returnTo,
+    });
+    if (desc.kind === 'meal-delete') {
+      void new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
+        targetDate,
+        selectedMealType,
+        selectedActor,
+      );
+    }
+  }
+
+  /**
    * Single discard + navigate path used by the explicit back arrow's grid
    * branch. The editor decides *what* the discard contains (kind +
    * working meal); the route pairs that with `mealType`/`returnTo` and
    * decides *when* to write the buffer. A clean back-out from edit mode
-   * yields a `null` descriptor — there is nothing to discard.
+   * yields a `null` descriptor — there is nothing to discard. An emptied edit
+   * yields a `meal-delete` descriptor, which also removes the row (issue #588).
    *
    * Extracted (rather than inlined) so the popstate guard can call it later
    * if a future entry point ships a `returnTo` that's decoupled from the
@@ -530,15 +574,7 @@
    */
   function discardAndLeave(): void {
     const desc = editor.discardDescriptor();
-    if (desc) {
-      writeBuffer({
-        ...desc,
-        mealType: selectedMealType,
-        actor: selectedActor,
-        date: targetDate,
-        returnTo,
-      });
-    }
+    if (desc) bufferDiscard(desc);
     goto(returnTo);
   }
 
@@ -588,15 +624,7 @@
     if (nav.type !== 'popstate') return;
     if (drilledFamily) return;
     const desc = editor.discardDescriptor();
-    if (desc) {
-      writeBuffer({
-        ...desc,
-        mealType: selectedMealType,
-        actor: selectedActor,
-        date: targetDate,
-        returnTo,
-      });
-    }
+    if (desc) bufferDiscard(desc);
   });
 
   function handleFamilySelect(familyId: FamilyId): void {
@@ -672,10 +700,10 @@
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
 
-  // ── Empty-meal hint (issue #268) ──────────────────────────
-  // Shown only while editing an existing meal whose working list is empty —
-  // so the user is told to use Smazat instead of trying to "save zero foods".
-  // On compose-new, the disabled CTA carries the message implicitly.
+  // ── Empty-meal hint (issue #268, repurposed #588) ─────────
+  // Shown while editing an existing meal whose working list is empty — tells
+  // the user that saving/leaving now deletes the meal (emptying is a delete,
+  // #588). On compose-new the disabled CTA carries "nothing to save" implicitly.
   const showEmptyHint = $derived(
     editingExisting && !drilledFamily && !gridEditingFoodId && !hasConfirmed,
   );

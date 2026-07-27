@@ -910,7 +910,7 @@ describe('meal/+page.svelte', () => {
   // `tests/e2e/meal-lifecycle.test.ts` (happy-path delete + undo plus the
   // delete-failure toast test tagged #400).
 
-  it('empty-meal hint visible when editing an existing meal with zero foods', async () => {
+  it('empty-meal hint (saving deletes it) visible when editing an existing meal with zero foods', async () => {
     setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
@@ -921,11 +921,11 @@ describe('meal/+page.svelte', () => {
     // Wait for hydration: the food row appears.
     await findByRole('button', { name: /^Brambory$/ });
     // Hint not yet — there's a food.
-    expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+    expect(queryByText(/uložením ho smažeš/)).not.toBeInTheDocument();
     // ✕ the only food via the working-list remove button.
     await fireEvent.click(await findByRole('button', { name: /Odebrat Brambory/ }));
     await tick();
-    expect(getByText(/aspoň jednu položku/)).toBeInTheDocument();
+    expect(getByText(/uložením ho smažeš/)).toBeInTheDocument();
   });
 
   it('empty-meal hint NOT visible when composing a brand-new meal with zero foods', async () => {
@@ -935,7 +935,7 @@ describe('meal/+page.svelte', () => {
     const { queryByText } = render(MealPage);
     await tick();
     await tick();
-    expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+    expect(queryByText(/uložením ho smažeš/)).not.toBeInTheDocument();
   });
 
   // Dirty-CTA rendering (`Uložit změny` disabled/enabled) is covered end-to-end

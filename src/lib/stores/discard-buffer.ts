@@ -1,6 +1,12 @@
 import { writable } from 'svelte/store';
 
-import type { Actor, MealType, SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
+import type {
+  Actor,
+  MealType,
+  SkinObservation,
+  SkinPhoto,
+  SkinPhotoInput,
+} from '$lib/domain/models';
 import type { WorkingMeal } from '$lib/domain/working-meal';
 
 /**

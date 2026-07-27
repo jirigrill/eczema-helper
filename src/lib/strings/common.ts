@@ -187,7 +187,7 @@ export const commonStrings = {
     // ── Issue #268: explicit delete + empty-Hotovo guard ───
     deleteConfirmHeading: 'Smazat jídlo?',
     deleteConfirmBody: 'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',
-    emptyMealHint: 'Jídlo potřebuje aspoň jednu položku — pro odebrání použij Smazat.',
+    emptyMealHint: 'Jídlo je prázdné — uložením ho smažeš.',
     /**
      * Passive, non-blocking hint shown when the edited meal's date falls
      * outside the current protocol's loggable window (issue #440) — e.g. a
