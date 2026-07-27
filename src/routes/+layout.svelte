@@ -72,7 +72,7 @@
       return;
     }
     goto(
-      `/meal?type=${buf.mealType}&date=${buf.date}&returnTo=${encodeURIComponent(buf.returnTo)}`,
+      `/meal?type=${buf.mealType}&date=${buf.date}&actor=${buf.actor}&returnTo=${encodeURIComponent(buf.returnTo)}`,
     );
   }
 

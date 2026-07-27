@@ -30,6 +30,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-compose',
       workingMeal: meal,
       mealType: 'lunch',
+      actor: 'mother',
       date: '2026-01-01',
       returnTo: '/day/2026-01-01',
     });
@@ -50,6 +51,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-compose',
       workingMeal: mealWithConfirmed(),
       mealType: 'lunch',
+      actor: 'mother',
       date: '2026-01-01',
       returnTo: '/day/2026-01-01',
     });
@@ -62,6 +64,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-compose',
       workingMeal: mealWithConfirmed(),
       mealType: 'breakfast',
+      actor: 'mother',
       date: '2026-06-12',
       returnTo: '/day/2026-06-12',
     });
@@ -80,6 +83,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-compose',
       workingMeal: mealWithConfirmed(),
       mealType: 'lunch',
+      actor: 'mother',
       date: '2026-01-01',
       returnTo: '/a',
     });
@@ -88,6 +92,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-compose',
       workingMeal: fresh,
       mealType: 'dinner',
+      actor: 'mother',
       date: '2026-01-02',
       returnTo: '/b',
     });
@@ -111,6 +116,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-compose',
       workingMeal: mealWithConfirmed(),
       mealType: 'lunch',
+      actor: 'mother',
       date: '2026-01-01',
       returnTo: '/day/2026-01-01',
     });
@@ -122,6 +128,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-edit',
       workingMeal: mealWithConfirmed(),
       mealType: 'lunch',
+      actor: 'mother',
       date: '2026-01-01',
       returnTo: '/day/2026-01-01',
     });
@@ -133,6 +140,7 @@ describe('discardBuffer store', () => {
       kind: 'meal-delete',
       workingMeal: mealWithConfirmed(),
       mealType: 'lunch',
+      actor: 'mother',
       date: '2026-01-01',
       returnTo: '/day/2026-01-01',
     });

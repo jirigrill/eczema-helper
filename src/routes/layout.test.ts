@@ -260,6 +260,7 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
       kind: 'meal-compose',
       workingMeal: sampleWorkingMeal,
       mealType: 'breakfast',
+      actor: 'mother',
       date: today,
       returnTo: `/day/${today}`,
     });
@@ -448,6 +449,7 @@ describe('+layout.svelte — discard toast undo', () => {
       kind: 'meal-delete',
       workingMeal: emptyWorkingMeal(),
       mealType: 'breakfast',
+      actor: 'mother',
       date: pastDate,
       returnTo: `/day/${pastDate}`,
     });
@@ -458,7 +460,37 @@ describe('+layout.svelte — discard toast undo', () => {
     await tick();
 
     expect(mockGoto).toHaveBeenCalledWith(
-      `/meal?type=breakfast&date=${pastDate}&returnTo=${encodeURIComponent(`/day/${pastDate}`)}`,
+      `/meal?type=breakfast&date=${pastDate}&actor=mother&returnTo=${encodeURIComponent(`/day/${pastDate}`)}`,
+    );
+  });
+
+  it("carries the buffer's actor into the undo URL so a baby undo returns to the baby slot (issue #588)", async () => {
+    const date = '2026-06-20';
+    mockPageStore.set({
+      url: new URL(`http://localhost/day/${date}`),
+      params: { date },
+      data: {},
+    });
+    mockScheduleContext.set(readyContext);
+    // A baby meal was deleted; the buffer records actor: 'baby'. Without the
+    // actor in the undo URL the return navigation defaulted to 'mother' and
+    // clobbered the mother's row (the reported dual-actor bug).
+    writeBuffer({
+      kind: 'meal-delete',
+      workingMeal: emptyWorkingMeal(),
+      mealType: 'breakfast',
+      actor: 'baby',
+      date,
+      returnTo: `/day/${date}`,
+    });
+
+    const { getByText } = await renderLayout();
+    await tick();
+    await fireEvent.click(getByText('Zpět'));
+    await tick();
+
+    expect(mockGoto).toHaveBeenCalledWith(
+      `/meal?type=breakfast&date=${date}&actor=baby&returnTo=${encodeURIComponent(`/day/${date}`)}`,
     );
   });
 });
