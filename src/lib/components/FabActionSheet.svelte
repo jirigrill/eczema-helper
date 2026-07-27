@@ -23,6 +23,12 @@
      * the evaluate row to navigate to a usable screen.
      */
     evaluatePhaseId?: string;
+    /**
+     * When supplied, tapping a meal-type row invokes this callback with the
+     * chosen `MealType` instead of navigating to `/meal` (copy-destination
+     * picker, spec #599). Absent → today's FAB add-meal navigation.
+     */
+    onSelectMealType?: (type: MealType) => void;
   };
 
   let {
@@ -31,6 +37,7 @@
     loggedTypes = [],
     showEvaluate = false,
     evaluatePhaseId = '',
+    onSelectMealType,
   }: Props = $props();
 
   /** When true, the bottom-sheet shows the four meal-type rows instead of the
@@ -39,7 +46,12 @@
 
   const mealTypes: MealType[] = ['breakfast', 'lunch', 'snack', 'dinner'];
 
-  function navigateToMeal(type: MealType) {
+  function selectMealType(type: MealType) {
+    if (onSelectMealType) {
+      // Leave the sheet open — the caller (copy-destination picker) owns dismissal.
+      onSelectMealType(type);
+      return;
+    }
     goto(`/meal?type=${type}&date=${date}&returnTo=/day/${date}`);
     onclose();
   }
@@ -85,7 +97,7 @@
         data-logged={logged ? 'true' : 'false'}
         aria-label={logged ? `${cfg.label}, ${commonStrings.fabSheet.alreadyLogged}` : cfg.label}
         class="border-surface-dark active:bg-surface flex w-full items-center gap-3 border-b px-5 py-4"
-        onclick={() => navigateToMeal(type)}
+        onclick={() => selectMealType(type)}
       >
         <span
           class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
