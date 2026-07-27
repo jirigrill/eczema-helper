@@ -184,10 +184,12 @@ export const commonStrings = {
     discardedEditToast: 'Změny neuloženy',
     /** Explicit delete: the saved meal was removed; undo re-saves a fresh meal. */
     deletedToast: 'Jídlo smazáno',
-    // ── Issue #268: explicit delete + empty-Hotovo guard ───
+    // ── Issue #268: explicit delete; empty-meal delete (repurposed #588) ───
     deleteConfirmHeading: 'Smazat jídlo?',
     deleteConfirmBody: 'Toto jídlo bude odstraněno. Můžeš to vzít zpět hned po smazání.',
-    emptyMealHint: 'Jídlo potřebuje aspoň jednu položku — pro odebrání použij Smazat.',
+    // Emptying an existing meal deletes it (#588, reverses #586's no-op guard):
+    // the hint warns that saving/leaving an emptied edit removes the meal.
+    emptyMealHint: 'Jídlo je prázdné — uložením ho smažeš.',
     /**
      * Passive, non-blocking hint shown when the edited meal's date falls
      * outside the current protocol's loggable window (issue #440) — e.g. a

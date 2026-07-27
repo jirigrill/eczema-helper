@@ -12,7 +12,7 @@
 - **Foods:** plain wrapping text, never truncated (works with 1 / 3 / 5+ items and long names) — chips/pills were rejected in an earlier round.
 - **Conflict allergen:** shown **once per meal section**, deduplicated across both actors — not repeated per row.
 - **Empty state:** a single **"+"**. Both actors empty → the section collapses to one "+"; one actor empty → that row shows a "+".
-- **Row indicators:** each row's indicator sits in one fixed-width **right rail**, so an empty actor's **"+"** lines up in the same column as a logged actor's **"›"** (into the meal editor).
+- **Row indicators:** each row's indicator sits in one fixed-width **right rail**, so an empty actor's **"+"** lines up in the same column as a logged actor's **"›"** (into the meal editor). When **both** actors are filled the per-row chevrons collapse to a single **"›"** centered across the two rows (#585).
 - **Single-actor collapse:** when only one actor is eligible for the `FeedingStage` (breastfed → mother only, solids → baby only), the slot renders as today's single-row `MealCard` — no icon, no header split.
 
 The layout beat five alternatives in the first round (split columns, accordion, twin cards, actor tabs, accordion-spaced). Actor labels started as text tags "Já"/"Miminko"; replaced by icons because the differing tag widths misaligned the rows.

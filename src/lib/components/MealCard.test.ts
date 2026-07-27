@@ -475,6 +475,35 @@ describe('MealCard', () => {
     expect(conflictSpans).toHaveLength(2);
   });
 
+  it('mixed stage: both actors filled shows a single chevron for the whole slot, not one per row', async () => {
+    const mother = makeMeal({
+      id: '2026-05-31:lunch:mother',
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+    });
+    const baby = makeMeal({
+      id: '2026-05-31:lunch:baby',
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+    });
+    const { getByTestId } = render(MealCard, {
+      props: {
+        date: '2026-05-31',
+        meals: [mother, baby],
+        eligibleActors: ['mother', 'baby'],
+        eliminatedByActor: { mother: [], baby: [] },
+      },
+    });
+    await tick();
+    const slot = getByTestId('meal-row-lunch');
+    const chevrons = Array.from(slot.querySelectorAll('span')).filter(
+      (el) => el.textContent === '›',
+    );
+    expect(chevrons).toHaveLength(1);
+  });
+
   it('mixed stage: one actor empty shows that row a "+", the logged row a "›"', async () => {
     const mother = makeMeal({
       id: '2026-05-31:lunch:mother',

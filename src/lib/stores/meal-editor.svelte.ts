@@ -43,6 +43,16 @@ export type FinalizeOptions = {
 
 export type FinalizeKind = 'compose' | 'edit';
 
+/**
+ * What `finalize()` did, so the route can react (issue #588):
+ *  - `'saved'`   — the working meal was persisted (create or update).
+ *  - `'deleted'` — an existing meal was emptied and therefore removed; the
+ *                  route writes a `meal-delete` discard buffer so the toast +
+ *                  undo behave exactly like the explicit "Smazat jídlo".
+ *  - `'noop'`    — nothing to do (empty compose-new that was never persisted).
+ */
+export type FinalizeOutcome = 'saved' | 'deleted' | 'noop';
+
 export type MealEditor = {
   readonly workingMeal: WorkingMeal;
   readonly confirmedFoods: ReturnType<typeof allConfirmedFoods>;
@@ -68,9 +78,10 @@ export type MealEditor = {
    */
   readonly finalizeKind: FinalizeKind;
   /**
-   * Whether `finalize()` has work to do right now. Edit → dirty; compose →
-   * has any confirmed food. Drives the route's CTA enabledness for the
-   * meal-finalize action (sub-CTAs are gated separately).
+   * Whether `finalize()` has work to do right now. Edit → dirty (a dirty edit
+   * that was emptied deletes the meal, issue #588); compose → has any confirmed
+   * food. Drives the route's CTA enabledness for the meal-finalize action
+   * (sub-CTAs are gated separately).
    */
   readonly canFinalize: boolean;
   /**
@@ -134,7 +145,7 @@ export type MealEditor = {
    * is freshly mounted on undo navigation (the editor has no slot yet).
    */
   applyUndo(slot: MealSlot, buffer: DiscardedMeal, eliminatedToday?: AllergenId[]): Promise<void>;
-  finalize(opts?: FinalizeOptions): Promise<Result<void, string>>;
+  finalize(opts?: FinalizeOptions): Promise<Result<FinalizeOutcome, string>>;
   /**
    * Swap the active actor mid-compose (the `mixed`-stage pill-tap, PRD #564 /
    * issue #571). Autosaves the departing actor via `finalize()` — confirmed
@@ -169,6 +180,14 @@ export function createMealEditor(): MealEditor {
    */
   let loadSnapshot = $state<MealSnapshot | null>(null);
   /**
+   * The working meal as originally loaded from Dexie (with its foods + notes),
+   * captured on `open` for an existing slot; `null` on compose-new. Used to
+   * build the delete-undo buffer when the meal is emptied then saved/backed
+   * out (issue #588) — the live `workingMeal` is empty at that point, so undo
+   * must restore the *loaded* foods, not the emptied working list.
+   */
+  let loadedWorkingMeal = $state<WorkingMeal | null>(null);
+  /**
    * Today's elimination window injected by the route; defaults to empty so
    * an editor opened without a window simply reports no conflicts.
    */
@@ -180,7 +199,12 @@ export function createMealEditor(): MealEditor {
       : !snapshotsEqual(snapshotOf(workingMeal, notes), loadSnapshot),
   );
   const finalizeKind: FinalizeKind = $derived(editingExisting ? 'edit' : 'compose');
-  const canFinalize = $derived(editingExisting ? dirty : allConfirmedFoods(workingMeal).length > 0);
+  // Confirmed-only non-empty test — distinct from `isNonEmpty` (editing-or-confirmed).
+  const hasConfirmedFood = $derived(allConfirmedFoods(workingMeal).length > 0);
+  // Compose-new finalizes only with a confirmed food. An existing edit
+  // finalizes whenever it is dirty — including when it was emptied, because
+  // emptying now deletes the meal (issue #588, reversing #586's no-op rule).
+  const canFinalize = $derived(editingExisting ? dirty : hasConfirmedFood);
   /**
    * All working-list foods that touch an eliminated allergen — computed via
    * the shared `detectConflicts`, so swapping that function later requires
@@ -213,12 +237,14 @@ export function createMealEditor(): MealEditor {
       loadedCreatedAt = result.data.createdAt;
       notes = result.data.notes ?? '';
       loadSnapshot = snapshotOf(workingMeal, notes);
+      loadedWorkingMeal = { ...workingMeal, notes };
     } else {
       workingMeal = emptyWorkingMeal();
       editingExisting = false;
       loadedCreatedAt = null;
       notes = '';
       loadSnapshot = null;
+      loadedWorkingMeal = null;
     }
   }
 
@@ -236,11 +262,27 @@ export function createMealEditor(): MealEditor {
     // Snapshot the live `notes` into the working meal so the buffer
     // rehydrates whatever the user had typed at the moment of discard.
     const snapshot: WorkingMeal = { ...workingMeal, notes };
+    // Undo of a delete must restore the *persisted* foods, not the live
+    // (possibly emptied) working list. The explicit ⋯ Smazat fires while the
+    // foods are still present, so `snapshot` already holds them; but an
+    // emptied-then-saved/backed-out meal (#588) has an empty working list, so
+    // fall back to `loadedWorkingMeal` (the foods as loaded from Dexie).
+    const deleteSnapshot: WorkingMeal =
+      isNonEmpty(workingMeal) || loadedWorkingMeal === null
+        ? snapshot
+        : { ...loadedWorkingMeal, notes: loadedWorkingMeal.notes };
     if (intent === 'delete') {
-      return { kind: 'meal-delete', workingMeal: snapshot };
+      return { kind: 'meal-delete', workingMeal: deleteSnapshot };
     }
     if (editingExisting) {
-      return dirty ? { kind: 'meal-edit', workingMeal: snapshot } : null;
+      if (!dirty) return null;
+      // A dirty edit that was emptied deletes the meal on back-out (issue
+      // #588), so it buffers as `meal-delete` — the route removes the row and
+      // the toast/undo behave like the explicit "Smazat jídlo". A dirty edit
+      // that still has foods buffers as `meal-edit` (a recoverable back-out).
+      return isNonEmpty(workingMeal)
+        ? { kind: 'meal-edit', workingMeal: snapshot }
+        : { kind: 'meal-delete', workingMeal: deleteSnapshot };
     }
     return isNonEmpty(workingMeal) ? { kind: 'meal-compose', workingMeal: snapshot } : null;
   }
@@ -280,14 +322,29 @@ export function createMealEditor(): MealEditor {
     }
   }
 
-  async function finalize(opts: FinalizeOptions = {}): Promise<Result<void, string>> {
+  async function finalize(opts: FinalizeOptions = {}): Promise<Result<FinalizeOutcome, string>> {
     if (!slot) return { ok: false, error: 'finalize: open(slot) was never called' };
     // Prefer the editor's own `notes` state; opts.notes is honoured for
     // callers that still thread their own bindable (will go away once
     // every caller binds to `editor.notes`).
     const meal = finalizeWorkingMeal(slot, workingMeal, opts.notes ?? notes, loadedCreatedAt);
-    if (meal === null) return { ok: true, data: undefined };
-    return meals.save(meal);
+    if (meal === null) {
+      // Empty working meal. Emptying a previously-saved meal deletes it
+      // (issue #588 — reverses the earlier "empty never persists / save is a
+      // no-op" rule of #586): removing every food is now a legitimate way to
+      // delete the meal, matching the explicit "Smazat jídlo" action. On a
+      // compose-new (nothing was ever persisted) there is nothing to remove,
+      // so it stays a no-op.
+      if (editingExisting) {
+        const removed = await meals.remove(slot.date, slot.mealType, slot.actor);
+        if (!removed.ok) return removed;
+        return { ok: true, data: 'deleted' };
+      }
+      return { ok: true, data: 'noop' };
+    }
+    const saved = await meals.save(meal);
+    if (!saved.ok) return saved;
+    return { ok: true, data: 'saved' };
   }
 
   async function swapActor(
@@ -296,7 +353,9 @@ export function createMealEditor(): MealEditor {
   ): Promise<Result<void, string>> {
     // Persist the departing actor first — Dexie is authoritative for the
     // reload in `open()`. Abort on failure so the current actor's working
-    // meal is never silently lost.
+    // meal is never silently lost. If the departing actor's meal was emptied,
+    // `finalize()` deletes it (issue #588); the swap stays silent and is
+    // recoverable by swapping back and re-adding the food.
     const saved = await finalize();
     if (!saved.ok) return saved;
     await open(target, eliminatedTodayArg);

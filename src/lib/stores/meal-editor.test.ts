@@ -9,6 +9,7 @@ import type { Meal } from '$lib/domain/models';
 import {
   confirmFood,
   deselectFood,
+  removeFood,
   startEditing,
   updateEditingAmount,
   updateEditingPreparation,
@@ -209,6 +210,28 @@ describe('createMealEditor — dirty + canFinalize on edit', () => {
     expect(editor.dirty).toBe(true);
     expect(editor.canFinalize).toBe(true);
   });
+
+  it('emptying a saved meal (remove every food) is dirty and canFinalize is true — finalize deletes it (issue #588)', async () => {
+    // Emptying a previously-saved meal deletes it (issue #588, reversing #586's
+    // no-op rule): canFinalize stays true so the save CTA is enabled, and
+    // finalize() removes the row and reports 'deleted'.
+    const date = '2024-09-06';
+    await meals.save(makeMeal({ id: `${date}:lunch:mother`, date, mealType: 'lunch' }));
+
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => removeFood(m, 'vegetables', 'brambory'));
+
+    expect(editor.dirty).toBe(true);
+    expect(editor.canFinalize).toBe(true);
+
+    const result = await editor.finalize();
+    expect(result).toEqual({ ok: true, data: 'deleted' });
+    // The row is gone.
+    const loaded = await meals.loadBySlot(date, 'lunch', 'mother');
+    expect(loaded).toEqual({ ok: true, data: null });
+  });
 });
 
 describe('createMealEditor — dirty + canFinalize on compose-new', () => {
@@ -332,6 +355,50 @@ describe('createMealEditor — discardDescriptor()', () => {
       'brambory',
     ]);
   });
+
+  it('emptied edit (all foods removed, backed out) returns kind "delete" carrying the LOADED foods, not the empty live list (issue #588)', async () => {
+    // Back-out of an emptied existing edit deletes the meal (#588). The live
+    // working list is empty at this point, so the delete buffer must restore
+    // the foods as originally loaded from Dexie (`loadedWorkingMeal` fallback)
+    // — otherwise undo would re-materialize an empty meal.
+    const date = '2024-10-05b';
+    await meals.save(
+      makeMeal({ id: `${date}:lunch:mother`, date, mealType: 'lunch', notes: 'loaded notes' }),
+    );
+
+    const editor = createMealEditor();
+    await editor.open({ date, mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => removeFood(m, 'vegetables', 'brambory'));
+
+    // No explicit 'delete' intent — this is the back-out path, which infers the
+    // delete from the now-empty dirty edit.
+    const desc = editor.discardDescriptor();
+    expect(desc).not.toBeNull();
+    expect(desc!.kind).toBe('meal-delete');
+    expect(desc!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId))).toEqual([
+      'brambory',
+    ]);
+    expect(desc!.workingMeal.notes).toBe('loaded notes');
+  });
+
+  it('discardDescriptor("delete") on a compose-new (nothing loaded) falls back to the live working meal', async () => {
+    // Defensive branch: `loadedWorkingMeal === null` on compose-new, so the
+    // delete snapshot collapses to the live working meal. Delete intent on a
+    // compose-new is not a real user path, but the branch exists — pin it.
+    const editor = createMealEditor();
+    await editor.open({ date: '2024-10-05c', mealType: 'lunch', actor: 'mother' });
+
+    editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
+    editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
+
+    const desc = editor.discardDescriptor('delete');
+    expect(desc).not.toBeNull();
+    expect(desc!.kind).toBe('meal-delete');
+    expect(desc!.workingMeal.families.flatMap((f) => f.foods.map((fd) => fd.foodId))).toEqual([
+      'brambory',
+    ]);
+  });
 });
 
 describe('createMealEditor — applyUndo()', () => {
@@ -368,6 +435,7 @@ describe('createMealEditor — applyUndo()', () => {
         kind: 'meal-edit',
         workingMeal: desc!.workingMeal,
         mealType: 'lunch',
+        actor: 'mother',
         date,
         returnTo: '/day/2024-10-06',
       },
@@ -412,6 +480,7 @@ describe('createMealEditor — applyUndo()', () => {
         kind: 'meal-edit',
         workingMeal: desc!.workingMeal,
         mealType: 'breakfast',
+        actor: 'mother',
         date,
         returnTo: `/day/${date}`,
       },
@@ -441,6 +510,7 @@ describe('createMealEditor — applyUndo()', () => {
         kind: 'meal-edit',
         workingMeal: desc.workingMeal,
         mealType: 'lunch',
+        actor: 'mother',
         date,
         returnTo: `/day/${date}`,
       },
@@ -483,6 +553,7 @@ describe('createMealEditor — applyUndo()', () => {
         kind: desc.kind,
         workingMeal: desc.workingMeal,
         mealType: 'lunch',
+        actor: 'mother',
         date,
         returnTo: '/day/x',
       },
@@ -521,6 +592,7 @@ describe('createMealEditor — applyUndo()', () => {
           ],
         },
         mealType: 'lunch',
+        actor: 'mother',
         date,
         returnTo: '/day/x',
       },
@@ -560,6 +632,7 @@ describe('createMealEditor — applyUndo()', () => {
           ],
         },
         mealType: 'breakfast',
+        actor: 'mother',
         date,
         returnTo: '/day/x',
       },

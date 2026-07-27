@@ -70,6 +70,8 @@
     conflict allergen shows <strong>once per meal section</strong> (deduplicated across both actors); foods are
     plain wrapping text — nothing truncated. Each row's indicator lives in one right rail so the <strong>"+"</strong>
     (empty actor) lines up under the <strong>"›"</strong> (logged actor → meal editor); when <strong>both</strong>
+    actors are filled the per-row chevrons collapse to a single <strong>"›"</strong> centered across the two rows;
+    when <strong>both</strong>
     actors are empty the section collapses to a single <strong>"+"</strong>. Below: the three fill states —
     <strong>completely empty</strong>, <strong>one actor only</strong>, <strong>both actors</strong>.
   </p>
@@ -224,13 +226,15 @@
 
     // Per actor row indicator, all in the same fixed-width right rail so the
     // "+" (empty actor) lines up in the same column as the "›" (logged actor
-    // → its meal editor).
+    // → its meal editor). When both actors are filled, the per-row chevrons
+    // collapse to a single "›" centered across the stacked rows (#585).
+    const allFilled = !allEmpty && rows.every(([, state]) => state !== 'empty');
     const body = allEmpty
       ? ''
-      : `<div class="pl-6">${rows
+      : `<div class="flex items-center gap-2 pl-6"><div class="min-w-0 flex-1">${rows
           .map(([actor, state]) => {
             const icon = showIcon ? actorIcon(actor) : '';
-            const cell = state === 'empty' ? plusCell : arrowCell;
+            const cell = allFilled ? '' : state === 'empty' ? plusCell : arrowCell;
             return `
               <div class="flex items-center gap-2 py-1">
                 ${icon}
@@ -238,7 +242,7 @@
                 ${cell}
               </div>`;
           })
-          .join('')}</div>`;
+          .join('')}</div>${allFilled ? arrowCell : ''}</div>`;
 
     return `
       <a href="/meal?type=${type}" class="block py-2 divider">

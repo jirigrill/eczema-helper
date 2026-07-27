@@ -99,6 +99,7 @@
       {@const cfg = mealConfig[type]}
       {@const Icon = cfg.icon}
       {@const stacked = rows.length > 1}
+      {@const allFilled = stacked && rows.every((r) => r.meal)}
       {#if allEmpty}
         <!-- Both/all actors empty → the section collapses to a single "+". -->
         <a
@@ -163,26 +164,31 @@
               {@render allergenPills(conflictAllergens)}
             </div>
           {/if}
-          <div class="pl-6">
-            {#each rows as { actor, meal, conflictItemIds } (actor)}
-              {@const ActorIcon = actorConfig[actor].icon}
-              <a
-                data-testid="meal-actor-row-{actor}"
-                href="/meal?type={type}&date={meal?.date ?? date}&returnTo=/day/{meal?.date ??
-                  date}"
-                class="flex items-center gap-2 py-1"
-              >
-                <span
-                  class="border-surface-dark text-text-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full border"
+          <!-- Both actors filled → one chevron centered across the stacked rows,
+               instead of a per-row chevron (issue #585). -->
+          <div class="flex items-center gap-2 pl-6">
+            <div class="min-w-0 flex-1">
+              {#each rows as { actor, meal, conflictItemIds } (actor)}
+                {@const ActorIcon = actorConfig[actor].icon}
+                <a
+                  data-testid="meal-actor-row-{actor}"
+                  href="/meal?type={type}&date={meal?.date ??
+                    date}&actor={actor}&returnTo=/day/{meal?.date ?? date}"
+                  class="flex items-center gap-2 py-1"
                 >
-                  <ActorIcon class="h-5 w-5" />
-                </span>
-                <div class="text-text-muted min-w-0 flex-1 text-[11px]">
-                  {@render foodRun(meal?.items ?? [], conflictItemIds)}
-                </div>
-                {@render indicator(!!meal)}
-              </a>
-            {/each}
+                  <span
+                    class="border-surface-dark text-text-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full border"
+                  >
+                    <ActorIcon class="h-5 w-5" />
+                  </span>
+                  <div class="text-text-muted min-w-0 flex-1 text-[11px]">
+                    {@render foodRun(meal?.items ?? [], conflictItemIds)}
+                  </div>
+                  {#if !allFilled}{@render indicator(!!meal)}{/if}
+                </a>
+              {/each}
+            </div>
+            {#if allFilled}{@render indicator(true)}{/if}
           </div>
         </div>
       {/if}

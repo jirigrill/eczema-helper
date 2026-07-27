@@ -153,6 +153,35 @@ test('explicit Smazat shows "Jídlo smazáno" and Zpět re-persists the meal', a
   await expect(page.getByText('Brambory')).toBeVisible();
 });
 
+// ── Emptying deletes the meal (issue #588, reverses #586) ────────────────────
+
+test('removing every food and saving deletes the meal and offers undo (#588)', async ({
+  page,
+}) => {
+  await completeOnboarding(page);
+  const today = await seedLunchWithBrambory(page);
+
+  await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+  await expect(page.getByRole('button', { name: /^Brambory$/ })).toBeVisible();
+
+  // Remove the only food. The hint now says saving will delete the meal.
+  await page.getByRole('button', { name: /Odebrat Brambory/ }).click();
+  await expect(page.getByText(/uložením ho smažeš/)).toBeVisible();
+
+  // Saving the emptied meal deletes it (not a silent no-op restoring the old
+  // foods, which was the #586 bug) and surfaces the delete toast.
+  await page.getByRole('button', { name: /Uložit změny/ }).click();
+  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page.getByText('Jídlo smazáno')).toBeVisible();
+  // The slot no longer shows the food.
+  await expect(page.getByText('Brambory')).not.toBeVisible();
+
+  // Undo re-materializes the meal (compose-new path — the row was removed).
+  await page.getByRole('button', { name: 'Zpět' }).click();
+  await expect(page).toHaveURL(/\/meal/);
+  await expect(page.getByRole('button', { name: /^Brambory$/ })).toBeVisible();
+});
+
 // ── Past-day delete-undo restores meal on its original day (issue #323) ─────
 
 test('delete-undo on a past day restores the meal to that day, not today', async ({ page }) => {

@@ -35,9 +35,13 @@ Three invariants live here (the home ADR-0018 lacked):
 
 - `createdAt` survives an edit; `updatedAt` is stamped only on edit;
   compose-new mints a fresh `createdAt` and writes no `updatedAt`.
-- An empty meal never persists — `finalize()` with zero confirmed foods is
-  a no-op; emptying a meal is done via an explicit delete, not by saving
-  empty.
+- Emptying a meal deletes it — `finalize()` on an existing meal with zero
+  confirmed foods removes the persisted row (issue #588); on a compose-new
+  (nothing was ever saved) it stays a no-op. Removing every food via save or
+  back-out is a legitimate delete, equivalent to the explicit "Smazat jídlo"
+  action, and is undoable via the same discard buffer. (Reverses the earlier
+  #586 rule that an empty meal never persists and empty-save was a silent
+  no-op.)
 - Dirtiness is snapshot-relative — compose-new is dirty iff any food is
   confirmed/editing; an edit is dirty iff live foods or trimmed notes
   differ from the load snapshot (order-independent food comparison).

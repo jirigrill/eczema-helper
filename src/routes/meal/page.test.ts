@@ -10,6 +10,7 @@ import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import { writeBuffer } from '$lib/stores/discard-buffer';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
 const catalog = new BundledCatalogAdapter();
@@ -588,6 +589,73 @@ describe('meal/+page.svelte', () => {
     mockSettings.set({ feedingStage: 'breastfed' });
   });
 
+  it('shows the forward "Hotovo" CTA on the actor whose work a swap autosaved (issue #571)', async () => {
+    setReady();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    // Both slots start empty; the mother composes a food, then round-trips.
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByRole, findByText, queryByText, queryByRole } = render(MealPage);
+    // Compose + confirm a food for the mother so the departing slot has work
+    // to autosave: drill into a family, tap the food, then commit food + family.
+    await fireEvent.click(await findByRole('button', { name: /Mléko/ }));
+    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
+    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
+    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
+    await tick();
+    // Swap to Miminko (autosaves the mother), then back to Já. The mother is now
+    // a clean, saved edit whose work was just autosaved → forward "Hotovo" exit.
+    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
+    // Wait for the swap to settle on the empty baby slot before swapping back.
+    await waitFor(() =>
+      expect(getByRole('button', { name: 'Miminko' }).getAttribute('data-active')).toBe('true'),
+    );
+    await waitFor(() => expect(queryByText('Kravské mléko')).toBeNull());
+    await fireEvent.click(getByRole('button', { name: 'Já' }));
+    await findByText('Kravské mléko');
+    await waitFor(() => expect(queryByRole('button', { name: 'Hotovo' })).not.toBeNull());
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  it('keeps the disabled "Uložit změny" CTA after cycling actor tabs without editing (issue #587)', async () => {
+    setReadyWithElim();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    // Both actors already have saved meals — nothing to save on either.
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { getByRole, findByRole } = render(MealPage);
+    // Lands on Já: clean saved edit → disabled "Uložit změny".
+    await findByRole('button', { name: /^Brambory$/ });
+    const ctaBefore = getByRole('button', { name: 'Uložit změny' });
+    expect(ctaBefore.getAttribute('aria-disabled')).toBe('true');
+    // Cycle Miminko → back to Já, editing nothing.
+    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
+    await findByRole('button', { name: /^Rýže$/ });
+    await fireEvent.click(getByRole('button', { name: 'Já' }));
+    await findByRole('button', { name: /^Brambory$/ });
+    // Returning to the unchanged mother slot must show the same disabled
+    // "Uložit změny", NOT an enabled "Hotovo".
+    const ctaAfter = getByRole('button', { name: 'Uložit změny' });
+    expect(ctaAfter.getAttribute('aria-disabled')).toBe('true');
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
   it('deleting on the Miminko pill removes the baby slot, leaving the mother meal intact', async () => {
     setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
@@ -621,6 +689,42 @@ describe('meal/+page.svelte', () => {
     const motherSlot = await meals.loadBySlot(today, 'lunch', 'mother');
     expect(babySlot.ok && babySlot.data).toBeFalsy();
     expect(motherSlot.ok && motherSlot.data?.items[0]?.name).toBe('Brambory');
+    mockSettings.set({ feedingStage: 'breastfed' });
+  });
+
+  // ── Incoming ?actor= pre-selects the tapped actor (issue #584) ───────────
+  // The day view carries the tapped actor into the meal editor via `?actor=`.
+  // In the mixed stage both actors are eligible, so without this the editor
+  // always seeds `mother`. Entering with `?actor=baby` must hydrate the baby's
+  // slot directly, not the mother's.
+
+  it('mixed stage: entering with ?actor=baby hydrates the baby meal', async () => {
+    setReadyWithElim();
+    mockSettings.set({ feedingStage: 'mixed' });
+    mockPage.url = new URL(
+      `http://localhost/meal?type=lunch&date=${today}&actor=baby&returnTo=/day/${today}`,
+    );
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    await meals.save({
+      id: `${today}:lunch:baby`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'baby',
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, queryByRole } = render(MealPage);
+    // Lands on the baby slot → Rýže hydrated, not Brambory.
+    await findByRole('button', { name: /^Rýže$/ });
+    expect(queryByRole('button', { name: /^Brambory$/ })).toBeNull();
     mockSettings.set({ feedingStage: 'breastfed' });
   });
 
@@ -807,7 +911,7 @@ describe('meal/+page.svelte', () => {
   // `tests/e2e/meal-lifecycle.test.ts` (happy-path delete + undo plus the
   // delete-failure toast test tagged #400).
 
-  it('empty-meal hint visible when editing an existing meal with zero foods', async () => {
+  it('empty-meal hint (saving deletes it) visible when editing an existing meal with zero foods', async () => {
     setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
@@ -818,11 +922,40 @@ describe('meal/+page.svelte', () => {
     // Wait for hydration: the food row appears.
     await findByRole('button', { name: /^Brambory$/ });
     // Hint not yet — there's a food.
-    expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+    expect(queryByText(/uložením ho smažeš/)).not.toBeInTheDocument();
     // ✕ the only food via the working-list remove button.
     await fireEvent.click(await findByRole('button', { name: /Odebrat Brambory/ }));
     await tick();
-    expect(getByText(/aspoň jednu položku/)).toBeInTheDocument();
+    expect(getByText(/uložením ho smažeš/)).toBeInTheDocument();
+  });
+
+  it('saving an emptied existing meal deletes the row and writes a meal-delete undo buffer (issue #588)', async () => {
+    // The route-level counterpart to the editor's finalize→'deleted' test: at
+    // the CTA seam, saving an emptied edit removes the Dexie row (not a silent
+    // no-op restoring the old foods, the #586 bug) and writes the delete buffer
+    // so the layout toast + undo behave like the explicit "Smazat jídlo".
+    vi.mocked(writeBuffer).mockClear();
+    setReady();
+    mockPage.url = new URL(
+      'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
+    );
+    await meals.save(lunchWithBramboryMeal());
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole } = render(MealPage);
+    // Empty the meal, then save via the (now-enabled) "Uložit změny" CTA.
+    await fireEvent.click(await findByRole('button', { name: /Odebrat Brambory/ }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Uložit změny' }));
+    await waitFor(async () =>
+      expect(await meals.loadBySlot('2025-06-13', 'lunch', 'mother')).toEqual({
+        ok: true,
+        data: null,
+      }),
+    );
+    // The undo buffer was written as a delete (so "Jídlo smazáno" + Zpět show).
+    expect(vi.mocked(writeBuffer)).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'meal-delete', actor: 'mother', mealType: 'lunch' }),
+    );
   });
 
   it('empty-meal hint NOT visible when composing a brand-new meal with zero foods', async () => {
@@ -832,7 +965,7 @@ describe('meal/+page.svelte', () => {
     const { queryByText } = render(MealPage);
     await tick();
     await tick();
-    expect(queryByText(/aspoň jednu položku/)).not.toBeInTheDocument();
+    expect(queryByText(/uložením ho smažeš/)).not.toBeInTheDocument();
   });
 
   // Dirty-CTA rendering (`Uložit změny` disabled/enabled) is covered end-to-end

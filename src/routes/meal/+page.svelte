@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import type { Actor, PortionKind, PreparationMethod } from '$lib/domain/models';
   import { getEligibleActors } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
@@ -55,6 +56,7 @@
   } from '$lib/domain/working-meal';
   import type { WorkingMeal } from '$lib/domain/working-meal';
   import { writeBuffer, discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
+  import type { MealDiscardKind } from '$lib/stores/discard-buffer';
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
@@ -81,10 +83,13 @@
   // fixed on the implicit actor; in `mixed` the picker pills flip it. Declared
   // here (above the eliminated-set derivation) because `eliminatedToday` reads
   // it — the editor checks the working meal against the *selected* actor's set.
-  // Seeded to `mother` (a breastfed newborn's intake is the mother's); the
-  // `$effect` further down snaps it to the stage's implicit actor once the live
-  // feeding stage resolves (e.g. `baby` under solids).
-  let selectedActor = $state<Actor>('mother');
+  // Seeded from `?actor=` (issue #584): the day view carries the tapped actor
+  // in, so in the `mixed` stage tapping the baby's row lands on the baby's meal
+  // rather than always defaulting to the mother. Falls back to `mother` (a
+  // breastfed newborn's intake is the mother's) when the param is absent or
+  // invalid; the `$effect` further down still snaps it to the stage's implicit
+  // actor once the live feeding stage resolves (e.g. an out-of-stage `?actor=`).
+  let selectedActor = $state<Actor>(parseDayQuery(page.url).actor ?? 'mother');
   // The eliminated set the editor checks the working meal against is the
   // *selected actor's* set: protocol ∪ that actor's permanent eliminations
   // (actor-aware conflict detection, spec #564/#568). A baby meal is checked
@@ -136,6 +141,10 @@
     // (and the derived `currentSlot`) still point at the departing actor here,
     // and must only flip once the autosave succeeds.
     const target = { date: targetDate, mealType: selectedMealType, actor };
+    // Whether the departing actor has work this swap will autosave. Captured
+    // before the swap because `swapActor` reloads the editor onto the target.
+    const departingActor = selectedActor;
+    const departingHadWork = editor.canFinalize;
     const result = await editor.swapActor(target, eliminatedToday);
     if (!result.ok) {
       // Abort the swap: keep the current actor active, surface the save
@@ -145,24 +154,28 @@
       return;
     }
     selectedActor = actor;
-    // Mark that a swap-autosave just landed the returning actor in a clean,
-    // saved edit. This flips the disabled "Uložit změny" dead-end into a
-    // forward "Hotovo" exit (see `isDoneState`) — but only for this
-    // swap-driven state, not for a plain clean edit opened from the day view
-    // (which keeps the established back-arrow-to-exit contract, #277/#286).
-    // The flag latches on; `isDoneState` self-clears on the next edit because
-    // it also gates on `!editor.canFinalize` (any edit flips `canFinalize`).
-    swappedThisSession = true;
+    // Remember that the departing actor's real work was autosaved by a swap.
+    // Landing back on such an actor (now a clean, saved edit) shows the forward
+    // "Hotovo" exit as reassurance the work took (see `isDoneState`). Tracked
+    // per-actor, not as a session-wide latch: merely cycling between two
+    // already-clean saved meals autosaves nothing and adds nobody, so returning
+    // to an unedited actor keeps the plain disabled "Uložit změny" (issue #587).
+    if (departingHadWork) autosavedActors.add(departingActor);
   }
 
   /**
-   * True after a successful actor swap left the returning actor showing a
-   * clean, already-saved meal. Never set on direct entry, so the ordinary
-   * clean-edit CTA contract is untouched. It is not cleared explicitly — the
-   * `isDoneState` derivation stops matching the instant the user edits
-   * (`editor.canFinalize` flips), so the CTA routes back through save.
+   * Actors whose real work was autosaved by a swap this session. An actor lands
+   * here when the user swaps away from it while it had confirmed work; returning
+   * to it (now a clean, saved edit) shows the forward "Hotovo" exit as
+   * reassurance the work took (see `isDoneState`). Never populated on direct
+   * entry, so the ordinary clean-edit CTA contract is untouched. Tracking is
+   * per-actor rather than a session-wide flag: cycling between two already-clean
+   * saved meals autosaves nothing, adds nobody, and so leaves an unedited actor
+   * showing the plain disabled "Uložit změny" (issue #587). `isDoneState` also
+   * gates on `!editor.canFinalize`, so an actor drops out of "done" the instant
+   * it is edited again, routing the CTA back through save.
    */
-  let swappedThisSession = $state(false);
+  const autosavedActors = new SvelteSet<Actor>();
 
   // ── Editor + slot hydration on mount ─────────────────────
   // The MealEditor (PRD #284) owns the meal lifecycle from open to finalize:
@@ -171,6 +184,13 @@
   // View state (drill-in, grid edit), navigation, dirtiness, and the
   // discard buffer stay in the route and are deferred to later slices of #284.
   const editor = createMealEditor();
+
+  // One meal repository instance for the route's own direct-to-Dexie writes
+  // (delete on explicit "Smazat jídlo" and on an emptied-then-backed-out edit,
+  // issue #588). The editor holds its own for finalize/save; the route reaches
+  // Dexie only to remove a row, so a single shared adapter here keeps the two
+  // remove call sites from each hand-rolling `new DexieMealRepository(...)`.
+  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Splitting the buffer-vs-load
@@ -370,18 +390,19 @@
   const finalizeDisabled = $derived(!drilledFamily && !gridEditingFoodId && !editor.canFinalize);
 
   /**
-   * "Done" state (issue #571 follow-up): after an actor swap, the returning
-   * actor's clean, already-saved meal. A swap-on-dirty round-trip autosaves
-   * invisibly and leaves the returning actor with nothing to finalize — the
-   * old disabled "Uložit změny" read as "your work didn't take", so here the
-   * CTA offers a forward exit ("Hotovo" → `returnTo`) instead. Gated on
-   * `swappedThisSession` so a plain clean edit opened directly from the day
-   * view keeps the established back-arrow-to-exit contract (#277/#286); a
-   * dirty edit routes through the save CTA; a truly empty meal falls through
-   * to `showEmptyHint`.
+   * "Done" state (issue #571 follow-up): the currently-selected actor's clean,
+   * already-saved meal, where a swap-on-dirty round-trip earlier autosaved that
+   * actor's work. The autosave is invisible and leaves the returning actor with
+   * nothing to finalize — the old disabled "Uložit změny" read as "your work
+   * didn't take", so here the CTA offers a forward exit ("Hotovo" → `returnTo`)
+   * instead. Gated on `autosavedActors.has(selectedActor)` so a plain clean edit
+   * opened directly from the day view keeps the established back-arrow-to-exit
+   * contract (#277/#286), and merely cycling between two unedited saved actors
+   * never triggers it (#587); a dirty edit routes through the save CTA; a truly
+   * empty meal falls through to `showEmptyHint`.
    */
   const isDoneState = $derived(
-    swappedThisSession &&
+    autosavedActors.has(selectedActor) &&
       !drilledFamily &&
       !gridEditingFoodId &&
       editor.finalizeKind === 'edit' &&
@@ -468,13 +489,44 @@
     }
   }
 
+  /**
+   * Pair a discard descriptor with this slot's identity
+   * (`mealType`/`actor`/`date`/`returnTo`) and write it to the undo buffer.
+   * Every buffer write for this route goes through here so the slot-metadata
+   * clump lives in exactly one place — `saveMeal` (emptied-then-saved delete),
+   * `bufferDiscard` (back-out), and `handleDeleteConfirm` (explicit delete) all
+   * call it. It writes the buffer only; removing the persisted Dexie row is the
+   * caller's concern (finalize already removes on save; the other two paths
+   * call `meals.remove` themselves).
+   */
+  function writeSlotBuffer(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
+    writeBuffer({
+      ...desc,
+      mealType: selectedMealType,
+      actor: selectedActor,
+      date: targetDate,
+      returnTo,
+    });
+  }
+
   async function saveMeal(): Promise<void> {
+    // Capture the delete descriptor BEFORE finalize removes the row, so an
+    // emptied-then-saved meal can be undone (issue #588). finalize reports
+    // whether it saved or deleted; only on 'deleted' do we surface the
+    // delete toast — a normal save navigates back silently as before.
+    const deleteDesc = editor.discardDescriptor('delete');
     const result = await editor.finalize();
     if (!result.ok) {
       // Surface the failure and stay on the meal page — navigating away would
       // silently evict the unsaved working meal.
       saveErrorMessage = result.error;
       return;
+    }
+    // finalize already removed the row on 'deleted' — write the undo buffer
+    // only (bufferDiscard would remove a second time). deleteDesc is non-null
+    // because the 'delete' intent always yields a descriptor.
+    if (result.data === 'deleted' && deleteDesc) {
+      writeSlotBuffer(deleteDesc);
     }
     goto(returnTo);
   }
@@ -503,11 +555,27 @@
   }
 
   /**
+   * Pair a discard descriptor with the slot metadata and write it to the
+   * buffer. When the descriptor is a `meal-delete` produced by *emptying* an
+   * existing edit (issue #588), the persisted row must also be removed — the
+   * editor only removes on `finalize()`, and a back-out never calls finalize.
+   * Removal is fire-and-forget: the buffer (and thus undo) is already written,
+   * and Dexie is the source of truth for the day view we navigate to.
+   */
+  function bufferDiscard(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
+    writeSlotBuffer(desc);
+    if (desc.kind === 'meal-delete') {
+      void meals.remove(targetDate, selectedMealType, selectedActor);
+    }
+  }
+
+  /**
    * Single discard + navigate path used by the explicit back arrow's grid
    * branch. The editor decides *what* the discard contains (kind +
    * working meal); the route pairs that with `mealType`/`returnTo` and
    * decides *when* to write the buffer. A clean back-out from edit mode
-   * yields a `null` descriptor — there is nothing to discard.
+   * yields a `null` descriptor — there is nothing to discard. An emptied edit
+   * yields a `meal-delete` descriptor, which also removes the row (issue #588).
    *
    * Extracted (rather than inlined) so the popstate guard can call it later
    * if a future entry point ships a `returnTo` that's decoupled from the
@@ -517,9 +585,7 @@
    */
   function discardAndLeave(): void {
     const desc = editor.discardDescriptor();
-    if (desc) {
-      writeBuffer({ ...desc, mealType: selectedMealType, date: targetDate, returnTo });
-    }
+    if (desc) bufferDiscard(desc);
     goto(returnTo);
   }
 
@@ -569,9 +635,7 @@
     if (nav.type !== 'popstate') return;
     if (drilledFamily) return;
     const desc = editor.discardDescriptor();
-    if (desc) {
-      writeBuffer({ ...desc, mealType: selectedMealType, date: targetDate, returnTo });
-    }
+    if (desc) bufferDiscard(desc);
   });
 
   function handleFamilySelect(familyId: FamilyId): void {
@@ -647,10 +711,10 @@
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
 
-  // ── Empty-meal hint (issue #268) ──────────────────────────
-  // Shown only while editing an existing meal whose working list is empty —
-  // so the user is told to use Smazat instead of trying to "save zero foods".
-  // On compose-new, the disabled CTA carries the message implicitly.
+  // ── Empty-meal hint (issue #268, repurposed #588) ─────────
+  // Shown while editing an existing meal whose working list is empty — tells
+  // the user that saving/leaving now deletes the meal (emptying is a delete,
+  // #588). On compose-new the disabled CTA carries "nothing to save" implicitly.
   const showEmptyHint = $derived(
     editingExisting && !drilledFamily && !gridEditingFoodId && !hasConfirmed,
   );
@@ -662,17 +726,13 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await new DexieMealRepository(db, new DexieScheduleRepository(db)).remove(
-      targetDate,
-      selectedMealType,
-      selectedActor,
-    );
+    const result = await meals.remove(targetDate, selectedMealType, selectedActor);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
     }
     if (desc) {
-      writeBuffer({ ...desc, mealType: selectedMealType, date: targetDate, returnTo });
+      writeSlotBuffer(desc);
     }
     goto(returnTo);
   }

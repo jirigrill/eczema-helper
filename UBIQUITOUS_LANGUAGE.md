@@ -670,7 +670,9 @@ overflow in the page header → confirm bottom sheet. Confirming calls
 `discardBuffer`, and navigates to `returnTo`; the layout's **discard toast** offers
 `Zpět` (undo) and reads `Jídlo smazáno`. Undo rehydrates the working list from the
 snapshot — re-tapping the finalize CTA (`Uložit`) then re-persists a fresh copy. Hidden
-while composing a brand-new meal (nothing to delete). → See ADR-0018, issue #268.
+while composing a brand-new meal (nothing to delete). Removing every food and then
+saving or backing out is an **equivalent delete path** (issue #588): it removes the
+row and shows the same `Jídlo smazáno` toast + undo. → See ADR-0018, issues #268, #588.
 
 ### Discard Toast
 The layout-level `Toast` (with `Zpět` undo) shown after the working meal is buffered to
@@ -679,13 +681,16 @@ was actually lost: **`Jídlo neuloženo`** (compose-new draft), **`Změny neulo�
 edit — the saved meal stays, only the edits drop), **`Jídlo smazáno`** (delete). A *clean*
 edit-back shows no toast. → See ADR-0018 "Discard guard".
 
-### Empty-meal Guard
-Finalizing a zero-food working list is a **no-op** by construction. While composing a
-new meal, the disabled CTA carries the message implicitly. While editing an existing
-meal whose foods have been ✕'d to zero, an inline hint near the CTA tells the user to
-use **Smazat jídlo** instead — closing the loophole where "empty then save" could
-have been a hidden delete path. (Formerly "Empty-Hotovo Guard"; renamed with the
-`Hotovo → Uložit` relabel.) → See issue #268.
+### Empty-meal delete (issue #588)
+Emptying an existing meal deletes it. While editing a saved meal whose foods have been
+✕'d to zero, the finalize CTA stays enabled and an inline hint near it warns that
+saving will delete the meal (`Jídlo je prázdné — uložením ho smažeš.`); saving or
+backing out removes the row and shows the `Jídlo smazáno` toast + undo, exactly like
+the explicit **Smazat jídlo**. Composing a brand-new meal with zero foods is still a
+**no-op** — the disabled CTA carries "nothing to save" implicitly (nothing was ever
+persisted, so there is nothing to delete). (Reverses the earlier #586 "Empty-meal
+Guard", which made empty-save a no-op and routed the user to Smazat instead; formerly
+"Empty-Hotovo Guard".) → See issues #268, #586, #588.
 
 ---
 
