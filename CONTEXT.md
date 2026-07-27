@@ -60,8 +60,9 @@ warning banner, the red CTA, reintro dosing) stay in the route, built on top
 of `eliminatedFoodIds`. See ADR-0018 and PRD issue #284.
 
 ### Copy Meal
-Copying an existing `Meal` into another slot (another day, meal type, or
-actor). The pure assembler `copyMealInto(source, target, targetSlot, now)`
+Copying an existing `Meal` into another slot (another day or meal type — the
+copy is always same-actor; see the flow-level invariants below). The pure
+assembler `copyMealInto(source, target, targetSlot, now)`
 in `src/lib/domain/working-meal.ts` computes the persistable destination
 `Meal` and the list of items the copy adds; I/O (loading `target`, writing
 the result) is the caller's job. Its **merge invariants**:
@@ -83,8 +84,25 @@ the result) is the caller's job. Its **merge invariants**:
 - Each carried `MealItem` copies `name` / `foodId` / `amount` /
   `preparationMethod` verbatim with a freshly minted `id`.
 
-(Same-actor / actor-scoped-occupancy / eligibility rules for *which* copies
-are offered live with the copy entry-point, not with this assembler.)
+The **flow-level invariants** (rules for *which* copies are offered and how the
+destination is resolved) live with the copy entry-point on `/meal`, not with the
+pure assembler above:
+
+- **Actor-scoped occupancy.** A slot's occupancy is per actor: `(date, mealType)`
+  holds up to one meal per actor, so the destination is resolved actor-scoped via
+  `loadBySlot(destDate, destSlot, source.actor)`. The *other* actor's meal in the
+  same visual `(date, mealType)` cell is irrelevant to the merge and is never read
+  or touched.
+- **Copy is same-actor; eligibility is not re-checked.** The copy's destination
+  actor is fixed to the source meal's actor — there is no actor picker in the copy
+  flow. Eligibility (`getEligibleActors`) is **not** re-validated against the
+  destination date: a copy may land the source actor on a day where the live
+  feeding stage would not otherwise offer them. This is deliberate — the copy
+  re-derives conflicts from the destination day's own eliminated set for free (no
+  copy-aware branch downstream), so an out-of-window or out-of-eligibility landing
+  still reads honest danger flags rather than being pre-filtered away. (Out-of-window
+  *dates* are pre-disabled in the destination picker; out-of-eligibility *actors*
+  are not, because the actor is never chosen.)
 
 ### SkinObservation
 A timestamped record of what the parent observed about the baby's skin
