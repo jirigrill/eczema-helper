@@ -871,7 +871,10 @@
       return;
     }
     // Success: capture the undo descriptor, navigate to the destination day,
-    // then raise the success toast after navigation settles.
+    // then raise the success toast after navigation settles (US-25). The toast
+    // is layout-level and reactive on the discard buffer, so writing the buffer
+    // only after `goto` resolves guarantees it renders on the destination day
+    // rather than on the /meal editor being left behind.
     const descriptor: DiscardedMealCopy = {
       kind: 'meal-copy',
       destinationSlot: destSlot,
@@ -882,7 +885,7 @@
       returnTo: `/day/${copyDestDate}`,
     };
     closeCopyPicker();
-    goto(`/day/${copyDestDate}`);
+    await goto(`/day/${copyDestDate}`);
     writeBuffer(descriptor);
   }
 </script>

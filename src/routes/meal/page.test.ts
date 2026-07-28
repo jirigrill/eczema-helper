@@ -1081,6 +1081,48 @@ describe('meal/+page.svelte', () => {
     );
   });
 
+  it('confirm copy (success): awaits navigation before writing the undo buffer so the toast lands on the destination day (US-25)', async () => {
+    setReadyWithElim();
+    vi.mocked(writeBuffer).mockClear();
+    vi.mocked(navigation.goto).mockClear();
+    // Make goto resolve on a deferred promise so we can observe that the buffer
+    // write (which drives the layout-level toast) is sequenced strictly AFTER
+    // navigation settles, not fired synchronously before it.
+    let resolveGoto: () => void = () => {};
+    const gotoSettled = new Promise<void>((resolve) => {
+      resolveGoto = resolve;
+    });
+    vi.mocked(navigation.goto).mockReturnValueOnce(gotoSettled);
+    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
+    await meals.save({
+      id: `${today}:lunch:mother`,
+      date: today,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
+    const { default: MealPage } = await import('./+page.svelte');
+    const { findByRole, getByRole, getByTestId } = render(MealPage);
+    await fireEvent.click(await findByRole('button', { name: 'Více' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
+    await tick();
+    await fireEvent.click(getByRole('button', { name: 'Kopírovat sem' }));
+    await tick();
+    await fireEvent.click(getByTestId('fab-meal-type-dinner'));
+    // goto has been called and is still pending → the buffer must NOT be written yet.
+    await waitFor(() => expect(vi.mocked(navigation.goto)).toHaveBeenCalledWith(`/day/${today}`));
+    expect(vi.mocked(writeBuffer)).not.toHaveBeenCalled();
+    // Let navigation settle → the buffer (and thus the toast) is written now.
+    resolveGoto();
+    await waitFor(() =>
+      expect(vi.mocked(writeBuffer)).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'meal-copy' }),
+      ),
+    );
+  });
+
   it('confirm copy (no-op): copying onto its own slot writes nothing, navigates nowhere', async () => {
     setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
