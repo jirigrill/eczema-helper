@@ -133,9 +133,13 @@ test('explicit Smazat shows "Jídlo smazáno" and Zpět re-persists the meal', a
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   await expect(page.getByRole('button', { name: /^Brambory$/ })).toBeVisible();
 
-  // Open the ⋯ overflow + confirm Smazat.
+  // Open the ⋯ overflow, pick "Smazat jídlo", then confirm on the sheet.
   await page.getByRole('button', { name: 'Více' }).click();
-  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+  await page.getByTestId('overflow-delete').click();
+  await page
+    .getByRole('dialog', { name: 'Smazat jídlo?' })
+    .getByRole('button', { name: 'Smazat jídlo' })
+    .click();
 
   // Lands on /day/<today>; toast reads delete-specific wording.
   await expect(page).toHaveURL(`/day/${today}`);
@@ -226,9 +230,13 @@ test('delete-undo on a past day restores the meal to that day, not today', async
   await page.goto(`/meal?type=breakfast&date=${yesterday}&returnTo=/day/${yesterday}`);
   await expect(page.getByRole('button', { name: /^Brambory$/ })).toBeVisible();
 
-  // Delete via the ⋯ overflow.
+  // Delete via the ⋯ overflow, then confirm on the sheet.
   await page.getByRole('button', { name: 'Více' }).click();
-  await page.getByRole('button', { name: 'Smazat jídlo' }).click();
+  await page.getByTestId('overflow-delete').click();
+  await page
+    .getByRole('dialog', { name: 'Smazat jídlo?' })
+    .getByRole('button', { name: 'Smazat jídlo' })
+    .click();
   await expect(page).toHaveURL(`/day/${yesterday}`);
   await expect(page.getByText('Jídlo smazáno')).toBeVisible();
 

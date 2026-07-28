@@ -163,11 +163,14 @@ export function getEligibleActors(stage: FeedingStage): Actor[] {
  */
 export type MealId = `${string}:${MealType}:${Actor}`;
 
+/** A meal's addressable slot: the `(date, mealType, actor)` triple its `MealId` encodes. */
+export type MealSlot = { date: string; mealType: MealType; actor: Actor };
+
 export function mealId(date: string, mealType: MealType, actor: Actor): MealId {
   return `${date}:${mealType}:${actor}`;
 }
 
-export function parseMealId(id: MealId): { date: string; mealType: MealType; actor: Actor } {
+export function parseMealId(id: MealId): MealSlot {
   const [date, mealType, actor] = id.split(':') as [string, MealType, Actor];
   return { date, mealType, actor };
 }

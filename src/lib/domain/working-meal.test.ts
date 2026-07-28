@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Meal, MealItem } from './models';
 import {
   allConfirmedFoods,
   cancelEditing,
   commitFamily,
   confirmFood,
   confirmedFoodsForFamily,
+  copyMealInto,
   deselectFood,
   editingFood,
   emptyWorkingMeal,
@@ -455,5 +457,246 @@ describe('finalizeWorkingMeal', () => {
     expect(finalizeWorkingMeal(SLOT, meal, '  hello  ', null, NOW)!.notes).toBe('hello');
     expect(finalizeWorkingMeal(SLOT, meal, '   ', null, NOW)!.notes).toBeUndefined();
     expect(finalizeWorkingMeal(SLOT, meal, '', null, NOW)!.notes).toBeUndefined();
+  });
+});
+
+// ── copyMealInto ─────────────────────────────────────────────
+
+describe('copyMealInto', () => {
+  const NOW = '2026-06-01T08:00:00.000Z';
+
+  function item(overrides: Partial<MealItem> = {}): MealItem {
+    return {
+      id: 'src-item-1',
+      name: 'Kravské mléko',
+      foodId: 'kravske-mleko' as MealItem['foodId'],
+      amount: 'spoon',
+      preparationMethod: 'boiled',
+      ...overrides,
+    };
+  }
+
+  function source(items: MealItem[], overrides: Partial<Meal> = {}): Meal {
+    return {
+      id: '2026-05-27:lunch:mother',
+      date: '2026-05-27',
+      mealType: 'lunch',
+      actor: 'mother',
+      items,
+      notes: 'source note',
+      createdAt: '2026-05-27T12:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  const DEST_SLOT = { date: '2026-06-01', mealType: 'dinner' as const, actor: 'mother' as const };
+
+  it('composes a new meal when the destination is empty', () => {
+    const src = source([item()]);
+    const result = copyMealInto(src, null, DEST_SLOT, NOW);
+    expect(result.meal).not.toBeNull();
+    expect(result.meal!.id).toBe('2026-06-01:dinner:mother');
+    expect(result.meal!.date).toBe('2026-06-01');
+    expect(result.meal!.mealType).toBe('dinner');
+    expect(result.meal!.actor).toBe('mother');
+  });
+
+  it('empty destination: fresh createdAt from now, updatedAt unset', () => {
+    const src = source([item()]);
+    const result = copyMealInto(src, null, DEST_SLOT, NOW);
+    expect(result.meal!.createdAt).toBe(NOW);
+    expect(result.meal!.updatedAt).toBeUndefined();
+  });
+
+  it('empty destination: source note never travels', () => {
+    const src = source([item()], { notes: 'source note' });
+    const result = copyMealInto(src, null, DEST_SLOT, NOW);
+    expect(result.meal!.notes).toBeUndefined();
+  });
+
+  it('empty destination: all source items carried with fresh ids; added == all items', () => {
+    const src = source([
+      item({ id: 'src-1', foodId: 'kravske-mleko' as MealItem['foodId'] }),
+      item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'], name: 'Tvaroh' }),
+    ]);
+    const result = copyMealInto(src, null, DEST_SLOT, NOW);
+    expect(result.meal!.items).toHaveLength(2);
+    expect(result.added).toHaveLength(2);
+    expect(result.added).toEqual(result.meal!.items);
+    for (const carried of result.meal!.items) {
+      expect(carried.id).not.toBe('src-1');
+      expect(carried.id).not.toBe('src-2');
+    }
+  });
+
+  it('empty destination: carried items copy name/foodId/amount/preparationMethod verbatim', () => {
+    const src = source([
+      item({
+        id: 'src-1',
+        name: 'Tvaroh',
+        foodId: 'tvaroh' as MealItem['foodId'],
+        amount: 'pinch',
+        preparationMethod: 'raw',
+      }),
+    ]);
+    const result = copyMealInto(src, null, DEST_SLOT, NOW);
+    expect(result.meal!.items[0]).toMatchObject({
+      name: 'Tvaroh',
+      foodId: 'tvaroh',
+      amount: 'pinch',
+      preparationMethod: 'raw',
+    });
+  });
+
+  it('occupied destination: adds only foods the destination lacks; added == exactly those', () => {
+    const src = source([
+      item({ id: 'src-1', foodId: 'kravske-mleko' as MealItem['foodId'] }),
+      item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'], name: 'Tvaroh' }),
+    ]);
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+      notes: 'dest note',
+    });
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.added).toHaveLength(1);
+    expect(result.added[0]!.foodId).toBe('tvaroh');
+    expect(result.meal!.items.map((i) => i.foodId)).toEqual(['kravske-mleko', 'tvaroh']);
+  });
+
+  it('occupied destination: preserves destination createdAt + notes, stamps updatedAt', () => {
+    const src = source([item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'] })]);
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+      notes: 'dest note',
+      createdAt: '2026-05-31T10:00:00.000Z',
+    });
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.meal!.createdAt).toBe('2026-05-31T10:00:00.000Z');
+    expect(result.meal!.notes).toBe('dest note');
+    expect(result.meal!.updatedAt).toBe(NOW);
+  });
+
+  it('occupied destination: destination wins on collision even when portion/prep differ', () => {
+    const src = source([
+      item({
+        id: 'src-1',
+        foodId: 'kravske-mleko' as MealItem['foodId'],
+        amount: 'package',
+        preparationMethod: 'fried',
+      }),
+    ]);
+    const target = source(
+      [
+        item({
+          id: 'dst-1',
+          foodId: 'kravske-mleko' as MealItem['foodId'],
+          amount: 'pinch',
+          preparationMethod: 'raw',
+        }),
+      ],
+      { id: '2026-06-01:dinner:mother', date: '2026-06-01', mealType: 'dinner' },
+    );
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.meal).toBeNull();
+    expect(result.added).toEqual([]);
+  });
+
+  it('occupied destination: dedup drops a source food identical in portion+prep', () => {
+    const src = source([
+      item({ id: 'src-1', foodId: 'kravske-mleko' as MealItem['foodId'] }),
+      item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'], name: 'Tvaroh' }),
+    ]);
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+    });
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.meal!.items.filter((i) => i.foodId === 'kravske-mleko')).toHaveLength(1);
+  });
+
+  it('occupied destination: source note never travels', () => {
+    const src = source([item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'] })], {
+      notes: 'source note',
+    });
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+      notes: 'dest note',
+    });
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.meal!.notes).toBe('dest note');
+  });
+
+  it('occupied destination with no destination note stays undefined after merge', () => {
+    const src = source([item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'] })], {
+      notes: 'source note',
+    });
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+      notes: undefined,
+    });
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.meal!.notes).toBeUndefined();
+  });
+
+  it('no-op when destination already holds every source foodId (full overlap into a different slot)', () => {
+    const src = source([
+      item({ id: 'src-1', foodId: 'kravske-mleko' as MealItem['foodId'] }),
+      item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'], name: 'Tvaroh' }),
+    ]);
+    const target = source(
+      [
+        item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] }),
+        item({ id: 'dst-2', foodId: 'tvaroh' as MealItem['foodId'], name: 'Tvaroh' }),
+      ],
+      { id: '2026-06-01:dinner:mother', date: '2026-06-01', mealType: 'dinner' },
+    );
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.meal).toBeNull();
+    expect(result.added).toEqual([]);
+  });
+
+  it('no-op when copying a meal onto its own slot', () => {
+    const items = [
+      item({ id: 'src-1', foodId: 'kravske-mleko' as MealItem['foodId'] }),
+      item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'], name: 'Tvaroh' }),
+    ];
+    const src = source(items);
+    const ownSlot = { date: '2026-05-27', mealType: 'lunch' as const, actor: 'mother' as const };
+    const result = copyMealInto(src, src, ownSlot, NOW);
+    expect(result.meal).toBeNull();
+    expect(result.added).toEqual([]);
+  });
+
+  it('added items each get a fresh id distinct from the source item id', () => {
+    const src = source([item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'] })]);
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+    });
+    const result = copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(result.added[0]!.id).not.toBe('src-2');
+    expect(result.added[0]!.id).toBeTruthy();
+  });
+
+  it('does not mutate the destination meal', () => {
+    const target = source([item({ id: 'dst-1', foodId: 'kravske-mleko' as MealItem['foodId'] })], {
+      id: '2026-06-01:dinner:mother',
+      date: '2026-06-01',
+      mealType: 'dinner',
+    });
+    const src = source([item({ id: 'src-2', foodId: 'tvaroh' as MealItem['foodId'] })]);
+    copyMealInto(src, target, DEST_SLOT, NOW);
+    expect(target.items).toHaveLength(1);
+    expect(target.updatedAt).toBeUndefined();
   });
 });
