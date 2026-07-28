@@ -26,13 +26,13 @@
   <div
     role="presentation"
     data-testid="confirm-sheet-backdrop"
-    class="fixed inset-0 z-40 bg-black/35"
+    class="fixed inset-0 z-[60] bg-black/35"
     onclick={onCancel}
   ></div>
   <div
     role="dialog"
     aria-label={heading}
-    class="pb-safe fixed right-0 bottom-0 left-0 z-50 rounded-t-[20px] bg-white"
+    class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
     style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
   >
     <div class="px-5 pt-5 pb-3">
