@@ -34,6 +34,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Chip from '$lib/components/Chip.svelte';
   import InfoBanner from '$lib/components/InfoBanner.svelte';
+  import BottomSheet from '$lib/components/BottomSheet.svelte';
   import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
   import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
@@ -1092,17 +1093,11 @@
   existing delete, which opens the unchanged destructive ConfirmSheet below.
 -->
 {#if overflowOpen}
-  <div
-    role="presentation"
-    data-testid="overflow-backdrop"
-    class="fixed inset-0 z-[60] bg-black/35"
-    onclick={() => (overflowOpen = false)}
-  ></div>
-  <div
-    role="dialog"
-    aria-label={actionStrings.more}
-    class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
-    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+  <BottomSheet
+    open={overflowOpen}
+    ariaLabel={actionStrings.more}
+    onDismiss={() => (overflowOpen = false)}
+    backdropTestid="overflow-backdrop"
   >
     {#if canCopy}
       <button
@@ -1126,7 +1121,7 @@
       class="text-text-muted active:bg-surface w-full py-4 text-center text-[13px]"
       onclick={() => (overflowOpen = false)}>{actionStrings.cancel}</button
     >
-  </div>
+  </BottomSheet>
 {/if}
 
 <!--
@@ -1151,17 +1146,11 @@
   "Kopírovat sem", no occupancy cues.
 -->
 {#if copyPickerOpen}
-  <div
-    role="presentation"
-    data-testid="copy-picker-backdrop"
-    class="fixed inset-0 z-[60] bg-black/35"
-    onclick={closeCopyPicker}
-  ></div>
-  <div
-    role="dialog"
-    aria-label={commonStrings.meal.copyPickerHeading}
-    class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
-    style:padding-bottom="calc(env(safe-area-inset-bottom, 0px) + 1rem)"
+  <BottomSheet
+    open={copyPickerOpen}
+    ariaLabel={commonStrings.meal.copyPickerHeading}
+    onDismiss={closeCopyPicker}
+    backdropTestid="copy-picker-backdrop"
   >
     <div class="px-5 pt-4 pb-2 text-center">
       <p class="text-text-muted text-[11px] tracking-wide uppercase">
@@ -1189,7 +1178,7 @@
         onclick={openCopySlotSheet}>{actionStrings.copyHere}</button
       >
     </div>
-  </div>
+  </BottomSheet>
 {/if}
 
 {#if copySlotSheetOpen}
