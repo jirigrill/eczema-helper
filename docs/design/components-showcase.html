@@ -1047,7 +1047,7 @@
     </div>
 
   <!-- ─── FabActionSheet ──────────────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/FabActionSheet.svelte -->
+  <!-- sync with: src/lib/components/FabActionSheet.svelte (routes its content through BottomSheet) -->
   <div class="component-section">
     <p class="component-label">▸ <span>FabActionSheet</span> — date: string, onclose: () => void, showEvaluate?: boolean, onSelectMealType?: (type) => void, initialMealSubmenu?: boolean, preselectedType?: MealType</p>
     <div class="flex flex-wrap gap-6 items-start">
@@ -1179,8 +1179,38 @@
 
   <hr class="section-hr">
 
+  <!-- ─── BottomSheet ──────────────────────────────────────────────────── -->
+  <!-- sync with: src/lib/components/BottomSheet.svelte -->
+  <div class="component-section" id="bottom-sheet">
+    <p class="component-label">▸ <span>BottomSheet</span> — open: boolean, ariaLabel, onDismiss, backdropTestid?, panelTestid?, children — the shared scrim + panel shell every bottom sheet routes through (ConfirmSheet, FabActionSheet, the copy-meal overflow list + destination picker). Owns the DESIGN.md §Stacking Scale layers: scrim z-[60], panel z-[70]. Inner content is the caller's snippet.</p>
+    <div class="flex flex-wrap gap-6 items-start">
+
+      <!-- Closed state — nothing renders -->
+      <div>
+        <p class="variant-label">Closed (open=false)</p>
+        <div class="phone-shell" style="position:relative;width:320px;height:420px;background:#FAF8F8;border-radius:12px;overflow:hidden">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#7A6468;font-size:12px;font-style:italic">nothing rendered</div>
+        </div>
+      </div>
+
+      <!-- Open — shell with placeholder children -->
+      <div>
+        <p class="variant-label">Open (scrim z-[60], panel z-[70])</p>
+        <div class="phone-shell" style="position:relative;width:320px;height:420px;background:#FAF8F8;border-radius:12px;overflow:hidden">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:10"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;background:#FFFFFF;border-radius:20px 20px 0 0;padding-bottom:16px">
+            <div style="padding:20px;color:#7A6468;font-size:13px;font-style:italic;text-align:center">{@render children()} — caller's content</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="section-hr">
+
   <!-- ─── ConfirmSheet ─────────────────────────────────────────────────── -->
-  <!-- sync with: src/lib/components/ConfirmSheet.svelte -->
+  <!-- sync with: src/lib/components/ConfirmSheet.svelte (routes its content through BottomSheet) -->
   <div class="component-section" id="confirm-sheet">
     <p class="component-label">▸ <span>ConfirmSheet</span> — open: boolean, heading, body, confirmLabel, cancelLabel, confirmVariant?: 'primary' | 'danger' (default primary), onConfirm, onCancel</p>
     <div class="flex flex-wrap gap-6 items-start">

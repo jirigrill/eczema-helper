@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
+  import BottomSheet from '$lib/components/BottomSheet.svelte';
   import FoodIcon from '$lib/components/icons/FoodIcon.svelte';
   import PersonIcon from '$lib/components/icons/PersonIcon.svelte';
   import { commonStrings } from '$lib/strings/common';
@@ -86,16 +87,12 @@
   }
 </script>
 
-<!-- Backdrop -->
-<div role="presentation" class="fixed inset-0 z-[60] bg-black/35" onclick={onclose}></div>
-
-<!-- Bottom sheet -->
-<div
-  role="dialog"
-  aria-label={mealSubmenuOpen
+<BottomSheet
+  open={true}
+  ariaLabel={mealSubmenuOpen
     ? commonStrings.fabSheet.pickMealType
     : commonStrings.fabSheet.heading}
-  class="pb-safe fixed right-0 bottom-0 left-0 z-[70] rounded-t-[20px] bg-white"
+  onDismiss={onclose}
 >
   {#if mealSubmenuOpen}
     <div class="px-5 pt-4 pb-2 text-center">
@@ -220,6 +217,4 @@
       {commonStrings.fabSheet.cancel}
     </button>
   {/if}
-
-  <div class="h-5"></div>
-</div>
+</BottomSheet>
