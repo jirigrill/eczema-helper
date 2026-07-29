@@ -24,7 +24,12 @@
   } = $props();
 </script>
 
-<BottomSheet {open} ariaLabel={heading} onDismiss={onCancel} backdropTestid="confirm-sheet-backdrop">
+<BottomSheet
+  {open}
+  ariaLabel={heading}
+  onDismiss={onCancel}
+  backdropTestid="confirm-sheet-backdrop"
+>
   <div class="px-5 pt-5 pb-3">
     <p class="body-bold mb-1">{heading}</p>
     <p class="body-muted">{body}</p>

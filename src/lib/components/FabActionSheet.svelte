@@ -89,9 +89,7 @@
 
 <BottomSheet
   open={true}
-  ariaLabel={mealSubmenuOpen
-    ? commonStrings.fabSheet.pickMealType
-    : commonStrings.fabSheet.heading}
+  ariaLabel={mealSubmenuOpen ? commonStrings.fabSheet.pickMealType : commonStrings.fabSheet.heading}
   onDismiss={onclose}
 >
   {#if mealSubmenuOpen}
