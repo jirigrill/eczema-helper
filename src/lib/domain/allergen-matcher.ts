@@ -1,16 +1,6 @@
 import type { CanonicalAllergen } from '$lib/domain/canonical-allergen';
+import { normalizeKey } from '$lib/domain/harvest-candidate';
 import type { CanonicalCatalogPort } from '$lib/domain/ports/canonical-catalog-port';
-
-// Precision-biased normalization (ADR-0017): lowercase + trim + collapse whitespace
-// + strip surrounding non-letters. Diacritics preserved; no stemming.
-// A false merge is worse than a missed merge.
-export function normalizeKey(raw: string): string {
-  return raw
-    .trim()
-    .toLocaleLowerCase('cs')
-    .replace(/\s+/g, ' ')
-    .replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
-}
 
 /**
  * Resolves raw free-text to a known CanonicalAllergen by matching against
