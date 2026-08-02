@@ -85,31 +85,26 @@ test('/day/<invalid> redirects to /day/<today>', async ({ page }) => {
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('/day/<future> renders read-only "Naplánováno" preview, no FAB', async ({ page }) => {
+test('/day/<future> redirects to /day/<today> (no future logging)', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0]!;
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${futureDate}`);
-  // Stays on the future URL — no redirect.
-  await expect(page).toHaveURL(`/day/${futureDate}`);
-  // Preview block visible.
-  await expect(page.getByTestId('day-preview')).toBeVisible();
-  await expect(page.getByText('Naplánováno')).toBeVisible();
-  // Logging entry points are absent.
-  await expect(page.getByText('Stav ekzému')).not.toBeVisible();
-  await expect(page.getByText('Foto kůže')).not.toBeVisible();
-  await expect(page.getByText('Dnešní jídla')).not.toBeVisible();
-  // FAB (add-record button) is suppressed on a future day.
-  await expect(page.getByRole('button', { name: 'Přidat záznam' })).toHaveCount(0);
+  // The day view is a record of what happened — a future day redirects home.
+  await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('/day/<before-start> redirects to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
+test('/day/<before-start> renders that day (the strip may not reach it)', async ({ page }) => {
+  // With the protocol range gone, any valid past date renders its own day —
+  // a directly-navigated out-of-range day is no longer redirected (PRD #623, §3a).
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   const beforeStart = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${beforeStart}`);
-  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page).toHaveURL(`/day/${beforeStart}`);
+  await expect(page.getByTestId('day-strip')).toBeVisible();
+  await expect(page.getByText('Dnešní jídla')).toBeVisible();
 });
 
 // ── Past-day rendering ────────────────────────────────────────────────────
@@ -202,27 +197,18 @@ test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) =>
   await expect(page).toHaveURL('/');
 });
 
-// ── Allergen columns reflect the phase active on the selected date ─────────
+// ── No protocol surfaces on the day view ──────────────────────────────────
 
-test('/day/<past-reset> shows "Žádná omezení" — dairy not yet eliminated', async ({ page }) => {
-  // seedSchedule puts dairy elimination starting today; the reset phase covers
-  // startDate through startDate+4. A date 2 days after start is in reset → no eliminations.
-  const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
-  const resetDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
-  await seedSchedule(page, startDate);
-  await page.goto(`/day/${resetDate}`);
-  await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
-  await expect(page.getByText('Žádná omezení')).toBeVisible();
-});
-
-test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
+test('/day/<today> shows no "Smím / Vyhýbej se" card', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0]!;
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${today}`);
-  await expect(page.getByText('✗ Vyhýbej se')).toBeVisible();
-  // AllergenChip renders the dairy category name with emoji
-  await expect(page.getByText('🥛 Mléčné výrobky')).toBeVisible();
+  await expect(page.getByTestId('day-strip')).toBeVisible();
+  // The protocol surfaces are gone from the day view (PRD #623, step 6).
+  await expect(page.getByText('✗ Vyhýbej se')).toHaveCount(0);
+  await expect(page.getByText('✓ Smím')).toHaveCount(0);
+  await expect(page.getByText('🥛 Mléčné výrobky')).toHaveCount(0);
 });
 
 // ── Decoupled scroll-then-tap: scrolling only browses ─────────────────────

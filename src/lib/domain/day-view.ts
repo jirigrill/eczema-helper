@@ -1,48 +1,36 @@
 import type { Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
-import { resolveRouteDate } from '$lib/utils/date';
 
-export type DayViewMode = 'editable' | 'preview';
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export type DayViewCore = {
   selectedDate: string;
   redirectTo: string | null;
-  viewMode: DayViewMode;
 };
 
 /**
  * Pure resolve core for the /day route.
- * Derives selectedDate, redirectTo, and viewMode from the URL param + the
- * seeded signal + schedule state.
+ * Derives selectedDate and redirectTo from the URL param + the seeded signal.
  *
  * `seeded` is `settings.feedingStage != null` (PRD #623, §3) — the app's
- * "is the mother set up?" gate, which replaced `raw.status === 'ready'`. When
- * unset, the day route holds on today and the root layout owns the redirect to
- * first run, so this returns today with no redirect (never a stale `/day`).
+ * "is the mother set up?" gate. When unset, the day route holds on today and
+ * the root layout owns the redirect to first run, so this returns today with no
+ * redirect (never a stale `/day`).
  *
- * viewMode is 'preview' when the selected date is in the future (read-only
- * "Naplánováno" preview, no logging affordances). It is 'editable' for
- * today, past, and not-ready states.
+ * A malformed or future param redirects to today: the day view is a record of
+ * what happened, so there is no future day to log onto (PRD #623, §3). Any
+ * valid non-future date renders its own day — the day strip may not reach back
+ * to it, but a directly-navigated day still renders.
  *
  * No reactive subscriptions — compose this inside a .svelte.ts shell.
  */
-export function resolveDay(
-  param: string,
-  seeded: boolean,
-  raw: ScheduleRaw,
-  today: string,
-): DayViewCore {
-  if (!seeded || raw.status !== 'ready') {
-    return { selectedDate: today, redirectTo: null, viewMode: 'editable' };
+export function resolveDay(param: string, seeded: boolean, today: string): DayViewCore {
+  if (!seeded) {
+    return { selectedDate: today, redirectTo: null };
   }
-  const result = resolveRouteDate(param, raw.schedule.startDate, today);
-  if (result.type === 'redirect') {
-    return { selectedDate: today, redirectTo: result.to, viewMode: 'editable' };
+  if (!ISO_DATE_RE.test(param) || param > today) {
+    return { selectedDate: today, redirectTo: today };
   }
-  if (result.type === 'preview') {
-    return { selectedDate: result.date, redirectTo: null, viewMode: 'preview' };
-  }
-  return { selectedDate: result.date, redirectTo: null, viewMode: 'editable' };
+  return { selectedDate: param, redirectTo: null };
 }
 
 export type DailyRecords = {
