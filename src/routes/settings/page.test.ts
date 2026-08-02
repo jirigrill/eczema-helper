@@ -1,31 +1,26 @@
 import { fireEvent, render } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FeedingStage } from '$lib/domain/models';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
+import type { SeededStatus } from '$lib/stores/settings.svelte';
 
 const mockReset = vi.fn();
 const mockSetFeedingStage = vi.fn();
 const mockGoto = vi.fn();
 
-// Mimics the real store's behaviour right after reset() resolves: it still
-// reports the stale 'ready' value until `emit` is called with 'empty' —
-// exercising the wait-for-non-ready guard in resetPrototype (issue #353).
-let emit: (ctx: ScheduleContext) => void = () => {};
-const mockSubscribe = vi.fn((cb: (ctx: ScheduleContext) => void) => {
+// Mimics the settings liveQuery right after reset() clears the row: it still
+// reports the stale 'seeded' value until `emit` is called with 'unset' —
+// exercising the wait-for-unset guard in resetPrototype (issue #353, re-opened
+// against the feeding-stage seeded signal per PRD #623 §3d).
+let emit: (status: SeededStatus) => void = () => {};
+const mockSeededSubscribe = vi.fn((cb: (status: SeededStatus) => void) => {
   emit = cb;
-  cb({ status: 'ready' } as ScheduleContext);
+  cb('seeded');
   return () => {};
 });
 
 let currentFeedingStage: FeedingStage | null = 'breastfed';
 
-vi.mock('$lib/stores/protocol-session', () => ({
-  protocolSession: {
-    subscribe: mockSubscribe,
-    reset: mockReset,
-  },
-}));
 vi.mock('$lib/stores/settings.svelte', () => ({
   settingsStore: {
     get feedingStage() {
@@ -33,8 +28,21 @@ vi.mock('$lib/stores/settings.svelte', () => ({
     },
     setFeedingStage: mockSetFeedingStage,
   },
+  seededStatus: { subscribe: mockSeededSubscribe },
+}));
+vi.mock('$lib/stores/protocol-session', () => ({
+  protocolSession: {
+    reset: mockReset,
+  },
 }));
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
+
+beforeEach(() => {
+  mockReset.mockReset();
+  mockGoto.mockReset();
+  mockSetFeedingStage.mockReset();
+  currentFeedingStage = 'breastfed';
+});
 
 describe('settings/+page.svelte', () => {
   it('shows reset warning text', async () => {
@@ -43,15 +51,17 @@ describe('settings/+page.svelte', () => {
     expect(getByText(/Restartování vymaže/)).toBeInTheDocument();
   });
 
-  it('calls reset and navigates to / on button click, once the context leaves ready', async () => {
+  it('calls reset and navigates to / only once the feeding stage flips to unset (§3d)', async () => {
     mockReset.mockResolvedValue(undefined);
     const { default: SettingsPage } = await import('./+page.svelte');
     const { getByText } = render(SettingsPage);
     await fireEvent.click(getByText('Restartovat dotazník'));
     expect(mockReset).toHaveBeenCalledOnce();
+    // The seeded signal is still reporting the stale 'seeded' value — the guard
+    // must not navigate yet, or the layout would bounce straight back.
     expect(mockGoto).not.toHaveBeenCalled();
 
-    emit({ status: 'empty' });
+    emit('unset');
     await Promise.resolve();
     await Promise.resolve();
 

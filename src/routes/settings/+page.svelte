@@ -5,7 +5,7 @@
   import { commonStrings } from '$lib/strings/common';
   import { feedingStageOptions } from '$lib/config/feeding-stages';
   import { protocolSession } from '$lib/stores/protocol-session';
-  import { settingsStore } from '$lib/stores/settings.svelte';
+  import { seededStatus, settingsStore } from '$lib/stores/settings.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
   import Chip from '$lib/components/Chip.svelte';
@@ -19,15 +19,16 @@
 
   async function resetPrototype() {
     await protocolSession.reset();
-    // scheduleContext updates via a liveQuery subscription, so it can still
-    // report the stale 'ready' status for a tick right after reset() resolves.
-    // Wait for it to actually leave 'ready' before navigating — otherwise the
-    // root layout's ready-on-root redirect (issue #353) fires on the stale
-    // value and bounces straight back to the day view instead of showing
-    // the questionnaire.
+    // The seeded signal is `settings.feedingStage != null`, driven by a
+    // liveQuery — so it can still report the stale 'seeded' status for a tick
+    // right after reset() clears the settings row. Wait for it to actually flip
+    // to 'unset' before navigating; otherwise the root layout's seeded redirect
+    // (issue #353, re-opened against this signal per §3d) fires on the stale
+    // value and bounces straight back to the day view. Landing on first run is
+    // the intended destination here — but only once the signal has flipped.
     await new Promise<void>((resolve) => {
-      const unsubscribe = protocolSession.subscribe((ctx) => {
-        if (ctx.status !== 'ready') {
+      const unsubscribe = seededStatus.subscribe((status) => {
+        if (status === 'unset') {
           resolve();
           queueMicrotask(() => unsubscribe());
         }

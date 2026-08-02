@@ -1151,7 +1151,7 @@ describe('meal/+page.svelte', () => {
     expect(vi.mocked(navigation.goto)).not.toHaveBeenCalled();
   });
 
-  it('confirm copy (out-of-window save rejection): shows the out-of-window toast and stays put', async () => {
+  it('confirm copy (save rejection): shows the save-failure toast and stays put', async () => {
     setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
@@ -1172,17 +1172,18 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: 'Kopírovat sem' }));
     await tick();
-    // Force the destination save to reject as if the day fell out of window
-    // between selection and save (the defensive Result branch). Armed right
-    // before the confirming tap so only the copy's write is affected.
-    const putSpy = vi
-      .spyOn(db.meals, 'put')
-      .mockRejectedValue(new Error('date-outside-loggable-window'));
+    // Force the destination save to reject (a Dexie quota/transaction error).
+    // The defensive Result branch surfaces a generic save-failure toast and
+    // keeps the picker open. Armed right before the confirming tap so only the
+    // copy's write is affected.
+    const putSpy = vi.spyOn(db.meals, 'put').mockRejectedValue(new Error('QuotaExceededError'));
     vi.mocked(navigation.goto).mockClear();
     vi.mocked(writeBuffer).mockClear();
     try {
       await fireEvent.click(getByTestId('fab-meal-type-dinner'));
-      expect(await findByText('Cílový den je mimo okno protokolu.')).toBeInTheDocument();
+      expect(
+        await findByText('Kopírování se nezdařilo, zkuste to prosím znovu.'),
+      ).toBeInTheDocument();
       expect(vi.mocked(navigation.goto)).not.toHaveBeenCalled();
       expect(vi.mocked(writeBuffer)).not.toHaveBeenCalled();
     } finally {

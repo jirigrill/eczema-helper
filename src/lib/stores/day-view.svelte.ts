@@ -39,7 +39,13 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const rawStore = fromStore(scheduleRaw);
   const settingsStore = fromStore(settingsContext);
 
-  const resolved = $derived(resolveDay(getParam(), rawStore.current, today));
+  // The live settings master switch is the sole source of feedingStage (#567) —
+  // no fallback (mirrors scheduleContext). `settings.feedingStage != null` is
+  // also the app's seeded signal (PRD #623, §3): it gates resolveDay below,
+  // replacing the schedule-ready check.
+  const feedingStage = $derived(settingsStore.current?.feedingStage ?? null);
+
+  const resolved = $derived(resolveDay(getParam(), feedingStage != null, rawStore.current, today));
   const selectedDate = $derived(resolved.selectedDate);
   const redirectTo = $derived(resolved.redirectTo);
   const viewMode = $derived(resolved.viewMode);
@@ -53,11 +59,6 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const photos = $derived(fromStore(photoSession).current);
 
   const raw = $derived(rawStore.current);
-  // The live settings master switch is the sole source of feedingStage (#567) —
-  // no fallback (mirrors scheduleContext). Onboarding seeds the settings row in
-  // the same transaction as the schedule, so a ready schedule always has one;
-  // ctx holds at `loading` until the settings liveQuery emits.
-  const feedingStage = $derived(settingsStore.current?.feedingStage ?? null);
 
   const ctx = $derived(
     raw.status === 'ready' && feedingStage

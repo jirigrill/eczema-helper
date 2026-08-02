@@ -19,6 +19,8 @@ export const commonStrings = {
     addRecordAria: 'Přidat záznam',
     today: 'Dnes',
     week: 'Týden',
+    /** Header chip that jumps back to today's day view, shown only off-today (§3c). */
+    backToToday: '↩ Dnes',
   },
 
   // ── FAB action sheet ──────────────────────────────────────
@@ -91,7 +93,18 @@ export const commonStrings = {
     resetWarning:
       'Restartování vymaže všechna uložená data (jídla, harmonogram, odpovědi) a vrátí tě na začátek dotazníku.',
     feedingStageHeading: 'Způsob krmení',
-    feedingStageHint: 'Určuje, podle které varianty dávkovacího žebříčku se řídí znovuzavádění.',
+    feedingStageHint: 'Určuje, čí jídla můžeš zaznamenávat.',
+  },
+
+  // ── First-run screen (single welcome + feeding-stage picker) ─
+  firstRun: {
+    heading: 'Vítejte',
+    intro: 'Jednoduchý deník jídel a stavu kůže. Než začnete, řekněte nám, jak je miminko krmené.',
+    feedingStageQuestion: 'Jak je miminko krmené?',
+    /** Reused from onboarding — accurate for the logging app (§3c). */
+    feedingStageHint: 'Určuje, čí jídla zaznamenáváte — dá se změnit později v Nastavení',
+    confirm: 'Začít',
+    saveError: 'Uložení se nezdařilo, zkuste to prosím znovu.',
   },
 
   // ── Onboarding questionnaire ───────────────────────────────
@@ -203,11 +216,11 @@ export const commonStrings = {
     /** Success toast after a copy lands on the destination day (undoable). */
     copiedToast: 'Zkopírováno',
     /**
-     * Error toast when a copy's destination date falls outside the loggable
-     * window — the `save()` guard rejected it, so nothing was written and the
-     * picker stays open.
+     * Error toast when a copy fails to save — a Dexie quota or transaction
+     * error. The loggable-window gate is gone (§3e), so this is now a generic
+     * save-failure message.
      */
-    copyOutOfWindowToast: 'Cílový den je mimo okno protokolu.',
+    copyOutOfWindowToast: 'Kopírování se nezdařilo, zkuste to prosím znovu.',
   },
 
   // ── Program page ──────────────────────────────────────────

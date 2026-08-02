@@ -6,6 +6,7 @@
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
   import { scheduleContext } from '$lib/stores/schedule-context';
+  import { seededStatus } from '$lib/stores/settings.svelte';
   import { isPhaseEndForEvaluation, getPhaseForDate } from '$lib/domain/schedule-queries';
   import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
   import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
@@ -27,6 +28,7 @@
   let { children } = $props();
 
   const ctx = $derived($scheduleContext);
+  const seeded = $derived($seededStatus);
   const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
   const isDetailScreen = $derived(
@@ -41,7 +43,12 @@
   const isFutureDay = $derived(
     isDayRoute && typeof $page.params.date === 'string' && $page.params.date > today,
   );
-  const showNav = $derived(!isOnboarding && ctx.status === 'ready' && !isDetailScreen);
+  // The nav shell and FAB ride the same seeded signal as the redirect (PRD
+  // #623, §3): once the mother has a feeding stage she is set up, so the shell
+  // is available regardless of whether a (parked) schedule exists. The bottom
+  // nav bar itself is removed in a later step; here only the gate moves off
+  // `ctx.status`.
+  const showNav = $derived(!isOnboarding && seeded === 'seeded' && !isDetailScreen);
   const showFab = $derived(showNav && !isFutureDay);
   const dnesActive = $derived($page.params.date === today);
 
@@ -151,10 +158,14 @@
     }
   });
 
+  // The seeded signal is `settings.feedingStage != null` (PRD #623, §3): an
+  // unset stage routes to first run, a set stage routes to the day view. Hold
+  // while `loading` so a seeded user hard-loading the day view is never bounced
+  // to first run on the pre-emission tick (the #353 redirect race).
   $effect(() => {
-    if (ctx.status === 'loading') return;
-    if (ctx.status === 'empty' && !isOnboarding) goto('/');
-    if (ctx.status === 'ready' && isOnboarding) goto(`/day/${today}`);
+    if (seeded === 'loading') return;
+    if (seeded === 'unset' && !isOnboarding) goto('/');
+    if (seeded === 'seeded' && isOnboarding) goto(`/day/${today}`);
   });
 
   // The shell scrolls inside <main>, not on window — so SvelteKit's default
