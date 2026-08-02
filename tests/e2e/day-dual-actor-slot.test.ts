@@ -3,10 +3,10 @@ import type { Page } from '@playwright/test';
 
 // Day-view dual-actor slot layout (issue #570), end to end. In `mixed` a meal
 // slot renders the mother's and the child's meal as stacked per-actor rows under
-// a shared header, dedupes the conflict allergen once per section, and shows a
-// "+" on an empty actor's row vs. a "›" on a logged one. In single-actor stages
-// (`breastfed`/`solids`) the slot collapses to today's single-row card with no
-// actor sub-rows. Seeds post-onboarding state directly via Dexie.
+// a shared header, and shows a "+" on an empty actor's row vs. a "›" on a logged
+// one. In single-actor stages (`breastfed`/`solids`) the slot collapses to
+// today's single-row card with no actor sub-rows. Seeds post-onboarding state
+// directly via Dexie.
 
 async function clearDb(page: Page) {
   await page.evaluate(async () => {
@@ -22,7 +22,8 @@ async function clearDb(page: Page) {
 }
 
 /** Seed post-onboarding state directly with the given feeding stage and a
- *  today-rooted schedule that eliminates dairy. Returns today's ISO date. */
+ *  today-rooted schedule. The day view no longer reads the schedule, but the
+ *  seeded settings row gates the layout redirect. Returns today's ISO date. */
 async function seedStage(page: Page, stage: 'breastfed' | 'mixed' | 'solids'): Promise<string> {
   const today = new Date().toISOString().split('T')[0]!;
   await page.evaluate(
@@ -47,8 +48,6 @@ async function seedStage(page: Page, stage: 'breastfed' | 'mixed' | 'solids'): P
         permanentBaby: [],
         startDate: start,
         estimatedEndDate: future,
-        // Today sits in an elimination phase for dairy, so a logged dairy food
-        // conflicts and the section renders the "Mléčné výrobky" pill.
         phases: [
           {
             id: 'elim',
@@ -129,31 +128,6 @@ test('mixed stage: one actor empty shows "+" on that row, "›" on the logged ro
   const lunch = page.getByTestId('meal-row-lunch');
   await expect(lunch.getByTestId('meal-actor-row-mother')).toContainText('›');
   await expect(lunch.getByTestId('meal-actor-row-baby')).toContainText('+');
-});
-
-test('mixed stage: a shared conflict allergen shows once per section, deduplicated', async ({
-  page,
-}) => {
-  const today = await seedStage(page, 'mixed');
-  // Both actors log a dairy food; dairy is eliminated today, so both conflict —
-  // the section must dedupe to a single "Mléčné výrobky" pill.
-  await seedMeal(page, today, 'dinner', 'mother', {
-    id: 'm1',
-    name: 'Máslo',
-    foodId: 'kravske-mleko',
-  });
-  await seedMeal(page, today, 'dinner', 'baby', {
-    id: 'b1',
-    name: 'Jogurt',
-    foodId: 'kravske-mleko',
-  });
-
-  await page.goto(`/day/${today}`);
-
-  const dinner = page.getByTestId('meal-row-dinner');
-  await expect(dinner).toBeVisible();
-  // Exactly one deduped conflict pill for the section.
-  await expect(dinner.getByText(/^⚠\s*Mléčné výrobky$/)).toHaveCount(1);
 });
 
 test('mixed stage: an empty slot collapses to a single "+" (no actor sub-rows)', async ({

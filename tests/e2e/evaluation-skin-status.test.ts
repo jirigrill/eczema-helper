@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 
 // Skin-status evaluation for reset/elimination phases (issue #332).
 // Seeds a schedule whose `reset` phase ENDS today, so:
-//   - today is a phase-end day → FAB evaluate + phase-hero surface (AC4 entry points)
+//   - today is a phase-end day → FAB evaluate surfaces the entry point (AC4)
 //   - reset is the current phase → its verdict shows in the /program hero (AC3)
 
 const DAY = 86400000;
@@ -79,18 +79,6 @@ test('FAB evaluate on a reset phase-end day opens /evaluation with the skin-stat
   await expect(page.getByText('Zhoršení', { exact: true })).toBeVisible();
   await expect(page.getByText('Nová ložiska', { exact: true })).toBeVisible();
   await expect(page.getByText('Toleruje', { exact: true })).not.toBeVisible();
-});
-
-test('the day phase-hero on a reset phase-end day links to /evaluation', async ({ page }) => {
-  const today = iso(Date.now());
-  await seedResetEndingToday(page);
-  await page.goto(`/day/${today}`);
-  await expect(page.getByRole('button', { name: 'Přidat záznam' })).toBeVisible({ timeout: 10000 });
-
-  // The phase-hero is the first link in the day body; tapping it routes to /evaluation.
-  await page.locator('a[href^="/evaluation"]').first().click();
-  await expect(page).toHaveURL(/\/evaluation\?phase=reset/);
-  await expect(page.getByText('Jak se kůže miminka měla?')).toBeVisible();
 });
 
 test('saving a skin-status verdict persists it, leaves the schedule unchanged, and shows on the program hero', async ({ page }) => {

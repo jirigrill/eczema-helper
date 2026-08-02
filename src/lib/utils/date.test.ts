@@ -7,7 +7,6 @@ import {
   formatObservationTime,
   formatWeekdayLongCs,
   formatWeekdayShortCs,
-  resolveRouteDate,
   todayIso,
 } from './date';
 
@@ -33,56 +32,6 @@ describe('daysBetween', () => {
     // CET→CEST transition: 2026-03-29 (clocks spring forward at 02:00)
     // 7-day span crossing the DST boundary must still return 7
     expect(daysBetween('2026-03-26', '2026-04-01')).toBe(7);
-  });
-});
-
-describe('resolveRouteDate', () => {
-  const protocolStart = '2025-06-01';
-  const today = '2025-06-10';
-
-  it('returns the param unchanged when it is a valid in-range date', () => {
-    const result = resolveRouteDate('2025-06-05', protocolStart, today);
-    expect(result).toEqual({ type: 'date', date: '2025-06-05' });
-  });
-
-  it('returns redirect sentinel for a malformed string', () => {
-    const result = resolveRouteDate('not-a-date', protocolStart, today);
-    expect(result).toEqual({ type: 'redirect', to: today });
-  });
-
-  it('returns redirect for an empty string', () => {
-    const result = resolveRouteDate('', protocolStart, today);
-    expect(result).toEqual({ type: 'redirect', to: today });
-  });
-
-  it('returns preview for a future date within range', () => {
-    const result = resolveRouteDate('2025-12-31', protocolStart, today);
-    expect(result).toEqual({ type: 'preview', date: '2025-12-31' });
-  });
-
-  it('returns preview for the day immediately after today', () => {
-    const result = resolveRouteDate('2025-06-11', protocolStart, today);
-    expect(result).toEqual({ type: 'preview', date: '2025-06-11' });
-  });
-
-  it('returns redirect for a date before protocolStart', () => {
-    const result = resolveRouteDate('2025-05-15', protocolStart, today);
-    expect(result).toEqual({ type: 'redirect', to: today });
-  });
-
-  it('accepts today as a valid date', () => {
-    const result = resolveRouteDate(today, protocolStart, today);
-    expect(result).toEqual({ type: 'date', date: today });
-  });
-
-  it('accepts protocolStart as a valid date', () => {
-    const result = resolveRouteDate(protocolStart, protocolStart, today);
-    expect(result).toEqual({ type: 'date', date: protocolStart });
-  });
-
-  it('rejects date with wrong format (missing day)', () => {
-    const result = resolveRouteDate('2025-06', protocolStart, today);
-    expect(result).toEqual({ type: 'redirect', to: today });
   });
 });
 
