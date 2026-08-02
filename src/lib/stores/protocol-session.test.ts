@@ -75,7 +75,6 @@ describe('protocolSession', () => {
     expect(typeof mod.protocolSession.startProtocol).toBe('function');
     expect(typeof mod.protocolSession.appendReTests).toBe('function');
     expect(typeof mod.protocolSession.removeReTest).toBe('function');
-    expect(typeof mod.protocolSession.setFeedingStage).toBe('function');
     expect(typeof mod.protocolSession.reset).toBe('function');
   });
 
@@ -112,33 +111,6 @@ describe('protocolSession', () => {
     const { DexieSettingsRepository } = await import('$lib/adapters/dexie-settings-repository');
 
     await protocolSession.startProtocol({ ...sampleAnswers, feedingStage: 'solids' });
-
-    const settings = await new DexieSettingsRepository(db).load();
-    expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'solids' } });
-  });
-
-  it('setFeedingStage persists the new stage to the settings singleton', async () => {
-    const { protocolSession } = await import('./protocol-session');
-    const { db } = await import('$lib/db/atopic-db');
-    const { DexieSettingsRepository } = await import('$lib/adapters/dexie-settings-repository');
-
-    await protocolSession.startProtocol({ ...sampleAnswers, feedingStage: 'breastfed' });
-
-    const result = await protocolSession.setFeedingStage('mixed');
-    expect(result).toMatchObject({ ok: true });
-
-    const settings = await new DexieSettingsRepository(db).load();
-    expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'mixed' } });
-  });
-
-  it('setFeedingStage seeds a fresh row when settings is unseeded', async () => {
-    const { protocolSession } = await import('./protocol-session');
-    const { db } = await import('$lib/db/atopic-db');
-    const { DexieSettingsRepository } = await import('$lib/adapters/dexie-settings-repository');
-
-    // No startProtocol — the settings singleton has never been written.
-    const result = await protocolSession.setFeedingStage('solids');
-    expect(result).toMatchObject({ ok: true });
 
     const settings = await new DexieSettingsRepository(db).load();
     expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'solids' } });
