@@ -5,16 +5,16 @@
   import { commonStrings } from '$lib/strings/common';
   import { feedingStageOptions } from '$lib/config/feeding-stages';
   import { protocolSession } from '$lib/stores/protocol-session';
-  import { settingsContext } from '$lib/stores/settings-context';
+  import { settingsStore } from '$lib/stores/settings.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
   import Chip from '$lib/components/Chip.svelte';
 
-  const feedingStage = $derived($settingsContext?.feedingStage ?? null);
+  const feedingStage = $derived(settingsStore.feedingStage);
 
   function selectFeedingStage(stage: FeedingStage) {
     if (stage === feedingStage) return;
-    void protocolSession.setFeedingStage(stage);
+    void settingsStore.setFeedingStage(stage);
   }
 
   async function resetPrototype() {

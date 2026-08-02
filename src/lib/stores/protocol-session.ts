@@ -1,10 +1,8 @@
 import { DexieEvaluationRepository } from '$lib/adapters/dexie-evaluation-repository';
 import { DexieHarvestCandidateRepository } from '$lib/adapters/dexie-harvest-candidate-repository';
 import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { DexieSettingsRepository } from '$lib/adapters/dexie-settings-repository';
 import { SINGLETON_ID, db } from '$lib/db/atopic-db';
 import { extractOtherSlugs, mergeCandidate, normalizeKey } from '$lib/domain/harvest-candidate';
-import type { FeedingStage } from '$lib/domain/models';
 import type {
   AllergenOutcome,
   LadderAllergenId,
@@ -22,7 +20,6 @@ import { scheduleContext } from '$lib/stores/schedule-context';
 import type { Result } from '$lib/types/result';
 
 const scheduleRepo = new DexieScheduleRepository(db);
-const settingsRepo = new DexieSettingsRepository(db);
 const harvestRepo = new DexieHarvestCandidateRepository(db);
 const evaluationRepo = new DexieEvaluationRepository(db);
 
@@ -114,20 +111,6 @@ async function recordVerdict(evaluation: ReintroductionEvaluation): Promise<Resu
   return { ok: true, data: undefined };
 }
 
-async function setFeedingStage(feedingStage: FeedingStage): Promise<Result<void, string>> {
-  // Standalone current-value update — goes through the `SettingsRepository` port,
-  // unlike `startProtocol`'s raw `db.settings.put`. The difference is deliberate:
-  // the seed there must be atomic with answers+schedule inside one Dexie
-  // transaction (repos catch errors into `Result` and can't abort it), whereas
-  // this live edit is a single independent write the port is built to own.
-  const current = await settingsRepo.load();
-  if (!current.ok) return current;
-  // Preserve any other settings on the existing row; fall back to an empty base
-  // when the row is unseeded so future SettingsData fields aren't silently
-  // dropped (spreading a `null` row would collapse to just `{ feedingStage }`).
-  return settingsRepo.save({ ...(current.data ?? {}), feedingStage });
-}
-
 async function _loadReadySchedule() {
   const loaded = await scheduleRepo.load();
   if (!loaded.ok) return { ok: false as const, error: loaded.error };
@@ -141,6 +124,5 @@ export const protocolSession = {
   appendReTests,
   removeReTest,
   recordVerdict,
-  setFeedingStage,
   reset,
 };

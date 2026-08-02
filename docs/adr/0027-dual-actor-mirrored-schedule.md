@@ -39,7 +39,7 @@ The protocol portion is identical for both actors on any given day — that is t
 
 ### FeedingStage is the master switch for "who may log"
 
-`getEligibleActors(stage)` is the single source for which actors may log at the current stage: `breastfed → [mother]`, `mixed → [mother, baby]`, `solids → [baby]`. `FeedingStage` lives in the `settings` Dexie singleton (not on `GeneratedSchedule`, so retest/verdict rebuilds can't overwrite it), is seeded from `answers.feedingStage` at onboarding, and is changeable live from Settings via `protocolSession.setFeedingStage()`. The `/meal` route shows the actor picker only when more than one actor is eligible (i.e. `mixed`); single-actor stages render no picker and log the implicit actor.
+`getEligibleActors(stage)` is the single source for which actors may log at the current stage: `breastfed → [mother]`, `mixed → [mother, baby]`, `solids → [baby]`. `FeedingStage` lives in the `settings` Dexie singleton (not on `GeneratedSchedule`, so retest/verdict rebuilds can't overwrite it), is seeded from `answers.feedingStage` at onboarding, and is changeable live from Settings via `settingsStore.setFeedingStage()`. The `/meal` route shows the actor picker only when more than one actor is eligible (i.e. `mixed`); single-actor stages render no picker and log the implicit actor.
 
 ### Identity: actor is part of the meal key
 

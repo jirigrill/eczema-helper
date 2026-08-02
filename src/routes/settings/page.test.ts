@@ -1,9 +1,7 @@
-import { writable } from 'svelte/store';
-
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SettingsData } from '$lib/domain/models';
+import type { FeedingStage } from '$lib/domain/models';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
 
 const mockReset = vi.fn();
@@ -20,16 +18,22 @@ const mockSubscribe = vi.fn((cb: (ctx: ScheduleContext) => void) => {
   return () => {};
 });
 
-const settings = writable<SettingsData | null>({ feedingStage: 'breastfed' });
+let currentFeedingStage: FeedingStage | null = 'breastfed';
 
 vi.mock('$lib/stores/protocol-session', () => ({
   protocolSession: {
     subscribe: mockSubscribe,
     reset: mockReset,
+  },
+}));
+vi.mock('$lib/stores/settings.svelte', () => ({
+  settingsStore: {
+    get feedingStage() {
+      return currentFeedingStage;
+    },
     setFeedingStage: mockSetFeedingStage,
   },
 }));
-vi.mock('$lib/stores/settings-context', () => ({ settingsContext: settings }));
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 
 describe('settings/+page.svelte', () => {
@@ -55,7 +59,7 @@ describe('settings/+page.svelte', () => {
   });
 
   it('renders a pill for each feeding stage with the current one active', async () => {
-    settings.set({ feedingStage: 'breastfed' });
+    currentFeedingStage = 'breastfed';
     const { default: SettingsPage } = await import('./+page.svelte');
     const { getByText } = render(SettingsPage);
     const active = getByText('Plně kojené');
@@ -63,8 +67,8 @@ describe('settings/+page.svelte', () => {
     expect(getByText('Kojené + příkrmy').closest('button')).toHaveAttribute('data-active', 'false');
   });
 
-  it('persists the picked feeding stage via protocolSession.setFeedingStage', async () => {
-    settings.set({ feedingStage: 'breastfed' });
+  it('persists the picked feeding stage via settingsStore.setFeedingStage', async () => {
+    currentFeedingStage = 'breastfed';
     const { default: SettingsPage } = await import('./+page.svelte');
     const { getByText } = render(SettingsPage);
     await fireEvent.click(getByText('Plně na příkrmech'));

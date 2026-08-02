@@ -428,7 +428,7 @@ singleton row (keyed by `SINGLETON_ID`, mirroring `answers`/`schedule`). Today i
 `answers.feedingStage` inside the same onboarding-completion transaction as the schedule.
 `settingsContext` (`src/lib/stores/settings-context.ts`) is the `liveQuery`-backed
 reactive store consumers read for the live value; changed live from the Settings screen
-via `protocolSession.setFeedingStage()`.
+via `settingsStore.setFeedingStage()`.
 
 ### SettingsRepository
 
@@ -436,8 +436,8 @@ The port (`src/lib/domain/ports/settings-repository.ts`) for persisting and load
 the `SettingsData` singleton — `save(settings)` / `load()`, both returning
 `Result<…, string>`. Single implementation `DexieSettingsRepository`
 (`src/lib/adapters/dexie-settings-repository.ts`), tested against `fake-indexeddb`.
-Reached through `protocolSession` for writes and `settingsContext` for reactive reads;
-routes never construct the adapter directly. Mirrors the `ScheduleRepository` /
+Reached through `settingsStore` for the feeding-stage write and `settingsContext` for
+reactive reads; routes never construct the adapter directly. Mirrors the `ScheduleRepository` /
 `QuestionnaireRepository` shape.
 
 ### protocolSession
@@ -446,7 +446,7 @@ The unified module (`src/lib/stores/protocol-session.ts`) that owns **both** rea
 writes for the protocol seam. Exposes a `subscribe` function (delegating to
 `scheduleContext`) plus write operations: `startProtocol(answers)`,
 `appendReTests(slugs, today)`, `removeReTest(allergenId, today)`, `recordVerdict(eval)`,
-`setFeedingStage(stage)`, `reset()`. Routes that mutate protocol state import
+`reset()`. Routes that mutate protocol state import
 `protocolSession` instead of instantiating adapters directly. Routes that only read may
 still import `scheduleContext`.
 

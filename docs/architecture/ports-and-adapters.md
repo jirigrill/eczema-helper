@@ -121,10 +121,11 @@ never left behind a committed schedule.
 | ---------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
 | `scheduleContext`            | `stores/schedule-context.ts`            | `loading\|empty\|ready\|error` discriminated union for the program |
 | `settingsContext`            | `stores/settings-context.ts`            | `readable<SettingsData \| null>` — live master switch(es), e.g. `feedingStage` |
+| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage read (over `settingsContext`) + `setFeedingStage` write |
 | `mealSession`                | `stores/meal-session.ts`                | `readable<Meal[]>` for today + `save` / `loadBySlot` / `remove` |
 | `skinObservationSession`     | `stores/skin-observation-session.ts`    | `readable<SkinObservation[]>` for today + `save`           |
 | `skinPhotoSession`           | `stores/skin-photo-session.ts`          | `readable<SkinPhoto[]>` for today + `save`                 |
-| `protocolSession`            | `stores/protocol-session.ts`            | Protocol write commands (start, retest, reset, `setFeedingStage`) |
+| `protocolSession`            | `stores/protocol-session.ts`            | Protocol write commands (start, retest, reset)             |
 
 Each session store is the **only** place that imports `db` and constructs the adapter for its domain. Routes import the store; they do not instantiate adapters directly.
 
