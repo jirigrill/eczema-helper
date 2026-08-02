@@ -1,23 +1,17 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-// Onboarding seeds feedingStage 'breastfed' (ADR-0001 v1 default); the Settings
+// First run seeds feedingStage 'breastfed' (ADR-0001 v1 default); the Settings
 // picker is the live master switch that changes it afterwards (#567). This
 // exercises that second half end to end: pick a different stage in Settings and
 // confirm the settings singleton — the sole source of truth — is updated live
 // and survives a reload.
 
-async function completeOnboarding(page: Page) {
+async function completeFirstRun(page: Page) {
+  // First run is a single screen (PRD #623, §3): confirming with the breastfed
+  // default seeds the stage and lands on today.
   await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
   await page.getByRole('button', { name: 'Začít' }).click();
-
-  // Step 2 — birthdate + feeding stage (breastfed pre-selected as the v1 default)
-  await page.fill('#birthdate', '2025-01-01');
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Pokračovat' }).click();
-  await page.getByRole('button', { name: 'Potvrdit a spustit program' }).click();
   await page.waitForURL(/\/day\//);
 }
 
@@ -37,7 +31,7 @@ test.beforeEach(async ({ page }) => {
 test('Settings picker changes the feeding-stage master switch live and it persists', async ({
   page,
 }) => {
-  await completeOnboarding(page);
+  await completeFirstRun(page);
 
   await page.goto('/settings');
 

@@ -12,7 +12,13 @@ export type DayViewCore = {
 
 /**
  * Pure resolve core for the /day route.
- * Derives selectedDate, redirectTo, and viewMode from the URL param + schedule state.
+ * Derives selectedDate, redirectTo, and viewMode from the URL param + the
+ * seeded signal + schedule state.
+ *
+ * `seeded` is `settings.feedingStage != null` (PRD #623, §3) — the app's
+ * "is the mother set up?" gate, which replaced `raw.status === 'ready'`. When
+ * unset, the day route holds on today and the root layout owns the redirect to
+ * first run, so this returns today with no redirect (never a stale `/day`).
  *
  * viewMode is 'preview' when the selected date is in the future (read-only
  * "Naplánováno" preview, no logging affordances). It is 'editable' for
@@ -20,8 +26,13 @@ export type DayViewCore = {
  *
  * No reactive subscriptions — compose this inside a .svelte.ts shell.
  */
-export function resolveDay(param: string, raw: ScheduleRaw, today: string): DayViewCore {
-  if (raw.status !== 'ready') {
+export function resolveDay(
+  param: string,
+  seeded: boolean,
+  raw: ScheduleRaw,
+  today: string,
+): DayViewCore {
+  if (!seeded || raw.status !== 'ready') {
     return { selectedDate: today, redirectTo: null, viewMode: 'editable' };
   }
   const result = resolveRouteDate(param, raw.schedule.startDate, today);

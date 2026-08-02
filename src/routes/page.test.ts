@@ -6,50 +6,59 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGoto = vi.fn();
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 
-const mockStartProtocol = vi.fn().mockResolvedValue({ ok: true, data: undefined });
-vi.mock('$lib/stores/protocol-session', () => ({
-  protocolSession: {
-    subscribe: vi.fn(),
-    startProtocol: (...args: unknown[]) => mockStartProtocol(...args),
+const mockSetFeedingStage = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+vi.mock('$lib/stores/settings.svelte', () => ({
+  settingsStore: {
+    get feedingStage() {
+      return null;
+    },
+    setFeedingStage: (...args: unknown[]) => mockSetFeedingStage(...args),
   },
 }));
-
-vi.mock('$lib/db/atopic-db', () => ({ db: {} }));
 
 const today = new Date().toISOString().split('T')[0];
 
 beforeEach(() => {
   mockGoto.mockReset();
-  mockStartProtocol.mockResolvedValue({ ok: true, data: undefined });
+  mockSetFeedingStage.mockReset();
+  mockSetFeedingStage.mockResolvedValue({ ok: true, data: undefined });
 });
 
-describe('+page.svelte — onboarding redirect', () => {
-  it('after completing onboarding, goto navigates to /day/<today>', async () => {
-    const { default: OnboardingPage } = await import('./+page.svelte');
-    const { getByRole, getByLabelText } = render(OnboardingPage);
+describe('+page.svelte — first-run screen', () => {
+  it('shows the welcome heading and the three feeding-stage options', async () => {
+    const { default: FirstRun } = await import('./+page.svelte');
+    const { getByText } = render(FirstRun);
+    await tick();
+    expect(getByText('Vítejte')).toBeInTheDocument();
+    expect(getByText('Plně kojené')).toBeInTheDocument();
+    expect(getByText('Kojené + příkrmy')).toBeInTheDocument();
+    expect(getByText('Plně na příkrmech')).toBeInTheDocument();
+  });
+
+  it('writes the picked stage and lands on today when confirmed', async () => {
+    const { default: FirstRun } = await import('./+page.svelte');
+    const { getByText } = render(FirstRun);
     await tick();
 
-    // Step 1 → 2
-    await fireEvent.click(getByRole('button', { name: /Začít/ }));
+    await fireEvent.click(getByText('Plně na příkrmech'));
+    await tick();
+    await fireEvent.click(getByText('Začít'));
     await tick();
 
-    // Step 2: fill required birthdate, then advance
-    const birthdateInput = getByLabelText(/datum narození/i);
-    await fireEvent.input(birthdateInput, { target: { value: '2025-01-01' } });
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Pokračovat/ }));
-    await tick();
-
-    // Steps 3, 4, 5 — no required fields, just advance
-    for (let i = 0; i < 3; i++) {
-      await fireEvent.click(getByRole('button', { name: /Pokračovat/ }));
-      await tick();
-    }
-
-    // Step 6: confirm
-    await fireEvent.click(getByRole('button', { name: /Potvrdit a spustit program/ }));
-    await tick();
-
+    expect(mockSetFeedingStage).toHaveBeenCalledWith('solids');
     expect(mockGoto).toHaveBeenCalledWith(`/day/${today}`);
+  });
+
+  it('does not navigate when the stage write fails', async () => {
+    mockSetFeedingStage.mockResolvedValue({ ok: false, error: 'db down' });
+    const { default: FirstRun } = await import('./+page.svelte');
+    const { getByText } = render(FirstRun);
+    await tick();
+
+    await fireEvent.click(getByText('Začít'));
+    await tick();
+
+    expect(mockSetFeedingStage).toHaveBeenCalled();
+    expect(mockGoto).not.toHaveBeenCalled();
   });
 });

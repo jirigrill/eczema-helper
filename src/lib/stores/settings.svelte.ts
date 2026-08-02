@@ -1,12 +1,40 @@
-import { fromStore } from 'svelte/store';
+import { fromStore, readable } from 'svelte/store';
+
+import { liveQuery } from 'dexie';
 
 import { DexieSettingsRepository } from '$lib/adapters/dexie-settings-repository';
-import { db } from '$lib/db/atopic-db';
+import { SINGLETON_ID, db } from '$lib/db/atopic-db';
 import type { FeedingStage } from '$lib/domain/models';
 import { settingsContext } from '$lib/stores/settings-context';
 import type { Result } from '$lib/types/result';
 
 const settingsRepo = new DexieSettingsRepository(db);
+
+/**
+ * Seeded signal for the descaled app (PRD #623, §3): `settings.feedingStage`
+ * is the sole "is the mother set up?" gate, replacing the parked schedule's
+ * `ctx.status`. Like `scheduleRaw`, it is a tri-state that *holds at `loading`*
+ * until the settings liveQuery has emitted at least once — the layout must not
+ * treat the initial pre-emission tick as `unset`, or it would bounce a seeded
+ * user from `/day/<today>` to `/` and back (the #353 redirect race).
+ *
+ *  - `loading` — no emission yet; hold, do not redirect.
+ *  - `unset`   — a real emission with no `feedingStage`; route to first run (`/`).
+ *  - `seeded`  — a real emission carrying a `feedingStage`; route to the day view.
+ */
+export type SeededStatus = 'loading' | 'unset' | 'seeded';
+
+export const seededStatus = readable<SeededStatus>('loading', (set) => {
+  const subscription = liveQuery(() => db.settings.get(SINGLETON_ID)).subscribe({
+    next: (row) => set(row?.feedingStage != null ? 'seeded' : 'unset'),
+    // A read error means we cannot prove the mother is set up; treat it as
+    // unset so she lands on first run rather than being stranded on a blank
+    // day view.
+    error: () => set('unset'),
+  });
+
+  return () => subscription.unsubscribe();
+});
 
 /**
  * Live settings store: owns the feeding-stage read and the setFeedingStage
