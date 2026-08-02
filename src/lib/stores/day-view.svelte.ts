@@ -4,7 +4,7 @@ import { resolveDay } from '$lib/domain/day-view';
 import type { FeedingStage, Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
 import { createEarliestLoggedStore } from '$lib/stores/earliest-logged';
 import { createMealSession } from '$lib/stores/meal-session';
-import { settingsContext } from '$lib/stores/settings-context';
+import { settingsStore } from '$lib/stores/settings.svelte';
 import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
 import { createSkinPhotoSession } from '$lib/stores/skin-photo-session';
 
@@ -28,14 +28,15 @@ export type DayView = {
 };
 
 export function createDayView(getParam: () => string, today: string): DayView {
-  const settingsStore = fromStore(settingsContext);
   const earliestLoggedStore = fromStore(createEarliestLoggedStore());
 
   // The live settings master switch is the sole source of feedingStage (#567).
   // `settings.feedingStage != null` is also the app's seeded signal (PRD #623,
   // §3): it gates resolveDay below (the day route holds on today until the
-  // mother is set up; the root layout owns the redirect to first run).
-  const feedingStage = $derived(settingsStore.current?.feedingStage ?? null);
+  // mother is set up; the root layout owns the redirect to first run). Reading
+  // through the shared `settingsStore` getter keeps the "feeding stage or null"
+  // derivation in one place rather than re-deriving it against the raw context.
+  const feedingStage = $derived(settingsStore.feedingStage);
 
   const resolved = $derived(resolveDay(getParam(), feedingStage != null, today));
   const selectedDate = $derived(resolved.selectedDate);
