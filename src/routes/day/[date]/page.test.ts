@@ -47,15 +47,23 @@ vi.mock('dexie', async (importOriginal) => {
   const actual = await importOriginal<typeof Dexie>();
   return {
     ...actual,
-    liveQuery: vi.fn((queryFn: () => { __tag?: string }) => {
+    liveQuery: vi.fn((queryFn: () => { __tag?: string } | Promise<unknown>) => {
       return {
-        subscribe(observer: { next: (v: unknown[]) => void; error?: (e: unknown) => void }) {
-          let tag: string | undefined;
+        subscribe(observer: { next: (v: unknown) => void; error?: (e: unknown) => void }) {
+          let result: { __tag?: string } | Promise<unknown>;
           try {
-            tag = queryFn().__tag;
+            result = queryFn();
           } catch {
-            /* ignore */
+            observer.next([]);
+            return { unsubscribe: () => {} };
           }
+          // The earliest-logged store's queryFn is async and resolves to a
+          // string | null; route it by promise rather than by tag.
+          if (result instanceof Promise) {
+            result.then((v) => observer.next(v)).catch(() => observer.error?.(null));
+            return { unsubscribe: () => {} };
+          }
+          const tag = result.__tag;
           if (tag === 'observations') observer.next(liveObservations);
           else if (tag === 'photos') observer.next(livePhotos);
           else observer.next(liveMeals);
@@ -67,17 +75,21 @@ vi.mock('dexie', async (importOriginal) => {
 });
 
 // Each table returns a chain whose .toArray() carries an identifying tag, so
-// the liveQuery mock can route emissions per session.
-const tagged = (tag: string) => ({
+// the liveQuery mock can route emissions per session. `orderBy('date').first()`
+// backs the earliest-logged store — it returns the earliest fixture row.
+const earliestOf = <T extends { date: string }>(rows: T[]): T | undefined =>
+  rows.length === 0 ? undefined : [...rows].sort((a, b) => a.date.localeCompare(b.date))[0];
+const tagged = (tag: string, rows: () => { date: string }[]) => ({
   where: () => ({
     equals: () => ({ toArray: () => ({ __tag: tag }) }),
   }),
+  orderBy: () => ({ first: () => Promise.resolve(earliestOf(rows())) }),
 });
 vi.mock('$lib/db/atopic-db', () => ({
   db: {
-    meals: tagged('meals'),
-    skin_observations: tagged('observations'),
-    photos: tagged('photos'),
+    meals: tagged('meals', () => liveMeals),
+    skin_observations: tagged('observations', () => liveObservations),
+    photos: tagged('photos', () => []),
   },
 }));
 

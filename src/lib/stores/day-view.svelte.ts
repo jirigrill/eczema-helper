@@ -11,6 +11,7 @@ import type {
   SkinPhoto,
 } from '$lib/domain/models';
 import { buildScheduleContext, getPhaseForDate } from '$lib/domain/schedule-queries';
+import { createEarliestLoggedStore } from '$lib/stores/earliest-logged';
 import { createMealSession } from '$lib/stores/meal-session';
 import { scheduleRaw } from '$lib/stores/schedule-context';
 import type { ScheduleContext } from '$lib/stores/schedule-context';
@@ -27,6 +28,12 @@ export type DayView = {
   readonly photos: SkinPhoto[];
   readonly ctx: ScheduleContext;
   readonly phase: SchedulePhase | null;
+  /**
+   * Earliest day (ISO) with anything logged across meals and skin, or null when
+   * nothing is logged. Live-subscribed (§3a) so the day strip grows the instant
+   * an earlier day is logged.
+   */
+  readonly earliestLogged: string | null;
   /** Live feeding stage (`#567`); `null` until the settings liveQuery emits. */
   readonly feedingStage: FeedingStage | null;
   readonly mealSession: ReturnType<typeof createMealSession>;
@@ -38,6 +45,7 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const catalog = new BundledCatalogAdapter();
   const rawStore = fromStore(scheduleRaw);
   const settingsStore = fromStore(settingsContext);
+  const earliestLoggedStore = fromStore(createEarliestLoggedStore());
 
   const resolved = $derived(resolveDay(getParam(), rawStore.current, today));
   const selectedDate = $derived(resolved.selectedDate);
@@ -79,6 +87,8 @@ export function createDayView(getParam: () => string, today: string): DayView {
     ctx.status === 'ready' ? getPhaseForDate(ctx.schedule, selectedDate) : null,
   );
 
+  const earliestLogged = $derived(earliestLoggedStore.current);
+
   return {
     get redirectTo() {
       return redirectTo;
@@ -103,6 +113,9 @@ export function createDayView(getParam: () => string, today: string): DayView {
     },
     get phase() {
       return phase;
+    },
+    get earliestLogged() {
+      return earliestLogged;
     },
     get feedingStage() {
       return feedingStage;

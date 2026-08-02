@@ -11,8 +11,26 @@ async function clearDb(page: Page) {
     await db.answers.clear();
     await db.schedule.clear();
     await db.settings.clear();
+    await db.meals.clear();
+    await db.skin_observations.clear();
     db.close();
   });
+}
+
+/** Seed a single meal so the day strip's earliest-logged floor reaches `date`. */
+async function seedMeal(page: Page, date: string) {
+  await page.evaluate(async (date) => {
+    const path = '/src/lib/db/atopic-db.ts';
+    const { db } = await import(/* @vite-ignore */ path);
+    await db.meals.put({
+      id: `${date}:lunch:mother`,
+      date,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+      createdAt: `${date}T12:00:00.000Z`,
+    });
+  }, date);
 }
 
 /** Seed a schedule where startDate is `startDate` and today is in an elimination phase.
@@ -137,22 +155,23 @@ test('/day/<past> hides task counter', async ({ page }) => {
 // ── DayStrip navigation ──────────────────────────────────────────────────
 
 test('clicking a strip cell navigates to /day/<cell-date>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
-  await page.goto(`/day/${today}`);
+  // The strip spans earliest-logged … today; with nothing logged it reaches
+  // back only as far as the directly-navigated day. Land on a past day so the
+  // strip has cells other than today to tap.
+  await page.goto(`/day/${pastDate}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
 
-  // Pick the first in-range, non-selected cell (skip before-start dates which
-  // resolveRouteDate redirects to today).
   const cells = page.getByTestId('day-strip-cell');
+  await expect.poll(async () => cells.count()).toBeGreaterThan(1);
   const total = await cells.count();
   let target = '';
   for (let i = 0; i < total; i++) {
     const cell = cells.nth(i);
     const date = await cell.getAttribute('data-date');
-    const isBeforeStart = await cell.getAttribute('data-before-start');
-    if (date && !isBeforeStart && date !== today) {
+    if (date && date !== pastDate) {
       target = date;
       await cell.click();
       break;
@@ -211,11 +230,18 @@ test('/day/<today> shows dairy in "Vyhýbej se" column', async ({ page }) => {
 test('scrolling the strip only browses — URL and content stay until a tap', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0]!;
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
+  // Log a past meal so the strip spans that day … today even while on today.
+  await seedMeal(page, pastDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
   // Today content is on screen (task counter only renders for today).
   await expect(page.getByTestId('task-counter')).toBeVisible();
+  // The strip has grown past today (its earliest cell reaches the logged day).
+  await expect
+    .poll(async () => page.getByTestId('day-strip-cell').count())
+    .toBeGreaterThan(1);
 
   const scroller = page.getByTestId('day-strip-scroller');
   // Scroll backwards through past days, then forward into future days.
@@ -238,8 +264,7 @@ test('scrolling the strip only browses — URL and content stay until a tap', as
   for (let i = 0; i < total; i++) {
     const cell = cells.nth(i);
     const date = await cell.getAttribute('data-date');
-    const isBeforeStart = await cell.getAttribute('data-before-start');
-    if (date && !isBeforeStart && date !== today) {
+    if (date && date !== today) {
       target = date;
       await cell.click();
       break;
@@ -254,19 +279,22 @@ test('scrolling the strip only browses — URL and content stay until a tap', as
 test('browser back returns to the previous day after a strip tap', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0]!;
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
+  // Log a past meal so the strip spans that day … today.
+  await seedMeal(page, pastDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
 
-  // Tap an in-range, non-today cell → navigates to that day.
+  // Tap a non-today cell → navigates to that day.
   const cells = page.getByTestId('day-strip-cell');
+  await expect.poll(async () => cells.count()).toBeGreaterThan(1);
   const total = await cells.count();
   let target = '';
   for (let i = 0; i < total; i++) {
     const cell = cells.nth(i);
     const date = await cell.getAttribute('data-date');
-    const isBeforeStart = await cell.getAttribute('data-before-start');
-    if (date && !isBeforeStart && date !== today) {
+    if (date && date !== today) {
       target = date;
       await cell.click();
       break;
@@ -281,32 +309,25 @@ test('browser back returns to the previous day after a strip tap', async ({ page
   await expect(page.getByTestId('task-counter')).toBeVisible();
 });
 
-// ── Before-start cells remain selectable, no page-back behavior ────────────
+// ── The earliest cell selects its own date, no jump-to-today ───────────────
 
-test('clicking a before-start cell selects that date (no jump-to-today)', async ({ page }) => {
-  // Protocol starts 7 days ago; the strip extends a buffer before that. The
-  // earliest cell is before-start — clicking it must navigate to that date,
-  // not redirect to today.
-  const today = new Date().toISOString().split('T')[0]!;
+test('clicking the earliest logged cell selects that date (no jump-to-today)', async ({ page }) => {
+  // The strip spans earliest-logged … today. A meal logged five days ago is the
+  // strip's earliest cell — clicking it must navigate to that day.
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+  const earliest = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
+  await seedMeal(page, earliest);
 
-  await page.goto(`/day/${today}`);
+  await page.goto(`/day/${earliest}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
 
   const firstCell = page.getByTestId('day-strip-cell').nth(0);
-  // The schedule loads via liveQuery; until it resolves the strip uses a
-  // today-anchored fallback range. Poll until the strip reflects the seeded
-  // protocol so the earliest cell actually sits before startDate.
+  // The earliest-logged store resolves via liveQuery; poll until the strip's
+  // earliest cell reflects the logged day.
   await expect
-    .poll(async () => {
-      const d = await firstCell.getAttribute('data-date');
-      return d != null && d < startDate;
-    })
-    .toBe(true);
+    .poll(async () => firstCell.getAttribute('data-date'))
+    .toBe(earliest);
   await firstCell.click();
-  // The page redirects before-start dates to today (resolveRouteDate guard);
-  // tapping the cell still issues navigation rather than the old "jump to today"
-  // intercept that ignored the click.
-  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page).toHaveURL(`/day/${earliest}`);
 });

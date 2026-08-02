@@ -881,15 +881,19 @@ A bottom-sheet component (`src/lib/components/ConfirmSheet.svelte`) for destruct
 ### DayStrip
 *Czech: Pásek dní*
 
-A horizontally scrollable, **continuous** strip of day cells covering a small buffer
-before `programStart` through `estimatedEnd` plus a small buffer. Selecting a day flags
-it **in place** — the strip does not reshuffle around the selection. **Today** carries a
-permanent ring marker in its own slot, with a hollow centre dot when today is not yet
-recorded and a filled dot once it is. There is no "Dnes" pill and no in-strip
-return-to-today control — return-to-today is the bottom-nav `Dnes` tab. Days **before**
-`programStart` are dimmed but remain selectable (no jump-to-today intercept). Future
-cells render faded. Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …),
-day number, and a `SeverityDot`. The selected cell is highlighted in the primary color.
+A horizontally scrollable, **continuous** strip of day cells spanning the mother's
+history rather than a plan: from her **earliest logged day** (the earlier of the first
+meal and the first skin observation, live-subscribed) through **today**, with no future
+cells. Its input is `{ selectedDate, earliestLogged, today }` and the range is
+`min(earliestLogged ?? today, selectedDate) … today`; clamping the start to `selectedDate`
+keeps a directly-navigated earlier day rendering its own cell. With nothing logged the
+strip is the single cell **today**, and it grows the instant an earlier day is logged.
+Selecting a day flags it **in place** — the strip does not reshuffle around the selection.
+**Today** carries a permanent ring marker in its own slot, with a hollow centre dot when
+today is not yet recorded and a filled dot once it is. There is no "Dnes" pill and no
+in-strip return-to-today control — return-to-today is the bottom-nav `Dnes` tab. Each
+cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …), day number, and a
+`SeverityDot`. The selected cell is highlighted in the primary color.
 
 ### SeverityDot
 *Czech: Puntík závažnosti*

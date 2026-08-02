@@ -26,6 +26,7 @@
   import { isWithinLoggableWindow } from '$lib/domain/policy';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import { scheduleRaw } from '$lib/stores/schedule-context';
+  import { createEarliestLoggedStore } from '$lib/stores/earliest-logged';
   import { buildScheduleContext, eliminatedFor } from '$lib/domain/schedule-queries';
   import { rungAtDayInPhase } from '$lib/domain/ladder';
   import { settingsContext } from '$lib/stores/settings-context';
@@ -72,6 +73,7 @@
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
   const raw = $derived($scheduleRaw);
+  const earliestLoggedStore = createEarliestLoggedStore();
   const feedingStage = $derived($settingsContext?.feedingStage ?? null);
   // Who may log at the live feeding stage (spec #564): `breastfed → [mother]`,
   // `mixed → [mother, baby]`, `solids → [baby]`. Drives the actor picker — the
@@ -798,21 +800,16 @@
     copyPickerOpen = true;
   }
 
-  // The copy picker's own day strip: same span shape as the day overview, but
-  // the picker gates selection itself (DayStrip only greys cells). A cell is a
-  // legal destination when it is NOT strictly future AND inside the loggable
-  // window — tested via `isWithinLoggableWindow`, not just `isBeforeStart`, so
-  // a strip extended earlier by a far-back selectedDate still rejects
-  // out-of-window days.
+  // The copy picker's own day strip: same §3a input as the day overview, with
+  // `selectedDate` = the currently picked destination. Live earliest-logged so
+  // the destination range grows the instant an earlier day is logged.
+  const earliestLogged = $derived($earliestLoggedStore);
   const copyStripCells = $derived(
-    raw.status === 'ready'
-      ? computeDayStrip({
-          selectedDate: copyDestDate || targetDate,
-          protocolStart: raw.schedule.startDate,
-          estimatedEnd: raw.schedule.estimatedEndDate,
-          today: todayIso(),
-        }).cells
-      : [],
+    computeDayStrip({
+      selectedDate: copyDestDate || targetDate,
+      earliestLogged,
+      today: todayIso(),
+    }).cells,
   );
 
   /** A destination day is loggable when it is not strictly future and inside the window. */

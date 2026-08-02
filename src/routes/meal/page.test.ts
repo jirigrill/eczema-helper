@@ -118,6 +118,7 @@ beforeEach(async () => {
   // fail before its own cleanup line) can't leak the stage into the next test.
   mockSettings.set({ feedingStage: 'breastfed' });
   await db.meals.clear();
+  await db.skin_observations.clear();
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
   mockHarvestStore.set([]);
@@ -978,7 +979,7 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: 'Kopírovat sem' })).toBeInTheDocument();
   });
 
-  it('picker: a strictly-future day is disabled (not a valid destination); today is selectable', async () => {
+  it('picker: no future day is rendered; today is selectable', async () => {
     setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -995,26 +996,32 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
     await tick();
-    // The "Kopírovat sem" button targets the currently-selected day; it starts
-    // enabled on the source day (today).
-    const pickSlot = getByRole('button', { name: 'Kopírovat sem' });
-    expect(pickSlot).toHaveAttribute('aria-disabled', 'false');
-    // Tapping a strictly-future cell must NOT change the selection to it — the
-    // pick button stays enabled on today rather than jumping to the future day.
-    const futureCell = container.querySelector(
-      `[data-testid="day-strip-cell"][data-date="${future}"]`,
-    );
-    expect(futureCell).not.toBeNull();
-    await fireEvent.click(futureCell!);
-    await tick();
+    // The "Kopírovat sem" button targets the source day (today) and starts enabled.
     expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
       'aria-disabled',
       'false',
     );
+    // The strip ends at today: no future cell is ever rendered (§3b/§3e).
+    await waitFor(() => {
+      const futureCell = container.querySelector(
+        `[data-testid="day-strip-cell"][data-date="${future}"]`,
+      );
+      expect(futureCell).toBeNull();
+    });
   });
 
-  it('picker: the loggable floor day (scheduleStart − 7) is a selectable destination', async () => {
+  it('picker: the strip spans back to the earliest logged day, and it is a selectable destination', async () => {
     setReadyWithElim();
+    // An earlier logged meal moves the earliest-logged floor back to that day.
+    const earlier = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+    await meals.save({
+      id: `${earlier}:lunch:mother`,
+      date: earlier,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'e1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -1030,12 +1037,13 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
     await tick();
-    // scheduleStart is today; the loggable floor is today − 7 (the strip's
-    // earliest cell). Selecting it keeps the pick button enabled — the window
-    // gate uses isWithinLoggableWindow, so the floor is in-window.
-    const floor = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
-    const cell = container.querySelector(`[data-testid="day-strip-cell"][data-date="${floor}"]`);
-    expect(cell).not.toBeNull();
+    // The earliest logged day is the strip's earliest cell; selecting it keeps
+    // the pick button enabled — every rendered cell is a legal destination.
+    let cell: Element | null = null;
+    await waitFor(() => {
+      cell = container.querySelector(`[data-testid="day-strip-cell"][data-date="${earlier}"]`);
+      expect(cell).not.toBeNull();
+    });
     await fireEvent.click(cell!);
     await tick();
     expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(

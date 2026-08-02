@@ -75,21 +75,13 @@
       data-testid="day-strip-scroller"
     >
       {#each cells as cell (cell.date)}
-        {@const baseClass = cell.isSelected
-          ? 'bg-primary text-white'
-          : cell.isBeforeStart
-            ? 'text-text-muted/40'
-            : cell.isFuture
-              ? 'text-text-muted/50'
-              : 'text-text-muted'}
+        {@const baseClass = cell.isSelected ? 'bg-primary text-white' : 'text-text-muted'}
         <button
           class="flex w-10 shrink-0 snap-center flex-col items-center gap-1 rounded-lg py-2 {baseClass}"
           onclick={() => onselectdate(cell.date)}
           data-testid="day-strip-cell"
           data-date={cell.date}
           data-today={cell.isToday ? 'true' : undefined}
-          data-future={cell.isFuture ? 'true' : undefined}
-          data-before-start={cell.isBeforeStart ? 'true' : undefined}
           aria-current={cell.isSelected ? 'date' : undefined}
         >
           <span class="text-[10px] uppercase {cell.isSelected ? 'opacity-80' : ''}">
