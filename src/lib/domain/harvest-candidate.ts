@@ -11,8 +11,16 @@ export type HarvestCandidate = {
   rawForms: string[];
 };
 
-/** Normalizes a raw food string to a stable lookup key. */
-export { normalizeKey } from '$lib/domain/allergen-matcher';
+// Precision-biased normalization (ADR-0017): lowercase + trim + collapse whitespace
+// + strip surrounding non-letters. Diacritics preserved; no stemming.
+// A false merge is worse than a missed merge.
+export function normalizeKey(raw: string): string {
+  return raw
+    .trim()
+    .toLocaleLowerCase('cs')
+    .replace(/\s+/g, ' ')
+    .replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+}
 
 /**
  * Extracts raw names from `other:${name}` slugs in questionnaire answers.
