@@ -105,14 +105,7 @@
   );
 
   const dayStrip = $derived(
-    ctx.status === 'ready'
-      ? computeDayStrip({
-          selectedDate,
-          protocolStart: ctx.schedule.startDate,
-          estimatedEnd: ctx.schedule.estimatedEndDate,
-          today,
-        })
-      : computeDayStrip({ selectedDate, protocolStart: today, estimatedEnd: today, today }),
+    computeDayStrip({ selectedDate, earliestLogged: view.earliestLogged, today }),
   );
 
   const todayRecorded = $derived(isToday && completeness > 0);

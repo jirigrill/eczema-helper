@@ -997,50 +997,40 @@
   <div class="component-section" id="daystrip">
     <p class="component-label">▸ <span>DayStrip</span> — cells: DayStripCell[], today: string, todayRecorded: boolean, onselectdate: (date) => void</p>
 
-    <!-- Variant: today selected, today recorded -->
+    <!-- Variant: today selected, today recorded. Strip spans earliest-logged … today, no future cells. -->
     <div class="variant-tile" style="max-width: 340px;">
       <p class="variant-name">Today selected — todayRecorded = true (filled centre dot)</p>
       <div class="px-3 pb-3">
         <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
 
-    <!-- Variant: past day selected, today not yet recorded — permanent ring with hollow centre -->
+    <!-- Variant: past day selected, today not yet recorded — permanent ring with hollow centre. Today is the last cell (no future days). -->
     <div class="variant-tile" style="max-width: 340px;">
       <p class="variant-name">Past day selected — today shows permanent ring with hollow centre dot (todayRecorded = false)</p>
       <div class="px-3 pb-3">
         <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">So</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-primary bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/50"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
 
-    <!-- Variant: before-start cells dimmed but selectable; today selected (filled ring) -->
+    <!-- Variant: nothing logged — the strip is the single cell today. -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">isBeforeStart cells — dimmed but selectable; no jump-to-today</p>
+      <p class="variant-name">Nothing logged — single cell today (selected)</p>
       <div class="px-3 pb-3">
         <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">27</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted/40"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
-          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Ne</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white"></span></button>
         </div>
       </div>
     </div>
