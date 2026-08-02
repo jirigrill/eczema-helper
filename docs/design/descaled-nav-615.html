@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atopic Helper — Prototype: descaled logging-only nav (#615)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { background: #E8E4E5; min-height: 100vh; margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #3D2B2F; }
+
+  .canvas { width: 100%; padding: 40px 20px 160px; max-width: 760px; margin: 0 auto; }
+  .canvas-eyebrow { color: #7A6468; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; font-weight: 500; margin-bottom: 6px; font-family: ui-monospace, SFMono-Regular, "SF Mono", monospace; }
+  .canvas-heading { color: #3D2B2F; font-size: 24px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; margin-bottom: 8px; }
+  .canvas-sub { color: #7A6468; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
+  .variant-note { background: #FAF8F8; border: 1px solid #EDE8E9; border-radius: 14px; padding: 14px 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.6; color: #3D2B2F; }
+  .variant-note strong { color: #8B4557; }
+
+  /* Phone shell: black-bezel iPhone per DESIGN.md */
+  .phone { width: 340px; margin: 0 auto; background: #000; border-radius: 40px; padding: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .screen { background: #FAF8F8; border-radius: 30px; overflow: hidden; height: 680px; display: flex; flex-direction: column; position: relative; }
+  .screen-scroll { flex: 1; overflow-y: auto; }
+
+  .eyebrow { color: #7A6468; font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600; }
+  .page-heading { color: #3D2B2F; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+  .card { background: #fff; border: 1px solid #EDE8E9; border-radius: 16px; }
+  .body-muted { color: #7A6468; font-size: 13px; }
+  .divider { border-top: 1px solid #EDE8E9; }
+
+  /* Day strip */
+  .daystrip { display: flex; gap: 6px; padding: 6px 16px 12px; overflow-x: auto; }
+  .daychip { flex-shrink: 0; width: 44px; text-align: center; padding: 6px 0; border-radius: 12px; border: 1px solid #EDE8E9; background: #fff; }
+  .daychip.sel { background: #8B4557; border-color: #8B4557; color: #fff; }
+  .daychip .dow { font-size: 9px; text-transform: uppercase; color: #7A6468; letter-spacing: .4px; }
+  .daychip.sel .dow { color: rgba(255,255,255,.75); }
+  .daychip .dnum { font-size: 15px; font-weight: 700; }
+
+  .actor-icon { width: 30px; height: 30px; flex-shrink: 0; border: 1px solid #EDE8E9; border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #7A6468; }
+
+  /* switcher bar */
+  .switcher { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(23,17,18,0.94); color: #fff; border-radius: 9999px; padding: 8px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); z-index: 100; font-size: 12px; }
+  .switcher button { color: #fff; background: rgba(255,255,255,0.08); border: none; border-radius: 9999px; padding: 4px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; }
+  .switcher button.arrow { background: none; font-size: 18px; padding: 0 6px; line-height: 1; }
+  .switcher .stage-label { min-width: 12rem; text-align: center; font-weight: 600; }
+
+  /* Bottom nav (variant B) */
+  .bottomnav { border-top: 1px solid #EDE8E9; background: #fff; padding: 8px 0 18px; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: end; }
+  .navcell { display: flex; flex-direction: column; align-items: center; gap: 3px; color: #7A6468; font-size: 10px; }
+  .navcell.active { color: #8B4557; font-weight: 600; }
+  .fab { background: #8B4557; color: #fff; width: 56px; height: 56px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 300; margin: -28px auto 0; box-shadow: 0 6px 18px rgba(139,69,87,.4); border: 4px solid rgba(139,69,87,.18); }
+  .fab-float { position: absolute; bottom: 20px; right: 20px; background: #8B4557; color: #fff; width: 56px; height: 56px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 300; box-shadow: 0 6px 18px rgba(139,69,87,.4); }
+
+  /* Jump-to-today chrome */
+  .jump-header { display: flex; align-items: center; gap: 10px; background: none; border: none; padding: 0; cursor: pointer; }
+  .jump-chip { background: rgba(139,69,87,.1); color: #8B4557; border-radius: 9999px; padding: 3px 10px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+  /* D — today docked as a permanent strip anchor */
+  .strip-dock { display: flex; align-items: stretch; }
+  .strip-dock .scroller { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 6px 8px 12px 16px; }
+  .strip-dock .dock { flex-shrink: 0; padding: 6px 12px 12px 10px; border-left: 1px solid #EDE8E9; background: #FAF8F8; display: flex; align-items: flex-start; }
+  .dockchip { width: 48px; text-align: center; padding: 6px 0; border-radius: 12px; border: 1.5px solid #8B4557; color: #8B4557; background: rgba(139,69,87,.06); cursor: pointer; }
+  .dockchip .dow { font-size: 9px; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; }
+  .dockchip .dnum { font-size: 15px; font-weight: 700; }
+
+  /* E — header opens a date picker sheet */
+  .sheet-backdrop { position: absolute; inset: 0; background: rgba(23,17,18,.35); display: flex; align-items: flex-end; }
+  .sheet { background: #FAF8F8; width: 100%; border-radius: 20px 20px 0 0; padding: 14px 16px 22px; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 10px 0 14px; }
+  .cal div { text-align: center; font-size: 12px; padding: 6px 0; border-radius: 8px; color: #3D2B2F; }
+  .cal .hd { font-size: 9px; color: #7A6468; text-transform: uppercase; font-weight: 700; }
+  .cal .sel { background: #8B4557; color: #fff; font-weight: 700; }
+  .cal .tdy { border: 1.5px solid #8B4557; color: #8B4557; font-weight: 700; }
+  .cal .mut { color: #C4A4AB; }
+  .sheet-btn { width: 100%; background: #8B4557; color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 700; }
+
+  /* F — history InfoBanner */
+  .histbanner { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid rgba(139,69,87,.25); background: rgba(139,69,87,.06); border-radius: 12px; padding: 10px 12px; margin: 0 16px 12px; }
+  .histbanner .lbl { font-size: 12px; color: #3D2B2F; }
+  .histbanner .act { font-size: 12px; font-weight: 700; color: #8B4557; white-space: nowrap; }
+
+  /* G — no affordance; annotation only */
+  .ghost-note { margin: 0 16px 12px; border: 1px dashed #C4A4AB; border-radius: 12px; padding: 10px 12px; font-size: 11px; color: #7A6468; line-height: 1.5; }
+
+  .addbtn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: 1px dashed #C4A4AB; color: #8B4557; border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 600; background: rgba(139,69,87,.03); }
+  .slotrow { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="canvas-eyebrow">Prototype · wayfinder ticket #615 · map #613</div>
+  <h1 class="canvas-heading">Descaled nav: jump-to-today, on the FAB-only shell</h1>
+  <p class="canvas-sub">
+    Locked with the dev: <strong>day-centric, day-scoped, FAB-only</strong> — bottom nav bar removed,
+    no standalone photo gallery. That leaves one hole: with the nav's "Dnes" tab gone, how do you
+    <strong>jump back to today</strong> after scrolling the day strip into history? An earlier round of
+    "small pill, different corner" options was rejected — these four differ in <strong>mechanism</strong>, not
+    placement. All show the <strong>off-today state</strong> (26. 7. selected, today scrolled off the strip).
+    Use ← → or the pill to switch.
+  </p>
+  <div style="background:#8B4557;color:#fff;border-radius:14px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;">
+    <strong>SETTLED → variant A (header chip).</strong> The affordance <em>should</em> be conditional — it is
+    meaningless on today — so the winner is the one riding a conditional the app <em>already has</em>: the
+    header already swaps "Dnes" ↔ date on <code>isToday</code>. D was picked first and reversed; flip to
+    <strong>D2</strong> for the state that killed it.
+  </div>
+  <div class="variant-note" id="note"></div>
+  <div class="phone"><div class="screen" id="screen"></div></div>
+</div>
+
+<div class="switcher">
+  <button class="arrow" onclick="cycle(-1)">‹</button>
+  <span class="stage-label" id="stage-label"></span>
+  <button class="arrow" onclick="cycle(1)">›</button>
+</div>
+
+<script>
+// ── Fixtures (throwaway) ─────────────────────────────────────────────
+const MOTHER = '<path d="M8.6 7.4c0-2.6 1.5-4.4 3.4-4.4s3.4 1.8 3.4 4.4c0 2.2-1.5 3.8-3.4 3.8s-3.4-1.6-3.4-3.8Z"/><path d="M7 21v-2.7c0-2.3 1.7-4.1 3.8-4.4"/><path d="M17 21v-2.7c0-2.3-1.7-4.1-3.8-4.4"/><path d="M10.2 13.9a5 5 0 0 1 3.6 0"/>';
+const BABY = '<circle cx="12" cy="6.4" r="4"/><circle cx="10.2" cy="6.3" r=".85" fill="currentColor" stroke="none"/><circle cx="13.8" cy="6.3" r=".85" fill="currentColor" stroke="none"/><path d="M10.6 8c.4.4.9.6 1.4.6s1-.2 1.4-.6"/><path d="M8.7 11c-1.7.9-2.8 2.6-2.8 4.6"/><path d="M15.3 11c1.7.9 2.8 2.6 2.8 4.6"/>';
+function actorIcon(who){ return `<span class="actor-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${who==='mother'?MOTHER:BABY}</svg></span>`; }
+
+const STRIP = [
+  {dow:'Pá',n:24},{dow:'So',n:25},{dow:'Ne',n:26},{dow:'Po',n:27},{dow:'Út',n:28},{dow:'St',n:29,sel:true}
+];
+// Descaled day: dual-actor meal slots + skin. No allergen/conflict/phase content.
+const MEALS = [
+  {type:'Snídaně', icon:'🌅', rows:[{who:'mother', foods:'Ovesná kaše · Banán'}]},
+  {type:'Oběd', icon:'☀️', rows:[{who:'mother', foods:'Kuřecí vývar · Rýže'},{who:'baby', foods:'Mrkvové pyré'}]},
+  {type:'Svačina', icon:'🍎', rows:[]},
+  {type:'Večeře', icon:'🌙', rows:[{who:'mother', foods:'Losos · Brambory'}]},
+];
+const SKIN = { status:'Klidnější', regions:'Tváře · Loketní jamky', photos:2, time:'19:40' };
+
+// STRIP scrolled back into history: today (St 29.) is off the right edge,
+// selection sits on Ne 26. Earlier days added so today can be off-screen.
+const STRIP_BACK = [
+  {dow:'Út',n:22},{dow:'St',n:23},{dow:'Čt',n:24},{dow:'Pá',n:25},{dow:'Ne',n:26,sel:true},{dow:'Po',n:27}
+];
+const GEAR = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>';
+
+// `offToday` renders the history state (past day selected, today off-strip),
+// which is the ONLY state where jump-to-today needs to appear. `jump` picks
+// which solution's chrome to inject: 'header' | 'strippill' | 'minifab'.
+function dayStrip(offToday){
+  const cells = offToday ? STRIP_BACK : STRIP;
+  return `<div class="daystrip">${cells.map(d=>`<div class="daychip ${d.sel?'sel':''}"><div class="dow">${d.dow}</div><div class="dnum">${d.n}.</div></div>`).join('')}</div>`;
+}
+function dayHeader(offToday, jump){
+  const heading = offToday ? 'Ne 26. 7.' : 'Dnes';
+  const eyebrow = offToday ? '' : `<div class="eyebrow">St 29. 7.</div>`;
+  // Solution 1 — the heading itself becomes the jump target when off-today.
+  const headerJump = (offToday && jump==='header')
+    ? `<button class="jump-header"><span class="page-heading">Ne 26. 7.</span><span class="jump-chip">↩ Dnes</span></button>`
+    : `<div>${eyebrow}<div class="page-heading">${heading}</div></div>`;
+  return `<div class="flex items-end justify-between px-4 pt-5 pb-1">
+    ${headerJump}
+    <button style="color:#7A6468;padding:6px;">${GEAR}</button>
+  </div>`;
+}
+// A filled meal card (matches MealCard: stacked actor rows, chevron to edit)
+function mealCard(m){
+  const filled = m.rows.length>0;
+  const rows = m.rows.map(r=>`<div class="slotrow divider">${actorIcon(r.who)}<div class="min-w-0 flex-1" style="font-size:12px;color:#3D2B2F;">${r.foods}</div><span style="color:#7A6468;font-size:18px;">›</span></div>`).join('');
+  const empty = `<div class="slotrow"><span style="width:30px;text-align:center;color:#C4A4AB;font-size:20px;">+</span><div style="font-size:12px;color:#7A6468;">Přidat jídlo</div></div>`;
+  return `<div class="card overflow-hidden">
+    <div class="flex items-center gap-2 px-4 pt-3 pb-1"><span style="font-size:16px;">${m.icon}</span><span style="font-size:13px;font-weight:700;">${m.type}</span></div>
+    ${filled?rows:empty}
+  </div>`;
+}
+function skinCard(){
+  return `<div class="card p-4">
+    <div class="flex items-center justify-between mb-2"><span style="font-size:13px;font-weight:700;">Stav kůže</span><span style="font-size:11px;color:#7A6468;">${SKIN.time}</span></div>
+    <div style="font-size:13px;color:#3D2B2F;">${SKIN.status}</div>
+    <div style="font-size:11px;color:#7A6468;margin-top:2px;">${SKIN.regions}</div>
+    <div class="flex gap-2 mt-3">${[1,2].map(()=>`<div style="width:56px;height:56px;border-radius:10px;background:#EDE8E9;display:flex;align-items:center;justify-content:center;color:#7A6468;font-size:18px;">🖼</div>`).join('')}</div>
+  </div>`;
+}
+
+// FAB-only shell is LOCKED. These variants explore the one open hole:
+// jump-to-today, shown in the OFF-TODAY (scrolled-back) state. Each fires
+// the existing DayStrip.recentre() + goto(/day/today) — only the chrome differs.
+
+const CONTENT = `<div style="padding:0 16px 90px;display:flex;flex-direction:column;gap:12px;">${MEALS.map(mealCard).join('')}${skinCard()}</div>`;
+
+// ── A — WINNER: header chip, riding the existing isToday conditional ─
+function jumpHeaderChip(){
+  return `<div class="screen-scroll">${dayHeader(true,'header')}${dayStrip(true)}${CONTENT}</div><div class="fab-float">+</div>`;
+}
+// Same shell on today: header reverts to "Dnes", chip simply is not there.
+// No extra rule — this swap already exists in +layout/day page today.
+function jumpHeaderChipOnToday(){
+  return `<div class="screen-scroll">${dayHeader(false,'header')}${dayStrip(false)}${CONTENT}</div><div class="fab-float">+</div>`;
+}
+
+// ── D — today docked as a PERMANENT strip anchor ─────────────────────
+// Not conditional chrome: the strip's right edge is a fixed "Dnes" cell,
+// history scrolls underneath it. Always visible, always one tap, no
+// appear/disappear rule to design or test.
+function jumpDock(){
+  const cells = STRIP_BACK.map(d=>`<div class="daychip ${d.sel?'sel':''}"><div class="dow">${d.dow}</div><div class="dnum">${d.n}.</div></div>`).join('');
+  const strip = `<div class="strip-dock">
+      <div class="scroller">${cells}</div>
+      <div class="dock"><button class="dockchip"><div class="dow">Dnes</div><div class="dnum">29.</div></button></div>
+    </div>`;
+  return `<div class="screen-scroll">${dayHeader(true,'dock')}${strip}${CONTENT}</div><div class="fab-float">+</div>`;
+}
+
+// ── D2 — the SAME dock, rendered on today (the 99% case) ────────────
+// The state the first pass never showed: today is in the scroller AND in
+// the dock. Two "29." cells, and the selected state has to live in one of
+// them. Also note 28. is missing between the scroller and the dock, so the
+// strip stops reading as a continuous timeline.
+function jumpDockOnToday(){
+  const cells = STRIP.map(d=>`<div class="daychip ${d.sel?'sel':''}"><div class="dow">${d.dow}</div><div class="dnum">${d.n}.</div></div>`).join('');
+  const strip = `<div class="strip-dock">
+      <div class="scroller">${cells}</div>
+      <div class="dock"><button class="dockchip"><div class="dow">Dnes</div><div class="dnum">29.</div></button></div>
+    </div>`;
+  return `<div class="screen-scroll">${dayHeader(false,'dock')}${strip}${CONTENT}</div><div class="fab-float">+</div>`;
+}
+
+// ── E — header title opens a date picker (jump anywhere, incl. today) ─
+// Solves a bigger problem than today-jumping: "what did she eat on the
+// 3rd?". Reuses the LIVE BottomSheet. "Dnes" is the sheet's primary action.
+function jumpDatePicker(){
+  const dows = ['Po','Út','St','Čt','Pá','So','Ne'];
+  let cal = dows.map(d=>`<div class="hd">${d}</div>`).join('');
+  for(let i=1;i<=31;i++){
+    const cls = i===26 ? 'sel' : (i===29 ? 'tdy' : (i>29 ? 'mut' : ''));
+    cal += `<div class="${cls}">${i}</div>`;
+  }
+  const header = `<div class="flex items-end justify-between px-4 pt-5 pb-1">
+      <button class="jump-header"><span class="page-heading">Ne 26. 7.</span><span style="color:#8B4557;font-size:13px;">▾</span></button>
+      <button style="color:#7A6468;padding:6px;">${GEAR}</button>
+    </div>`;
+  const sheet = `<div class="sheet-backdrop"><div class="sheet">
+      <div style="text-align:center;font-size:11px;color:#7A6468;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px;">Červenec 2025</div>
+      <div class="cal">${cal}</div>
+      <button class="sheet-btn">Přejít na dnešek</button>
+    </div></div>`;
+  return `<div class="screen-scroll">${header}${dayStrip(true)}${CONTENT}</div>${sheet}`;
+}
+
+// ── F — history InfoBanner (reuses the LIVE InfoBanner component) ────
+// Off-today, a full-width banner under the strip states you're browsing
+// history and offers the way back. Content-level, unmissable, no floating
+// chrome — and the "you are in the past" framing prevents mis-logging.
+function jumpBanner(){
+  const banner = `<div class="histbanner">
+      <span class="lbl">Prohlížíš <strong>neděli 26. 7.</strong></span>
+      <button class="act">Zpět na dnešek →</button>
+    </div>`;
+  return `<div class="screen-scroll">${dayHeader(true,'banner')}${dayStrip(true)}${banner}${CONTENT}</div><div class="fab-float">+</div>`;
+}
+
+// ── G — no affordance at all ─────────────────────────────────────────
+// History browsing is a transient excursion: every app open / resume
+// lands on today, and system back returns from a past day. Nothing to
+// design, nothing to maintain. Shown with the rule annotated.
+function jumpNone(){
+  const note = `<div class="ghost-note">Žádný prvek navíc. Zpět na dnešek vede: <strong>systémové zpět</strong>, nebo <strong>další otevření aplikace</strong> (strip se vždy vycentruje na dnešek). — anotace prototypu, ne UI</div>`;
+  return `<div class="screen-scroll">${dayHeader(true,'none')}${dayStrip(true)}${note}${CONTENT}</div><div class="fab-float">+</div>`;
+}
+
+// ── Switcher ─────────────────────────────────────────────────────────
+const VARIANTS = [
+  {key:'A', name:'✅ Header chip — off today', render:jumpHeaderChip,
+   note:'<strong>A — header chip. THE PICK.</strong> Off-today the heading shows the date and gains an <strong>"↩ Dnes"</strong> chip; tapping it fires the existing <code>DayStrip.recentre()</code> + navigates to today. It adds <strong>no new visibility rule</strong> — the header already swaps "Dnes" ↔ date on <code>isToday</code>, so the chip extends a conditional the code and the user both already have. State ("you are on 26. 7.") and remedy sit in the same object. Built as an explicit chip, not tappable bare text, because headings get read, not tapped.'},
+  {key:'A2', name:'✅ Header chip — on today', render:jumpHeaderChipOnToday,
+   note:'<strong>A on today.</strong> Heading reverts to "Dnes", chip is simply absent — no duplication, no gap in the strip, nothing to hide. Contrast with <strong>D2</strong>, which is the same comparison for the docked cell.'},
+  {key:'D', name:'❌ Today docked on the strip', render:jumpDock,
+   note:'<strong>D — permanent "Dnes" anchor.</strong> The strip\'s right edge is a <strong>fixed cell</strong>, history scrolls underneath it. Not conditional chrome — always there, always one tap, so there is no appear/disappear rule to design, test or explain. Reads as part of the calendar, not as an alert. Cost: eats ~50px of strip width permanently.'},
+  {key:'D2', name:'❌ …same dock, ON today', render:jumpDockOnToday,
+   note:'<strong>D2 — D\'s unflattering state.</strong> The case the first pass never rendered. On today, <strong>29. appears twice</strong> — once in the scroller, once in the dock — and the selected highlight has to pick one. Worse, the strip now reads <em>…27. | 28. ‖ Dnes 29.</em> with a hairline where 28.→29. should be continuous, so it stops looking like a timeline and starts looking like a bug. Fixing it means hiding the dock when today is in view — which reintroduces exactly the conditional rule D was supposed to abolish.'},
+  {key:'E', name:'Header → date picker', render:jumpDatePicker,
+   note:'<strong>E — date picker.</strong> The title becomes a tappable date control opening a month sheet (LIVE <code>BottomSheet</code>), with <strong>"Přejít na dnešek"</strong> as the primary action. Solves the bigger problem: reaching <em>any</em> past date without scrubbing the strip — real value once history grows past a few weeks. Cost: most to build of the four.'},
+  {key:'F', name:'History banner', render:jumpBanner,
+   note:'<strong>F — history banner.</strong> Reuses the LIVE <code>InfoBanner</code>: off-today a full-width bar states <strong>"Prohlížíš neděli 26. 7."</strong> + the way back. Unmissable and content-level, no floating chrome. Its second job matters — it makes "you are in the past" explicit, guarding against logging a meal onto the wrong day. Cost: pushes content down; a banner can feel like a warning.'},
+  {key:'G', name:'No affordance', render:jumpNone,
+   note:'<strong>G — nothing.</strong> History browsing is a <em>transient excursion</em>: every app open/resume recentres on today, and system back exits a past day. The mother is on today ~99% of the time. Cheapest and least chrome. Cost: on iOS PWA, back is an edge-swipe — if that is unreliable the user can feel stranded in the past.'},
+];
+let idx = 0;
+function render(){
+  const v = VARIANTS[idx];
+  document.getElementById('screen').innerHTML = v.render();
+  document.getElementById('stage-label').textContent = `${v.key} — ${v.name}`;
+  document.getElementById('note').innerHTML = v.note;
+  const u = new URL(location); u.searchParams.set('variant', v.key); history.replaceState(null,'',u);
+}
+function cycle(d){ idx = (idx + d + VARIANTS.length) % VARIANTS.length; render(); }
+document.addEventListener('keydown', e=>{
+  const t=e.target; if(t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return;
+  if(e.key==='ArrowLeft') cycle(-1); if(e.key==='ArrowRight') cycle(1);
+});
+const start = new URL(location).searchParams.get('variant');
+if(start){ const i = VARIANTS.findIndex(v=>v.key===start); if(i>=0) idx=i; }
+render();
+</script>
+</body>
+</html>
