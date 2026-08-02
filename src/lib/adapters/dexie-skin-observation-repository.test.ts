@@ -241,6 +241,42 @@ describe('DexieSkinObservationRepository', () => {
     expect(result).toEqual({ ok: false, error: 'index fail' });
   });
 
+  // ── earliestLoggedDate (§3a, step 2b) ────────────────────────
+
+  it('earliestLoggedDate returns null when the store is empty', async () => {
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: null });
+  });
+
+  it('earliestLoggedDate returns the date of the only logged observation', async () => {
+    await repo.save(makeObservation('2026-05-27'), []);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-27' });
+  });
+
+  it('earliestLoggedDate returns the smallest date across observations inserted out of order', async () => {
+    await repo.save(makeObservation('2026-05-27'), []);
+    await repo.save(makeObservation('2026-05-20'), []);
+    await repo.save(makeObservation('2026-06-02'), []);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-20' });
+  });
+
+  it('earliestLoggedDate moves forward after the earliest observation is removed', async () => {
+    const earliest = makeObservation('2026-05-20', { id: 'obs-earliest' });
+    await repo.save(earliest, []);
+    await repo.save(makeObservation('2026-05-27', { id: 'obs-later' }), []);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-20' });
+
+    await repo.remove(earliest.id);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-27' });
+  });
+
+  it('earliestLoggedDate returns Err when DB throws', async () => {
+    vi.spyOn(db.skin_observations, 'orderBy').mockImplementation(() => {
+      throw new Error('order fail');
+    });
+    const result = await repo.earliestLoggedDate();
+    expect(result).toEqual({ ok: false, error: 'order fail' });
+  });
+
   // ── update() ─────────────────────────────────────────────────
 
   it('update overwrites regions and notes on an existing observation', async () => {

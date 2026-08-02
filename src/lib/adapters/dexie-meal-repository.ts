@@ -57,6 +57,15 @@ export class DexieMealRepository implements MealRepository {
     }
   }
 
+  async earliestLoggedDate(): Promise<Result<string | null, string>> {
+    try {
+      const first = await this.db.meals.orderBy('date').first();
+      return { ok: true, data: first?.date ?? null };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
   async remove(date: string, mealType: MealType, actor: Actor): Promise<Result<void, string>> {
     try {
       await this.db.meals.delete(mealId(date, mealType, actor));

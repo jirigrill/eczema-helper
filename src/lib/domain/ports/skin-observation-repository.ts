@@ -37,4 +37,11 @@ export type SkinObservationRepository = {
    */
   restore(observation: SkinObservation, photos: SkinPhoto[]): Promise<Result<void, string>>;
   listByDate(date: string): Promise<Result<SkinObservation[], string>>;
+  /**
+   * The earliest date (ISO `YYYY-MM-DD`) on which any observation is logged, or
+   * null when the store is empty. Resolved as an index-ordered first-key
+   * lookup, not a scan. Feeds the day strip's `earliest logged day … today`
+   * range (§3a).
+   */
+  earliestLoggedDate(): Promise<Result<string | null, string>>;
 };
