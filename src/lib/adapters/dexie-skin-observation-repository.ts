@@ -126,6 +126,15 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
+
+  async earliestLoggedDate(): Promise<Result<string | null, string>> {
+    try {
+      const first = await this.db.skin_observations.orderBy('date').first();
+      return { ok: true, data: first?.date ?? null };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
 }
 
 function mintPhotos(observationId: string, inputs: SkinPhotoInput[]): SkinPhoto[] {

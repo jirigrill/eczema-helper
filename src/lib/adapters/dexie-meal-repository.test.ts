@@ -377,6 +377,33 @@ describe('DexieMealRepository', () => {
     expect(result).toEqual({ ok: false, error: 'delete fail' });
   });
 
+  // ── earliestLoggedDate (§3a, step 2b) ────────────────────────
+
+  it('earliestLoggedDate returns null when the store is empty', async () => {
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: null });
+  });
+
+  it('earliestLoggedDate returns the date of the only logged meal', async () => {
+    await repo.save(makeMeal('2026-05-27', 'lunch'));
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-27' });
+  });
+
+  it('earliestLoggedDate returns the smallest date across meals inserted out of order', async () => {
+    await repo.save(makeMeal('2026-05-27', 'lunch'));
+    await repo.save(makeMeal('2026-05-20', 'dinner'));
+    await repo.save(makeMeal('2026-06-02', 'breakfast'));
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-20' });
+  });
+
+  it('earliestLoggedDate moves forward after the earliest meal is removed', async () => {
+    await repo.save(makeMeal('2026-05-20', 'dinner'));
+    await repo.save(makeMeal('2026-05-27', 'lunch'));
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-20' });
+
+    await repo.remove('2026-05-20', 'dinner', 'mother');
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-27' });
+  });
+
   // ── Slice 4: error paths ─────────────────────────────────────
 
   it('save returns Err when DB throws', async () => {
@@ -397,6 +424,14 @@ describe('DexieMealRepository', () => {
     });
     const result = await repo.listByDate('2026-05-27');
     expect(result).toEqual({ ok: false, error: 'index fail' });
+  });
+
+  it('earliestLoggedDate returns Err when DB throws', async () => {
+    vi.spyOn(db.meals, 'orderBy').mockImplementation(() => {
+      throw new Error('order fail');
+    });
+    const result = await repo.earliestLoggedDate();
+    expect(result).toEqual({ ok: false, error: 'order fail' });
   });
 
   // ── Loggable-window guard (BUFFER_BEFORE_START_DAYS / BUFFER_AFTER_END_DAYS) ──
