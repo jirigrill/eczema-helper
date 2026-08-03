@@ -13,7 +13,7 @@ Two discovery paths, unioned — a child either references the PRD, or is listed
 - issues whose body references `#{{PRD_ISSUE}}`, **and**
 - issues whose number is referenced by the PRD #{{PRD_ISSUE}} body.
 
-!`CHILDREN=$(gh issue view {{PRD_ISSUE}} --json body --jq '.body' | grep -oE '#[0-9]+' | tr -d '#' | sort -u | paste -sd, -); gh issue list --state open --limit 100 --json number,title,body,labels | jq --arg prd "{{PRD_ISSUE}}" --arg kids "$CHILDREN" '($kids | split(",") | map(select(length>0) | tonumber)) as $k | [.[] | select((.body | strings | test("#" + $prd)) or (.number as $n | $k | index($n)))] | map({number, title, body, labels: [.labels[].name]})'`
+!`CHILDREN=$(gh issue view {{PRD_ISSUE}} --json body --jq '.body' | grep -oE '#[0-9]+' | tr -d '#' | sort -u | paste -sd, -); gh issue list --state open --limit 100 --json number,title,body,labels | jq --arg prd "{{PRD_ISSUE}}" --arg kids "$CHILDREN" '($kids | split(",") | map(select(length>0) | tonumber)) as $k | [.[] | select((.body | strings | test("#" + $prd)) or (.body | strings | test("issues/" + $prd)) or (.number as $n | $k | index($n)))] | map({number, title, body, labels: [.labels[].name]})'`
 
 ## Closed issue numbers (resolved — blockers in this list are satisfied)
 

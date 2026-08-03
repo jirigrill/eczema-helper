@@ -317,6 +317,13 @@ async function runIntegrated() {
     }
   }
 
+  // Restore main worktree to the integration branch.
+  try {
+    git('checkout', INTEGRATION_BRANCH);
+  } catch {
+    console.warn(`⚠ Could not restore to ${INTEGRATION_BRANCH}; you're at a detached commit.`);
+  }
+
   printSummary({
     integrated,
     dropped,
