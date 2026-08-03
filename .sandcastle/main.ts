@@ -16,8 +16,8 @@ if (MODE !== 'legacy' && MODE !== 'integrated') {
   process.exit(1);
 }
 
-const MAX_PARALLEL = 3;
-const AGENT = 'claude-opus-4-7';
+const MAX_PARALLEL = 5;
+const AGENT = 'claude-opus-4-8';
 const PRD = PRD_ISSUE as string; // guarded above
 const INTEGRATION_BRANCH = `agent/prd-${PRD}`;
 
