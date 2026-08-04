@@ -8,14 +8,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
-import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import type { Meal } from '$lib/domain/models';
 import { clearBuffer, writeBuffer } from '$lib/stores/discard-buffer';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
-const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
-vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
-}));
 const mockSettings = writable<{ feedingStage: 'breastfed' | 'mixed' | 'solids' } | null>({
   feedingStage: 'breastfed',
 });
@@ -68,48 +63,7 @@ vi.mock('$lib/stores/harvest-candidate-session', () => ({
 const today = new Date().toISOString().split('T')[0]!;
 const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]!;
 
-const sampleAnswers: QuestionnaireAnswers = {
-  babyBirthDate: '2025-01-01',
-  eczemaSeverity: 'moderate',
-  motherAllergies: [],
-  babyConfirmedAllergies: [],
-  programStartDate: today,
-  completedAt: new Date().toISOString(),
-  testedAllergens: ['dairy'],
-  feedingStage: 'breastfed',
-};
-
-const dairyEliminationSchedule: GeneratedSchedule = {
-  permanentMother: [],
-  permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: future,
-  phases: [
-    { id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: today, endDate: future },
-  ],
-};
-
-const emptySchedule: GeneratedSchedule = {
-  permanentMother: [],
-  permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: future,
-  phases: [{ id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future }],
-};
-
-function setReadyWithElim() {
-  mockScheduleRaw.set({
-    status: 'ready',
-    schedule: dairyEliminationSchedule,
-    answers: sampleAnswers,
-  });
-}
-function setReady() {
-  mockScheduleRaw.set({ status: 'ready', schedule: emptySchedule, answers: sampleAnswers });
-}
-
 beforeEach(async () => {
-  mockScheduleRaw.set({ status: 'loading' });
   // Reset the feeding stage to the default so a test that changes it (and may
   // fail before its own cleanup line) can't leak the stage into the next test.
   mockSettings.set({ feedingStage: 'breastfed' });
@@ -125,7 +79,6 @@ describe('meal/+page.svelte', () => {
   // ── Layout: NO meal type pills (type is fixed at entry, ADR-0018) ────────
 
   it('does NOT render meal type pills — type is bound to the URL', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -144,7 +97,6 @@ describe('meal/+page.svelte', () => {
   // `breastfed`/`solids` a single actor is implicit — no picker.
 
   it('renders the Já / Miminko actor pills in the mixed feeding stage', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'mixed' });
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
@@ -155,7 +107,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('renders NO actor picker in the breastfed feeding stage', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'breastfed' });
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
@@ -165,7 +116,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('renders NO actor picker in the solids feeding stage', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'solids' });
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
@@ -178,7 +128,6 @@ describe('meal/+page.svelte', () => {
   // ── Layout: family grid ───────────────────────────────────
 
   it('renders "Všechny kategorie" label and family grid on initial load', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByText } = render(MealPage);
     await tick();
@@ -188,7 +137,6 @@ describe('meal/+page.svelte', () => {
   // ── Drill-in navigation ───────────────────────────────────
 
   it('tapping a family tile shows the drill-in: header title changes to family name', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
     await tick();
@@ -201,7 +149,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('back chevron (‹) in drill-in returns to family grid', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText, queryByText } = render(MealPage);
     await tick();
@@ -214,7 +161,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('drill-in has NO "Procházet rodiny" link', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
     await tick();
@@ -226,7 +172,6 @@ describe('meal/+page.svelte', () => {
   // ── Tapping a food starts editing ────────────────────────
 
   it('tapping a food in drill-in puts it in editing (shows Množství + Příprava)', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText, getByText } = render(MealPage);
     await tick();
@@ -240,7 +185,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('only one food can be editing at a time', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getAllByText } = render(MealPage);
     await tick();
@@ -265,7 +209,6 @@ describe('meal/+page.svelte', () => {
   // pre-food render is unique to the route test.
 
   it('CTA reads "Uložit" on grid with no confirmed foods', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -278,7 +221,6 @@ describe('meal/+page.svelte', () => {
   // ── Grid: confirmed-foods summary + notes ────────────────
 
   it('grid shows read-only confirmed foods summary after family commit', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText } = render(MealPage);
     await tick();
@@ -296,7 +238,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('grid has a Poznámka textarea', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -316,7 +257,6 @@ describe('meal/+page.svelte', () => {
   // end-to-end by `tests/e2e/meal-modal-edit.test.ts` (AC245-* group).
 
   it('CTA is primary when saving a family (family commit flow)', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -333,7 +273,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('opening a grid row editor does not remove sibling foods from the working list', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -371,7 +310,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('opening a grid row editor keeps the editing food in its original position, not appended at bottom', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -415,7 +353,6 @@ describe('meal/+page.svelte', () => {
   // which one hydrates.
 
   it('switching to Miminko hydrates the baby meal from its own slot', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -447,7 +384,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('shows the forward "Hotovo" CTA on the actor whose work a swap autosaved (issue #571)', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     // Both slots start empty; the mother composes a food, then round-trips.
@@ -475,7 +411,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('keeps the disabled "Uložit změny" CTA after cycling actor tabs without editing (issue #587)', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     // Both actors already have saved meals — nothing to save on either.
@@ -514,7 +449,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('deleting on the Miminko pill removes the baby slot, leaving the mother meal intact', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -558,7 +492,6 @@ describe('meal/+page.svelte', () => {
   // slot directly, not the mother's.
 
   it('mixed stage: entering with ?actor=baby hydrates the baby meal', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(
       `http://localhost/meal?type=lunch&date=${today}&actor=baby&returnTo=/day/${today}`,
@@ -588,7 +521,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('composes for the baby slot in the solids stage (implicit single actor)', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'solids' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -630,7 +562,6 @@ describe('meal/+page.svelte', () => {
   // ── Explicit delete + empty-Hotovo guard (issue #268) ─────
 
   it('does NOT render the ⋯ overflow when composing a brand-new meal (empty slot)', async () => {
-    setReady();
     // beforeEach clears db.meals — empty slot.
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
@@ -640,7 +571,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('renders the ⋯ overflow when editing an existing meal', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -651,7 +581,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('tapping ⋯ opens the action list with "Smazat jídlo" + "Zrušit"', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -665,7 +594,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('tapping "Zrušit" in the action list closes it', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -688,7 +616,6 @@ describe('meal/+page.svelte', () => {
   // ── Copy-meal entry point + destination picker (spec #599, issue #606) ──
 
   it('shows "Kopírovat jídlo" in the ⋯ action list when the source meal has ≥1 food', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -706,7 +633,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('hides "Kopírovat jídlo" for a notes-only / zero-food meal (but still shows delete)', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     // An existing meal with a note but no foods — nothing to copy.
     await meals.save({
@@ -728,7 +654,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('tapping "Kopírovat jídlo" opens the destination picker (day strip + "Kopírovat sem")', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -749,7 +674,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('picker: no future day is rendered; today is selectable', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -780,7 +704,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('picker: the strip spans back to the earliest logged day, and it is a selectable destination', async () => {
-    setReadyWithElim();
     // An earlier logged meal moves the earliest-logged floor back to that day.
     const earlier = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
     await meals.save({
@@ -822,7 +745,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('confirm copy (success): persists the destination meal, navigates to the dest day, writes a meal-copy buffer', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -859,7 +781,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('confirm copy (success): awaits navigation before writing the undo buffer so the toast lands on the destination day (US-25)', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     // Make goto resolve on a deferred promise so we can observe that the buffer
@@ -901,7 +822,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('confirm copy (no-op): copying onto its own slot writes nothing, navigates nowhere', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -929,7 +849,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('confirm copy (save rejection): shows the save-failure toast and stays put', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -969,7 +888,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('US-17: a manual edit-save of the destination slot clears a stale meal-copy buffer', async () => {
-    setReadyWithElim();
     // Simulate landing on the destination slot right after a copy: the single
     // discard buffer holds a meal-copy for this exact slot.
     mockDiscardBuffer.set({
@@ -1006,7 +924,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('empty-meal hint (saving deletes it) visible when editing an existing meal with zero foods', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -1029,7 +946,6 @@ describe('meal/+page.svelte', () => {
     // no-op restoring the old foods, the #586 bug) and writes the delete buffer
     // so the layout toast + undo behave like the explicit "Smazat jídlo".
     vi.mocked(writeBuffer).mockClear();
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -1053,7 +969,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('empty-meal hint NOT visible when composing a brand-new meal with zero foods', async () => {
-    setReady();
     // beforeEach clears db.meals — composing-new.
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByText } = render(MealPage);

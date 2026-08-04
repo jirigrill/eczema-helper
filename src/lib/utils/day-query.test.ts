@@ -35,14 +35,14 @@ describe('parseDayQuery', () => {
   });
 
   it('returns the given returnTo when ?returnTo= is present', async () => {
-    const { returnTo } = await parse('?returnTo=/program');
-    expect(returnTo).toBe('/program');
+    const { returnTo } = await parse('?returnTo=/settings');
+    expect(returnTo).toBe('/settings');
   });
 
   it('honours explicit returnTo even when date is also set', async () => {
-    const { date, returnTo } = await parse('?date=2025-03-01&returnTo=/program');
+    const { date, returnTo } = await parse('?date=2025-03-01&returnTo=/settings');
     expect(date).toBe('2025-03-01');
-    expect(returnTo).toBe('/program');
+    expect(returnTo).toBe('/settings');
   });
 
   it('parses a valid ?actor= into the Actor type', async () => {

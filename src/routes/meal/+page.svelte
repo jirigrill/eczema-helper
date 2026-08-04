@@ -608,8 +608,8 @@
   //
   // Note: the issue's original design called for `nav.cancel()` +
   // `goto(returnTo)` to handle a future case where `returnTo` is decoupled
-  // from the previous history entry (e.g. a `/week` FAB → `/meal` with
-  // `returnTo=/day/<today>`). That entry point doesn't exist in v1 — every
+  // from the previous history entry (e.g. some other screen's FAB → `/meal`
+  // with `returnTo=/day/<today>`). That entry point doesn't exist in v1 — every
   // call site (`MealCard`, `FabActionSheet`) sets `returnTo=/day/<that day>`
   // matching the previous history entry. So we let popstate proceed
   // natively. If a mismatched-returnTo entry ships later, this handler is

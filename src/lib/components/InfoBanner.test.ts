@@ -29,10 +29,10 @@ describe('InfoBanner', () => {
   });
 
   it('renders as an anchor when href is provided', () => {
-    const { container } = render(InfoBanner, { props: { variant: 'warning', href: '/program' } });
+    const { container } = render(InfoBanner, { props: { variant: 'warning', href: '/settings' } });
     const anchor = container.querySelector('a[data-state="warning"]');
     expect(anchor).not.toBeNull();
-    expect(anchor?.getAttribute('href')).toBe('/program');
+    expect(anchor?.getAttribute('href')).toBe('/settings');
   });
 
   it('renders slot content', () => {

@@ -4,7 +4,6 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
   import { feedingStageOptions } from '$lib/config/feeding-stages';
-  import { protocolSession } from '$lib/stores/protocol-session';
   import { seededStatus, settingsStore } from '$lib/stores/settings.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
@@ -18,7 +17,7 @@
   }
 
   async function resetPrototype() {
-    await protocolSession.reset();
+    await settingsStore.reset();
     // The seeded signal is `settings.feedingStage != null`, driven by a
     // liveQuery — so it can still report the stale 'seeded' status for a tick
     // right after reset() clears the settings row. Wait for it to actually flip

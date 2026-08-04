@@ -27,13 +27,9 @@ vi.mock('$lib/stores/settings.svelte', () => ({
       return currentFeedingStage;
     },
     setFeedingStage: mockSetFeedingStage,
-  },
-  seededStatus: { subscribe: mockSeededSubscribe },
-}));
-vi.mock('$lib/stores/protocol-session', () => ({
-  protocolSession: {
     reset: mockReset,
   },
+  seededStatus: { subscribe: mockSeededSubscribe },
 }));
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 
