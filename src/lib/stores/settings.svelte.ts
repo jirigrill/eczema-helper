@@ -59,11 +59,25 @@ function createSettingsStore() {
     return settingsRepo.save({ ...(current.data ?? {}), feedingStage });
   }
 
+  // "Start over" — clear the mother's data so the app returns to first run.
+  // Clearing `settings` flips the seeded signal to `unset`; the dormant
+  // protocol tables (answers/schedule/evaluations, §2f) are cleared too so a
+  // reset leaves no stale rows behind, without reviving the parked engine.
+  async function reset(): Promise<void> {
+    await Promise.all([
+      db.answers.clear(),
+      db.schedule.clear(),
+      db.evaluations.clear(),
+      db.settings.clear(),
+    ]);
+  }
+
   return {
     get feedingStage(): FeedingStage | null {
       return context.current?.feedingStage ?? null;
     },
     setFeedingStage,
+    reset,
   };
 }
 

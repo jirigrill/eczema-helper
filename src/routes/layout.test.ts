@@ -277,7 +277,11 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
     expect(main.scrollTop).toBe(250);
 
     // Navigate to another route — the layout should reset the scroll.
-    mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
+    mockPageStore.set({
+      url: new URL('http://localhost/settings'),
+      params: { date: '' },
+      data: {},
+    });
     await tick();
 
     expect(main.scrollTop).toBe(0);

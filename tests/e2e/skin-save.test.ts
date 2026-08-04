@@ -309,11 +309,11 @@ test('skin save: observation survives reload via live Dexie query', async ({ pag
 
 test('skin returnTo: custom returnTo param is honoured after Uložit', async ({ page }) => {
   await completeOnboarding(page);
-  await page.goto('/skin?returnTo=/program');
+  await page.goto('/skin?returnTo=/settings');
   await tapRegion(page, 'face');
   await tapRegion(page, 'face');
   await page.getByTestId('skin-save').click();
-  await expect(page).toHaveURL('/program');
+  await expect(page).toHaveURL('/settings');
 });
 
 // ── Photo staging ─────────────────────────────────────────────────────────
