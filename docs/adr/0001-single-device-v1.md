@@ -15,7 +15,8 @@ The one carefully-bounded exception: when the app later asks an AI to *suggest* 
 
 > **Amendment (ADR-0027, 2026-07-25):** The "single-**actor**" half of this ADR's
 > title is retired. Meals are now dual-actor (`mother` + `baby`) over a single
-> mirrored schedule — see [ADR-0027](0027-dual-actor-mirrored-schedule.md). This
+> mirrored schedule — ADR-0027 is parked with the protocol engine, see
+> [parked features](../parked-features.md). This
 > is **not** a reversal of the single-*device* decision: still one phone, one
 > journal, no accounts, no sync, no server holding user data. The
 > GDPR-controller and multi-device-sync reasoning below is unchanged.

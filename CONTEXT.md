@@ -133,7 +133,8 @@ by the presence of `?id=` in the URL. The
 `update(obs, { addPhotos, removePhotoIds })` (edit), `remove(id)`
 (delete, cascades to photos), and `listByDate(date)` (read).
 
-See ADR-0004 (causation derived), ADR-0021 (regional
+See ADR-0004 (causation derived — parked with the protocol engine, see
+`docs/parked-features.md`), ADR-0021 (regional
 severity shape), ADR-0021 (klidné as positive evidence — formerly
 ADR-0022, merged in 2026-06-30), and ADR-0021 (edit and delete
 preserve identity, 2026-06-30).
@@ -181,31 +182,6 @@ with `photos` (by `observationId`). Multiple `SkinPhoto` records may
 exist for the same observation (one per captured frame) and for the
 same calendar day (across multiple observations).
 
-### ReintroductionEvaluation
-The verdict recorded at the end of a phase, keyed by `phaseId` (one
-immutable row per phase / reintroduction attempt). Two kinds, by
-`phaseType`:
-
-- `allergen-test` — at the end of a `reintroduction` phase, picked from
-  four outcomes (`tolerated` / `mild-reaction` / `clear-reaction` /
-  `severe-reaction`). This is the *only* place where the user explicitly
-  attributes a reaction to an allergen.
-- `skin-status` — at the end of a `reset` or `elimination` phase, a
-  reflective record of how the skin fared (`improved` / `unchanged` /
-  `worsened` / `new-lesions`). A pure record; it changes no schedule and
-  no status.
-
-The verdict is an **audit fact**, not the source of truth for status.
-Recording an `allergen-test` *reaction* drives a schedule mutation (a
-`rest` phase is inserted; its length is severity-keyed), and
-`AllergenStatus` is then derived from the resulting topology — the
-evaluations table is never read by `getAllergenStatuses`. A reaction is
-**never permanent** for a protocol allergen: a reacted allergen is
-eligible for a later manual retest. The app may suggest a
-recommended outcome from the phase's daily observations (the proposer,
-[ADR-0026](docs/adr/0026-llm-schedule-proposer.md)); the user always confirms. See
-[ADR-0016](docs/adr/0016-verdict-drives-schedule-not-status.md).
-
 ### Insight
 A *derived* pattern card computed over `(Meal, SkinObservation)` pairs
 (and the schedule). Not a stored user input. The pattern detector is a
@@ -213,156 +189,6 @@ pure function: `insights(meals, skinObservations, schedule) → Insight[]`.
 Examples: "after dairy days, skin worsened in 3 of 4 cases — reaction
 within 24h." Insights surface counter-examples too. Dismissals/pins are
 UI state, not domain state.
-
-### EliminationWindow
-What an actor is forbidden to eat on a given day. It has an actor-independent
-**protocol portion**, derived by `getProtocolEliminatedForDate(schedule, date)`,
-plus that actor's own permanent eliminations. Each consumer combines them per
-actor: the mother's window is `protocol ∪ permanentMother`, the baby's window is
-`protocol ∪ permanentBaby`. A food safe for the mother but on `permanentBaby` is
-still flagged for a baby meal.
-
-The protocol portion depends on the current phase type:
-
-| Phase | Protocol eliminated |
-|---|---|
-| `reset` | Nothing — the protocol allergens carry status `eliminated` but the mother eats them to establish a baseline |
-| `elimination` | All protocol allergens |
-| `reintroduction` of X | Protocol minus X (current) minus already-passed allergens |
-| `rest` | Protocol minus already-passed allergens (no current exception) |
-| `tolerance-building` of X | X is allowed in small doses (status `tolerance-building` → not forbidden); every other allergen follows its own current `AllergenStatus` |
-| After all phases | Nothing |
-
-The protocol portion is *derived from* `AllergenStatus` — the per-phase table
-above is the projection rule, but the source of truth is the status query.
-`getProtocolEliminatedForDate` works in two steps:
-
-1. **Reset guard.** If the active phase is `reset` (or no phase is active),
-   return an empty set. Protocol allergens carry status `eliminated` during
-   reset (they are inside the early-phase window), but the mother eats them
-   normally during reset to establish a baseline — forbidding them here would
-   defeat that purpose. Permanent eliminations still apply (they are combined
-   by the caller, not by this query).
-2. **Status filter.** For all other phases, return ids of allergens whose
-   status is in `{ eliminated, reacted, not-yet-tested }`. Statuses
-   `{ testing, passed, tolerance-building }` are not forbidden. Permanent
-   statuses (`permanent-mother` / `permanent-baby`) are deliberately **not**
-   returned here — they are per-actor and combined by the caller.
-
-The schedule stores `permanentMother` and `permanentBaby` as separate fields;
-`ReadyContext` exposes both alongside `protocolEliminated` and never pre-merges
-them, so conflict detection stays actor-aware.
-
-### AllergenStatus
-The per-allergen lifecycle state on a given calendar date, derived by
-`getAllergenStatuses(schedule, date)`. One entry per allergen in the
-*closed universe* `permanentMother ∪ permanentBaby ∪ protocolMembers`
-— allergens outside that universe have no status (they are ordinary
-foods, not allergens-of-interest).
-
-Status is a discriminated string union:
-
-| Status | Meaning |
-|---|---|
-| `permanent-mother` | Mother's own allergy. Lifelong. Never enters a reintroduction. Terminal. |
-| `permanent-baby` | Baby's confirmed allergy. Eliminated by default; eligible for end-of-program retest via `appendReTestPhases`. |
-| `not-yet-tested` | Protocol allergen with a reintroduction phase still in the future, or never scheduled. |
-| `eliminated` | Currently inside the active `elimination` (or `reset`) phase. |
-| `testing` | Currently inside a `reintroduction` phase. |
-| `passed` | Latest reintroduction completed cleanly (no rest follow-up). |
-| `reacted` | Latest reintroduction was followed by a rest phase (reaction signal). |
-| `tolerance-building` | Open-ended `tolerance-building` phase active for this allergen. |
-
-**Invariants:**
-
-- *Latest-reintroduction wins.* An allergen may appear in multiple
-  reintroduction phases (initial protocol + retest phases appended via
-  `appendReTestPhases`). Status is determined by the most recent
-  reintroduction phase that has started on or before `date`.
-- *Reintroduction supersedes earlier `tolerance-building`.* If both a
-  `tolerance-building` phase and a later `reintroduction` phase for the
-  same allergen have started, the reintroduction phase drives the
-  status.
-- *Origin survives clearance.* A `permanent-mother` allergen never
-  becomes `testing` — no domain operation creates a reintroduction
-  phase for one. A `permanent-baby` allergen with a future retest phase
-  remains `permanent-baby` until that phase activates; on activation it
-  becomes `testing`, then either `passed` (clean retest) or reverts to
-  `permanent-baby` (reacted retest).
-- *Closed universe.* `getAllergenStatuses(schedule, date)` returns
-  exactly `|permanentMother ∪ permanentBaby ∪ protocolMembers|` entries.
-  No more, no fewer. The three sets are disjoint by construction
-  (the protocol generator excludes permanents from `protocolMembers`).
-- *Verdict resolves the morning after.* A reintroduction phase's `endDate`
-  is its last dosing/observation day, so on `endDate` the allergen still
-  reads `testing`. The verdict (`passed` / `reacted`) is therefore read at
-  `endDate + 1` — "egg's result is known the next morning, not on the last
-  dose day." Any consumer that wants a phase's final verdict must query
-  `getAllergenStatuses(schedule, endDate + 1)`, never `endDate`.
-
-### CanonicalAllergen
-A curated catalog record describing one allergen — its stable `id`, `icon`,
-`subitems`, `aliases` (normalized surface forms), optional `source` provenance,
-optional `allergenOrder` (position in Matoušková's 20-allergen testing
-sequence), an **optional** reintroduction `protocol`, and an **optional**
-`ladder` (see [Ladder](#ladder) below). The records are the data-first source
-of truth: `AllergenId` is derived as `typeof ALLERGEN_CATALOG[number]['id']`,
-and `LadderAllergenId` as the subset of records that carry a `ladder`.
-A record without a ladder is canonical and loggable but **not reintroducible**
-— the honest state of most long-tail foods. Czech display `name` is not on the
-record; it lives in `strings/` (ADR-0014) — **except** `LadderStep.dose`, which
-is inlined on the ladder as a deliberate ADR-0014 deviation (see [Ladder](#ladder)).
-Records are bundled, build-time, and JSON-serializable, read through
-`CanonicalCatalogPort`.
-
-### Ladder
-The dose-escalation model — the sole per-allergen dose-progression shape as of
-PRD #421 PR B (see [ADR-0023](docs/adr/0023-dose-escalation-ladder.md)). Shape:
-`{ allergenId: string, stages: Partial<Record<FeedingStage, readonly
-LadderStep[]>> }`. `FeedingStage` is `'breastfed' | 'mixed' | 'solids'`,
-mirroring the three source-protocol table variants; not every allergen has
-data for every stage. Each `LadderStep` ("rung") is `{ id, anchor: PortionKind,
-isEvaluationCheckpoint: boolean, dose: string }` — `anchor` reuses the shared
-`PortionKind` vocabulary, and *order within the ladder* (not the anchor value
-alone) is what makes one step higher than another, since anchors may repeat
-across rungs. `isEvaluationCheckpoint` gates the mother's verdict UI at that
-rung.
-
-The current rung is **derived, never persisted** — mirroring `AllergenStatus`
-(above): `currentRung(allergenId, meals, steps)` in `src/lib/domain/ladder.ts`
-walks meal history against one feeding stage's `steps` array
-(`ladder.stages[stage]`, chosen by the caller). `nextLegalStep(rung, steps)`
-returns the single next step or `null` — skipping a rung is impossible to
-express through the function signature. `currentRung` is **reaction-aware**
-(PRD #445): a recorded reaction drops the live rung one step, so it means
-"highest rung logged **and not reacted-against**".
-
-**Decision engine (`decideLadderMove`, PRD #445).** The deterministic brain that
-composes `currentRung` + its gates (`cadenceGate`, `skinStabilityGate`) into one
-per-allergen **verdict** — the closed
-`LadderDecision` union (`advance` · `hold` · `rest` · `passed` · `settled` ·
-`blocked` · `ceiling-reached { reason }`; the v1 `step-back` variant was retired
-by the §6 walk-down, #501). It is the F3 ≡ F4 walker: it never branches on
-phase; the phase difference reduces to the injected `cadenceDays`
-(`cadenceForPhase` in `policy.ts`). Invariants:
-
-- **Decide, never write.** The engine returns a verdict and performs no
-  persistence or schedule mutation; the mother still logs every dose herself.
-  It is the single definition of a legal move that the PRD #423 proposer reuses.
-- **Fixed gate precedence** (most-overriding first): permanent → ceiling
-  (floor exhaustion) → reaction recovery `rest` → skin-worsening → cadence →
-  advance/passed/settled. Safety/clinical gates dominate rhythm gates.
-- **A reaction walks the ladder down (no re-climb).** A confirmed reaction binds
-  within the latency window `[D − latency, D]`, caps the reacting rung forever,
-  and steps down one rung; recovery `rest` (length by severity, ADR-0016) sits on
-  the stepped-down rung, which is then re-confirmed by its own dwell (a single
-  earlier climb-past exposure does not count). A second reaction cascades; the
-  lowest rung reacting (floor exhaustion) is the terminal `ceiling-reached` that
-  defers to human care — the engine never sets a `permanent-*` status itself.
-  (`MAX_RUNG_REACTIONS` retired — unreachable once re-climb is gone; #501.)
-- **One shared replay.** A private `deriveLadderState` replays meals +
-  evaluations in date order once; `currentRung` and `decideLadderMove` both read
-  it, so reaction-binding + walk-down logic exists exactly once.
 
 ### Family / Allergen / Food — the three-level catalog
 
@@ -529,15 +355,6 @@ governed by the live `FeedingStage`: `getEligibleActors(stage)` returns
 `Meal` carries its `actor` in the composite `MealId` (`date:mealType:actor`),
 so a `(date, mealType)` slot holds up to one meal per actor.
 
-**Why one schedule, not two:** the baby follows a *mirrored* schedule, not a
-second ladder — both actors are checked against the same protocol-eliminated
-set (`protocolEliminated`), differing only in their own permanent
-eliminations (`permanentMother` vs `permanentBaby`). The mother eliminates X
-and the baby avoids X on the same protocol timeline; there is no separate
-baby reintroduction ladder or second generator. `eliminatedFor(ctx, actor)`
-recombines the shared protocol set with the actor's permanent set in one
-place. See [ADR-0027](docs/adr/0027-dual-actor-mirrored-schedule.md).
-
 **Invariant:** every `Meal` has an `actor` in `{ mother, baby }`; the actor
 is a member of `getEligibleActors(feedingStage)` at log time.
 
@@ -548,8 +365,9 @@ is a member of `getEligibleActors(feedingStage)` at log time.
 - **Single device.** Runs on one phone (the mother's). No accounts, no sync,
   no server. See [ADR-0001](docs/adr/0001-single-device-v1.md). (The app is no
   longer single-*actor*: meals are logged for both `mother` and `baby` on one
-  mirrored schedule — see the [Actor](#actor) entry and
-  [ADR-0027](docs/adr/0027-dual-actor-mirrored-schedule.md).)
+  mirrored schedule — see the [Actor](#actor) entry; the mirrored-schedule
+  rationale, ADR-0027, is parked with the protocol engine — see
+  `docs/parked-features.md`.)
 - **No backup mechanism exists yet.** Data lives only in IndexedDB on the one device. An encrypted manual export/import (whole-state serialize + AES-256-GCM, passphrase-derived key; every record has a stable UUID) is the intended floor — not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).
 - **Meals are day-granular.** `Meal` carries `date` + `mealType` + `actor`.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
@@ -563,7 +381,7 @@ is a member of `getEligibleActors(feedingStage)` at log time.
   truth (meals, skin observations, end-of-phase reintro verdict). The
   app derives suspected patterns via a pattern detector over those
   logs. No `suspectedCause` field on `SkinObservation`.
-  See [ADR-0004](docs/adr/0004-causation-derived-not-recorded.md).
+  See ADR-0004 (parked with the protocol engine, see `docs/parked-features.md`).
 - **Skin observation is a per-region severity set, atomically saved
   with photos.** `SkinObservation.regions` is a list of `{ id, level }`
   pairs over nine canonical regions and four absolute severity levels
@@ -587,33 +405,20 @@ is a member of `getEligibleActors(feedingStage)` at log time.
 - **Persistence: Dexie/IndexedDB, normalized tables.** Photos in a
   dedicated table. Reactive UI via `liveQuery`. The insight engine
   receives plain arrays — it does not know Dexie exists.
-- **The app is a Protocol Executor.** Onboarding, today view, meal-add
-  with conflict detection, day detail, program timeline, end-of-reintro
-  verdict. The derived-insight engine is not built (tracked in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
+- **The app is a Logging Tool.** First run (feeding stage), day view, meal
+  logging, skin observation with photos, settings. It records what was eaten
+  and how the skin looked; it derives nothing and instructs nothing. The
+  elimination-protocol engine is parked at `parked/protocol-engine` — see
+  `docs/parked-features.md`. The derived-insight engine is not built (tracked
+  in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
 - **Domain records carry types, not display strings.** Domain-emitted
   records (`SchedulePhase`, `MealItem`, etc.) carry stable type
   identifiers (e.g. `type: 'elimination'`). Czech display text and visual
   tokens live in `src/lib/strings/` (pure text) and `src/lib/config/`
   (text + visual tokens combined), resolved at render time. Baking
   a display string onto a domain record violates this invariant.
-  **Exception:** `LadderStep.dose` (Czech dose caption) is inlined on the
-  catalog record — a deliberate, documented deviation for the Czech-only
-  single-tenant app. See the [ADR-0023](docs/adr/0023-dose-escalation-ladder.md) amendment.
-- **Allergen catalog is data-first, bundled, and port-fronted.** Each allergen
-  is one curated JSON-serializable `CanonicalAllergen` record; `AllergenId` and
-  `LadderAllergenId` are *derived* from the records, not hand-written unions.
-  Reintroduction capability is the optional `protocol` field — canonical does
-  not imply reintroducible. Unknown user input becomes a runtime
-  `HarvestCandidate` in Dexie, never mutates the bundled catalog.
-- **Ladder rung is derived, never persisted; skipping a rung is
-  unrepresentable.** `currentRung`/`nextLegalStep` (`src/lib/domain/ladder.ts`)
-  mirror the `AllergenStatus` derivation pattern over per-stage
-  `LadderStep[]` arrays on the optional `ladder` field of a `CanonicalAllergen`.
-  The ladder is the sole per-allergen dose-progression shape (PRD #421 PR B).
-  See [ADR-0023](docs/adr/0023-dose-escalation-ladder.md).
-- **The ladder decision engine decides but never writes.**
-  `decideLadderMove` (`src/lib/domain/ladder.ts`) composes `currentRung` + the
-  gates into one `LadderDecision` verdict under a fixed gate precedence; it
-  performs no persistence or schedule mutation, and a terminal `ceiling-reached`
-  defers to human care rather than setting a `permanent-*` status. See the
-  [Ladder](#ladder) section and [ADR-0023 §5](docs/adr/0023-dose-escalation-ladder.md#5-decision-engine-decideladdermove-prd-445).
+- **Food catalog is data-first and bundled.** Each entry is one curated
+  JSON-serializable `CanonicalAllergen` record; `AllergenId` is *derived* from the
+  records, not hand-written. Records retain dormant `protocol` and `ladder` fields,
+  read only by parked code. Unknown user input becomes a runtime `HarvestCandidate`
+  in Dexie, never mutates the bundled catalog.

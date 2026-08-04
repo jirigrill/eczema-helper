@@ -38,7 +38,7 @@ The following lived in earlier iterations of this document and are **not** part 
 
 - **No backend.** No PostgreSQL, no `postgres.js`, no server DB. No app server. No `lib/server/`. ([ADR-0001](../adr/0001-single-device-v1.md))
 - **No auth.** No cookie sessions, no bcrypt, no passkeys. Single-device, no accounts.
-- **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine is not built ([#468](https://github.com/jirigrill/eczema-helper/issues/468); see [ADR-0004](../adr/0004-causation-derived-not-recorded.md)).
+- **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine is not built ([#468](https://github.com/jirigrill/eczema-helper/issues/468); causation-derived rationale, ADR-0004, is parked with the protocol engine — see [parked features](../parked-features.md)).
 - **No push notifications.** No web-push, no VAPID.
 - **No photo upload.** Photos stay on-device; photos are stored unencrypted at rest; encryption-at-rest must land before any non-developer device (#467).
 - **No charts / no PDF export.** No `uPlot`, no `pdfmake`.
