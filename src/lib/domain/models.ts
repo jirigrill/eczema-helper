@@ -3,92 +3,19 @@
 // Derived from the data-first catalog (ADR-0017) and re-exported here so
 // existing `$lib/domain/models` import sites are unchanged. The catalog is the
 // single source of truth — these are no longer hand-written unions.
-import type {
-  AllergenId,
-  CatalogAllergenId,
-  CustomAllergenId,
-  LadderAllergenId,
-} from '$lib/data/allergen-catalog';
+import type { AllergenId, CatalogAllergenId, CustomAllergenId } from '$lib/data/allergen-catalog';
 import type { CatalogFoodId, FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { Ladder, LadderStep } from '$lib/domain/canonical-allergen';
 
-export type {
-  AllergenId,
-  CatalogAllergenId,
-  LadderAllergenId,
-  CustomAllergenId,
-  FamilyId,
-  FoodId,
-  CatalogFoodId,
-  Ladder,
-  LadderStep,
-};
-
-// ── Allergen status ───────────────────────────────────────────
-
-export type AllergenStatusValue =
-  | 'permanent-mother' // Mother's own allergy. Lifelong. Never reintroduced.
-  | 'permanent-baby' // Baby's confirmed allergy. Eliminated; eligible for end-of-program retest.
-  | 'not-yet-tested' // Protocol allergen whose reintroduction phase hasn't started yet.
-  | 'eliminated' // Protocol allergen inside the active elimination (or reset) phase.
-  | 'testing' // Inside a reintroduction phase right now.
-  | 'passed' // Latest reintroduction completed cleanly (no rest follow-up).
-  | 'reacted' // Latest reintroduction was followed by a rest phase.
-  | 'tolerance-building'; // Open-ended phase delivering small doses.
-
-export type AllergenStatus = {
-  allergenId: AllergenId;
-  status: AllergenStatusValue;
-};
-
-export type EczemaSeverity = 'mild' | 'moderate' | 'severe';
-
-export type QuestionnaireAnswers = {
-  babyBirthDate: string; // ISO date YYYY-MM-DD
-  eczemaSeverity: EczemaSeverity;
-  motherAllergies: AllergenId[]; // permanent, never reintroduced — may include custom
-  babyConfirmedAllergies: AllergenId[]; // permanent, never reintroduced — may include custom
-  programStartDate: string; // ISO date — when the program begins
-  completedAt: string; // ISO datetime
-  testedAllergens: LadderAllergenId[]; // protocol-only — custom slugs can't be reintroduced
-  feedingStage: FeedingStage; // seeds the live settings master switch at onboarding
-};
+export type { AllergenId, CatalogAllergenId, CustomAllergenId, FamilyId, FoodId, CatalogFoodId };
 
 /**
  * The live master switch(es) the user controls, held in the dedicated `settings`
- * singleton row — deliberately off `GeneratedSchedule` so retest/verdict rebuilds
- * cannot overwrite them. `feedingStage` picks which ladder-stage variant the dose
- * steps resolve to (ADR-0023). Room for future settings alongside it.
+ * singleton row. `feedingStage` gates which actors may log a meal via
+ * `getEligibleActors`. Room for future settings alongside it.
  */
 export type SettingsData = {
   feedingStage: FeedingStage;
 };
-
-export type PhaseType = 'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building';
-
-export type SchedulePhase = {
-  id: string;
-  type: PhaseType;
-  startDate: string; // ISO date
-  endDate: string; // ISO date
-  allergenIds: LadderAllergenId[]; // protocol allergens relevant to this phase
-};
-
-export type GeneratedSchedule = {
-  phases: SchedulePhase[];
-  permanentMother: AllergenId[]; // mother's confirmed allergies — never reintroduced
-  permanentBaby: AllergenId[]; // baby's confirmed allergies — never reintroduced
-  startDate: string;
-  estimatedEndDate: string;
-};
-
-/**
- * Returns all permanently eliminated allergens (union of mother's and baby's).
- * Use this instead of accessing both fields directly.
- */
-export function getPermanentEliminations(schedule: GeneratedSchedule): AllergenId[] {
-  return [...new Set([...schedule.permanentMother, ...schedule.permanentBaby])];
-}
 
 export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package';
 
@@ -257,40 +184,4 @@ export type SkinPhoto = {
 export type SkinPhotoInput = {
   region: RegionId;
   blob: Blob;
-};
-
-export type ReintroductionDayInfo = {
-  dayInPhase: number;
-  totalDays: number;
-  allergenId: LadderAllergenId;
-  isEvaluationDay: boolean;
-};
-
-// Allergen tolerance — used for reintroduction phases
-export type AllergenOutcome = 'tolerated' | 'mild-reaction' | 'clear-reaction' | 'severe-reaction';
-
-// Skin status change — used for reset and elimination phases
-export type SkinEvaluationOutcome = 'improved' | 'unchanged' | 'worsened' | 'new-lesions';
-
-export type ReintroductionEvaluation = {
-  phaseId: string; // links to SchedulePhase.id
-  phaseType: 'allergen-test' | 'skin-status'; // determines which outcome vocabulary applies
-  outcome: AllergenOutcome | SkinEvaluationOutcome;
-  allergenId?: LadderAllergenId; // only set for allergen-test evaluations
-  notes?: string;
-  date: string; // ISO date when evaluation was made
-};
-
-export type AppState = {
-  answers: QuestionnaireAnswers | null;
-  schedule: GeneratedSchedule | null;
-  meals: Meal[];
-  skinObservations: SkinObservation[];
-  evaluations: ReintroductionEvaluation[];
-};
-
-export type ToleranceBuildingReminder = {
-  allergenId: LadderAllergenId;
-  daysSinceLastDose: number;
-  // No display label — resolve via categoryConfig[allergenId] at render sites (ADR-0014).
 };

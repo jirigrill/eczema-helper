@@ -2,12 +2,10 @@ import Dexie from 'dexie';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import { AtopicDb } from '$lib/db/atopic-db';
 import type { Meal, MealItem } from '$lib/domain/models';
 import { PREPARATION_METHODS, mealId } from '$lib/domain/models';
 import { copyMealInto } from '$lib/domain/working-meal';
-import { addDays } from '$lib/utils/date';
 
 import { DexieMealRepository } from './dexie-meal-repository';
 
@@ -433,15 +431,13 @@ describe('DexieMealRepository', () => {
 
   // ── Unbounded logging: no schedule-derived window (issue #628) ──────────
   //
-  // The write adapter no longer consults the schedule. Any day the mother can
-  // reach is loggable, even one far outside a generated schedule span, so a
-  // late (or early) entry is never refused (§1 anchor 3, §4 step 3).
+  // The write adapter no longer consults any schedule. Any day the mother can
+  // reach is loggable, however far from today, so a late (or early) entry is
+  // never refused (§1 anchor 3, §4 step 3).
 
   describe('unbounded logging', () => {
-    it('saves a meal on a day far before a generated schedule span', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const wayBefore = addDays(schedule.startDate, -365);
+    it('saves a meal on a day years in the past', async () => {
+      const wayBefore = '2020-01-01';
 
       const result = await repo.save(makeMeal(wayBefore, 'lunch'));
       expect(result).toMatchObject({ ok: true });
@@ -450,10 +446,8 @@ describe('DexieMealRepository', () => {
       expect(persisted.ok && persisted.data?.date).toBe(wayBefore);
     });
 
-    it('saves a meal on a day far after a generated schedule span', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const wayAfter = addDays(schedule.estimatedEndDate, 365);
+    it('saves a meal on a day years in the future', async () => {
+      const wayAfter = '2030-12-31';
 
       const result = await repo.save(makeMeal(wayAfter, 'lunch'));
       expect(result).toMatchObject({ ok: true });
@@ -462,10 +456,8 @@ describe('DexieMealRepository', () => {
       expect(persisted.ok && persisted.data?.date).toBe(wayAfter);
     });
 
-    it('saves a copied meal on a day far before a generated schedule span', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const wayBefore = addDays(schedule.startDate, -365);
+    it('saves a copied meal on a day years in the past', async () => {
+      const wayBefore = '2020-01-01';
 
       const source = makeMeal('2026-05-15', 'lunch', {
         items: [makeItem('src-1', { name: 'Rýže', foodId: 'ryze' })],

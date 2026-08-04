@@ -11,7 +11,6 @@ export const actionStrings = {
   start: 'Začít',
   continue: 'Pokračovat',
   back: 'Zpět',
-  backArrow: '← Zpět',
   add: 'Přidat',
   save: 'Uložit',
   /**
@@ -25,23 +24,9 @@ export const actionStrings = {
   cancel: 'Zrušit',
   close: 'Zavřít',
   done: 'Hotovo',
-  all: 'Vše',
   edit: 'Upravit',
-
-  /** Compound / app-specific action labels */
-  confirm: 'Potvrdit a spustit program',
-  restart: 'Restartovat dotazník',
-  saveWithConflict: '⚠ Uložit s odchylkou',
-  editSchedule: 'Upravit program',
-
-  /** Onboarding skip / no-selection buttons */
-  noAllergy: 'Nemám žádnou alergii',
-  noConfirmedAllergy: 'Žádné potvrzené alergie',
-
-  /** Navigation links styled as actions */
-  evaluatePhase: 'Zhodnotit fázi →',
-  startQuestionnaire: 'Spustit dotazník →',
-  showDayOverview: 'Zobrazit přehled dne →',
+  /** Destructive "start over" button on Settings — clears data and returns to first run (§3d). */
+  reset: 'Restartovat',
 
   /** Meal delete + overflow (issue #268, ADR-0018) */
   more: 'Více', // aria-label for the ⋯ overflow trigger

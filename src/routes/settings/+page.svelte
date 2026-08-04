@@ -59,6 +59,6 @@
     </section>
 
     <p class="body-muted">{commonStrings.settings.resetWarning}</p>
-    <Button color="danger" onclick={resetPrototype}>{actionStrings.restart}</Button>
+    <Button color="danger" onclick={resetPrototype}>{actionStrings.reset}</Button>
   </div>
 </div>

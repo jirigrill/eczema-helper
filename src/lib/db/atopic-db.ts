@@ -1,20 +1,19 @@
 import Dexie, { type EntityTable } from 'dexie';
 
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
-import type {
-  GeneratedSchedule,
-  Ladder,
-  Meal,
-  QuestionnaireAnswers,
-  ReintroductionEvaluation,
-  SettingsData,
-  SkinObservation,
-  SkinPhoto,
-} from '$lib/domain/models';
+import type { Meal, SettingsData, SkinObservation, SkinPhoto } from '$lib/domain/models';
 
-type AnswersRow = QuestionnaireAnswers & { id: string };
-type ScheduleRow = GeneratedSchedule & { id: string };
 type SettingsRow = SettingsData & { id: string };
+
+// Dormant protocol tables (PRD #623, §2f): declared so their rows survive on
+// disk for a future engine revival, but the live app never reads them and the
+// domain types that once shaped them are parked. Each row keeps only its key
+// path — the concrete shape lives in the `parked/protocol-engine` git tag
+// (PRD #623, §4 step 0), the frozen pre-strip snapshot of the engine.
+type AnswersRow = { id: string };
+type ScheduleRow = { id: string };
+type EvaluationRow = { phaseId: string };
+type LadderOverrideRow = { allergenId: string };
 
 export const SINGLETON_ID = 'singleton';
 
@@ -25,8 +24,8 @@ export class AtopicDb extends Dexie {
   skin_observations!: EntityTable<SkinObservation, 'id'>;
   photos!: EntityTable<SkinPhoto, 'id'>;
   harvest_candidates!: EntityTable<HarvestCandidate, 'normalizedKey'>;
-  evaluations!: EntityTable<ReintroductionEvaluation, 'phaseId'>;
-  ladder_overrides!: EntityTable<Ladder, 'allergenId'>;
+  evaluations!: EntityTable<EvaluationRow, 'phaseId'>;
+  ladder_overrides!: EntityTable<LadderOverrideRow, 'allergenId'>;
   settings!: EntityTable<SettingsRow, 'id'>;
 
   constructor(options?: { indexedDB?: IDBFactory; IDBKeyRange?: typeof IDBKeyRange }) {

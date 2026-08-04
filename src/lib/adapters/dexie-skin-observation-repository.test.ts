@@ -1,8 +1,7 @@
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import { AtopicDb } from '$lib/db/atopic-db';
 import type {
   RegionLevel,
   SkinObservation,
@@ -10,7 +9,6 @@ import type {
   SkinPhotoInput,
   SkinRegionRecord,
 } from '$lib/domain/models';
-import { addDays } from '$lib/utils/date';
 
 import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
 
@@ -573,16 +571,13 @@ describe('DexieSkinObservationRepository', () => {
 
   // ── Unbounded logging: no schedule-derived window (issue #628) ──────────
   //
-  // The write adapter no longer consults the schedule. A skin observation is
-  // loggable for any day the mother can reach, even one far outside a generated
-  // schedule span, and moving a row's date to such a day is never refused
-  // (§1 anchor 3, §4 step 3).
+  // The write adapter no longer consults any schedule. A skin observation is
+  // loggable for any day the mother can reach, however far from today, and
+  // moving a row's date to such a day is never refused (§1 anchor 3, §4 step 3).
 
   describe('unbounded logging', () => {
-    it('saves an observation and its photos on a day far outside a generated schedule span', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const wayBefore = addDays(schedule.startDate, -365);
+    it('saves an observation and its photos on a day years in the past', async () => {
+      const wayBefore = '2020-01-01';
 
       const result = await repo.save(makeObservation(wayBefore, { id: 'obs-far' }), [
         makePhotoInput(),
@@ -594,13 +589,11 @@ describe('DexieSkinObservationRepository', () => {
       expect(await db.photos.where('observationId').equals('obs-far').count()).toBe(1);
     });
 
-    it('updates an observation onto a day far outside a generated schedule span', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+    it('updates an observation onto a day years in the future', async () => {
       const original = makeObservation('2026-05-15', { id: 'obs-move', notes: 'before' });
       await repo.save(original, []);
 
-      const wayAfter = addDays(schedule.estimatedEndDate, 365);
+      const wayAfter = '2030-12-31';
       const revised: SkinObservation = { ...original, date: wayAfter, notes: 'after' };
       const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
       expect(result).toMatchObject({ ok: true });
