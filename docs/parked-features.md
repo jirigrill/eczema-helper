@@ -22,11 +22,11 @@ restore one capability without dragging in the rest.
 
 The mechanical procedure, once, for every entry below:
 
-- **Path entries** (`Code:` / `Docs:` lines *without* a `§`) are restored straight out of
+- **Path entries** (`Code:` / `Docs:` lines _without_ a `§`) are restored straight out of
   the tag: `git checkout parked/protocol-engine -- <path>`. The file returns byte-identical
   to its pre-strip state.
 - **`§` entries** (`schedule-builder.ts § addTrainingPhase`, `CONTEXT.md § "Ladder"`) are
-  **not** path restores. The `§` marks a *fragment* that was cut out of a file which has since
+  **not** path restores. The `§` marks a _fragment_ that was cut out of a file which has since
   kept living on `main` — a symbol inside a still-present module, or a section inside a
   still-present doc. Recovering one is **hand re-insertion**: read the fragment out of the tag
   (`git show parked/protocol-engine:<path>`) and splice it back into the evolved file, fixing
@@ -68,7 +68,8 @@ every other protocol feature reads. The spine the whole engine hangs off.
 `strings/phases.ts`, `models.ts § SchedulePhase` / `§ GeneratedSchedule` / `§ PhaseType` /
 `§ AllergenStatus` / `§ getPermanentEliminations`, `domain/day-view.ts § resolveDay`
 **Docs:** `docs/adr/0016-verdict-drives-schedule-not-status.md`,
-`docs/adr/0025-event-domain-model.md`, `CONTEXT.md § "EliminationWindow"`,
+`docs/adr/0025-event-domain-model.md`,
+`docs/adr/0027-dual-actor-mirrored-schedule.md`, `CONTEXT.md § "EliminationWindow"`,
 `CONTEXT.md § "AllergenStatus"`, `UBIQUITOUS_LANGUAGE.md § "Protocol Phases"`,
 `UBIQUITOUS_LANGUAGE.md § "Allergens & Elimination"` (minus the surviving Family/Allergen/Food
 and Source-Subgroup entries), `UBIQUITOUS_LANGUAGE.md § "Schedule & Questionnaire"` (minus the
@@ -101,10 +102,13 @@ decision engine with its gate precedence, probe/confirm mode, dwell and walk-dow
 `adapters/dexie-ladder-override-repo.ts`, `stores/ladder-override-session.ts`,
 `schedule-builder.ts § addTrainingPhase`,
 `schedule-builder.ts § getToleranceBuildingRemindersForDate`,
-`models.ts § ToleranceBuildingReminder`, `models.ts § ReintroductionDayInfo`
+`models.ts § ToleranceBuildingReminder`, `models.ts § ReintroductionDayInfo`,
+`tools/ladder-viz/`
 **Docs:** `docs/adr/0023-dose-escalation-ladder.md`, `CONTEXT.md § "Ladder"`,
 `UBIQUITOUS_LANGUAGE.md § "Ladder / LadderStep / FeedingStage"`
-**Revive note:** —
+**Revive note:** `tools/ladder-viz/` is a standalone dev inspector for the ladder engine
+(imports `$lib/domain/ladder`), not part of the app bundle — revive it only if you need
+to visualise the engine.
 
 ### reintroduction-evaluation
 
@@ -152,75 +156,77 @@ live settings store before parking — do not restore it back.
 
 <!-- Reverse view of the entries above, derived from them; on a discrepancy the entries win. -->
 
-| Path | Owner |
-|---|---|
-| `domain/schedule-builder.ts` | phases-schedule |
-| `domain/schedule-queries.ts` | phases-schedule |
-| `domain/policy.ts` | phases-schedule |
-| `domain/allergen-status.ts` | phases-schedule |
-| `domain/__fixtures__/schedule.ts` | phases-schedule |
-| `domain/ports/schedule-repository.ts` | phases-schedule |
-| `adapters/dexie-schedule-repository.ts` | phases-schedule |
-| `adapters/loggable-window-guard.ts` | phases-schedule |
-| `stores/schedule-context.ts` | phases-schedule |
-| `components/ProgressBar.svelte` | phases-schedule |
-| `config/phases.ts` | phases-schedule |
-| `strings/phases.ts` | phases-schedule |
-| `models.ts § SchedulePhase` | phases-schedule |
-| `models.ts § GeneratedSchedule` | phases-schedule |
-| `models.ts § PhaseType` | phases-schedule |
-| `models.ts § AllergenStatus` | phases-schedule |
-| `models.ts § getPermanentEliminations` | phases-schedule |
-| `domain/day-view.ts § resolveDay` | phases-schedule |
-| `docs/adr/0016-verdict-drives-schedule-not-status.md` | phases-schedule |
-| `docs/adr/0025-event-domain-model.md` | phases-schedule |
-| `CONTEXT.md § "EliminationWindow"` | phases-schedule |
-| `CONTEXT.md § "AllergenStatus"` | phases-schedule |
-| `UBIQUITOUS_LANGUAGE.md § "Protocol Phases"` | phases-schedule |
-| `UBIQUITOUS_LANGUAGE.md § "Allergens & Elimination"` | phases-schedule |
-| `UBIQUITOUS_LANGUAGE.md § "Schedule & Questionnaire"` | phases-schedule |
-| `domain/allergen-matcher.ts` | allergen-matching |
-| `domain/ports/canonical-catalog-port.ts` | allergen-matching |
-| `adapters/bundled-catalog-adapter.ts` | allergen-matching |
-| `components/AllergenChip.svelte` | allergen-matching |
-| `components/AllergenDrillIn.svelte` | allergen-matching |
-| `CONTEXT.md § "CanonicalAllergen"` | allergen-matching |
-| `domain/ladder.ts` | tolerance-building |
-| `domain/ports/ladder-override-repository.ts` | tolerance-building |
-| `adapters/dexie-ladder-override-repo.ts` | tolerance-building |
-| `stores/ladder-override-session.ts` | tolerance-building |
-| `schedule-builder.ts § addTrainingPhase` | tolerance-building |
-| `schedule-builder.ts § getToleranceBuildingRemindersForDate` | tolerance-building |
-| `models.ts § ToleranceBuildingReminder` | tolerance-building |
-| `models.ts § ReintroductionDayInfo` | tolerance-building |
-| `docs/adr/0023-dose-escalation-ladder.md` | tolerance-building |
-| `CONTEXT.md § "Ladder"` | tolerance-building |
-| `UBIQUITOUS_LANGUAGE.md § "Ladder / LadderStep / FeedingStage"` | tolerance-building |
-| `domain/ports/evaluation-repository.ts` | reintroduction-evaluation |
-| `adapters/dexie-evaluation-repository.ts` | reintroduction-evaluation |
-| `stores/evaluations-store.ts` | reintroduction-evaluation |
-| `routes/evaluation/+page.svelte` | reintroduction-evaluation |
-| `config/evaluation.ts` | reintroduction-evaluation |
-| `schedule-builder.ts § applyReintroductionVerdict` | reintroduction-evaluation |
-| `schedule-builder.ts § insertRestDays` | reintroduction-evaluation |
-| `schedule-builder.ts § appendReTestPhases` | reintroduction-evaluation |
-| `schedule-builder.ts § removeReTestPhase` | reintroduction-evaluation |
-| `schedule-builder.ts § RetestRejection` | reintroduction-evaluation |
-| `models.ts § ReintroductionEvaluation` | reintroduction-evaluation |
-| `models.ts § SkinEvaluationOutcome` | reintroduction-evaluation |
-| `docs/adr/0004-causation-derived-not-recorded.md` | reintroduction-evaluation |
-| `docs/adr/0024-medical-scope-boundary.md` | reintroduction-evaluation |
-| `docs/adr/0026-llm-schedule-proposer.md` | reintroduction-evaluation |
-| `CONTEXT.md § "ReintroductionEvaluation"` | reintroduction-evaluation |
-| `routes/program/+page.svelte` | program-week-day-views |
-| `routes/week/+page.svelte` | program-week-day-views |
-| `domain/phase-recap.ts` | program-week-day-views |
-| `components/PhaseBadge.svelte` | program-week-day-views |
-| `components/QuestionnaireSummaryRow.svelte` | program-week-day-views |
-| `components/icons/CalendarIcon.svelte` | program-week-day-views |
-| `components/icons/TrendsIcon.svelte` | program-week-day-views |
-| `domain/ports/questionnaire-repository.ts` | onboarding-questionnaire |
-| `adapters/dexie-questionnaire-repository.ts` | onboarding-questionnaire |
-| `stores/protocol-session.ts` | onboarding-questionnaire |
-| `models.ts § QuestionnaireAnswers` | onboarding-questionnaire |
-| `docs/allergen-reference/` | onboarding-questionnaire |
+| Path                                                            | Owner                     |
+| --------------------------------------------------------------- | ------------------------- |
+| `domain/schedule-builder.ts`                                    | phases-schedule           |
+| `domain/schedule-queries.ts`                                    | phases-schedule           |
+| `domain/policy.ts`                                              | phases-schedule           |
+| `domain/allergen-status.ts`                                     | phases-schedule           |
+| `domain/__fixtures__/schedule.ts`                               | phases-schedule           |
+| `domain/ports/schedule-repository.ts`                           | phases-schedule           |
+| `adapters/dexie-schedule-repository.ts`                         | phases-schedule           |
+| `adapters/loggable-window-guard.ts`                             | phases-schedule           |
+| `stores/schedule-context.ts`                                    | phases-schedule           |
+| `components/ProgressBar.svelte`                                 | phases-schedule           |
+| `config/phases.ts`                                              | phases-schedule           |
+| `strings/phases.ts`                                             | phases-schedule           |
+| `models.ts § SchedulePhase`                                     | phases-schedule           |
+| `models.ts § GeneratedSchedule`                                 | phases-schedule           |
+| `models.ts § PhaseType`                                         | phases-schedule           |
+| `models.ts § AllergenStatus`                                    | phases-schedule           |
+| `models.ts § getPermanentEliminations`                          | phases-schedule           |
+| `domain/day-view.ts § resolveDay`                               | phases-schedule           |
+| `docs/adr/0016-verdict-drives-schedule-not-status.md`           | phases-schedule           |
+| `docs/adr/0025-event-domain-model.md`                           | phases-schedule           |
+| `docs/adr/0027-dual-actor-mirrored-schedule.md`                 | phases-schedule           |
+| `CONTEXT.md § "EliminationWindow"`                              | phases-schedule           |
+| `CONTEXT.md § "AllergenStatus"`                                 | phases-schedule           |
+| `UBIQUITOUS_LANGUAGE.md § "Protocol Phases"`                    | phases-schedule           |
+| `UBIQUITOUS_LANGUAGE.md § "Allergens & Elimination"`            | phases-schedule           |
+| `UBIQUITOUS_LANGUAGE.md § "Schedule & Questionnaire"`           | phases-schedule           |
+| `domain/allergen-matcher.ts`                                    | allergen-matching         |
+| `domain/ports/canonical-catalog-port.ts`                        | allergen-matching         |
+| `adapters/bundled-catalog-adapter.ts`                           | allergen-matching         |
+| `components/AllergenChip.svelte`                                | allergen-matching         |
+| `components/AllergenDrillIn.svelte`                             | allergen-matching         |
+| `CONTEXT.md § "CanonicalAllergen"`                              | allergen-matching         |
+| `domain/ladder.ts`                                              | tolerance-building        |
+| `domain/ports/ladder-override-repository.ts`                    | tolerance-building        |
+| `adapters/dexie-ladder-override-repo.ts`                        | tolerance-building        |
+| `stores/ladder-override-session.ts`                             | tolerance-building        |
+| `schedule-builder.ts § addTrainingPhase`                        | tolerance-building        |
+| `schedule-builder.ts § getToleranceBuildingRemindersForDate`    | tolerance-building        |
+| `models.ts § ToleranceBuildingReminder`                         | tolerance-building        |
+| `models.ts § ReintroductionDayInfo`                             | tolerance-building        |
+| `tools/ladder-viz/`                                             | tolerance-building        |
+| `docs/adr/0023-dose-escalation-ladder.md`                       | tolerance-building        |
+| `CONTEXT.md § "Ladder"`                                         | tolerance-building        |
+| `UBIQUITOUS_LANGUAGE.md § "Ladder / LadderStep / FeedingStage"` | tolerance-building        |
+| `domain/ports/evaluation-repository.ts`                         | reintroduction-evaluation |
+| `adapters/dexie-evaluation-repository.ts`                       | reintroduction-evaluation |
+| `stores/evaluations-store.ts`                                   | reintroduction-evaluation |
+| `routes/evaluation/+page.svelte`                                | reintroduction-evaluation |
+| `config/evaluation.ts`                                          | reintroduction-evaluation |
+| `schedule-builder.ts § applyReintroductionVerdict`              | reintroduction-evaluation |
+| `schedule-builder.ts § insertRestDays`                          | reintroduction-evaluation |
+| `schedule-builder.ts § appendReTestPhases`                      | reintroduction-evaluation |
+| `schedule-builder.ts § removeReTestPhase`                       | reintroduction-evaluation |
+| `schedule-builder.ts § RetestRejection`                         | reintroduction-evaluation |
+| `models.ts § ReintroductionEvaluation`                          | reintroduction-evaluation |
+| `models.ts § SkinEvaluationOutcome`                             | reintroduction-evaluation |
+| `docs/adr/0004-causation-derived-not-recorded.md`               | reintroduction-evaluation |
+| `docs/adr/0024-medical-scope-boundary.md`                       | reintroduction-evaluation |
+| `docs/adr/0026-llm-schedule-proposer.md`                        | reintroduction-evaluation |
+| `CONTEXT.md § "ReintroductionEvaluation"`                       | reintroduction-evaluation |
+| `routes/program/+page.svelte`                                   | program-week-day-views    |
+| `routes/week/+page.svelte`                                      | program-week-day-views    |
+| `domain/phase-recap.ts`                                         | program-week-day-views    |
+| `components/PhaseBadge.svelte`                                  | program-week-day-views    |
+| `components/QuestionnaireSummaryRow.svelte`                     | program-week-day-views    |
+| `components/icons/CalendarIcon.svelte`                          | program-week-day-views    |
+| `components/icons/TrendsIcon.svelte`                            | program-week-day-views    |
+| `domain/ports/questionnaire-repository.ts`                      | onboarding-questionnaire  |
+| `adapters/dexie-questionnaire-repository.ts`                    | onboarding-questionnaire  |
+| `stores/protocol-session.ts`                                    | onboarding-questionnaire  |
+| `models.ts § QuestionnaireAnswers`                              | onboarding-questionnaire  |
+| `docs/allergen-reference/`                                      | onboarding-questionnaire  |
