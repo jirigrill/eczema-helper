@@ -2,7 +2,7 @@
 
 ## Overview
 
-The app keeps its thinking (pure logic — the schedule and domain rules) strictly separate from its plumbing (anything that touches storage, the DOM, or the framework). Logic never imports the database directly; it talks to small interfaces ("ports"), and the real storage code ("adapters") plugs in behind them. That's the hexagonal / ports-and-adapters split — applied here even with no backend, so the domain stays trivially testable and storage could be swapped without touching the rules. The rest of this doc shows the layers, the current ports, and where reactive reads live.
+The app keeps its thinking (pure logic — the food catalog and domain rules) strictly separate from its plumbing (anything that touches storage, the DOM, or the framework). Logic never imports the database directly; it talks to small interfaces ("ports"), and the real storage code ("adapters") plugs in behind them. That's the hexagonal / ports-and-adapters split — applied here even with no backend, so the domain stays trivially testable and storage could be swapped without touching the rules. The rest of this doc shows the layers, the current ports, and where reactive reads live.
 
 The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though it has no backend. The split is between **pure domain logic** and **all I/O**, including local I/O against IndexedDB.
 
@@ -38,28 +38,6 @@ The Eczema Tracker uses hexagonal (Ports & Adapters) architecture even though it
 
 All ports return `Result<T, string>` from `$lib/types/result` for expected failures.
 
-### `QuestionnaireRepository` — `src/lib/domain/ports/questionnaire-repository.ts`
-
-```ts
-type QuestionnaireRepository = {
-  save(answers: QuestionnaireAnswers): Promise<Result<void, string>>;
-  load(): Promise<Result<QuestionnaireAnswers | null, string>>;
-};
-```
-
-Singleton record keyed by `SINGLETON_ID` in the `answers` table.
-
-### `ScheduleRepository` — `src/lib/domain/ports/schedule-repository.ts`
-
-```ts
-type ScheduleRepository = {
-  save(schedule: GeneratedSchedule): Promise<Result<void, string>>;
-  load(): Promise<Result<GeneratedSchedule | null, string>>;
-};
-```
-
-Singleton record in the `schedule` table.
-
 ### `SettingsRepository` — `src/lib/domain/ports/settings-repository.ts`
 
 ```ts
@@ -70,8 +48,25 @@ type SettingsRepository = {
 ```
 
 Singleton record keyed by `SINGLETON_ID` in the `settings` table (issue #567). Holds
-the live master switch(es) — `feedingStage` today, room for more — deliberately off
-`GeneratedSchedule` so retest/verdict rebuilds cannot overwrite it.
+the live master switch(es) — `feedingStage` today, room for more. Since the descaling
+(PRD #623) it is also the app's *seeded* signal: `settings.feedingStage != null` gates
+first-run redirect.
+
+### `MealRepository` — `src/lib/domain/ports/meal-repository.ts`
+
+```ts
+type MealRepository = {
+  save(meal: Meal): Promise<Result<void, string>>;
+  loadBySlot(date: string, mealType: MealType, actor: Actor): Promise<Result<Meal | null, string>>;
+  listByDate(date: string): Promise<Result<Meal[], string>>;
+  remove(date: string, mealType: MealType, actor: Actor): Promise<Result<void, string>>;
+  earliestLoggedDate(): Promise<Result<string | null, string>>;
+};
+```
+
+`earliestLoggedDate` (PRD #623 §3a) is an index-ordered first-key lookup — `null` when
+nothing is logged — feeding the day strip's `earliest logged day … today` range. Live
+reactive reads for today are handled by `mealSession` in `src/lib/stores/`.
 
 ### `SkinObservationRepository` — `src/lib/domain/ports/skin-observation-repository.ts`
 
@@ -79,10 +74,12 @@ the live master switch(es) — `feedingStage` today, room for more — deliberat
 type SkinObservationRepository = {
   save(observation: SkinObservation): Promise<Result<void, string>>;
   listByDate(date: string): Promise<Result<SkinObservation[], string>>;
+  earliestLoggedDate(): Promise<Result<string | null, string>>;
 };
 ```
 
-List-shaped port. Multiple observations may exist per calendar day. Live reactive reads are handled by `skinObservationSession` in `src/lib/stores/`.
+List-shaped port. Multiple observations may exist per calendar day. `earliestLoggedDate`
+(PRD #623 §3a) mirrors the meal port's method; the day view unions the two. Live reactive reads are handled by `skinObservationSession` in `src/lib/stores/`.
 
 ### `SkinPhotoStore` — `src/lib/domain/ports/skin-photo-store.ts`
 
@@ -99,19 +96,12 @@ List-shaped port. Multiple photos may exist per calendar day. Live reactive read
 
 | Port                          | Adapter                                         |
 | ----------------------------- | ----------------------------------------------- |
-| `QuestionnaireRepository`     | `dexie-questionnaire-repository.ts`             |
-| `ScheduleRepository`          | `dexie-schedule-repository.ts`                  |
 | `SettingsRepository`          | `dexie-settings-repository.ts`                  |
+| `MealRepository`              | `dexie-meal-repository.ts`                      |
 | `SkinObservationRepository`   | `dexie-skin-observation-repository.ts`          |
 | `SkinPhotoStore`              | `dexie-skin-photo-store.ts`                     |
 
 Each port has a single production adapter. Adapter tests run against `fake-indexeddb` rather than a hand-rolled in-memory fake — see the [decisions log](../decisions-log.md) (was ADR-0013).
-
-Note: `protocolSession.startProtocol` seeds `answers`, `schedule`, and `settings` in one
-Dexie `db.transaction` using raw `db.*.put` rather than the repositories — the repo
-`save()` methods return `Result` instead of throwing, so they can't abort the
-surrounding transaction. Atomic seeding is required (#567) so the settings singleton is
-never left behind a committed schedule.
 
 ## Stores layer
 
@@ -119,24 +109,21 @@ never left behind a committed schedule.
 
 | Store                        | File                                     | What it does                                               |
 | ---------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
-| `scheduleContext`            | `stores/schedule-context.ts`            | `loading\|empty\|ready\|error` discriminated union for the program |
 | `settingsContext`            | `stores/settings-context.ts`            | `readable<SettingsData \| null>` — live master switch(es), e.g. `feedingStage` |
-| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage read (over `settingsContext`) + `setFeedingStage` write |
+| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage read (over `settingsContext`) + `setFeedingStage` write + `reset` |
+| `seededStatus`               | `stores/settings.svelte.ts`             | `loading\|unset\|seeded` — first-run redirect gate off `settings.feedingStage` |
 | `mealSession`                | `stores/meal-session.ts`                | `readable<Meal[]>` for today + `save` / `loadBySlot` / `remove` |
 | `skinObservationSession`     | `stores/skin-observation-session.ts`    | `readable<SkinObservation[]>` for today + `save`           |
 | `skinPhotoSession`           | `stores/skin-photo-session.ts`          | `readable<SkinPhoto[]>` for today + `save`                 |
-| `protocolSession`            | `stores/protocol-session.ts`            | Protocol write commands (start, retest, reset)             |
 
 Each session store is the **only** place that imports `db` and constructs the adapter for its domain. Routes import the store; they do not instantiate adapters directly.
 
 ## Reactivity boundary
 
-Ports expose **point reads** (`load()`, `listByDate()`), not subscriptions. Live reactive reads are a UI concern and are handled in `src/lib/stores/`, which subscribes directly to `Dexie.liveQuery()`. The `ScheduleContext` store is the canonical example — exposes a `loading | empty | ready` discriminated union to routes.
+Ports expose **point reads** (`load()`, `listByDate()`), not subscriptions. Live reactive reads are a UI concern and are handled in `src/lib/stores/`, which subscribes directly to `Dexie.liveQuery()`. The `settingsContext` store is a representative example — a `readable` over the settings singleton that re-emits on every change.
 
 This is deliberate: putting `liveQuery` in the port would couple the domain to Dexie and force any future test adapter to ship a fake reactive primitive.
 
 ## Future ports (not yet authored)
 
-- `MealRepository` — list-shaped; already wired via `mealSession`.
-- `AssessmentRepository` — skin observations and photos are wired via `skinObservationSession` / `skinPhotoSession`.
 - Backup port — encrypted export/import; not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).

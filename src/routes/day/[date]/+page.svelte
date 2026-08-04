@@ -47,8 +47,8 @@
 
   const todayRecorded = $derived(isToday && completeness > 0);
 
-  // Imperative handle into the DayStrip — the bottom-nav "Dnes" tab pulses a
-  // signal store when clicked, and we forward it to the strip so it recentres
+  // Imperative handle into the DayStrip — the "↩ Dnes" header chip pulses a
+  // signal store when tapped, and we forward it to the strip so it recentres
   // on today even when the route param did not change.
   let dayStripRef: { recentre: () => void } | undefined = $state();
   $effect(() => {

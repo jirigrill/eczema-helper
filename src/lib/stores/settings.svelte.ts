@@ -13,10 +13,10 @@ const settingsRepo = new DexieSettingsRepository(db);
 /**
  * Seeded signal for the descaled app (PRD #623, §3): `settings.feedingStage`
  * is the sole "is the mother set up?" gate, replacing the parked schedule's
- * `ctx.status`. Like `scheduleRaw`, it is a tri-state that *holds at `loading`*
- * until the settings liveQuery has emitted at least once — the layout must not
- * treat the initial pre-emission tick as `unset`, or it would bounce a seeded
- * user from `/day/<today>` to `/` and back (the #353 redirect race).
+ * seeded status. It is a tri-state that *holds at `loading`* until the settings
+ * liveQuery has emitted at least once — the layout must not treat the initial
+ * pre-emission tick as `unset`, or it would bounce a seeded user from
+ * `/day/<today>` to `/` and back (the #353 redirect race).
  *
  *  - `loading` — no emission yet; hold, do not redirect.
  *  - `unset`   — a real emission with no `feedingStage`; route to first run (`/`).
@@ -60,9 +60,11 @@ function createSettingsStore() {
   }
 
   // "Start over" — clear the mother's data so the app returns to first run.
-  // Clearing `settings` flips the seeded signal to `unset`; the dormant
-  // protocol tables (answers/schedule/evaluations, §2f) are cleared too so a
-  // reset leaves no stale rows behind, without reviving the parked engine.
+  // Clearing `settings` flips the seeded signal to `unset`. The three dormant
+  // protocol tables the pre-strip reset also cleared (answers/schedule/
+  // evaluations, §2f) are kept in the wipe so no stale engine rows linger;
+  // `ladder_overrides` was never in that set and is left untouched, matching
+  // the pre-descaling behaviour. No parked engine is revived.
   async function reset(): Promise<void> {
     await Promise.all([
       db.answers.clear(),

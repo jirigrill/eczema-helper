@@ -48,10 +48,10 @@
   }
 
   // Re-anchor whenever the selection or cell list changes. Using $effect (vs
-  // onMount) covers two cases the bottom-nav "Dnes" tab depends on:
+  // onMount) covers two cases the "↩ Dnes" header chip depends on:
   //   1. /day/[date] component is reused on param change → onMount never re-runs.
-  //   2. The Dnes nav is clicked while already on today → no param change at
-  //      all, so we expose recentre() for the layout to call directly.
+  //   2. The chip is tapped while already on today → no param change at all,
+  //      so we expose recentre() for the page to call directly.
   $effect(() => {
     void selectedDate;
     void cells;
@@ -60,7 +60,7 @@
 
   // Public hook: lets the parent imperatively recentre the strip when the
   // route param doesn't change but the user expects a "jump back to today"
-  // gesture (bottom-nav Dnes tab while already on /day/today).
+  // gesture (the "↩ Dnes" chip tapped while already on /day/today).
   export function recentre(): void {
     scheduleCenter(selectedDate ?? today);
   }

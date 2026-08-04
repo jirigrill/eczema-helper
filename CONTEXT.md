@@ -8,24 +8,13 @@ crystallise; do not let it drift from the code.
 
 ## Glossary
 
-### ScheduleContext
-Today's protocol state as the UI sees it — a reactive bundle of
-`GeneratedSchedule`, `QuestionnaireAnswers`, and derived protocol values
-(`protocolEliminated`, `permanentMother`, `permanentBaby`, `reintroInfo`,
-`progress`) computed for the current date. Exposed as a discriminated union:
-`loading | empty | ready | error`.
-Derived fields only exist on `ready`. The `error` variant carries a string
-message from a failed repository load. This is an application-layer concept,
-not a domain concept — it is the authoritative name for what routes consume,
-as distinct from the raw `GeneratedSchedule` stored in the database.
-
 ### MealEditor
 The meal editing lifecycle as one home — a runes module
 (`src/lib/stores/meal-editor.svelte.ts`, factory `createMealEditor()`)
 that owns a meal "from open to save/discard". The `/meal` route delegates
-load/save/dirtiness/conflicts here and keeps only view/navigation state
+load/save/dirtiness here and keeps only view/navigation state
 (`drilledFamily`, `gridEditingFoodId`, popstate/shallow routing, `goto`).
-An application-layer concept, like `ScheduleContext`; distinct from
+An application-layer concept; distinct from
 `meal-session` (the Dexie/`liveQuery` persistence store it reaches through)
 and `working-meal` (the pure in-memory value it edits via a single
 `update(fn)` chokepoint). Mirrors `day-view.svelte.ts`, extended from
@@ -48,16 +37,6 @@ Three invariants live here (the home ADR-0018 lacked):
   The comparison itself (`snapshotOf` / `snapshotsEqual`) lives in the
   pure domain module `src/lib/domain/meal-dirtiness.ts`; `MealEditor`
   owns *when* dirtiness is computed and reaches into the module for *how*.
-
-**Conflict responsibility:** `MealEditor` exposes which of its foods touch
-today's elimination window (`eliminatedFoodIds`, `hasConflicts`) by calling
-the *shared* domain `detectConflicts` over its own foods — so the meal
-screen, `MealCard`, and day view stay consistent and the implementation can
-be swapped behind one call site. It takes `eliminatedToday` (an
-`AllergenId[]`) injected by the route; it never reads `scheduleRaw` or calls
-`buildScheduleContext`. The view-specific danger flags (per-row styling, the
-warning banner, the red CTA, reintro dosing) stay in the route, built on top
-of `eliminatedFoodIds`. See ADR-0018 and PRD issue #284.
 
 ### Copy Meal
 Copying an existing `Meal` into another slot (another day or meal type — the
@@ -198,11 +177,12 @@ word "allergen":
 - **Family** — the broad grid bucket / log tile (`Ovoce`, `Obiloviny`,
   `Mléko`, `Nuts-seeds`). One non-overlapping tile per food family. Pure
   organisation; carries no protocol and no clinical meaning.
-- **Allergen** — the reintroduction unit. Carries the optional `protocol`,
-  owns `AllergenStatus`, is what `LadderAllergenId` and
-  `SchedulePhase.allergenIds` refer to. This is today's `CanonicalAllergen`
-  record, unchanged — the refactor does **not** push `protocol` down to the
-  food. An allergen belongs to exactly **one** family (its clinical home).
+- **Allergen** — the trigger unit. Carries the optional `protocol` and `ladder`
+  fields, which are **dormant data** read only by parked protocol code; the live
+  `LadderAllergenId` type is still derived from the `ladder`-bearing subset. This
+  is today's `CanonicalAllergen` record, unchanged — the catalog does **not** push
+  `protocol` down to the food. An allergen belongs to exactly **one** family (its
+  clinical home).
 - **Food / item** — the concrete loggable thing (`sójové mléko`, `pomeranč`,
   `jogurt`, `hummus`). A **first-class catalog entity**, not a bare string
   parented to one allergen. Each food carries its own `familyId` (presentation)
@@ -212,17 +192,16 @@ word "allergen":
   the meal log records.
 
 **Principle — a food's family is presentation; its allergen is domain.** The
-`family` decides where a food appears in the grid; the `allergen` decides what
-it conflicts with. They are assigned independently and may **diverge**: `sójové
+`family` decides where a food appears in the grid; the `allergen` records what
+it triggers. They are assigned independently and may **diverge**: `sójové
 mléko` has family `Mléko` (where a parent looks for a milk substitute) but
 allergen `soy` (its trigger, whose own family is `Luštěniny`). A food's
 `familyId` is assigned per food and may differ from any of its allergens'
-families; the override exists only on foods, never on allergens. **Conflict
-detection resolves only through a food's `allergenIds`, never its family** — a
-food conflicts if **any** of its allergens is eliminated. The family is absent
-from the trigger path. A food shown under `Mléko` is therefore never treated as
-a dairy allergen; `sójové mléko` conflicts during a `soy` elimination and is
-allowed during a `dairy` one. The food↔allergen relation is **many-to-many**:
+families; the override exists only on foods, never on allergens. **A food's
+trigger set resolves only through its `allergenIds`, never its family** — the
+family is absent from the trigger path. A food shown under `Mléko` is therefore
+never treated as a dairy allergen; `sójové mléko` carries trigger `soy`, not
+`dairy`. The food↔allergen relation is **many-to-many**:
 one allergen is expressed by many foods, one food may trigger several allergens.
 
 **Principle — food-source subgroup is a second presentation axis, family-scoped
@@ -412,8 +391,8 @@ is a member of `getEligibleActors(feedingStage)` at log time.
   `docs/parked-features.md`. The derived-insight engine is not built (tracked
   in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
 - **Domain records carry types, not display strings.** Domain-emitted
-  records (`SchedulePhase`, `MealItem`, etc.) carry stable type
-  identifiers (e.g. `type: 'elimination'`). Czech display text and visual
+  records (`MealItem`, `SkinObservation`, etc.) carry stable type
+  identifiers (e.g. `portionKind: 'spoon'`). Czech display text and visual
   tokens live in `src/lib/strings/` (pure text) and `src/lib/config/`
   (text + visual tokens combined), resolved at render time. Baking
   a display string onto a domain record violates this invariant.

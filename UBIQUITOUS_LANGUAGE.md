@@ -29,8 +29,9 @@ The catalog has three levels, each with a derived id:
 
 - **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`,
   `Vlastní`). Presentation only; no protocol, no clinical meaning.
-- **Allergen** (`AllergenId`, with `LadderAllergenId` its ladder-bearing
-  subset) — the reintroduction unit. Carries `ladder`; engine unchanged.
+- **Allergen** (`AllergenId`, with `LadderAllergenId` its `ladder`-bearing
+  subset) — the trigger unit. The `ladder` field is dormant data read only by
+  parked protocol code; `LadderAllergenId` is still derived live to type it.
 - **Food** (`FoodId`, with `CustomFoodId = other:${string}` its free-text tier) —
   first-class loggable entity carrying `familyId` (presentation) and
   `allergenIds` (its trigger set, many-to-many).
@@ -194,8 +195,7 @@ unconstrained on the persisted record.
 
 One of: `'pinch'` (Špetka) · `'teaspoon'` (Lžička) · `'spoon'` (Lžíce) ·
 `'portion'` (Porce) · `'package'` (Balení). The **meal-logging** portion size —
-what the mother recorded eating on a `MealItem`. Distinct from a `LadderStep`,
-which is the protocol-prescribed dosing instruction during reintroduction. See ADR-0014.
+what the mother recorded eating on a `MealItem`. See ADR-0014.
 
 ### Actor
 The person whose food intake a `Meal` describes — `'mother' | 'baby'`, a named
@@ -401,8 +401,8 @@ the term "logged region" is no longer used in code or copy.
 ### Day-overall severity
 The maximum `RegionLevel` across an observation's `regions`. Computed via
 `overallSeverity(observation)` from `$lib/domain/models`. Never persisted —
-the read-side derives it at every render site that needs a single-value
-collapse (week strip, /program phase recap, evaluation recap). The
+the read-side derives it at any render site that needs a single-value
+collapse. The
 SkinObservationCard on `/day` does **not** use this collapse — it renders one
 chip per bumped region (per ADR-0021, severity is regional, not row-level),
 so an observation with multiple severities reads honestly. A klidné
@@ -438,16 +438,14 @@ The stage stays editable in `/settings`.
 
 The single day layout, rendered for any date by `/day/[date]`. **Today** is just the
 instance where the selected date equals `todayIso()`; there is no separate past-day
-design. Contains: `DayStrip`, phase hero, the allowed/avoid reference, the three record
-cards (skin status, photos, meals), and an add affordance (the FAB). The mother reaches
-past days by scrolling the `DayStrip` and tapping a cell; she can backfill or edit those
-days to the same parity as today (meals overwrite per slot; skin observations and photos
-add-only — no delete yet). Return-to-today is the bottom-nav `Dnes` tab. **Action-prompt
-chrome** — tolerance-building reminders and the task counter — renders only when the
-selected date is today; past days show historical facts only.
-The data path is reactive per selected date (`buildScheduleContext(raw, selectedDate)` +
-date-scoped session-store factories), see ADR-0009's
-Slice-4 amendment. The main screen a user opens each day.
+design. Contains: `DayStrip`, the three record cards (skin status, photos, meals), and
+an add affordance (the FAB). The mother reaches past days by scrolling the `DayStrip`
+and tapping a cell; she can backfill or edit those days to the same parity as today
+(meals overwrite per slot; skin observations and photos add-only — no delete yet).
+Return-to-today is the `↩ Dnes` header chip. The **task counter** (Daily Completeness)
+renders only when the selected date is today; past days show historical facts only.
+The data path is reactive per selected date (date-scoped session-store factories), see
+ADR-0009's Slice-4 amendment. The main screen a user opens each day.
 
 ### Daily Completeness
 
@@ -455,11 +453,6 @@ The 0-3 score shown in today's task-counter row, derived live from the day's rec
 one point each for at least one `SkinObservation`, at least one `SkinPhoto`, and at
 least one `Meal` with content (≥1 `MealItem` or non-empty `notes`). An empty meal slot
 does not count. Computed by `dailyCompleteness` in `src/lib/domain/day-view.ts`.
-
-### Program Screen (Postup)
-
-Read-only timeline of all protocol phases. Shows phase dates, current position,
-`PermanentEliminations`, reintroduction instructions, and re-test options.
 
 ---
 
@@ -486,9 +479,10 @@ strip is the single cell **today**, and it grows the instant an earlier day is l
 Selecting a day flags it **in place** — the strip does not reshuffle around the selection.
 **Today** carries a permanent ring marker in its own slot, with a hollow centre dot when
 today is not yet recorded and a filled dot once it is. There is no "Dnes" pill and no
-in-strip return-to-today control — return-to-today is the bottom-nav `Dnes` tab. Each
-cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …), day number, and a
-`SeverityDot`. The selected cell is highlighted in the primary color.
+in-strip return-to-today control — return-to-today is the `↩ Dnes` header chip (below).
+Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …) and day number;
+today additionally carries the ring marker described above. The selected cell is
+highlighted in the primary color.
 
 ### SeverityDot
 *Czech: Puntík závažnosti*
@@ -524,19 +518,11 @@ assessment recorded). Signals actionable absence, not an error.
 
 ---
 
-### QuestionnaireSummaryRow
-
-A single-field read/edit row used in the onboarding summary step (ONB 6). Displays
-one `label` (uppercase, small) and one `value` (bold). Renders as a tappable `button`
-with an inline "Upravit ›" affordance when `onEdit` is provided; as a plain `div`
-when read-only. Distinct from `DayCard` (today-screen data cards).
-
 ### FoodTile
 
 The selectable food tile on `/meal`. Owns the unified state→class visual vocabulary
 of meal logging: `idle` (plain) · `editing` (bordeaux outline) · `confirmed`
-(bordeaux fill) · `locked` (greyed), plus the **conflict** (eliminated-today) red
-variants of each. See PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
+(bordeaux fill) · `locked` (greyed). See PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
 (The vocabulary was previously also reused by the now-retired `MealTypePills`.)
 
 ### FoodEditor
@@ -562,32 +548,17 @@ field were removed in issue #266. → See ADR-0018.
 ### Ports & Adapters
 
 The architectural pattern used for persistence. **Ports** are TypeScript interfaces in
-`src/lib/domain/ports/` (e.g. `ScheduleRepository`, `QuestionnaireRepository`). **Adapters**
-are concrete implementations in `src/lib/adapters/` (e.g. `DexieScheduleRepository`,
-`DexieMealRepository`). Each port has a single `Dexie*` implementation; adapters are
+`src/lib/domain/ports/` (e.g. `MealRepository`, `SkinObservationRepository`). **Adapters**
+are concrete implementations in `src/lib/adapters/` (e.g. `DexieMealRepository`,
+`DexieSkinObservationRepository`). Each port has a single `Dexie*` implementation; adapters are
 tested against `fake-indexeddb`. Hand-written `InMemory*` fakes were removed per
 the [decisions log](docs/decisions-log.md) (was ADR-0013). Domain logic depends only
 on the port interfaces.
-
-### ScheduleRepository / QuestionnaireRepository
-
-Ports (interfaces) for persisting and loading the two core data objects. Single
-implementation each: `Dexie*` (production), tested against `fake-indexeddb`
-(see the [decisions log](docs/decisions-log.md), was ADR-0013). Both follow the
-`Result<T, E>` return convention for `save` / `load` operations.
 
 ### Result\<T, E\>
 
 Discriminated union for fallible operations: `{ ok: true; data: T } | { ok: false; error: string }`.
 Used by all repository methods. Prevents silent swallowing of persistence errors.
-
-### PhaseType
-
-The stable string-literal type used to identify a protocol phase in domain records.
-Values: `'reset' | 'elimination' | 'reintroduction' | 'rest' | 'tolerance-building'`.
-Domain records carry `type: PhaseType`; Czech text is resolved from `$lib/strings/phases`
-(`label`, `badgeLabel`, `description`); full display config including visual tokens from `$lib/config/phases`.
-See ADR-0014.
 
 ### PortionKind
 
@@ -595,9 +566,6 @@ The stable string-literal type for a **meal-item portion size**.
 Values: `'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package'`.
 These are descriptive — what the mother actually logged eating on a `MealItem`.
 Czech display labels live in `src/lib/strings/portions.ts`. See ADR-0014.
-
-Not to be confused with a `LadderStep`, which is the prescriptive dosing
-instruction the protocol recommends during reintroduction.
 
 ### Presentation String
 
