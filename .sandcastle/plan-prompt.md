@@ -13,11 +13,19 @@ Two discovery paths, unioned — a child either references the PRD, or is listed
 - issues whose body references `#{{PRD_ISSUE}}`, **and**
 - issues whose number is referenced by the PRD #{{PRD_ISSUE}} body.
 
-!`CHILDREN=$(gh issue view {{PRD_ISSUE}} --json body --jq '.body' | grep -oE '#[0-9]+' | tr -d '#' | sort -u | paste -sd, -); gh issue list --state open --limit 100 --json number,title,body,labels | jq --arg prd "{{PRD_ISSUE}}" --arg kids "$CHILDREN" '($kids | split(",") | map(select(length>0) | tonumber)) as $k | [.[] | select((.body | strings | test("#" + $prd)) or (.number as $n | $k | index($n)))] | map({number, title, body, labels: [.labels[].name]})'`
+!`CHILDREN=$(gh issue view {{PRD_ISSUE}} --json body --jq '.body' | grep -oE '#[0-9]+' | tr -d '#' | sort -u | paste -sd, -); gh issue list --state open --limit 100 --json number,title,body,labels | jq --arg prd "{{PRD_ISSUE}}" --arg kids "$CHILDREN" '($kids | split(",") | map(select(length>0) | tonumber)) as $k | [.[] | select((.body | strings | test("#" + $prd)) or (.body | strings | test("issues/" + $prd)) or (.number as $n | $k | index($n)))] | map({number, title, body, labels: [.labels[].name]})'`
 
 ## Closed issue numbers (resolved — blockers in this list are satisfied)
 
 !`gh issue list --state closed --limit 200 --json number --jq '[.[].number]'`
+
+## Already integrated by a previous run (resolved — treat exactly like closed)
+
+{{ALREADY_INTEGRATED}}
+
+These issues are **still open on GitHub** but their work is already merged onto this
+PRD's integration branch — issues only close when the integrated PR merges, which
+has not happened yet. Their code is in the base that every worker branches from.
 
 ## Instructions
 
@@ -25,8 +33,10 @@ Two discovery paths, unioned — a child either references the PRD, or is listed
 2. From the open child list above, identify open issues that are child tasks of this PRD.
 3. For each open issue, parse referenced blockers ("blocked by #N", "depends on #N", or logical ordering).
 4. **Closed blocker = resolved.** If a blocker number appears in the closed list above, the dependency is satisfied: do NOT list it under `dependencies` and do NOT exclude the issue.
-5. Only list dependencies that are themselves OPEN and present in the open list above.
-6. Exclude an open issue ONLY if a blocker is OPEN and not a child of this PRD (unresolved external work).
+5. **Already-integrated blocker = resolved.** Apply rule 4 identically to the already-integrated list: do NOT list it under `dependencies` and do NOT exclude the issue that depends on it.
+6. **Never output an already-integrated issue.** Omit it from `issues` entirely — re-running it would duplicate merged work and conflict.
+7. Only list dependencies that are themselves OPEN and present in the open list above.
+8. Exclude an open issue ONLY if a blocker is OPEN and not a child of this PRD (unresolved external work).
 
 ## Output
 
