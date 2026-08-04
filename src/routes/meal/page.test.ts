@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
@@ -43,7 +42,7 @@ vi.mock('$lib/stores/discard-buffer', () => ({
   clearBuffer: vi.fn(),
 }));
 
-const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+const meals = new DexieMealRepository(db);
 
 const mockPage: { url: URL; state: Record<string, unknown> } = {
   url: new URL('http://localhost/meal'),

@@ -1,6 +1,5 @@
 import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { db } from '$lib/db/atopic-db';
 import { snapshotOf, snapshotsEqual } from '$lib/domain/meal-dirtiness';
 import type { MealSnapshot } from '$lib/domain/meal-dirtiness';
@@ -167,7 +166,7 @@ export type MealEditor = {
 
 export function createMealEditor(): MealEditor {
   const catalog = new BundledCatalogAdapter();
-  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+  const meals = new DexieMealRepository(db);
   let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let editingExisting = $state(false);
   let slot = $state<MealSlot | null>(null);

@@ -20,10 +20,9 @@
   import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
   import { db } from '$lib/db/atopic-db';
   import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
   import { pulseRecentreDayStrip } from '$lib/stores/day-strip-recentre';
 
-  const mealRepo = new DexieMealRepository(db, new DexieScheduleRepository(db));
+  const mealRepo = new DexieMealRepository(db);
 
   let { children } = $props();
 

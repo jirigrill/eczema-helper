@@ -48,7 +48,6 @@
   import { page } from '$app/state';
   import { db } from '$lib/db/atopic-db';
   import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
@@ -203,7 +202,7 @@
   // issue #588). The editor holds its own for finalize/save; the route reaches
   // Dexie only to remove a row, so a single shared adapter here keeps the two
   // remove call sites from each hand-rolling `new DexieMealRepository(...)`.
-  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+  const meals = new DexieMealRepository(db);
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Splitting the buffer-vs-load
