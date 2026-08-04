@@ -1,7 +1,7 @@
 import { tick } from 'svelte';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
-import { render } from '@testing-library/svelte';
+import { fireEvent, render } from '@testing-library/svelte';
 import type * as Dexie from 'dexie';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -167,6 +167,47 @@ describe('/day/[date] page', () => {
       const { queryByTestId } = render(DayPage);
       await tick();
       expect(queryByTestId('dnes-pill')).toBeNull();
+    });
+  });
+
+  describe('back-to-today chip (PRD #623, §3c)', () => {
+    it('renders the "↩ Dnes" chip in the header off today', async () => {
+      mockPage.params.date = pastDate;
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      const chip = getByTestId('back-to-today-chip');
+      expect(chip).toBeInTheDocument();
+      expect(chip.textContent).toContain('↩ Dnes');
+    });
+
+    it('does not render the chip when the selected date is today', async () => {
+      mockPage.params.date = today;
+      const { default: DayPage } = await import('./+page.svelte');
+      const { queryByTestId } = render(DayPage);
+      await tick();
+      expect(queryByTestId('back-to-today-chip')).toBeNull();
+    });
+
+    it('navigates to /day/<today> when tapped', async () => {
+      mockPage.params.date = pastDate;
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      await fireEvent.click(getByTestId('back-to-today-chip'));
+      expect(mockGoto).toHaveBeenCalledWith(`/day/${today}`);
+    });
+
+    it('pulses the recentre signal when tapped so the strip jumps back to today', async () => {
+      mockPage.params.date = pastDate;
+      const { dayStripRecentreSignal } = await import('$lib/stores/day-strip-recentre');
+      dayStripRecentreSignal.set(0);
+      const { default: DayPage } = await import('./+page.svelte');
+      const { getByTestId } = render(DayPage);
+      await tick();
+      const before = get(dayStripRecentreSignal);
+      await fireEvent.click(getByTestId('back-to-today-chip'));
+      expect(get(dayStripRecentreSignal)).toBe(before + 1);
     });
   });
 

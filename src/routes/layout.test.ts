@@ -11,13 +11,11 @@ import type { Meal } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { type WorkingMeal, emptyWorkingMeal } from '$lib/domain/working-meal';
 import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buffer';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
 import type { SeededStatus } from '$lib/stores/settings.svelte';
 
 const meals = new DexieMealRepository(db);
 
 const mockGoto = vi.fn();
-const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
 const mockSeededStatus = writable<SeededStatus>('loading');
 const mockPageStore = writable({
   url: new URL(`http://localhost/day/${new Date().toISOString().split('T')[0]}`),
@@ -27,9 +25,6 @@ const mockPageStore = writable({
 
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }));
-vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleContext: { subscribe: mockScheduleContext.subscribe },
-}));
 vi.mock('$lib/stores/settings.svelte', () => ({
   seededStatus: { subscribe: mockSeededStatus.subscribe },
 }));
@@ -55,7 +50,6 @@ async function renderLayout() {
 
 beforeEach(() => {
   mockGoto.mockReset();
-  mockScheduleContext.set({ status: 'loading' });
   mockSeededStatus.set('loading');
   mockPageStore.set({
     url: new URL(`http://localhost/day/${today}`),
@@ -104,73 +98,69 @@ describe('+layout.svelte — redirect', () => {
   });
 });
 
-describe('+layout.svelte — bottom nav visibility', () => {
-  it('hides nav when the feeding stage is unset', async () => {
+describe('+layout.svelte — FAB visibility', () => {
+  it('hides the FAB when the feeding stage is unset', async () => {
     mockSeededStatus.set('unset');
     // Render off-root so the unset redirect to / does not remove the shell.
     mockPageStore.set({ url: new URL('http://localhost/day/x'), params: { date: 'x' }, data: {} });
-    const { queryByText } = await renderLayout();
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides nav on the first-run route even when seeded', async () => {
+  it('hides the FAB on the first-run route even when seeded', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
     mockSeededStatus.set('seeded');
-    const { queryByText } = await renderLayout();
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('shows nav with Dnes and Týden tabs when seeded on a main route', async () => {
+  it('shows the FAB when seeded on a day route', async () => {
     mockSeededStatus.set('seeded');
-    const { getByText } = await renderLayout();
+    const { container } = await renderLayout();
     await tick();
-    expect(getByText('Dnes')).toBeInTheDocument();
-    expect(getByText('Týden')).toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeInTheDocument();
   });
 
-  it('hides nav on /meal route', async () => {
+  it('hides the FAB on /meal route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/meal'), params: { date: '' }, data: {} });
     mockSeededStatus.set('seeded');
-    const { queryByText } = await renderLayout();
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides nav on /settings route', async () => {
+  it('hides the FAB on /settings route', async () => {
     mockPageStore.set({
       url: new URL('http://localhost/settings'),
       params: { date: '' },
       data: {},
     });
     mockSeededStatus.set('seeded');
-    const { queryByText } = await renderLayout();
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides nav on /skin route', async () => {
+  it('hides the FAB on /skin route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/skin'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
-    const { queryByText } = await renderLayout();
-    await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
-  });
-
-  it('renders FAB when nav is visible', async () => {
     mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
-    const fab = container.querySelector('button[aria-label="Přidat záznam"]');
-    expect(fab).toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides FAB when viewing a future /day/[date]', async () => {
+  it('renders no bottom navigation bar', async () => {
+    mockSeededStatus.set('seeded');
+    const { container, queryByText } = await renderLayout();
+    await tick();
+    // The single-screen shell (PRD #623, §3) has no nav bar and no Týden tab.
+    expect(container.querySelector('nav')).toBeNull();
+    expect(queryByText('Týden')).not.toBeInTheDocument();
+  });
+
+  it('shows the FAB when viewing a future /day/[date] — no day is suppressed (PRD #623, §3)', async () => {
     const future = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
     mockPageStore.set({
       url: new URL(`http://localhost/day/${future}`),
@@ -180,11 +170,10 @@ describe('+layout.svelte — bottom nav visibility', () => {
     mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
-    const fab = container.querySelector('button[aria-label="Přidat záznam"]');
-    expect(fab).toBeNull();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeInTheDocument();
   });
 
-  it('clicking FAB opens action sheet', async () => {
+  it('clicking the FAB opens the action sheet', async () => {
     mockSeededStatus.set('seeded');
     const { container, getByText } = await renderLayout();
     await tick();
@@ -251,21 +240,6 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
     expect(zIndexOf(fab)).toBeGreaterThan(zIndexOf(toast));
   });
 
-  it('FAB sits above the bottom navigation it overhangs', async () => {
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-
-    const fab = fabButton(container);
-    const nav = container.querySelector('nav');
-    expect(fab).not.toBeNull();
-    expect(nav).not.toBeNull();
-
-    // The nav is the surface the FAB visually lifts above; the FAB must
-    // outrank it so its overhanging top edge is never clipped or covered.
-    expect(zIndexOf(fab)).toBeGreaterThan(zIndexOf(nav));
-  });
-
   it('action sheet still covers the FAB when opened (modal layer outranks FAB)', async () => {
     mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
@@ -281,80 +255,6 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
 
     // Action sheet is allowed to intentionally cover the FAB.
     expect(zIndexOf(sheet)).toBeGreaterThan(zIndexOf(fab));
-  });
-});
-
-describe('+layout.svelte — active tab state', () => {
-  it('Dnes tab links to /day/<today>', async () => {
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    expect(dnesLink).toBeInTheDocument();
-    expect(dnesLink?.textContent).toContain('Dnes');
-  });
-
-  it('marks Dnes tab active when viewing today', async () => {
-    mockPageStore.set({
-      url: new URL(`http://localhost/day/${today}`),
-      params: { date: today },
-      data: {},
-    });
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    const tydenLink = container.querySelector('a[href="/week"]');
-    expect(dnesLink?.classList).toContain('text-primary');
-    expect(tydenLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Dnes tab inactive when viewing a past date', async () => {
-    const pastDate = '2025-01-01';
-    mockPageStore.set({
-      url: new URL(`http://localhost/day/${pastDate}`),
-      params: { date: pastDate },
-      data: {},
-    });
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    expect(dnesLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Dnes tab inactive when viewing a future date', async () => {
-    const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-    mockPageStore.set({
-      url: new URL(`http://localhost/day/${futureDate}`),
-      params: { date: futureDate },
-      data: {},
-    });
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    expect(dnesLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Týden tab active on /week', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    const tydenLink = container.querySelector('a[href="/week"]');
-    expect(tydenLink?.classList).toContain('text-primary');
-    expect(dnesLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Týden tab active on /program', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/program'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
-    const { container } = await renderLayout();
-    await tick();
-    const tydenLink = container.querySelector('a[href="/week"]');
-    expect(tydenLink?.classList).toContain('text-primary');
   });
 });
 

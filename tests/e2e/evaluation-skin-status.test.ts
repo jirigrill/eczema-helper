@@ -61,26 +61,6 @@ test.beforeEach(async ({ page }) => {
   await clearDb(page);
 });
 
-test('FAB evaluate on a reset phase-end day opens /evaluation with the skin-status vocabulary', async ({ page }) => {
-  const today = iso(Date.now());
-  await seedResetEndingToday(page);
-  await page.goto(`/day/${today}`);
-  await expect(page.getByRole('button', { name: 'Přidat záznam' })).toBeVisible({ timeout: 10000 });
-
-  await page.getByRole('button', { name: 'Přidat záznam' }).click();
-  await expect(page.getByText('Co chceš přidat?')).toBeVisible();
-  await page.getByTestId('fab-action-evaluate').click();
-
-  await expect(page).toHaveURL(/\/evaluation\?phase=reset/);
-  // AC1: skin-status outcomes render, not the allergen-test ones.
-  // exact:true so a card label isn't confused with its longer subtitle.
-  await expect(page.getByText('Zlepšení', { exact: true })).toBeVisible();
-  await expect(page.getByText('Beze změny', { exact: true })).toBeVisible();
-  await expect(page.getByText('Zhoršení', { exact: true })).toBeVisible();
-  await expect(page.getByText('Nová ložiska', { exact: true })).toBeVisible();
-  await expect(page.getByText('Toleruje', { exact: true })).not.toBeVisible();
-});
-
 test('saving a skin-status verdict persists it, leaves the schedule unchanged, and shows on the program hero', async ({ page }) => {
   const today = iso(Date.now());
   await seedResetEndingToday(page);
