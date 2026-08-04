@@ -34,7 +34,7 @@ Agent-authored PRs are expected here, not discouraged — this repo has an `AGEN
 
 - **Autonomous agent runs** (e.g. Sandcastle/`RALPH`, see `.sandcastle/README.md`) prefix every commit subject and PR title with `RALPH:`. They run in one of two modes:
   - **legacy** (default) — one PR per issue on branch `agent/ralph-issue-<N>`, body opens with `Closes #<N>`.
-  - **integrated** (`--mode=integrated`) — one PR per PRD on branch `agent/prd-<N>`, opened by an integrator agent after all issues are merged and the full suite is green. Body opens with a `Closes #<N>` line for **every** integrated issue (skipped ones stay open) and includes `## Integrated issues`, `## Touched during integration`, and `## Code review` sections.
+  - **integrated** (`--mode=integrated`) — one PR per PRD on branch `agent/prd-<N>`, opened by an integrator agent after all issues are merged and the full suite is green. Body opens with a `Closes #<N>` line for **every** integrated issue and includes `## Integrated issues`, `## Not included` (dropped or unscheduled issues, with reasons), `## Touched during integration`, and `## Code review` sections. A run is **resumable**: it adopts an existing `agent/prd-<N>` branch, skips issues already merged onto it, and updates the open PR instead of creating a second one — so a partially-executed PRD continues without redoing work or waiting for its PR to land.
 - **Human-directed AI pair-programming** (a contributor working interactively with an assistant) follows the normal branch, commit, and PR conventions below — no special prefix. The human reviews and is accountable for what's proposed before it ships.
 
 ## Branch Naming
