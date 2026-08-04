@@ -4,7 +4,7 @@ Personal PWA for tracking a breastfed newborn's atopic eczema through an elimina
 
 ## Overview
 
-A local-first SvelteKit PWA — no backend, no accounts. It runs the elimination protocol: onboarding, a daily "today" view, meal logging with allergen-conflict detection, a program timeline, per-region skin observations with photos, and end-of-reintroduction verdicts. All data lives in IndexedDB on the one device.
+A local-first SvelteKit PWA — no backend, no accounts. It is a logging tool: a first-run feeding-stage picker, a daily day view, meal logging, per-region skin observations with photos, and settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. All data lives in IndexedDB on the one device. The elimination-protocol engine (onboarding questionnaire, schedule, conflict detection, reintroduction ladder, verdicts) is parked at `parked/protocol-engine` — see `parked-features.md`.
 
 ## Docs
 
@@ -12,10 +12,10 @@ A local-first SvelteKit PWA — no backend, no accounts. It runs the elimination
 - `../UBIQUITOUS_LANGUAGE.md` — shared term glossary
 - `adr/` — architecture decision records
 - `decisions-log.md` — settled implemented decisions (one-liners)
+- `parked-features.md` — the revival catalog for the parked protocol engine
 - `architecture/` — tech stack, ports & adapters, testing, code standards
-- `design/` — the redesign prototype (design source of truth)
+- `design/` — the redesign prototype (design source of truth; still depicts pre-descaling protocol screens)
 - `research/` — forward-looking design research
-- `allergen-reference/` — source protocol tables (Pekárková, Matoušková)
 
 ## Commands
 
