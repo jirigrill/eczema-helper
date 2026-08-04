@@ -5,11 +5,7 @@
 
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
-  import { scheduleContext } from '$lib/stores/schedule-context';
   import { seededStatus } from '$lib/stores/settings.svelte';
-  import { isPhaseEndForEvaluation, getPhaseForDate } from '$lib/domain/schedule-queries';
-  import TodayIcon from '$lib/components/icons/TodayIcon.svelte';
-  import CalendarIcon from '$lib/components/icons/CalendarIcon.svelte';
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import { commonStrings } from '$lib/strings/common';
@@ -20,13 +16,11 @@
   import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
   import { db } from '$lib/db/atopic-db';
   import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-  import { pulseRecentreDayStrip } from '$lib/stores/day-strip-recentre';
 
   const mealRepo = new DexieMealRepository(db);
 
   let { children } = $props();
 
-  const ctx = $derived($scheduleContext);
   const seeded = $derived($seededStatus);
   const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
@@ -35,21 +29,12 @@
       currentPath.startsWith('/settings') ||
       currentPath.startsWith('/skin'),
   );
-  const isDayRoute = $derived(currentPath.startsWith('/day/'));
   const today = $derived(todayIso());
-  // Suppress the FAB on a future day — those days are read-only "Naplánováno"
-  // previews and must not expose meal/observation/photo entry points.
-  const isFutureDay = $derived(
-    isDayRoute && typeof $page.params.date === 'string' && $page.params.date > today,
-  );
-  // The nav shell and FAB ride the same seeded signal as the redirect (PRD
-  // #623, §3): once the mother has a feeding stage she is set up, so the shell
-  // is available regardless of whether a (parked) schedule exists. The bottom
-  // nav bar itself is removed in a later step; here only the gate moves off
-  // `ctx.status`.
-  const showNav = $derived(!isOnboarding && seeded === 'seeded' && !isDetailScreen);
-  const showFab = $derived(showNav && !isFutureDay);
-  const dnesActive = $derived($page.params.date === today);
+  // The floating FAB is the sole global add affordance (PRD #623, §3). It rides
+  // the seeded signal — once the mother has a feeding stage she is set up — and
+  // is hidden only on first run and the detail screens (which own their own
+  // save actions). No day is suppressed: every day in range is loggable.
+  const showFab = $derived(!isOnboarding && seeded === 'seeded' && !isDetailScreen);
 
   const selectedDate = $derived($page.params.date ?? today);
 
@@ -57,17 +42,6 @@
   // mark already-logged slots with a ✓ for the current `selectedDate`.
   const dayMealSession = $derived(createMealSession(selectedDate));
   const loggedTypes = $derived<MealType[]>($dayMealSession.map((m) => m.mealType));
-
-  // Contextual fourth FAB row — shown only when `selectedDate` is the last day
-  // of an evaluable phase (issue #331).
-  const showEvaluate = $derived(
-    ctx.status === 'ready' && isPhaseEndForEvaluation(ctx.schedule, selectedDate),
-  );
-  // Id of the phase ending on `selectedDate`, carried into `/evaluation` so the
-  // screen resolves which phase to evaluate. Only meaningful when showEvaluate.
-  const evaluatePhaseId = $derived(
-    ctx.status === 'ready' ? (getPhaseForDate(ctx.schedule, selectedDate)?.id ?? '') : '',
-  );
 
   let fabOpen = $state(false);
 
@@ -184,54 +158,15 @@
   <main bind:this={mainEl} class="min-h-0 flex-1 overflow-y-auto">
     {@render children()}
   </main>
-
-  {#if showNav}
-    <nav class="border-surface-dark relative z-30 shrink-0 border-t bg-white pt-2 pb-5">
-      <div class="mx-auto grid max-w-lg grid-cols-3 items-end">
-        <a
-          href="/day/{todayIso()}"
-          class="flex flex-col items-center gap-0.5 {dnesActive
-            ? 'text-primary'
-            : 'text-text-muted'}"
-          onclick={() => {
-            // When already on /day/today the route does not change, so the
-            // strip's selection effect does not re-run — pulse the recentre
-            // signal so the strip jumps back to today regardless of where
-            // the user scrolled it. Always pulsing is safe: on a real route
-            // change the page-level effect already recentres before this
-            // signal lands.
-            pulseRecentreDayStrip();
-          }}
-        >
-          <TodayIcon class="h-[22px] w-[22px]" />
-          <span class="text-[10px] {dnesActive ? 'font-semibold' : ''}"
-            >{commonStrings.nav.today}</span
-          >
-        </a>
-        <div class="flex justify-center">
-          {#if showFab}
-            <button
-              class="bg-primary ring-primary/20 relative z-50 -mt-7 flex h-14 w-14 items-center justify-center rounded-full text-3xl font-light text-white shadow-lg ring-4"
-              aria-label={commonStrings.nav.addRecordAria}
-              onclick={() => (fabOpen = true)}>+</button
-            >
-          {/if}
-        </div>
-        <a
-          href="/week"
-          class="flex flex-col items-center gap-0.5 {!dnesActive
-            ? 'text-primary'
-            : 'text-text-muted'}"
-        >
-          <CalendarIcon class="h-[22px] w-[22px]" />
-          <span class="text-[10px] {!dnesActive ? 'font-semibold' : ''}"
-            >{commonStrings.nav.week}</span
-          >
-        </a>
-      </div>
-    </nav>
-  {/if}
 </div>
+
+{#if showFab}
+  <button
+    class="bg-primary ring-primary/20 fixed right-5 bottom-6 z-50 flex h-14 w-14 items-center justify-center rounded-full text-3xl font-light text-white shadow-lg ring-4"
+    aria-label={commonStrings.nav.addRecordAria}
+    onclick={() => (fabOpen = true)}>+</button
+  >
+{/if}
 
 {#if $discardBuffer}
   <Toast
@@ -243,11 +178,5 @@
 {/if}
 
 {#if fabOpen}
-  <FabActionSheet
-    date={selectedDate}
-    {loggedTypes}
-    {showEvaluate}
-    {evaluatePhaseId}
-    onclose={() => (fabOpen = false)}
-  />
+  <FabActionSheet date={selectedDate} {loggedTypes} onclose={() => (fabOpen = false)} />
 {/if}

@@ -14,18 +14,6 @@
     /** Meal types already logged for `date`; renders a ✓ in the submenu. */
     loggedTypes?: MealType[];
     /**
-     * Show the contextual fourth "evaluate test" row, gated by the caller on
-     * `isPhaseEndForEvaluation(schedule, date)` (issue #331). Defaults to
-     * `false` so ordinary days keep the three-action sheet.
-     */
-    showEvaluate?: boolean;
-    /**
-     * Id of the phase ending on `date`. Carried into `/evaluation` so the
-     * screen can resolve which phase to evaluate (issue #331). Required for
-     * the evaluate row to navigate to a usable screen.
-     */
-    evaluatePhaseId?: string;
-    /**
      * When supplied, tapping a meal-type row invokes this callback with the
      * chosen `MealType` instead of navigating to `/meal` (copy-destination
      * picker, spec #599). Absent → today's FAB add-meal navigation.
@@ -49,8 +37,6 @@
     date,
     onclose,
     loggedTypes = [],
-    showEvaluate = false,
-    evaluatePhaseId = '',
     onSelectMealType,
     initialMealSubmenu = false,
     preselectedType,
@@ -76,13 +62,6 @@
 
   function navigate(path: string) {
     goto(`${path}?date=${date}&returnTo=/day/${date}`);
-    onclose();
-  }
-
-  function navigateToEvaluation() {
-    goto(
-      `/evaluation?phase=${encodeURIComponent(evaluatePhaseId)}&date=${date}&returnTo=/day/${date}`,
-    );
     onclose();
   }
 </script>
@@ -176,36 +155,6 @@
       </span>
       <span class="text-text-muted text-sm">›</span>
     </button>
-
-    {#if showEvaluate}
-      <button
-        data-testid="fab-action-evaluate"
-        class="border-surface-dark active:bg-surface flex w-full items-center gap-3 border-b px-5 py-4"
-        onclick={navigateToEvaluation}
-      >
-        <span
-          class="bg-primary/15 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M9 11l3 3L22 4" />
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-          </svg>
-        </span>
-        <span class="text-text-muted flex-1 text-left text-[15px]">
-          {commonStrings.fabSheet.addEvaluation}
-        </span>
-        <span class="text-text-muted text-sm">›</span>
-      </button>
-    {/if}
 
     <button
       data-testid="fab-action-close"

@@ -176,14 +176,15 @@ test('clicking a strip cell navigates to /day/<cell-date>', async ({ page }) => 
   await expect(page).toHaveURL(`/day/${target}`);
 });
 
-test('returning via the bottom-nav Dnes tab navigates to /day/<today>', async ({ page }) => {
+test('the "↩ Dnes" header chip navigates back to /day/<today>', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0]!;
   const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
   const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedSchedule(page, startDate);
   await page.goto(`/day/${pastDate}`);
-  // Bottom-nav "Dnes" tab is an <a> with text "Dnes"
-  await page.getByRole('link', { name: 'Dnes' }).click();
+  // The bottom nav is gone (PRD #623, §3); the header chip is the jump-to-today
+  // affordance and appears only off today.
+  await page.getByTestId('back-to-today-chip').click();
   await expect(page).toHaveURL(`/day/${today}`);
 });
 

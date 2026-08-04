@@ -35,12 +35,37 @@ test('redirect to / from /day/<today> when IndexedDB is empty', async ({ page })
   await expect(page).toHaveURL('/');
 });
 
-test('first run → /day/<today> with bottom nav visible', async ({ page }) => {
+test('first run → /day/<today> with the floating FAB visible and no bottom nav', async ({
+  page,
+}) => {
   const today = new Date().toISOString().split('T')[0];
   await completeFirstRun(page);
   await expect(page).toHaveURL(`/day/${today}`);
-  await expect(page.getByRole('navigation').getByRole('link', { name: /Dnes/ })).toBeVisible();
-  await expect(page.getByRole('navigation').getByRole('link', { name: /Týden/ })).toBeVisible();
+  // The single-screen shell (PRD #623, §3): the FAB is the sole global add
+  // affordance and there is no bottom navigation bar or Týden tab.
+  await expect(page.getByRole('button', { name: 'Přidat záznam' })).toBeVisible();
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+  await expect(page.getByText('Týden')).toHaveCount(0);
+});
+
+test('the "↩ Dnes" chip is absent on today, appears off today, and returns to today', async ({
+  page,
+}) => {
+  const today = new Date().toISOString().split('T')[0];
+  const past = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
+  await completeFirstRun(page);
+  await expect(page).toHaveURL(`/day/${today}`);
+
+  // On today the chip is absent — it rides the header's isToday swap.
+  await expect(page.getByTestId('back-to-today-chip')).toHaveCount(0);
+
+  // A directly-navigated past day still renders its own cell (day-strip clamp),
+  // so off-today the chip appears and returns the browser to today when tapped.
+  await page.goto(`/day/${past}`);
+  await expect(page.getByTestId('back-to-today-chip')).toBeVisible();
+  await page.getByTestId('back-to-today-chip').click();
+  await expect(page).toHaveURL(`/day/${today}`);
+  await expect(page.getByTestId('back-to-today-chip')).toHaveCount(0);
 });
 
 test('reactive redirect: clearing DB mid-session redirects to /', async ({ page }) => {

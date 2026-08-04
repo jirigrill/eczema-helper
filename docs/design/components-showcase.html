@@ -1032,7 +1032,7 @@
   <!-- ─── FabActionSheet ──────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FabActionSheet.svelte (routes its content through BottomSheet) -->
   <div class="component-section">
-    <p class="component-label">▸ <span>FabActionSheet</span> — date: string, onclose: () => void, showEvaluate?: boolean, onSelectMealType?: (type) => void, initialMealSubmenu?: boolean, preselectedType?: MealType</p>
+    <p class="component-label">▸ <span>FabActionSheet</span> — date: string, onclose: () => void, loggedTypes?: MealType[], onSelectMealType?: (type) => void, initialMealSubmenu?: boolean, preselectedType?: MealType</p>
     <div class="flex flex-wrap gap-6 items-start">
 
       <!-- Open state -->
@@ -1141,14 +1141,6 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
               </span>
               <span style="flex:1;font-size:15px;color:#7A6468;text-align:left">Zaznamenat stav kůže</span>
-              <span style="color:#7A6468;font-size:14px">›</span>
-            </button>
-            <!-- Contextual evaluate row — primary-tinted icon; label muted to match the daily three -->
-            <button style="width:100%;display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #EDE8E9">
-              <span style="width:40px;height:40px;border-radius:50%;background:rgba(139,69,87,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8B4557">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              </span>
-              <span style="flex:1;font-size:15px;color:#7A6468;text-align:left">Vyhodnotit test</span>
               <span style="color:#7A6468;font-size:14px">›</span>
             </button>
             <button style="width:100%;padding:16px;text-align:center;font-size:13px;color:#7A6468">Zrušit</button>

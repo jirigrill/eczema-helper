@@ -7,7 +7,7 @@
   import { todayIso, formatDateLongCs, formatObservationTime } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
-  import { dayStripRecentreSignal } from '$lib/stores/day-strip-recentre';
+  import { dayStripRecentreSignal, pulseRecentreDayStrip } from '$lib/stores/day-strip-recentre';
   import SkinObservationCard from '$lib/components/SkinObservationCard.svelte';
   import SkinPhotoCard from '$lib/components/SkinPhotoCard.svelte';
   import MealCard from '$lib/components/MealCard.svelte';
@@ -59,6 +59,15 @@
   function handleSelectDate(date: string): void {
     goto(`/day/${date}`);
   }
+
+  // The "↩ Dnes" chip returns the browser to today and recentres the strip
+  // (PRD #623, §3). It rides the header's existing `isToday` swap, so no new
+  // visibility rule enters the code. Pulsing the recentre signal covers the
+  // case where the strip was scrolled off today even though the route changes.
+  function handleBackToToday(): void {
+    pulseRecentreDayStrip();
+    goto(`/day/${today}`);
+  }
 </script>
 
 <div class="mx-auto max-w-lg">
@@ -72,25 +81,37 @@
         <h2 class="page-heading">{formatDateLongCs(selectedDate)}</h2>
       {/if}
     </div>
-    <a
-      href="/settings"
-      class="text-text-muted -mr-1.5 p-1.5"
-      aria-label={commonStrings.today.settingsAria}
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+    <div class="flex items-center gap-2">
+      {#if !isToday}
+        <button
+          type="button"
+          data-testid="back-to-today-chip"
+          class="border-surface-dark text-primary rounded-full border bg-white px-3 py-1 text-[12px] font-semibold"
+          onclick={handleBackToToday}
+        >
+          {commonStrings.nav.backToToday}
+        </button>
+      {/if}
+      <a
+        href="/settings"
+        class="text-text-muted -mr-1.5 p-1.5"
+        aria-label={commonStrings.today.settingsAria}
       >
-        <circle cx="12" cy="12" r="3" />
-        <path
-          d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"
-        />
-      </svg>
-    </a>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"
+          />
+        </svg>
+      </a>
+    </div>
   </div>
 
   <!-- DayStrip -->
