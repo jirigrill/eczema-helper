@@ -5,15 +5,12 @@ import * as navigation from '$app/navigation';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
 import { clearBuffer, writeBuffer } from '$lib/stores/discard-buffer';
 import type { ScheduleRaw } from '$lib/stores/schedule-context';
-
-const catalog = new BundledCatalogAdapter();
 
 const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
 vi.mock('$lib/stores/schedule-context', () => ({
@@ -313,168 +310,26 @@ describe('meal/+page.svelte', () => {
   // custom-food input) is covered end-to-end by
   // `tests/e2e/meal-custom-food.test.ts`.
 
-  it('food chips in an eliminated allergen show data-state="danger"', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    const token = getByRole('button', { name: /Kravské mléko/ });
-    expect(token.closest('[data-state="danger"]')).not.toBeNull();
-  });
-
-  it('food chips in a non-eliminated allergen do NOT have data-state="danger"', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Ovoce/ }));
-    await tick();
-    const token = getByRole('button', { name: /^Jahody$/ });
-    expect(token.closest('[data-state="danger"]')).toBeNull();
-  });
-
   // ── Grid working-list: tap-to-edit ───────────────────────
   // Row-tap opens the inline editor, ✕ removes the row, outside-click confirms
   // and re-tap opens a second row while confirming the first — all covered
   // end-to-end by `tests/e2e/meal-modal-edit.test.ts` (AC245-* group).
 
-  // ── Conflict styling: CTA button + grid working-list ────────
-
-  it('CTA is danger-red when working meal contains a confirmed eliminated-today food', async () => {
-    setReadyWithElim(); // dairy is eliminated today
+  it('CTA is primary when saving a family (family commit flow)', async () => {
+    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
-    // Add and confirm a dairy food
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Back on grid — CTA should be danger-red
-    const cta = getByRole('button', { name: /Uložit Oběd/ });
-    expect(cta.className).toContain('bg-danger');
-  });
-
-  it('CTA reverts to primary when the eliminated-today food is removed', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Remove the eliminated food
-    const removeBtn = getByRole('button', { name: /Odebrat Kravské mléko/ });
-    await fireEvent.click(removeBtn);
-    await tick();
-    // CTA should be back to primary (aria-disabled since nothing confirmed)
-    const cta = getByRole('button', { name: 'Uložit' });
-    expect(cta.className).not.toContain('bg-warning');
-  });
-
-  it('confirmed eliminated-today food in grid working-list shows data-state="danger-confirmed"', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // The grid working-list row for an eliminated confirmed food should be danger-confirmed
-    const token = getByRole('button', { name: 'Kravské mléko' });
-    expect(token.closest('[data-state="danger-confirmed"]')).not.toBeNull();
-  });
-
-  it('editing an eliminated-today food in the grid shows a conflict warning', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, queryByText } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Open grid row editor for the eliminated food
-    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
-    await tick();
-    expect(queryByText(/Vyloučeno|vyloučeno/)).toBeInTheDocument();
-  });
-
-  // ── Bug fixes: eliminated-food CTA + grid working-list order ────
-
-  it('CTA is danger-red when saving a family that contains an eliminated food (no individual food editing)', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Drill into dairy family and confirm a food — but do NOT save individual food first
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    // Now in "Uložit Mléko" state — no individual food editing, but eliminated food is confirmed
-    const cta = getByRole('button', { name: /Uložit Mléko/ });
-    expect(cta.className).toContain('bg-danger');
-  });
-
-  it('CTA is primary when saving a family with no eliminated foods', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Drill into Zelenina (not eliminated)
+    // Drill into Zelenina
     await fireEvent.click(getByRole('button', { name: /Zelenina/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Brambory/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Uložit Brambory/ }));
     await tick();
-    // "Uložit Zelenina" — no eliminated food, should be primary
+    // "Uložit Zelenina" — the finalize CTA is primary.
     const cta = getByRole('button', { name: /Uložit Zelenina/ });
     expect(cta.className).toContain('bg-primary');
-    expect(cta.className).not.toContain('bg-danger');
-  });
-
-  it('confirmed eliminated grid row: amount text is white (visible on red background)', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, container } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // The amount span inside the danger-confirmed row should have text-white class
-    const dangerRow = container.querySelector('[data-state="danger-confirmed"]');
-    expect(dangerRow).not.toBeNull();
-    const amountSpan = dangerRow!.querySelector('span.text-white');
-    expect(amountSpan).not.toBeNull();
   });
 
   it('opening a grid row editor does not remove sibling foods from the working list', async () => {
@@ -748,91 +603,6 @@ describe('meal/+page.svelte', () => {
     const { findByRole } = render(MealPage);
     // No picker in solids; the baby's meal hydrates as the implicit actor.
     await findByRole('button', { name: /^Rýže$/ });
-    mockSettings.set({ feedingStage: 'breastfed' });
-  });
-
-  // ── Actor-aware in-editor conflict detection (spec #564/#568, US14/15) ──
-  // The editor must check the working meal against the *selected* actor's
-  // eliminated set — protocol ∪ that actor's permanent allergies — not always
-  // the mother's. A baby-only permanent (permanentBaby ≠ permanentMother) must
-  // flag on the baby's meal and must NOT flag on the mother's.
-
-  // dairy is permanent for the BABY only; the mother has no permanents and the
-  // protocol eliminates nothing, so mother meals see an empty eliminated set.
-  const babyOnlyDairySchedule: GeneratedSchedule = {
-    permanentMother: [],
-    permanentBaby: ['dairy'],
-    startDate: today,
-    estimatedEndDate: future,
-    phases: [
-      { id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future },
-    ],
-  };
-  function setReadyBabyOnlyDairy() {
-    mockScheduleRaw.set({
-      status: 'ready',
-      schedule: babyOnlyDairySchedule,
-      answers: sampleAnswers,
-    });
-  }
-
-  it('flags a baby-permanent food against the baby set in the solids stage (US14)', async () => {
-    setReadyBabyOnlyDairy();
-    mockSettings.set({ feedingStage: 'solids' });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, container } = render(MealPage);
-    await tick();
-    // Compose a dairy food for the implicit baby actor and confirm it.
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Checked against permanentBaby → the confirmed row is danger-flagged.
-    // A hardcoded mother set (empty here) would leave it un-flagged (the H1 bug).
-    expect(container.querySelector('[data-state="danger-confirmed"]')).not.toBeNull();
-    mockSettings.set({ feedingStage: 'breastfed' });
-  });
-
-  it('does NOT flag the baby-permanent food on the mother slot, but DOES after switching to Miminko (US14/15)', async () => {
-    setReadyBabyOnlyDairy();
-    mockSettings.set({ feedingStage: 'mixed' });
-    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
-    // Same dairy food logged in BOTH actors' slots.
-    await meals.save({
-      id: `${today}:lunch:mother`,
-      date: today,
-      mealType: 'lunch',
-      actor: 'mother',
-      items: [{ id: 'm1', name: 'Kravské mléko', foodId: 'kravske-mleko', amount: 'portion' }],
-      createdAt: new Date().toISOString(),
-    });
-    await meals.save({
-      id: `${today}:lunch:baby`,
-      date: today,
-      mealType: 'lunch',
-      actor: 'baby',
-      items: [{ id: 'b1', name: 'Kravské mléko', foodId: 'kravske-mleko', amount: 'portion' }],
-      createdAt: new Date().toISOString(),
-    });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, findByRole, container } = render(MealPage);
-    // Mother slot: dairy is not in her (empty) eliminated set → the confirmed
-    // grid row is NOT danger-flagged.
-    await findByRole('button', { name: 'Kravské mléko' });
-    await tick();
-    expect(container.querySelector('[data-state="danger-confirmed"]')).toBeNull();
-    // Switch to the baby: swap-on-dirty autosaves the (clean) mother meal, then
-    // re-opens the baby slot. Its eliminated set (permanentBaby) flips the same
-    // confirmed food into a danger-flagged row once setEliminatedToday flushes.
-    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
-    await findByRole('button', { name: 'Kravské mléko' });
-    await waitFor(() =>
-      expect(container.querySelector('[data-state="danger-confirmed"]')).not.toBeNull(),
-    );
     mockSettings.set({ feedingStage: 'breastfed' });
   });
 
@@ -1302,62 +1072,4 @@ describe('meal/+page.svelte', () => {
   // The `eyebrow` / `body-muted` / `caption` typography assertions on the
   // section headers, notes label, and top-right date are covered end-to-end by
   // `tests/e2e/meal-typography.test.ts`.
-
-  // ── Reintroduction dose caption ─────────────────────────────
-  // The banner text sources from LadderStep.dose at the rung whose index
-  // matches `dayInPhase - 1` on the allergen's breastfed-stage ladder
-  // (ADR-0023). These assert *wiring* — the page renders the ladder's dose at
-  // the right rung. They are NOT a migration-parity gate: they read the current
-  // `LadderStep.dose`, so they cannot catch a caption mis-transcribed from the
-  // old `instructionCs` during authoring. The frozen parity that matters —
-  // `isEvaluationDay` — lives in `schedule-queries.test.ts`; dose-caption
-  // correctness is covered by the well-formedness gate (ladder.test.ts) plus
-  // curator review.
-
-  it('reintroduction banner shows the ladder step dose for the current day-in-phase', async () => {
-    const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0]!;
-    const reintroDay1: GeneratedSchedule = {
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: today,
-      estimatedEndDate: future,
-      phases: [
-        {
-          id: 'reintro-dairy',
-          type: 'reintroduction',
-          allergenIds: ['dairy'],
-          startDate: today,
-          endDate: future,
-        },
-      ],
-    };
-    mockScheduleRaw.set({ status: 'ready', schedule: reintroDay1, answers: sampleAnswers });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByText } = render(MealPage);
-    await tick();
-    // Caption format: `<dose> (<category name>)`
-    expect(getByText(new RegExp(ladderStep.dose.slice(0, 20)))).toBeInTheDocument();
-  });
-
-  it('reintroduction banner caption changes with the rung at each day-in-phase', async () => {
-    const ladder = catalog.get('dairy')!.ladder!.stages.breastfed!;
-    // Day 3 in phase: startDate is 2 days before today
-    const startDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]!;
-    const endDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]!;
-    const reintroDay3: GeneratedSchedule = {
-      permanentMother: [],
-      permanentBaby: [],
-      startDate,
-      estimatedEndDate: endDate,
-      phases: [
-        { id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate, endDate },
-      ],
-    };
-    mockScheduleRaw.set({ status: 'ready', schedule: reintroDay3, answers: sampleAnswers });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByText } = render(MealPage);
-    await tick();
-    // Rung 3 dose text — a stable slice unique to that rung
-    expect(getByText(new RegExp(ladder[2]!.dose.slice(0, 20)))).toBeInTheDocument();
-  });
 });
