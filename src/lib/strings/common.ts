@@ -203,13 +203,6 @@ export const commonStrings = {
     // Emptying an existing meal deletes it (#588, reverses #586's no-op guard):
     // the hint warns that saving/leaving an emptied edit removes the meal.
     emptyMealHint: 'Jídlo je prázdné — uložením ho smažeš.',
-    /**
-     * Passive, non-blocking hint shown when the edited meal's date falls
-     * outside the current protocol's loggable window (issue #440) — e.g. a
-     * schedule regeneration narrowed the span after the meal was logged.
-     * Informational only: it never blocks saving.
-     */
-    outOfWindowHint: 'Toto jídlo je mimo okno aktuálního protokolu.',
     // ── Copy meal (spec #599) ──────────────────────────────────
     /** Heading of the copy-destination picker. */
     copyPickerHeading: 'Kam zkopírovat?',
@@ -217,10 +210,10 @@ export const commonStrings = {
     copiedToast: 'Zkopírováno',
     /**
      * Error toast when a copy fails to save — a Dexie quota or transaction
-     * error. The loggable-window gate is gone (§3e), so this is now a generic
+     * error. The loggable-window gate is gone (§3e), so this is a generic
      * save-failure message.
      */
-    copyOutOfWindowToast: 'Kopírování se nezdařilo, zkuste to prosím znovu.',
+    copyFailedToast: 'Kopírování se nezdařilo, zkuste to prosím znovu.',
   },
 
   // ── Program page ──────────────────────────────────────────

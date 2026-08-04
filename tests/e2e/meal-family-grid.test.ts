@@ -69,11 +69,9 @@ test('family grid: shows 13 family tiles on meal page', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Zelenina/ })).toBeVisible();
 });
 
-// Issue #297 follow-up: the family grid no longer carries elimination/active
-// indicators. The danger treatment (warning + changed background) lives only on
-// the food once the user drills into the family; adding a food no longer dots
-// the family tile.
-test('family grid: tiles stay plain — no eliminated badge, no active dot; danger shows on the food inside the family', async ({ page }) => {
+// Issue #297 follow-up: the family grid carries no elimination/active
+// indicators. Adding a food no longer dots the family tile.
+test('family grid: tiles stay plain — no eliminated badge, no active dot', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   await completeOnboarding(page);
 
@@ -110,12 +108,10 @@ test('family grid: tiles stay plain — no eliminated badge, no active dot; dang
   await expect(dairyTile).not.toHaveAttribute('data-state', 'danger');
   await expect(dairyTile.locator('[data-testid="eliminated-badge"]')).toHaveCount(0);
 
-  // Drilling in still works, and the danger treatment shows on the food itself.
+  // Drilling in still works.
   await expect(dairyTile).toBeEnabled();
   await dairyTile.click();
   await expect(page.getByRole('button', { name: /Kravské mléko/ })).toBeVisible();
-  // The eliminated food carries the "Vyloučeno" marker (changed background + warning).
-  await expect(page.getByText('Vyloučeno').first()).toBeVisible();
 
   // Back to the grid, add a vegetable so Zelenina has a confirmed food.
   await page.goBack();

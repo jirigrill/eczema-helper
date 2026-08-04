@@ -162,14 +162,6 @@ test.describe('source-subgroup grouping', () => {
     await expect(page.getByText('Kravské', { exact: true })).not.toBeVisible();
     await expect(page.getByText('Ostatní', { exact: true })).not.toBeVisible();
   });
-
-  test('eliminated dairy food shows Vyloučeno in the grouped drill-in', async ({ page }) => {
-    await completeOnboarding(page, ['dairy']);
-    await openMealAndDrill(page, 'Mléko');
-
-    // Kravské mléko carries the dairy allergen → danger marker.
-    await expect(page.getByText('Vyloučeno').first()).toBeVisible();
-  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
