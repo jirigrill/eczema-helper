@@ -6,7 +6,6 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { db } from '$lib/db/atopic-db';
 import type { Meal } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
@@ -15,7 +14,7 @@ import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buf
 import type { ScheduleContext } from '$lib/stores/schedule-context';
 import type { SeededStatus } from '$lib/stores/settings.svelte';
 
-const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+const meals = new DexieMealRepository(db);
 
 const mockGoto = vi.fn();
 const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });

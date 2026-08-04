@@ -1,10 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { OUT_OF_WINDOW_ERROR } from '$lib/adapters/loggable-window-guard';
-import { SINGLETON_ID, db } from '$lib/db/atopic-db';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import { db } from '$lib/db/atopic-db';
 import type { Meal } from '$lib/domain/models';
 import {
   confirmFood,
@@ -17,7 +14,7 @@ import {
 
 import { createMealEditor } from './meal-editor.svelte';
 
-const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+const meals = new DexieMealRepository(db);
 
 const today = '2024-08-01';
 
@@ -799,31 +796,32 @@ describe('createMealEditor — swapActor()', () => {
   });
 
   it('aborts on finalize failure: current actor stays active, working meal preserved, error returned', async () => {
-    // A schedule makes the loggable-window guard reject an out-of-window write,
-    // giving a genuine `save` failure through the real repository — no mocks.
-    await db.schedule.put({ id: SINGLETON_ID, ...makeSchedule() });
+    // Force a genuine `save` failure at the Dexie boundary — the real
+    // repository surfaces the rejection as `{ ok: false }` without mocking any
+    // internal collaborator.
+    const putSpy = vi.spyOn(db.meals, 'put').mockRejectedValueOnce(new Error('write fail'));
     try {
-      const outOfWindow = '2024-01-01';
+      const date = '2024-08-01';
       const editor = createMealEditor();
-      await editor.open({ date: outOfWindow, mealType: 'lunch', actor: 'mother' });
+      await editor.open({ date, mealType: 'lunch', actor: 'mother' });
 
       editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
       editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
       editor.notes = 'nezmizí';
 
       const result = await editor.swapActor({
-        date: outOfWindow,
+        date,
         mealType: 'lunch',
         actor: 'baby',
       });
 
       // Swap aborted: the failing Result surfaces for the CTA error path.
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+      expect(result).toMatchObject({ ok: false });
       // Current (mother) actor stays active with its working meal intact.
       expect(editor.confirmedFoods.map((f) => f.foodId)).toEqual(['brambory']);
       expect(editor.notes).toBe('nezmizí');
     } finally {
-      await db.schedule.clear();
+      putSpy.mockRestore();
     }
   });
 });

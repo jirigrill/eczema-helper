@@ -1,7 +1,6 @@
 import type { Readable } from 'svelte/store';
 
 import { createDateScopedSession } from '$lib/adapters/date-scoped-session';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { DexieSkinObservationRepository } from '$lib/adapters/dexie-skin-observation-repository';
 import { DexieSkinPhotoStore } from '$lib/adapters/dexie-skin-photo-store';
 import { db } from '$lib/db/atopic-db';
@@ -10,7 +9,7 @@ import type { SkinObservationUpdateOptions } from '$lib/domain/ports/skin-observ
 import type { Result } from '$lib/types/result';
 import { todayIso } from '$lib/utils/date';
 
-const repo = new DexieSkinObservationRepository(db, new DexieScheduleRepository(db));
+const repo = new DexieSkinObservationRepository(db);
 const photoStore = new DexieSkinPhotoStore(db);
 
 export type SkinObservationSession = {

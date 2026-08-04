@@ -4,7 +4,6 @@ import type { Readable } from 'svelte/store';
 import { liveQuery } from 'dexie';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { DexieSkinObservationRepository } from '$lib/adapters/dexie-skin-observation-repository';
 import { db } from '$lib/db/atopic-db';
 import { earlierLoggedDate } from '$lib/domain/earliest-logged';
@@ -18,8 +17,8 @@ import { earlierLoggedDate } from '$lib/domain/earliest-logged';
  * immediately without a reload.
  */
 export function createEarliestLoggedStore(): Readable<string | null> {
-  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
-  const skin = new DexieSkinObservationRepository(db, new DexieScheduleRepository(db));
+  const meals = new DexieMealRepository(db);
+  const skin = new DexieSkinObservationRepository(db);
   return readable<string | null>(null, (set) => {
     const subscription = liveQuery(async () => {
       const [mealResult, skinResult] = await Promise.all([

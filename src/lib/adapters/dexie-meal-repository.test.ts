@@ -6,13 +6,10 @@ import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
 import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
 import type { Meal, MealItem } from '$lib/domain/models';
 import { PREPARATION_METHODS, mealId } from '$lib/domain/models';
-import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
 import { copyMealInto } from '$lib/domain/working-meal';
-import { addDays, todayIso } from '$lib/utils/date';
+import { addDays } from '$lib/utils/date';
 
 import { DexieMealRepository } from './dexie-meal-repository';
-import { DexieScheduleRepository } from './dexie-schedule-repository';
-import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -48,7 +45,7 @@ describe('DexieMealRepository', () => {
   beforeEach(() => {
     // Fresh IDBFactory per test — prevents data bleeding between tests in the same suite.
     db = new AtopicDb({ indexedDB: new IDBFactory(), IDBKeyRange });
-    repo = new DexieMealRepository(db, new DexieScheduleRepository(db));
+    repo = new DexieMealRepository(db);
   });
 
   // ── Slice 1: round-trip ──────────────────────────────────────
@@ -434,150 +431,50 @@ describe('DexieMealRepository', () => {
     expect(result).toEqual({ ok: false, error: 'order fail' });
   });
 
-  // ── Loggable-window guard (BUFFER_BEFORE_START_DAYS / BUFFER_AFTER_END_DAYS) ──
-
-  describe('loggable-window guard', () => {
-    it('save succeeds for a date inside the schedule span', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const result = await repo.save(makeMeal('2026-05-15', 'lunch'));
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    it('save succeeds exactly at the start-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const boundary = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS);
-      const result = await repo.save(makeMeal(boundary, 'lunch'));
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    it('save rejects a date one day before the start-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      const result = await repo.save(makeMeal(tooEarly, 'lunch'));
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-
-      const persisted = await repo.loadBySlot(tooEarly, 'lunch', 'mother');
-      expect(persisted).toEqual({ ok: true, data: null });
-    });
-
-    it('save succeeds exactly at the end-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const boundary = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS);
-      const result = await repo.save(makeMeal(boundary, 'lunch'));
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    it('save rejects a date one day after the end-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooLate = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS + 1);
-      const result = await repo.save(makeMeal(tooLate, 'lunch'));
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-
-      const persisted = await repo.loadBySlot(tooLate, 'lunch', 'mother');
-      expect(persisted).toEqual({ ok: true, data: null });
-    });
-
-    it('save is unguarded when no schedule has been generated yet', async () => {
-      const result = await repo.save(makeMeal('1999-01-01', 'lunch'));
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    // ── Unchanged-date edits to an already out-of-window slot (issue #440) ──
-
-    it('re-saving a slot whose date is already outside the window succeeds when the date is unchanged', async () => {
-      const schedule = makeSchedule();
-      // Seed the row before any schedule exists — mirrors a row written pre-guard
-      // or one left stranded by a schedule regeneration.
-      const staleDate = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      await repo.save(makeMeal(staleDate, 'lunch', { notes: 'first' }));
-
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-
-      const result = await repo.save(makeMeal(staleDate, 'lunch', { notes: 'second' }));
-      expect(result).toMatchObject({ ok: true });
-
-      const persisted = await repo.loadBySlot(staleDate, 'lunch', 'mother');
-      expect(persisted).toMatchObject({ ok: true, data: { notes: 'second' } });
-    });
-
-    it('saving a brand-new slot with an out-of-window date is still rejected even though no row exists yet', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-
-      const result = await repo.save(makeMeal(tooEarly, 'dinner'));
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-    });
-  });
-
-  // ── Copy-meal loggable-window boundary (spec #599, issue #606) ──────────
+  // ── Unbounded logging: no schedule-derived window (issue #628) ──────────
   //
-  // A copied meal is an ordinary `Meal` assembled by `copyMealInto` and
-  // persisted through the same `save()` guard as any other write. These tests
-  // pin that a copy whose *destination date* falls outside the loggable window
-  // is rejected — the guard branch this ticket's confirm flow relies on to keep
-  // the picker open and raise the out-of-window toast.
-  describe('copy-meal destination window', () => {
-    function sourceMeal(): Meal {
-      return makeMeal('2026-05-15', 'lunch', {
+  // The write adapter no longer consults the schedule. Any day the mother can
+  // reach is loggable, even one far outside a generated schedule span, so a
+  // late (or early) entry is never refused (§1 anchor 3, §4 step 3).
+
+  describe('unbounded logging', () => {
+    it('saves a meal on a day far before a generated schedule span', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const wayBefore = addDays(schedule.startDate, -365);
+
+      const result = await repo.save(makeMeal(wayBefore, 'lunch'));
+      expect(result).toMatchObject({ ok: true });
+
+      const persisted = await repo.loadBySlot(wayBefore, 'lunch', 'mother');
+      expect(persisted.ok && persisted.data?.date).toBe(wayBefore);
+    });
+
+    it('saves a meal on a day far after a generated schedule span', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const wayAfter = addDays(schedule.estimatedEndDate, 365);
+
+      const result = await repo.save(makeMeal(wayAfter, 'lunch'));
+      expect(result).toMatchObject({ ok: true });
+
+      const persisted = await repo.loadBySlot(wayAfter, 'lunch', 'mother');
+      expect(persisted.ok && persisted.data?.date).toBe(wayAfter);
+    });
+
+    it('saves a copied meal on a day far before a generated schedule span', async () => {
+      const schedule = makeSchedule();
+      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
+      const wayBefore = addDays(schedule.startDate, -365);
+
+      const source = makeMeal('2026-05-15', 'lunch', {
         items: [makeItem('src-1', { name: 'Rýže', foodId: 'ryze' })],
       });
-    }
+      const destSlot = { date: wayBefore, mealType: 'dinner' as const, actor: 'mother' as const };
+      const { meal } = copyMealInto(source, null, destSlot);
 
-    // Assemble a copy into `destDate`'s dinner slot (empty destination) and
-    // persist it — mirrors the route's `copyMealInto` → `save` confirm path.
-    async function copyInto(destDate: string) {
-      const destSlot = { date: destDate, mealType: 'dinner' as const, actor: 'mother' as const };
-      const { meal } = copyMealInto(sourceMeal(), null, destSlot);
-      return repo.save(meal!);
-    }
-
-    it('rejects a copy whose destination date is outside the loggable window', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-
-      expect(await copyInto(tooEarly)).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-      expect(await repo.loadBySlot(tooEarly, 'dinner', 'mother')).toEqual({
-        ok: true,
-        data: null,
-      });
-    });
-
-    it('allows a copy landing exactly on the start-buffer floor (scheduleStart − 7)', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const floor = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS);
-
-      expect(await copyInto(floor)).toMatchObject({ ok: true });
-      const persisted = await repo.loadBySlot(floor, 'dinner', 'mother');
-      expect(persisted.ok && persisted.data?.items[0]?.name).toBe('Rýže');
-    });
-
-    it('rejects a copy one day below the start-buffer floor (scheduleStart − 8)', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const belowFloor = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-
-      expect(await copyInto(belowFloor)).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-    });
-
-    it('allows a copy dated today (today is a valid destination)', async () => {
-      const today = todayIso();
-      // A schedule whose window comfortably contains today.
-      const schedule = makeSchedule({
-        startDate: addDays(today, -10),
-        estimatedEndDate: addDays(today, 10),
-      });
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-
-      expect(await copyInto(today)).toMatchObject({ ok: true });
-      const persisted = await repo.loadBySlot(today, 'dinner', 'mother');
+      expect(await repo.save(meal!)).toMatchObject({ ok: true });
+      const persisted = await repo.loadBySlot(wayBefore, 'dinner', 'mother');
       expect(persisted.ok && persisted.data?.items[0]?.name).toBe('Rýže');
     });
   });
@@ -682,7 +579,7 @@ describe('DexieMealRepository', () => {
       await seedLegacyMealRow(indexedDB);
 
       const upgraded = new AtopicDb({ indexedDB, IDBKeyRange });
-      const repo = new DexieMealRepository(upgraded, new DexieScheduleRepository(upgraded));
+      const repo = new DexieMealRepository(upgraded);
 
       expect(await repo.loadBySlot('2026-05-27', 'lunch', 'mother')).toEqual({
         ok: true,
