@@ -1,5 +1,3 @@
-import type { QuestionnaireAnswers } from '$lib/domain/models';
-
 export type HarvestCandidateStatus = 'pending' | 'ingested';
 
 export type HarvestCandidate = {
@@ -20,19 +18,6 @@ export function normalizeKey(raw: string): string {
     .toLocaleLowerCase('cs')
     .replace(/\s+/g, ' ')
     .replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
-}
-
-/**
- * Extracts raw names from `other:${name}` slugs in questionnaire answers.
- * Called once at protocol-start time to seed harvest candidates from user-entered
- * allergen names that didn't match any canonical catalog entry.
- */
-export function extractOtherSlugs(answers: QuestionnaireAnswers): string[] {
-  const slugs = [...answers.motherAllergies, ...answers.babyConfirmedAllergies];
-  return slugs
-    .filter((s) => s.startsWith('other:'))
-    .map((s) => s.slice(6))
-    .filter((s) => s.length > 0);
 }
 
 /**

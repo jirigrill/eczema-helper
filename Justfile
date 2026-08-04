@@ -111,16 +111,6 @@ setup-hooks:
 dev:
     bun run dev -- --host 0.0.0.0
 
-# Launch the ladder-engine visualizer (separate Vite root under tools/, not shipped)
-viz:
-    bunx svelte-kit sync
-    bunx vite dev --config tools/ladder-viz/vite.config.ts
-
-# Type-check the visualizer (tools/ is excluded from the root tsconfig)
-viz-check:
-    bunx svelte-kit sync
-    bunx svelte-check --tsconfig ./tools/ladder-viz/tsconfig.json
-
 # Run all tests (unit + e2e)
 test:
     just test-unit
@@ -165,7 +155,6 @@ build:
 check:
     bun run check
     bun run build
-    just viz-check
     @echo "✅ All checks passed!"
 
 # Full CI gate — mirrors .github/workflows/ci.yml (all 6 jobs); uses prettier --check
@@ -175,7 +164,6 @@ ci:
     bunx svelte-kit sync
     bunx eslint .
     bun run check
-    bunx svelte-check --tsconfig ./tools/ladder-viz/tsconfig.json
     bun run build
     bun run test
     bunx playwright install --with-deps chromium
@@ -232,7 +220,6 @@ help:
     @echo ""
     @echo "Development:"
     @echo "  just dev          - Start Vite dev server"
-    @echo "  just viz          - Launch the ladder-engine visualizer"
     @echo ""
     @echo "Build:"
     @echo "  just build        - Type-check + build"

@@ -51,7 +51,7 @@ describe('settings/+page.svelte', () => {
     mockReset.mockResolvedValue(undefined);
     const { default: SettingsPage } = await import('./+page.svelte');
     const { getByText } = render(SettingsPage);
-    await fireEvent.click(getByText('Restartovat dotazník'));
+    await fireEvent.click(getByText('Restartovat'));
     expect(mockReset).toHaveBeenCalledOnce();
     // The seeded signal is still reporting the stale 'seeded' value — the guard
     // must not navigate yet, or the layout would bounce straight back.

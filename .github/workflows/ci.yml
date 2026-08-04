@@ -50,9 +50,6 @@ jobs:
       - name: Type check (incl. .svelte templates)
         run: bun run check
 
-      - name: Type check visualizer (tools/, excluded from root tsconfig)
-        run: bunx svelte-check --tsconfig ./tools/ladder-viz/tsconfig.json
-
   build:
     name: Build
     runs-on: ubuntu-latest

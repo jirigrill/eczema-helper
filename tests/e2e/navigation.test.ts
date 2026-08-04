@@ -118,7 +118,7 @@ test('settings reset flow lands on the first-run screen, not bounced back by the
   await expect(page).toHaveURL(`/day/${today}`);
 
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Restartovat dotazník' }).click();
+  await page.getByRole('button', { name: 'Restartovat' }).click();
 
   await expect(page).toHaveURL('/');
   await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();
