@@ -140,6 +140,7 @@ describe('protocol allergens', () => {
     expect((coffeeTea as Record<string, unknown>).ladder).toBeUndefined();
   });
 
+  // ADR-0023 is parked with the protocol engine — see docs/parked-features.md.
   it('every ladder-bearing allergen has a valid allergenicity level (ADR-0023 §6)', () => {
     const levels = new Set<string>(ALLERGENICITY_LEVELS);
     const laddered = ALLERGENS.filter(

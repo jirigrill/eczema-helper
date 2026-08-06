@@ -110,13 +110,19 @@ Each port has a single production adapter. Adapter tests run against `fake-index
 | Store                        | File                                     | What it does                                               |
 | ---------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
 | `settingsContext`            | `stores/settings-context.ts`            | `readable<SettingsData \| null>` — live master switch(es), e.g. `feedingStage` |
-| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage read (over `settingsContext`) + `setFeedingStage` write + `reset` |
+| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage read (over `settingsContext`) + `setFeedingStage` write |
 | `seededStatus`               | `stores/settings.svelte.ts`             | `loading\|unset\|seeded` — first-run redirect gate off `settings.feedingStage` |
 | `mealSession`                | `stores/meal-session.ts`                | `readable<Meal[]>` for today + `save` / `loadBySlot` / `remove` |
 | `skinObservationSession`     | `stores/skin-observation-session.ts`    | `readable<SkinObservation[]>` for today + `save`           |
 | `skinPhotoSession`           | `stores/skin-photo-session.ts`          | `readable<SkinPhoto[]>` for today + `save`                 |
 
-Each session store is the **only** place that imports `db` and constructs the adapter for its domain. Routes import the store; they do not instantiate adapters directly.
+Each session store is the **only** place that constructs the adapter for its domain, and holds it as one module-scope instance — `mealRepository` in `stores/meal-session.ts`, `skinObservationRepository` in `stores/skin-observation-session.ts`, and the private equivalents in the settings and harvest-candidate stores. Anything else needing that domain's adapter imports the instance; nobody writes a second `new DexieXRepository(db)`. That single instance per domain is the seam a storage swap turns on, so scattering constructors quietly removes the reason the architecture exists.
+
+Cross-domain readers follow the same rule by importing from each owning store — `stores/earliest-logged.ts` unions the meal and skin-observation ports that way rather than constructing either.
+
+Routes import the store, not the adapter. Two pre-existing exceptions reach a repository directly (`routes/+layout.svelte` and `routes/meal/+page.svelte`, both for meal deletes); they are marked in-file and tracked for a proper store seam.
+
+**Database lifecycle sits outside this rule.** `db/reset-database.ts` clears every table for the Settings factory reset. No domain owns a whole-database wipe, so it lives beside `atopic-db.ts` and reads `db.tables` rather than naming tables — a hand-written list is what previously let the reset spare the mother's meals, observations and photos while the UI promised to erase them.
 
 ## Reactivity boundary
 

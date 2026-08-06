@@ -1,5 +1,3 @@
-import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { db } from '$lib/db/atopic-db';
 import { snapshotOf, snapshotsEqual } from '$lib/domain/meal-dirtiness';
 import type { MealSnapshot } from '$lib/domain/meal-dirtiness';
 import type { Actor, MealType } from '$lib/domain/models';
@@ -12,6 +10,7 @@ import {
 } from '$lib/domain/working-meal';
 import type { WorkingMeal } from '$lib/domain/working-meal';
 import type { DiscardedMeal, MealDiscardKind } from '$lib/stores/discard-buffer';
+import { mealRepository } from '$lib/stores/meal-session';
 import type { Result } from '$lib/types/result';
 
 /**
@@ -21,8 +20,8 @@ import type { Result } from '$lib/types/result';
  *
  * Mirrors the shape of `day-view.svelte.ts` (`createDayView`), extended from
  * read-only projection to read-write editing. Persistence reaches Dexie via
- * a `DexieMealRepository` constructed inside `createMealEditor()`; no port
- * is injected.
+ * the shared `mealRepository` owned by `stores/meal-session.ts`; no port is
+ * injected.
  *
  * Notes-on-meal (#277) live inside `WorkingMeal.notes` — the editor never
  * touches notes directly; `finalize({notes})` writes whatever the route
@@ -139,7 +138,7 @@ export type MealEditor = {
 };
 
 export function createMealEditor(): MealEditor {
-  const meals = new DexieMealRepository(db);
+  const meals = mealRepository;
   let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let editingExisting = $state(false);
   let slot = $state<MealSlot | null>(null);

@@ -45,7 +45,7 @@ button, a, [role="button"] {
 
   .page-container {
     @apply max-w-lg mx-auto px-4 pt-4;
-    /* Callers add bottom padding: pb-24 (nav-bar pages) or pb-8 (floating-button pages) */
+    /* Callers add bottom padding: pb-24 to clear the floating FAB, or pb-8 where nothing floats */
   }
 
   /* ── Typography atoms ─────────────────────────────────────────────── */

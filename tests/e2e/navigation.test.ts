@@ -119,6 +119,11 @@ test('settings reset flow lands on the first-run screen, not bounced back by the
 
   await page.goto('/settings');
   await page.getByRole('button', { name: 'Restartovat' }).click();
+  // The factory reset is destructive (every table, photos included), so it is
+  // gated behind a ConfirmSheet. Both the page button and the sheet's confirm
+  // carry the same label; the sheet's is the later one in the DOM.
+  await expect(page.getByText('Opravdu restartovat?')).toBeVisible();
+  await page.getByRole('button', { name: 'Restartovat' }).last().click();
 
   await expect(page).toHaveURL('/');
   await expect(page.getByRole('button', { name: 'Začít' })).toBeVisible();

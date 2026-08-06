@@ -9,7 +9,13 @@ import type { SkinObservationUpdateOptions } from '$lib/domain/ports/skin-observ
 import type { Result } from '$lib/types/result';
 import { todayIso } from '$lib/utils/date';
 
-const repo = new DexieSkinObservationRepository(db);
+/**
+ * The one `SkinObservationRepository` instance for the app — this module owns
+ * the skin-observation domain's adapter. Exported so cross-domain readers (the
+ * earliest-logged store) share it rather than constructing a second instance.
+ */
+export const skinObservationRepository = new DexieSkinObservationRepository(db);
+const repo = skinObservationRepository;
 const photoStore = new DexieSkinPhotoStore(db);
 
 export type SkinObservationSession = {

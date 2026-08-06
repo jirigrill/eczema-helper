@@ -39,8 +39,7 @@
 
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
+  import { mealRepository } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
@@ -161,12 +160,14 @@
   // discard buffer stay in the route and are deferred to later slices of #284.
   const editor = createMealEditor();
 
-  // One meal repository instance for the route's own direct-to-Dexie writes
-  // (delete on explicit "Smazat jídlo" and on an emptied-then-backed-out edit,
-  // issue #588). The editor holds its own for finalize/save; the route reaches
-  // Dexie only to remove a row, so a single shared adapter here keeps the two
-  // remove call sites from each hand-rolling `new DexieMealRepository(...)`.
-  const meals = new DexieMealRepository(db);
+  // The shared meal repository, owned by `stores/meal-session.ts`, for the
+  // route's own direct-to-Dexie writes (delete on explicit "Smazat jídlo" and
+  // on an emptied-then-backed-out edit, issue #588).
+  //
+  // NOTE: a route reaching a repository directly bypasses the store layer
+  // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
+  // proper store seam rather than fixed inside the descaling review.
+  const meals = mealRepository;
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Guarded by `editorMounted` so
@@ -1039,7 +1040,6 @@
       <button
         type="button"
         data-testid="copy-pick-slot"
-        aria-disabled="false"
         class="bg-primary w-full rounded-xl py-3 text-sm font-semibold text-white"
         onclick={openCopySlotSheet}>{actionStrings.copyHere}</button
       >

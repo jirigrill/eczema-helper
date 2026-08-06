@@ -92,6 +92,16 @@ the feeding stage through `DexieSettingsRepository`; `seededStatus` is the tri-s
 *holds at `loading`* until the settings `liveQuery` first emits, so a seeded mother is
 never bounced from `/day/<today>` to `/`. Distinct from `settingsContext`, the reactive
 read store for the live value. Routes reach the store; they never construct the adapter.
+The "start over" wipe is **not** here — see [Factory reset](#factory-reset).
+
+### Factory reset
+
+`resetDatabase()` (`src/lib/db/reset-database.ts`) — the Settings *Restartovat* action.
+Clears **every** table by iterating `db.tables`, so the mother's meals, skin observations
+and photos go with the feeding stage, and a table added by a future migration is covered
+without editing this file. Gated behind a [ConfirmSheet](#confirmsheet): the wipe is
+irreversible and, with encrypted export unbuilt (#438), the device holds the only copy.
+A database-lifecycle concern, deliberately outside per-domain adapter ownership.
 
 ### skinObservationSession
 
@@ -464,7 +474,8 @@ A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup sco
 
 ### ConfirmSheet
 
-A bottom-sheet component (`src/lib/components/ConfirmSheet.svelte`) for destructive confirmation: shaded backdrop + sheet panel with a heading, body copy, a primary action button (typically `bg-primary`, sometimes `bg-danger` via the `confirmVariant` prop), and a secondary cancel button. Used by `/meal` (delete a meal) and `/skin` (delete an observation). Extracted from `/meal`'s previously-inline sheet per the CLAUDE.md "second use triggers extraction" rule when `/skin` edit/delete shipped (2026-06-30). Caller controls open/close state and supplies copy + handlers as props.
+A bottom-sheet component (`src/lib/components/ConfirmSheet.svelte`) for destructive confirmation: shaded backdrop + sheet panel with a heading, body copy, a primary action button (typically `bg-primary`, sometimes `bg-danger` via the `confirmVariant` prop), and a secondary cancel button. Used by `/meal` (delete a meal), `/skin` (delete an observation) and `/settings`
+([factory reset](#factory-reset)). Extracted from `/meal`'s previously-inline sheet per the CLAUDE.md "second use triggers extraction" rule when `/skin` edit/delete shipped (2026-06-30). Caller controls open/close state and supplies copy + handlers as props.
 
 ### DayStrip
 *Czech: Pásek dní*

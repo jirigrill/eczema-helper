@@ -66,7 +66,8 @@ export class AtopicDb extends Dexie {
       photos: '&id, date',
       harvest_candidates: '&normalizedKey, status',
     });
-    // v6: adds evaluations table (ADR-0016). Primary key &phaseId (one immutable
+    // v6: adds evaluations table (ADR-0016, parked — see docs/parked-features.md).
+    // Primary key &phaseId (one immutable
     // verdict per reintroduction attempt) + date index. No upgrade hook — pre-launch.
     this.version(6).stores({
       answers: '&id',

@@ -41,7 +41,8 @@ export type MealType = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 /**
  * Who logged (or is credited with) a meal: `'mother' | 'baby'`. The baby is a
  * real dietary actor from the `mixed` feeding stage on — its own solids intake
- * participates in the same elimination diet (ADR-0027). Which actors may log
+ * participates in the same elimination diet (ADR-0027, parked — see
+ * docs/parked-features.md). Which actors may log
  * at the current stage is governed by `getEligibleActors`; a mirrored schedule
  * means both ride the same protocol, differing only in their permanent
  * allergies.

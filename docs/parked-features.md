@@ -109,6 +109,12 @@ decision engine with its gate precedence, probe/confirm mode, dwell and walk-dow
 **Revive note:** `tools/ladder-viz/` is a standalone dev inspector for the ladder engine
 (imports `$lib/domain/ladder`), not part of the app bundle — revive it only if you need
 to visualise the engine.
+**Retained in the live tree:** the `Ladder` / `LadderStep` types in
+`domain/canonical-allergen.ts` and the per-allergen ladder rows in
+`data/allergen-catalog/allergen-catalog.ts` were **not** deleted, even though nothing
+live reads them. They are hand-curated clinical data, expensive to reconstruct and
+inert at runtime (data, not behaviour). A revival wires the engine back onto them
+rather than re-authoring them.
 
 ### reintroduction-evaluation
 

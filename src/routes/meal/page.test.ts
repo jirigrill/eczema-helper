@@ -690,10 +690,8 @@ describe('meal/+page.svelte', () => {
     await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
     await tick();
     // The "Kopírovat sem" button targets the source day (today) and starts enabled.
-    expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
-      'aria-disabled',
-      'false',
-    );
+    // §3e: the destination gate is gone, so the button carries no disabled state at all.
+    expect(getByRole('button', { name: 'Kopírovat sem' })).not.toHaveAttribute('aria-disabled');
     // The strip ends at today: no future cell is ever rendered (§3b/§3e).
     await waitFor(() => {
       const futureCell = container.querySelector(
@@ -738,10 +736,7 @@ describe('meal/+page.svelte', () => {
     });
     await fireEvent.click(cell!);
     await tick();
-    expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
-      'aria-disabled',
-      'false',
-    );
+    expect(getByRole('button', { name: 'Kopírovat sem' })).not.toHaveAttribute('aria-disabled');
   });
 
   it('confirm copy (success): persists the destination meal, navigates to the dest day, writes a meal-copy buffer', async () => {

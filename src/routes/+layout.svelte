@@ -14,10 +14,10 @@
   import type { MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
   import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-
-  const mealRepo = new DexieMealRepository(db);
+  // NOTE: a route reaching a repository directly bypasses the store layer
+  // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
+  // proper store seam rather than fixed inside the descaling review.
+  import { mealRepository as mealRepo } from '$lib/stores/meal-session';
 
   let { children } = $props();
 

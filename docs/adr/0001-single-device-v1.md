@@ -30,7 +30,8 @@ The one carefully-bounded exception: when the app later asks an AI to *suggest* 
 > export stay offline; only proposal *generation* is online). The BFF is an
 > unauthenticated proxy to a paid key and therefore requires **endpoint-abuse
 > protection** (origin allowlist, per-`device_id` rate limit, attestation, hard
-> spend cap). Multi-device sync remains rejected.
+> spend cap). Multi-device sync remains rejected. ADR-0026 is parked with the
+> protocol engine, see [parked features](../parked-features.md).
 
 ## Context
 

@@ -15,7 +15,6 @@ export const commonStrings = {
   // ── Global chrome ─────────────────────────────────────────
   nav: {
     addRecordAria: 'Přidat záznam',
-    today: 'Dnes',
     /** Header chip that jumps back to today's day view, shown only off-today (§3c). */
     backToToday: '↩ Dnes',
   },
@@ -59,6 +58,15 @@ export const commonStrings = {
   settings: {
     heading: 'Nastavení',
     resetWarning: 'Restartování vymaže všechna uložená data a vrátí tě na začátek.',
+    /** Heading on the destructive-confirm sheet guarding the factory reset. */
+    resetConfirmHeading: 'Opravdu restartovat?',
+    /**
+     * Body naming exactly what the wipe destroys. Reset clears every table, so
+     * the copy must name the photos — they are irreversible and, with no export
+     * yet (#438), this device holds the only copy.
+     */
+    resetConfirmBody:
+      'Všechna jídla, pozorování i fotky budou trvale smazány. Tuto akci nelze vzít zpět.',
     feedingStageHeading: 'Způsob krmení',
     feedingStageHint: 'Určuje, čí jídla můžeš zaznamenávat.',
   },

@@ -1,7 +1,8 @@
 import type { FeedingStage, PortionKind } from '$lib/domain/models';
 
 /**
- * A single dose step on a per-allergen escalation ladder (ADR-0023, Option A).
+ * A single dose step on a per-allergen escalation ladder (ADR-0023, Option A;
+ * parked — see docs/parked-features.md).
  *
  * `anchor` reuses the shared `PortionKind` vocabulary; *order within the
  * ladder* — not the anchor value on its own — is what makes a step "higher"

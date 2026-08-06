@@ -317,12 +317,11 @@ unknown-unknowns after F4?"
 
 ## 5. ADR / artifact worklist (deliverable 6)
 
-> **Written 2026-07-05:** new ADRs [0023](../adr/0023-dose-escalation-ladder.md)
-> (ladder), [0024](../adr/0024-medical-scope-boundary.md) (medical-scope boundary),
-> [0025](../adr/0025-event-domain-model.md) (Event model),
-> [0026](../adr/0026-llm-schedule-proposer.md) (LLM proposer + BFF, amends 0001);
+> **Written 2026-07-05:** new ADRs 0023 (ladder), 0024 (medical-scope boundary),
+> 0025 (Event model), 0026 (LLM proposer + BFF, amends 0001);
 > amendments applied to ADR-0001, 0006, 0007, 0012, 0014, 0016. PRDs still
-> outstanding.
+> outstanding. ADRs 0023–0027 are parked with the protocol engine — see
+> [parked features](../parked-features.md).
 
 | Existing ADR | Relationship | Action |
 |---|---|---|
