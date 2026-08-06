@@ -38,4 +38,3 @@ describe('settingsStore.setFeedingStage', () => {
     expect(settings).toMatchObject({ ok: true, data: { feedingStage: 'solids' } });
   });
 });
-

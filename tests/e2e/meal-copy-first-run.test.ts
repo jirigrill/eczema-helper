@@ -80,7 +80,7 @@ test('copies a meal to a different day and a different meal type with only a fee
   await page.locator(`[data-testid="day-strip-cell"][data-date="${today}"]`).click();
   // The "Kopírovat sem" button is always enabled now.
   const copyHere = page.getByRole('button', { name: 'Kopírovat sem' });
-  await expect(copyHere).toHaveAttribute('aria-disabled', 'false');
+  await expect(copyHere).toBeEnabled();
   await copyHere.click();
   await page.getByTestId('fab-meal-type-lunch').click();
   await page.waitForURL(`**/day/${today}`);
