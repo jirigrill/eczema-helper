@@ -21,6 +21,12 @@ const settingsRepo = new DexieSettingsRepository(db);
  *  - `loading` — no emission yet; hold, do not redirect.
  *  - `unset`   — a real emission with no `feedingStage`; route to first run (`/`).
  *  - `seeded`  — a real emission carrying a `feedingStage`; route to the day view.
+ *
+ * This subscribes to the settings singleton a second time rather than deriving
+ * from `settingsContext`, which is the duplication it looks like: that shell
+ * collapses "not emitted yet" and "no row" into the same `null`, and telling
+ * those apart is the whole job here. Merging the two means teaching
+ * `settingsContext` the tri-state first.
  */
 export type SeededStatus = 'loading' | 'unset' | 'seeded';
 

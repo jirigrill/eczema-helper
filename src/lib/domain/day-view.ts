@@ -1,6 +1,5 @@
 import type { Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+import { isIsoDate } from '$lib/utils/date';
 
 export type DayViewCore = {
   selectedDate: string;
@@ -27,7 +26,7 @@ export function resolveDay(param: string, seeded: boolean, today: string): DayVi
   if (!seeded) {
     return { selectedDate: today, redirectTo: null };
   }
-  if (!ISO_DATE_RE.test(param) || param > today) {
+  if (!isIsoDate(param) || param > today) {
     return { selectedDate: today, redirectTo: today };
   }
   return { selectedDate: param, redirectTo: null };

@@ -11,6 +11,7 @@
   import SkinObservationCard from '$lib/components/SkinObservationCard.svelte';
   import SkinPhotoCard from '$lib/components/SkinPhotoCard.svelte';
   import MealCard from '$lib/components/MealCard.svelte';
+  import SettingsIcon from '$lib/components/icons/SettingsIcon.svelte';
   import { commonStrings } from '$lib/strings/common';
 
   const today = todayIso();
@@ -97,19 +98,7 @@
         class="text-text-muted -mr-1.5 p-1.5"
         aria-label={commonStrings.today.settingsAria}
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <circle cx="12" cy="12" r="3" />
-          <path
-            d="M19.4 15a1.7 1.7 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5 2 2 0 1 1-4 0 1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5 2 2 0 1 1 4 0 1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"
-          />
-        </svg>
+        <SettingsIcon class="h-5 w-5" />
       </a>
     </div>
   </div>

@@ -167,7 +167,6 @@
   // NOTE: a route reaching a repository directly bypasses the store layer
   // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
   // proper store seam rather than fixed inside the descaling review.
-  const meals = mealRepository;
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Guarded by `editorMounted` so
@@ -469,7 +468,7 @@
    * `bufferDiscard` (back-out), and `handleDeleteConfirm` (explicit delete) all
    * call it. It writes the buffer only; removing the persisted Dexie row is the
    * caller's concern (finalize already removes on save; the other two paths
-   * call `meals.remove` themselves).
+   * call `mealRepository.remove` themselves).
    */
   function writeSlotBuffer(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
     writeBuffer({
@@ -560,7 +559,7 @@
   function bufferDiscard(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
     writeSlotBuffer(desc);
     if (desc.kind === 'meal-delete') {
-      void meals.remove(targetDate, selectedMealType, selectedActor);
+      void mealRepository.remove(targetDate, selectedMealType, selectedActor);
     }
   }
 
@@ -689,7 +688,7 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await meals.remove(targetDate, selectedMealType, selectedActor);
+    const result = await mealRepository.remove(targetDate, selectedMealType, selectedActor);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
@@ -747,14 +746,14 @@
   // (`loadBySlot(destDate, destSlot, source.actor)`): the OTHER actor's meal in
   // the same visual cell is irrelevant and untouched.
   async function confirmCopy(destMealType: MealType): Promise<void> {
-    const srcResult = await meals.loadBySlot(targetDate, selectedMealType, selectedActor);
+    const srcResult = await mealRepository.loadBySlot(targetDate, selectedMealType, selectedActor);
     if (!srcResult.ok || !srcResult.data) {
       closeCopyPicker();
       return;
     }
     const source = srcResult.data;
     const destSlot: MealSlot = { date: copyDestDate, mealType: destMealType, actor: selectedActor };
-    const targetResult = await meals.loadBySlot(copyDestDate, destMealType, selectedActor);
+    const targetResult = await mealRepository.loadBySlot(copyDestDate, destMealType, selectedActor);
     if (!targetResult.ok) {
       saveErrorMessage = targetResult.error;
       return;
@@ -767,7 +766,7 @@
       closeCopyPicker();
       return;
     }
-    const saveResult = await meals.save(meal);
+    const saveResult = await mealRepository.save(meal);
     if (!saveResult.ok) {
       // Save failure (Dexie quota / transaction error): surface the toast and
       // stay on the day picker — dismiss the slot sheet so the toast is readable

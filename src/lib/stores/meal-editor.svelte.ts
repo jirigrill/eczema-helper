@@ -92,7 +92,7 @@ export type MealEditor = {
    *
    * With `'delete'`, returns `{ kind: 'meal-delete', workingMeal }` regardless of
    * dirtiness — delete is an explicit user action the editor cannot infer
-   * (the route calls this after `meals.remove()` succeeds, threading
+   * (the route calls this after `mealRepository.remove()` succeeds, threading
    * the captured working meal into the buffer for undo).
    *
    * The returned `workingMeal` always carries the live `editor.notes` so
@@ -138,7 +138,6 @@ export type MealEditor = {
 };
 
 export function createMealEditor(): MealEditor {
-  const meals = mealRepository;
   let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let editingExisting = $state(false);
   let slot = $state<MealSlot | null>(null);
@@ -174,7 +173,7 @@ export function createMealEditor(): MealEditor {
 
   async function open(next: MealSlot): Promise<void> {
     slot = next;
-    const result = await meals.loadBySlot(next.date, next.mealType, next.actor);
+    const result = await mealRepository.loadBySlot(next.date, next.mealType, next.actor);
     if (result.ok && result.data) {
       workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
       editingExisting = true;
@@ -239,7 +238,7 @@ export function createMealEditor(): MealEditor {
       // disabling save and silently dropping the food on the next back-out
       // (issue #299).
       editingExisting = true;
-      const res = await meals.loadBySlot(next.date, next.mealType, next.actor);
+      const res = await mealRepository.loadBySlot(next.date, next.mealType, next.actor);
       if (res.ok && res.data) {
         loadedCreatedAt = res.data.createdAt;
         const persistedMeal = fromMealItems(res.data.items, res.data.notes ?? '');
@@ -271,13 +270,13 @@ export function createMealEditor(): MealEditor {
       // compose-new (nothing was ever persisted) there is nothing to remove,
       // so it stays a no-op.
       if (editingExisting) {
-        const removed = await meals.remove(slot.date, slot.mealType, slot.actor);
+        const removed = await mealRepository.remove(slot.date, slot.mealType, slot.actor);
         if (!removed.ok) return removed;
         return { ok: true, data: 'deleted' };
       }
       return { ok: true, data: 'noop' };
     }
-    const saved = await meals.save(meal);
+    const saved = await mealRepository.save(meal);
     if (!saved.ok) return saved;
     return { ok: true, data: 'saved' };
   }

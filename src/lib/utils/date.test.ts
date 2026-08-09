@@ -7,6 +7,7 @@ import {
   formatObservationTime,
   formatWeekdayLongCs,
   formatWeekdayShortCs,
+  isIsoDate,
   todayIso,
 } from './date';
 
@@ -162,5 +163,28 @@ describe('formatObservationTime', () => {
 
   it('preserves two-digit hours', () => {
     expect(formatObservationTime(isoAt(2026, 5, 15, 23, 47))).toBe('23:47');
+  });
+});
+
+describe('isIsoDate', () => {
+  it('accepts a YYYY-MM-DD string', () => {
+    expect(isIsoDate('2026-05-15')).toBe(true);
+  });
+
+  it('rejects a non-date route param', () => {
+    expect(isIsoDate('not-a-date')).toBe(false);
+  });
+
+  it('rejects an unpadded or partial date', () => {
+    expect(isIsoDate('2026-5-15')).toBe(false);
+    expect(isIsoDate('2026-05')).toBe(false);
+  });
+
+  it('rejects a datetime — the internal form is date-only', () => {
+    expect(isIsoDate('2026-05-15T08:00:00.000Z')).toBe(false);
+  });
+
+  it('is a shape check only — an impossible calendar date passes', () => {
+    expect(isIsoDate('2026-02-31')).toBe(true);
   });
 });
