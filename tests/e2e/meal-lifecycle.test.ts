@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { clearDb, startLogging } from './seed';
+import { appModuleUrl, clearDb, startLogging } from './seed';
 
 /**
  * Meal lifecycle E2E (issue #266 / ADR-0018).
@@ -185,11 +185,10 @@ test('meal delete failure: shows an error toast, stays on /meal, no undo offered
   // Force the next persistence delete to throw, driving DexieMealRepository.remove
   // into its catch branch (Result.ok === false). The meal page imports the same
   // db singleton, so patching db.meals.delete here affects the real remove path.
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
+  await page.evaluate(async (path) => {
     const { db } = await import(/* @vite-ignore */ path);
     db.meals.delete = () => Promise.reject(new Error('QuotaExceededError'));
-  });
+  }, await appModuleUrl(page));
 
   // Open the ⋯ overflow, pick "Smazat jídlo", then confirm on the sheet.
   await page.getByRole('button', { name: 'Více' }).click();

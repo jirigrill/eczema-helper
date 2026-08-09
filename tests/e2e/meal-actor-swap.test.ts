@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { clearDb, startLogging } from './seed';
+import { appModuleUrl, clearDb, startLogging } from './seed';
 
 // Swap-on-dirty (issue #571), wired to the mixed-stage actor picker (#576/#569):
 // tapping the other pill mid-compose autosaves the departing actor's confirmed
@@ -62,11 +62,10 @@ test('swap-on-dirty aborts on save failure: mother stays active and keeps her fo
 
   // Force the autosave write to throw — the same db singleton the route saves
   // through — so swapActor's finalize() returns !ok and the swap must abort.
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
+  await page.evaluate(async (path) => {
     const { db } = await import(/* @vite-ignore */ path);
     db.meals.put = () => Promise.reject(new Error('QuotaExceededError'));
-  });
+  }, await appModuleUrl(page));
 
   await page.getByRole('button', { name: 'Miminko', exact: true }).click();
 
@@ -185,11 +184,18 @@ test('cycling actor tabs without editing keeps the disabled "Uložit změny" CTA
 
   // Save the mother's lunch, then the baby's, each via a clean finalize (no
   // swap involved) so both slots are pre-saved as if from a prior session.
+  //
+  // Each save is confirmed on the day view before the next `page.goto`. That is
+  // not decoration: `goto` is a full reload, and Dexie resolves `put` on request
+  // success rather than on transaction commit, so reloading in the same breath
+  // can abort the write and leave both slots empty. Waiting for the meal to
+  // render is the app-level proof that the transaction landed.
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
   await addBramboraAndCommit(page);
   await page.getByRole('button', { name: 'Uložit Oběd', exact: true }).click();
   await page.waitForURL(new RegExp(`/day/${today}`));
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Brambory');
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
@@ -197,6 +203,7 @@ test('cycling actor tabs without editing keeps the disabled "Uložit změny" CTA
   await addBramboraAndCommit(page);
   await page.getByRole('button', { name: 'Uložit Oběd', exact: true }).click();
   await page.waitForURL(new RegExp(`/day/${today}`));
+  await expect(page.getByTestId('meal-row-lunch')).toContainText('Brambory');
 
   // Fresh entry: land on Já, a clean saved edit → disabled "Uložit změny".
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);

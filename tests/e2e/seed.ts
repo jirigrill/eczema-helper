@@ -12,6 +12,36 @@ import type { Page } from '@playwright/test';
 
 export type FeedingStage = 'breastfed' | 'mixed' | 'solids';
 
+/** Source path of the Dexie singleton, as the dev server serves it. */
+const DB_MODULE = '/src/lib/db/atopic-db.ts';
+
+/**
+ * Resolve the URL the running app actually imported a source module under.
+ *
+ * `import('/src/lib/db/atopic-db.ts')` inside `page.evaluate` looks like it
+ * reaches the app's module — and does, until Vite invalidates the module and
+ * starts serving it to the app as `…/atopic-db.ts?t=<timestamp>`. The query is
+ * part of the URL, so the bare path then evaluates to a *second* module
+ * instance with its own `AtopicDb`: seeding still works (both talk to the same
+ * IndexedDB database, and Dexie's mutation events are global), but a test that
+ * monkey-patches `db.meals.put` patches a copy the app never calls.
+ *
+ * Vite adds `?t=` after any edit to the module's graph, and the dev server is
+ * reused between local runs (`reuseExistingServer`), so this bites whenever
+ * `just test-e2e` follows an edit — and never in CI, which starts a clean
+ * server. Reading the URL back off the resource timeline pins the instance the
+ * app holds either way.
+ */
+export async function appModuleUrl(page: Page, sourcePath = DB_MODULE): Promise<string> {
+  return page.evaluate((path) => {
+    const entry = performance
+      .getEntriesByType('resource')
+      .map((e) => e.name)
+      .find((name) => new URL(name, location.origin).pathname === path);
+    return entry ?? path;
+  }, sourcePath);
+}
+
 /** Today in the browser's local timezone — matches how the app resolves "today". */
 export function localToday(): string {
   const d = new Date();
@@ -25,15 +55,10 @@ export function localToday(): string {
  * does: a table added by a future migration is covered without an edit here.
  */
 export async function clearDb(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    // Use a variable so TypeScript doesn't try to statically resolve this
-    // Vite dev-server path as a Node module.
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
+  await page.evaluate(async (path) => {
+    const { db } = await import(/* @vite-ignore */ path);
     await Promise.all(db.tables.map((table: { clear(): Promise<void> }) => table.clear()));
-    db.close();
-  });
+  }, await appModuleUrl(page));
 }
 
 /**
@@ -45,11 +70,13 @@ export async function seedFeedingStage(
   page: Page,
   stage: FeedingStage = 'breastfed',
 ): Promise<string> {
-  await page.evaluate(async (feedingStage) => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.settings.put({ id: 'singleton', feedingStage });
-  }, stage);
+  await page.evaluate(
+    async ({ path, feedingStage }) => {
+      const { db } = await import(/* @vite-ignore */ path);
+      await db.settings.put({ id: 'singleton', feedingStage });
+    },
+    { path: await appModuleUrl(page), feedingStage: stage },
+  );
   return localToday();
 }
 

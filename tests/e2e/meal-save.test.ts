@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { clearDb, seedFeedingStage, startLogging } from './seed';
+import { appModuleUrl, clearDb, seedFeedingStage, startLogging } from './seed';
 
 /** Confirm one food (Brambory from Zelenina) and commit the family. */
 async function addBramboraAndCommit(page: Page) {
@@ -62,11 +62,10 @@ test('meal save failure: shows an error toast and stays on /meal', async ({ page
   // Force the next persistence write to throw, driving DexieMealRepository.save
   // into its catch branch (Result.ok === false). The meal page imports the same
   // db singleton, so patching db.meals.put here affects the real save path.
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
+  await page.evaluate(async (path) => {
     const { db } = await import(/* @vite-ignore */ path);
     db.meals.put = () => Promise.reject(new Error('QuotaExceededError'));
-  });
+  }, await appModuleUrl(page));
 
   await addBramboraAndCommit(page);
   await page.getByRole('button', { name: /Uložit Oběd/ }).click();
