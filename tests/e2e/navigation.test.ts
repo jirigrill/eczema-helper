@@ -1,19 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-// Clear via Dexie's API so liveQuery subscriptions react to the change.
-// Raw IDB writes bypass Dexie's mutation tracking and do NOT trigger liveQuery.
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    // Use a variable so TypeScript doesn't try to statically resolve this
-    // Vite dev-server path as a Node module.
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.settings.clear();
-    db.close();
-  });
-}
+import { clearDb } from './seed';
 
 // First run is a single screen (PRD #623, §3): a welcome + the feeding-stage
 // picker + a confirm that writes the stage and lands on today. Breastfed is the

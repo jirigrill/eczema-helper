@@ -1,14 +1,11 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import { commonStrings } from '$lib/strings/common';
-
   type FoodTileState = 'idle' | 'editing' | 'confirmed' | 'locked';
 
   let {
     name,
     state,
-    eliminatedStatus,
     lockedPrior,
     summary,
     variant = 'tile',
@@ -18,13 +15,12 @@
   }: {
     name: string;
     state: FoodTileState;
-    eliminatedStatus?: 'danger';
     /**
      * `tile` (default): the drill-in rendering — confirmed foods get the
      *   bordeaux fill so they stand out from idle siblings in the family list.
      * `list`: the working-list rendering — every food shown is already added,
-     *   so a non-eliminated confirmed food renders plain (white) instead of
-     *   filled; the porce summary + remove × already mark it as added.
+     *   so a confirmed food renders plain (white) instead of filled; the porce
+     *   summary + remove × already mark it as added.
      */
     variant?: 'tile' | 'list';
     /**
@@ -53,25 +49,17 @@
 
   const isInteractive = $derived(state !== 'locked');
   const isLockedConfirmed = $derived(state === 'locked' && lockedPrior === 'confirmed');
-  // Working-list ('list') variant renders non-eliminated confirmed foods plain
-  // (white) rather than bordeaux-filled — see the `variant` prop doc.
-  const plainFill = $derived(
-    variant === 'list' &&
-      eliminatedStatus !== 'danger' &&
-      (state === 'confirmed' || isLockedConfirmed),
-  );
+  // Working-list ('list') variant renders confirmed foods plain (white) rather
+  // than bordeaux-filled — see the `variant` prop doc.
+  const plainFill = $derived(variant === 'list' && (state === 'confirmed' || isLockedConfirmed));
   const dataState = $derived(
-    state === 'locked' && lockedPrior === 'confirmed' && eliminatedStatus === 'danger'
-      ? 'locked-danger-confirmed'
-      : state === 'locked' && lockedPrior === 'confirmed'
-        ? 'locked-confirmed'
-        : eliminatedStatus === 'danger' && state === 'confirmed'
-          ? 'danger-confirmed'
-          : eliminatedStatus === 'danger' && state === 'editing'
-            ? 'danger'
-            : state === 'confirmed'
-              ? 'confirmed'
-              : (eliminatedStatus ?? (state === 'locked' ? 'locked' : undefined)),
+    isLockedConfirmed
+      ? 'locked-confirmed'
+      : state === 'confirmed'
+        ? 'confirmed'
+        : state === 'locked'
+          ? 'locked'
+          : undefined,
   );
 
   const isFilled = $derived(!plainFill && (state === 'confirmed' || isLockedConfirmed));
@@ -86,24 +74,16 @@
   data-state={dataState}
   class="overflow-hidden rounded-xl transition-all
     {state === 'editing'
-    ? eliminatedStatus === 'danger'
-      ? 'border-danger bg-danger/05 border-2'
-      : 'border-primary bg-primary/05 border-2'
+    ? 'border-primary bg-primary/05 border-2'
     : plainFill
       ? 'border-surface-dark border bg-white'
       : state === 'confirmed'
-        ? eliminatedStatus === 'danger'
-          ? 'bg-danger border-danger border'
-          : 'bg-primary border-primary border'
+        ? 'bg-primary border-primary border'
         : isLockedConfirmed
-          ? eliminatedStatus === 'danger'
-            ? 'bg-danger border-danger border opacity-50'
-            : 'bg-primary border-primary border opacity-50'
+          ? 'bg-primary border-primary border opacity-50'
           : state === 'locked'
             ? 'border-surface-dark bg-surface border opacity-40'
-            : eliminatedStatus === 'danger'
-              ? 'border-danger/30 bg-danger/08 border'
-              : 'border-surface-dark border bg-white'}"
+            : 'border-surface-dark border bg-white'}"
 >
   <div class="flex items-center gap-2">
     <button
@@ -122,17 +102,10 @@
             : state === 'locked'
               ? 'text-text-muted cursor-default'
               : state === 'editing'
-                ? eliminatedStatus === 'danger'
-                  ? 'text-danger font-medium'
-                  : 'text-primary font-medium'
-                : eliminatedStatus === 'danger'
-                  ? 'text-danger'
-                  : 'text-text'}"
+                ? 'text-primary font-medium'
+                : 'text-text'}"
     >
       {name}
-      {#if eliminatedStatus === 'danger' && state === 'idle'}
-        <span class="ml-1 text-[10px] opacity-70">{commonStrings.meal.eliminatedChipLabel}</span>
-      {/if}
     </button>
     {#if summary}
       <span
@@ -153,11 +126,6 @@
   </div>
 
   {#if state === 'editing'}
-    {#if eliminatedStatus === 'danger'}
-      <p class="text-danger px-3 pb-1 text-xs font-medium">
-        {commonStrings.meal.eliminatedTodayWarning}
-      </p>
-    {/if}
     {#if editor}
       <div class="px-3 pb-3">
         {@render editor()}

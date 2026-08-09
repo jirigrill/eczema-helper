@@ -14,60 +14,9 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, startLogging } from './seed';
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.meals.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page, eliminatedAllergens: string[] = []) {
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(
-    async ({ start, eliminated }) => {
-      const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-      const path = '/src/lib/db/atopic-db.ts';
-      const { db } = await import(/* @vite-ignore */ path);
-      await db.answers.put({
-        id: 'singleton',
-        babyBirthDate: '2025-01-01',
-        eczemaSeverity: 'moderate',
-        motherAllergies: [],
-        babyConfirmedAllergies: [],
-        programStartDate: start,
-        completedAt: new Date().toISOString(),
-        testedAllergens: eliminated,
-        feedingStage: 'breastfed',
-      });
-      await db.schedule.put({
-        id: 'singleton',
-        permanentMother: [],
-        permanentBaby: [],
-        startDate: start,
-        estimatedEndDate: future,
-        phases: [
-          eliminated.length > 0
-            ? { id: 'elim', type: 'elimination', allergenIds: eliminated, startDate: start, endDate: future }
-            : { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-        ],
-      });
-      // The app derives feedingStage from the live settings master switch (#567);
-      // seed it so a directly-seeded schedule renders without going through onboarding.
-      await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-    },
-    { start: today, eliminated: eliminatedAllergens },
-  );
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
 
 async function openMealAndDrill(page: Page, familyName: string) {
   const today = new Date().toISOString().split('T')[0];
@@ -87,7 +36,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('source-subgroup grouping', () => {
   test('large curated family (Mléko) shows source headers in authored order', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Mléko');
 
     const cow = page.getByText('Kravské', { exact: true });
@@ -116,7 +65,7 @@ test.describe('source-subgroup grouping', () => {
   });
 
   test('plant milks render under the Rostlinné group', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Mléko');
 
     const plantHeader = page.getByText('Rostlinné', { exact: true });
@@ -126,7 +75,7 @@ test.describe('source-subgroup grouping', () => {
   });
 
   test('unsourced food (Houby) lands in trailing Ostatní; no "bez alergenu"', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Zelenina');
 
     const ostatni = page.getByText('Ostatní', { exact: true });
@@ -145,7 +94,7 @@ test.describe('source-subgroup grouping', () => {
   });
 
   test('large uncurated family (Maso, ≥5 foods, no sources) renders flat', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Maso');
 
     await expect(page.getByRole('button', { name: /Kuřecí/ })).toBeVisible();
@@ -155,7 +104,7 @@ test.describe('source-subgroup grouping', () => {
   });
 
   test('small family (Vejce, <5 foods) renders flat with no headers', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Vejce');
 
     await expect(page.getByRole('button', { name: /Vejce/ }).last()).toBeVisible();
@@ -170,7 +119,7 @@ test.describe('source-subgroup grouping', () => {
 
 test.describe('preparation form gating', () => {
   test('liquid food (Kravské mléko) shows Syrové · Vařené · Pečené only', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Mléko');
 
     await page.getByRole('button', { name: /Kravské mléko/ }).click();
@@ -184,7 +133,7 @@ test.describe('preparation form gating', () => {
   });
 
   test('cookable food (Brambory) shows all four prep chips including Syrové', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Zelenina');
 
     await page.getByRole('button', { name: /Brambory/ }).click();
@@ -196,7 +145,7 @@ test.describe('preparation form gating', () => {
   });
 
   test('raw-only food (Okurka) shows only Syrové', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Zelenina');
 
     await page.getByRole('button', { name: /Okurka/ }).click();
@@ -208,7 +157,7 @@ test.describe('preparation form gating', () => {
   });
 
   test('none food (Džus) shows no Příprava row at all', async ({ page }) => {
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Nápoje');
 
     await page.getByRole('button', { name: /Džus/ }).click();
@@ -218,7 +167,7 @@ test.describe('preparation form gating', () => {
 
   test('chosen preparation (Syrové) persists to the saved meal item', async ({ page }) => {
     const today = new Date().toISOString().split('T')[0];
-    await completeOnboarding(page);
+    await startLogging(page);
     await openMealAndDrill(page, 'Mléko');
 
     await page.getByRole('button', { name: /Kravské mléko/ }).click();

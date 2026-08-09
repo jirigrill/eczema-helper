@@ -1,56 +1,6 @@
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
 
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page) {
-  // Seed the post-onboarding state directly into IndexedDB instead of clicking
-  // through the wizard — equivalent result (reset phase from today, no tested
-  // allergens), far faster. The onboarding flow itself is covered by the
-  // onboarding-summary + questionnaire-* tests.
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
+import { clearDb, startLogging } from './seed';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -59,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test('family grid: shows 13 family tiles on meal page', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
 
@@ -73,32 +23,7 @@ test('family grid: shows 13 family tiles on meal page', async ({ page }) => {
 // indicators. Adding a food no longer dots the family tile.
 test('family grid: tiles stay plain — no eliminated badge, no active dot', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
-
-  // Seed today as a dairy-elimination day.
-  await page.evaluate(async () => {
-    const todayIso = new Date().toISOString().split('T')[0];
-    const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: todayIso,
-      estimatedEndDate: future,
-      phases: [{
-        id: 'elim-dairy',
-        type: 'elimination',
-        allergenIds: ['dairy'],
-        startDate: todayIso,
-        endDate: future,
-      }],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  });
+  await startLogging(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();

@@ -19,7 +19,6 @@
   let {
     familyId,
     foods,
-    eliminatedAllergenIds = [],
     onFoodTap,
     onAmountChange,
     onPreparationChange,
@@ -30,7 +29,6 @@
     familyId: FamilyId;
     /** Current working-meal state for this family's foods. */
     foods: WorkingFood[];
-    eliminatedAllergenIds?: string[];
     onFoodTap: (foodId: string, name: string) => void;
     onAmountChange: (foodId: string, amount: PortionKind) => void;
     onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
@@ -63,16 +61,6 @@
     return nameFor(a.id).localeCompare(nameFor(b.id), 'cs');
   }
 
-  /**
-   * A source group is "eliminated" when EVERY food in it carries at least one
-   * eliminated allergen. Conservative: a mixed group (some foods eliminated,
-   * some not) keeps its curated position. See ADR-0019.
-   */
-  function isGroupEliminated(foods: readonly CatalogFood[]): boolean {
-    if (foods.length === 0) return false;
-    return foods.every((f) => f.allergenIds.some((a) => eliminatedAllergenIds.includes(a)));
-  }
-
   /** Foods rendered in flat mode — alphabetical by Czech name. */
   const sortedCatalogFoods = $derived([...catalogFoods].sort(compareByName));
 
@@ -93,11 +81,8 @@
     const ostatni = catalogFoods
       .filter((f) => f.sourceGroup === undefined || !authoredKeys.has(f.sourceGroup))
       .sort(compareByName);
-    // Eliminated groups sink to the bottom (less scrolling for active protocols).
-    // Array.prototype.sort is stable → non-eliminated groups keep curated order.
-    const result: RenderGroup[] = authored
-      .filter((g) => g.foods.length > 0)
-      .sort((a, b) => Number(isGroupEliminated(a.foods)) - Number(isGroupEliminated(b.foods)));
+    // Authored source groups keep their curated order.
+    const result: RenderGroup[] = authored.filter((g) => g.foods.length > 0);
     if (ostatni.length > 0) {
       result.push({ key: '__ostatni__', label: ostatniLabel, foods: ostatni });
     }
@@ -141,11 +126,6 @@
     return { status: 'idle' };
   }
 
-  function eliminatedForFood(food: CatalogFood): 'danger' | undefined {
-    if (food.allergenIds.some((a) => eliminatedAllergenIds.includes(a))) return 'danger';
-    return undefined;
-  }
-
   function handleContainerClick(e: MouseEvent): void {
     if (!hasActiveEditor || !onCancelEdit) return;
     if (!(e.target as Element).closest('[data-food-tile]')) {
@@ -165,12 +145,10 @@
           {#each group.foods as food (food.id)}
             {@const name = nameFor(food.id)}
             {@const st = stateFor(food.id)}
-            {@const danger = eliminatedForFood(food)}
             <div data-food-tile>
               <FoodTile
                 {name}
                 state={st.status}
-                eliminatedStatus={danger}
                 lockedPrior={st.status === 'locked' ? st.prior : undefined}
                 onclick={() => onFoodTap(food.id, name)}
               >
@@ -180,7 +158,6 @@
                       amount={st.amount}
                       preparation={st.preparation}
                       form={formForFood(food.id)}
-                      eliminatedVariant={danger === 'danger'}
                       onAmountChange={(a) => onAmountChange(food.id, a)}
                       onPreparationChange={(p) => onPreparationChange(food.id, p)}
                     />
@@ -198,12 +175,10 @@
         {#each sortedCatalogFoods as food (food.id)}
           {@const name = nameFor(food.id)}
           {@const st = stateFor(food.id)}
-          {@const danger = eliminatedForFood(food)}
           <div data-food-tile>
             <FoodTile
               {name}
               state={st.status}
-              eliminatedStatus={danger}
               lockedPrior={st.status === 'locked' ? st.prior : undefined}
               onclick={() => onFoodTap(food.id, name)}
             >
@@ -213,7 +188,6 @@
                     amount={st.amount}
                     preparation={st.preparation}
                     form={formForFood(food.id)}
-                    eliminatedVariant={danger === 'danger'}
                     onAmountChange={(a) => onAmountChange(food.id, a)}
                     onPreparationChange={(p) => onPreparationChange(food.id, p)}
                   />

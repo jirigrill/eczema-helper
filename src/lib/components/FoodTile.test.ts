@@ -16,7 +16,7 @@ describe('FoodTile — visual states', () => {
     expect(getByText('Kravské mléko')).toBeInTheDocument();
   });
 
-  it('idle: no data-state attribute (no eliminated)', () => {
+  it('idle: no data-state attribute', () => {
     const { container } = render(FoodTile, { props: baseProps });
     expect(container.firstElementChild?.getAttribute('data-state')).toBeNull();
   });
@@ -45,44 +45,11 @@ describe('FoodTile — visual states', () => {
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked-confirmed');
   });
 
-  it('locked + lockedPrior=confirmed + eliminatedStatus=danger: data-state="locked-danger-confirmed"', () => {
-    const { container } = render(FoodTile, {
-      props: {
-        ...baseProps,
-        state: 'locked' as const,
-        lockedPrior: 'confirmed' as const,
-        eliminatedStatus: 'danger' as const,
-      },
-    });
-    expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked-danger-confirmed');
-  });
-
   it('locked + lockedPrior=idle: still data-state="locked"', () => {
     const { container } = render(FoodTile, {
       props: { ...baseProps, state: 'locked' as const, lockedPrior: 'idle' as const },
     });
     expect(container.firstElementChild?.getAttribute('data-state')).toBe('locked');
-  });
-
-  it('idle with eliminatedStatus: data-state="danger"', () => {
-    const { container } = render(FoodTile, {
-      props: { ...baseProps, eliminatedStatus: 'danger' as const },
-    });
-    expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger');
-  });
-
-  it('shows "Vyloučeno" label when idle + eliminatedStatus=danger', () => {
-    const { getByText } = render(FoodTile, {
-      props: { ...baseProps, eliminatedStatus: 'danger' as const },
-    });
-    expect(getByText('Vyloučeno')).toBeInTheDocument();
-  });
-
-  it('does not show "Vyloučeno" label when state is confirmed', () => {
-    const { queryByText } = render(FoodTile, {
-      props: { ...baseProps, state: 'confirmed' as const, eliminatedStatus: 'danger' as const },
-    });
-    expect(queryByText('Vyloučeno')).not.toBeInTheDocument();
   });
 });
 
@@ -125,37 +92,6 @@ describe('FoodTile — interactivity', () => {
     await fireEvent.click(getByRole('button'));
     await tick();
     expect(onclick).toHaveBeenCalledOnce();
-  });
-});
-
-describe('FoodTile — conflict (eliminated-today) variants', () => {
-  it('confirmed + eliminatedStatus=danger: data-state="danger-confirmed"', () => {
-    const { container } = render(FoodTile, {
-      props: { ...baseProps, state: 'confirmed' as const, eliminatedStatus: 'danger' as const },
-    });
-    expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger-confirmed');
-  });
-
-  it('editing + eliminatedStatus=danger: data-state="danger"', () => {
-    const { container } = render(FoodTile, {
-      props: { ...baseProps, state: 'editing' as const, eliminatedStatus: 'danger' as const },
-    });
-    expect(container.firstElementChild?.getAttribute('data-state')).toBe('danger');
-  });
-
-  it('editing + eliminatedStatus=danger: shows warning text inside editor area', async () => {
-    const { queryByText } = render(FoodTile, {
-      props: { ...baseProps, state: 'editing' as const, eliminatedStatus: 'danger' as const },
-    });
-    await tick();
-    expect(queryByText(/Vyloučeno|vyloučeno/)).toBeInTheDocument();
-  });
-
-  it('confirmed without eliminatedStatus: still data-state="confirmed"', () => {
-    const { container } = render(FoodTile, {
-      props: { ...baseProps, state: 'confirmed' as const },
-    });
-    expect(container.firstElementChild?.getAttribute('data-state')).toBe('confirmed');
   });
 });
 

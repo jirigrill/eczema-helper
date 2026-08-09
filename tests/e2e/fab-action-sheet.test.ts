@@ -1,28 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-// The FAB rides the seeded signal `settings.feedingStage != null` (PRD #623,
-// §3), so seeding the feeding stage is the whole of "set up" for the shell.
-async function seedSetup(page: Page) {
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  });
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
+import { clearDb, startLogging } from './seed';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -43,7 +22,7 @@ test('FAB not visible on onboarding route', async ({ page }) => {
 });
 
 test('FAB opens action sheet with two actions; photo row is absent (issue #371)', async ({ page }) => {
-  await seedSetup(page);
+  await startLogging(page);
   await openFabSheet(page);
   await expect(page.getByTestId('fab-action-meal')).toBeVisible();
   await expect(page.getByTestId('fab-action-skin')).toBeVisible();
@@ -51,7 +30,7 @@ test('FAB opens action sheet with two actions; photo row is absent (issue #371)'
 });
 
 test('FAB meal action opens the meal-type submenu, then a row navigates to /meal', async ({ page }) => {
-  await seedSetup(page);
+  await startLogging(page);
   await openFabSheet(page);
   await page.getByTestId('fab-action-meal').click();
   // Submenu replaces the action list with the four meal types.
@@ -61,7 +40,7 @@ test('FAB meal action opens the meal-type submenu, then a row navigates to /meal
 });
 
 test('FAB skin action opens skin observation page', async ({ page }) => {
-  await seedSetup(page);
+  await startLogging(page);
   await openFabSheet(page);
   await page.getByTestId('fab-action-skin').click();
   // PageHeader title is "Stav kůže" (commonStrings.skin.heading); changed
@@ -71,7 +50,7 @@ test('FAB skin action opens skin observation page', async ({ page }) => {
 
 test('FAB cancel closes the sheet and stays on current page', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await seedSetup(page);
+  await startLogging(page);
   await expect(page).toHaveURL(`/day/${today}`);
   await openFabSheet(page);
   await page.getByTestId('fab-action-close').click();
@@ -81,7 +60,7 @@ test('FAB cancel closes the sheet and stays on current page', async ({ page }) =
 
 test('FAB backdrop click closes the sheet and stays on current page', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await seedSetup(page);
+  await startLogging(page);
   await expect(page).toHaveURL(`/day/${today}`);
   await openFabSheet(page);
   await page.mouse.click(10, 10);
@@ -91,7 +70,7 @@ test('FAB backdrop click closes the sheet and stays on current page', async ({ p
 
 test('FAB on /day/[date] opens meal page for that date', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await seedSetup(page);
+  await startLogging(page);
   await page.goto(`/day/${today}`);
   await expect(page.getByRole('button', { name: 'Přidat záznam' })).toBeVisible({ timeout: 10000 });
   await openFabSheet(page);

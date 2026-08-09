@@ -87,8 +87,6 @@ export const commonStrings = {
     heading: 'Přidat jídlo',
     allCategoriesLabel: 'Všechny kategorie',
     customFoodPlaceholder: 'Název potraviny…',
-    eliminatedChipLabel: 'Vyloučeno',
-    eliminatedTodayWarning: '⚠️ Vyloučeno dnes',
     notesPlaceholder: 'Poznámka (volitelné, např. u babičky)',
     customFoodsLabel: 'Dříve zadané',
     customFamilyEmptyHint: 'Zatím žádné vlastní potraviny. Napište potravinu výše.',

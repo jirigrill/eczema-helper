@@ -1274,8 +1274,8 @@
   <!-- ─── FamilyDrillIn ───────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
   <div class="component-section" id="family-drill-in">
-    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], eliminatedAllergenIds?: string[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onCancelEdit?: () => void</p>
-    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodTile rows. When the family has ≥ 5 foods AND an authored entry in <code>familySources</code> (e.g. Mléko, Obiloviny — see ADR-0019), the foods are clustered under source-subgroup headers (Kravské / Ovčí / Kozí / Rostlinné, S lepkem / Bez lepku) in authored order, with any unsourced foods falling into a trailing <em>Ostatní</em> section. Otherwise the family renders flat (no headers). Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). Per-food danger styling (red + Vyloučeno) is preserved in both grouped and flat modes when any of the food's allergenIds is in eliminatedAllergenIds. The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. The back arrow and family name live in the page's PageHeader, not here.</p>
+    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onCancelEdit?: () => void, onNewCustomFood?: (name) => void</p>
+    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodTile rows. When the family has ≥ 5 foods AND an authored entry in <code>familySources</code> (e.g. Mléko, Obiloviny), the foods are clustered under source-subgroup headers (Kravské / Ovčí / Kozí / Rostlinné, S lepkem / Bez lepku) in authored order, with any unsourced foods falling into a trailing <em>Ostatní</em> section. Otherwise the family renders flat (no headers). Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. The back arrow and family name live in the page's PageHeader, not here.</p>
     <div class="variant-grid">
 
       <!-- Dairy family: editing state (one food editing, one locked) -->
@@ -1326,31 +1326,6 @@
         <p class="variant-name">foods=[{kravske-mleko: editing, portion}, {jogurt: locked}]</p>
       </div>
 
-      <!-- Dairy family: confirmed state + eliminated allergen -->
-      <div class="variant-tile" style="max-width:320px">
-        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <!-- Allergen group: eliminated -->
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:16px">🥛</span>
-              <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Mléčné výrobky</span>
-              <span style="font-size:10px;background:#B84444;color:white;border-radius:99px;padding:1px 6px">!</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <!-- Kravské mléko: confirmed (bordeaux fill) -->
-              <div style="border-radius:12px;background:#8B4557;border:1px solid #8B4557">
-                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Kravské mléko</button>
-              </div>
-              <!-- Jogurt: idle with danger styling -->
-              <div style="border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08)">
-                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#B84444">Jogurt <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="variant-name">foods=[{kravske-mleko: confirmed}], eliminatedAllergenIds=['dairy']</p>
-      </div>
-
       <!-- Custom (Vlastní) family: previously-typed customs -->
       <div class="variant-tile" style="max-width:320px">
         <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
@@ -1387,8 +1362,8 @@
   <!-- ─── FoodTile ─────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FoodTile.svelte -->
   <div class="component-section" id="food-tile">
-    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', eliminatedStatus?: 'danger', lockedPrior?: 'idle' | 'confirmed', summary?: string, variant?: 'tile' | 'list', onclick?: () => void, onRemove?: () => void, editor?: Snippet</p>
-    <p class="component-desc">Per-food tile rendered in FamilyDrillIn (drill-in) and on the working-meal list. The `variant` prop adapts the confirmed fill to context: `tile` (default, drill-in) keeps the bordeaux fill so confirmed foods stand out from idle siblings; `list` (working-list) renders non-eliminated confirmed/locked-confirmed foods plain (white + dark text) since every food shown is already added — the porce summary + remove × already mark it. Eliminated (danger) foods keep the red treatment in both variants. Visual states reflect the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill in `tile`, plain white in `list`, tap deselects), locked (dimmed, no interaction). lockedPrior branches the locked rendering: locked + prior='confirmed' keeps the confirmed fill at reduced emphasis (data-state='locked-confirmed' or 'locked-danger-confirmed') so the user can still see "this food is in the meal" while editing a sibling; locked + prior='idle' (or omitted) renders the grey outline. eliminatedStatus='danger' overrides state styling: idle→red tint + "Vyloučeno" suffix; editing→red border + "⚠️ Vyloučeno dnes" warning above editor; confirmed→filled red (data-state='danger-confirmed'). Optional `summary` slot renders a porce/příprava meta line on confirmed/locked-confirmed rows; optional `onRemove` renders a × action used by the working-list view. data-state values: 'confirmed', 'danger', 'danger-confirmed', 'locked', 'locked-confirmed', 'locked-danger-confirmed', or unset (idle/editing without conflict).</p>
+    <p class="component-label">▸ <span>FoodTile</span> — name: string, state: 'idle' | 'editing' | 'confirmed' | 'locked', lockedPrior?: 'idle' | 'confirmed', summary?: string, variant?: 'tile' | 'list', onclick?: () => void, onRemove?: () => void, editor?: Snippet</p>
+    <p class="component-desc">Per-food tile rendered in FamilyDrillIn (drill-in) and on the working-meal list. The `variant` prop adapts the confirmed fill to context: `tile` (default, drill-in) keeps the bordeaux fill so confirmed foods stand out from idle siblings; `list` (working-list) renders confirmed/locked-confirmed foods plain (white + dark text) since every food shown is already added — the porce summary + remove × already mark it. Visual states reflect the working-meal state machine: idle (neutral, tappable), editing (primary border + expanded FoodEditor beneath), confirmed (bordeaux fill in `tile`, plain white in `list`, tap deselects), locked (dimmed, no interaction). lockedPrior branches the locked rendering: locked + prior='confirmed' keeps the confirmed fill at reduced emphasis (data-state='locked-confirmed') so the user can still see "this food is in the meal" while editing a sibling; locked + prior='idle' (or omitted) renders the grey outline. Optional `summary` slot renders a porce/příprava meta line on confirmed/locked-confirmed rows; optional `onRemove` renders a × action used by the working-list view. data-state values: 'confirmed', 'locked', 'locked-confirmed', or unset (idle/editing).</p>
     <div class="variant-grid">
 
       <!-- idle -->
@@ -1397,14 +1372,6 @@
           <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#3D2B2F">Brambory</button>
         </div>
         <p class="variant-name">state='idle'</p>
-      </div>
-
-      <!-- idle + eliminated -->
-      <div class="variant-tile">
-        <div style="border-radius:12px;border:1px solid rgba(184,68,68,0.3);background:rgba(184,68,68,0.08);overflow:hidden">
-          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#B84444">Kravské mléko <span style="font-size:10px;opacity:0.7">Vyloučeno</span></button>
-        </div>
-        <p class="variant-name">state='idle', eliminatedStatus='danger'</p>
       </div>
 
       <!-- editing (with editor) -->
@@ -1470,39 +1437,6 @@
           <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600;cursor:default">Kravské mléko</button>
         </div>
         <p class="variant-name">state='locked', lockedPrior='confirmed' (dimmed bordeaux — sibling already in meal)</p>
-      </div>
-
-      <!-- locked + prior=confirmed + danger: dimmed danger -->
-      <div class="variant-tile">
-        <div data-state="locked-danger-confirmed" style="border-radius:12px;background:#B84444;border:1px solid #B84444;opacity:0.5;overflow:hidden">
-          <button disabled style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600;cursor:default">Kravské mléko</button>
-        </div>
-        <p class="variant-name">state='locked', lockedPrior='confirmed', eliminatedStatus='danger'</p>
-      </div>
-
-      <!-- editing + eliminated -->
-      <div class="variant-tile" style="max-width:280px">
-        <div data-state="danger" style="border-radius:12px;overflow:hidden;border:2px solid #B84444;background:rgba(184,68,68,0.04)">
-          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#B84444;font-weight:500">Kravské mléko</button>
-          <p style="padding:0 12px 4px;font-size:11px;color:#B84444;font-weight:600">⚠️ Vyloučeno dnes</p>
-          <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:10px">
-            <div>
-              <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Množství</p>
-              <div style="display:flex;flex-wrap:wrap;gap:6px">
-                <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">porce</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="variant-name">state='editing', eliminatedStatus='danger'</p>
-      </div>
-
-      <!-- confirmed + eliminated -->
-      <div class="variant-tile">
-        <div data-state="danger-confirmed" style="border-radius:12px;background:#B84444;border:1px solid #B84444;overflow:hidden">
-          <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Kravské mléko</button>
-        </div>
-        <p class="variant-name">state='confirmed', eliminatedStatus='danger'</p>
       </div>
 
     </div>

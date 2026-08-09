@@ -1,42 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-async function seedSchedule(page: Page) {
-  const today = new Date().toISOString().split('T')[0];
-  const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-  await page.evaluate(
-    async ({ start, future }) => {
-      const path = '/src/lib/db/atopic-db.ts';
-      const { db } = await import(/* @vite-ignore */ path);
-      await db.answers.put({
-        id: 'singleton',
-        babyBirthDate: '2025-01-01',
-        eczemaSeverity: 'moderate',
-        motherAllergies: [],
-        babyConfirmedAllergies: [],
-        programStartDate: start,
-        completedAt: new Date().toISOString(),
-        testedAllergens: [],
-        feedingStage: 'breastfed',
-      });
-      await db.schedule.put({
-        id: 'singleton',
-        permanentMother: [],
-        permanentBaby: [],
-        startDate: start,
-        estimatedEndDate: future,
-        phases: [
-          { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-        ],
-      });
-      // The app derives feedingStage from the live settings master switch (#567);
-      // seed it so a directly-seeded schedule renders without going through onboarding.
-      await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-    },
-    { start: today, future }
-  );
-  return today;
-}
+import { clearDb, seedFeedingStage } from './seed';
 
 async function seedMeal(page: Page, date: string, mealType: string) {
   await page.evaluate(
@@ -58,20 +23,11 @@ async function seedMeal(page: Page, date: string, mealType: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.meals.clear();
-    db.close();
-  });
+  await clearDb(page);
 });
 
 test('tapping an unlogged meal slot navigates to /meal with the slot type pre-selected', async ({ page }) => {
-  const today = await seedSchedule(page);
+  const today = await seedFeedingStage(page);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('meal-row-lunch')).toBeVisible();
 
@@ -84,7 +40,7 @@ test('tapping an unlogged meal slot navigates to /meal with the slot type pre-se
 });
 
 test('tapping a logged meal row navigates to /meal editor for that meal', async ({ page }) => {
-  const today = await seedSchedule(page);
+  const today = await seedFeedingStage(page);
   await seedMeal(page, today!, 'breakfast');
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('meal-row-breakfast')).toBeVisible();

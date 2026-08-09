@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+
+import { clearDb, startLogging } from './seed';
 
 /**
  * Meal lifecycle E2E (issue #266 / ADR-0018).
@@ -11,66 +12,13 @@ import type { Page } from '@playwright/test';
  * type.
  */
 
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.meals.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page, startIso?: string) {
-  // Seed the post-onboarding state directly into IndexedDB. Same shortcut as
-  // the other meal e2e specs — onboarding itself is covered elsewhere.
-  // `startIso` backdates the program so earlier days fall inside the schedule
-  // (used by the backfill test); it defaults to today.
-  const today = new Date().toISOString().split('T')[0];
-  const start = startIso ?? today;
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, start);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
 });
 
 test('FAB submenu → pick type → add food → Hotovo → meal shows on the day', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
 
   // Open the global "+" FAB on the bottom nav, then drill into the meal-type
   // submenu via "Přidat jídlo".
@@ -117,7 +65,7 @@ test('FAB submenu → pick type → add food → Hotovo → meal shows on the da
 });
 
 test('tap a logged meal row → edit → Hotovo → change reflects on the day (#267)', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
 
   // Seed a lunch with one food via the FAB launcher (the only legal entry path).
   await page.getByRole('button', { name: 'Přidat záznam' }).click();
@@ -163,7 +111,7 @@ test('tap a logged meal row → edit → Hotovo → change reflects on the day (
 });
 
 test('delete a meal → row disappears → undo restores it (#268)', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
 
   // Seed a lunch with one food via the FAB launcher.
   await page.getByRole('button', { name: 'Přidat záznam' }).click();
@@ -212,7 +160,7 @@ test('delete a meal → row disappears → undo restores it (#268)', async ({ pa
 
 test('meal delete failure: shows an error toast, stays on /meal, no undo offered (#400)', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   // Seed a lunch with one food via the FAB launcher.
   await page.getByRole('button', { name: 'Přidat záznam' }).click();
@@ -265,10 +213,9 @@ test('meal delete failure: shows an error toast, stays on /meal, no undo offered
 test('backfill a past day via the day-scoped FAB persists on that date, not today (#265 story 19)', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
 
   // Backdate the program so `yesterday` falls inside the schedule window.
-  await completeOnboarding(page, weekAgo);
+  await startLogging(page);
 
   // View an earlier day. The FAB is bound to the day page's `selectedDate`,
   // so opening it here should log against `yesterday`, not today.

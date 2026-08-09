@@ -2,6 +2,8 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, startLogging } from './seed';
+
 // Issue #286: dirtiness + finalize-state are owned by `MealEditor`. The
 // route reads `editor.canFinalize` for the CTA enabledness — so the button
 // must flip from disabled → enabled the instant a clean edit becomes dirty,
@@ -12,54 +14,6 @@ import type { Page } from '@playwright/test';
 //  - meal-dirty-discard covers the labels + the discard toast wording.
 //  - this spec covers the live `aria-disabled` flip on the SAME page,
 //    proving the editor's `dirty` derivation flows through the route.
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.meals.clear();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page) {
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The meal page gates its schedule context on the live feedingStage master
-    // switch (#567); onboarding seeds it, so tests bypassing onboarding must too.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
 
 async function seedLunchWithBrambory(page: Page) {
   const today = new Date().toISOString().split('T')[0];
@@ -84,7 +38,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('"Uložit změny" disables on clean edit, re-enables when notes change, disables again when reverted', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -106,7 +60,7 @@ test('"Uložit změny" disables on clean edit, re-enables when notes change, dis
 });
 
 test('"Uložit změny" stays disabled when notes only change by surrounding whitespace (trim-aware)', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);

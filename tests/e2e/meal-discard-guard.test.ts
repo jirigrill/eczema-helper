@@ -1,56 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page) {
-  // Seed the post-onboarding state directly into IndexedDB instead of clicking
-  // through the wizard — equivalent result (reset phase from today, no tested
-  // allergens), far faster. The onboarding flow itself is covered by the
-  // onboarding-summary + questionnaire-* tests.
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
+import { clearDb, startLogging } from './seed';
 
 async function addBramboraAndCommit(page: Page) {
   await page.getByRole('button', { name: /Zelenina/ }).click();
@@ -74,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 
 test('discard guard: back with empty working list navigates immediately, no toast', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
@@ -88,7 +39,7 @@ test('discard guard: back with empty working list navigates immediately, no toas
 
 test('discard guard: back with non-empty working list discards and shows toast', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
@@ -106,7 +57,7 @@ test('discard guard: back with non-empty working list discards and shows toast',
 
 test('discard guard: tapping Zpět on toast restores the working list', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
@@ -138,7 +89,7 @@ test('discard guard: tapping Zpět on toast restores the working list', async ({
 
 test('popstate: leaving grid with non-empty working list discards, lands on returnTo, shows toast, and Zpět restores', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   // Reach /meal via the in-app FAB so the previous history entry is part of
   // the same document — `history.back()` then fires a SvelteKit popstate
@@ -170,7 +121,7 @@ test('popstate: leaving grid with non-empty working list discards, lands on retu
 
 test('popstate: leaving grid with empty working list navigates immediately, no toast', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   // Same SPA-internal entry pattern as the non-empty test.
   await page.getByRole('button', { name: 'Přidat záznam' }).click();
@@ -188,7 +139,7 @@ test('popstate: leaving grid with empty working list navigates immediately, no t
 });
 
 test('popstate: from inside a drill-in pops to the grid (does not leave /meal), working list preserved', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
 
   await page.getByRole('button', { name: 'Přidat záznam' }).click();
   await page.getByRole('button', { name: 'Přidat jídlo' }).click();
@@ -225,7 +176,7 @@ test('popstate: from inside a drill-in pops to the grid (does not leave /meal), 
 // brittle across the dev server's module graph.
 test('arrow and popstate produce equivalent discard outcomes and land on the same returnTo', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0];
-  await completeOnboarding(page);
+  await startLogging(page);
 
   async function leaveAndProbe(viaPopstate: boolean): Promise<{ url: string; restored: boolean }> {
     // Hard-reload between iterations to reset BOTH window.history and the

@@ -12,30 +12,26 @@
     amount,
     preparation,
     form,
-    eliminatedVariant = false,
     onAmountChange,
     onPreparationChange,
   }: {
     amount: PortionKind;
     preparation?: PreparationMethod;
     form: FoodForm;
-    eliminatedVariant?: boolean;
     onAmountChange: (a: PortionKind) => void;
     onPreparationChange: (p: PreparationMethod | undefined) => void;
   } = $props();
 
-  const chipVariant = $derived(eliminatedVariant ? 'danger' : 'default') as 'default' | 'danger';
   const preparationMethods = $derived(formPreparations[form]);
 </script>
 
 <div class="space-y-2.5">
   <div>
-    <p class="eyebrow mb-1.5" class:text-danger={eliminatedVariant}>Množství</p>
+    <p class="eyebrow mb-1.5">Množství</p>
     <div class="flex flex-wrap gap-1.5">
       {#each portionKinds as kind}
         <Chip
           active={amount === kind}
-          variant={chipVariant}
           onclick={(e) => {
             e.stopPropagation();
             onAmountChange(kind);
@@ -49,12 +45,11 @@
 
   {#if preparationMethods.length > 0}
     <div>
-      <p class="eyebrow mb-1.5" class:text-danger={eliminatedVariant}>Příprava</p>
+      <p class="eyebrow mb-1.5">Příprava</p>
       <div class="flex flex-wrap gap-1.5">
         {#each preparationMethods as method}
           <Chip
             active={preparation === method}
-            variant={chipVariant}
             onclick={(e) => {
               e.stopPropagation();
               onPreparationChange(preparation === method ? undefined : method);

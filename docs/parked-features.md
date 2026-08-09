@@ -87,10 +87,20 @@ input to catalog allergens and flagging items that violate the day's eliminated 
 **Depends on:** phases-schedule
 **Code:** `domain/allergen-matcher.ts`, `domain/ports/canonical-catalog-port.ts`,
 `adapters/bundled-catalog-adapter.ts`, `components/AllergenChip.svelte`,
-`components/AllergenDrillIn.svelte`
+`components/AllergenDrillIn.svelte`, `components/FamilyDrillIn.svelte § eliminatedAllergenIds`,
+`components/FoodTile.svelte § eliminatedStatus`,
+`components/FoodEditor.svelte § eliminatedVariant`,
+`strings/common.ts § meal.eliminatedChipLabel`, `strings/common.ts § meal.eliminatedTodayWarning`
 **Docs:** `CONTEXT.md § "CanonicalAllergen"`
 **Revive note:** `normalizeKey` was moved into the live `harvest-candidate.ts` before
-parking — restore the matcher without it.
+parking — restore the matcher without it. The three `§` component fragments are the
+red "Vyloučeno" treatment on a logged food: the `eliminatedAllergenIds` prop
+`FamilyDrillIn` threaded down (plus its eliminated-group sink ordering), the `danger`
+branches in `FoodTile`, and the red-eyebrow variant in `FoodEditor`. They outlived the
+first strip as an unreachable surface — nothing live passed the prop — and were cut
+afterwards. Reviving them needs a caller: whatever recomputes the day's eliminated set
+has to pass it into `FamilyDrillIn` again. `Chip`'s `variant='danger'` was **not**
+removed and is the styling hook `FoodEditor` used.
 
 ### tolerance-building
 
@@ -143,8 +153,10 @@ reference, phase recap).
 **Code:** `routes/program/+page.svelte`, `routes/week/+page.svelte`,
 `domain/phase-recap.ts`, `components/PhaseBadge.svelte`,
 `components/QuestionnaireSummaryRow.svelte`, `components/icons/CalendarIcon.svelte`,
-`components/icons/TrendsIcon.svelte`
-**Revive note:** —
+`components/icons/TrendsIcon.svelte`, `strings/skin-regions.ts § severityCountSuffix`
+**Revive note:** `severityCountSuffix` rendered the "× klidné" / "× mírné" count suffix in
+`/program`'s skin recap. It survived the route's deletion with no caller and was cut
+afterwards; the `severityStrings` labels it read are still live.
 
 ### onboarding-questionnaire
 
@@ -195,6 +207,11 @@ live settings store before parking — do not restore it back.
 | `adapters/bundled-catalog-adapter.ts`                           | allergen-matching         |
 | `components/AllergenChip.svelte`                                | allergen-matching         |
 | `components/AllergenDrillIn.svelte`                             | allergen-matching         |
+| `components/FamilyDrillIn.svelte § eliminatedAllergenIds`       | allergen-matching         |
+| `components/FoodTile.svelte § eliminatedStatus`                 | allergen-matching         |
+| `components/FoodEditor.svelte § eliminatedVariant`              | allergen-matching         |
+| `strings/common.ts § meal.eliminatedChipLabel`                  | allergen-matching         |
+| `strings/common.ts § meal.eliminatedTodayWarning`               | allergen-matching         |
 | `CONTEXT.md § "CanonicalAllergen"`                              | allergen-matching         |
 | `domain/ladder.ts`                                              | tolerance-building        |
 | `domain/ports/ladder-override-repository.ts`                    | tolerance-building        |
@@ -228,6 +245,7 @@ live settings store before parking — do not restore it back.
 | `routes/week/+page.svelte`                                      | program-week-day-views    |
 | `domain/phase-recap.ts`                                         | program-week-day-views    |
 | `components/PhaseBadge.svelte`                                  | program-week-day-views    |
+| `strings/skin-regions.ts § severityCountSuffix`                 | program-week-day-views    |
 | `components/QuestionnaireSummaryRow.svelte`                     | program-week-day-views    |
 | `components/icons/CalendarIcon.svelte`                          | program-week-day-views    |
 | `components/icons/TrendsIcon.svelte`                            | program-week-day-views    |

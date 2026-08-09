@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+
+import { clearDb, seedFeedingStage } from './seed';
 
 /**
  * Copy-to-another-day, first-run state (PRD #623, issue #631, §3e).
@@ -17,28 +18,6 @@ import type { Page } from '@playwright/test';
  * what makes it pass — the old code's picker never opened.
  */
 
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.meals.clear();
-    db.close();
-  });
-}
-
-/** Seed the true first-run state after #630: a feeding stage and nothing else. */
-async function seedFeedingStageOnly(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  });
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
@@ -50,7 +29,7 @@ test('copies a meal to a different day and a different meal type with only a fee
   const today = new Date().toISOString().split('T')[0]!;
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]!;
 
-  await seedFeedingStageOnly(page);
+  await seedFeedingStage(page);
 
   // Log a lunch meal on YESTERDAY via the day-scoped FAB. Logging on a past day
   // moves the earliest-logged floor back to yesterday, so the copy strip spans
