@@ -37,17 +37,40 @@ The mechanical procedure, once, for every entry below:
   any protocol data written by a pre-strip build is still on disk and readable once the row
   types are restored. Reviving is additive — restore the types and the code, and the old rows
   light up. Do not write a migration to "clean up" the dormant tables; that would orphan
-  parked data.
+  parked data. Each placeholder is listed as an `atopic-db.ts § …Row` entry on the feature
+  that owns it — restoring it is the **first** step of that revival, because every port and
+  adapter below it is typed against the real row shape and will not compile until it is back.
 
 ## Dependency shape
 
 ```
         phases-schedule ──┬──> allergen-matching
               ▲           ├──> tolerance-building (ladder)
+              │           │         ┆ types only
               │           ├──> reintroduction-evaluation
   onboarding-questionnaire└──> program-week-day-views
       (seeds the schedule)
 ```
+
+Solid edges are value-level: the target does not compile without the source. The dashed edge
+is type-level — `ladder.ts` type-imports two `models.ts` fragments that
+reintroduction-evaluation owns, so restoring those fragments is enough and the verdict
+feature itself stays parked.
+
+**The features hanging off the base are not mutually independent.** The tree above is the
+dependency on the _base_, not a partition. Their domain cores are separable, but the route
+and store layers cross-reference — observed in the tag:
+
+| Importer                                                     | Reaches into                                                                                                                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `routes/program/+page.svelte` (program-week-day-views)       | `stores/evaluations-store` (reintroduction-evaluation), `components/AllergenChip.svelte` (allergen-matching), `stores/protocol-session` (onboarding-questionnaire) |
+| `routes/evaluation/+page.svelte` (reintroduction-evaluation) | `domain/phase-recap.ts` (program-week-day-views), `stores/protocol-session` (onboarding-questionnaire)                                                             |
+| `stores/protocol-session.ts` (onboarding-questionnaire)      | `adapters/dexie-evaluation-repository` (reintroduction-evaluation)                                                                                                 |
+
+So a single-feature revival is clean at the domain level and needs pruning at the UI level:
+expect to restore a parked route with imports pointing at siblings you did not revive, and
+to cut those branches by hand. Reviving a _domain_ slice — as the ladder does — does not hit
+this.
 
 ## Base layers
 
@@ -64,9 +87,11 @@ every other protocol feature reads. The spine the whole engine hangs off.
 `domain/allergen-status.ts`, `domain/__fixtures__/schedule.ts`,
 `domain/ports/schedule-repository.ts`, `adapters/dexie-schedule-repository.ts`,
 `stores/schedule-context.ts`, `adapters/loggable-window-guard.ts`,
+`domain/ports/canonical-catalog-port.ts`, `adapters/bundled-catalog-adapter.ts`,
 `components/ProgressBar.svelte`, `config/phases.ts`,
 `strings/phases.ts`, `models.ts § SchedulePhase` / `§ GeneratedSchedule` / `§ PhaseType` /
-`§ AllergenStatus` / `§ getPermanentEliminations`, `domain/day-view.ts § resolveDay`
+`§ AllergenStatus` / `§ getPermanentEliminations`, `domain/day-view.ts § resolveDay`,
+`atopic-db.ts § ScheduleRow`
 **Docs:** `docs/adr/0016-verdict-drives-schedule-not-status.md`,
 `docs/adr/0025-event-domain-model.md`,
 `docs/adr/0027-dual-actor-mirrored-schedule.md`, `CONTEXT.md § "EliminationWindow"`,
@@ -74,7 +99,11 @@ every other protocol feature reads. The spine the whole engine hangs off.
 `UBIQUITOUS_LANGUAGE.md § "Allergens & Elimination"` (minus the surviving Family/Allergen/Food
 and Source-Subgroup entries), `UBIQUITOUS_LANGUAGE.md § "Schedule & Questionnaire"` (minus the
 surviving Settings/session entries)
-**Revive note:** —
+**Revive note:** `canonical-catalog-port.ts` / `bundled-catalog-adapter.ts` are the **shared
+catalog seam**, not an allergen-matching detail: `schedule-builder.ts` and
+`schedule-queries.ts` take the port as a constructor argument and `schedule-context.ts`
+constructs the adapter, so the spine does not compile without them. They live here so that
+reviving any single feature does not silently require allergen-matching too.
 
 ## Parked features
 
@@ -85,8 +114,7 @@ surviving Settings/session entries)
 **Purpose:** Conflict detection over a logged meal — resolving free-text and food
 input to catalog allergens and flagging items that violate the day's eliminated set.
 **Depends on:** phases-schedule
-**Code:** `domain/allergen-matcher.ts`, `domain/ports/canonical-catalog-port.ts`,
-`adapters/bundled-catalog-adapter.ts`, `components/AllergenChip.svelte`,
+**Code:** `domain/allergen-matcher.ts`, `components/AllergenChip.svelte`,
 `components/AllergenDrillIn.svelte`, `components/FamilyDrillIn.svelte § eliminatedAllergenIds`,
 `components/FoodTile.svelte § eliminatedStatus`,
 `components/FoodEditor.svelte § eliminatedVariant`,
@@ -107,18 +135,26 @@ removed and is the styling hook `FoodEditor` used.
 **Purpose:** The dose-escalation ladder — the per-allergen rung model, the
 reaction-aware `currentRung` derivation, and the deterministic `decideLadderMove`
 decision engine with its gate precedence, probe/confirm mode, dwell and walk-down.
-**Depends on:** phases-schedule
+**Depends on:** phases-schedule; reintroduction-evaluation (**types only** — see the revive note)
 **Code:** `domain/ladder.ts`, `domain/ports/ladder-override-repository.ts`,
 `adapters/dexie-ladder-override-repo.ts`, `stores/ladder-override-session.ts`,
 `schedule-builder.ts § addTrainingPhase`,
 `schedule-builder.ts § getToleranceBuildingRemindersForDate`,
 `models.ts § ToleranceBuildingReminder`, `models.ts § ReintroductionDayInfo`,
-`tools/ladder-viz/`
+`atopic-db.ts § LadderOverrideRow`, `tools/ladder-viz/`
 **Docs:** `docs/adr/0023-dose-escalation-ladder.md`, `CONTEXT.md § "Ladder"`,
 `UBIQUITOUS_LANGUAGE.md § "Ladder / LadderStep / FeedingStage"`
 **Revive note:** `tools/ladder-viz/` is a standalone dev inspector for the ladder engine
 (imports `$lib/domain/ladder`), not part of the app bundle — revive it only if you need
 to visualise the engine.
+`ladder.ts` type-imports `ReintroductionEvaluation` and `AllergenOutcome`, which
+reintroduction-evaluation owns. The edge is **type-level only** — restoring those two
+`models.ts` fragments is enough, and reviving the verdict feature itself is not required.
+Nothing else on this list reaches into a sibling.
+`ladder.ts` also imports `LadderAllergenId` from `models.ts`. That was a **re-export** of
+the catalog's type, and only the re-export was dropped — the type is still derived live in
+`data/allergen-catalog/allergen-catalog.ts`. Repoint the import rather than restoring a
+`models.ts` fragment.
 **Retained in the live tree:** the `Ladder` / `LadderStep` types in
 `domain/canonical-allergen.ts` and the per-allergen ladder rows in
 `data/allergen-catalog/allergen-catalog.ts` were **not** deleted, even though nothing
@@ -138,7 +174,8 @@ drives (rest-phase insertion), and the retest machinery.
 `schedule-builder.ts § applyReintroductionVerdict`,
 `schedule-builder.ts § insertRestDays`, `schedule-builder.ts § appendReTestPhases`,
 `schedule-builder.ts § removeReTestPhase`, `schedule-builder.ts § RetestRejection`,
-`models.ts § ReintroductionEvaluation`, `models.ts § SkinEvaluationOutcome`
+`models.ts § ReintroductionEvaluation`, `models.ts § SkinEvaluationOutcome`,
+`models.ts § AllergenOutcome`, `atopic-db.ts § EvaluationRow`
 **Docs:** `docs/adr/0004-causation-derived-not-recorded.md`,
 `docs/adr/0024-medical-scope-boundary.md`,
 `docs/adr/0026-llm-schedule-proposer.md`, `CONTEXT.md § "ReintroductionEvaluation"`
@@ -166,7 +203,7 @@ single feeding-stage picker.
 **Depends on:** phases-schedule
 **Code:** `domain/ports/questionnaire-repository.ts`,
 `adapters/dexie-questionnaire-repository.ts`, `stores/protocol-session.ts`,
-`models.ts § QuestionnaireAnswers`, `docs/allergen-reference/`
+`models.ts § QuestionnaireAnswers`, `atopic-db.ts § AnswersRow`, `docs/allergen-reference/`
 **Revive note:** `setFeedingStage` was relocated out of `protocol-session.ts` into the
 live settings store before parking — do not restore it back.
 
@@ -185,6 +222,8 @@ live settings store before parking — do not restore it back.
 | `adapters/dexie-schedule-repository.ts`                         | phases-schedule           |
 | `adapters/loggable-window-guard.ts`                             | phases-schedule           |
 | `stores/schedule-context.ts`                                    | phases-schedule           |
+| `domain/ports/canonical-catalog-port.ts`                        | phases-schedule           |
+| `adapters/bundled-catalog-adapter.ts`                           | phases-schedule           |
 | `components/ProgressBar.svelte`                                 | phases-schedule           |
 | `config/phases.ts`                                              | phases-schedule           |
 | `strings/phases.ts`                                             | phases-schedule           |
@@ -194,6 +233,7 @@ live settings store before parking — do not restore it back.
 | `models.ts § AllergenStatus`                                    | phases-schedule           |
 | `models.ts § getPermanentEliminations`                          | phases-schedule           |
 | `domain/day-view.ts § resolveDay`                               | phases-schedule           |
+| `atopic-db.ts § ScheduleRow`                                    | phases-schedule           |
 | `docs/adr/0016-verdict-drives-schedule-not-status.md`           | phases-schedule           |
 | `docs/adr/0025-event-domain-model.md`                           | phases-schedule           |
 | `docs/adr/0027-dual-actor-mirrored-schedule.md`                 | phases-schedule           |
@@ -203,8 +243,6 @@ live settings store before parking — do not restore it back.
 | `UBIQUITOUS_LANGUAGE.md § "Allergens & Elimination"`            | phases-schedule           |
 | `UBIQUITOUS_LANGUAGE.md § "Schedule & Questionnaire"`           | phases-schedule           |
 | `domain/allergen-matcher.ts`                                    | allergen-matching         |
-| `domain/ports/canonical-catalog-port.ts`                        | allergen-matching         |
-| `adapters/bundled-catalog-adapter.ts`                           | allergen-matching         |
 | `components/AllergenChip.svelte`                                | allergen-matching         |
 | `components/AllergenDrillIn.svelte`                             | allergen-matching         |
 | `components/FamilyDrillIn.svelte § eliminatedAllergenIds`       | allergen-matching         |
@@ -221,6 +259,7 @@ live settings store before parking — do not restore it back.
 | `schedule-builder.ts § getToleranceBuildingRemindersForDate`    | tolerance-building        |
 | `models.ts § ToleranceBuildingReminder`                         | tolerance-building        |
 | `models.ts § ReintroductionDayInfo`                             | tolerance-building        |
+| `atopic-db.ts § LadderOverrideRow`                              | tolerance-building        |
 | `tools/ladder-viz/`                                             | tolerance-building        |
 | `docs/adr/0023-dose-escalation-ladder.md`                       | tolerance-building        |
 | `CONTEXT.md § "Ladder"`                                         | tolerance-building        |
@@ -237,6 +276,8 @@ live settings store before parking — do not restore it back.
 | `schedule-builder.ts § RetestRejection`                         | reintroduction-evaluation |
 | `models.ts § ReintroductionEvaluation`                          | reintroduction-evaluation |
 | `models.ts § SkinEvaluationOutcome`                             | reintroduction-evaluation |
+| `models.ts § AllergenOutcome`                                   | reintroduction-evaluation |
+| `atopic-db.ts § EvaluationRow`                                  | reintroduction-evaluation |
 | `docs/adr/0004-causation-derived-not-recorded.md`               | reintroduction-evaluation |
 | `docs/adr/0024-medical-scope-boundary.md`                       | reintroduction-evaluation |
 | `docs/adr/0026-llm-schedule-proposer.md`                        | reintroduction-evaluation |
@@ -253,4 +294,5 @@ live settings store before parking — do not restore it back.
 | `adapters/dexie-questionnaire-repository.ts`                    | onboarding-questionnaire  |
 | `stores/protocol-session.ts`                                    | onboarding-questionnaire  |
 | `models.ts § QuestionnaireAnswers`                              | onboarding-questionnaire  |
+| `atopic-db.ts § AnswersRow`                                     | onboarding-questionnaire  |
 | `docs/allergen-reference/`                                      | onboarding-questionnaire  |
