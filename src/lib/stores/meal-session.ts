@@ -4,6 +4,7 @@ import { createDateScopedSession } from '$lib/adapters/date-scoped-session';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { db } from '$lib/db/atopic-db';
 import type { Actor, Meal, MealType } from '$lib/domain/models';
+import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
 import type { Result } from '$lib/types/result';
 import { todayIso } from '$lib/utils/date';
 
@@ -22,6 +23,14 @@ export type MealSession = {
   save(meal: Meal): Promise<Result<void, string>>;
   loadBySlot(date: string, mealType: MealType, actor: Actor): Promise<Result<Meal | null, string>>;
   remove(date: string, mealType: MealType, actor: Actor): Promise<Result<void, string>>;
+  /**
+   * Reverse a copy-meal write (issue #606): removes the slot the copy
+   * created, or — when the copy merged into an existing meal — drops only
+   * the items it added and restores the destination's prior `updatedAt`.
+   * Owns the reversal so the layout's undo toast only has to call it, not
+   * reconstruct the merge-vs-create branch itself.
+   */
+  reverseCopy(copy: DiscardedMealCopy): Promise<Result<void, string>>;
 };
 
 export function createMealSession(date: string): MealSession {
@@ -47,7 +56,22 @@ export function createMealSession(date: string): MealSession {
     return mealRepository.remove(slotDate, mealType, actor);
   }
 
-  return { subscribe: meals.subscribe, save, loadBySlot, remove };
+  async function reverseCopy(copy: DiscardedMealCopy): Promise<Result<void, string>> {
+    const { date: slotDate, mealType, actor } = copy.destinationSlot;
+    if (!copy.destinationPreexisted) {
+      return remove(slotDate, mealType, actor);
+    }
+    const loaded = await loadBySlot(slotDate, mealType, actor);
+    if (!loaded.ok || !loaded.data) return { ok: true, data: undefined };
+    const added = new Set(copy.addedItemIds);
+    return save({
+      ...loaded.data,
+      items: loaded.data.items.filter((i) => !added.has(i.id)),
+      updatedAt: copy.priorUpdatedAt,
+    });
+  }
+
+  return { subscribe: meals.subscribe, save, loadBySlot, remove, reverseCopy };
 }
 
 /**
