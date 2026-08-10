@@ -18,9 +18,11 @@ if (MODE !== 'legacy' && MODE !== 'integrated') {
   process.exit(1);
 }
 
-// Concurrency within a batch. Lower it when a batch holds issues whose file
-// footprints overlap: same-batch workers all branch off the same integration
-// commit, so two issues editing one file will collide when the second merges.
+// Concurrency within a batch. Each merge rebases the worker branch onto the
+// current integration tip first, so two issues touching the same file no
+// longer collide — only a genuine same-region rewrite still conflicts, and
+// that falls back to a worker re-run rather than serialising the batch.
+// Lower this only if that re-run cost outweighs the wall-clock savings.
 // `--max-parallel=1` serialises a batch entirely, which trades wall-clock for
 // zero merge conflicts.
 const parallelArg = args.find((a) => a.startsWith('--max-parallel='));
@@ -358,21 +360,59 @@ async function runIntegrated() {
   const workerBranches: string[] = []; // intermediate branches to clean up
   let lastConflictFiles: string[] = []; // unmerged paths from the most recent failed merge
 
-  // Merge one worker branch into the integration branch. Returns false on
-  // conflict, having aborted the merge and recorded the unmerged paths so a
-  // drop can name them instead of saying only "merge conflict".
-  function mergeIssue(issue: Issue, branch: string): boolean {
+  const WORKTREES_DIR = '.sandcastle/worktrees';
+  execFileSync('mkdir', ['-p', WORKTREES_DIR]);
+
+  // Rebase a worker branch onto the current integration-branch tip, in a
+  // throwaway worktree — the host checkout stays on INTEGRATION_BRANCH, and
+  // git forbids checking the same branch out twice. On success this rewrites
+  // the branch's commits in place (its SHAs change; nothing here depends on
+  // them), so a same-region edit that a same-batch sibling already merged
+  // gets replayed onto the current file instead of pasted from a stale copy.
+  // Only a genuine content conflict is reported — a different region of the
+  // same file rebases cleanly.
+  function rebaseOntoIntegration(branch: string): { ok: true } | { ok: false; conflictFiles: string[] } {
+    const dir = `${WORKTREES_DIR}/${branch.replace(/\//g, '-')}`;
+    execFileSync('rm', ['-rf', dir]);
+    git('worktree', 'add', '--quiet', dir, branch);
     try {
-      git('merge', '--no-ff', '-m', `RALPH: integrate #${issue.number}`, branch);
-      workerBranches.push(branch);
-      integrated.push(issue);
-      console.log(`  ✓ #${issue.number} merged`);
-      return true;
+      execFileSync('git', ['rebase', INTEGRATION_BRANCH], { cwd: dir, encoding: 'utf8' });
+      return { ok: true };
     } catch {
-      lastConflictFiles = git('diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
-      git('merge', '--abort');
+      const conflictFiles = execFileSync('git', ['diff', '--name-only', '--diff-filter=U'], {
+        cwd: dir,
+        encoding: 'utf8',
+      })
+        .trim()
+        .split('\n')
+        .filter(Boolean);
+      execFileSync('git', ['rebase', '--abort'], { cwd: dir });
+      return { ok: false, conflictFiles };
+    } finally {
+      git('worktree', 'remove', '--force', dir);
+    }
+  }
+
+  // Rebase, then merge, one worker branch into the integration branch.
+  // Returns false when the rebase hits a genuine content conflict — the
+  // caller falls back to re-running the worker on the updated base (#641).
+  // A merge after a clean rebase cannot itself conflict: the branch's
+  // history already contains the integration tip.
+  function mergeIssue(issue: Issue, branch: string): boolean {
+    const rebase = rebaseOntoIntegration(branch);
+    if (!rebase.ok) {
+      lastConflictFiles = rebase.conflictFiles;
+      console.log(
+        `  ⤳ #${issue.number} rebase onto ${INTEGRATION_BRANCH} conflicted in: ${rebase.conflictFiles.join(', ')}`,
+      );
       return false;
     }
+    console.log(`  ↻ #${issue.number} rebased cleanly onto ${INTEGRATION_BRANCH}`);
+    git('merge', '--no-ff', '-m', `RALPH: integrate #${issue.number}`, branch);
+    workerBranches.push(branch);
+    integrated.push(issue);
+    console.log(`  ✓ #${issue.number} merged`);
+    return true;
   }
 
   // An issue is skippable if any dependency was dropped. This is transitive:
@@ -422,10 +462,11 @@ async function runIntegrated() {
 
         if (mergeIssue(issue, result.value.branch)) continue;
 
-        // Conflict. A same-batch sibling merged first and touched the same files,
-        // so this worker's base is stale. Re-run it on the updated integration
-        // branch: the agent resolves semantically in its own sandbox, which a
-        // host-side textual rebase cannot. Only drop if that also fails.
+        // The host-side rebase in mergeIssue() hit a genuine content conflict —
+        // a same-batch sibling rewrote the same region, not just the same file.
+        // Re-run the worker on the updated integration branch: the agent
+        // resolves semantically in its own sandbox, which a textual rebase
+        // cannot. Only drop if that also fails.
         console.log(`  ↻ #${issue.number} conflicted — re-running on the updated base`);
         let rerun;
         try {
