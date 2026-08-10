@@ -50,7 +50,7 @@ additive, so nothing changes unless you pass `--mode=integrated`.
 | Worker failure | logged, run continues | retry once, then drop issue + its downstream subtree |
 | Review | worker self-reviews its slice once | worker loops to convergence **+** integrator reviews the whole diff |
 | PRs you review | one per issue | **one per PRD** |
-| Rebasing onto `main` | you, per branch | none — serial merges into one branch |
+| Rebasing onto `main` | you, per branch | orchestrator rebases each worker branch onto `agent/prd-<N>` before merging it |
 
 Pick `integrated` when a PRD is a coherent feature you'd want to review and
 frontend-test as a whole. Keep PRDs reviewable-sized: a giant feature is better
@@ -67,27 +67,41 @@ split into 2–3 smaller PRDs (each yields one digestible PR) than merged as one
 
 ## How It Works — integrated mode
 
-1. **Planner** — same dependency graph and batches as legacy.
+1. **Planner** — same dependency graph and batches as legacy. When a PRD's body states
+   an ordered execution plan (numbered/lettered steps, or prose saying the steps run in
+   sequence), the planner adds a dependency on each step's predecessor even if the child
+   issue's own body omits it — so two steps the spec orders never land in the same
+   parallel batch. Steps the spec leaves unordered still batch together.
 2. **Integration branch** — orchestrator creates `agent/prd-<N>` off `main`.
 3. **Staged batches** — each batch's workers branch off the *current* `agent/prd-<N>`,
    run in parallel (max 3), self-review their slice to convergence, and commit.
    When the batch finishes, its branches merge into `agent/prd-<N>` (serial, in order).
    The next batch branches off the updated integration branch — so dependent issues
    build on their dependencies' real committed code, not a guess against `main`.
-4. **Failure handling** — a failed worker is retried once in a fresh sandbox. If it
+4. **Rebase before merge** — before merging a finished worker branch, the orchestrator
+   rebases it onto the current `agent/prd-<N>` tip in a throwaway `git worktree` under
+   `.sandcastle/worktrees/` (removed afterwards), so the host checkout is never disturbed.
+   A clean rebase means two workers touching different regions of the same file — even
+   the same object literal — integrate without a conflict or a re-run; the merge that
+   follows a clean rebase cannot itself conflict. A genuine same-region rewrite still
+   fails the rebase and falls back to step 5's re-run, and a run that still can't
+   integrate names the unmerged paths in the drop reason. Every rebase/merge outcome is
+   logged to the console (and the run log) with the issue number and the branch it
+   replayed onto.
+5. **Failure handling** — a failed worker is retried once in a fresh sandbox. If it
    still fails, its issue **and everything transitively downstream of it** are dropped;
    the coherent remainder still integrates. The integration branch never contains an
    issue whose blocker was dropped.
-5. **Integrator** — after all batches, one integrator agent reviews the whole
+6. **Integrator** — after all batches, one integrator agent reviews the whole
    `agent/prd-<N>` diff against `main`, fixes findings (logging which regions it
    touched), and runs `just check` + `just test` (incl. Playwright E2E). Only if the
    full suite is green does it open **one** PR (`agent/prd-<N>` → `main`, with a
    `Closes #N` line per integrated issue). If it cannot reach green, it opens no PR and
    reports — the branch is left intact for inspection.
-6. **End-of-run summary** — the terminal prints the PR URL + integrated issues +
+7. **End-of-run summary** — the terminal prints the PR URL + integrated issues +
    integrator-touched log on success, or the failed stage + preserved branch + last
    error on failure.
-7. **You** — frontend-test and squash-merge the one PR. Skipped issues stay open for a
+8. **You** — frontend-test and squash-merge the one PR. Skipped issues stay open for a
    later run.
 
 ## After a Run Merges

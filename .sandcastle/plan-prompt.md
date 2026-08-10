@@ -32,6 +32,13 @@ has not happened yet. Their code is in the base that every worker branches from.
 1. Read the PRD to understand the full scope.
 2. From the open child list above, identify open issues that are child tasks of this PRD.
 3. For each open issue, parse referenced blockers ("blocked by #N", "depends on #N", or logical ordering).
+3a. **A PRD-stated step order is authoritative.** If the PRD body lays out an ordered
+    execution plan — numbered/lettered steps (Step 0, 1, 2, 2b, 3, …), or prose stating
+    the steps run in sequence — then for every step, add a dependency on its immediately
+    preceding step, even when that step's own issue body omits it or names a different
+    blocker. Do this in addition to, not instead of, the issue's declared `## Blocked by`.
+    Steps the PRD does not place in this order (or does not mention at all) are unordered
+    relative to each other and may still batch in parallel.
 4. **Closed blocker = resolved.** If a blocker number appears in the closed list above, the dependency is satisfied: do NOT list it under `dependencies` and do NOT exclude the issue.
 5. **Already-integrated blocker = resolved.** Apply rule 4 identically to the already-integrated list: do NOT list it under `dependencies` and do NOT exclude the issue that depends on it.
 6. **Never output an already-integrated issue.** Omit it from `issues` entirely — re-running it would duplicate merged work and conflict.
