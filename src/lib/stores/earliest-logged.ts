@@ -20,7 +20,7 @@ import { skinObservationRepository } from '$lib/stores/skin-observation-session'
  * spinning up its own. See the factory-vs-singleton rule in
  * `docs/architecture/ports-and-adapters.md` § Stores layer.
  */
-export const earliestLogged: Readable<string | null> = readable<string | null>(null, (set) => {
+export const earliestLoggedStore: Readable<string | null> = readable<string | null>(null, (set) => {
   const subscription = liveQuery(async () => {
     const [mealResult, skinResult] = await Promise.all([
       mealRepository.earliestLoggedDate(),

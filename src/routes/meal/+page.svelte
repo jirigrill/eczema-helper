@@ -22,7 +22,7 @@
   import { formForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
-  import { earliestLogged as earliestLoggedStore } from '$lib/stores/earliest-logged';
+  import { earliestLoggedStore } from '$lib/stores/earliest-logged';
   import { settingsStore } from '$lib/stores/settings.svelte';
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
