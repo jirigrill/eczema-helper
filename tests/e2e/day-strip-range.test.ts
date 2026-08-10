@@ -1,36 +1,6 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
 
-import { appModuleUrl, clearDb, seedFeedingStage } from './seed';
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function isoDaysFromToday(offset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/**
- * Log a single meal via the app's own Dexie instance so the earliest/latest
- * `liveQuery` subscriptions react and the strip grows without a reload.
- */
-async function seedMeal(page: Page, date: string) {
-  await page.evaluate(
-    async ({ path, date }) => {
-      const { db } = await import(/* @vite-ignore */ path);
-      await db.meals.put({
-        id: `${date}:lunch:mother`,
-        date,
-        mealType: 'lunch',
-        actor: 'mother',
-        items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
-        createdAt: `${date}T12:00:00.000Z`,
-      });
-    },
-    { path: await appModuleUrl(page), date },
-  );
-}
+import { clearDb, isoDaysFromToday, seedFeedingStage, seedMeal } from './seed';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');

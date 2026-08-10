@@ -44,8 +44,41 @@ export async function appModuleUrl(page: Page, sourcePath = DB_MODULE): Promise<
 
 /** Today in the browser's local timezone — matches how the app resolves "today". */
 export function localToday(): string {
+  return isoDaysFromToday(0);
+}
+
+/**
+ * A local-ISO date `offset` days from today (negative for the past). Built off
+ * the local calendar the same way {@link localToday} is, so a strip range keyed
+ * on the browser's "today" and a seeded date never drift across a UTC boundary.
+ */
+export function isoDaysFromToday(offset: number): string {
   const d = new Date();
+  d.setDate(d.getDate() + offset);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Log a single meal on `date` via the app's own Dexie instance so the
+ * earliest-logged `liveQuery` reacts and the strip grows without a reload.
+ * Routes through {@link appModuleUrl} so the write and any monkey-patch land on
+ * the exact module instance the app holds (see that function's note).
+ */
+export async function seedMeal(page: Page, date: string): Promise<void> {
+  await page.evaluate(
+    async ({ path, date }) => {
+      const { db } = await import(/* @vite-ignore */ path);
+      await db.meals.put({
+        id: `${date}:lunch:mother`,
+        date,
+        mealType: 'lunch',
+        actor: 'mother',
+        items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+        createdAt: `${date}T12:00:00.000Z`,
+      });
+    },
+    { path: await appModuleUrl(page), date },
+  );
 }
 
 /**
