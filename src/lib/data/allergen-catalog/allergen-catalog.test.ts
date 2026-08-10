@@ -111,10 +111,10 @@ describe('required fields', () => {
       'smoked',
       'cured',
     ]);
-    // fin fish gains smoked, drops fried
-    expect(byId('losos')?.preparations).toEqual(['raw', 'boiled', 'baked', 'smoked']);
-    // fruit drops fried, gains dried
-    expect(byId('banan')?.preparations).toEqual(['raw', 'baked', 'dried']);
+    // fin fish gains smoked, still fry-able
+    expect(byId('losos')?.preparations).toEqual(['raw', 'boiled', 'baked', 'smoked', 'fried']);
+    // fruit gains dried and can be stewed (compote), but is never fried
+    expect(byId('banan')?.preparations).toEqual(['raw', 'baked', 'boiled', 'dried']);
     // raw-only unchanged
     expect(byId('listovy-salat')?.preparations).toEqual(['raw']);
   });

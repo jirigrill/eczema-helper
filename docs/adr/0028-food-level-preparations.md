@@ -3,9 +3,9 @@
 ## Overview
 
 Every food in the catalog now says *exactly* which ways it can be prepared. A
-banana offers "syrové / pečené / sušené"; a salmon offers "syrové / vařené /
-pečené / smažené / uzené"; milk offers "syrové / vařené / pečené". The list is
-per food, hand-authored alongside the food's other data.
+banana offers "syrové / pečené / vařené / sušené"; a salmon offers "syrové /
+vařené / pečené / uzené / smažené"; milk offers "syrové / vařené / pečené". The
+list is per food, hand-authored alongside the food's other data.
 
 This replaces the old `FoodForm` scheme, where each food picked one of four
 buckets (`none` / `liquid` / `cookable` / `raw-only`) and the bucket decided the
@@ -108,12 +108,15 @@ corrected to the real method set. (The lone `cabbage-brassica:cooked-cabbage` �
 
 ## Consequences
 
-- Each food's chips are exactly right: no `fried` on bananas or oils, and
-  `dried`/`smoked`/`cured` available precisely where they belong.
+- Each food's chips are exactly right: no `fried` on bananas, `dried`/`smoked`/
+  `cured` available precisely where they belong, and cooking fats/oils carry an
+  empty list — like drinks and condiments, they are staples you cook *with*, not
+  foods logged by preparation.
 - The migration is mechanical and lossless: every current `form` expands to its
   `formPreparations` array as the food's starting `preparations`, then the
-  arrays are hand-corrected (prune `fried` from fruit/fats, add specialty preps
-  to the fish/fruit/meat that take them). This touches all 163 food records.
+  arrays are hand-corrected (prune `fried` from fruit, empty the list for cooking
+  fats/oils, add specialty preps to the fish/fruit/meat that take them). This
+  touches all 163 food records.
 - `FoodForm` and its resolver are removed; call sites (food editor, family
   drill-in, meal log) read `preparations` directly. `grep -rn "FoodForm\|formPreparations\|formForFood\|\bform:" src/` must come back clean of the old scheme.
 - Custom-food harvest is **unchanged** — free text (e.g. "sušené švestky") still
