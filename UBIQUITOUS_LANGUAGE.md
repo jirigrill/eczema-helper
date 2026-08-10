@@ -188,22 +188,29 @@ optional `subitemId`, `amount` (`PortionKind`), optional `preparationMethod`
 ### PreparationMethod
 *Czech: Způsob přípravy*
 
-One of: `'raw'` (Syrové) · `'boiled'` (Vařené) · `'steamed'` (Dušené) ·
-`'baked'` (Pečené) · `'fried'` (Smažené). Optional observational field on
-`MealItem` — records how the food was prepared. Has no impact on allergen
-conflict detection; stored purely for the mother's reference. Which chips a
-food shows in the editor is gated by its catalog `FoodForm`.
+One of: `'raw'` (Syrové) · `'boiled'` (Vařené) · `'baked'` (Pečené) ·
+`'fried'` (Smažené). Optional observational field on `MealItem` — records how
+the food was prepared. Has no impact on allergen conflict detection; stored
+purely for the mother's reference. Which chips a food shows in the editor is
+gated by its catalog `FoodForm`. (There is no `'steamed'`/Dušené method — an
+earlier five-method draft was never implemented. Food-level preparations that
+add `dried`/`smoked`/`cured` and retire `FoodForm` are accepted in ADR-0028,
+tracked in [#356](https://github.com/jirigrill/eczema-helper/issues/356);
+this entry updates when that lands.)
 
 ### FoodForm
 *Czech: Forma potraviny*
 
 Closed 4-value catalog metadata on a `CatalogFood`: `'none'` (water, oil,
 salt — no preparation row at all) · `'liquid'` (milk, drinkable — Syrové ·
-Vařené · Pečené) · `'cookable'` (potato, meat, rice — all five chips) ·
-`'raw-only'` (leafy salad, fresh fruit — Syrové only). The `formPreparations`
-map (in `domain/preparation-rules.ts`) resolves a form to its chip subset. The
-form is **never persisted** on a logged `MealItem`; `preparationMethod` stays
-unconstrained on the persisted record.
+Vařené · Pečené) · `'cookable'` (potato, meat, rice — Syrové · Vařené · Pečené ·
+Smažené) · `'raw-only'` (leafy salad, fresh fruit — Syrové only). The
+`formPreparations` map (in `domain/preparation-rules.ts`) resolves a form to its
+chip subset. The form is **never persisted** on a logged `MealItem`;
+`preparationMethod` stays unconstrained on the persisted record. (ADR-0028 /
+[#356](https://github.com/jirigrill/eczema-helper/issues/356) retires
+`FoodForm` in favour of a per-food `preparations` list; this entry updates when
+that lands.)
 
 ### PortionKind
 *Czech: Velikost porce*
