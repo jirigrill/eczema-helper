@@ -35,7 +35,6 @@ export const commonStrings = {
   today: {
     heading: 'Dnes',
     settingsAria: 'Nastavení',
-    counterHint: 'Dnes ti chybí stav, foto a jídla.',
     eczemaStatusLabel: 'Stav ekzému',
     eczemaStatusEmpty: 'Zatím není záznam pro dnešek — ',
     eczemaStatusEmptyCta: 'zaznamenat stav kůže',

@@ -145,22 +145,6 @@ describe('/day/[date] page', () => {
   });
 
   describe('today-only chrome', () => {
-    it('shows task counter when selectedDate is today', async () => {
-      mockPage.params.date = today;
-      const { default: DayPage } = await import('./+page.svelte');
-      const { getByTestId } = render(DayPage);
-      await tick();
-      expect(getByTestId('task-counter')).toBeInTheDocument();
-    });
-
-    it('hides task counter when selectedDate is a past date', async () => {
-      mockPage.params.date = pastDate;
-      const { default: DayPage } = await import('./+page.svelte');
-      const { queryByTestId } = render(DayPage);
-      await tick();
-      expect(queryByTestId('task-counter')).toBeNull();
-    });
-
     it('does not show Dnes pill when selected date is today (Dnes pill is removed)', async () => {
       mockPage.params.date = today;
       const { default: DayPage } = await import('./+page.svelte');
@@ -297,17 +281,16 @@ describe('/day/[date] page', () => {
 });
 
 describe('/day/[date] page — content (ported from today/page.test.ts)', () => {
-  it('shows counter row when viewing today', async () => {
+  it('renders no task-counter row on today (parked: daily-completeness)', async () => {
     mockPage.params.date = today;
     const { default: DayPage } = await import('./+page.svelte');
-    const { getByText } = render(DayPage);
+    const { queryByTestId } = render(DayPage);
     await tick();
-    expect(getByText('Dnes ti chybí stav, foto a jídla.')).toBeInTheDocument();
-    expect(getByText('0 / 3')).toBeInTheDocument();
+    expect(queryByTestId('task-counter')).toBeNull();
   });
 
-  it('counter reflects records: 1 / 3 when only a meal with content is logged', async () => {
-    mockPage.params.date = today;
+  it('the day-strip today marker carries no record state, whatever is logged', async () => {
+    mockPage.params.date = pastDate;
     liveMeals = [
       {
         id: `${today}:lunch:mother`,
@@ -326,69 +309,9 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
       },
     ];
     const { default: DayPage } = await import('./+page.svelte');
-    const { getByText } = render(DayPage);
+    const { getByTestId } = render(DayPage);
     await tick();
-    expect(getByText('1 / 3')).toBeInTheDocument();
-  });
-
-  it('counter reflects records: 3 / 3 when skin observation, photo, and meal are all logged', async () => {
-    mockPage.params.date = today;
-    liveMeals = [
-      {
-        id: `${today}:lunch:mother`,
-        date: today,
-        mealType: 'lunch',
-        actor: 'mother',
-        items: [
-          {
-            id: 'i1',
-            name: 'Rýže',
-            foodId: 'rice:rice' as Meal['items'][number]['foodId'],
-            amount: 'portion',
-          },
-        ],
-        createdAt: `${today}T12:00:00.000Z`,
-      },
-    ];
-    liveObservations = [
-      {
-        id: 'o1',
-        date: today,
-        createdAt: `${today}T08:00:00.000Z`,
-        regions: [{ id: 'face', level: 1 }],
-      },
-    ];
-    livePhotos = [
-      {
-        id: 'p1',
-        observationId: 'obs-1',
-        region: 'face' as const,
-        capturedAt: `${today}T08:00:00.000Z`,
-        blob: new Blob(),
-      },
-    ];
-    const { default: DayPage } = await import('./+page.svelte');
-    const { getByText } = render(DayPage);
-    await tick();
-    expect(getByText('3 / 3')).toBeInTheDocument();
-  });
-
-  it('counter does not count an empty meal slot (no items, no notes)', async () => {
-    mockPage.params.date = today;
-    liveMeals = [
-      {
-        id: `${today}:breakfast:mother`,
-        date: today,
-        mealType: 'breakfast',
-        actor: 'mother',
-        items: [],
-        createdAt: `${today}T08:00:00.000Z`,
-      },
-    ];
-    const { default: DayPage } = await import('./+page.svelte');
-    const { getByText } = render(DayPage);
-    await tick();
-    expect(getByText('0 / 3')).toBeInTheDocument();
+    expect(getByTestId('day-strip-today-ring')).not.toHaveAttribute('data-recorded');
   });
 
   it('shows skin and meal section labels when schedule is ready', async () => {

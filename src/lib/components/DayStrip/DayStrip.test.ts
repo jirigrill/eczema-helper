@@ -25,7 +25,7 @@ describe('DayStrip', () => {
       cell(today, { isToday: true, isSelected: true }),
     ];
     const { getAllByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
+      props: { cells, today, onselectdate: vi.fn() },
     });
     await tick();
     expect(getAllByTestId('day-strip-cell')).toHaveLength(3);
@@ -34,7 +34,7 @@ describe('DayStrip', () => {
   it('the selected cell carries aria-current=date', async () => {
     const cells: DayStripCell[] = [cell('2026-06-08'), cell('2026-06-09', { isSelected: true })];
     const { getAllByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
+      props: { cells, today, onselectdate: vi.fn() },
     });
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
@@ -46,7 +46,7 @@ describe('DayStrip', () => {
   it('does NOT render a Dnes pill', async () => {
     const cells: DayStripCell[] = [cell(today, { isToday: true, isSelected: false })];
     const { queryByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
+      props: { cells, today, onselectdate: vi.fn() },
     });
     await tick();
     expect(queryByTestId('dnes-pill')).toBeNull();
@@ -55,31 +55,32 @@ describe('DayStrip', () => {
   it('today cell renders a permanent ring marker', async () => {
     const cells: DayStripCell[] = [cell(today, { isToday: true, isSelected: false })];
     const { getByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
+      props: { cells, today, onselectdate: vi.fn() },
     });
     await tick();
     const todayCell = getByTestId('day-strip-cell');
     expect(todayCell.querySelector('[data-testid="day-strip-today-ring"]')).toBeTruthy();
   });
 
-  it('today cell shows a hollow centre dot when todayRecorded is false', async () => {
+  it('the ring marker carries no record state — it only marks today', async () => {
     const cells: DayStripCell[] = [cell(today, { isToday: true, isSelected: false })];
     const { getByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: vi.fn() },
+      props: { cells, today, onselectdate: vi.fn() },
     });
     await tick();
     const ring = getByTestId('day-strip-today-ring');
-    expect(ring.getAttribute('data-recorded')).toBe('false');
+    expect(ring.getAttribute('data-recorded')).toBeNull();
+    expect(ring.className).toContain('bg-transparent');
   });
 
-  it('today cell shows a filled centre dot when todayRecorded is true', async () => {
-    const cells: DayStripCell[] = [cell(today, { isToday: true, isSelected: false })];
-    const { getByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: true, onselectdate: vi.fn() },
+  it('today renders no separate ring when it is also the selected cell', async () => {
+    const cells: DayStripCell[] = [cell(today, { isToday: true, isSelected: true })];
+    const { queryByTestId } = render(DayStrip, {
+      props: { cells, today, onselectdate: vi.fn() },
     });
     await tick();
-    const ring = getByTestId('day-strip-today-ring');
-    expect(ring.getAttribute('data-recorded')).toBe('true');
+    // The primary-filled selection already marks the cell.
+    expect(queryByTestId('day-strip-today-ring')).toBeNull();
   });
 
   it("clicking any cell calls onselectdate with that cell's date", async () => {
@@ -90,7 +91,7 @@ describe('DayStrip', () => {
       cell(today, { isToday: true, isSelected: true }),
     ];
     const { getAllByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: fn },
+      props: { cells, today, onselectdate: fn },
     });
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
@@ -105,7 +106,7 @@ describe('DayStrip', () => {
       cell(today, { isToday: true, isSelected: true }),
     ];
     const { getAllByTestId } = render(DayStrip, {
-      props: { cells, today, todayRecorded: false, onselectdate: fn },
+      props: { cells, today, onselectdate: fn },
     });
     await tick();
     const buttons = getAllByTestId('day-strip-cell');
@@ -125,7 +126,7 @@ describe('DayStrip', () => {
       cell(today, { isToday: true }),
     ];
     const { getAllByTestId, rerender } = render(DayStrip, {
-      props: { cells: initialCells, today, todayRecorded: false, onselectdate: vi.fn() },
+      props: { cells: initialCells, today, onselectdate: vi.fn() },
     });
     await tick();
     expect(getAllByTestId('day-strip-cell')[1]!.getAttribute('aria-current')).toBe('date');
@@ -135,7 +136,7 @@ describe('DayStrip', () => {
       cell('2026-06-09'),
       cell(today, { isToday: true, isSelected: true }),
     ];
-    await rerender({ cells: updatedCells, today, todayRecorded: false, onselectdate: vi.fn() });
+    await rerender({ cells: updatedCells, today, onselectdate: vi.fn() });
     await tick();
 
     const buttons = getAllByTestId('day-strip-cell');

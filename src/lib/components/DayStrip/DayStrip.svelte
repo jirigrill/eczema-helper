@@ -6,11 +6,10 @@
   type Props = {
     cells: DayStripCell[];
     today: string;
-    todayRecorded: boolean;
     onselectdate: (date: string) => void;
   };
 
-  const { cells, today, todayRecorded, onselectdate }: Props = $props();
+  const { cells, today, onselectdate }: Props = $props();
 
   let scrollerEl: HTMLDivElement | undefined = $state();
 
@@ -90,21 +89,13 @@
           <span class="text-sm font-semibold">
             {new Date(cell.date + 'T00:00:00').getDate()}
           </span>
+          <!-- Today's ring is a pure marker: it says "this cell is today", nothing
+               about what has been logged. When today is also the selected cell the
+               selection itself marks it, so it renders as an ordinary selected dot. -->
           {#if cell.isToday && !cell.isSelected}
             <span
-              class="ring-primary h-1.5 w-1.5 rounded-full ring-1 {todayRecorded
-                ? 'bg-primary'
-                : 'bg-transparent'}"
+              class="ring-primary h-1.5 w-1.5 rounded-full bg-transparent ring-1"
               data-testid="day-strip-today-ring"
-              data-recorded={todayRecorded ? 'true' : 'false'}
-            ></span>
-          {:else if cell.isToday && cell.isSelected}
-            <span
-              class="h-1.5 w-1.5 rounded-full ring-1 ring-white {todayRecorded
-                ? 'bg-white'
-                : 'bg-white/30'}"
-              data-testid="day-strip-today-ring"
-              data-recorded={todayRecorded ? 'true' : 'false'}
             ></span>
           {:else if cell.isSelected}
             <span class="h-1.5 w-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>

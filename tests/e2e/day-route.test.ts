@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import { clearDb, seedFeedingStage } from './seed';
@@ -76,19 +76,35 @@ test('/day/<past> does not show a Dnes pill (pill removed)', async ({ page }) =>
 
 // ── Today-only chrome gating ──────────────────────────────────────────────
 
-test('/day/<today> shows task counter, no Dnes pill', async ({ page }) => {
+test('/day/<today> shows the Dnes heading, no Dnes pill', async ({ page }) => {
   const today = new Date().toISOString().split('T')[0]!;
   await seedFeedingStage(page);
   await page.goto(`/day/${today}`);
-  await expect(page.getByTestId('task-counter')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toBeVisible();
   await expect(page.getByTestId('dnes-pill')).toHaveCount(0);
 });
 
-test('/day/<past> hides task counter', async ({ page }) => {
+test('/day/<past> shows the date as the heading, not Dnes', async ({ page }) => {
   const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
   await seedFeedingStage(page);
   await page.goto(`/day/${pastDate}`);
-  await expect(page.getByTestId('task-counter')).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toHaveCount(0);
+});
+
+// ── The today marker is visual only ───────────────────────────────────────
+
+test("today's ring marks today and says nothing about what is logged", async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0]!;
+  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
+  await seedFeedingStage(page);
+  await seedMeal(page, today);
+  await seedMeal(page, pastDate);
+  await page.goto(`/day/${pastDate}`);
+  // Today is in the strip but not selected: it gets the ring, and the ring
+  // carries no record state (the recorded-dot signal is parked).
+  const ring = page.getByTestId('day-strip-today-ring');
+  await expect(ring).toBeVisible();
+  await expect(ring).not.toHaveAttribute('data-recorded', /.*/);
 });
 
 // ── DayStrip navigation ──────────────────────────────────────────────────
@@ -163,12 +179,10 @@ test('scrolling the strip only browses — URL and content stay until a tap', as
   await seedMeal(page, pastDate);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
-  // Today content is on screen (task counter only renders for today).
-  await expect(page.getByTestId('task-counter')).toBeVisible();
+  // Today content is on screen (the "Dnes" heading only renders for today).
+  await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toBeVisible();
   // The strip has grown past today (its earliest cell reaches the logged day).
-  await expect
-    .poll(async () => page.getByTestId('day-strip-cell').count())
-    .toBeGreaterThan(1);
+  await expect.poll(async () => page.getByTestId('day-strip-cell').count()).toBeGreaterThan(1);
 
   const scroller = page.getByTestId('day-strip-scroller');
   // Scroll backwards through past days, then forward into future days.
@@ -182,7 +196,7 @@ test('scrolling the strip only browses — URL and content stay until a tap', as
   // Decoupled model: passing over days changes nothing — still on today,
   // today's content still shown, no flash of another day's view.
   await expect(page).toHaveURL(`/day/${today}`);
-  await expect(page.getByTestId('task-counter')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toBeVisible();
 
   // A deliberate tap is what commits selection and navigates.
   const cells = page.getByTestId('day-strip-cell');
@@ -232,7 +246,7 @@ test('browser back returns to the previous day after a strip tap', async ({ page
   // Browser back returns to today, content intact.
   await page.goBack();
   await expect(page).toHaveURL(`/day/${today}`);
-  await expect(page.getByTestId('task-counter')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toBeVisible();
 });
 
 // ── The earliest cell selects its own date, no jump-to-today ───────────────
@@ -250,9 +264,7 @@ test('clicking the earliest logged cell selects that date (no jump-to-today)', a
   const firstCell = page.getByTestId('day-strip-cell').nth(0);
   // The earliest-logged store resolves via liveQuery; poll until the strip's
   // earliest cell reflects the logged day.
-  await expect
-    .poll(async () => firstCell.getAttribute('data-date'))
-    .toBe(earliest);
+  await expect.poll(async () => firstCell.getAttribute('data-date')).toBe(earliest);
   await firstCell.click();
   await expect(page).toHaveURL(`/day/${earliest}`);
 });

@@ -52,6 +52,9 @@ The mechanical procedure, once, for every entry below:
       (seeds the schedule)
 ```
 
+`daily-completeness` is **not** on this graph: it hangs off no base, was parked after the
+protocol strip, and revives on its own.
+
 Solid edges are value-level: the target does not compile without the source. The dashed edge
 is type-level — `ladder.ts` type-imports two `models.ts` fragments that
 reintroduction-evaluation owns, so restoring those fragments is enough and the verdict
@@ -207,6 +210,31 @@ single feeding-stage picker.
 **Revive note:** `setFeedingStage` was relocated out of `protocol-session.ts` into the
 live settings store before parking — do not restore it back.
 
+### daily-completeness
+
+**Purpose:** The "did I log today?" signal, in both places it surfaced. (1) The today-only
+nudge row at the top of the day view — the copy "Dnes ti chybí stav, foto a jídla." on the
+left and an `n / 3` score on the right, one point each for a skin observation, a skin photo
+and a meal with content. (2) The `DayStrip` today-cell dot, filled once the day had any
+record (`todayRecorded = isToday && completeness > 0`) and hollow otherwise. A prompt, not a
+record: it told the mother what today was still missing.
+**Depends on:** —
+**Code:** `domain/day-view.ts § dailyCompleteness`, `domain/day-view.ts § DailyRecords`,
+`routes/day/[date]/+page.svelte § task-counter row`,
+`routes/day/[date]/+page.svelte § todayRecorded`,
+`strings/common.ts § today.counterHint`,
+`components/DayStrip/DayStrip.svelte § todayRecorded`
+**Docs:** `UBIQUITOUS_LANGUAGE.md § "Daily Completeness"`
+**Revive note:** Parked **after** the protocol strip, so its fragments sit in the tag
+inside files that have since changed a lot — restore by hand, never by path checkout.
+`DayStrip` kept its today ring as a **purely visual** marker: the `todayRecorded` prop is
+gone, today-selected collapsed into the ordinary selected-dot branch, and the ring renders
+only when today is not the selected cell. A revival re-adds the prop, splits that branch
+back in two, and must feed it from **today's own** records, not the selected day's — the
+tag's `isToday && …` shape is a bug (the dot went hollow whenever the mother browsed a past
+day), so restore the signal, not that gate. `docs/design/components-showcase.html`'s DayStrip
+section documents the visual-only ring and needs updating in the same pass.
+
 ## Index
 
 <!-- Reverse view of the entries above, derived from them; on a discrepancy the entries win. -->
@@ -296,3 +324,10 @@ live settings store before parking — do not restore it back.
 | `models.ts § QuestionnaireAnswers`                              | onboarding-questionnaire  |
 | `atopic-db.ts § AnswersRow`                                     | onboarding-questionnaire  |
 | `docs/allergen-reference/`                                      | onboarding-questionnaire  |
+| `domain/day-view.ts § dailyCompleteness`                        | daily-completeness        |
+| `domain/day-view.ts § DailyRecords`                             | daily-completeness        |
+| `routes/day/[date]/+page.svelte § task-counter row`             | daily-completeness        |
+| `routes/day/[date]/+page.svelte § todayRecorded`                | daily-completeness        |
+| `components/DayStrip/DayStrip.svelte § todayRecorded`           | daily-completeness        |
+| `strings/common.ts § today.counterHint`                         | daily-completeness        |
+| `UBIQUITOUS_LANGUAGE.md § "Daily Completeness"`                 | daily-completeness        |

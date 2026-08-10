@@ -1028,12 +1028,7 @@
     </div>
     <div class="border-surface-dark mx-5 border-t"></div>
     <div class="pt-2">
-      <DayStrip
-        cells={copyStripCells}
-        today={todayIso()}
-        todayRecorded={false}
-        onselectdate={selectCopyDestDate}
-      />
+      <DayStrip cells={copyStripCells} today={todayIso()} onselectdate={selectCopyDestDate} />
     </div>
     <div class="px-5 pt-1 pb-2">
       <button

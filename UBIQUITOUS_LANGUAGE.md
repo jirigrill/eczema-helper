@@ -452,17 +452,10 @@ design. Contains: `DayStrip`, the three record cards (skin status, photos, meals
 an add affordance (the FAB). The mother reaches past days by scrolling the `DayStrip`
 and tapping a cell; she can backfill or edit those days to the same parity as today
 (meals overwrite per slot; skin observations and photos add-only — no delete yet).
-Return-to-today is the `↩ Dnes` header chip. The **task counter** (Daily Completeness)
-renders only when the selected date is today; past days show historical facts only.
+Return-to-today is the `↩ Dnes` header chip. Today and past days carry the same
+chrome — the layout shows historical facts only, with no today-only prompt row.
 The data path is reactive per selected date (date-scoped session-store factories), see
 ADR-0009's Slice-4 amendment. The main screen a user opens each day.
-
-### Daily Completeness
-
-The 0-3 score shown in today's task-counter row, derived live from the day's records:
-one point each for at least one `SkinObservation`, at least one `SkinPhoto`, and at
-least one `Meal` with content (≥1 `MealItem` or non-empty `notes`). An empty meal slot
-does not count. Computed by `dailyCompleteness` in `src/lib/domain/day-view.ts`.
 
 ---
 
@@ -488,12 +481,14 @@ cells. Its input is `{ selectedDate, earliestLogged, today }` and the range is
 keeps a directly-navigated earlier day rendering its own cell. With nothing logged the
 strip is the single cell **today**, and it grows the instant an earlier day is logged.
 Selecting a day flags it **in place** — the strip does not reshuffle around the selection.
-**Today** carries a permanent ring marker in its own slot, with a hollow centre dot when
-today is not yet recorded and a filled dot once it is. There is no "Dnes" pill and no
-in-strip return-to-today control — return-to-today is the `↩ Dnes` header chip (below).
-Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …) and day number;
-today additionally carries the ring marker described above. The selected cell is
-highlighted in the primary color.
+**Today** carries a permanent ring marker in its own slot when it is not the selected
+cell — a **purely visual** "this one is today", carrying no record state; when today
+*is* selected, the primary-filled cell marks it and the ring is not rendered. There is
+no "Dnes" pill and no in-strip return-to-today control — return-to-today is the `↩ Dnes`
+header chip (below). Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …)
+and day number; today additionally carries the ring marker described above. The selected
+cell is highlighted in the primary color. The strip renders no per-day logging state:
+its props are `{ cells, today, onselectdate }`.
 
 ### SeverityDot
 *Czech: Puntík závažnosti*

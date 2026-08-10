@@ -3,7 +3,6 @@
   import { goto } from '$app/navigation';
   import { createDayView } from '$lib/stores/day-view.svelte';
   import { getEligibleActors } from '$lib/domain/models';
-  import { dailyCompleteness } from '$lib/domain/day-view';
   import { todayIso, formatDateLongCs, formatObservationTime } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
@@ -38,15 +37,9 @@
 
   const isToday = $derived(selectedDate === today);
 
-  const completeness = $derived(
-    dailyCompleteness({ observations: skinObservations, photos, meals }),
-  );
-
   const dayStrip = $derived(
     computeDayStrip({ selectedDate, earliestLogged: view.earliestLogged, today }),
   );
-
-  const todayRecorded = $derived(isToday && completeness > 0);
 
   // Imperative handle into the DayStrip — the "↩ Dnes" header chip pulses a
   // signal store when tapped, and we forward it to the strip so it recentres
@@ -108,23 +101,10 @@
     bind:this={dayStripRef}
     cells={dayStrip.cells}
     {today}
-    {todayRecorded}
     onselectdate={handleSelectDate}
   />
 
   <div class="space-y-3 px-4 pb-24">
-    {#if isToday}
-      <div
-        class="border-surface-dark flex items-center justify-between rounded-2xl border bg-white px-3.5 py-2.5"
-        data-testid="task-counter"
-      >
-        <div class="text-text text-[12px]">{commonStrings.today.counterHint}</div>
-        <div class="text-text-muted text-[10px] font-bold tracking-wide">
-          {completeness} / 3
-        </div>
-      </div>
-    {/if}
-
     <!-- Skin observation card -->
     <SkinObservationCard observations={skinObservations} date={selectedDate} />
 
