@@ -18,6 +18,21 @@ Five canonical roles for issue triage. These labels are applied and removed as i
 - An issue with `needs-info` → gets info → remove `needs-info`, apply `ready-for-agent`.
 - An issue with `ready-for-agent` → agent picks it up → no label change needed. When agent closes it, you can close the issue.
 
+## `parked` — the default-view filter
+
+`parked` marks an issue whose subject was parked by the descaling (PRD #623) and now lives
+only in the annotated tag `parked/protocol-engine`. It is **not** a state role — it is a
+visibility filter that sits alongside one.
+
+- **Default view excludes it:** `gh issue list --search "-label:parked"`
+- **A parked issue carries `ready-for-human`, never `ready-for-agent`**, so that
+  `gh issue list --label ready-for-agent` never hands an agent work against code that is not
+  in the tree. Reviving needs a human decision to unpark the feature first.
+- The work itself is still considered valid — parked means *not actionable against today's
+  tree*, not *rejected*. Rejection is still `wontfix`.
+- The comment applying it names the owning parked feature in `docs/parked-features.md`, which
+  is the slicing index for restoring it.
+
 ## Other labels (not triage-driven)
 
 Your repo also uses:
