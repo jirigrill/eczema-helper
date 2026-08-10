@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ALLERGENICITY_LEVELS } from '$lib/domain/canonical-allergen';
+import { PREPARATION_METHODS } from '$lib/domain/models';
 
 import { ALLERGENS, FAMILIES, FOODS } from './allergen-catalog';
 
@@ -83,20 +84,39 @@ describe('required fields', () => {
     }
   });
 
-  it('every food has a form drawn from the closed FoodForm set', () => {
-    const valid = new Set(['none', 'liquid', 'cookable', 'raw-only']);
+  it('every food has a preparations array drawn from the closed method set', () => {
+    const valid = new Set(PREPARATION_METHODS);
     for (const food of FOODS) {
-      expect(valid, `food '${food.id}' has invalid form '${food.form}'`).toContain(food.form);
+      expect(Array.isArray(food.preparations)).toBe(true);
+      for (const method of food.preparations) {
+        expect(valid, `food '${food.id}' has invalid preparation '${method}'`).toContain(method);
+      }
     }
   });
 
-  it('representative foods are tagged with the documented form', () => {
+  it('representative foods offer exactly the documented preparations (ADR-0028)', () => {
     const byId = (id: string) => FOODS.find((f) => f.id === id);
-    expect(byId('sul')?.form).toBe('none');
-    expect(byId('kravske-mleko')?.form).toBe('liquid');
-    expect(byId('brambory')?.form).toBe('cookable');
-    expect(byId('hovezi')?.form).toBe('cookable');
-    expect(byId('listovy-salat')?.form).toBe('raw-only');
+    // no-preparation food: empty list
+    expect(byId('sul')?.preparations).toEqual([]);
+    // liquid: raw · boiled · baked, no fried
+    expect(byId('kravske-mleko')?.preparations).toEqual(['raw', 'boiled', 'baked']);
+    // genuinely fry-able solid keeps fried
+    expect(byId('brambory')?.preparations).toEqual(['raw', 'boiled', 'baked', 'fried']);
+    // meat gains smoked + cured
+    expect(byId('veprove')?.preparations).toEqual([
+      'raw',
+      'boiled',
+      'baked',
+      'fried',
+      'smoked',
+      'cured',
+    ]);
+    // fin fish gains smoked, drops fried
+    expect(byId('losos')?.preparations).toEqual(['raw', 'boiled', 'baked', 'smoked']);
+    // fruit drops fried, gains dried
+    expect(byId('banan')?.preparations).toEqual(['raw', 'baked', 'dried']);
+    // raw-only unchanged
+    expect(byId('listovy-salat')?.preparations).toEqual(['raw']);
   });
 });
 
@@ -169,6 +189,24 @@ describe('protocol allergens', () => {
         'allergenicity' in a && a.allergenicity === 'low',
     );
     expect(hasLow).toBe(true);
+  });
+
+  // Folded in from #507 / ADR-0028. Each ladder-bearing record carries a
+  // `ladder.allergenId` that duplicates the record `id`; nothing reads it at
+  // runtime (tolerance-building is parked), so the two can drift silently. A
+  // catalog restructure (like this preparation-model change) is the realistic
+  // way they diverge — guard it here.
+  it('every ladder-bearing record has ladder.allergenId equal to its own id', () => {
+    const laddered = ALLERGENS.filter(
+      (a): a is typeof a & { ladder: { allergenId: string } } => 'ladder' in a,
+    );
+    expect(laddered.length).toBeGreaterThan(0);
+    for (const allergen of laddered) {
+      expect(
+        allergen.ladder.allergenId,
+        `allergen '${allergen.id}' ladder.allergenId '${allergen.ladder.allergenId}' != id`,
+      ).toBe(allergen.id);
+    }
   });
 });
 

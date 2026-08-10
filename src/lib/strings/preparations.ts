@@ -9,4 +9,7 @@ export const preparationStrings = {
   boiled: { label: 'Vařené' },
   baked: { label: 'Pečené' },
   fried: { label: 'Smažené' },
+  dried: { label: 'Sušené' },
+  smoked: { label: 'Uzené' },
+  cured: { label: 'Naložené' },
 } as const satisfies Record<PreparationMethod, PreparationStrings>;

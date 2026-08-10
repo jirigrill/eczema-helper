@@ -8,7 +8,7 @@ import FoodEditor from './FoodEditor.svelte';
 const baseProps = {
   amount: 'portion' as const,
   preparation: undefined,
-  form: 'cookable' as const,
+  preparations: ['raw', 'boiled', 'baked', 'fried'] as const,
   onAmountChange: vi.fn(),
   onPreparationChange: vi.fn(),
 };
@@ -24,7 +24,7 @@ describe('FoodEditor', () => {
     expect(getByText('Balení')).toBeInTheDocument();
   });
 
-  it('cookable food shows all four preparation chips including Syrové', () => {
+  it('renders a chip for each preparation the food offers', () => {
     const { getByText } = render(FoodEditor, { props: baseProps });
     expect(getByText('Příprava')).toBeInTheDocument();
     expect(getByText('Syrové')).toBeInTheDocument();
@@ -33,9 +33,18 @@ describe('FoodEditor', () => {
     expect(getByText('Smažené')).toBeInTheDocument();
   });
 
-  it('liquid food shows only Syrové, Vařené, Pečené', () => {
+  it('renders the specialty chips (Sušené / Uzené / Naložené) when offered', () => {
+    const { getByText } = render(FoodEditor, {
+      props: { ...baseProps, preparations: ['raw', 'baked', 'dried', 'smoked', 'cured'] as const },
+    });
+    expect(getByText('Sušené')).toBeInTheDocument();
+    expect(getByText('Uzené')).toBeInTheDocument();
+    expect(getByText('Naložené')).toBeInTheDocument();
+  });
+
+  it('shows only the offered subset (liquid: Syrové, Vařené, Pečené)', () => {
     const { getByText, queryByText } = render(FoodEditor, {
-      props: { ...baseProps, form: 'liquid' as const },
+      props: { ...baseProps, preparations: ['raw', 'boiled', 'baked'] as const },
     });
     expect(getByText('Příprava')).toBeInTheDocument();
     expect(getByText('Syrové')).toBeInTheDocument();
@@ -44,9 +53,9 @@ describe('FoodEditor', () => {
     expect(queryByText('Smažené')).not.toBeInTheDocument();
   });
 
-  it('raw-only food shows only Syrové', () => {
+  it('shows only Syrové for a raw-only food', () => {
     const { getByText, queryByText } = render(FoodEditor, {
-      props: { ...baseProps, form: 'raw-only' as const },
+      props: { ...baseProps, preparations: ['raw'] as const },
     });
     expect(getByText('Příprava')).toBeInTheDocument();
     expect(getByText('Syrové')).toBeInTheDocument();
@@ -55,9 +64,9 @@ describe('FoodEditor', () => {
     expect(queryByText('Smažené')).not.toBeInTheDocument();
   });
 
-  it('none food shows no preparation row at all', () => {
+  it('shows no preparation row when the food offers none', () => {
     const { queryByText } = render(FoodEditor, {
-      props: { ...baseProps, form: 'none' as const },
+      props: { ...baseProps, preparations: [] as const },
     });
     expect(queryByText('Příprava')).not.toBeInTheDocument();
     expect(queryByText('Syrové')).not.toBeInTheDocument();

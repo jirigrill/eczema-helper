@@ -22,10 +22,20 @@ export type PortionKind = 'pinch' | 'teaspoon' | 'spoon' | 'portion' | 'package'
 /**
  * Single source of truth for preparation methods, in chip-display order.
  * The type derives from this array — add or remove a method here only, and
- * `preparationStrings` (labels) and `formPreparations` (form→subset) fail
- * `tsc` via their `satisfies` clauses until they match.
+ * `preparationStrings` (labels) fails `tsc` via its `satisfies` clause until it
+ * matches. Which subset a given food offers is authored per food as
+ * `preparations: PreparationMethod[]` in the catalog (ADR-0028), not derived
+ * from a coarse form bucket.
  */
-export const PREPARATION_METHODS = ['raw', 'boiled', 'baked', 'fried'] as const;
+export const PREPARATION_METHODS = [
+  'raw',
+  'boiled',
+  'baked',
+  'fried',
+  'dried',
+  'smoked',
+  'cured',
+] as const;
 export type PreparationMethod = (typeof PREPARATION_METHODS)[number];
 
 export type MealItem = {
