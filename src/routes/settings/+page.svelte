@@ -4,7 +4,8 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
   import { feedingStageOptions } from '$lib/config/feeding-stages';
-  import { seededStatus, settingsStore } from '$lib/stores/settings.svelte';
+  import { settingsStore } from '$lib/stores/settings.svelte';
+  import { settingsContext } from '$lib/stores/settings-context';
   import { resetDatabase } from '$lib/db/reset-database';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
@@ -26,16 +27,16 @@
   async function confirmReset() {
     resetConfirmOpen = false;
     await resetDatabase();
-    // The seeded signal is `settings.feedingStage != null`, driven by a
-    // liveQuery — so it can still report the stale 'seeded' status for a tick
-    // right after resetDatabase() clears the settings row. Wait for it to flip
-    // to 'unset' before navigating; otherwise the root layout's seeded redirect
-    // (issue #353, re-opened against this signal per §3d) fires on the stale
-    // value and bounces straight back to the day view. Landing on first run is
-    // the intended destination here — but only once the signal has flipped.
+    // The seeded signal is `settingsContext`'s status, driven by a liveQuery —
+    // so it can still report the stale 'seeded' status for a tick right after
+    // resetDatabase() clears the settings row. Wait for it to flip to 'unset'
+    // before navigating; otherwise the root layout's seeded redirect (issue
+    // #353, re-opened against this signal per §3d) fires on the stale value
+    // and bounces straight back to the day view. Landing on first run is the
+    // intended destination here — but only once the signal has flipped.
     await new Promise<void>((resolve) => {
-      const unsubscribe = seededStatus.subscribe((status) => {
-        if (status === 'unset') {
+      const unsubscribe = settingsContext.subscribe((state) => {
+        if (state.status === 'unset') {
           resolve();
           queueMicrotask(() => unsubscribe());
         }

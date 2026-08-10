@@ -2,7 +2,7 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FeedingStage } from '$lib/domain/models';
-import type { SeededStatus } from '$lib/stores/settings.svelte';
+import type { SettingsState } from '$lib/stores/settings-context';
 
 const mockResetDatabase = vi.fn();
 const mockSetFeedingStage = vi.fn();
@@ -12,10 +12,10 @@ const mockGoto = vi.fn();
 // still reports the stale 'seeded' value until `emit` is called with 'unset' —
 // exercising the wait-for-unset guard in confirmReset (issue #353, re-opened
 // against the feeding-stage seeded signal per PRD #623 §3d).
-let emit: (status: SeededStatus) => void = () => {};
-const mockSeededSubscribe = vi.fn((cb: (status: SeededStatus) => void) => {
+let emit: (state: SettingsState) => void = () => {};
+const mockSettingsContextSubscribe = vi.fn((cb: (state: SettingsState) => void) => {
   emit = cb;
-  cb('seeded');
+  cb({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
   return () => {};
 });
 
@@ -28,7 +28,9 @@ vi.mock('$lib/stores/settings.svelte', () => ({
     },
     setFeedingStage: mockSetFeedingStage,
   },
-  seededStatus: { subscribe: mockSeededSubscribe },
+}));
+vi.mock('$lib/stores/settings-context', () => ({
+  settingsContext: { subscribe: mockSettingsContextSubscribe },
 }));
 vi.mock('$lib/db/reset-database', () => ({ resetDatabase: mockResetDatabase }));
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
@@ -88,7 +90,7 @@ describe('settings/+page.svelte', () => {
     // must not navigate yet, or the layout would bounce straight back.
     expect(mockGoto).not.toHaveBeenCalled();
 
-    emit('unset');
+    emit({ status: 'unset' });
     await Promise.resolve();
     await Promise.resolve();
 

@@ -61,7 +61,7 @@ catch-all with **no safety claim** (danger stays per-food). Replaces the former
 
 ## Application State
 
-### SettingsData / settingsContext
+### SettingsData / settingsContext / SettingsState
 
 The user-controlled **live master switch(es)**, held in a dedicated `settings` Dexie
 singleton row (keyed by `SINGLETON_ID`, mirroring `answers`/`schedule`). Today it holds
@@ -71,7 +71,11 @@ singleton row (keyed by `SINGLETON_ID`, mirroring `answers`/`schedule`). Today i
 `answers.feedingStage` inside the same onboarding-completion transaction as the schedule.
 `settingsContext` (`src/lib/stores/settings-context.ts`) is the `liveQuery`-backed
 reactive store consumers read for the live value; changed live from the Settings screen
-via `settingsStore.setFeedingStage()`.
+via `settingsStore.setFeedingStage()`. It emits a `SettingsState` discriminated union —
+`{ status: 'loading' }`, `{ status: 'unset' }`, or `{ status: 'seeded'; settings: SettingsData }` —
+so "the row hasn't been read yet" and "the row was read and there is no row" are two
+distinct, type-checked states rather than the same `null`. Narrowing to `status === 'seeded'`
+is the only way to reach `.settings`, which guarantees `feedingStage` at the type level.
 
 ### SettingsRepository
 
@@ -83,16 +87,17 @@ Reached through `settingsStore` for the feeding-stage write and `settingsContext
 reactive reads; routes never construct the adapter directly. Mirrors the `ScheduleRepository` /
 `QuestionnaireRepository` shape.
 
-### settingsStore / seededStatus
+### settingsStore
 
 The live settings store (`src/lib/stores/settings.svelte.ts`) — the write seam and
 seeded-signal source for `SettingsData`. `settingsStore.setFeedingStage(stage)` persists
-the feeding stage through `DexieSettingsRepository`; `seededStatus` is the tri-state
-(`'loading' | 'unset' | 'seeded'`) the layout reads to decide first-run routing — it
-*holds at `loading`* until the settings `liveQuery` first emits, so a seeded mother is
-never bounced from `/day/<today>` to `/`. Distinct from `settingsContext`, the reactive
-read store for the live value. Routes reach the store; they never construct the adapter.
-The "start over" wipe is **not** here — see [Factory reset](#factory-reset).
+the feeding stage through `DexieSettingsRepository`; `settingsStore.status` is the tri-state
+(`'loading' | 'unset' | 'seeded'`, read off `settingsContext`'s `SettingsState`) the layout
+reads to decide first-run routing — it *holds at `loading`* until the settings `liveQuery`
+first emits, so a seeded mother is never bounced from `/day/<today>` to `/`. Both
+`settingsStore.feedingStage` and `settingsStore.status` ride the same single `settingsContext`
+liveQuery subscription. Routes reach the store; they never construct the adapter. The
+"start over" wipe is **not** here — see [Factory reset](#factory-reset).
 
 ### Factory reset
 

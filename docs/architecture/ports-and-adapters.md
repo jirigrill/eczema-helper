@@ -109,9 +109,8 @@ Each port has a single production adapter. Adapter tests run against `fake-index
 
 | Store                        | File                                     | What it does                                               |
 | ---------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
-| `settingsContext`            | `stores/settings-context.ts`            | `readable<SettingsData \| null>` — live master switch(es), e.g. `feedingStage` |
-| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage read (over `settingsContext`) + `setFeedingStage` write |
-| `seededStatus`               | `stores/settings.svelte.ts`             | `loading\|unset\|seeded` — first-run redirect gate off `settings.feedingStage` |
+| `settingsContext`            | `stores/settings-context.ts`            | `readable<SettingsState>` — `loading\|unset\|seeded` discriminated union over the live master switch(es), e.g. `feedingStage` |
+| `settingsStore`              | `stores/settings.svelte.ts`             | Live feeding-stage + status read (over `settingsContext`) + `setFeedingStage` write |
 | `mealSession`                | `stores/meal-session.ts`                | `readable<Meal[]>` for today + `save` / `loadBySlot` / `remove` |
 | `skinObservationSession`     | `stores/skin-observation-session.ts`    | `readable<SkinObservation[]>` for today + `save`           |
 | `skinPhotoSession`           | `stores/skin-photo-session.ts`          | `readable<SkinPhoto[]>` for today + `save`                 |

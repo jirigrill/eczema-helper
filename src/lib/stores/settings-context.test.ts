@@ -34,9 +34,9 @@ afterEach(async () => {
 });
 
 describe('settingsContext', () => {
-  it('starts as null before any settings are seeded', async () => {
+  it('starts loading before any settings are seeded', async () => {
     const { settingsContext } = await import('./settings-context');
-    expect(get(settingsContext)).toBeNull();
+    expect(get(settingsContext)).toEqual({ status: 'loading' });
   });
 
   it('emits the seeded feedingStage once the singleton row exists', async () => {
@@ -44,18 +44,27 @@ describe('settingsContext', () => {
 
     await db.settings.put({ id: SINGLETON_ID, feedingStage: 'solids' });
 
-    const value = await waitFor(settingsContext, (v) => v?.feedingStage === 'solids');
-    expect(value).toEqual({ feedingStage: 'solids' });
+    const value = await waitFor(
+      settingsContext,
+      (v) => v.status === 'seeded' && v.settings.feedingStage === 'solids',
+    );
+    expect(value).toEqual({ status: 'seeded', settings: { feedingStage: 'solids' } });
   });
 
   it('reflects a live change to the stored feedingStage', async () => {
     const { settingsContext } = await import('./settings-context');
 
     await db.settings.put({ id: SINGLETON_ID, feedingStage: 'breastfed' });
-    await waitFor(settingsContext, (v) => v?.feedingStage === 'breastfed');
+    await waitFor(
+      settingsContext,
+      (v) => v.status === 'seeded' && v.settings.feedingStage === 'breastfed',
+    );
 
     await db.settings.put({ id: SINGLETON_ID, feedingStage: 'mixed' });
-    const value = await waitFor(settingsContext, (v) => v?.feedingStage === 'mixed');
-    expect(value).toEqual({ feedingStage: 'mixed' });
+    const value = await waitFor(
+      settingsContext,
+      (v) => v.status === 'seeded' && v.settings.feedingStage === 'mixed',
+    );
+    expect(value).toEqual({ status: 'seeded', settings: { feedingStage: 'mixed' } });
   });
 });
