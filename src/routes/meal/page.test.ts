@@ -5,11 +5,11 @@ import * as navigation from '$app/navigation';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { Meal } from '$lib/domain/models';
 import { clearBuffer, writeBuffer } from '$lib/stores/discard-buffer';
+import { mealSession } from '$lib/stores/meal-session';
 
 type FeedingStage = 'breastfed' | 'mixed' | 'solids';
 
@@ -38,7 +38,7 @@ vi.mock('$lib/stores/discard-buffer', () => ({
   clearBuffer: vi.fn(),
 }));
 
-const meals = new DexieMealRepository(db);
+const meals = mealSession;
 
 const mockPage: { url: URL; state: Record<string, unknown> } = {
   url: new URL('http://localhost/meal'),

@@ -5,15 +5,15 @@ import { writable } from 'svelte/store';
 import { fireEvent, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
 import { db } from '$lib/db/atopic-db';
 import type { Meal } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { type WorkingMeal, emptyWorkingMeal } from '$lib/domain/working-meal';
 import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buffer';
+import { mealSession } from '$lib/stores/meal-session';
 import type { SettingsState } from '$lib/stores/settings-context';
 
-const meals = new DexieMealRepository(db);
+const meals = mealSession;
 
 const mockGoto = vi.fn();
 const mockSettingsState = writable<SettingsState>({ status: 'loading' });

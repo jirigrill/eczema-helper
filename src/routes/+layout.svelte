@@ -14,10 +14,7 @@
   import type { MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
   import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
-  // NOTE: a route reaching a repository directly bypasses the store layer
-  // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
-  // proper store seam rather than fixed inside the descaling review.
-  import { mealRepository as mealRepo } from '$lib/stores/meal-session';
+  import { mealSession } from '$lib/stores/meal-session';
 
   let { children } = $props();
 
@@ -84,10 +81,10 @@
   async function reverseCopy(buf: DiscardedMealCopy): Promise<void> {
     const { date, mealType, actor } = buf.destinationSlot;
     if (!buf.destinationPreexisted) {
-      await mealRepo.remove(date, mealType, actor);
+      await mealSession.remove(date, mealType, actor);
       return;
     }
-    const loaded = await mealRepo.loadBySlot(date, mealType, actor);
+    const loaded = await mealSession.loadBySlot(date, mealType, actor);
     if (!loaded.ok || !loaded.data) return;
     const added = new Set(buf.addedItemIds);
     const restored = {
@@ -95,7 +92,7 @@
       items: loaded.data.items.filter((i) => !added.has(i.id)),
       updatedAt: buf.priorUpdatedAt,
     };
-    await mealRepo.save(restored);
+    await mealSession.save(restored);
   }
 
   let discardUndoFired = $state(false);
