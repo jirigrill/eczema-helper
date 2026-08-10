@@ -39,7 +39,7 @@
 
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
-  import { mealRepository } from '$lib/stores/meal-session';
+  import { mealSession } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
@@ -160,13 +160,10 @@
   // discard buffer stay in the route and are deferred to later slices of #284.
   const editor = createMealEditor();
 
-  // The shared meal repository, owned by `stores/meal-session.ts`, for the
-  // route's own direct-to-Dexie writes (delete on explicit "Smazat jídlo" and
-  // on an emptied-then-backed-out edit, issue #588).
-  //
-  // NOTE: a route reaching a repository directly bypasses the store layer
-  // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
-  // proper store seam rather than fixed inside the descaling review.
+  // The shared meal session, owned by `stores/meal-session.ts`, for the
+  // route's own mutations that fall outside the editor's own lifecycle:
+  // delete (explicit "Smazat jídlo" and an emptied-then-backed-out edit,
+  // issue #588) and the copy-to-another-day flow (issue #606).
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
   // navigation) or from Dexie (normal entry). Guarded by `editorMounted` so
@@ -468,7 +465,7 @@
    * `bufferDiscard` (back-out), and `handleDeleteConfirm` (explicit delete) all
    * call it. It writes the buffer only; removing the persisted Dexie row is the
    * caller's concern (finalize already removes on save; the other two paths
-   * call `mealRepository.remove` themselves).
+   * call `mealSession.remove` themselves).
    */
   function writeSlotBuffer(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
     writeBuffer({
@@ -559,7 +556,7 @@
   function bufferDiscard(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
     writeSlotBuffer(desc);
     if (desc.kind === 'meal-delete') {
-      void mealRepository.remove(targetDate, selectedMealType, selectedActor);
+      void mealSession.remove(targetDate, selectedMealType, selectedActor);
     }
   }
 
@@ -688,7 +685,7 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await mealRepository.remove(targetDate, selectedMealType, selectedActor);
+    const result = await mealSession.remove(targetDate, selectedMealType, selectedActor);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
@@ -746,14 +743,14 @@
   // (`loadBySlot(destDate, destSlot, source.actor)`): the OTHER actor's meal in
   // the same visual cell is irrelevant and untouched.
   async function confirmCopy(destMealType: MealType): Promise<void> {
-    const srcResult = await mealRepository.loadBySlot(targetDate, selectedMealType, selectedActor);
+    const srcResult = await mealSession.loadBySlot(targetDate, selectedMealType, selectedActor);
     if (!srcResult.ok || !srcResult.data) {
       closeCopyPicker();
       return;
     }
     const source = srcResult.data;
     const destSlot: MealSlot = { date: copyDestDate, mealType: destMealType, actor: selectedActor };
-    const targetResult = await mealRepository.loadBySlot(copyDestDate, destMealType, selectedActor);
+    const targetResult = await mealSession.loadBySlot(copyDestDate, destMealType, selectedActor);
     if (!targetResult.ok) {
       saveErrorMessage = targetResult.error;
       return;
@@ -766,7 +763,7 @@
       closeCopyPicker();
       return;
     }
-    const saveResult = await mealRepository.save(meal);
+    const saveResult = await mealSession.save(meal);
     if (!saveResult.ok) {
       // Save failure (Dexie quota / transaction error): surface the toast and
       // stay on the day picker — dismiss the slot sheet so the toast is readable

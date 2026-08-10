@@ -119,7 +119,7 @@ Each session store is the **only** place that constructs the adapter for its dom
 
 Cross-domain readers follow the same rule by importing from each owning store — `stores/earliest-logged.ts` unions the meal and skin-observation ports that way rather than constructing either.
 
-Routes import the store, not the adapter. Two pre-existing exceptions reach a repository directly (`routes/+layout.svelte` and `routes/meal/+page.svelte`, both for meal deletes); they are marked in-file and tracked for a proper store seam.
+Routes import the store, not the adapter.
 
 **Database lifecycle sits outside this rule.** `db/reset-database.ts` clears every table for the Settings factory reset. No domain owns a whole-database wipe, so it lives beside `atopic-db.ts` and reads `db.tables` rather than naming tables — a hand-written list is what previously let the reset spare the mother's meals, observations and photos while the UI promised to erase them.
 

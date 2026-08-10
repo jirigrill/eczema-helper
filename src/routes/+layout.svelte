@@ -13,11 +13,7 @@
   import { createMealSession } from '$lib/stores/meal-session';
   import type { MealType } from '$lib/domain/models';
   import { discardBuffer, clearBuffer } from '$lib/stores/discard-buffer';
-  import type { DiscardedMealCopy } from '$lib/stores/discard-buffer';
-  // NOTE: a route reaching a repository directly bypasses the store layer
-  // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
-  // proper store seam rather than fixed inside the descaling review.
-  import { mealRepository as mealRepo } from '$lib/stores/meal-session';
+  import { mealSession } from '$lib/stores/meal-session';
 
   let { children } = $props();
 
@@ -58,11 +54,11 @@
       return;
     }
     // A copy's undo is a *reversal* of the write it made against the
-    // destination slot, not a `/meal` rehydrate: delete the created meal, or
-    // remove only the added items and restore the prior `updatedAt`. Then land
-    // on the destination day so the reverted slot is visible (issue #606).
+    // destination slot, not a `/meal` rehydrate — `mealSession.reverseCopy`
+    // owns the merge-vs-create branch. Then land on the destination day so
+    // the reverted slot is visible (issue #606).
     if (buf.kind === 'meal-copy') {
-      void reverseCopy(buf).then(() => {
+      void mealSession.reverseCopy(buf).then(() => {
         clearBuffer();
         goto(buf.returnTo);
       });
@@ -71,31 +67,6 @@
     goto(
       `/meal?type=${buf.mealType}&date=${buf.date}&actor=${buf.actor}&returnTo=${encodeURIComponent(buf.returnTo)}`,
     );
-  }
-
-  /**
-   * Reverse a copy-meal write (issue #606). The buffer captured everything the
-   * reversal needs, so no re-derivation is required:
-   *  - `destinationPreexisted === false` → the copy created the slot; remove it.
-   *  - `destinationPreexisted === true` → the copy merged; drop only the
-   *    `addedItemIds` and restore `priorUpdatedAt` (unset it when it was
-   *    previously unset). The destination's prior foods + note stay untouched.
-   */
-  async function reverseCopy(buf: DiscardedMealCopy): Promise<void> {
-    const { date, mealType, actor } = buf.destinationSlot;
-    if (!buf.destinationPreexisted) {
-      await mealRepo.remove(date, mealType, actor);
-      return;
-    }
-    const loaded = await mealRepo.loadBySlot(date, mealType, actor);
-    if (!loaded.ok || !loaded.data) return;
-    const added = new Set(buf.addedItemIds);
-    const restored = {
-      ...loaded.data,
-      items: loaded.data.items.filter((i) => !added.has(i.id)),
-      updatedAt: buf.priorUpdatedAt,
-    };
-    await mealRepo.save(restored);
   }
 
   let discardUndoFired = $state(false);
