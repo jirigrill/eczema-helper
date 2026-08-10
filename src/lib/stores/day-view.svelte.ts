@@ -2,7 +2,7 @@ import { fromStore } from 'svelte/store';
 
 import { resolveDay } from '$lib/domain/day-view';
 import type { FeedingStage, Meal, SkinObservation, SkinPhoto } from '$lib/domain/models';
-import { createEarliestLoggedStore } from '$lib/stores/earliest-logged';
+import { earliestLogged as earliestLoggedStore } from '$lib/stores/earliest-logged';
 import { createMealSession } from '$lib/stores/meal-session';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
@@ -28,7 +28,7 @@ export type DayView = {
 };
 
 export function createDayView(getParam: () => string, today: string): DayView {
-  const earliestLoggedStore = fromStore(createEarliestLoggedStore());
+  const earliestLoggedView = fromStore(earliestLoggedStore);
 
   // The live settings master switch is the sole source of feedingStage (#567).
   // `settingsStore.status === 'seeded'` is also the app's seeded signal (PRD
@@ -48,7 +48,7 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const observations = $derived(fromStore(observationSession).current);
   const photos = $derived(fromStore(photoSession).current);
 
-  const earliestLogged = $derived(earliestLoggedStore.current);
+  const earliestLogged = $derived(earliestLoggedView.current);
 
   return {
     get redirectTo() {

@@ -22,7 +22,7 @@
   import { formForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
-  import { createEarliestLoggedStore } from '$lib/stores/earliest-logged';
+  import { earliestLogged as earliestLoggedStore } from '$lib/stores/earliest-logged';
   import { settingsStore } from '$lib/stores/settings.svelte';
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
@@ -63,7 +63,6 @@
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
-  const earliestLoggedStore = createEarliestLoggedStore();
   const feedingStage = $derived(settingsStore.feedingStage);
   // Who may log at the live feeding stage (spec #564): `breastfed → [mother]`,
   // `mixed → [mother, baby]`, `solids → [baby]`. Drives the actor picker — the
