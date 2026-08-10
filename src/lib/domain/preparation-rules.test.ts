@@ -1,35 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import { formForFood, formPreparations } from './preparation-rules';
+import { preparationsForFood } from './preparation-rules';
 
-describe('formPreparations', () => {
-  it('none → no chips', () => {
-    expect(formPreparations.none).toEqual([]);
+describe('preparationsForFood', () => {
+  it('returns the catalog preparation list for a known food', () => {
+    // losos (salmon) is smokeable and fry-able
+    expect(preparationsForFood('losos')).toEqual(['raw', 'boiled', 'baked', 'smoked', 'fried']);
   });
 
-  it('liquid → raw, boiled, baked', () => {
-    expect(formPreparations.liquid).toEqual(['raw', 'boiled', 'baked']);
+  it('offers dried but not fried for a dried-fruit-capable fruit', () => {
+    // banán: you dry it and stew it (compote), you never fry it
+    expect(preparationsForFood('banan')).toEqual(['raw', 'baked', 'boiled', 'dried']);
   });
 
-  it('cookable → all four chips including raw', () => {
-    expect(formPreparations.cookable).toEqual(['raw', 'boiled', 'baked', 'fried']);
+  it('offers only raw for a raw-only food', () => {
+    expect(preparationsForFood('listovy-salat')).toEqual(['raw']);
   });
 
-  it('raw-only → only raw', () => {
-    expect(formPreparations['raw-only']).toEqual(['raw']);
-  });
-});
-
-describe('formForFood', () => {
-  it('returns the catalog form for a known food', () => {
-    expect(formForFood('sul')).toBe('none');
-    expect(formForFood('kravske-mleko')).toBe('liquid');
-    expect(formForFood('brambory')).toBe('cookable');
-    expect(formForFood('listovy-salat')).toBe('raw-only');
+  it('offers nothing for a no-preparation food', () => {
+    expect(preparationsForFood('sul')).toEqual([]);
   });
 
-  it('defaults custom (other:*) and unknown foods to cookable', () => {
-    expect(formForFood('other:moje-jidlo')).toBe('cookable');
-    expect(formForFood('totally-unknown-id')).toBe('cookable');
+  it('defaults custom (other:*) and unknown foods to the permissive everyday set', () => {
+    expect(preparationsForFood('other:moje-jidlo')).toEqual(['raw', 'boiled', 'baked', 'fried']);
+    expect(preparationsForFood('totally-unknown-id')).toEqual(['raw', 'boiled', 'baked', 'fried']);
   });
 });

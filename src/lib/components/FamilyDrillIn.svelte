@@ -10,7 +10,7 @@
   import type { WorkingFood } from '$lib/domain/working-meal';
   import FoodTile from '$lib/components/FoodTile.svelte';
   import FoodEditor from '$lib/components/FoodEditor.svelte';
-  import { formForFood } from '$lib/domain/preparation-rules';
+  import { preparationsForFood } from '$lib/domain/preparation-rules';
 
   // FOODS is `as const satisfies readonly FoodRecord[]`, so the inferred union
   // drops `sourceGroup` on the records that omit it; re-add it as optional.
@@ -157,7 +157,7 @@
                     <FoodEditor
                       amount={st.amount}
                       preparation={st.preparation}
-                      form={formForFood(food.id)}
+                      preparations={preparationsForFood(food.id)}
                       onAmountChange={(a) => onAmountChange(food.id, a)}
                       onPreparationChange={(p) => onPreparationChange(food.id, p)}
                     />
@@ -187,7 +187,7 @@
                   <FoodEditor
                     amount={st.amount}
                     preparation={st.preparation}
-                    form={formForFood(food.id)}
+                    preparations={preparationsForFood(food.id)}
                     onAmountChange={(a) => onAmountChange(food.id, a)}
                     onPreparationChange={(p) => onPreparationChange(food.id, p)}
                   />
@@ -241,7 +241,7 @@
                   <FoodEditor
                     amount={st.amount}
                     preparation={st.preparation}
-                    form={formForFood(food.foodId)}
+                    preparations={preparationsForFood(food.foodId)}
                     onAmountChange={(a) => onAmountChange(food.foodId, a)}
                     onPreparationChange={(p) => onPreparationChange(food.foodId, p)}
                   />

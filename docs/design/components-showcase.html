@@ -1309,7 +1309,6 @@
                       <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Příprava</p>
                       <div style="display:flex;flex-wrap:wrap;gap:6px">
                         <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">vařené</span>
-                        <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
                         <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
                         <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
                       </div>
@@ -1394,7 +1393,6 @@
               <p style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Příprava</p>
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">vařené</span>
-                <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
                 <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
                 <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
               </div>
@@ -1448,8 +1446,8 @@
   <!-- ─── FoodEditor ─────────────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FoodEditor.svelte -->
   <div class="component-section" id="food-editor">
-    <p class="component-label">▸ <span>FoodEditor</span> — amount: PortionKind, preparation?: PreparationMethod, form: FoodForm, onAmountChange: (a: PortionKind) => void, onPreparationChange: (p: PreparationMethod | undefined) => void</p>
-    <p class="component-desc">Množství / Příprava picker that expands beneath a FoodTile in editing state. Uses Chip for each option. Active chip is filled (bordeaux). Tapping the active preparation chip deselects it (toggles to undefined). Clicking amount/preparation chips calls stopPropagation to avoid triggering FoodTile's onclick. The food's `form` (catalog metadata) gates which preparation chips render: `none` hides the Příprava row; `liquid` shows Syrové · Vařené · Pečené; `cookable` shows all five (Syrové · Vařené · Dušené · Pečené · Smažené); `raw-only` shows only Syrové.</p>
+    <p class="component-label">▸ <span>FoodEditor</span> — amount: PortionKind, preparation?: PreparationMethod, preparations: readonly PreparationMethod[], onAmountChange: (a: PortionKind) => void, onPreparationChange: (p: PreparationMethod | undefined) => void</p>
+    <p class="component-desc">Množství / Příprava picker that expands beneath a FoodTile in editing state. Uses Chip for each option. Active chip is filled (bordeaux). Tapping the active preparation chip deselects it (toggles to undefined). Clicking amount/preparation chips calls stopPropagation to avoid triggering FoodTile's onclick. The food's own `preparations` list (catalog metadata, ADR-0028) is rendered chip-for-chip: an empty list hides the Příprava row; a liquid offers Syrové · Vařené · Pečené; a fry-able solid offers Syrové · Vařené · Pečené · Smažené; specialty foods add Sušené / Uzené / Naložené; a raw-only food offers only Syrové.</p>
     <div class="variant-grid">
 
       <!-- Default: portion selected, no preparation -->
@@ -1470,13 +1468,12 @@
             <div style="display:flex;flex-wrap:wrap;gap:6px">
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">syrové</span>
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">vařené</span>
-              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
             </div>
           </div>
         </div>
-        <p class="variant-name">form='cookable', amount='portion', preparation=undefined</p>
+        <p class="variant-name">preparations=['raw','boiled','baked','fried'], amount='portion', preparation=undefined</p>
       </div>
 
       <!-- Teaspoon + boiled -->
@@ -1497,13 +1494,12 @@
             <div style="display:flex;flex-wrap:wrap;gap:6px">
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">syrové</span>
               <span style="padding:5px 10px;border-radius:99px;background:#8B4557;color:white;font-size:12px">vařené</span>
-              <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">dušené</span>
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">pečené</span>
               <span style="padding:5px 10px;border-radius:99px;border:1px solid #EDE8E9;font-size:12px;color:#7A6468">smažené</span>
             </div>
           </div>
         </div>
-        <p class="variant-name">form='cookable', amount='teaspoon', preparation='boiled'</p>
+        <p class="variant-name">preparations=['raw','boiled','baked','fried'], amount='teaspoon', preparation='boiled'</p>
       </div>
 
       <!-- Liquid: only raw, boiled, baked -->
@@ -1528,7 +1524,7 @@
             </div>
           </div>
         </div>
-        <p class="variant-name">form='liquid' (milk, drinkable)</p>
+        <p class="variant-name">preparations=['raw','boiled','baked'] (milk, drinkable)</p>
       </div>
 
       <!-- Raw-only: only the raw chip -->
@@ -1551,7 +1547,7 @@
             </div>
           </div>
         </div>
-        <p class="variant-name">form='raw-only' (leafy salad, fresh fruit), preparation='raw'</p>
+        <p class="variant-name">preparations=['raw'] (leafy salad), preparation='raw'</p>
       </div>
 
       <!-- None: no preparation row at all -->
@@ -1568,7 +1564,7 @@
             </div>
           </div>
         </div>
-        <p class="variant-name">form='none' (water, oil, salt) — no Příprava row</p>
+        <p class="variant-name">preparations=[] (water, oil, salt) — no Příprava row</p>
       </div>
 
     </div>

@@ -189,28 +189,27 @@ optional `subitemId`, `amount` (`PortionKind`), optional `preparationMethod`
 *Czech: Způsob přípravy*
 
 One of: `'raw'` (Syrové) · `'boiled'` (Vařené) · `'baked'` (Pečené) ·
-`'fried'` (Smažené). Optional observational field on `MealItem` — records how
-the food was prepared. Has no impact on allergen conflict detection; stored
-purely for the mother's reference. Which chips a food shows in the editor is
-gated by its catalog `FoodForm`. (There is no `'steamed'`/Dušené method — an
-earlier five-method draft was never implemented. Food-level preparations that
-add `dried`/`smoked`/`cured` and retire `FoodForm` are accepted in ADR-0028,
-tracked in [#356](https://github.com/jirigrill/eczema-helper/issues/356);
-this entry updates when that lands.)
+`'fried'` (Smažené) · `'dried'` (Sušené) · `'smoked'` (Uzené) ·
+`'cured'` (Naložené). Optional observational field on `MealItem` — records how
+the food was prepared. Has no impact on allergen conflict detection (parked);
+stored purely for the mother's reference. Which chips a food shows in the editor
+is the food's own `preparations` list, not a coarse form bucket (ADR-0028).
+(There is no `'steamed'`/Dušené method — an earlier five-method draft was never
+implemented.)
 
-### FoodForm
-*Czech: Forma potraviny*
+### preparations (per-food)
+*Czech: Způsoby přípravy potraviny*
 
-Closed 4-value catalog metadata on a `CatalogFood`: `'none'` (water, oil,
-salt — no preparation row at all) · `'liquid'` (milk, drinkable — Syrové ·
-Vařené · Pečené) · `'cookable'` (potato, meat, rice — Syrové · Vařené · Pečené ·
-Smažené) · `'raw-only'` (leafy salad, fresh fruit — Syrové only). The
-`formPreparations` map (in `domain/preparation-rules.ts`) resolves a form to its
-chip subset. The form is **never persisted** on a logged `MealItem`;
-`preparationMethod` stays unconstrained on the persisted record. (ADR-0028 /
-[#356](https://github.com/jirigrill/eczema-helper/issues/356) retires
-`FoodForm` in favour of a per-food `preparations` list; this entry updates when
-that lands.)
+A `PreparationMethod[]` on each `CatalogFood`, in chip-display order, listing
+exactly the ways that food can be prepared — a banana offers Syrové · Pečené ·
+Sušené, a salmon Syrové · Vařené · Pečené · Uzené, salt an empty list (no
+preparation row). Read straight off the catalog record by
+`preparationsForFood` (`domain/preparation-rules.ts`); custom user-typed
+(`other:*`) and unknown foods fall back to the permissive everyday set
+`['raw', 'boiled', 'baked', 'fried']`. Governs **which chips the UI offers per
+food**, never persisted on a `MealItem` — the stored `preparationMethod` stays
+unconstrained. This replaces the retired `FoodForm` bucket scheme (ADR-0028 /
+[#356](https://github.com/jirigrill/eczema-helper/issues/356)).
 
 ### PortionKind
 *Czech: Velikost porce*

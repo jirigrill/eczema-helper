@@ -19,7 +19,7 @@
   import { portionStrings } from '$lib/strings/portions';
   import { preparationStrings } from '$lib/strings/preparations';
   import { familyStrings } from '$lib/strings/families';
-  import { formForFood } from '$lib/domain/preparation-rules';
+  import { preparationsForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
   import { earliestLoggedStore } from '$lib/stores/earliest-logged';
@@ -883,7 +883,7 @@
                           <FoodEditor
                             amount={food.state.amount}
                             preparation={food.state.preparation}
-                            form={formForFood(food.foodId)}
+                            preparations={preparationsForFood(food.foodId)}
                             onAmountChange={(a) =>
                               familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
                             onPreparationChange={(p) =>

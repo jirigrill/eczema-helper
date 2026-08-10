@@ -1,7 +1,5 @@
 <script lang="ts">
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
-  import type { FoodForm } from '$lib/data/allergen-catalog/allergen-catalog';
-  import { formPreparations } from '$lib/domain/preparation-rules';
   import { portionStrings } from '$lib/strings/portions';
   import { preparationStrings } from '$lib/strings/preparations';
   import Chip from '$lib/components/Chip.svelte';
@@ -11,18 +9,17 @@
   let {
     amount,
     preparation,
-    form,
+    preparations,
     onAmountChange,
     onPreparationChange,
   }: {
     amount: PortionKind;
     preparation?: PreparationMethod;
-    form: FoodForm;
+    /** The preparation chips this food offers, in display order (ADR-0028). */
+    preparations: readonly PreparationMethod[];
     onAmountChange: (a: PortionKind) => void;
     onPreparationChange: (p: PreparationMethod | undefined) => void;
   } = $props();
-
-  const preparationMethods = $derived(formPreparations[form]);
 </script>
 
 <div class="space-y-2.5">
@@ -43,11 +40,11 @@
     </div>
   </div>
 
-  {#if preparationMethods.length > 0}
+  {#if preparations.length > 0}
     <div>
       <p class="eyebrow mb-1.5">Příprava</p>
       <div class="flex flex-wrap gap-1.5">
-        {#each preparationMethods as method}
+        {#each preparations as method}
           <Chip
             active={preparation === method}
             onclick={(e) => {

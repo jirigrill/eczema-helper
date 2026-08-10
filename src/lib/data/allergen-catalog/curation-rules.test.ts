@@ -6,7 +6,7 @@ type FoodLite = {
   id: string;
   familyId: string;
   allergenIds: readonly string[];
-  form: string;
+  preparations: readonly string[];
   sourceGroup?: string;
 };
 const byId = (id: string): FoodLite | undefined =>
@@ -47,10 +47,10 @@ describe('curation: precision-biased allergenIds', () => {
     expect([...(f?.allergenIds ?? [])].sort()).toEqual(['cocoa', 'dairy', 'nuts'].sort());
   });
 
-  it('olivový olej (cooking fat) is form: cookable with no allergens', () => {
+  it('olivový olej (cooking fat) offers no preparation and carries no allergens', () => {
     const f = byId('olivovy-olej');
     expect(f, 'olivovy-olej must be added as a neutral staple').toBeDefined();
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual([]);
     expect(f?.allergenIds).toEqual([]);
   });
 
@@ -69,12 +69,12 @@ describe('curation: precision-biased allergenIds', () => {
     expect(byId('tvrdy-alkohol')?.allergenIds).toEqual([]);
   });
 
-  it('every drink is form: none (beverages are drunk, not prepared)', () => {
-    type FoodLite = { id: string; familyId: string; form: string };
+  it('every drink offers no preparation (beverages are drunk, not prepared)', () => {
+    type FoodLite = { id: string; familyId: string; preparations: readonly string[] };
     const drinks = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'drinks');
     expect(drinks.length).toBeGreaterThan(0);
     for (const f of drinks) {
-      expect(f.form, `drink '${f.id}' should be form: none`).toBe('none');
+      expect(f.preparations, `drink '${f.id}' should offer no preparation`).toEqual([]);
     }
   });
 });
@@ -138,30 +138,30 @@ describe('eggs family: bílek / žloutek / celé vejce split (Q8)', () => {
     expect(ids).toEqual(['bilek', 'vejce', 'zloutek']);
   });
 
-  it('vejce (whole egg): eggs allergen, cookable, no sourceGroup', () => {
+  it('vejce (whole egg): eggs allergen, fry-able, no sourceGroup', () => {
     const f = byId('vejce');
     expect(f).toBeDefined();
     expect(f?.familyId).toBe('eggs');
     expect(f?.allergenIds).toEqual(['eggs']);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual(['raw', 'boiled', 'baked', 'fried']);
     expect(f?.sourceGroup).toBeUndefined();
   });
 
-  it('bilek (egg white): eggs allergen, cookable, no sourceGroup', () => {
+  it('bilek (egg white): eggs allergen, fry-able, no sourceGroup', () => {
     const f = byId('bilek');
     expect(f, 'bilek must be added').toBeDefined();
     expect(f?.familyId).toBe('eggs');
     expect(f?.allergenIds).toEqual(['eggs']);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual(['raw', 'boiled', 'baked', 'fried']);
     expect(f?.sourceGroup).toBeUndefined();
   });
 
-  it('zloutek (egg yolk): eggs allergen, cookable, no sourceGroup', () => {
+  it('zloutek (egg yolk): eggs allergen, fry-able, no sourceGroup', () => {
     const f = byId('zloutek');
     expect(f, 'zloutek must be added').toBeDefined();
     expect(f?.familyId).toBe('eggs');
     expect(f?.allergenIds).toEqual(['eggs']);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual(['raw', 'boiled', 'baked', 'fried']);
     expect(f?.sourceGroup).toBeUndefined();
   });
 });
@@ -368,14 +368,14 @@ describe('per-family expansion (issue #319 scope)', () => {
     expect(drozdi?.allergenIds).toEqual(['yeast']);
   });
 
-  it('every spices-condiments food is form: none (flavorings, no preparation row)', () => {
-    type FoodLite = { id: string; familyId: string; form: string };
+  it('every spices-condiments food offers no preparation (flavorings, no preparation row)', () => {
+    type FoodLite = { id: string; familyId: string; preparations: readonly string[] };
     const condiments = (FOODS as readonly FoodLite[]).filter(
       (f) => f.familyId === 'spices-condiments',
     );
     expect(condiments.length).toBeGreaterThan(0);
     for (const f of condiments) {
-      expect(f.form, `condiment '${f.id}' should be form: none`).toBe('none');
+      expect(f.preparations, `condiment '${f.id}' should offer no preparation`).toEqual([]);
     }
   });
 });
@@ -403,43 +403,43 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
     expect(byId('ryzove-mleko')?.sourceGroup).toBe('plant');
   });
 
-  it('maslo: fats-oils family, animal source, dairy allergen, form: cookable', () => {
+  it('maslo: fats-oils family, animal source, dairy allergen, no preparation row', () => {
     const f = byId('maslo');
     expect(f).toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
     expect(f?.sourceGroup).toBe('animal');
     expect(f?.allergenIds).toEqual(['dairy']);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual([]);
   });
 
-  it('ghi: fats-oils family, animal source, dairy allergen, cookable', () => {
+  it('ghi: fats-oils family, animal source, dairy allergen, no preparation row', () => {
     const f = byId('ghi');
     expect(f, 'ghi must be added').toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
     expect(f?.sourceGroup).toBe('animal');
     expect(f?.allergenIds).toEqual(['dairy']);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual([]);
   });
 
-  it('rostlinne-maslo: fats-oils family, plant source, no allergens, form: cookable', () => {
+  it('rostlinne-maslo: fats-oils family, plant source, no allergens, no preparation row', () => {
     const f = byId('rostlinne-maslo');
     expect(f, 'rostlinne-maslo must be added').toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
     expect(f?.sourceGroup).toBe('plant');
     expect(f?.allergenIds).toEqual([]);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual([]);
   });
 
-  it('sadlo: fats-oils family, animal source (rendered pork fat), no allergens, form: cookable', () => {
+  it('sadlo: fats-oils family, animal source (rendered pork fat), no allergens, no preparation row', () => {
     const f = byId('sadlo');
     expect(f, 'sadlo must be added').toBeDefined();
     expect(f?.familyId).toBe('fats-oils');
     expect(f?.sourceGroup).toBe('animal');
     expect(f?.allergenIds).toEqual([]);
-    expect(f?.form).toBe('cookable');
+    expect(f?.preparations).toEqual([]);
   });
 
-  it('oils split by type (option A), all plant source, no allergens, form: cookable', () => {
+  it('oils split by type (option A), all plant source, no allergens, no preparation row', () => {
     const oils = [
       'olivovy-olej',
       'repkovy-olej',
@@ -453,7 +453,16 @@ describe('fats-oils family: cooking fats consolidated (Q7: split out from dairy/
       expect(f?.familyId).toBe('fats-oils');
       expect(f?.sourceGroup).toBe('plant');
       expect(f?.allergenIds, `${id} carries no allergens (refined oil ≈ no protein)`).toEqual([]);
-      expect(f?.form).toBe('cookable');
+      expect(f?.preparations, `${id} is a cooking staple, not a prepared food`).toEqual([]);
+    }
+  });
+
+  it('every fats-oils food offers no preparation (cooking staples, not prepared foods)', () => {
+    type FoodLite = { id: string; familyId: string; preparations: readonly string[] };
+    const fats = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'fats-oils');
+    expect(fats.length, 'sanity: fats-oils non-empty').toBeGreaterThan(0);
+    for (const f of fats) {
+      expect(f.preparations, `fat/oil '${f.id}' should offer no preparation`).toEqual([]);
     }
   });
 
@@ -524,10 +533,10 @@ describe('dairy: plant-milks coherence (after fats moved out)', () => {
   });
 });
 
-describe('vegetables family: form coherence (Q6: only the genuinely raw-only stay raw-only)', () => {
-  it('špenát and paprika flip to cookable (špenát se smetanou, plněné papriky — dominant CZ uses)', () => {
-    expect(byId('spenat')?.form).toBe('cookable');
-    expect(byId('paprika')?.form).toBe('cookable');
+describe('vegetables family: preparation coherence (Q6: only the genuinely raw-only stay raw)', () => {
+  it('špenát and paprika are cookable (špenát se smetanou, plněné papriky — dominant CZ uses)', () => {
+    expect(byId('spenat')?.preparations).toEqual(['raw', 'boiled', 'baked', 'fried']);
+    expect(byId('paprika')?.preparations).toEqual(['raw', 'boiled', 'baked', 'fried']);
   });
 
   it('listový salát, okurka, ředkev stay raw-only (cooking is not a CZ-canonical pathway)', () => {
@@ -535,22 +544,22 @@ describe('vegetables family: form coherence (Q6: only the genuinely raw-only sta
     // not "is cooking physically possible". A cooked-okurka chip would be
     // dead weight on the meal-log UI; a parent logging cooked cucumber is
     // more likely a fat-finger error than an intentional log.
-    expect(byId('listovy-salat')?.form).toBe('raw-only');
-    expect(byId('okurka')?.form).toBe('raw-only');
-    expect(byId('redkev')?.form).toBe('raw-only');
+    expect(byId('listovy-salat')?.preparations).toEqual(['raw']);
+    expect(byId('okurka')?.preparations).toEqual(['raw']);
+    expect(byId('redkev')?.preparations).toEqual(['raw']);
   });
 
-  it('siblings-cohere: every vegetable not in the raw-only allow-list is cookable', () => {
-    type FoodLite = { id: string; familyId: string; form: string };
+  it('siblings-cohere: every vegetable not in the raw-only allow-list offers the cookable set', () => {
+    type FoodLite = { id: string; familyId: string; preparations: readonly string[] };
     const RAW_ONLY_VEG = new Set(['listovy-salat', 'okurka', 'redkev']);
     const veg = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'vegetables');
     expect(veg.length, 'sanity: should have many vegetables').toBeGreaterThan(15);
     for (const f of veg) {
-      const expected = RAW_ONLY_VEG.has(f.id) ? 'raw-only' : 'cookable';
+      const expected = RAW_ONLY_VEG.has(f.id) ? ['raw'] : ['raw', 'boiled', 'baked', 'fried'];
       expect(
-        f.form,
-        `vegetable '${f.id}' expected form '${expected}' (allow-list: ${[...RAW_ONLY_VEG].join(', ')}), got '${f.form}'`,
-      ).toBe(expected);
+        f.preparations,
+        `vegetable '${f.id}' expected preparations ${JSON.stringify(expected)} (allow-list: ${[...RAW_ONLY_VEG].join(', ')}), got ${JSON.stringify(f.preparations)}`,
+      ).toEqual(expected);
     }
   });
 });
@@ -566,7 +575,7 @@ describe('sweet family: cocoa/carob + syrup expansion + source split', () => {
       const f = byId(id);
       expect(f, `${id} must be added`).toBeDefined();
       expect(f?.allergenIds).toEqual([]);
-      expect(f?.form).toBe('none');
+      expect(f?.preparations).toEqual([]);
     }
   });
 
@@ -583,20 +592,31 @@ describe('sweet family: cocoa/carob + syrup expansion + source split', () => {
   });
 });
 
-describe('fruit family: form coherence (Q5: fruit is cookable, not raw-only)', () => {
-  it('every fruit has form: cookable (compote, jam, baking, povidla — fruit is not destroyed by cooking)', () => {
-    // `form` governs which preparation chips render on the meal-log UI.
-    // `raw-only` should be reserved for foods *destroyed* by cooking (leafy salads).
-    // CZ home cooking routinely cooks fruit: štrúdl, povidla, kompoty, koláče,
-    // knedlíky s ovocem, grilled pears, citrus zest in baking, berry jams.
-    type FoodLite = { id: string; familyId: string; form: string };
+describe('fruit family: preparation coherence (Q5 / ADR-0028: fruit is cooked, never fried)', () => {
+  it('every fruit offers raw + baked and never fried (compote, jam, baking, povidla)', () => {
+    // `preparations` governs which chips render on the meal-log UI (ADR-0028).
+    // CZ home cooking routinely bakes/cooks fruit: štrúdl, povidla, kompoty,
+    // koláče, knedlíky s ovocem, berry jams — but nobody *fries* fruit, so the
+    // stale `fried` chip is pruned across the whole family. A short allow-list
+    // covers fruit eaten only raw (meloun — a watermelon is never baked/stewed).
+    const RAW_ONLY_FRUIT = new Set(['meloun']);
+    type FoodLite = { id: string; familyId: string; preparations: readonly string[] };
     const fruits = (FOODS as readonly FoodLite[]).filter((f) => f.familyId === 'fruit');
     expect(fruits.length, 'sanity: should have many fruits').toBeGreaterThan(20);
     for (const f of fruits) {
-      expect(
-        f.form,
-        `fruit '${f.id}' should be 'cookable' (compote/jam/baking applies); got '${f.form}'`,
-      ).toBe('cookable');
+      expect(f.preparations, `fruit '${f.id}' should offer raw`).toContain('raw');
+      if (!RAW_ONLY_FRUIT.has(f.id)) {
+        expect(f.preparations, `fruit '${f.id}' should offer baked (compote/jam/baking)`).toContain(
+          'baked',
+        );
+      }
+      expect(f.preparations, `fruit '${f.id}' must not offer fried`).not.toContain('fried');
+    }
+  });
+
+  it('dried-fruit-capable fruit offers the dried chip (raisins, prunes, dried apricots …)', () => {
+    for (const id of ['svestka', 'hrozny', 'merunka', 'jablko', 'banan']) {
+      expect(byId(id)?.preparations, `fruit '${id}' should offer dried`).toContain('dried');
     }
   });
 });
