@@ -14,10 +14,11 @@ export type DayViewCore = {
  * the root layout owns the redirect to first run, so this returns today with no
  * redirect (never a stale `/day`).
  *
- * A malformed or future param redirects to today: the day view is a record of
- * what happened, so there is no future day to log onto (PRD #623, §3). Any
- * valid non-future date renders its own day — the day strip may not reach back
- * to it, but a directly-navigated day still renders.
+ * A malformed param redirects to today. Since the day strip now spans past and
+ * future edges (issue #654), a future day is a normal, fully-loggable day: a
+ * valid future param renders its own day rather than redirecting. Any valid
+ * date — past or future — renders its own day; the strip may not reach it, but
+ * a directly-navigated day still renders (the range clamps outward to it).
  *
  * No reactive subscriptions — compose this inside a .svelte.ts shell.
  */
@@ -25,7 +26,7 @@ export function resolveDay(param: string, seeded: boolean, today: string): DayVi
   if (!seeded) {
     return { selectedDate: today, redirectTo: null };
   }
-  if (!isIsoDate(param) || param > today) {
+  if (!isIsoDate(param)) {
     return { selectedDate: today, redirectTo: today };
   }
   return { selectedDate: param, redirectTo: null };

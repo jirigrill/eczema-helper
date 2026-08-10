@@ -709,9 +709,9 @@
     copyPickerOpen = true;
   }
 
-  // The copy picker's own day strip: same §3a input as the day overview, with
-  // `selectedDate` = the currently picked destination. Live earliest-logged so
-  // the destination range grows the instant an earlier day is logged.
+  // The copy picker's own day strip: same input as the day overview, with
+  // `selectedDate` = the currently picked destination. Live earliest so the
+  // destination range grows the instant an earlier day is logged (issue #654).
   const earliestLogged = $derived($earliestLoggedStore);
   const copyStripCells = $derived(
     computeDayStrip({
@@ -721,9 +721,9 @@
     }).cells,
   );
 
-  // Every cell the strip renders is a legal destination: the range ends at
-  // today (no future cell) and the loggable-window guard is gone (§3e), so a
-  // pick simply records the tapped day — no destination gate.
+  // Every cell the strip renders is a legal destination: the loggable-window
+  // guard is gone (§3e), so a pick simply records the tapped day — including a
+  // future cell, now that the strip spans past and future edges (#654).
   function selectCopyDestDate(date: string): void {
     copyDestDate = date;
   }
@@ -1005,10 +1005,11 @@
 />
 
 <!--
-  Copy-destination picker (variant D′, spec #599 / issue #606). A DayStrip whose
-  future + out-of-window days are disabled, then a slot sheet (FabActionSheet in
-  copy mode) pre-filled to the source slot. Merge is silent: every target reads
-  "Kopírovat sem", no occupancy cues.
+  Copy-destination picker (variant D′, spec #599 / issue #606). A DayStrip
+  spanning earliest-logged … today + 7d — since the descaling (PRD #623 §3e)
+  every reachable cell is a legal destination, so no cell is disabled — then a
+  slot sheet (FabActionSheet in copy mode) pre-filled to the source slot. Merge
+  is silent: every target reads "Kopírovat sem", no occupancy cues.
 -->
 {#if copyPickerOpen}
   <BottomSheet

@@ -99,6 +99,36 @@ describe('DayStrip', () => {
     expect(fn).toHaveBeenCalledWith('2026-05-25');
   });
 
+  it('renders future cells passed to it (the strip only receives more cells, #654)', async () => {
+    const cells: DayStripCell[] = [
+      cell('2026-06-09'),
+      cell(today, { isToday: true, isSelected: true }),
+      cell('2026-06-11'),
+      cell('2026-06-17'), // today + 7d
+    ];
+    const { getAllByTestId } = render(DayStrip, {
+      props: { cells, today, onselectdate: vi.fn() },
+    });
+    await tick();
+    const dates = getAllByTestId('day-strip-cell').map((b) => b.getAttribute('data-date'));
+    expect(dates).toContain('2026-06-11');
+    expect(dates).toContain('2026-06-17');
+  });
+
+  it('a future cell is selectable and reports its own date on click (US-10)', async () => {
+    const fn = vi.fn();
+    const cells: DayStripCell[] = [
+      cell(today, { isToday: true, isSelected: true }),
+      cell('2026-06-15'),
+    ];
+    const { getAllByTestId } = render(DayStrip, {
+      props: { cells, today, onselectdate: fn },
+    });
+    await tick();
+    getAllByTestId('day-strip-cell')[1]!.click();
+    expect(fn).toHaveBeenCalledWith('2026-06-15');
+  });
+
   it('clicking a past cell does not jump to today (no jump-to-today behavior)', async () => {
     const fn = vi.fn();
     const cells: DayStripCell[] = [

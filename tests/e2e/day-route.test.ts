@@ -1,25 +1,6 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
 
-import { clearDb, seedFeedingStage } from './seed';
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-/** Seed a single meal so the day strip's earliest-logged floor reaches `date`. */
-async function seedMeal(page: Page, date: string) {
-  await page.evaluate(async (date) => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.meals.put({
-      id: `${date}:lunch:mother`,
-      date,
-      mealType: 'lunch',
-      actor: 'mother',
-      items: [{ id: 'm1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
-      createdAt: `${date}T12:00:00.000Z`,
-    });
-  }, date);
-}
+import { clearDb, isoDaysFromToday, seedFeedingStage, seedMeal } from './seed';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -29,25 +10,27 @@ test.beforeEach(async ({ page }) => {
 // ── Redirect tests ────────────────────────────────────────────────────────
 
 test('/day/<invalid> redirects to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
   await seedFeedingStage(page);
   await page.goto('/day/not-a-date');
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('/day/<future> redirects to /day/<today> (no future logging)', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
-  const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!;
+test('/day/<future> renders that day (future days are loggable, #654)', async ({ page }) => {
+  const futureDate = isoDaysFromToday(30);
   await seedFeedingStage(page);
   await page.goto(`/day/${futureDate}`);
-  // The day view is a record of what happened — a future day redirects home.
-  await expect(page).toHaveURL(`/day/${today}`);
+  // The day strip now spans past and future edges — a future day is a normal,
+  // fully-loggable day and renders its own view rather than redirecting.
+  await expect(page).toHaveURL(`/day/${futureDate}`);
+  await expect(page.getByTestId('day-strip')).toBeVisible();
+  await expect(page.getByText('Dnešní jídla')).toBeVisible();
 });
 
 test('/day/<before-start> renders that day (the strip may not reach it)', async ({ page }) => {
   // With the protocol range gone, any valid past date renders its own day —
   // a directly-navigated out-of-range day is no longer redirected (PRD #623, §3a).
-  const beforeStart = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0]!;
+  const beforeStart = isoDaysFromToday(-14);
   await seedFeedingStage(page);
   await page.goto(`/day/${beforeStart}`);
   await expect(page).toHaveURL(`/day/${beforeStart}`);
@@ -58,7 +41,7 @@ test('/day/<before-start> renders that day (the strip may not reach it)', async 
 // ── Past-day rendering ────────────────────────────────────────────────────
 
 test('/day/<past> renders day view with day strip', async ({ page }) => {
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = isoDaysFromToday(-3);
   await seedFeedingStage(page);
   await page.goto(`/day/${pastDate}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
@@ -68,7 +51,7 @@ test('/day/<past> renders day view with day strip', async ({ page }) => {
 });
 
 test('/day/<past> does not show a Dnes pill (pill removed)', async ({ page }) => {
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = isoDaysFromToday(-3);
   await seedFeedingStage(page);
   await page.goto(`/day/${pastDate}`);
   await expect(page.getByTestId('dnes-pill')).toHaveCount(0);
@@ -77,7 +60,7 @@ test('/day/<past> does not show a Dnes pill (pill removed)', async ({ page }) =>
 // ── Today-only chrome gating ──────────────────────────────────────────────
 
 test('/day/<today> shows the Dnes heading, no Dnes pill', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
   await seedFeedingStage(page);
   await page.goto(`/day/${today}`);
   await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toBeVisible();
@@ -85,7 +68,7 @@ test('/day/<today> shows the Dnes heading, no Dnes pill', async ({ page }) => {
 });
 
 test('/day/<past> shows the date as the heading, not Dnes', async ({ page }) => {
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = isoDaysFromToday(-3);
   await seedFeedingStage(page);
   await page.goto(`/day/${pastDate}`);
   await expect(page.getByRole('heading', { name: 'Dnes', exact: true })).toHaveCount(0);
@@ -94,8 +77,8 @@ test('/day/<past> shows the date as the heading, not Dnes', async ({ page }) => 
 // ── The today marker is visual only ───────────────────────────────────────
 
 test("today's ring marks today and says nothing about what is logged", async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
-  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
+  const pastDate = isoDaysFromToday(-5);
   await seedFeedingStage(page);
   await seedMeal(page, today);
   await seedMeal(page, pastDate);
@@ -110,7 +93,7 @@ test("today's ring marks today and says nothing about what is logged", async ({ 
 // ── DayStrip navigation ──────────────────────────────────────────────────
 
 test('clicking a strip cell navigates to /day/<cell-date>', async ({ page }) => {
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
+  const pastDate = isoDaysFromToday(-3);
   await seedFeedingStage(page);
   // The strip spans earliest-logged … today; with nothing logged it reaches
   // back only as far as the directly-navigated day. Land on a past day so the
@@ -136,8 +119,8 @@ test('clicking a strip cell navigates to /day/<cell-date>', async ({ page }) => 
 });
 
 test('the "↩ Dnes" header chip navigates back to /day/<today>', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
-  const pastDate = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
+  const pastDate = isoDaysFromToday(-3);
   await seedFeedingStage(page);
   await page.goto(`/day/${pastDate}`);
   // The bottom nav is gone (PRD #623, §3); the header chip is the jump-to-today
@@ -149,7 +132,7 @@ test('the "↩ Dnes" header chip navigates back to /day/<today>', async ({ page 
 // ── No-program state ──────────────────────────────────────────────────────
 
 test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
   // DB already cleared by beforeEach
   await page.goto(`/day/${today}`);
   // Layout redirects to / (onboarding) when schedule DB is empty
@@ -159,7 +142,7 @@ test('/day/<date> redirects to onboarding when DB is empty', async ({ page }) =>
 // ── No protocol surfaces on the day view ──────────────────────────────────
 
 test('/day/<today> shows no "Smím / Vyhýbej se" card', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
   await seedFeedingStage(page);
   await page.goto(`/day/${today}`);
   await expect(page.getByTestId('day-strip')).toBeVisible();
@@ -172,8 +155,8 @@ test('/day/<today> shows no "Smím / Vyhýbej se" card', async ({ page }) => {
 // ── Decoupled scroll-then-tap: scrolling only browses ─────────────────────
 
 test('scrolling the strip only browses — URL and content stay until a tap', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
-  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
+  const pastDate = isoDaysFromToday(-5);
   await seedFeedingStage(page);
   // Log a past meal so the strip spans that day … today even while on today.
   await seedMeal(page, pastDate);
@@ -218,8 +201,8 @@ test('scrolling the strip only browses — URL and content stay until a tap', as
 // ── Browser back preserves navigation ─────────────────────────────────────
 
 test('browser back returns to the previous day after a strip tap', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
-  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
+  const today = isoDaysFromToday(0);
+  const pastDate = isoDaysFromToday(-5);
   await seedFeedingStage(page);
   // Log a past meal so the strip spans that day … today.
   await seedMeal(page, pastDate);
@@ -252,9 +235,10 @@ test('browser back returns to the previous day after a strip tap', async ({ page
 // ── The earliest cell selects its own date, no jump-to-today ───────────────
 
 test('clicking the earliest logged cell selects that date (no jump-to-today)', async ({ page }) => {
-  // The strip spans earliest-logged … today. A meal logged five days ago is the
-  // strip's earliest cell — clicking it must navigate to that day.
-  const earliest = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
+  // The strip spans min(today − 7d, earliest-logged) … today. A meal logged
+  // well outside the ±7d floor is the strip's earliest cell — clicking it must
+  // navigate to that day.
+  const earliest = isoDaysFromToday(-20);
   await seedFeedingStage(page);
   await seedMeal(page, earliest);
 
