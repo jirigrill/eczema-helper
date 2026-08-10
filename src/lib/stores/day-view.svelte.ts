@@ -31,14 +31,12 @@ export function createDayView(getParam: () => string, today: string): DayView {
   const earliestLoggedStore = fromStore(createEarliestLoggedStore());
 
   // The live settings master switch is the sole source of feedingStage (#567).
-  // `settings.feedingStage != null` is also the app's seeded signal (PRD #623,
-  // §3): it gates resolveDay below (the day route holds on today until the
-  // mother is set up; the root layout owns the redirect to first run). Reading
-  // through the shared `settingsStore` getter keeps the "feeding stage or null"
-  // derivation in one place rather than re-deriving it against the raw context.
+  // `settingsStore.status === 'seeded'` is also the app's seeded signal (PRD
+  // #623, §3): it gates resolveDay below (the day route holds on today until
+  // the mother is set up; the root layout owns the redirect to first run).
   const feedingStage = $derived(settingsStore.feedingStage);
 
-  const resolved = $derived(resolveDay(getParam(), feedingStage != null, today));
+  const resolved = $derived(resolveDay(getParam(), settingsStore.status === 'seeded', today));
   const selectedDate = $derived(resolved.selectedDate);
   const redirectTo = $derived(resolved.redirectTo);
 

@@ -5,7 +5,7 @@
 
   useRegisterSW({ immediate: true });
   import { goto } from '$app/navigation';
-  import { seededStatus } from '$lib/stores/settings.svelte';
+  import { settingsStore } from '$lib/stores/settings.svelte';
   import FabActionSheet from '$lib/components/FabActionSheet.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import { commonStrings } from '$lib/strings/common';
@@ -21,7 +21,7 @@
 
   let { children } = $props();
 
-  const seeded = $derived($seededStatus);
+  const seeded = $derived(settingsStore.status);
   const currentPath = $derived($page.url.pathname);
   const isOnboarding = $derived(currentPath === '/');
   const isDetailScreen = $derived(

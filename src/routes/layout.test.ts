@@ -11,12 +11,12 @@ import type { Meal } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { type WorkingMeal, emptyWorkingMeal } from '$lib/domain/working-meal';
 import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buffer';
-import type { SeededStatus } from '$lib/stores/settings.svelte';
+import type { SettingsState } from '$lib/stores/settings-context';
 
 const meals = new DexieMealRepository(db);
 
 const mockGoto = vi.fn();
-const mockSeededStatus = writable<SeededStatus>('loading');
+const mockSettingsState = writable<SettingsState>({ status: 'loading' });
 const mockPageStore = writable({
   url: new URL(`http://localhost/day/${new Date().toISOString().split('T')[0]}`),
   params: { date: new Date().toISOString().split('T')[0] },
@@ -25,8 +25,8 @@ const mockPageStore = writable({
 
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }));
-vi.mock('$lib/stores/settings.svelte', () => ({
-  seededStatus: { subscribe: mockSeededStatus.subscribe },
+vi.mock('$lib/stores/settings-context', () => ({
+  settingsContext: { subscribe: mockSettingsState.subscribe },
 }));
 
 /** Extract the numeric value from a Tailwind `z-N` (or `z-[N]`) utility class. */
@@ -50,7 +50,7 @@ async function renderLayout() {
 
 beforeEach(() => {
   mockGoto.mockReset();
-  mockSeededStatus.set('loading');
+  mockSettingsState.set({ status: 'loading' });
   mockPageStore.set({
     url: new URL(`http://localhost/day/${today}`),
     params: { date: today },
@@ -60,7 +60,7 @@ beforeEach(() => {
 
 describe('+layout.svelte — redirect', () => {
   it('calls goto("/") when the feeding stage is unset and not on first run', async () => {
-    mockSeededStatus.set('unset');
+    mockSettingsState.set({ status: 'unset' });
     await renderLayout();
     await tick();
     expect(mockGoto).toHaveBeenCalledWith('/');
@@ -68,7 +68,7 @@ describe('+layout.svelte — redirect', () => {
 
   it('does not call goto when already on the first-run route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('unset');
+    mockSettingsState.set({ status: 'unset' });
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
@@ -76,14 +76,14 @@ describe('+layout.svelte — redirect', () => {
 
   it('calls goto("/day/<today>") when seeded and landing on first run (issue #353)', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     await renderLayout();
     await tick();
     expect(mockGoto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
   it('does not call goto when seeded and already on a non-root route', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('+layout.svelte — redirect', () => {
 
   it('does not call goto while the seeded signal is still loading, even on first run', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('loading');
+    mockSettingsState.set({ status: 'loading' });
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
@@ -100,7 +100,7 @@ describe('+layout.svelte — redirect', () => {
 
 describe('+layout.svelte — FAB visibility', () => {
   it('hides the FAB when the feeding stage is unset', async () => {
-    mockSeededStatus.set('unset');
+    mockSettingsState.set({ status: 'unset' });
     // Render off-root so the unset redirect to / does not remove the shell.
     mockPageStore.set({ url: new URL('http://localhost/day/x'), params: { date: 'x' }, data: {} });
     const { container } = await renderLayout();
@@ -110,14 +110,14 @@ describe('+layout.svelte — FAB visibility', () => {
 
   it('hides the FAB on the first-run route even when seeded', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
     expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
   it('shows the FAB when seeded on a day route', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
     expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('+layout.svelte — FAB visibility', () => {
 
   it('hides the FAB on /meal route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/meal'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
     expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
@@ -137,7 +137,7 @@ describe('+layout.svelte — FAB visibility', () => {
       params: { date: '' },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
     expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
@@ -145,14 +145,14 @@ describe('+layout.svelte — FAB visibility', () => {
 
   it('hides the FAB on /skin route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/skin'), params: { date: '' }, data: {} });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
     expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
   it('renders no bottom navigation bar', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container, queryByText } = await renderLayout();
     await tick();
     // The single-screen shell (PRD #623, §3) has no nav bar and no Týden tab.
@@ -167,14 +167,14 @@ describe('+layout.svelte — FAB visibility', () => {
       params: { date: future },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
     expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeInTheDocument();
   });
 
   it('clicking the FAB opens the action sheet', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container, getByText } = await renderLayout();
     await tick();
     const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
@@ -189,7 +189,7 @@ describe('+layout.svelte — FAB visibility', () => {
       params: { date: '2025-01-15' },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container, getByTestId } = await renderLayout();
     await tick();
     const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
@@ -219,7 +219,7 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
   }
 
   it('FAB sits above the discard toast when both are visible', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     discardBuffer.set({
       kind: 'meal-compose',
       workingMeal: sampleWorkingMeal,
@@ -241,7 +241,7 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
   });
 
   it('action sheet still covers the FAB when opened (modal layer outranks FAB)', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
 
@@ -265,7 +265,7 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
   // mid-scroll. The layout must reset that container to the top on every
   // navigation.
   it('resets the main scroll container to top when the route changes', async () => {
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
 
@@ -293,7 +293,7 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
       params: { date: '2025-01-15' },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     const { container } = await renderLayout();
     await tick();
 
@@ -323,7 +323,7 @@ describe('+layout.svelte — discard toast undo', () => {
       params: { date: pastDate },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     writeBuffer({
       kind: 'meal-delete',
       workingMeal: emptyWorkingMeal(),
@@ -350,7 +350,7 @@ describe('+layout.svelte — discard toast undo', () => {
       params: { date },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
     // A baby meal was deleted; the buffer records actor: 'baby'. Without the
     // actor in the undo URL the return navigation defaulted to 'mother' and
     // clobbered the mother's row (the reported dual-actor bug).
@@ -385,7 +385,7 @@ describe('+layout.svelte — copy-meal undo (issue #606)', () => {
       params: { date },
       data: {},
     });
-    mockSeededStatus.set('seeded');
+    mockSettingsState.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
   });
 
   it('shows the "Zkopírováno" toast for a meal-copy descriptor', async () => {

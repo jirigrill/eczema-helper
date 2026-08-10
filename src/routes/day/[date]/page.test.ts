@@ -15,8 +15,15 @@ vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 const mockPage = { params: { date: '2025-06-01' } };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
-const mockSettings = writable<{ feedingStage: 'breastfed' | 'mixed' | 'solids' } | null>({
-  feedingStage: 'breastfed',
+type FeedingStage = 'breastfed' | 'mixed' | 'solids';
+type MockSettingsState =
+  | { status: 'loading' }
+  | { status: 'unset' }
+  | { status: 'seeded'; settings: { feedingStage: FeedingStage } };
+
+const mockSettings = writable<MockSettingsState>({
+  status: 'seeded',
+  settings: { feedingStage: 'breastfed' },
 });
 vi.mock('$lib/stores/settings-context', () => ({
   settingsContext: { subscribe: mockSettings.subscribe },
@@ -101,7 +108,7 @@ const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')
 
 beforeEach(() => {
   mockGoto.mockReset();
-  mockSettings.set({ feedingStage: 'breastfed' });
+  mockSettings.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
   mockPage.params.date = pastDate;
   liveMeals = [];
   liveObservations = [];
@@ -426,7 +433,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
   describe('dual-actor meal slots (#570)', () => {
     it('mixed stage: a slot with both actors logged renders per-actor rows', async () => {
       mockPage.params.date = today;
-      mockSettings.set({ feedingStage: 'mixed' });
+      mockSettings.set({ status: 'seeded', settings: { feedingStage: 'mixed' } });
       liveMeals = [
         {
           id: `${today}:lunch:mother`,
@@ -454,7 +461,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
 
     it('mixed stage: one actor empty shows a "+" on that row, "›" on the logged row', async () => {
       mockPage.params.date = today;
-      mockSettings.set({ feedingStage: 'mixed' });
+      mockSettings.set({ status: 'seeded', settings: { feedingStage: 'mixed' } });
       liveMeals = [
         {
           id: `${today}:lunch:mother`,
@@ -479,7 +486,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
 
     it('mixed stage: a filled actor row links to its own actor slot', async () => {
       mockPage.params.date = today;
-      mockSettings.set({ feedingStage: 'mixed' });
+      mockSettings.set({ status: 'seeded', settings: { feedingStage: 'mixed' } });
       liveMeals = [
         {
           id: `${today}:lunch:mother`,
@@ -507,7 +514,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
 
     it('mixed stage: an empty actor row links to that empty actor slot', async () => {
       mockPage.params.date = today;
-      mockSettings.set({ feedingStage: 'mixed' });
+      mockSettings.set({ status: 'seeded', settings: { feedingStage: 'mixed' } });
       liveMeals = [
         {
           id: `${today}:lunch:mother`,
@@ -526,7 +533,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
 
     it('breastfed stage: the slot collapses to a single row with no actor sub-rows', async () => {
       mockPage.params.date = today;
-      mockSettings.set({ feedingStage: 'breastfed' });
+      mockSettings.set({ status: 'seeded', settings: { feedingStage: 'breastfed' } });
       liveMeals = [
         {
           id: `${today}:lunch:mother`,
@@ -547,7 +554,7 @@ describe('/day/[date] page — content (ported from today/page.test.ts)', () => 
 
     it('solids stage: the slot collapses to a single row driven by the baby-only eligible set', async () => {
       mockPage.params.date = today;
-      mockSettings.set({ feedingStage: 'solids' });
+      mockSettings.set({ status: 'seeded', settings: { feedingStage: 'solids' } });
       liveMeals = [
         {
           id: `${today}:lunch:baby`,
