@@ -65,8 +65,9 @@ type MealRepository = {
 ```
 
 `earliestLoggedDate` (PRD #623 §3a) is an index-ordered first-key lookup — `null` when
-nothing is logged — feeding the day strip's `earliest logged day … today` range. Live
-reactive reads for today are handled by `mealSession` in `src/lib/stores/`.
+nothing is logged — feeding the day strip's past edge (its future edge is a fixed
+today + 7d, #654). Live reactive reads for today are handled by `mealSession` in
+`src/lib/stores/`.
 
 ### `SkinObservationRepository` — `src/lib/domain/ports/skin-observation-repository.ts`
 
@@ -79,7 +80,8 @@ type SkinObservationRepository = {
 ```
 
 List-shaped port. Multiple observations may exist per calendar day. `earliestLoggedDate`
-(PRD #623 §3a) mirrors the meal port's method; the day view unions the two. Live reactive reads are handled by `skinObservationSession` in `src/lib/stores/`.
+(PRD #623 §3a) mirrors the meal port's method; the day view
+unions the two. Live reactive reads are handled by `skinObservationSession` in `src/lib/stores/`.
 
 ### `SkinPhotoStore` — `src/lib/domain/ports/skin-photo-store.ts`
 

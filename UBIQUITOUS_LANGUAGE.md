@@ -460,9 +460,10 @@ The stage stays editable in `/settings`.
 The single day layout, rendered for any date by `/day/[date]`. **Today** is just the
 instance where the selected date equals `todayIso()`; there is no separate past-day
 design. Contains: `DayStrip`, the three record cards (skin status, photos, meals), and
-an add affordance (the FAB). The mother reaches past days by scrolling the `DayStrip`
-and tapping a cell; she can backfill or edit those days to the same parity as today
-(meals overwrite per slot; skin observations and photos add-only — no delete yet).
+an add affordance (the FAB). The mother reaches past and future days by scrolling the
+`DayStrip` and tapping a cell; she can log, backfill, or edit any of those days to the
+same parity as today (meals overwrite per slot; skin observations and photos add-only —
+no delete yet).
 Return-to-today is the `↩ Dnes` header chip. Today and past days carry the same
 chrome — the layout shows historical facts only, with no today-only prompt row.
 The data path is reactive per selected date (date-scoped session-store factories), see
@@ -486,20 +487,37 @@ A bottom-sheet component (`src/lib/components/ConfirmSheet.svelte`) for destruct
 
 A horizontally scrollable, **continuous** strip of day cells spanning the mother's
 history rather than a plan: from her **earliest logged day** (the earlier of the first
-meal and the first skin observation, live-subscribed) through **today**, with no future
-cells. Its input is `{ selectedDate, earliestLogged, today }` and the range is
-`min(earliestLogged ?? today, selectedDate) … today`; clamping the start to `selectedDate`
-keeps a directly-navigated earlier day rendering its own cell. With nothing logged the
-strip is the single cell **today**, and it grows the instant an earlier day is logged.
-Selecting a day flags it **in place** — the strip does not reshuffle around the selection.
-**Today** carries a permanent ring marker in its own slot when it is not the selected
-cell — a **purely visual** "this one is today", carrying no record state; when today
-*is* selected, the primary-filled cell marks it and the ring is not rendered. There is
-no "Dnes" pill and no in-strip return-to-today control — return-to-today is the `↩ Dnes`
-header chip (below). Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …)
-and day number; today additionally carries the ring marker described above. The selected
-cell is highlighted in the primary color. The strip renders no per-day logging state:
-its props are `{ cells, today, onselectdate }`.
+meal and the first skin observation, live-subscribed) to a fixed week past today. Its
+input is `{ selectedDate, earliestLogged, today }` and the range is
+`min(today − 7d, earliestLogged, selectedDate) … max(today + 7d, selectedDate)`
+(issue #654). A ±7-day window around today is always present as a **floor**, so logged
+data only ever *extends* the **past** edge outward; the future edge is **fixed at
+today + 7d** — future-dated entries never push it further. Clamping both ends to
+`selectedDate` keeps a directly-navigated out-of-range day (past or future) rendering its
+own cell. With nothing logged the strip is a symmetric **15-cell** window (today ± 7d),
+and it grows the instant an earlier day is logged. **Future days are ordinary,
+fully-loggable days** — not read-only previews. Selecting a day flags it **in place** —
+the strip does not reshuffle around the selection. **Today** carries a permanent ring
+marker in its own slot when it is not the selected cell — a **purely visual** "this one is
+today", carrying no record state; when today *is* selected, the primary-filled cell marks
+it and the ring is not rendered. There is no "Dnes" pill, no in-strip return-to-today
+control, and no jump-to-start control — return-to-today is the `↩ Dnes` header chip
+(below). Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …) and day number;
+today additionally carries the ring marker described above. The selected cell is
+highlighted in the primary color. The strip renders no per-day logging state: its props
+are `{ cells, today, onselectdate }`.
+
+### earliest logged day
+*Czech: nejstarší zapsaný den*
+
+The earliest date of the mother's logged history — the earlier of the first meal and the
+first skin observation across the two repositories, live-subscribed via `liveQuery`.
+Backed by `earliestLoggedDate()` on the meal and skin-observation ports (index-ordered
+`orderBy('date').first()`), reduced by the pure `earlierLoggedDate` core, and exposed as
+the `earliestLoggedStore` app-wide singleton. It bounds the `DayStrip` past edge (above);
+the future edge is a fixed today + 7d and needs no logged-data boundary. Photos never
+widen the boundary alone — a photo implies a parent skin observation on that day, already
+counted.
 
 ### SeverityDot
 *Czech: Puntík závažnosti*

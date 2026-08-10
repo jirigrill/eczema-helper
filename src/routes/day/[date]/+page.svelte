@@ -38,7 +38,11 @@
   const isToday = $derived(selectedDate === today);
 
   const dayStrip = $derived(
-    computeDayStrip({ selectedDate, earliestLogged: view.earliestLogged, today }),
+    computeDayStrip({
+      selectedDate,
+      earliestLogged: view.earliestLogged,
+      today,
+    }),
   );
 
   // Imperative handle into the DayStrip — the "↩ Dnes" header chip pulses a

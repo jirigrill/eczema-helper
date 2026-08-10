@@ -77,7 +77,9 @@ const tagged = (tag: string, rows: () => { date: string }[]) => ({
   where: () => ({
     equals: () => ({ toArray: () => ({ __tag: tag }) }),
   }),
-  orderBy: () => ({ first: () => Promise.resolve(earliestOf(rows())) }),
+  orderBy: () => ({
+    first: () => Promise.resolve(earliestOf(rows())),
+  }),
 });
 vi.mock('$lib/db/atopic-db', () => ({
   db: {
@@ -255,15 +257,12 @@ describe('/day/[date] page', () => {
   });
 
   describe('redirect on invalid param', () => {
-    it('redirects a future date to today (no future logging)', async () => {
+    it('does NOT redirect a future date — future days are loggable (#654)', async () => {
       mockPage.params.date = futureDate;
       const { default: DayPage } = await import('./+page.svelte');
       render(DayPage);
       await tick();
-      expect(mockGoto).toHaveBeenCalledWith(
-        expect.stringContaining('/day/'),
-        expect.objectContaining({ replaceState: true }),
-      );
+      expect(mockGoto).not.toHaveBeenCalled();
     });
 
     it('calls goto with today when param is a malformed string', async () => {

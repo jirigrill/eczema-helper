@@ -31,15 +31,15 @@ describe('resolveDay', () => {
     });
   });
 
-  describe('seeded, future date — redirects to today (no future preview)', () => {
-    it('redirects a far-future date to today', () => {
+  describe('seeded, future date — renders its own day (future is loggable, #654)', () => {
+    it('renders a far-future date rather than redirecting', () => {
       const result = resolveDay(futureDate, true, today);
-      expect(result).toEqual({ selectedDate: today, redirectTo: today });
+      expect(result).toEqual({ selectedDate: futureDate, redirectTo: null });
     });
 
-    it('redirects the day immediately after today to today', () => {
+    it('renders the day immediately after today', () => {
       const result = resolveDay('2025-06-11', true, today);
-      expect(result).toEqual({ selectedDate: today, redirectTo: today });
+      expect(result).toEqual({ selectedDate: '2025-06-11', redirectTo: null });
     });
   });
 

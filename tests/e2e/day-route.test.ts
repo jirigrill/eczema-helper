@@ -35,13 +35,15 @@ test('/day/<invalid> redirects to /day/<today>', async ({ page }) => {
   await expect(page).toHaveURL(`/day/${today}`);
 });
 
-test('/day/<future> redirects to /day/<today> (no future logging)', async ({ page }) => {
-  const today = new Date().toISOString().split('T')[0]!;
+test('/day/<future> renders that day (future days are loggable, #654)', async ({ page }) => {
   const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!;
   await seedFeedingStage(page);
   await page.goto(`/day/${futureDate}`);
-  // The day view is a record of what happened — a future day redirects home.
-  await expect(page).toHaveURL(`/day/${today}`);
+  // The day strip now spans past and future edges — a future day is a normal,
+  // fully-loggable day and renders its own view rather than redirecting.
+  await expect(page).toHaveURL(`/day/${futureDate}`);
+  await expect(page.getByTestId('day-strip')).toBeVisible();
+  await expect(page.getByText('Dnešní jídla')).toBeVisible();
 });
 
 test('/day/<before-start> renders that day (the strip may not reach it)', async ({ page }) => {
@@ -252,9 +254,10 @@ test('browser back returns to the previous day after a strip tap', async ({ page
 // ── The earliest cell selects its own date, no jump-to-today ───────────────
 
 test('clicking the earliest logged cell selects that date (no jump-to-today)', async ({ page }) => {
-  // The strip spans earliest-logged … today. A meal logged five days ago is the
-  // strip's earliest cell — clicking it must navigate to that day.
-  const earliest = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]!;
+  // The strip spans min(today − 7d, earliest-logged) … today. A meal logged
+  // well outside the ±7d floor is the strip's earliest cell — clicking it must
+  // navigate to that day.
+  const earliest = new Date(Date.now() - 20 * 86400000).toISOString().split('T')[0]!;
   await seedFeedingStage(page);
   await seedMeal(page, earliest);
 

@@ -990,10 +990,11 @@
   <div class="component-section" id="daystrip">
     <p class="component-label">▸ <span>DayStrip</span> — cells: DayStripCell[], today: string, onselectdate: (date) => void</p>
 
-    <!-- Variant: today selected. Strip spans earliest-logged … today, no future cells.
-         Today selected renders the ordinary selected dot — no separate today ring. -->
+    <!-- Variant: today selected. Strip spans min(today-7d, earliest) ... today+7d,
+         a fixed week of future cells (issue #654). Today selected renders the ordinary
+         selected dot — no separate today ring. -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">Today selected — the primary-filled cell marks today, no ring</p>
+      <p class="variant-name">Today selected — the primary-filled cell marks today, future cells to +7d (no ring)</p>
       <div class="px-3 pb-3">
         <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">28</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
@@ -1001,13 +1002,15 @@
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Pá</span><span class="text-sm font-semibold">30</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">So</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white/30"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">St</span><span class="text-sm font-semibold">5</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
 
-    <!-- Variant: past day selected — today carries its ring marker. Today is the last cell (no future days). -->
+    <!-- Variant: past day selected — today carries its ring marker, and future cells extend to today+7d. -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">Past day selected — today shows its ring marker (hollow centre, no record state)</p>
+      <p class="variant-name">Past day selected — today shows its ring marker (hollow centre); future cells to +7d</p>
       <div class="px-3 pb-3">
         <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Čt</span><span class="text-sm font-semibold">29</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
@@ -1015,16 +1018,21 @@
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">So</span><span class="text-sm font-semibold">1</span><span class="w-1.5 h-1.5 rounded-full bg-white/30 ring-1 ring-white"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Ne</span><span class="text-sm font-semibold">2</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-primary bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">4</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
 
-    <!-- Variant: nothing logged — the strip is the single cell today. -->
+    <!-- Variant: nothing logged — a symmetric 15-cell window, today ± 7d (issue #654); ends abbreviated. -->
     <div class="variant-tile" style="max-width: 340px;">
-      <p class="variant-name">Nothing logged — single cell today (selected)</p>
+      <p class="variant-name">Nothing logged — symmetric window today ± 7d (today selected)</p>
       <div class="px-3 pb-3">
         <div class="flex gap-1 overflow-x-auto -mx-3 px-3" style="scrollbar-width: none;">
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Út</span><span class="text-sm font-semibold">27</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">…</span><span class="text-sm font-semibold">·</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
           <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg bg-primary text-white"><span class="text-[10px] uppercase opacity-80">Po</span><span class="text-sm font-semibold">3</span><span class="w-1.5 h-1.5 rounded-full ring-1 ring-white bg-white/30"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">…</span><span class="text-sm font-semibold">·</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
+          <button class="shrink-0 w-10 flex flex-col items-center gap-1 py-2 rounded-lg text-text-muted"><span class="text-[10px] uppercase">Po</span><span class="text-sm font-semibold">10</span><span class="w-1.5 h-1.5 rounded-full bg-transparent"></span></button>
         </div>
       </div>
     </div>
