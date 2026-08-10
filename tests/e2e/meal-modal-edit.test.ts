@@ -14,95 +14,9 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, startLogging } from './seed';
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page) {
-  // Seed the post-onboarding state directly into IndexedDB instead of clicking
-  // through the wizard — equivalent result (reset phase from today, no tested
-  // allergens), far faster. The onboarding flow itself is covered by the
-  // onboarding-summary + questionnaire-* tests.
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
-
-async function seedDairyElimination(page: Page) {
-  await page.evaluate(async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: today,
-      completedAt: new Date().toISOString(),
-      testedAllergens: ['dairy'],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: today,
-      estimatedEndDate: future,
-      phases: [{
-        id: 'elim-dairy',
-        type: 'elimination',
-        allergenIds: ['dairy'],
-        startDate: today,
-        endDate: future,
-      }],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  });
-}
 
 /** Open /meal and drill into the Zelenina (vegetables) family. */
 async function openMealAndDrillVegetables(page: Page) {
@@ -119,7 +33,7 @@ async function openMealAndDrillVegetables(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await clearDb(page);
-  await completeOnboarding(page);
+  await startLogging(page);
 });
 
 // ── AC1: tapping food → editing + FoodEditor expands + others locked ──────────
@@ -479,23 +393,6 @@ test('AC11: grid back arrow (‹) navigates to returnTo', async ({ page }) => {
 
 
 
-// ── AC12 (partial — runtime side): eliminated foods marked with danger ────────
-
-test('eliminated allergen foods show danger state in drill-in', async ({ page }) => {
-  await seedDairyElimination(page);
-  await page.reload({ waitUntil: 'networkidle' });
-
-  const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-
-  // Drill into dairy
-  await page.getByRole('button', { name: /Mléko/ }).first().click();
-
-  // Kravské mléko should have danger styling
-  const dangerTile = page.locator('div[data-state="danger"]').filter({ hasText: /Kravské mléko/ });
-  await expect(dangerTile).toBeVisible();
-});
-
 // ── AC245: editable working-list rows on the grid ────────────────────────────
 
 /** Bring a food to the working-list and return to the grid. */
@@ -673,44 +570,6 @@ test('grid: opening one row editor keeps all other working-list foods visible', 
 
   // Brambory must remain visible (was not the food being edited)
   await expect(page.getByRole('button', { name: 'Brambory', exact: true })).toBeVisible();
-});
-
-test('grid: CTA is red when saving a family that has a confirmed eliminated food', async ({ page }) => {
-  await seedDairyElimination(page);
-  await page.reload({ waitUntil: 'networkidle' });
-
-  const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-
-  // Drill into dairy, confirm a food — now in "Uložit Mléko" state
-  await page.getByRole('button', { name: /Mléko/ }).first().click();
-  await page.getByRole('button', { name: /Kravské mléko/ }).click();
-  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
-
-  // CTA should be red (bg-danger class applied)
-  const cta = page.getByRole('button', { name: /Uložit Mléko/ });
-  await expect(cta).toBeVisible();
-  await expect(cta).toHaveClass(/bg-danger/);
-});
-
-test('grid: confirmed eliminated food row shows amount in white text', async ({ page }) => {
-  await seedDairyElimination(page);
-  await page.reload({ waitUntil: 'networkidle' });
-
-  const today = new Date().toISOString().split('T')[0];
-  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
-
-  // Commit a dairy food to the working list
-  await page.getByRole('button', { name: /Mléko/ }).first().click();
-  await page.getByRole('button', { name: /Kravské mléko/ }).click();
-  await page.getByRole('button', { name: /Uložit Kravské mléko/ }).click();
-  await page.getByRole('button', { name: /Uložit Mléko/ }).click();
-
-  await expect(page.getByText('Přidané potraviny')).toBeVisible();
-
-  // The amount span inside the danger-confirmed row must carry the white-text class
-  const amountSpan = page.locator('[data-state="danger-confirmed"] span.text-white');
-  await expect(amountSpan).toBeVisible();
 });
 
 // ── Issue #300: working-list parity + locked-confirmed ──────────────────────

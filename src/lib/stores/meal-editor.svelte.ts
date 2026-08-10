@@ -1,11 +1,6 @@
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
-import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { db } from '$lib/db/atopic-db';
 import { snapshotOf, snapshotsEqual } from '$lib/domain/meal-dirtiness';
 import type { MealSnapshot } from '$lib/domain/meal-dirtiness';
-import type { Actor, AllergenId, MealItem, MealType, PortionKind } from '$lib/domain/models';
-import { detectConflicts } from '$lib/domain/schedule-queries';
+import type { Actor, MealType } from '$lib/domain/models';
 import {
   allConfirmedFoods,
   emptyWorkingMeal,
@@ -15,17 +10,18 @@ import {
 } from '$lib/domain/working-meal';
 import type { WorkingMeal } from '$lib/domain/working-meal';
 import type { DiscardedMeal, MealDiscardKind } from '$lib/stores/discard-buffer';
+import { mealRepository } from '$lib/stores/meal-session';
 import type { Result } from '$lib/types/result';
 
 /**
  * MealEditor (PRD #284, slice #285) — owns the meal editing lifecycle from
  * `open` to `finalize`. The route delegates load/save here; dirtiness, discard
- * descriptor, undo, and conflict surface land in later slices.
+ * descriptor, and undo land in later slices.
  *
  * Mirrors the shape of `day-view.svelte.ts` (`createDayView`), extended from
  * read-only projection to read-write editing. Persistence reaches Dexie via
- * a `DexieMealRepository` constructed inside `createMealEditor()`; no port
- * is injected.
+ * the shared `mealRepository` owned by `stores/meal-session.ts`; no port is
+ * injected.
  *
  * Notes-on-meal (#277) live inside `WorkingMeal.notes` — the editor never
  * touches notes directly; `finalize({notes})` writes whatever the route
@@ -84,27 +80,7 @@ export type MealEditor = {
    * (sub-CTAs are gated separately).
    */
   readonly canFinalize: boolean;
-  /**
-   * The set of food ids in the working meal (confirmed or editing) that
-   * touch an eliminated allergen for today. Computed by calling the shared
-   * `detectConflicts` over the editor's own foods using the elimination
-   * window injected via `open(slot, eliminatedToday)`.
-   *
-   * The route builds its view-specific danger flags
-   * (`editingFoodIsEliminated`, `familySaveHasEliminated`, per-row danger
-   * styling, the warning banner, the red CTA) on top of this set.
-   */
-  readonly eliminatedFoodIds: Set<string>;
-  /** True iff `eliminatedFoodIds` is non-empty. */
-  readonly hasConflicts: boolean;
-  open(slot: MealSlot, eliminatedToday?: AllergenId[]): Promise<void>;
-  /**
-   * Update the elimination window after `open`/`applyUndo` (e.g. when the
-   * schedule loads asynchronously and the route's `eliminatedToday` flips
-   * from `[]` to its real value). Keeps `eliminatedFoodIds` / `hasConflicts`
-   * in sync without re-loading the meal.
-   */
-  setEliminatedToday(eliminatedToday: AllergenId[]): void;
+  open(slot: MealSlot): Promise<void>;
   update(fn: (m: WorkingMeal) => WorkingMeal): void;
   /**
    * Decide what (if anything) the next discard buffer should contain.
@@ -116,7 +92,7 @@ export type MealEditor = {
    *
    * With `'delete'`, returns `{ kind: 'meal-delete', workingMeal }` regardless of
    * dirtiness — delete is an explicit user action the editor cannot infer
-   * (the route calls this after `meals.remove()` succeeds, threading
+   * (the route calls this after `mealRepository.remove()` succeeds, threading
    * the captured working meal into the buffer for undo).
    *
    * The returned `workingMeal` always carries the live `editor.notes` so
@@ -137,14 +113,10 @@ export type MealEditor = {
    *                 fresh compose-new (mints a new `createdAt`).
    *  - `'meal-compose'`→ slot was empty before; still compose-new.
    *
-   * `eliminatedToday` is the same value the route passes to `open` and
-   * repopulates `eliminatedFoodIds` / `hasConflicts` on the undo mount, so
-   * the per-food danger styling and red CTA reappear (issue #299).
-   *
    * Slot is passed explicitly because the route owns the URL and the page
    * is freshly mounted on undo navigation (the editor has no slot yet).
    */
-  applyUndo(slot: MealSlot, buffer: DiscardedMeal, eliminatedToday?: AllergenId[]): Promise<void>;
+  applyUndo(slot: MealSlot, buffer: DiscardedMeal): Promise<void>;
   finalize(opts?: FinalizeOptions): Promise<Result<FinalizeOutcome, string>>;
   /**
    * Swap the active actor mid-compose (the `mixed`-stage pill-tap, PRD #564 /
@@ -162,12 +134,10 @@ export type MealEditor = {
    * failing Result is returned so the caller surfaces the error via the CTA's
    * existing error path. On success returns `{ ok: true }`.
    */
-  swapActor(target: MealSlot, eliminatedToday?: AllergenId[]): Promise<Result<void, string>>;
+  swapActor(target: MealSlot): Promise<Result<void, string>>;
 };
 
 export function createMealEditor(): MealEditor {
-  const catalog = new BundledCatalogAdapter();
-  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
   let workingMeal = $state<WorkingMeal>(emptyWorkingMeal());
   let editingExisting = $state(false);
   let slot = $state<MealSlot | null>(null);
@@ -187,11 +157,6 @@ export function createMealEditor(): MealEditor {
    * must restore the *loaded* foods, not the emptied working list.
    */
   let loadedWorkingMeal = $state<WorkingMeal | null>(null);
-  /**
-   * Today's elimination window injected by the route; defaults to empty so
-   * an editor opened without a window simply reports no conflicts.
-   */
-  let eliminatedToday = $state<AllergenId[]>([]);
 
   const dirty = $derived(
     loadSnapshot === null
@@ -205,32 +170,10 @@ export function createMealEditor(): MealEditor {
   // finalizes whenever it is dirty — including when it was emptied, because
   // emptying now deletes the meal (issue #588, reversing #586's no-op rule).
   const canFinalize = $derived(editingExisting ? dirty : hasConfirmedFood);
-  /**
-   * All working-list foods that touch an eliminated allergen — computed via
-   * the shared `detectConflicts`, so swapping that function later requires
-   * no change here beyond the call site itself. Includes both `confirmed`
-   * and `editing` foods so the route can flag a row before the user
-   * confirms it (per-row danger styling).
-   */
-  const eliminatedFoodIds = $derived.by(() => {
-    if (eliminatedToday.length === 0) return new Set<string>();
-    const activeFoods = workingMeal.families.flatMap((fam) =>
-      fam.foods.filter((f) => f.state.status === 'confirmed' || f.state.status === 'editing'),
-    );
-    const items: MealItem[] = activeFoods.map((f) => ({
-      id: f.foodId,
-      name: f.name,
-      foodId: f.foodId as MealItem['foodId'],
-      amount: 'portion' as PortionKind,
-    }));
-    return new Set(detectConflicts(items, eliminatedToday, catalog).map((c) => c.foodId as string));
-  });
-  const hasConflicts = $derived(eliminatedFoodIds.size > 0);
 
-  async function open(next: MealSlot, eliminatedTodayArg: AllergenId[] = []): Promise<void> {
+  async function open(next: MealSlot): Promise<void> {
     slot = next;
-    eliminatedToday = eliminatedTodayArg;
-    const result = await meals.loadBySlot(next.date, next.mealType, next.actor);
+    const result = await mealRepository.loadBySlot(next.date, next.mealType, next.actor);
     if (result.ok && result.data) {
       workingMeal = fromMealItems(result.data.items, result.data.notes ?? '');
       editingExisting = true;
@@ -250,10 +193,6 @@ export function createMealEditor(): MealEditor {
 
   function update(fn: (m: WorkingMeal) => WorkingMeal): void {
     workingMeal = fn(workingMeal);
-  }
-
-  function setEliminatedToday(next: AllergenId[]): void {
-    eliminatedToday = next;
   }
 
   function discardDescriptor(
@@ -287,13 +226,8 @@ export function createMealEditor(): MealEditor {
     return isNonEmpty(workingMeal) ? { kind: 'meal-compose', workingMeal: snapshot } : null;
   }
 
-  async function applyUndo(
-    next: MealSlot,
-    buffer: DiscardedMeal,
-    eliminatedTodayArg: AllergenId[] = [],
-  ): Promise<void> {
+  async function applyUndo(next: MealSlot, buffer: DiscardedMeal): Promise<void> {
     slot = next;
-    eliminatedToday = eliminatedTodayArg;
     workingMeal = buffer.workingMeal;
     notes = buffer.workingMeal.notes;
     if (buffer.kind === 'meal-edit') {
@@ -304,7 +238,7 @@ export function createMealEditor(): MealEditor {
       // disabling save and silently dropping the food on the next back-out
       // (issue #299).
       editingExisting = true;
-      const res = await meals.loadBySlot(next.date, next.mealType, next.actor);
+      const res = await mealRepository.loadBySlot(next.date, next.mealType, next.actor);
       if (res.ok && res.data) {
         loadedCreatedAt = res.data.createdAt;
         const persistedMeal = fromMealItems(res.data.items, res.data.notes ?? '');
@@ -336,21 +270,18 @@ export function createMealEditor(): MealEditor {
       // compose-new (nothing was ever persisted) there is nothing to remove,
       // so it stays a no-op.
       if (editingExisting) {
-        const removed = await meals.remove(slot.date, slot.mealType, slot.actor);
+        const removed = await mealRepository.remove(slot.date, slot.mealType, slot.actor);
         if (!removed.ok) return removed;
         return { ok: true, data: 'deleted' };
       }
       return { ok: true, data: 'noop' };
     }
-    const saved = await meals.save(meal);
+    const saved = await mealRepository.save(meal);
     if (!saved.ok) return saved;
     return { ok: true, data: 'saved' };
   }
 
-  async function swapActor(
-    target: MealSlot,
-    eliminatedTodayArg: AllergenId[] = [],
-  ): Promise<Result<void, string>> {
+  async function swapActor(target: MealSlot): Promise<Result<void, string>> {
     // Persist the departing actor first — Dexie is authoritative for the
     // reload in `open()`. Abort on failure so the current actor's working
     // meal is never silently lost. If the departing actor's meal was emptied,
@@ -358,7 +289,7 @@ export function createMealEditor(): MealEditor {
     // recoverable by swapping back and re-adding the food.
     const saved = await finalize();
     if (!saved.ok) return saved;
-    await open(target, eliminatedTodayArg);
+    await open(target);
     return { ok: true, data: undefined };
   }
 
@@ -390,15 +321,8 @@ export function createMealEditor(): MealEditor {
     get canFinalize() {
       return canFinalize;
     },
-    get eliminatedFoodIds() {
-      return eliminatedFoodIds;
-    },
-    get hasConflicts() {
-      return hasConflicts;
-    },
     open,
     update,
-    setEliminatedToday,
     discardDescriptor,
     applyUndo,
     finalize,

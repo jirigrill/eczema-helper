@@ -1,8 +1,7 @@
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AtopicDb, SINGLETON_ID } from '$lib/db/atopic-db';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import { AtopicDb } from '$lib/db/atopic-db';
 import type {
   RegionLevel,
   SkinObservation,
@@ -10,12 +9,8 @@ import type {
   SkinPhotoInput,
   SkinRegionRecord,
 } from '$lib/domain/models';
-import { BUFFER_AFTER_END_DAYS, BUFFER_BEFORE_START_DAYS } from '$lib/domain/policy';
-import { addDays } from '$lib/utils/date';
 
-import { DexieScheduleRepository } from './dexie-schedule-repository';
 import { DexieSkinObservationRepository } from './dexie-skin-observation-repository';
-import { OUT_OF_WINDOW_ERROR } from './loggable-window-guard';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -45,7 +40,7 @@ describe('DexieSkinObservationRepository', () => {
 
   beforeEach(() => {
     db = new AtopicDb({ indexedDB: new IDBFactory(), IDBKeyRange });
-    repo = new DexieSkinObservationRepository(db, new DexieScheduleRepository(db));
+    repo = new DexieSkinObservationRepository(db);
   });
 
   // ── Round-trip ───────────────────────────────────────────────
@@ -239,6 +234,42 @@ describe('DexieSkinObservationRepository', () => {
     });
     const result = await repo.listByDate('2026-05-27');
     expect(result).toEqual({ ok: false, error: 'index fail' });
+  });
+
+  // ── earliestLoggedDate (§3a, step 2b) ────────────────────────
+
+  it('earliestLoggedDate returns null when the store is empty', async () => {
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: null });
+  });
+
+  it('earliestLoggedDate returns the date of the only logged observation', async () => {
+    await repo.save(makeObservation('2026-05-27'), []);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-27' });
+  });
+
+  it('earliestLoggedDate returns the smallest date across observations inserted out of order', async () => {
+    await repo.save(makeObservation('2026-05-27'), []);
+    await repo.save(makeObservation('2026-05-20'), []);
+    await repo.save(makeObservation('2026-06-02'), []);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-20' });
+  });
+
+  it('earliestLoggedDate moves forward after the earliest observation is removed', async () => {
+    const earliest = makeObservation('2026-05-20', { id: 'obs-earliest' });
+    await repo.save(earliest, []);
+    await repo.save(makeObservation('2026-05-27', { id: 'obs-later' }), []);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-20' });
+
+    await repo.remove(earliest.id);
+    expect(await repo.earliestLoggedDate()).toEqual({ ok: true, data: '2026-05-27' });
+  });
+
+  it('earliestLoggedDate returns Err when DB throws', async () => {
+    vi.spyOn(db.skin_observations, 'orderBy').mockImplementation(() => {
+      throw new Error('order fail');
+    });
+    const result = await repo.earliestLoggedDate();
+    expect(result).toEqual({ ok: false, error: 'order fail' });
   });
 
   // ── update() ─────────────────────────────────────────────────
@@ -538,138 +569,37 @@ describe('DexieSkinObservationRepository', () => {
     if (!result.ok) expect(result.error).toContain('restore fail');
   });
 
-  // ── Loggable-window guard (BUFFER_BEFORE_START_DAYS / BUFFER_AFTER_END_DAYS) ──
+  // ── Unbounded logging: no schedule-derived window (issue #628) ──────────
+  //
+  // The write adapter no longer consults any schedule. A skin observation is
+  // loggable for any day the mother can reach, however far from today, and
+  // moving a row's date to such a day is never refused (§1 anchor 3, §4 step 3).
 
-  describe('loggable-window guard', () => {
-    it('save succeeds for a date inside the schedule span', async () => {
-      await db.schedule.put({ id: SINGLETON_ID, ...makeSchedule() });
-      const result = await repo.save(makeObservation('2026-05-15'), []);
+  describe('unbounded logging', () => {
+    it('saves an observation and its photos on a day years in the past', async () => {
+      const wayBefore = '2020-01-01';
+
+      const result = await repo.save(makeObservation(wayBefore, { id: 'obs-far' }), [
+        makePhotoInput(),
+      ]);
       expect(result).toMatchObject({ ok: true });
+
+      const list = await repo.listByDate(wayBefore);
+      expect(list).toMatchObject({ ok: true, data: [{ id: 'obs-far' }] });
+      expect(await db.photos.where('observationId').equals('obs-far').count()).toBe(1);
     });
 
-    it('save rejects a date one day before the start-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      const result = await repo.save(makeObservation(tooEarly, { id: 'obs-too-early' }), []);
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-
-      const list = await repo.listByDate(tooEarly);
-      expect(list).toEqual({ ok: true, data: [] });
-    });
-
-    it('save rejects a date one day after the end-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooLate = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS + 1);
-      const result = await repo.save(makeObservation(tooLate, { id: 'obs-too-late' }), []);
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-
-      const list = await repo.listByDate(tooLate);
-      expect(list).toEqual({ ok: true, data: [] });
-    });
-
-    it('save is unguarded when no schedule has been generated yet', async () => {
-      const result = await repo.save(makeObservation('1999-01-01'), []);
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    it('save does not write photos when the date is rejected', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      await repo.save(makeObservation(tooEarly, { id: 'obs-photo-guard' }), [makePhotoInput()]);
-
-      expect(await db.photos.where('observationId').equals('obs-photo-guard').count()).toBe(0);
-    });
-
-    it('update rejects a date outside the loggable window', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const original = makeObservation('2026-05-15', { id: 'obs-update-guard', notes: 'before' });
+    it('updates an observation onto a day years in the future', async () => {
+      const original = makeObservation('2026-05-15', { id: 'obs-move', notes: 'before' });
       await repo.save(original, []);
 
-      const tooLate = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS + 1);
-      const revised: SkinObservation = { ...original, date: tooLate, notes: 'after' };
-      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-
-      const list = await repo.listByDate('2026-05-15');
-      expect(list).toMatchObject({ ok: true, data: [{ notes: 'before' }] });
-    });
-
-    it('update rejects a date one day before the start-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const original = makeObservation('2026-05-15', { id: 'obs-update-start', notes: 'before' });
-      await repo.save(original, []);
-
-      const tooEarly = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      const revised: SkinObservation = { ...original, date: tooEarly, notes: 'after' };
-      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
-
-      // Original row untouched — no write escaped the guard.
-      const list = await repo.listByDate('2026-05-15');
-      expect(list).toMatchObject({ ok: true, data: [{ notes: 'before' }] });
-    });
-
-    it('update succeeds exactly at the start-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const original = makeObservation('2026-05-15', { id: 'obs-update-start-ok' });
-      await repo.save(original, []);
-
-      const boundary = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS);
-      const revised: SkinObservation = { ...original, date: boundary };
-      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    it('update succeeds exactly at the end-buffer boundary', async () => {
-      const schedule = makeSchedule();
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-      const original = makeObservation('2026-05-15', { id: 'obs-update-end-ok' });
-      await repo.save(original, []);
-
-      const boundary = addDays(schedule.estimatedEndDate, BUFFER_AFTER_END_DAYS);
-      const revised: SkinObservation = { ...original, date: boundary };
-      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
-      expect(result).toMatchObject({ ok: true });
-    });
-
-    // ── Unchanged-date edits to an already out-of-window row (issue #440) ──
-
-    it('update succeeds when the row is already outside the window but the payload does not change its date', async () => {
-      const schedule = makeSchedule();
-      // Seed the stale row before a schedule exists, then generate one that
-      // leaves the row's date stranded outside the window.
-      const staleDate = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      const original = makeObservation(staleDate, { id: 'obs-stale', notes: 'before' });
-      await repo.save(original, []);
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-
-      const revised: SkinObservation = { ...original, notes: 'after' };
+      const wayAfter = '2030-12-31';
+      const revised: SkinObservation = { ...original, date: wayAfter, notes: 'after' };
       const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
       expect(result).toMatchObject({ ok: true });
 
-      const list = await repo.listByDate(staleDate);
-      expect(list).toMatchObject({ ok: true, data: [{ notes: 'after' }] });
-    });
-
-    it('update rescues a stale out-of-window row by moving its date back inside the window', async () => {
-      const schedule = makeSchedule();
-      const staleDate = addDays(schedule.startDate, -BUFFER_BEFORE_START_DAYS - 1);
-      const original = makeObservation(staleDate, { id: 'obs-rescue' });
-      await repo.save(original, []);
-      await db.schedule.put({ id: SINGLETON_ID, ...schedule });
-
-      const revised: SkinObservation = { ...original, date: schedule.startDate };
-      const result = await repo.update(revised, { addPhotos: [], removePhotoIds: [] });
-      expect(result).toMatchObject({ ok: true });
-
-      const list = await repo.listByDate(schedule.startDate);
-      expect(list).toMatchObject({ ok: true, data: [{ id: 'obs-rescue' }] });
+      const list = await repo.listByDate(wayAfter);
+      expect(list).toMatchObject({ ok: true, data: [{ id: 'obs-move', notes: 'after' }] });
     });
   });
 });

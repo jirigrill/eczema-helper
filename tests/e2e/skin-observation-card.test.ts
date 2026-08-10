@@ -1,58 +1,9 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, localToday, seedFeedingStage } from './seed';
+
 // ── Helpers ──────────────────────────────────────────────────────────────
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.skin_observations.clear();
-    db.close();
-  });
-}
-
-function localToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function completeOnboarding(page: Page) {
-  const today = localToday();
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-}
 
 /** Seed three SkinObservation records for today through the live Dexie db. */
 async function seedThreeMixedObservations(page: Page) {
@@ -99,7 +50,7 @@ test.beforeEach(async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────
 
 test('three observations render in ascending time order as per-region chips; středn­í row shows the italic note', async ({ page }) => {
-  await completeOnboarding(page);
+  await seedFeedingStage(page);
   await seedThreeMixedObservations(page);
   const today = localToday();
   await page.goto(`/day/${today}`);
@@ -126,7 +77,7 @@ test('three observations render in ascending time order as per-region chips; st�
 });
 
 test('empty state CTA links to /skin with date + returnTo', async ({ page }) => {
-  await completeOnboarding(page);
+  await seedFeedingStage(page);
   const today = localToday();
   // Make sure no observations exist for today.
   await page.evaluate(async () => {

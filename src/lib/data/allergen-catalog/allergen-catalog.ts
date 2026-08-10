@@ -41,7 +41,8 @@ type AllergenRecord = {
 };
 
 // `allergenicity` values below are **curator-tunable, not clinically stamped**
-// (ADR-0023 §6), but the tiers are evidence-based: `high` = FDA big-9 / EU
+// (ADR-0023 §6, parked — see docs/parked-features.md), but the tiers are
+// evidence-based: `high` = FDA big-9 / EU
 // Annex II recognized major allergens; `low` = not a major allergen and
 // reactions typically mild/non-IgE (OAS) or rare; `moderate` = occasional /
 // vasoactive-amine / OAS triggers. Rationale + sources per food:

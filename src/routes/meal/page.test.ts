@@ -5,21 +5,12 @@ import * as navigation from '$app/navigation';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { db } from '$lib/db/atopic-db';
 import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
-import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import type { Meal } from '$lib/domain/models';
 import { clearBuffer, writeBuffer } from '$lib/stores/discard-buffer';
-import type { ScheduleRaw } from '$lib/stores/schedule-context';
 
-const catalog = new BundledCatalogAdapter();
-
-const mockScheduleRaw = writable<ScheduleRaw>({ status: 'loading' });
-vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleRaw: { subscribe: mockScheduleRaw.subscribe },
-}));
 const mockSettings = writable<{ feedingStage: 'breastfed' | 'mixed' | 'solids' } | null>({
   feedingStage: 'breastfed',
 });
@@ -43,7 +34,7 @@ vi.mock('$lib/stores/discard-buffer', () => ({
   clearBuffer: vi.fn(),
 }));
 
-const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+const meals = new DexieMealRepository(db);
 
 const mockPage: { url: URL; state: Record<string, unknown> } = {
   url: new URL('http://localhost/meal'),
@@ -72,52 +63,12 @@ vi.mock('$lib/stores/harvest-candidate-session', () => ({
 const today = new Date().toISOString().split('T')[0]!;
 const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]!;
 
-const sampleAnswers: QuestionnaireAnswers = {
-  babyBirthDate: '2025-01-01',
-  eczemaSeverity: 'moderate',
-  motherAllergies: [],
-  babyConfirmedAllergies: [],
-  programStartDate: today,
-  completedAt: new Date().toISOString(),
-  testedAllergens: ['dairy'],
-  feedingStage: 'breastfed',
-};
-
-const dairyEliminationSchedule: GeneratedSchedule = {
-  permanentMother: [],
-  permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: future,
-  phases: [
-    { id: 'elim', type: 'elimination', allergenIds: ['dairy'], startDate: today, endDate: future },
-  ],
-};
-
-const emptySchedule: GeneratedSchedule = {
-  permanentMother: [],
-  permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: future,
-  phases: [{ id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future }],
-};
-
-function setReadyWithElim() {
-  mockScheduleRaw.set({
-    status: 'ready',
-    schedule: dairyEliminationSchedule,
-    answers: sampleAnswers,
-  });
-}
-function setReady() {
-  mockScheduleRaw.set({ status: 'ready', schedule: emptySchedule, answers: sampleAnswers });
-}
-
 beforeEach(async () => {
-  mockScheduleRaw.set({ status: 'loading' });
   // Reset the feeding stage to the default so a test that changes it (and may
   // fail before its own cleanup line) can't leak the stage into the next test.
   mockSettings.set({ feedingStage: 'breastfed' });
   await db.meals.clear();
+  await db.skin_observations.clear();
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
   mockHarvestStore.set([]);
@@ -128,7 +79,6 @@ describe('meal/+page.svelte', () => {
   // ── Layout: NO meal type pills (type is fixed at entry, ADR-0018) ────────
 
   it('does NOT render meal type pills — type is bound to the URL', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -147,7 +97,6 @@ describe('meal/+page.svelte', () => {
   // `breastfed`/`solids` a single actor is implicit — no picker.
 
   it('renders the Já / Miminko actor pills in the mixed feeding stage', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'mixed' });
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
@@ -158,7 +107,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('renders NO actor picker in the breastfed feeding stage', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'breastfed' });
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
@@ -168,7 +116,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('renders NO actor picker in the solids feeding stage', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'solids' });
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
@@ -181,7 +128,6 @@ describe('meal/+page.svelte', () => {
   // ── Layout: family grid ───────────────────────────────────
 
   it('renders "Všechny kategorie" label and family grid on initial load', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByText } = render(MealPage);
     await tick();
@@ -191,7 +137,6 @@ describe('meal/+page.svelte', () => {
   // ── Drill-in navigation ───────────────────────────────────
 
   it('tapping a family tile shows the drill-in: header title changes to family name', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
     await tick();
@@ -204,7 +149,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('back chevron (‹) in drill-in returns to family grid', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText, queryByText } = render(MealPage);
     await tick();
@@ -217,7 +161,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('drill-in has NO "Procházet rodiny" link', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText } = render(MealPage);
     await tick();
@@ -229,7 +172,6 @@ describe('meal/+page.svelte', () => {
   // ── Tapping a food starts editing ────────────────────────
 
   it('tapping a food in drill-in puts it in editing (shows Množství + Příprava)', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, queryByText, getByText } = render(MealPage);
     await tick();
@@ -243,7 +185,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('only one food can be editing at a time', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getAllByText } = render(MealPage);
     await tick();
@@ -268,7 +209,6 @@ describe('meal/+page.svelte', () => {
   // pre-food render is unique to the route test.
 
   it('CTA reads "Uložit" on grid with no confirmed foods', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -281,7 +221,6 @@ describe('meal/+page.svelte', () => {
   // ── Grid: confirmed-foods summary + notes ────────────────
 
   it('grid shows read-only confirmed foods summary after family commit', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole, getByText } = render(MealPage);
     await tick();
@@ -299,7 +238,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('grid has a Poznámka textarea', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -313,172 +251,28 @@ describe('meal/+page.svelte', () => {
   // custom-food input) is covered end-to-end by
   // `tests/e2e/meal-custom-food.test.ts`.
 
-  it('food chips in an eliminated allergen show data-state="danger"', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    const token = getByRole('button', { name: /Kravské mléko/ });
-    expect(token.closest('[data-state="danger"]')).not.toBeNull();
-  });
-
-  it('food chips in a non-eliminated allergen do NOT have data-state="danger"', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Ovoce/ }));
-    await tick();
-    const token = getByRole('button', { name: /^Jahody$/ });
-    expect(token.closest('[data-state="danger"]')).toBeNull();
-  });
-
   // ── Grid working-list: tap-to-edit ───────────────────────
   // Row-tap opens the inline editor, ✕ removes the row, outside-click confirms
   // and re-tap opens a second row while confirming the first — all covered
   // end-to-end by `tests/e2e/meal-modal-edit.test.ts` (AC245-* group).
 
-  // ── Conflict styling: CTA button + grid working-list ────────
-
-  it('CTA is danger-red when working meal contains a confirmed eliminated-today food', async () => {
-    setReadyWithElim(); // dairy is eliminated today
+  it('CTA is primary when saving a family (family commit flow)', async () => {
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
-    // Add and confirm a dairy food
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Back on grid — CTA should be danger-red
-    const cta = getByRole('button', { name: /Uložit Oběd/ });
-    expect(cta.className).toContain('bg-danger');
-  });
-
-  it('CTA reverts to primary when the eliminated-today food is removed', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Remove the eliminated food
-    const removeBtn = getByRole('button', { name: /Odebrat Kravské mléko/ });
-    await fireEvent.click(removeBtn);
-    await tick();
-    // CTA should be back to primary (aria-disabled since nothing confirmed)
-    const cta = getByRole('button', { name: 'Uložit' });
-    expect(cta.className).not.toContain('bg-warning');
-  });
-
-  it('confirmed eliminated-today food in grid working-list shows data-state="danger-confirmed"', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // The grid working-list row for an eliminated confirmed food should be danger-confirmed
-    const token = getByRole('button', { name: 'Kravské mléko' });
-    expect(token.closest('[data-state="danger-confirmed"]')).not.toBeNull();
-  });
-
-  it('editing an eliminated-today food in the grid shows a conflict warning', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, queryByText } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Open grid row editor for the eliminated food
-    await fireEvent.click(getByRole('button', { name: 'Kravské mléko' }));
-    await tick();
-    expect(queryByText(/Vyloučeno|vyloučeno/)).toBeInTheDocument();
-  });
-
-  // ── Bug fixes: eliminated-food CTA + grid working-list order ────
-
-  it('CTA is danger-red when saving a family that contains an eliminated food (no individual food editing)', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Drill into dairy family and confirm a food — but do NOT save individual food first
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    // Now in "Uložit Mléko" state — no individual food editing, but eliminated food is confirmed
-    const cta = getByRole('button', { name: /Uložit Mléko/ });
-    expect(cta.className).toContain('bg-danger');
-  });
-
-  it('CTA is primary when saving a family with no eliminated foods', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole } = render(MealPage);
-    await tick();
-    // Drill into Zelenina (not eliminated)
+    // Drill into Zelenina
     await fireEvent.click(getByRole('button', { name: /Zelenina/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Brambory/ }));
     await tick();
     await fireEvent.click(getByRole('button', { name: /Uložit Brambory/ }));
     await tick();
-    // "Uložit Zelenina" — no eliminated food, should be primary
+    // "Uložit Zelenina" — the finalize CTA is primary.
     const cta = getByRole('button', { name: /Uložit Zelenina/ });
     expect(cta.className).toContain('bg-primary');
-    expect(cta.className).not.toContain('bg-danger');
-  });
-
-  it('confirmed eliminated grid row: amount text is white (visible on red background)', async () => {
-    setReadyWithElim();
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, container } = render(MealPage);
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // The amount span inside the danger-confirmed row should have text-white class
-    const dangerRow = container.querySelector('[data-state="danger-confirmed"]');
-    expect(dangerRow).not.toBeNull();
-    const amountSpan = dangerRow!.querySelector('span.text-white');
-    expect(amountSpan).not.toBeNull();
   });
 
   it('opening a grid row editor does not remove sibling foods from the working list', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -516,7 +310,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('opening a grid row editor keeps the editing food in its original position, not appended at bottom', async () => {
-    setReady();
     const { default: MealPage } = await import('./+page.svelte');
     const { getByRole } = render(MealPage);
     await tick();
@@ -560,7 +353,6 @@ describe('meal/+page.svelte', () => {
   // which one hydrates.
 
   it('switching to Miminko hydrates the baby meal from its own slot', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -592,7 +384,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('shows the forward "Hotovo" CTA on the actor whose work a swap autosaved (issue #571)', async () => {
-    setReady();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     // Both slots start empty; the mother composes a food, then round-trips.
@@ -620,7 +411,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('keeps the disabled "Uložit změny" CTA after cycling actor tabs without editing (issue #587)', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     // Both actors already have saved meals — nothing to save on either.
@@ -659,7 +449,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('deleting on the Miminko pill removes the baby slot, leaving the mother meal intact', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -703,7 +492,6 @@ describe('meal/+page.svelte', () => {
   // slot directly, not the mother's.
 
   it('mixed stage: entering with ?actor=baby hydrates the baby meal', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'mixed' });
     mockPage.url = new URL(
       `http://localhost/meal?type=lunch&date=${today}&actor=baby&returnTo=/day/${today}`,
@@ -733,7 +521,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('composes for the baby slot in the solids stage (implicit single actor)', async () => {
-    setReadyWithElim();
     mockSettings.set({ feedingStage: 'solids' });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
@@ -748,91 +535,6 @@ describe('meal/+page.svelte', () => {
     const { findByRole } = render(MealPage);
     // No picker in solids; the baby's meal hydrates as the implicit actor.
     await findByRole('button', { name: /^Rýže$/ });
-    mockSettings.set({ feedingStage: 'breastfed' });
-  });
-
-  // ── Actor-aware in-editor conflict detection (spec #564/#568, US14/15) ──
-  // The editor must check the working meal against the *selected* actor's
-  // eliminated set — protocol ∪ that actor's permanent allergies — not always
-  // the mother's. A baby-only permanent (permanentBaby ≠ permanentMother) must
-  // flag on the baby's meal and must NOT flag on the mother's.
-
-  // dairy is permanent for the BABY only; the mother has no permanents and the
-  // protocol eliminates nothing, so mother meals see an empty eliminated set.
-  const babyOnlyDairySchedule: GeneratedSchedule = {
-    permanentMother: [],
-    permanentBaby: ['dairy'],
-    startDate: today,
-    estimatedEndDate: future,
-    phases: [
-      { id: 'elim', type: 'elimination', allergenIds: [], startDate: today, endDate: future },
-    ],
-  };
-  function setReadyBabyOnlyDairy() {
-    mockScheduleRaw.set({
-      status: 'ready',
-      schedule: babyOnlyDairySchedule,
-      answers: sampleAnswers,
-    });
-  }
-
-  it('flags a baby-permanent food against the baby set in the solids stage (US14)', async () => {
-    setReadyBabyOnlyDairy();
-    mockSettings.set({ feedingStage: 'solids' });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, container } = render(MealPage);
-    await tick();
-    // Compose a dairy food for the implicit baby actor and confirm it.
-    await fireEvent.click(getByRole('button', { name: /Mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Kravské mléko/ }));
-    await tick();
-    await fireEvent.click(getByRole('button', { name: /Uložit Mléko/ }));
-    await tick();
-    // Checked against permanentBaby → the confirmed row is danger-flagged.
-    // A hardcoded mother set (empty here) would leave it un-flagged (the H1 bug).
-    expect(container.querySelector('[data-state="danger-confirmed"]')).not.toBeNull();
-    mockSettings.set({ feedingStage: 'breastfed' });
-  });
-
-  it('does NOT flag the baby-permanent food on the mother slot, but DOES after switching to Miminko (US14/15)', async () => {
-    setReadyBabyOnlyDairy();
-    mockSettings.set({ feedingStage: 'mixed' });
-    mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
-    // Same dairy food logged in BOTH actors' slots.
-    await meals.save({
-      id: `${today}:lunch:mother`,
-      date: today,
-      mealType: 'lunch',
-      actor: 'mother',
-      items: [{ id: 'm1', name: 'Kravské mléko', foodId: 'kravske-mleko', amount: 'portion' }],
-      createdAt: new Date().toISOString(),
-    });
-    await meals.save({
-      id: `${today}:lunch:baby`,
-      date: today,
-      mealType: 'lunch',
-      actor: 'baby',
-      items: [{ id: 'b1', name: 'Kravské mléko', foodId: 'kravske-mleko', amount: 'portion' }],
-      createdAt: new Date().toISOString(),
-    });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByRole, findByRole, container } = render(MealPage);
-    // Mother slot: dairy is not in her (empty) eliminated set → the confirmed
-    // grid row is NOT danger-flagged.
-    await findByRole('button', { name: 'Kravské mléko' });
-    await tick();
-    expect(container.querySelector('[data-state="danger-confirmed"]')).toBeNull();
-    // Switch to the baby: swap-on-dirty autosaves the (clean) mother meal, then
-    // re-opens the baby slot. Its eliminated set (permanentBaby) flips the same
-    // confirmed food into a danger-flagged row once setEliminatedToday flushes.
-    await fireEvent.click(getByRole('button', { name: 'Miminko' }));
-    await findByRole('button', { name: 'Kravské mléko' });
-    await waitFor(() =>
-      expect(container.querySelector('[data-state="danger-confirmed"]')).not.toBeNull(),
-    );
     mockSettings.set({ feedingStage: 'breastfed' });
   });
 
@@ -860,7 +562,6 @@ describe('meal/+page.svelte', () => {
   // ── Explicit delete + empty-Hotovo guard (issue #268) ─────
 
   it('does NOT render the ⋯ overflow when composing a brand-new meal (empty slot)', async () => {
-    setReady();
     // beforeEach clears db.meals — empty slot.
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByRole } = render(MealPage);
@@ -870,7 +571,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('renders the ⋯ overflow when editing an existing meal', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -881,7 +581,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('tapping ⋯ opens the action list with "Smazat jídlo" + "Zrušit"', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -895,7 +594,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('tapping "Zrušit" in the action list closes it', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -918,7 +616,6 @@ describe('meal/+page.svelte', () => {
   // ── Copy-meal entry point + destination picker (spec #599, issue #606) ──
 
   it('shows "Kopírovat jídlo" in the ⋯ action list when the source meal has ≥1 food', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -936,7 +633,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('hides "Kopírovat jídlo" for a notes-only / zero-food meal (but still shows delete)', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     // An existing meal with a note but no foods — nothing to copy.
     await meals.save({
@@ -958,7 +654,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('tapping "Kopírovat jídlo" opens the destination picker (day strip + "Kopírovat sem")', async () => {
-    setReadyWithElim();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -978,8 +673,7 @@ describe('meal/+page.svelte', () => {
     expect(getByRole('button', { name: 'Kopírovat sem' })).toBeInTheDocument();
   });
 
-  it('picker: a strictly-future day is disabled (not a valid destination); today is selectable', async () => {
-    setReadyWithElim();
+  it('picker: no future day is rendered; today is selectable', async () => {
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -995,26 +689,29 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
     await tick();
-    // The "Kopírovat sem" button targets the currently-selected day; it starts
-    // enabled on the source day (today).
-    const pickSlot = getByRole('button', { name: 'Kopírovat sem' });
-    expect(pickSlot).toHaveAttribute('aria-disabled', 'false');
-    // Tapping a strictly-future cell must NOT change the selection to it — the
-    // pick button stays enabled on today rather than jumping to the future day.
-    const futureCell = container.querySelector(
-      `[data-testid="day-strip-cell"][data-date="${future}"]`,
-    );
-    expect(futureCell).not.toBeNull();
-    await fireEvent.click(futureCell!);
-    await tick();
-    expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
-      'aria-disabled',
-      'false',
-    );
+    // The "Kopírovat sem" button targets the source day (today) and starts enabled.
+    // §3e: the destination gate is gone, so the button carries no disabled state at all.
+    expect(getByRole('button', { name: 'Kopírovat sem' })).not.toHaveAttribute('aria-disabled');
+    // The strip ends at today: no future cell is ever rendered (§3b/§3e).
+    await waitFor(() => {
+      const futureCell = container.querySelector(
+        `[data-testid="day-strip-cell"][data-date="${future}"]`,
+      );
+      expect(futureCell).toBeNull();
+    });
   });
 
-  it('picker: the loggable floor day (scheduleStart − 7) is a selectable destination', async () => {
-    setReadyWithElim();
+  it('picker: the strip spans back to the earliest logged day, and it is a selectable destination', async () => {
+    // An earlier logged meal moves the earliest-logged floor back to that day.
+    const earlier = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
+    await meals.save({
+      id: `${earlier}:lunch:mother`,
+      date: earlier,
+      mealType: 'lunch',
+      actor: 'mother',
+      items: [{ id: 'e1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
+      createdAt: new Date().toISOString(),
+    });
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
     await meals.save({
       id: `${today}:lunch:mother`,
@@ -1030,22 +727,19 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: 'Kopírovat jídlo' }));
     await tick();
-    // scheduleStart is today; the loggable floor is today − 7 (the strip's
-    // earliest cell). Selecting it keeps the pick button enabled — the window
-    // gate uses isWithinLoggableWindow, so the floor is in-window.
-    const floor = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]!;
-    const cell = container.querySelector(`[data-testid="day-strip-cell"][data-date="${floor}"]`);
-    expect(cell).not.toBeNull();
+    // The earliest logged day is the strip's earliest cell; selecting it keeps
+    // the pick button enabled — every rendered cell is a legal destination.
+    let cell: Element | null = null;
+    await waitFor(() => {
+      cell = container.querySelector(`[data-testid="day-strip-cell"][data-date="${earlier}"]`);
+      expect(cell).not.toBeNull();
+    });
     await fireEvent.click(cell!);
     await tick();
-    expect(getByRole('button', { name: 'Kopírovat sem' })).toHaveAttribute(
-      'aria-disabled',
-      'false',
-    );
+    expect(getByRole('button', { name: 'Kopírovat sem' })).not.toHaveAttribute('aria-disabled');
   });
 
   it('confirm copy (success): persists the destination meal, navigates to the dest day, writes a meal-copy buffer', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -1082,7 +776,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('confirm copy (success): awaits navigation before writing the undo buffer so the toast lands on the destination day (US-25)', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     // Make goto resolve on a deferred promise so we can observe that the buffer
@@ -1124,7 +817,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('confirm copy (no-op): copying onto its own slot writes nothing, navigates nowhere', async () => {
-    setReadyWithElim();
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -1151,8 +843,7 @@ describe('meal/+page.svelte', () => {
     expect(vi.mocked(navigation.goto)).not.toHaveBeenCalled();
   });
 
-  it('confirm copy (out-of-window save rejection): shows the out-of-window toast and stays put', async () => {
-    setReadyWithElim();
+  it('confirm copy (save rejection): shows the save-failure toast and stays put', async () => {
     vi.mocked(writeBuffer).mockClear();
     vi.mocked(navigation.goto).mockClear();
     mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -1172,17 +863,18 @@ describe('meal/+page.svelte', () => {
     await tick();
     await fireEvent.click(getByRole('button', { name: 'Kopírovat sem' }));
     await tick();
-    // Force the destination save to reject as if the day fell out of window
-    // between selection and save (the defensive Result branch). Armed right
-    // before the confirming tap so only the copy's write is affected.
-    const putSpy = vi
-      .spyOn(db.meals, 'put')
-      .mockRejectedValue(new Error('date-outside-loggable-window'));
+    // Force the destination save to reject (a Dexie quota/transaction error).
+    // The defensive Result branch surfaces a generic save-failure toast and
+    // keeps the picker open. Armed right before the confirming tap so only the
+    // copy's write is affected.
+    const putSpy = vi.spyOn(db.meals, 'put').mockRejectedValue(new Error('QuotaExceededError'));
     vi.mocked(navigation.goto).mockClear();
     vi.mocked(writeBuffer).mockClear();
     try {
       await fireEvent.click(getByTestId('fab-meal-type-dinner'));
-      expect(await findByText('Cílový den je mimo okno protokolu.')).toBeInTheDocument();
+      expect(
+        await findByText('Kopírování se nezdařilo, zkuste to prosím znovu.'),
+      ).toBeInTheDocument();
       expect(vi.mocked(navigation.goto)).not.toHaveBeenCalled();
       expect(vi.mocked(writeBuffer)).not.toHaveBeenCalled();
     } finally {
@@ -1191,7 +883,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('US-17: a manual edit-save of the destination slot clears a stale meal-copy buffer', async () => {
-    setReadyWithElim();
     // Simulate landing on the destination slot right after a copy: the single
     // discard buffer holds a meal-copy for this exact slot.
     mockDiscardBuffer.set({
@@ -1228,7 +919,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('empty-meal hint (saving deletes it) visible when editing an existing meal with zero foods', async () => {
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -1251,7 +941,6 @@ describe('meal/+page.svelte', () => {
     // no-op restoring the old foods, the #586 bug) and writes the delete buffer
     // so the layout toast + undo behave like the explicit "Smazat jídlo".
     vi.mocked(writeBuffer).mockClear();
-    setReady();
     mockPage.url = new URL(
       'http://localhost/meal?type=lunch&date=2025-06-13&returnTo=/day/2025-06-13',
     );
@@ -1275,7 +964,6 @@ describe('meal/+page.svelte', () => {
   });
 
   it('empty-meal hint NOT visible when composing a brand-new meal with zero foods', async () => {
-    setReady();
     // beforeEach clears db.meals — composing-new.
     const { default: MealPage } = await import('./+page.svelte');
     const { queryByText } = render(MealPage);
@@ -1294,62 +982,4 @@ describe('meal/+page.svelte', () => {
   // The `eyebrow` / `body-muted` / `caption` typography assertions on the
   // section headers, notes label, and top-right date are covered end-to-end by
   // `tests/e2e/meal-typography.test.ts`.
-
-  // ── Reintroduction dose caption ─────────────────────────────
-  // The banner text sources from LadderStep.dose at the rung whose index
-  // matches `dayInPhase - 1` on the allergen's breastfed-stage ladder
-  // (ADR-0023). These assert *wiring* — the page renders the ladder's dose at
-  // the right rung. They are NOT a migration-parity gate: they read the current
-  // `LadderStep.dose`, so they cannot catch a caption mis-transcribed from the
-  // old `instructionCs` during authoring. The frozen parity that matters —
-  // `isEvaluationDay` — lives in `schedule-queries.test.ts`; dose-caption
-  // correctness is covered by the well-formedness gate (ladder.test.ts) plus
-  // curator review.
-
-  it('reintroduction banner shows the ladder step dose for the current day-in-phase', async () => {
-    const ladderStep = catalog.get('dairy')!.ladder!.stages.breastfed![0]!;
-    const reintroDay1: GeneratedSchedule = {
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: today,
-      estimatedEndDate: future,
-      phases: [
-        {
-          id: 'reintro-dairy',
-          type: 'reintroduction',
-          allergenIds: ['dairy'],
-          startDate: today,
-          endDate: future,
-        },
-      ],
-    };
-    mockScheduleRaw.set({ status: 'ready', schedule: reintroDay1, answers: sampleAnswers });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByText } = render(MealPage);
-    await tick();
-    // Caption format: `<dose> (<category name>)`
-    expect(getByText(new RegExp(ladderStep.dose.slice(0, 20)))).toBeInTheDocument();
-  });
-
-  it('reintroduction banner caption changes with the rung at each day-in-phase', async () => {
-    const ladder = catalog.get('dairy')!.ladder!.stages.breastfed!;
-    // Day 3 in phase: startDate is 2 days before today
-    const startDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]!;
-    const endDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]!;
-    const reintroDay3: GeneratedSchedule = {
-      permanentMother: [],
-      permanentBaby: [],
-      startDate,
-      estimatedEndDate: endDate,
-      phases: [
-        { id: 'reintro-dairy', type: 'reintroduction', allergenIds: ['dairy'], startDate, endDate },
-      ],
-    };
-    mockScheduleRaw.set({ status: 'ready', schedule: reintroDay3, answers: sampleAnswers });
-    const { default: MealPage } = await import('./+page.svelte');
-    const { getByText } = render(MealPage);
-    await tick();
-    // Rung 3 dose text — a stable slice unique to that rung
-    expect(getByText(new RegExp(ladder[2]!.dose.slice(0, 20)))).toBeInTheDocument();
-  });
 });

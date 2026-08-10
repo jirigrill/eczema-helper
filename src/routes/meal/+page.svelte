@@ -11,11 +11,9 @@
   import { getEligibleActors } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
-  import { BundledCatalogAdapter } from '$lib/adapters/bundled-catalog-adapter';
   import { get } from 'svelte/store';
-  import { getCategoryConfig } from '$lib/config/categories';
   import { actionStrings } from '$lib/strings/actions';
-  import { commonStrings, reintroDayLabel } from '$lib/strings/common';
+  import { commonStrings } from '$lib/strings/common';
   import { mealConfig } from '$lib/config/meals';
   import { actorConfig } from '$lib/config/actors';
   import { portionStrings } from '$lib/strings/portions';
@@ -23,17 +21,13 @@
   import { familyStrings } from '$lib/strings/families';
   import { formForFood } from '$lib/domain/preparation-rules';
   import { formatDateLongCs, todayIso } from '$lib/utils/date';
-  import { isWithinLoggableWindow } from '$lib/domain/policy';
   import { computeDayStrip } from '$lib/components/DayStrip/day-strip';
-  import { scheduleRaw } from '$lib/stores/schedule-context';
-  import { buildScheduleContext, eliminatedFor } from '$lib/domain/schedule-queries';
-  import { rungAtDayInPhase } from '$lib/domain/ladder';
+  import { createEarliestLoggedStore } from '$lib/stores/earliest-logged';
   import { settingsContext } from '$lib/stores/settings-context';
   import { parseDayQuery } from '$lib/utils/day-query';
   import Toast from '$lib/components/Toast.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Chip from '$lib/components/Chip.svelte';
-  import InfoBanner from '$lib/components/InfoBanner.svelte';
   import BottomSheet from '$lib/components/BottomSheet.svelte';
   import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
   import DayStrip from '$lib/components/DayStrip/DayStrip.svelte';
@@ -45,9 +39,7 @@
 
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
-  import { db } from '$lib/db/atopic-db';
-  import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-  import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
+  import { mealRepository } from '$lib/stores/meal-session';
   import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
   import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
@@ -71,29 +63,16 @@
 
   // ── Schedule context ──────────────────────────────────────
   const { date: targetDate, returnTo } = $derived(parseDayQuery(page.url));
-  const raw = $derived($scheduleRaw);
+  const earliestLoggedStore = createEarliestLoggedStore();
   const feedingStage = $derived($settingsContext?.feedingStage ?? null);
   // Who may log at the live feeding stage (spec #564): `breastfed → [mother]`,
   // `mixed → [mother, baby]`, `solids → [baby]`. Drives the actor picker — the
   // pill row shows only when more than one actor is eligible (`mixed`).
   const eligibleActors = $derived<Actor[]>(feedingStage ? getEligibleActors(feedingStage) : []);
   const showActorPicker = $derived(eligibleActors.length > 1);
-  const catalog = new BundledCatalogAdapter();
-  const ctx = $derived(
-    raw.status === 'ready' && feedingStage
-      ? buildScheduleContext(
-          { schedule: raw.schedule, answers: raw.answers },
-          targetDate,
-          catalog,
-          feedingStage,
-        )
-      : null,
-  );
   // ── Actor selection (issue #569) ─────────────────────────
   // The actor whose meal is being composed. In a single-actor stage it stays
-  // fixed on the implicit actor; in `mixed` the picker pills flip it. Declared
-  // here (above the eliminated-set derivation) because `eliminatedToday` reads
-  // it — the editor checks the working meal against the *selected* actor's set.
+  // fixed on the implicit actor; in `mixed` the picker pills flip it.
   // Seeded from `?actor=` (issue #584): the day view carries the tapped actor
   // in, so in the `mixed` stage tapping the baby's row lands on the baby's meal
   // rather than always defaulting to the mother. Falls back to `mother` (a
@@ -101,20 +80,6 @@
   // invalid; the `$effect` further down still snaps it to the stage's implicit
   // actor once the live feeding stage resolves (e.g. an out-of-stage `?actor=`).
   let selectedActor = $state<Actor>(parseDayQuery(page.url).actor ?? 'mother');
-  // The eliminated set the editor checks the working meal against is the
-  // *selected actor's* set: protocol ∪ that actor's permanent eliminations
-  // (actor-aware conflict detection, spec #564/#568). A baby meal is checked
-  // against permanentBaby, a mother meal against permanentMother — reading
-  // `selectedActor` here is what keeps in-editor conflict flagging correct
-  // after an actor swap or in a baby-only (`solids`) stage.
-  const eliminatedToday = $derived(ctx ? eliminatedFor(ctx, selectedActor) : []);
-  const reintroInfo = $derived(ctx?.reintroInfo ?? null);
-  // Passive hint (issue #440) — a stale row can be edited freely, but the
-  // mother should know its date no longer sits inside the protocol window.
-  const isOutOfWindow = $derived(
-    raw.status === 'ready' &&
-      !isWithinLoggableWindow(targetDate, raw.schedule.startDate, raw.schedule.estimatedEndDate),
-  );
 
   // ── Meal type: Fixed-at-Entry (ADR-0018) ─────────────────
   // The meal type is read once from the URL and never mutated in-screen.
@@ -134,10 +99,9 @@
   const selectedMealType: MealTypeKind = isMealType(urlType) ? urlType : 'lunch';
 
   // ── Actor selection (issue #569) ─────────────────────────
-  // `selectedActor` is declared above (it feeds the eliminated-set derivation).
-  // The `date:mealType:actor` slot the editor is opened against. Reactive on
-  // `selectedActor` so the picker's `open`/`applyUndo` calls always target the
-  // current actor's record.
+  // `selectedActor` is declared above. The `date:mealType:actor` slot the
+  // editor is opened against. Reactive on `selectedActor` so the picker's
+  // `open`/`applyUndo` calls always target the current actor's record.
   const currentSlot = $derived({
     date: targetDate,
     mealType: selectedMealType,
@@ -156,7 +120,7 @@
     // before the swap because `swapActor` reloads the editor onto the target.
     const departingActor = selectedActor;
     const departingHadWork = editor.canFinalize;
-    const result = await editor.swapActor(target, eliminatedToday);
+    const result = await editor.swapActor(target);
     if (!result.ok) {
       // Abort the swap: keep the current actor active, surface the save
       // failure via the CTA's existing error path. This is the one path that
@@ -196,20 +160,18 @@
   // discard buffer stay in the route and are deferred to later slices of #284.
   const editor = createMealEditor();
 
-  // One meal repository instance for the route's own direct-to-Dexie writes
-  // (delete on explicit "Smazat jídlo" and on an emptied-then-backed-out edit,
-  // issue #588). The editor holds its own for finalize/save; the route reaches
-  // Dexie only to remove a row, so a single shared adapter here keeps the two
-  // remove call sites from each hand-rolling `new DexieMealRepository(...)`.
-  const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+  // The shared meal repository, owned by `stores/meal-session.ts`, for the
+  // route's own direct-to-Dexie writes (delete on explicit "Smazat jídlo" and
+  // on an emptied-then-backed-out edit, issue #588).
+  //
+  // NOTE: a route reaching a repository directly bypasses the store layer
+  // (`docs/architecture/ports-and-adapters.md`). Pre-existing; tracked for a
+  // proper store seam rather than fixed inside the descaling review.
 
   // Hydrate the editor once on mount: either from the discard buffer (undo
-  // navigation) or from Dexie (normal entry). Splitting the buffer-vs-load
-  // decision off from the eliminatedToday subscription is essential — when
-  // the schedule loads asynchronously and `eliminatedToday` flips from `[]`
-  // to its real value, this effect would re-run, the buffer would be empty
-  // (already cleared), and the route would call `editor.open(...)` again,
-  // overwriting the just-restored dirty edit (issue #299).
+  // navigation) or from Dexie (normal entry). Guarded by `editorMounted` so
+  // asynchronous store updates after mount never re-run it and overwrite a
+  // just-restored dirty edit (issue #299).
   let editorMounted = false;
   $effect(() => {
     if (editorMounted) return;
@@ -230,14 +192,12 @@
       //    (issue #299): Uložit změny stays enabled and a second back-out
       //    re-buffers rather than silently dropping the user's restored work.
       //  - `meal-compose`: the slot was empty before, still empty → compose-new.
-      // `eliminatedToday` is threaded so per-food danger styling and the red
-      // CTA reappear after undo.
       clearBuffer();
-      void editor.applyUndo(currentSlot, buf, eliminatedToday);
+      void editor.applyUndo(currentSlot, buf);
       return;
     }
 
-    void editor.open(currentSlot, eliminatedToday);
+    void editor.open(currentSlot);
   });
 
   // When the feeding stage resolves asynchronously after mount and the seeded
@@ -252,14 +212,8 @@
       // and plain-reload. No swap-on-dirty autosave: the user never chose the
       // departing actor, so there is no work of theirs to preserve.
       selectedActor = implicit;
-      void editor.open(currentSlot, eliminatedToday);
+      void editor.open(currentSlot);
     }
-  });
-
-  // Keep the editor's elimination window in sync when the schedule loads
-  // asynchronously after mount.
-  $effect(() => {
-    editor.setEliminatedToday(eliminatedToday);
   });
 
   // ── Working meal state ────────────────────────────────────
@@ -321,8 +275,6 @@
       ),
     );
   });
-
-  const eliminatedAllergenIdStrings = $derived(eliminatedToday.map(String));
 
   const customFoods = $derived(
     [...$harvestCandidateSession]
@@ -516,7 +468,7 @@
    * `bufferDiscard` (back-out), and `handleDeleteConfirm` (explicit delete) all
    * call it. It writes the buffer only; removing the persisted Dexie row is the
    * caller's concern (finalize already removes on save; the other two paths
-   * call `meals.remove` themselves).
+   * call `mealRepository.remove` themselves).
    */
   function writeSlotBuffer(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
     writeBuffer({
@@ -607,7 +559,7 @@
   function bufferDiscard(desc: { kind: MealDiscardKind; workingMeal: WorkingMeal }): void {
     writeSlotBuffer(desc);
     if (desc.kind === 'meal-delete') {
-      void meals.remove(targetDate, selectedMealType, selectedActor);
+      void mealRepository.remove(targetDate, selectedMealType, selectedActor);
     }
   }
 
@@ -656,8 +608,8 @@
   //
   // Note: the issue's original design called for `nav.cancel()` +
   // `goto(returnTo)` to handle a future case where `returnTo` is decoupled
-  // from the previous history entry (e.g. a `/week` FAB → `/meal` with
-  // `returnTo=/day/<today>`). That entry point doesn't exist in v1 — every
+  // from the previous history entry (e.g. some other screen's FAB → `/meal`
+  // with `returnTo=/day/<today>`). That entry point doesn't exist in v1 — every
   // call site (`MealCard`, `FabActionSheet`) sets `returnTo=/day/<that day>`
   // matching the previous history entry. So we let popstate proceed
   // natively. If a mismatched-returnTo entry ships later, this handler is
@@ -715,41 +667,6 @@
     handleFoodTap(foodId, rawName);
   }
 
-  // ── Conflict detection ────────────────────────────────────
-  // The editor owns the food×eliminated-allergen intersection
-  // (`editor.eliminatedFoodIds`, `editor.hasConflicts`) — computed via the
-  // shared `detectConflicts` over its own foods, fed by the `eliminatedToday`
-  // injected through `editor.open(..)`. The route builds the view-specific
-  // danger flags (per-row danger styling, the red CTA gate, the
-  // editing/family banners) on top of that set.
-  const eliminatedFoodIds = $derived(editor.eliminatedFoodIds);
-  /**
-   * Red CTA condition restricted to the grid view (no drill-in, no grid row
-   * edit). Narrower than `editor.hasConflicts` because the editor's set
-   * includes editing-state foods too — but a grid view with no
-   * `gridEditingFoodId` only has confirmed entries in practice, so this also
-   * filters defensively to confirmed foods.
-   */
-  const hasConflicts = $derived(confirmedFoods.some((f) => eliminatedFoodIds.has(f.foodId)));
-  /** True when the food being edited right now (drill-in or grid) is eliminated today. */
-  const editingFoodIsEliminated = $derived(
-    drilledFamily && currentEditingFood
-      ? eliminatedFoodIds.has(currentEditingFood.foodId)
-      : gridEditingFoodId
-        ? eliminatedFoodIds.has(gridEditingFoodId)
-        : false,
-  );
-  /** True when saving the whole family would commit at least one eliminated food. */
-  const familySaveHasEliminated = $derived(
-    drilledFamily !== null &&
-      currentEditingFood === null &&
-      foodsForFamily(workingMeal, drilledFamily).some(
-        (f) =>
-          (f.state.status === 'confirmed' || f.state.status === 'editing') &&
-          eliminatedFoodIds.has(f.foodId),
-      ),
-  );
-
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
 
@@ -771,7 +688,7 @@
     // rehydrate. The 'delete' intent is explicit: the editor cannot infer
     // that the user just deleted from its own state.
     const desc = editor.discardDescriptor('delete');
-    const result = await meals.remove(targetDate, selectedMealType, selectedActor);
+    const result = await mealRepository.remove(targetDate, selectedMealType, selectedActor);
     if (!result.ok) {
       saveErrorMessage = result.error;
       return;
@@ -785,11 +702,9 @@
   // ── Copy meal (spec #599, issue #606) ─────────────────────
   // Variant D′: the copy affordance appears in the ⋯ overflow list only when
   // the source meal has ≥1 food (a notes-only / zero-food meal has nothing to
-  // copy). Picking it opens a destination picker: a DayStrip (future + out-of-
-  // window days disabled) then a slot sheet pre-filled to the source slot. The
-  // actor is fixed to the source meal's actor — eligibility is NOT re-checked
-  // on the destination date; a copy re-derives conflicts from the destination
-  // day's eliminated set for free (no copy-aware branch downstream).
+  // copy). Picking it opens a destination picker: a DayStrip then a slot sheet
+  // pre-filled to the source slot. Every cell the strip renders is a legal
+  // destination (§3e), and the actor is fixed to the source meal's actor.
   const canCopy = $derived(editingExisting && confirmedFoods.length > 0);
 
   function openCopyPicker(): void {
@@ -798,37 +713,26 @@
     copyPickerOpen = true;
   }
 
-  // The copy picker's own day strip: same span shape as the day overview, but
-  // the picker gates selection itself (DayStrip only greys cells). A cell is a
-  // legal destination when it is NOT strictly future AND inside the loggable
-  // window — tested via `isWithinLoggableWindow`, not just `isBeforeStart`, so
-  // a strip extended earlier by a far-back selectedDate still rejects
-  // out-of-window days.
+  // The copy picker's own day strip: same §3a input as the day overview, with
+  // `selectedDate` = the currently picked destination. Live earliest-logged so
+  // the destination range grows the instant an earlier day is logged.
+  const earliestLogged = $derived($earliestLoggedStore);
   const copyStripCells = $derived(
-    raw.status === 'ready'
-      ? computeDayStrip({
-          selectedDate: copyDestDate || targetDate,
-          protocolStart: raw.schedule.startDate,
-          estimatedEnd: raw.schedule.estimatedEndDate,
-          today: todayIso(),
-        }).cells
-      : [],
+    computeDayStrip({
+      selectedDate: copyDestDate || targetDate,
+      earliestLogged,
+      today: todayIso(),
+    }).cells,
   );
 
-  /** A destination day is loggable when it is not strictly future and inside the window. */
-  function isCopyDestLoggable(date: string): boolean {
-    if (raw.status !== 'ready') return false;
-    if (date > todayIso()) return false;
-    return isWithinLoggableWindow(date, raw.schedule.startDate, raw.schedule.estimatedEndDate);
-  }
-
+  // Every cell the strip renders is a legal destination: the range ends at
+  // today (no future cell) and the loggable-window guard is gone (§3e), so a
+  // pick simply records the tapped day — no destination gate.
   function selectCopyDestDate(date: string): void {
-    if (!isCopyDestLoggable(date)) return;
     copyDestDate = date;
   }
 
   function openCopySlotSheet(): void {
-    if (!isCopyDestLoggable(copyDestDate)) return;
     copySlotSheetOpen = true;
   }
 
@@ -842,14 +746,14 @@
   // (`loadBySlot(destDate, destSlot, source.actor)`): the OTHER actor's meal in
   // the same visual cell is irrelevant and untouched.
   async function confirmCopy(destMealType: MealType): Promise<void> {
-    const srcResult = await meals.loadBySlot(targetDate, selectedMealType, selectedActor);
+    const srcResult = await mealRepository.loadBySlot(targetDate, selectedMealType, selectedActor);
     if (!srcResult.ok || !srcResult.data) {
       closeCopyPicker();
       return;
     }
     const source = srcResult.data;
     const destSlot: MealSlot = { date: copyDestDate, mealType: destMealType, actor: selectedActor };
-    const targetResult = await meals.loadBySlot(copyDestDate, destMealType, selectedActor);
+    const targetResult = await mealRepository.loadBySlot(copyDestDate, destMealType, selectedActor);
     if (!targetResult.ok) {
       saveErrorMessage = targetResult.error;
       return;
@@ -862,13 +766,13 @@
       closeCopyPicker();
       return;
     }
-    const saveResult = await meals.save(meal);
+    const saveResult = await mealRepository.save(meal);
     if (!saveResult.ok) {
-      // Out-of-window guard (or any save failure): surface the toast and stay
-      // on the day picker — dismiss the slot sheet so the toast is readable and
-      // the mother can pick a different day. No navigation, no success toast.
+      // Save failure (Dexie quota / transaction error): surface the toast and
+      // stay on the day picker — dismiss the slot sheet so the toast is readable
+      // and the mother can retry. No navigation, no success toast.
       copySlotSheetOpen = false;
-      saveErrorMessage = commonStrings.meal.copyOutOfWindowToast;
+      saveErrorMessage = commonStrings.meal.copyFailedToast;
       return;
     }
     // Success: capture the undo descriptor, navigate to the destination day,
@@ -923,33 +827,6 @@
     {/if}
 
     <!-- Meal type is fixed at entry (ADR-0018) — no pills here. -->
-    {#if !drilledFamily}
-      <!-- Dosing guidance during reintroduction -->
-      {#if reintroInfo && feedingStage}
-        {@const cat = getCategoryConfig(reintroInfo.allergenId)}
-        {@const rung = rungAtDayInPhase(
-          catalog,
-          reintroInfo.allergenId,
-          reintroInfo.dayInPhase,
-          feedingStage,
-        )}
-        <div class="space-y-1.5 px-4 pt-2">
-          <InfoBanner variant="success">
-            <p class="eyebrow text-success">
-              {reintroDayLabel(reintroInfo.dayInPhase, reintroInfo.totalDays)}
-            </p>
-            <p class="caption mt-0.5">{rung?.dose ?? ''} ({cat?.name})</p>
-          </InfoBanner>
-        </div>
-      {/if}
-      {#if editingExisting && isOutOfWindow}
-        <div class="space-y-1.5 px-4 pt-2">
-          <InfoBanner variant="info">
-            <p class="caption">{commonStrings.meal.outOfWindowHint}</p>
-          </InfoBanner>
-        </div>
-      {/if}
-    {/if}
   </div>
 
   <div class="space-y-5 px-4 pt-4">
@@ -959,7 +836,6 @@
         <FamilyDrillIn
           familyId={drilledFamily}
           foods={foodsForFamily(workingMeal, drilledFamily)}
-          eliminatedAllergenIds={eliminatedAllergenIdStrings}
           customFoods={drilledFamily === 'custom' ? customFoods : []}
           onFoodTap={handleFoodTap}
           onAmountChange={handleAmountChange}
@@ -983,7 +859,6 @@
                   {@const isConfirmed = food.state.status === 'confirmed'}
                   {@const isLockedConfirmed =
                     food.state.status === 'locked' && food.state.prior === 'confirmed'}
-                  {@const isEliminated = eliminatedFoodIds.has(food.foodId)}
                   {@const tileState = isEditing ? 'editing' : isConfirmed ? 'confirmed' : 'locked'}
                   {@const lockedPriorVal = isLockedConfirmed ? 'confirmed' : undefined}
                   {@const amount =
@@ -1002,7 +877,6 @@
                       name={food.name}
                       state={tileState}
                       variant="list"
-                      eliminatedStatus={isEliminated ? 'danger' : undefined}
                       lockedPrior={lockedPriorVal}
                       summary={isEditing ? undefined : summary}
                       onclick={() => familyId && handleGridRowTap(food.foodId, food.name, familyId)}
@@ -1014,7 +888,6 @@
                             amount={food.state.amount}
                             preparation={food.state.preparation}
                             form={formForFood(food.foodId)}
-                            eliminatedVariant={isEliminated}
                             onAmountChange={(a) =>
                               familyId && handleGridRowAmountChange(food.foodId, familyId, a)}
                             onPreparationChange={(p) =>
@@ -1066,11 +939,7 @@
       class="w-full rounded-xl py-3 text-sm font-semibold transition-all
         {finalizeDisabled && !isDoneState
         ? 'bg-surface-dark text-text-muted cursor-default'
-        : editingFoodIsEliminated ||
-            familySaveHasEliminated ||
-            (hasConflicts && !drilledFamily && !gridEditingFoodId)
-          ? 'bg-danger text-white'
-          : 'bg-primary text-white'}"
+        : 'bg-primary text-white'}"
     >
       {ctaLabel()}
     </button>
@@ -1159,22 +1028,13 @@
     </div>
     <div class="border-surface-dark mx-5 border-t"></div>
     <div class="pt-2">
-      <DayStrip
-        cells={copyStripCells}
-        today={todayIso()}
-        todayRecorded={false}
-        onselectdate={selectCopyDestDate}
-      />
+      <DayStrip cells={copyStripCells} today={todayIso()} onselectdate={selectCopyDestDate} />
     </div>
     <div class="px-5 pt-1 pb-2">
       <button
         type="button"
         data-testid="copy-pick-slot"
-        aria-disabled={isCopyDestLoggable(copyDestDate) ? 'false' : 'true'}
-        class="w-full rounded-xl py-3 text-sm font-semibold text-white
-          {isCopyDestLoggable(copyDestDate)
-          ? 'bg-primary'
-          : 'bg-surface-dark text-text-muted cursor-default'}"
+        class="bg-primary w-full rounded-xl py-3 text-sm font-semibold text-white"
         onclick={openCopySlotSheet}>{actionStrings.copyHere}</button
       >
     </div>

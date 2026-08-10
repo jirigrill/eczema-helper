@@ -6,7 +6,7 @@ Guidance for AI agents working in this repository.
 
 Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimination diet. Single-device, the mother's phone, Czech UI. [ADR-0001](docs/adr/0001-single-device-v1.md)
 
-**Status:** The app is a Protocol Executor — onboarding, today view, meal logging with conflict detection, program timeline, skin + photo. `docs/design/redesign-prototype.html` is the design source of truth; SvelteKit routes are authored against it. No backend or auth. Encrypted export/import (#438) and the derived-insight engine (#468) are not built yet.
+**Status:** The app is a Logging Tool — first run (feeding stage), day view, meal logging, skin observation with photos, settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. The elimination-protocol engine is parked at `parked/protocol-engine` (see `docs/parked-features.md`). `docs/design/redesign-prototype.html` is the design source of truth, but still depicts the pre-descaling screens where it shows protocol UI (onboarding questionnaire, program timeline, conflict detection); SvelteKit routes are authored against it. No backend or auth. Encrypted export/import (#438) and the derived-insight engine (#468) are not built yet.
 
 ## Documentation
 

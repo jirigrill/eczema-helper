@@ -15,58 +15,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.meals.clear();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-async function completeOnboardingWithDairyElimination(page: Page) {
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: ['dairy'],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [{
-        id: 'elim-dairy',
-        type: 'elimination',
-        allergenIds: ['dairy'],
-        startDate: start,
-        endDate: future,
-      }],
-    });
-    // The meal page gates its schedule context on the live feedingStage master
-    // switch (#567); onboarding seeds it, so tests bypassing onboarding must too.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-  return today;
-}
+import { clearDb, startLogging } from './seed';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -79,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 // compose-new must keep the food and let the user save.
 
 test('compose-new: undo of a draft restores the food and canFinalize stays true', async ({ page }) => {
-  const today = await completeOnboardingWithDairyElimination(page);
+  const today = await startLogging(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
 
@@ -128,7 +77,7 @@ async function seedLunchWithBrambory(page: Page, date: string) {
 }
 
 test('edit + eliminated food: Zpět restores food, the meal stays dirty, "Uložit změny" enabled', async ({ page }) => {
-  const today = await completeOnboardingWithDairyElimination(page);
+  const today = await startLogging(page);
   await seedLunchWithBrambory(page, today!);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -160,7 +109,7 @@ test('edit + eliminated food: Zpět restores food, the meal stays dirty, "Uloži
 });
 
 test('edit: a SECOND back-out after Zpět writes a fresh discard buffer (no silent loss of restored food)', async ({ page }) => {
-  const today = await completeOnboardingWithDairyElimination(page);
+  const today = await startLogging(page);
   await seedLunchWithBrambory(page, today!);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);

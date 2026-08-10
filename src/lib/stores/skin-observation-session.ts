@@ -1,7 +1,6 @@
 import type { Readable } from 'svelte/store';
 
 import { createDateScopedSession } from '$lib/adapters/date-scoped-session';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { DexieSkinObservationRepository } from '$lib/adapters/dexie-skin-observation-repository';
 import { DexieSkinPhotoStore } from '$lib/adapters/dexie-skin-photo-store';
 import { db } from '$lib/db/atopic-db';
@@ -10,7 +9,12 @@ import type { SkinObservationUpdateOptions } from '$lib/domain/ports/skin-observ
 import type { Result } from '$lib/types/result';
 import { todayIso } from '$lib/utils/date';
 
-const repo = new DexieSkinObservationRepository(db, new DexieScheduleRepository(db));
+/**
+ * The one `SkinObservationRepository` instance for the app — this module owns
+ * the skin-observation domain's adapter. Exported so cross-domain readers (the
+ * earliest-logged store) share it rather than constructing a second instance.
+ */
+export const skinObservationRepository = new DexieSkinObservationRepository(db);
 const photoStore = new DexieSkinPhotoStore(db);
 
 export type SkinObservationSession = {
@@ -32,25 +36,25 @@ export function createSkinObservationSession(date: string): SkinObservationSessi
     observation: SkinObservation,
     photos: SkinPhotoInput[] = [],
   ): Promise<Result<void, string>> {
-    return repo.save(observation, photos);
+    return skinObservationRepository.save(observation, photos);
   }
 
   async function update(
     observation: SkinObservation,
     options: SkinObservationUpdateOptions,
   ): Promise<Result<void, string>> {
-    return repo.update(observation, options);
+    return skinObservationRepository.update(observation, options);
   }
 
   async function remove(id: string): Promise<Result<void, string>> {
-    return repo.remove(id);
+    return skinObservationRepository.remove(id);
   }
 
   async function restore(
     observation: SkinObservation,
     photos: SkinPhoto[],
   ): Promise<Result<void, string>> {
-    return repo.restore(observation, photos);
+    return skinObservationRepository.restore(observation, photos);
   }
 
   async function loadPhotos(observationId: string): Promise<Result<SkinPhoto[], string>> {

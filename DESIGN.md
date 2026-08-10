@@ -506,7 +506,7 @@ All in-app type renders Czech diacritics — `š ž č ř ě á í ó ú ý ě �
 - **Screen horizontal padding**: `{spacing.xl}` 20px (`px-5` Tailwind) — every screen content block aligns to this gutter.
 - **Inter-card gap**: `{spacing.base}` 12px (`mb-3` Tailwind) — vertical rhythm between stacked cards.
 - **Status bar height**: 52px (notched); content starts immediately below.
-- **Bottom nav clearance**: 80–96px from bottom — `pb-20` to `pb-24` on screen-content.
+- **Floating-FAB clearance**: 80–96px from bottom — `pb-20` to `pb-24` on screen-content, so the last card is not covered by the FAB.
 
 ### Grid & Container
 
@@ -548,16 +548,16 @@ Z-index values across the app follow a fixed ladder. New surfaces pick the match
 |---|---|---|
 | Base | (none) | Page content in normal flow |
 | Sticky chrome | `z-20` | Sticky page headers (`PageHeader`) |
-| Page CTA overlay | `z-30` | Bottom-anchored CTA gradients (e.g. meal page) — also the **bottom navigation bar** |
-| Transient notification | `z-40` | Toasts that float above the nav |
-| FAB | `z-50` | The "+" button — must outrank toast, nav siblings, and any page-level overlay so its lifted top edge is always visible |
+| Page CTA overlay | `z-30` | Bottom-anchored CTA gradients (e.g. meal page) |
+| Transient notification | `z-40` | Toasts that float above page content |
+| FAB | `z-50` | The "+" button — must outrank toast and any page-level overlay so its edge is always visible |
 | Modal scrim | `z-[60]` | Backdrop behind a sheet/dialog |
 | Modal content | `z-[70]` | Bottom sheets, action sheets, confirm dialogs — intentionally cover the FAB |
 
 Rules:
 - Anything that uses `z-index` must also have a non-static `position` (use `relative` if no other positioning is needed).
 - A surface that pops up *above* the FAB must reach the modal layer (`z-[60]` / `z-[70]`); halfway values cover the FAB by accident.
-- Toast-style notifications stay below the FAB, not above it. Keep them at `z-40` and use `bottom-[…]` to clear the nav vertically.
+- Toast-style notifications stay below the FAB, not above it. Keep them at `z-40` and use `bottom-[…]` to clear the FAB vertically.
 
 ## Shapes
 
@@ -652,6 +652,8 @@ The body of every insight card is the same: 14px text paragraph, then evidence r
 
 ### Bottom Navigation
 
+> **Prototype-only since the descaling (PRD #623).** The shipped app has no bottom nav bar — `Týden` parked, leaving a one-destination bar beside a FAB, so the bar was removed and the FAB became a floating button (`fixed right-5 bottom-6 z-50`). The tokens below still describe `docs/design/redesign-prototype.html`, which depicts the pre-descaling screens. Don't reintroduce a nav bar from this section.
+
 - `{components.bottom-nav-2col}` — Two-column grid (Dnes / Týden), no FAB. Active item uses `{components.nav-item-active}` — wine text, weight 600. Inactive uses `{components.nav-item-inactive}` — muted text, weight 400. Each item: 22×22 SVG icon above 10px label.
 - `{components.bottom-nav-3col-fab}` — Three-column grid: nav · FAB · nav. The FAB is positioned with `-mt-7` to lift above the nav baseline. Used on `Dnes` (where input is the primary action). Optional 4px ring on first-launch / empty state to invite first tap.
 - `{components.fab-primary}` — 56×56px, full-rounded, primary fill, white plus glyph. Standard FAB.
@@ -726,6 +728,8 @@ The single primary CTA per screen carries the wine-rose accent. Its verb signals
 4. Never combine: no `Uložit a pokračovat`, no `Hotovo · uložit`. One semantic per CTA.
 
 ## Examples (Reference Compositions)
+
+> **The three compositions below describe `docs/design/redesign-prototype.html`, not the shipped app.** Since the descaling (PRD #623) the app has no program strip, no `Týden` screen and no bottom nav; the day view is header + day strip + skin card + meal cards + floating FAB.
 
 ### Composition 1 — `Dnes` (filled state)
 

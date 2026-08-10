@@ -9,6 +9,12 @@ export type MealRepository = {
   /** Return all meals logged for a date, in any order. */
   listByDate(date: string): Promise<Result<Meal[], string>>;
   /**
+   * The earliest date (ISO `YYYY-MM-DD`) on which any meal is logged, or null
+   * when the store is empty. Resolved as an index-ordered first-key lookup, not
+   * a scan. Feeds the day strip's `earliest logged day … today` range (§3a).
+   */
+  earliestLoggedDate(): Promise<Result<string | null, string>>;
+  /**
    * Delete the meal occupying a slot, if any. A no-op (still Ok) when the slot
    * is already empty. Used by the explicit "Smazat jídlo" action on /meal in
    * edit mode (ADR-0018, issue #268). The page snapshots the working meal into

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, startLogging } from './seed';
+
 /**
  * Meal screen typography E2E (issue #302).
  *
@@ -13,54 +15,6 @@ import type { Page } from '@playwright/test';
  * Lifts user stories 11 + 12 of #297: section headers + date share one
  * type rhythm; the date reads as quiet meta, not body content.
  */
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.meals.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page) {
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -75,7 +29,7 @@ async function openLunchMeal(page: Page) {
 }
 
 test('"Všechny kategorie" header carries eyebrow with 12px / 600 / uppercase', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await openLunchMeal(page);
 
   const header = page.getByText('Všechny kategorie', { exact: true });
@@ -86,7 +40,7 @@ test('"Všechny kategorie" header carries eyebrow with 12px / 600 / uppercase', 
 });
 
 test('"Poznámka" notes label carries eyebrow', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await openLunchMeal(page);
 
   const label = page.locator('label[for="meal-notes"]');
@@ -96,7 +50,7 @@ test('"Poznámka" notes label carries eyebrow', async ({ page }) => {
 });
 
 test('"Přidané potraviny" working-list header carries eyebrow once a food is committed', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await openLunchMeal(page);
 
   // Seed one confirmed food so the working-list section becomes visible.
@@ -112,7 +66,7 @@ test('"Přidané potraviny" working-list header carries eyebrow once a food is c
 });
 
 test('date in the top-right reads as body-muted (14px / muted), bumped up from caption', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await openLunchMeal(page);
 
   // The header date uses the long Czech format ("X. měsíce"); locate inside
@@ -125,7 +79,7 @@ test('date in the top-right reads as body-muted (14px / muted), bumped up from c
 });
 
 test('confirmed-row porce/preparation meta uses caption', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await openLunchMeal(page);
 
   // Add and confirm a food so the meta line shows ("Porce").

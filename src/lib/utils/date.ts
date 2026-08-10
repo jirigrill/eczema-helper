@@ -36,6 +36,17 @@ export function isDateInRange(date: string, start: string, end: string): boolean
   return date >= start && date <= end;
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Shape check for the internal `YYYY-MM-DD` date string — the form every date
+ * crosses a boundary in (route params, Dexie keys, domain arguments). Shape
+ * only: `2025-02-31` passes.
+ */
+export function isIsoDate(value: string): boolean {
+  return ISO_DATE_RE.test(value);
+}
+
 export function formatDateCs(iso: string): string {
   const d = new Date(iso + 'T00:00:00');
   // The space after the day number is a non-breaking space (U+00A0) — the
@@ -61,22 +72,4 @@ export function formatDateLongCs(iso: string): string {
 export function formatObservationTime(iso: string): string {
   const d = new Date(iso);
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-export type RouteDateResult =
-  | { type: 'date'; date: string }
-  | { type: 'preview'; date: string }
-  | { type: 'redirect'; to: string };
-
-export function resolveRouteDate(
-  param: string,
-  protocolStart: string,
-  today: string,
-): RouteDateResult {
-  if (!ISO_DATE_RE.test(param)) return { type: 'redirect', to: today };
-  if (param < protocolStart) return { type: 'redirect', to: today };
-  if (param > today) return { type: 'preview', date: param };
-  return { type: 'date', date: param };
 }

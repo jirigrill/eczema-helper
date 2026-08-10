@@ -6,18 +6,17 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
 import { db } from '$lib/db/atopic-db';
-import type { GeneratedSchedule, Meal, QuestionnaireAnswers } from '$lib/domain/models';
+import type { Meal } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { type WorkingMeal, emptyWorkingMeal } from '$lib/domain/working-meal';
 import { clearBuffer, discardBuffer, writeBuffer } from '$lib/stores/discard-buffer';
-import type { ScheduleContext } from '$lib/stores/schedule-context';
+import type { SeededStatus } from '$lib/stores/settings.svelte';
 
-const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+const meals = new DexieMealRepository(db);
 
 const mockGoto = vi.fn();
-const mockScheduleContext = writable<ScheduleContext>({ status: 'loading' });
+const mockSeededStatus = writable<SeededStatus>('loading');
 const mockPageStore = writable({
   url: new URL(`http://localhost/day/${new Date().toISOString().split('T')[0]}`),
   params: { date: new Date().toISOString().split('T')[0] },
@@ -26,8 +25,8 @@ const mockPageStore = writable({
 
 vi.mock('$app/navigation', () => ({ goto: mockGoto }));
 vi.mock('$app/stores', () => ({ page: { subscribe: mockPageStore.subscribe } }));
-vi.mock('$lib/stores/schedule-context', () => ({
-  scheduleContext: { subscribe: mockScheduleContext.subscribe },
+vi.mock('$lib/stores/settings.svelte', () => ({
+  seededStatus: { subscribe: mockSeededStatus.subscribe },
 }));
 
 /** Extract the numeric value from a Tailwind `z-N` (or `z-[N]`) utility class. */
@@ -42,45 +41,6 @@ function zIndexOf(el: Element | null): number {
 
 const today = new Date().toISOString().split('T')[0]!;
 
-const sampleSchedule: GeneratedSchedule = {
-  permanentMother: [],
-  permanentBaby: [],
-  startDate: today,
-  estimatedEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]!,
-  phases: [
-    {
-      id: 'reset',
-      type: 'reset',
-      allergenIds: [],
-      startDate: today,
-      endDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0]!,
-    },
-  ],
-};
-
-const sampleAnswers: QuestionnaireAnswers = {
-  babyBirthDate: '2025-01-01',
-  eczemaSeverity: 'moderate',
-  motherAllergies: [],
-  babyConfirmedAllergies: [],
-  programStartDate: '2025-06-01',
-  completedAt: '2025-06-01T10:00:00.000Z',
-  testedAllergens: ['dairy'],
-  feedingStage: 'breastfed',
-};
-
-const readyContext: ScheduleContext = {
-  status: 'ready',
-  schedule: sampleSchedule,
-  answers: sampleAnswers,
-  allergenStatuses: [],
-  protocolEliminated: [],
-  permanentMother: [],
-  permanentBaby: [],
-  reintroInfo: null,
-  progress: { currentDay: 1, totalDays: 30, percentComplete: 3 },
-};
-
 const emptyChildren = createRawSnippet(() => ({ render: () => '<span></span>' }));
 
 async function renderLayout() {
@@ -90,7 +50,7 @@ async function renderLayout() {
 
 beforeEach(() => {
   mockGoto.mockReset();
-  mockScheduleContext.set({ status: 'loading' });
+  mockSeededStatus.set('loading');
   mockPageStore.set({
     url: new URL(`http://localhost/day/${today}`),
     params: { date: today },
@@ -99,124 +59,122 @@ beforeEach(() => {
 });
 
 describe('+layout.svelte — redirect', () => {
-  it('calls goto("/") when answers are null and not on onboarding', async () => {
-    mockScheduleContext.set({ status: 'empty' });
+  it('calls goto("/") when the feeding stage is unset and not on first run', async () => {
+    mockSeededStatus.set('unset');
     await renderLayout();
     await tick();
     expect(mockGoto).toHaveBeenCalledWith('/');
   });
 
-  it('does not call goto when already on onboarding route', async () => {
+  it('does not call goto when already on the first-run route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockScheduleContext.set({ status: 'empty' });
+    mockSeededStatus.set('unset');
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
   });
 
-  it('calls goto("/day/<today>") when status is ready and landing on the root route (issue #353)', async () => {
+  it('calls goto("/day/<today>") when seeded and landing on first run (issue #353)', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     await renderLayout();
     await tick();
     expect(mockGoto).toHaveBeenCalledWith(`/day/${today}`);
   });
 
-  it('does not call goto when status is ready and already on a non-root route', async () => {
-    mockScheduleContext.set(readyContext);
+  it('does not call goto when seeded and already on a non-root route', async () => {
+    mockSeededStatus.set('seeded');
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
   });
 
-  it('does not call goto while status is loading, even on the root route', async () => {
+  it('does not call goto while the seeded signal is still loading, even on first run', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockScheduleContext.set({ status: 'loading' });
+    mockSeededStatus.set('loading');
     await renderLayout();
     await tick();
     expect(mockGoto).not.toHaveBeenCalled();
   });
 });
 
-describe('+layout.svelte — bottom nav visibility', () => {
-  it('hides nav when answers are null', async () => {
-    const { queryByText } = await renderLayout();
+describe('+layout.svelte — FAB visibility', () => {
+  it('hides the FAB when the feeding stage is unset', async () => {
+    mockSeededStatus.set('unset');
+    // Render off-root so the unset redirect to / does not remove the shell.
+    mockPageStore.set({ url: new URL('http://localhost/day/x'), params: { date: 'x' }, data: {} });
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides nav on onboarding route even when answers are present', async () => {
+  it('hides the FAB on the first-run route even when seeded', async () => {
     mockPageStore.set({ url: new URL('http://localhost/'), params: { date: '' }, data: {} });
-    mockScheduleContext.set(readyContext);
-    const { queryByText } = await renderLayout();
+    mockSeededStatus.set('seeded');
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('shows nav with Dnes and Týden tabs when answers are present on a main route', async () => {
-    mockScheduleContext.set(readyContext);
-    const { getByText } = await renderLayout();
+  it('shows the FAB when seeded on a day route', async () => {
+    mockSeededStatus.set('seeded');
+    const { container } = await renderLayout();
     await tick();
-    expect(getByText('Dnes')).toBeInTheDocument();
-    expect(getByText('Týden')).toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeInTheDocument();
   });
 
-  it('hides nav on /meal route', async () => {
+  it('hides the FAB on /meal route', async () => {
     mockPageStore.set({ url: new URL('http://localhost/meal'), params: { date: '' }, data: {} });
-    mockScheduleContext.set(readyContext);
-    const { queryByText } = await renderLayout();
+    mockSeededStatus.set('seeded');
+    const { container } = await renderLayout();
     await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides nav on /settings route', async () => {
+  it('hides the FAB on /settings route', async () => {
     mockPageStore.set({
       url: new URL('http://localhost/settings'),
       params: { date: '' },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
-    const { queryByText } = await renderLayout();
-    await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
-  });
-
-  it('hides nav on /skin route', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/skin'), params: { date: '' }, data: {} });
-    mockScheduleContext.set(readyContext);
-    const { queryByText } = await renderLayout();
-    await tick();
-    expect(queryByText('Dnes')).not.toBeInTheDocument();
-    expect(queryByText('Týden')).not.toBeInTheDocument();
-  });
-
-  it('renders FAB when nav is visible', async () => {
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
-    const fab = container.querySelector('button[aria-label="Přidat záznam"]');
-    expect(fab).toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
   });
 
-  it('hides FAB when viewing a future /day/[date]', async () => {
+  it('hides the FAB on /skin route', async () => {
+    mockPageStore.set({ url: new URL('http://localhost/skin'), params: { date: '' }, data: {} });
+    mockSeededStatus.set('seeded');
+    const { container } = await renderLayout();
+    await tick();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeNull();
+  });
+
+  it('renders no bottom navigation bar', async () => {
+    mockSeededStatus.set('seeded');
+    const { container, queryByText } = await renderLayout();
+    await tick();
+    // The single-screen shell (PRD #623, §3) has no nav bar and no Týden tab.
+    expect(container.querySelector('nav')).toBeNull();
+    expect(queryByText('Týden')).not.toBeInTheDocument();
+  });
+
+  it('shows the FAB when viewing a future /day/[date] — no day is suppressed (PRD #623, §3)', async () => {
     const future = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
     mockPageStore.set({
       url: new URL(`http://localhost/day/${future}`),
       params: { date: future },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
-    const fab = container.querySelector('button[aria-label="Přidat záznam"]');
-    expect(fab).toBeNull();
+    expect(container.querySelector('button[aria-label="Přidat záznam"]')).toBeInTheDocument();
   });
 
-  it('clicking FAB opens action sheet', async () => {
-    mockScheduleContext.set(readyContext);
+  it('clicking the FAB opens the action sheet', async () => {
+    mockSeededStatus.set('seeded');
     const { container, getByText } = await renderLayout();
     await tick();
     const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
@@ -231,7 +189,7 @@ describe('+layout.svelte — bottom nav visibility', () => {
       params: { date: '2025-01-15' },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     const { container, getByTestId } = await renderLayout();
     await tick();
     const fab = container.querySelector('button[aria-label="Přidat záznam"]') as HTMLButtonElement;
@@ -261,7 +219,7 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
   }
 
   it('FAB sits above the discard toast when both are visible', async () => {
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     discardBuffer.set({
       kind: 'meal-compose',
       workingMeal: sampleWorkingMeal,
@@ -282,23 +240,8 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
     expect(zIndexOf(fab)).toBeGreaterThan(zIndexOf(toast));
   });
 
-  it('FAB sits above the bottom navigation it overhangs', async () => {
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-
-    const fab = fabButton(container);
-    const nav = container.querySelector('nav');
-    expect(fab).not.toBeNull();
-    expect(nav).not.toBeNull();
-
-    // The nav is the surface the FAB visually lifts above; the FAB must
-    // outrank it so its overhanging top edge is never clipped or covered.
-    expect(zIndexOf(fab)).toBeGreaterThan(zIndexOf(nav));
-  });
-
   it('action sheet still covers the FAB when opened (modal layer outranks FAB)', async () => {
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
 
@@ -315,80 +258,6 @@ describe('+layout.svelte — FAB stacking (issue #324)', () => {
   });
 });
 
-describe('+layout.svelte — active tab state', () => {
-  it('Dnes tab links to /day/<today>', async () => {
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    expect(dnesLink).toBeInTheDocument();
-    expect(dnesLink?.textContent).toContain('Dnes');
-  });
-
-  it('marks Dnes tab active when viewing today', async () => {
-    mockPageStore.set({
-      url: new URL(`http://localhost/day/${today}`),
-      params: { date: today },
-      data: {},
-    });
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    const tydenLink = container.querySelector('a[href="/week"]');
-    expect(dnesLink?.classList).toContain('text-primary');
-    expect(tydenLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Dnes tab inactive when viewing a past date', async () => {
-    const pastDate = '2025-01-01';
-    mockPageStore.set({
-      url: new URL(`http://localhost/day/${pastDate}`),
-      params: { date: pastDate },
-      data: {},
-    });
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    expect(dnesLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Dnes tab inactive when viewing a future date', async () => {
-    const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-    mockPageStore.set({
-      url: new URL(`http://localhost/day/${futureDate}`),
-      params: { date: futureDate },
-      data: {},
-    });
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    expect(dnesLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Týden tab active on /week', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-    const dnesLink = container.querySelector(`a[href="/day/${today}"]`);
-    const tydenLink = container.querySelector('a[href="/week"]');
-    expect(tydenLink?.classList).toContain('text-primary');
-    expect(dnesLink?.classList).toContain('text-text-muted');
-  });
-
-  it('marks Týden tab active on /program', async () => {
-    mockPageStore.set({ url: new URL('http://localhost/program'), params: { date: '' }, data: {} });
-    mockScheduleContext.set(readyContext);
-    const { container } = await renderLayout();
-    await tick();
-    const tydenLink = container.querySelector('a[href="/week"]');
-    expect(tydenLink?.classList).toContain('text-primary');
-  });
-});
-
 describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
   // The app shell wraps page content in <main> with `overflow-y-auto`, so the
   // window doesn't scroll — that inner region does. Without an explicit reset,
@@ -396,7 +265,7 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
   // mid-scroll. The layout must reset that container to the top on every
   // navigation.
   it('resets the main scroll container to top when the route changes', async () => {
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
 
@@ -408,7 +277,11 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
     expect(main.scrollTop).toBe(250);
 
     // Navigate to another route — the layout should reset the scroll.
-    mockPageStore.set({ url: new URL('http://localhost/week'), params: { date: '' }, data: {} });
+    mockPageStore.set({
+      url: new URL('http://localhost/settings'),
+      params: { date: '' },
+      data: {},
+    });
     await tick();
 
     expect(main.scrollTop).toBe(0);
@@ -420,7 +293,7 @@ describe('+layout.svelte — scroll reset on navigation (issue #325)', () => {
       params: { date: '2025-01-15' },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     const { container } = await renderLayout();
     await tick();
 
@@ -450,7 +323,7 @@ describe('+layout.svelte — discard toast undo', () => {
       params: { date: pastDate },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     writeBuffer({
       kind: 'meal-delete',
       workingMeal: emptyWorkingMeal(),
@@ -477,7 +350,7 @@ describe('+layout.svelte — discard toast undo', () => {
       params: { date },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
     // A baby meal was deleted; the buffer records actor: 'baby'. Without the
     // actor in the undo URL the return navigation defaulted to 'mother' and
     // clobbered the mother's row (the reported dual-actor bug).
@@ -512,7 +385,7 @@ describe('+layout.svelte — copy-meal undo (issue #606)', () => {
       params: { date },
       data: {},
     });
-    mockScheduleContext.set(readyContext);
+    mockSeededStatus.set('seeded');
   });
 
   it('shows the "Zkopírováno" toast for a meal-copy descriptor', async () => {

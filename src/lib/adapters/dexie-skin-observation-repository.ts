@@ -1,6 +1,5 @@
 import type { AtopicDb } from '$lib/db/atopic-db';
 import type { SkinObservation, SkinPhoto, SkinPhotoInput } from '$lib/domain/models';
-import type { ScheduleRepository } from '$lib/domain/ports/schedule-repository';
 import type {
   SkinObservationRepository,
   SkinObservationUpdateOptions,
@@ -8,28 +7,19 @@ import type {
 import type { Result } from '$lib/types/result';
 import { randomUUID } from '$lib/utils/uuid';
 
-import { checkLoggableWindow } from './loggable-window-guard';
-
 export class DexieSkinObservationRepository implements SkinObservationRepository {
-  constructor(
-    private readonly db: AtopicDb,
-    private readonly scheduleRepo: ScheduleRepository,
-  ) {}
+  constructor(private readonly db: AtopicDb) {}
 
   /**
-   * Atomically persist an observation and its photos. Rejects with
-   * `date-outside-loggable-window` when a schedule exists and the observation
-   * date falls outside the loggable window. Onboarding writes made before any
-   * schedule has been generated are intentionally unguarded.
+   * Atomically persist an observation and its photos. Any date is loggable —
+   * the write adapter is not coupled to any schedule-derived window
+   * (issue #628). Both tables commit or neither does.
    */
   async save(
     observation: SkinObservation,
     inputs: SkinPhotoInput[],
   ): Promise<Result<void, string>> {
     try {
-      const outOfWindow = await checkLoggableWindow(this.scheduleRepo, observation.date);
-      if (outOfWindow) return { ok: false, error: outOfWindow };
-
       const photos = mintPhotos(observation.id, inputs);
 
       await this.db.transaction('rw', this.db.skin_observations, this.db.photos, async () => {
@@ -46,11 +36,8 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
 
   /**
    * Overwrite an existing observation and its photo set in one transaction.
-   * Same loggable-window guard as `save` — a payload whose `date` has moved
-   * outside the window is rejected before any DB write. An edit that leaves
-   * `date` unchanged is exempt even when that (unchanged) date is outside
-   * the window — e.g. after a schedule regeneration narrowed the span — so a
-   * notes-only edit on a stale row isn't blocked (issue #440).
+   * Any date is loggable — an observation can be moved to any day the mother
+   * can reach (issue #628).
    */
   async update(
     observation: SkinObservation,
@@ -58,13 +45,6 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
   ): Promise<Result<void, string>> {
     try {
       const existing = await this.db.skin_observations.get(observation.id);
-      const outOfWindow = await checkLoggableWindow(
-        this.scheduleRepo,
-        observation.date,
-        existing?.date,
-      );
-      if (outOfWindow) return { ok: false, error: outOfWindow };
-
       const photosToAdd = mintPhotos(observation.id, options.addPhotos);
 
       await this.db.transaction('rw', this.db.skin_observations, this.db.photos, async () => {
@@ -122,6 +102,15 @@ export class DexieSkinObservationRepository implements SkinObservationRepository
     try {
       const rows = await this.db.skin_observations.where('date').equals(date).toArray();
       return { ok: true, data: rows };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  async earliestLoggedDate(): Promise<Result<string | null, string>> {
+    try {
+      const first = await this.db.skin_observations.orderBy('date').first();
+      return { ok: true, data: first?.date ?? null };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }

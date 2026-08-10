@@ -1,62 +1,9 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, localToday, startLogging } from './seed';
+
 // ── Helpers ──────────────────────────────────────────────────────────────
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.settings.clear();
-    await db.skin_observations.clear();
-    db.close();
-  });
-}
-
-function localToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function completeOnboarding(page: Page) {
-  // Seed a post-onboarding state directly into IndexedDB; faster than
-  // clicking through the wizard and the wizard itself is covered elsewhere.
-  const today = localToday();
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The app derives feedingStage from the live settings master switch (#567);
-    // seed it so a directly-seeded schedule renders without going through onboarding.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
 
 async function tapRegion(page: Page, region: string) {
   await page.locator(`[data-region="${region}"]`).click();
@@ -74,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 // ── Grid + tap rule ─────────────────────────────────────────────────────
 
 test('skin grid: nine regions render with Czech labels', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await expect(page.getByText('Stav kůže', { exact: true })).toBeVisible();
 
@@ -84,7 +31,7 @@ test('skin grid: nine regions render with Czech labels', async ({ page }) => {
 });
 
 test('skin grid: tapping inactive region only activates (level stays 0)', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'face');
   await expect(page.locator('[data-region="face"]')).toHaveAttribute('data-active', 'true');
@@ -92,7 +39,7 @@ test('skin grid: tapping inactive region only activates (level stays 0)', async 
 });
 
 test('skin grid: tapping the active region cycles 0→1→2→3→0', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
 
   await tapRegion(page, 'face'); // activate
@@ -108,7 +55,7 @@ test('skin grid: tapping the active region cycles 0→1→2→3→0', async ({ p
 });
 
 test('skin grid: switching active region preserves the previous region\'s level', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
 
   // face → mírné (1)
@@ -129,13 +76,13 @@ test('skin grid: switching active region preserves the previous region\'s level'
 test('skin save: button enabled on page load — every visit can save a no-change klidné observation', async ({ page }) => {
   // Issue #379 / ADR-0021 (klidné amendment): klidné is positive evidence. Opening /skin and
   // tapping Uložit immediately must save a "checked, all calm" observation.
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await expect(page.getByTestId('skin-save')).toBeEnabled();
 });
 
 test('skin save: button enables once any region has level > 0', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
 
   await tapRegion(page, 'face'); // activate
@@ -149,7 +96,7 @@ test('skin save: persists all 9 regions atomically with empty photos', async ({ 
   // Issue #379 / ADR-0021 (klidné amendment): every save writes all nine regions. The mother
   // bumps face → mírné, arms → silné; the other seven stay klidné but are
   // recorded as positive evidence ("I checked, those are calm").
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
 
@@ -200,7 +147,7 @@ test('skin save: no-tap Uložit persists 9 klidné regions and day card shows kl
   // Issue #379 AC: 'no observation today' ≠ 'observation: all klidné'.
   // Page-load Uložit writes a 9-region all-klidné witness; /day shows the
   // klidné severity label + record count, NOT the empty-state copy.
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
 
@@ -226,7 +173,7 @@ test('skin save: no-tap Uložit persists 9 klidné regions and day card shows kl
 });
 
 test('skin save: whitespace-only note persists as undefined', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
 
   await tapRegion(page, 'belly');
@@ -248,7 +195,7 @@ test('skin save: whitespace-only note persists as undefined', async ({ page }) =
 
 test('skin abandon: back chevron without Uložit persists nothing', async ({ page }) => {
   const today = localToday();
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto(`/skin?returnTo=/day/${today}`);
 
   await tapRegion(page, 'face');
@@ -268,7 +215,7 @@ test('skin abandon: back chevron without Uložit persists nothing', async ({ pag
 
 test('skin save: the day card renders one chip per bumped region of the saved observation', async ({ page }) => {
   const today = localToday();
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
 
   // face mírné, belly silné — two bumped regions, two chips on the row.
@@ -292,7 +239,7 @@ test('skin save: the day card renders one chip per bumped region of the saved ob
 // ── Reload (live Dexie query) ───────────────────────────────────────────
 
 test('skin save: observation survives reload via live Dexie query', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'face');
@@ -308,24 +255,24 @@ test('skin save: observation survives reload via live Dexie query', async ({ pag
 // ── returnTo navigation ─────────────────────────────────────────────────
 
 test('skin returnTo: custom returnTo param is honoured after Uložit', async ({ page }) => {
-  await completeOnboarding(page);
-  await page.goto('/skin?returnTo=/program');
+  await startLogging(page);
+  await page.goto('/skin?returnTo=/settings');
   await tapRegion(page, 'face');
   await tapRegion(page, 'face');
   await page.getByTestId('skin-save').click();
-  await expect(page).toHaveURL('/program');
+  await expect(page).toHaveURL('/settings');
 });
 
 // ── Photo staging ─────────────────────────────────────────────────────────
 
 test('photo button absent when no region active', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await expect(page.getByTestId('skin-add-photo')).not.toBeVisible();
 });
 
 test('photo button appears with active region label when region is tapped', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'face'); // activate
   const btn = page.getByTestId('skin-add-photo');
@@ -334,7 +281,7 @@ test('photo button appears with active region label when region is tapped', asyn
 });
 
 test('photo button has no capture attribute', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'face');
   const fileInput = page.locator('input[type="file"]');
@@ -342,7 +289,7 @@ test('photo button has no capture attribute', async ({ page }) => {
 });
 
 test('photos staged via file input appear in gallery with correct region label', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'arms'); // activate arms → 'Paže'
 
@@ -364,7 +311,7 @@ test('photos staged via file input appear in gallery with correct region label',
 test('klidné region with staged photo keeps Uložit enabled', async ({ page }) => {
   // Issue #379: under option 2 Uložit is always enabled. This test pins the
   // photo path — staging on a klidné region must not regress the enabled state.
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'face'); // activate but NOT cycle — stays klidné (0)
 
@@ -379,7 +326,7 @@ test('klidné region with staged photo keeps Uložit enabled', async ({ page }) 
 });
 
 test('deleting a staged photo before Uložit means it never persists', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'face');
@@ -412,7 +359,7 @@ test('deleting a staged photo before Uložit means it never persists', async ({ 
 });
 
 test('Uložit saves observation and staged photos atomically; photos have correct observationId and region', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'arms'); // activate
@@ -446,7 +393,7 @@ test('Uložit saves observation and staged photos atomically; photos have correc
 // ── Day card joins photos via observationId (issue #371) ───────────────────
 
 test('saved photos appear on /day/<today> Foto kůže card with region labels and correct count', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
 
@@ -474,7 +421,7 @@ test('saved photos appear on /day/<today> Foto kůže card with region labels an
 });
 
 test('day card photo panel survives reload via live Dexie query (join through observationId)', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'belly');
@@ -498,7 +445,7 @@ test('day card photo panel survives reload via live Dexie query (join through ob
 // ── Lightbox open/close (issue #362 AC5) ──────────────────────────────────
 
 test('tapping a staged thumb opens the lightbox; × button closes it', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'face');
 
@@ -517,7 +464,7 @@ test('tapping a staged thumb opens the lightbox; × button closes it', async ({ 
 });
 
 test('tapping the lightbox backdrop dismisses it', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   await page.goto('/skin');
   await tapRegion(page, 'face');
 
@@ -542,7 +489,7 @@ test('tapping the lightbox backdrop dismisses it', async ({ page }) => {
 // ── Day-card lightbox (SkinPhotoCard on /day) ─────────────────────────────
 
 test('tapping a day-card photo thumb opens the lightbox', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'face');
@@ -561,7 +508,7 @@ test('tapping a day-card photo thumb opens the lightbox', async ({ page }) => {
 });
 
 test('day-card lightbox closes via × button and backdrop', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = localToday();
   await page.goto('/skin');
   await tapRegion(page, 'face');

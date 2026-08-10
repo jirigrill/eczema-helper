@@ -1,10 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DexieMealRepository } from '$lib/adapters/dexie-meal-repository';
-import { DexieScheduleRepository } from '$lib/adapters/dexie-schedule-repository';
-import { OUT_OF_WINDOW_ERROR } from '$lib/adapters/loggable-window-guard';
-import { SINGLETON_ID, db } from '$lib/db/atopic-db';
-import { makeSchedule } from '$lib/domain/__fixtures__/schedule';
+import { db } from '$lib/db/atopic-db';
 import type { Meal } from '$lib/domain/models';
 import {
   confirmFood,
@@ -17,7 +14,7 @@ import {
 
 import { createMealEditor } from './meal-editor.svelte';
 
-const meals = new DexieMealRepository(db, new DexieScheduleRepository(db));
+const meals = new DexieMealRepository(db);
 
 const today = '2024-08-01';
 
@@ -449,48 +446,6 @@ describe('createMealEditor — applyUndo()', () => {
     expect(editor2.loadedCreatedAt).toBe(originalCreatedAt);
   });
 
-  it('after applyUndo with eliminatedToday, conflict context is re-injected (eliminatedFoodIds + hasConflicts)', async () => {
-    // Issue #299: undo must re-inject the elimination window so the per-food
-    // danger styling and red CTA reappear on the rehydrated screen.
-    const date = '2024-11-10';
-    // Seed a saved meal with a single non-eliminated food.
-    await meals.save(
-      makeMeal({
-        id: `${date}:breakfast:mother`,
-        date,
-        mealType: 'breakfast',
-        items: [{ id: 'item-1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
-      }),
-    );
-
-    // Simulate user adding an eliminated dairy food, backing out, capturing buffer.
-    const editor1 = createMealEditor();
-    await editor1.open({ date, mealType: 'breakfast', actor: 'mother' }, ['dairy']);
-    editor1.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
-    editor1.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
-    expect(editor1.hasConflicts).toBe(true);
-    const desc = editor1.discardDescriptor();
-    expect(desc?.kind).toBe('meal-edit');
-
-    // Fresh editor on undo navigation: applyUndo with eliminatedToday.
-    const editor2 = createMealEditor();
-    await editor2.applyUndo(
-      { date, mealType: 'breakfast', actor: 'mother' },
-      {
-        kind: 'meal-edit',
-        workingMeal: desc!.workingMeal,
-        mealType: 'breakfast',
-        actor: 'mother',
-        date,
-        returnTo: `/day/${date}`,
-      },
-      ['dairy'],
-    );
-
-    expect(editor2.eliminatedFoodIds.has('kravske-mleko')).toBe(true);
-    expect(editor2.hasConflicts).toBe(true);
-  });
-
   it('after applyUndo, a second back-out yields a fresh discard descriptor (no silent loss of restored food)', async () => {
     // Issue #299: undo restores dirty state, so backing out again must
     // re-write the buffer rather than treat the meal as clean.
@@ -690,56 +645,6 @@ describe('createMealEditor — finalize() empty no-op', () => {
   });
 });
 
-describe('createMealEditor — eliminatedFoodIds + hasConflicts', () => {
-  it('with eliminatedToday=["dairy"], confirming a dairy food puts its id in eliminatedFoodIds and sets hasConflicts', async () => {
-    const editor = createMealEditor();
-    await editor.open({ date: '2024-11-01', mealType: 'breakfast', actor: 'mother' }, ['dairy']);
-
-    expect(editor.eliminatedFoodIds).toEqual(new Set());
-    expect(editor.hasConflicts).toBe(false);
-
-    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
-    editor.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
-
-    expect(editor.eliminatedFoodIds).toEqual(new Set(['kravske-mleko']));
-    expect(editor.hasConflicts).toBe(true);
-  });
-
-  it('with no eliminatedToday provided, eliminatedFoodIds is empty and hasConflicts is false even with foods confirmed', async () => {
-    const editor = createMealEditor();
-    await editor.open({ date: '2024-11-02', mealType: 'breakfast', actor: 'mother' });
-
-    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
-    editor.update((m) => confirmFood(m, 'dairy', 'kravske-mleko'));
-
-    expect(editor.eliminatedFoodIds).toEqual(new Set());
-    expect(editor.hasConflicts).toBe(false);
-  });
-
-  it('with eliminatedToday=["dairy"], a non-dairy food does not appear in eliminatedFoodIds', async () => {
-    const editor = createMealEditor();
-    await editor.open({ date: '2024-11-03', mealType: 'breakfast', actor: 'mother' }, ['dairy']);
-
-    editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
-    editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
-
-    expect(editor.eliminatedFoodIds).toEqual(new Set());
-    expect(editor.hasConflicts).toBe(false);
-  });
-
-  it('eliminatedFoodIds includes a food that is still in editing (not yet confirmed)', async () => {
-    // Mirrors the route's per-row danger styling: an editing food that touches
-    // an eliminated allergen must be flagged before the user confirms.
-    const editor = createMealEditor();
-    await editor.open({ date: '2024-11-04', mealType: 'breakfast', actor: 'mother' }, ['dairy']);
-
-    editor.update((m) => startEditing(m, 'dairy', 'kravske-mleko', 'Kravské mléko'));
-
-    expect(editor.eliminatedFoodIds.has('kravske-mleko')).toBe(true);
-    expect(editor.hasConflicts).toBe(true);
-  });
-});
-
 describe('createMealEditor — swapActor()', () => {
   it('autosaves the departing actor (confirmed foods + notes) and reloads the target slot', async () => {
     const date = '2025-01-10';
@@ -799,31 +704,32 @@ describe('createMealEditor — swapActor()', () => {
   });
 
   it('aborts on finalize failure: current actor stays active, working meal preserved, error returned', async () => {
-    // A schedule makes the loggable-window guard reject an out-of-window write,
-    // giving a genuine `save` failure through the real repository — no mocks.
-    await db.schedule.put({ id: SINGLETON_ID, ...makeSchedule() });
+    // Force a genuine `save` failure at the Dexie boundary — the real
+    // repository surfaces the rejection as `{ ok: false }` without mocking any
+    // internal collaborator.
+    const putSpy = vi.spyOn(db.meals, 'put').mockRejectedValueOnce(new Error('write fail'));
     try {
-      const outOfWindow = '2024-01-01';
+      const date = '2024-08-01';
       const editor = createMealEditor();
-      await editor.open({ date: outOfWindow, mealType: 'lunch', actor: 'mother' });
+      await editor.open({ date, mealType: 'lunch', actor: 'mother' });
 
       editor.update((m) => startEditing(m, 'vegetables', 'brambory', 'Brambory'));
       editor.update((m) => confirmFood(m, 'vegetables', 'brambory'));
       editor.notes = 'nezmizí';
 
       const result = await editor.swapActor({
-        date: outOfWindow,
+        date,
         mealType: 'lunch',
         actor: 'baby',
       });
 
       // Swap aborted: the failing Result surfaces for the CTA error path.
-      expect(result).toEqual({ ok: false, error: OUT_OF_WINDOW_ERROR });
+      expect(result).toMatchObject({ ok: false });
       // Current (mother) actor stays active with its working meal intact.
       expect(editor.confirmedFoods.map((f) => f.foodId)).toEqual(['brambory']);
       expect(editor.notes).toBe('nezmizí');
     } finally {
-      await db.schedule.clear();
+      putSpy.mockRestore();
     }
   });
 });

@@ -2,7 +2,8 @@
 
 Research backing the `allergenicity` values authored on ladder-bearing allergens
 in `src/lib/data/allergen-catalog/allergen-catalog.ts` (issue #499). Consumed by
-the adaptation-window decision in [ADR-0023 §6](../adr/0023-dose-escalation-ladder.md).
+the adaptation-window decision in ADR-0023 §6 (parked with the protocol engine,
+see [parked features](../parked-features.md)).
 
 ## What the tier decides (and what it does not)
 

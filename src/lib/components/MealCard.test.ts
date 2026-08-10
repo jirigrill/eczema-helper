@@ -22,7 +22,7 @@ function makeMeal(overrides?: Partial<Meal>): Meal {
 describe('MealCard', () => {
   it('shows the section label "Dnešní jídla"', async () => {
     const { getByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [], eligibleActors: ['mother'], eliminatedByActor: {} },
+      props: { date: '2026-05-31', meals: [], eligibleActors: ['mother'] },
     });
     await tick();
     expect(getByText('Dnešní jídla')).toBeInTheDocument();
@@ -30,7 +30,7 @@ describe('MealCard', () => {
 
   it('shows all four unlogged slots (not empty-state text) when meals array is empty', async () => {
     const { getByTestId, queryByText } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [], eligibleActors: ['mother'], eliminatedByActor: {} },
+      props: { date: '2026-05-31', meals: [], eligibleActors: ['mother'] },
     });
     await tick();
     expect(getByTestId('meal-row-breakfast')).toBeInTheDocument();
@@ -52,7 +52,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -67,7 +66,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -77,7 +75,7 @@ describe('MealCard', () => {
 
   it('does NOT render a "+ Přidat" link — the Meal-Type FAB Submenu is the launcher now', async () => {
     const { queryByText, queryByTestId } = render(MealCard, {
-      props: { date: '2026-06-13', meals: [], eligibleActors: ['mother'], eliminatedByActor: {} },
+      props: { date: '2026-06-13', meals: [], eligibleActors: ['mother'] },
     });
     await tick();
     expect(queryByText(/\+ Přidat/)).not.toBeInTheDocument();
@@ -96,7 +94,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -120,7 +117,6 @@ describe('MealCard', () => {
           date: '2026-05-31',
           meals: [meal],
           eligibleActors: ['mother'],
-          eliminatedByActor: {},
         },
       });
       await tick();
@@ -141,7 +137,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -158,7 +153,7 @@ describe('MealCard', () => {
 
   it('unlogged slot rows are anchor links (tappable to add meal)', async () => {
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-05-31', meals: [], eligibleActors: ['mother'], eliminatedByActor: {} },
+      props: { date: '2026-05-31', meals: [], eligibleActors: ['mother'] },
     });
     await tick();
     expect(getByTestId('meal-row-breakfast').tagName).toBe('A');
@@ -182,7 +177,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -212,7 +206,6 @@ describe('MealCard', () => {
           date: '2026-05-31',
           meals: [meal],
           eligibleActors: ['mother'],
-          eliminatedByActor: {},
         },
       });
       await tick();
@@ -221,24 +214,6 @@ describe('MealCard', () => {
       expect(queryByText(emoji)).not.toBeInTheDocument();
     },
   );
-
-  it('applies warning styling to items whose food triggers are in eliminatedSlugs', async () => {
-    const meal = makeMeal({
-      items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
-    });
-    const { container } = render(MealCard, {
-      props: {
-        date: '2026-05-31',
-        meals: [meal],
-        eligibleActors: ['mother'],
-        eliminatedByActor: { mother: ['dairy'] },
-      },
-    });
-    await tick();
-    // The chip for a conflicting item carries a data-conflict attribute
-    const chip = container.querySelector('[data-conflict="true"]');
-    expect(chip).toBeInTheDocument();
-  });
 
   // ── New design: 4-slot layout ──────────────────────────────────────────────
 
@@ -253,7 +228,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -265,7 +239,7 @@ describe('MealCard', () => {
 
   it('unlogged slot links to /meal with type, date, and returnTo', async () => {
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-06-15', meals: [], eligibleActors: ['mother'], eliminatedByActor: {} },
+      props: { date: '2026-06-15', meals: [], eligibleActors: ['mother'] },
     });
     await tick();
     const row = getByTestId('meal-row-lunch');
@@ -277,7 +251,7 @@ describe('MealCard', () => {
 
   it('unlogged slot shows "+" and muted meal label', async () => {
     const { getByTestId } = render(MealCard, {
-      props: { date: '2026-06-15', meals: [], eligibleActors: ['mother'], eliminatedByActor: {} },
+      props: { date: '2026-06-15', meals: [], eligibleActors: ['mother'] },
     });
     await tick();
     const row = getByTestId('meal-row-snack');
@@ -298,7 +272,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: {},
       },
     });
     await tick();
@@ -307,77 +280,6 @@ describe('MealCard', () => {
     expect(row.textContent).toMatch(/Ovesná kaše\s*·\s*Banán/);
     // No portion or prep strings
     expect(queryByText(/Porce|Lžíce|Špetka|Vařené|Syrové|Pečené|Smažené/)).not.toBeInTheDocument();
-  });
-
-  it('conflict logged row: shows allergen pill with Czech name', async () => {
-    const meal = makeMeal({
-      mealType: 'lunch',
-      items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
-    });
-    const { getByTestId } = render(MealCard, {
-      props: {
-        date: '2026-05-31',
-        meals: [meal],
-        eligibleActors: ['mother'],
-        eliminatedByActor: { mother: ['dairy'] },
-      },
-    });
-    await tick();
-    const row = getByTestId('meal-row-lunch');
-    // Allergen pill with Czech name from categoryStrings
-    expect(row.textContent).toMatch(/⚠\s*Mléčné výrobky/);
-  });
-
-  it('conflict logged row: triggering food rendered with danger class', async () => {
-    const meal = makeMeal({
-      mealType: 'lunch',
-      items: [{ id: 'i1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
-    });
-    const { getByTestId } = render(MealCard, {
-      props: {
-        date: '2026-05-31',
-        meals: [meal],
-        eligibleActors: ['mother'],
-        eliminatedByActor: { mother: ['dairy'] },
-      },
-    });
-    await tick();
-    const row = getByTestId('meal-row-lunch');
-    // data-conflict="true" is on the food name span; it must also carry text-danger
-    const conflictSpan = row.querySelector('[data-conflict="true"]');
-    expect(conflictSpan).not.toBeNull();
-    expect(conflictSpan?.className).toMatch(/text-danger/);
-    expect(conflictSpan?.textContent).toMatch(/Máslo/);
-  });
-
-  it('multi-allergen conflict: one pill per distinct eliminated allergen, each triggering food in danger', async () => {
-    const meal = makeMeal({
-      mealType: 'dinner',
-      items: [
-        { id: 'i1', name: 'Jogurt', foodId: 'kravske-mleko', amount: 'portion' },
-        { id: 'i2', name: 'Sójové mléko', foodId: 'sojove-mleko', amount: 'portion' },
-        { id: 'i3', name: 'Rýže', foodId: 'ryze', amount: 'portion' },
-      ],
-    });
-    const { getByTestId } = render(MealCard, {
-      props: {
-        date: '2026-05-31',
-        meals: [meal],
-        eligibleActors: ['mother'],
-        eliminatedByActor: { mother: ['dairy', 'soy'] },
-      },
-    });
-    await tick();
-    const row = getByTestId('meal-row-dinner');
-    // Two allergen pills
-    expect(row.textContent).toMatch(/⚠\s*Mléčné výrobky/);
-    expect(row.textContent).toMatch(/⚠\s*Sója/);
-    // Two red foods, one clean food
-    const conflictSpans = row.querySelectorAll('[data-conflict="true"]');
-    const conflictTexts = Array.from(conflictSpans).map((s) => s.textContent ?? '');
-    expect(conflictTexts.some((t) => t.includes('Jogurt'))).toBe(true);
-    expect(conflictTexts.some((t) => t.includes('Sójové mléko'))).toBe(true);
-    expect(conflictTexts.some((t) => t.includes('Rýže'))).toBe(false);
   });
 
   // ── #570: single-actor collapse ────────────────────────────────────────────
@@ -393,7 +295,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [meal],
         eligibleActors: ['mother'],
-        eliminatedByActor: { mother: [] },
       },
     });
     await tick();
@@ -424,7 +325,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [mother, baby],
         eligibleActors: ['mother', 'baby'],
-        eliminatedByActor: { mother: [], baby: [] },
       },
     });
     await tick();
@@ -439,40 +339,6 @@ describe('MealCard', () => {
     // Each row carries its actor marker svg.
     expect(motherRow.querySelector('svg')).not.toBeNull();
     expect(babyRow.querySelector('svg')).not.toBeNull();
-  });
-
-  it('mixed stage: conflict allergen shows once per section, deduplicated across both actors', async () => {
-    // Both actors trigger dairy; the section must show a single dairy pill.
-    const mother = makeMeal({
-      id: '2026-05-31:dinner:mother',
-      mealType: 'dinner',
-      actor: 'mother',
-      items: [{ id: 'm1', name: 'Máslo', foodId: 'kravske-mleko', amount: 'teaspoon' }],
-    });
-    const baby = makeMeal({
-      id: '2026-05-31:dinner:baby',
-      mealType: 'dinner',
-      actor: 'baby',
-      items: [{ id: 'b1', name: 'Jogurt', foodId: 'kravske-mleko', amount: 'portion' }],
-    });
-    const { getByTestId } = render(MealCard, {
-      props: {
-        date: '2026-05-31',
-        meals: [mother, baby],
-        eligibleActors: ['mother', 'baby'],
-        eliminatedByActor: { mother: ['dairy'], baby: ['dairy'] },
-      },
-    });
-    await tick();
-    const slot = getByTestId('meal-row-dinner');
-    const pills = Array.from(slot.querySelectorAll('span')).filter((el) =>
-      /^⚠\s*Mléčné výrobky$/.test(el.textContent ?? ''),
-    );
-    // Exactly one dairy pill for the whole section, not one per actor row.
-    expect(pills).toHaveLength(1);
-    // Both actors' triggering foods still render in danger red.
-    const conflictSpans = slot.querySelectorAll('[data-conflict="true"]');
-    expect(conflictSpans).toHaveLength(2);
   });
 
   it('mixed stage: both actors filled shows a single chevron for the whole slot, not one per row', async () => {
@@ -493,7 +359,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [mother, baby],
         eligibleActors: ['mother', 'baby'],
-        eliminatedByActor: { mother: [], baby: [] },
       },
     });
     await tick();
@@ -516,7 +381,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [mother],
         eligibleActors: ['mother', 'baby'],
-        eliminatedByActor: { mother: [], baby: [] },
       },
     });
     await tick();
@@ -534,7 +398,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [],
         eligibleActors: ['mother', 'baby'],
-        eliminatedByActor: { mother: [], baby: [] },
       },
     });
     await tick();
@@ -563,7 +426,6 @@ describe('MealCard', () => {
         date: '2026-05-31',
         meals: [mother, baby],
         eligibleActors: ['mother', 'baby'],
-        eliminatedByActor: { mother: [], baby: [] },
       },
     });
     await tick();

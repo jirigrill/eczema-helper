@@ -4,30 +4,38 @@
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
   import { feedingStageOptions } from '$lib/config/feeding-stages';
-  import { protocolSession } from '$lib/stores/protocol-session';
-  import { settingsContext } from '$lib/stores/settings-context';
+  import { seededStatus, settingsStore } from '$lib/stores/settings.svelte';
+  import { resetDatabase } from '$lib/db/reset-database';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Button from '$lib/components/Button.svelte';
   import Chip from '$lib/components/Chip.svelte';
+  import ConfirmSheet from '$lib/components/ConfirmSheet.svelte';
 
-  const feedingStage = $derived($settingsContext?.feedingStage ?? null);
+  const feedingStage = $derived(settingsStore.feedingStage);
+
+  // Reset is a factory wipe of every table — meals, observations and photos
+  // included — and there is no export yet (#438), so it is gated behind a
+  // destructive confirm rather than firing on a single tap.
+  let resetConfirmOpen = $state(false);
 
   function selectFeedingStage(stage: FeedingStage) {
     if (stage === feedingStage) return;
-    void protocolSession.setFeedingStage(stage);
+    void settingsStore.setFeedingStage(stage);
   }
 
-  async function resetPrototype() {
-    await protocolSession.reset();
-    // scheduleContext updates via a liveQuery subscription, so it can still
-    // report the stale 'ready' status for a tick right after reset() resolves.
-    // Wait for it to actually leave 'ready' before navigating — otherwise the
-    // root layout's ready-on-root redirect (issue #353) fires on the stale
-    // value and bounces straight back to the day view instead of showing
-    // the questionnaire.
+  async function confirmReset() {
+    resetConfirmOpen = false;
+    await resetDatabase();
+    // The seeded signal is `settings.feedingStage != null`, driven by a
+    // liveQuery — so it can still report the stale 'seeded' status for a tick
+    // right after resetDatabase() clears the settings row. Wait for it to flip
+    // to 'unset' before navigating; otherwise the root layout's seeded redirect
+    // (issue #353, re-opened against this signal per §3d) fires on the stale
+    // value and bounces straight back to the day view. Landing on first run is
+    // the intended destination here — but only once the signal has flipped.
     await new Promise<void>((resolve) => {
-      const unsubscribe = protocolSession.subscribe((ctx) => {
-        if (ctx.status !== 'ready') {
+      const unsubscribe = seededStatus.subscribe((status) => {
+        if (status === 'unset') {
           resolve();
           queueMicrotask(() => unsubscribe());
         }
@@ -59,6 +67,17 @@
     </section>
 
     <p class="body-muted">{commonStrings.settings.resetWarning}</p>
-    <Button color="danger" onclick={resetPrototype}>{actionStrings.restart}</Button>
+    <Button color="danger" onclick={() => (resetConfirmOpen = true)}>{actionStrings.reset}</Button>
   </div>
 </div>
+
+<ConfirmSheet
+  open={resetConfirmOpen}
+  heading={commonStrings.settings.resetConfirmHeading}
+  body={commonStrings.settings.resetConfirmBody}
+  confirmLabel={actionStrings.reset}
+  cancelLabel={actionStrings.cancel}
+  confirmVariant="danger"
+  onConfirm={confirmReset}
+  onCancel={() => (resetConfirmOpen = false)}
+/>

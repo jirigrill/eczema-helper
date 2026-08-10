@@ -368,7 +368,7 @@ describe('skin/+page.svelte — region grid', () => {
   });
 
   it('after save, goto is called with custom returnTo when param is present', async () => {
-    mockPage.url = new URL('http://localhost/skin?returnTo=/program');
+    mockPage.url = new URL('http://localhost/skin?returnTo=/settings');
     const SkinPage = await loadPage();
     const { goto } = await import('$app/navigation');
     const { getByTestId } = render(SkinPage);
@@ -381,7 +381,7 @@ describe('skin/+page.svelte — region grid', () => {
     await fireEvent.click(getByTestId('skin-save'));
     await tick();
 
-    expect(goto).toHaveBeenCalledWith('/program');
+    expect(goto).toHaveBeenCalledWith('/settings');
   });
 
   // ── Failure + double-submit guards ────────────────────────

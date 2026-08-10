@@ -20,13 +20,10 @@
   import { regionStrings, severityStrings } from '$lib/strings/skin-regions';
   import { severityConfig } from '$lib/config/skin-regions';
   import { formatDateLongCs } from '$lib/utils/date';
-  import { isWithinLoggableWindow } from '$lib/domain/policy';
-  import { scheduleRaw } from '$lib/stores/schedule-context';
   import { createSkinObservationSession } from '$lib/stores/skin-observation-session';
   import { discardBuffer, writeBuffer, clearBuffer } from '$lib/stores/discard-buffer';
   import type { DiscardedSkinDelete } from '$lib/stores/discard-buffer';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import InfoBanner from '$lib/components/InfoBanner.svelte';
   import SkinPhotoGallery, {
     type SkinPhotoGalleryItem,
   } from '$lib/components/SkinPhotoGallery.svelte';
@@ -129,13 +126,6 @@
    * an unknown-id bounce never shows it at all.
    */
   const editingExisting = $derived(mode === 'edit' && loadedObservation !== null);
-  // Passive hint (issue #440) — a stale row can be edited freely, but the
-  // mother should know its date no longer sits inside the protocol window.
-  const raw = $derived($scheduleRaw);
-  const isOutOfWindow = $derived(
-    raw.status === 'ready' &&
-      !isWithinLoggableWindow(date, raw.schedule.startDate, raw.schedule.estimatedEndDate),
-  );
 
   // ── Delete + post-delete undo (issue #394) ─────────────────
   let overflowOpen = $state(false);
@@ -490,13 +480,6 @@
         {/if}
       {/snippet}
     </PageHeader>
-    {#if editingExisting && isOutOfWindow}
-      <div class="space-y-1.5 px-4 pt-2">
-        <InfoBanner variant="info">
-          <p class="caption">{commonStrings.skin.outOfWindowHint}</p>
-        </InfoBanner>
-      </div>
-    {/if}
   </div>
 
   <div class="space-y-5 px-4 pt-4">

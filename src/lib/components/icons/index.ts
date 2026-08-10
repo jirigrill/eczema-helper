@@ -1,12 +1,9 @@
-export { default as CalendarIcon } from './CalendarIcon.svelte';
 export { default as FoodIcon } from './FoodIcon.svelte';
 export { default as CameraIcon } from './CameraIcon.svelte';
 export { default as PersonIcon } from './PersonIcon.svelte';
 export { default as MotherIcon } from './MotherIcon.svelte';
 export { default as BabyIcon } from './BabyIcon.svelte';
-export { default as TrendsIcon } from './TrendsIcon.svelte';
 export { default as SettingsIcon } from './SettingsIcon.svelte';
-export { default as TodayIcon } from './TodayIcon.svelte';
 export { default as SunriseIcon } from './SunriseIcon.svelte';
 export { default as SunIcon } from './SunIcon.svelte';
 export { default as AppleIcon } from './AppleIcon.svelte';

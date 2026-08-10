@@ -2,59 +2,13 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { clearDb, startLogging } from './seed';
+
 // Issue #277: dirty-aware discard toast + unified Uložit CTA.
 // These complement meal-discard-guard.test.ts (which still covers the
 // compose-new + popstate paths) by exercising the new edit-mode behaviors:
 // clean back-out, dirty back-out toast wording, delete toast wording, and
 // `createdAt` preservation across edit-update.
-
-async function clearDb(page: Page) {
-  await page.evaluate(async () => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { AtopicDb } = await import(/* @vite-ignore */ path);
-    const db = new AtopicDb();
-    await db.answers.clear();
-    await db.schedule.clear();
-    await db.meals.clear();
-    await db.settings.clear();
-    db.close();
-  });
-}
-
-async function completeOnboarding(page: Page) {
-  const today = new Date().toISOString().split('T')[0];
-  await page.evaluate(async (start) => {
-    const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.put({
-      id: 'singleton',
-      babyBirthDate: '2025-01-01',
-      eczemaSeverity: 'moderate',
-      motherAllergies: [],
-      babyConfirmedAllergies: [],
-      programStartDate: start,
-      completedAt: new Date().toISOString(),
-      testedAllergens: [],
-      feedingStage: 'breastfed',
-    });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-    // The meal page gates its schedule context on the live feedingStage master
-    // switch (#567); onboarding seeds it, so tests bypassing onboarding must too.
-    await db.settings.put({ id: 'singleton', feedingStage: 'breastfed' });
-  }, today);
-  await page.goto(`/day/${today}`);
-  await page.waitForURL(/\/day\//);
-}
 
 async function seedLunchWithBrambory(page: Page) {
   // Seed a saved lunch directly into Dexie so we can land on /meal in
@@ -83,7 +37,7 @@ test.beforeEach(async ({ page }) => {
 // ── Clean back-out from edit mode: no toast ───────────────────────────────────
 
 test('clean back-out from a saved meal shows no discard toast and preserves the meal', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -102,7 +56,7 @@ test('clean back-out from a saved meal shows no discard toast and preserves the 
 // ── Dirty back-out from edit mode: "Změny neuloženy" + Zpět restores ─────────
 
 test('dirty back-out from a saved meal shows "Změny neuloženy" and Zpět restores the edit', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -127,7 +81,7 @@ test('dirty back-out from a saved meal shows "Změny neuloženy" and Zpět resto
 // ── Delete: "Jídlo smazáno" + Zpět re-saves ──────────────────────────────────
 
 test('explicit Smazat shows "Jídlo smazáno" and Zpět re-persists the meal', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -162,7 +116,7 @@ test('explicit Smazat shows "Jídlo smazáno" and Zpět re-persists the meal', a
 test('removing every food and saving deletes the meal and offers undo (#588)', async ({
   page,
 }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -189,29 +143,11 @@ test('removing every food and saving deletes the meal and offers undo (#588)', a
 // ── Past-day delete-undo restores meal on its original day (issue #323) ─────
 
 test('delete-undo on a past day restores the meal to that day, not today', async ({ page }) => {
-  // Onboarding seeds programStartDate=today, but the bug only reproduces on
-  // past days — re-seed with programStartDate 5 days back so yesterday lands
-  // inside the schedule and `/day/<yesterday>` doesn't redirect to today.
-  await completeOnboarding(page);
+  // The bug only reproduces on past days; any past day is reachable now that
+  // the protocol range is gone (PRD #623, §3a).
+  await startLogging(page);
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  const start = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
-  const future = new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-  await page.evaluate(async ({ start, future }) => {
-    const path = '/src/lib/db/atopic-db.ts';
-    const { db } = await import(/* @vite-ignore */ path);
-    await db.answers.update('singleton', { programStartDate: start });
-    await db.schedule.put({
-      id: 'singleton',
-      permanentMother: [],
-      permanentBaby: [],
-      startDate: start,
-      estimatedEndDate: future,
-      phases: [
-        { id: 'reset', type: 'reset', allergenIds: [], startDate: start, endDate: future },
-      ],
-    });
-  }, { start, future });
 
   // Seed a saved breakfast on yesterday.
   await page.evaluate(async (date) => {
@@ -263,7 +199,7 @@ test('delete-undo on a past day restores the meal to that day, not today', async
 // ── createdAt preservation on edit-update ────────────────────────────────────
 
 test('save on edit-update preserves the original createdAt and stamps updatedAt', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = await seedLunchWithBrambory(page);
 
   await page.goto(`/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
@@ -293,7 +229,7 @@ test('save on edit-update preserves the original createdAt and stamps updatedAt'
 // ── CTA labels: compose-new "Uložit {MealType}" + edit "Uložit změny" disabled
 
 test('finalize CTA labels: "Uložit Oběd" on compose-new, "Uložit změny" (disabled) on clean edit', async ({ page }) => {
-  await completeOnboarding(page);
+  await startLogging(page);
   const today = new Date().toISOString().split('T')[0];
 
   // Compose-new: empty slot. After adding a food the CTA reads "Uložit Oběd".

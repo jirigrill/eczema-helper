@@ -6,11 +6,10 @@
   type Props = {
     cells: DayStripCell[];
     today: string;
-    todayRecorded: boolean;
     onselectdate: (date: string) => void;
   };
 
-  const { cells, today, todayRecorded, onselectdate }: Props = $props();
+  const { cells, today, onselectdate }: Props = $props();
 
   let scrollerEl: HTMLDivElement | undefined = $state();
 
@@ -48,10 +47,10 @@
   }
 
   // Re-anchor whenever the selection or cell list changes. Using $effect (vs
-  // onMount) covers two cases the bottom-nav "Dnes" tab depends on:
+  // onMount) covers two cases the "↩ Dnes" header chip depends on:
   //   1. /day/[date] component is reused on param change → onMount never re-runs.
-  //   2. The Dnes nav is clicked while already on today → no param change at
-  //      all, so we expose recentre() for the layout to call directly.
+  //   2. The chip is tapped while already on today → no param change at all,
+  //      so we expose recentre() for the page to call directly.
   $effect(() => {
     void selectedDate;
     void cells;
@@ -60,7 +59,7 @@
 
   // Public hook: lets the parent imperatively recentre the strip when the
   // route param doesn't change but the user expects a "jump back to today"
-  // gesture (bottom-nav Dnes tab while already on /day/today).
+  // gesture (the "↩ Dnes" chip tapped while already on /day/today).
   export function recentre(): void {
     scheduleCenter(selectedDate ?? today);
   }
@@ -75,21 +74,13 @@
       data-testid="day-strip-scroller"
     >
       {#each cells as cell (cell.date)}
-        {@const baseClass = cell.isSelected
-          ? 'bg-primary text-white'
-          : cell.isBeforeStart
-            ? 'text-text-muted/40'
-            : cell.isFuture
-              ? 'text-text-muted/50'
-              : 'text-text-muted'}
+        {@const baseClass = cell.isSelected ? 'bg-primary text-white' : 'text-text-muted'}
         <button
           class="flex w-10 shrink-0 snap-center flex-col items-center gap-1 rounded-lg py-2 {baseClass}"
           onclick={() => onselectdate(cell.date)}
           data-testid="day-strip-cell"
           data-date={cell.date}
           data-today={cell.isToday ? 'true' : undefined}
-          data-future={cell.isFuture ? 'true' : undefined}
-          data-before-start={cell.isBeforeStart ? 'true' : undefined}
           aria-current={cell.isSelected ? 'date' : undefined}
         >
           <span class="text-[10px] uppercase {cell.isSelected ? 'opacity-80' : ''}">
@@ -98,21 +89,13 @@
           <span class="text-sm font-semibold">
             {new Date(cell.date + 'T00:00:00').getDate()}
           </span>
+          <!-- Today's ring is a pure marker: it says "this cell is today", nothing
+               about what has been logged. When today is also the selected cell the
+               selection itself marks it, so it renders as an ordinary selected dot. -->
           {#if cell.isToday && !cell.isSelected}
             <span
-              class="ring-primary h-1.5 w-1.5 rounded-full ring-1 {todayRecorded
-                ? 'bg-primary'
-                : 'bg-transparent'}"
+              class="ring-primary h-1.5 w-1.5 rounded-full bg-transparent ring-1"
               data-testid="day-strip-today-ring"
-              data-recorded={todayRecorded ? 'true' : 'false'}
-            ></span>
-          {:else if cell.isToday && cell.isSelected}
-            <span
-              class="h-1.5 w-1.5 rounded-full ring-1 ring-white {todayRecorded
-                ? 'bg-white'
-                : 'bg-white/30'}"
-              data-testid="day-strip-today-ring"
-              data-recorded={todayRecorded ? 'true' : 'false'}
             ></span>
           {:else if cell.isSelected}
             <span class="h-1.5 w-1.5 rounded-full bg-white/30 ring-1 ring-white"></span>

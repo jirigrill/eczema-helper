@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractOtherSlugs, mergeCandidate, normalizeKey } from './harvest-candidate';
+import { mergeCandidate, normalizeKey } from './harvest-candidate';
 import type { HarvestCandidate } from './harvest-candidate';
-import type { QuestionnaireAnswers } from './models';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -150,55 +149,5 @@ describe('normalizeKey', () => {
 
   it('returns empty string for whitespace-only input', () => {
     expect(normalizeKey('   ')).toBe('');
-  });
-});
-
-// ── extractOtherSlugs ─────────────────────────────────────────────────────────
-
-function makeAnswers(overrides: Partial<QuestionnaireAnswers> = {}): QuestionnaireAnswers {
-  return {
-    babyBirthDate: '2025-01-01',
-    eczemaSeverity: 'moderate',
-    motherAllergies: [],
-    babyConfirmedAllergies: [],
-    programStartDate: '2026-06-01',
-    completedAt: '2026-06-01T10:00:00.000Z',
-    testedAllergens: [],
-    feedingStage: 'breastfed',
-    ...overrides,
-  };
-}
-
-describe('extractOtherSlugs', () => {
-  it('returns empty array when no other: slugs present', () => {
-    const answers = makeAnswers({ motherAllergies: ['dairy', 'wheat'] });
-    expect(extractOtherSlugs(answers)).toEqual([]);
-  });
-
-  it('extracts names from other: slugs in motherAllergies', () => {
-    const answers = makeAnswers({ motherAllergies: ['other:Hroznové víno', 'dairy'] });
-    expect(extractOtherSlugs(answers)).toContain('Hroznové víno');
-  });
-
-  it('extracts names from other: slugs in babyConfirmedAllergies', () => {
-    const answers = makeAnswers({ babyConfirmedAllergies: ['other:Jablko'] });
-    expect(extractOtherSlugs(answers)).toContain('Jablko');
-  });
-
-  it('returns names from both fields combined', () => {
-    const answers = makeAnswers({
-      motherAllergies: ['other:Hroznové víno'],
-      babyConfirmedAllergies: ['other:Jablko'],
-    });
-    const result = extractOtherSlugs(answers);
-    expect(result).toHaveLength(2);
-    expect(result).toContain('Hroznové víno');
-    expect(result).toContain('Jablko');
-  });
-
-  it('skips canonical slugs that do not start with other:', () => {
-    const answers = makeAnswers({ motherAllergies: ['dairy', 'wheat', 'other:Křen'] });
-    const result = extractOtherSlugs(answers);
-    expect(result).toEqual(['Křen']);
   });
 });
