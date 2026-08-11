@@ -61,8 +61,8 @@ export const commonStrings = {
     resetConfirmHeading: 'Opravdu restartovat?',
     /**
      * Body naming exactly what the wipe destroys. Reset clears every table, so
-     * the copy must name the photos — they are irreversible and, with no export
-     * yet (#438), this device holds the only copy.
+     * the copy must name the photos — they are irreversible and, with no backup
+     * mechanism at all, this device holds the only copy.
      */
     resetConfirmBody:
       'Všechna jídla, pozorování i fotky budou trvale smazány. Tuto akci nelze vzít zpět.',

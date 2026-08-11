@@ -92,7 +92,7 @@ type SkinPhotoStore = {
 };
 ```
 
-List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs are stored plaintext (encryption-at-rest tracked in #467).
+List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs are stored plaintext; encryption-at-rest is not planned (see the [decisions log](../decisions-log.md)).
 
 ## Adapters
 
@@ -144,7 +144,3 @@ Routes import the store, not the adapter.
 Ports expose **point reads** (`load()`, `listByDate()`), not subscriptions. Live reactive reads are a UI concern and are handled in `src/lib/stores/`, which subscribes directly to `Dexie.liveQuery()`. The `settingsContext` store is a representative example — a `readable` over the settings singleton that re-emits on every change.
 
 This is deliberate: putting `liveQuery` in the port would couple the domain to Dexie and force any future test adapter to ship a fake reactive primitive.
-
-## Future ports (not yet authored)
-
-- Backup port — encrypted export/import; not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).

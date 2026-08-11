@@ -62,11 +62,13 @@ added later — also useful for the pediatrician.
 
 - No auth layer, no server hosting, no GDPR-as-controller burden for a
   user database. The app is a local journal; the user holds the data.
-- Device loss = data loss unless a backup mechanism exists. A backup /
-  export story must be designed *before* the first user trusts the app
-  with three months of medical observations. (Tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).)
-- Photos can be encrypted at rest with a passphrase-derived key without
-  needing to design a multi-device key-distribution scheme.
+- Device loss = data loss unless a backup mechanism exists. No backup
+  story was ever built, and none is planned — the encrypted-export floor
+  (former ADR-0002) was abandoned; see the [decisions log](../decisions-log.md).
+  This is why the app stays on the developer's own device.
+- Photos could be encrypted at rest with a passphrase-derived key without
+  needing to design a multi-device key-distribution scheme — but they are
+  not: no crypto ships in the tree.
 - IDs in the schema can be locally-generated UUIDs without coordination.
   No vector clocks, no last-write-wins logic, no merge UI.
 - Retrofitting sync later means a real migration: stable IDs are fine,
