@@ -4,9 +4,9 @@ import viteConfig from './vite.config';
 const sharedExclude = ['e2e/**', 'node_modules/**', '.claude/**', 'tests/e2e/**'];
 
 // DOM-dependent tests (Svelte components, route pages) are confined to these
-// two trees. Everything else — domain, adapters, stores, crypto, config — is
+// two trees. Everything else — domain, adapters, stores, config — is
 // pure logic that runs in the much cheaper `node` environment, skipping the
-// ~0.7s/file jsdom boot. fake-indexeddb and Web Crypto both work under node.
+// ~0.7s/file jsdom boot. fake-indexeddb and Web Crypto (`uuid.ts`) work under node.
 const domGlobs = ['src/lib/components/**/*.test.ts', 'src/routes/**/*.test.ts'];
 
 export default mergeConfig(

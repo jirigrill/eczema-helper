@@ -150,7 +150,7 @@ with `level > 0` is now simply called a *bumped region*; the term
 
 ### SkinPhoto
 A timestamped photo of the baby's skin, stored as a `Blob` in the
-`photos` table (plaintext per ADR-0005). Every photo belongs to one
+`photos` table (plaintext — [ADR-0029](docs/adr/0029-no-crypto-no-backup.md)). Every photo belongs to one
 `SkinObservation` via a required `observationId` FK and carries the
 `region: RegionId` it documents. Photos have no `date` field of their
 own — the day they were captured is the date of the parent observation.
@@ -347,7 +347,7 @@ is a member of `getEligibleActors(feedingStage)` at log time.
   mirrored schedule — see the [Actor](#actor) entry; the mirrored-schedule
   rationale, ADR-0027, is parked with the protocol engine — see
   `docs/parked-features.md`.)
-- **No backup mechanism exists yet.** Data lives only in IndexedDB on the one device. An encrypted manual export/import (whole-state serialize + AES-256-GCM, passphrase-derived key; every record has a stable UUID) is the intended floor — not built, tracked in [#438](https://github.com/jirigrill/eczema-helper/issues/438).
+- **No backup mechanism exists, and none is planned.** Data lives only in IndexedDB on the one device; losing or wiping the phone destroys the journal. An encrypted manual export/import was once the intended floor (former ADR-0002), but it was never built and is not being pursued — see [ADR-0029](docs/adr/0029-no-crypto-no-backup.md). Nothing in the tree encrypts anything.
 - **Meals are day-granular.** `Meal` carries `date` + `mealType` + `actor`.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
   for audit. See the [decisions log](docs/decisions-log.md) (was ADR-0003).
@@ -380,7 +380,7 @@ is a member of `getEligibleActors(feedingStage)` at log time.
   at the skin. Delete is a hard delete cascading to all `SkinPhoto` rows
   for that observation. The repository port exposes `save` (compose),
   `update` (edit), `remove` (delete), `listByDate` (read).
-- **Photos are stored unencrypted at rest** (only the export blob is encrypted). Encryption-at-rest must land before the app reaches any device other than the developer's own — a hard release gate, tracked in [#467](https://github.com/jirigrill/eczema-helper/issues/467).
+- **Photos are stored unencrypted at rest**, as is every other record — there is no encryption anywhere in the tree. Encryption-at-rest would be a prerequisite before the app reaches any device other than the developer's own; it is deliberately not being pursued, so that prerequisite doubles as a constraint on who may use the app. See [ADR-0029](docs/adr/0029-no-crypto-no-backup.md).
 - **Persistence: Dexie/IndexedDB, normalized tables.** Photos in a
   dedicated table. Reactive UI via `liveQuery`. The insight engine
   receives plain arrays — it does not know Dexie exists.

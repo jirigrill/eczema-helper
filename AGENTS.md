@@ -6,7 +6,7 @@ Guidance for AI agents working in this repository.
 
 Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimination diet. Single-device, the mother's phone, Czech UI. [ADR-0001](docs/adr/0001-single-device-v1.md)
 
-**Status:** The app is a Logging Tool — first run (feeding stage), day view, meal logging, skin observation with photos, settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. The elimination-protocol engine is parked at `parked/protocol-engine` (see `docs/parked-features.md`). `docs/design/redesign-prototype.html` is the design source of truth, but still depicts the pre-descaling screens where it shows protocol UI (onboarding questionnaire, program timeline, conflict detection); SvelteKit routes are authored against it. No backend or auth. Encrypted export/import (#438) and the derived-insight engine (#468) are not built yet.
+**Status:** The app is a Logging Tool — first run (feeding stage), day view, meal logging, skin observation with photos, settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. The elimination-protocol engine is parked at `parked/protocol-engine` (see `docs/parked-features.md`). `docs/design/redesign-prototype.html` is the design source of truth and SvelteKit routes are authored against it, but two parts of it are stale: it still depicts the pre-descaling protocol UI (onboarding questionnaire, program timeline, conflict detection), and its photo section is a historical placeholder — photos ship today and nothing is encrypted. No backend or auth. There is no backup: nothing is encrypted, and encrypted export/import is not planned ([ADR-0029](docs/adr/0029-no-crypto-no-backup.md)). The derived-insight engine (#468) is not built yet.
 
 ## Documentation
 
@@ -18,15 +18,15 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 - `docs/architecture/tech-stack.md` — framework/runtime rationale
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture detail
 
-**Recording a decision:** write a numbered ADR in `docs/adr/` only when the decision constrains not-yet-built work, or when reversing it would be catastrophic and non-obvious. Otherwise add a one-line entry to `docs/decisions-log.md`. `docs/` describes what exists today — anything forward-looking lives in the issue tracker, not here. Every ADR and reference doc leads with a plain-language `## Overview`; ADRs then split at a `---` into the precise detail below.
+**Recording a decision:** write a numbered ADR in `docs/adr/` only when the decision constrains not-yet-built work, or when reversing it would be catastrophic and non-obvious. Otherwise add a one-line entry to `docs/decisions-log.md`. `docs/` describes what exists today — anything forward-looking lives in the issue tracker, not here. Every ADR and reference doc leads with a plain-language `## Overview`; ADRs then split at a `---` into the precise detail below. A decision recorded as an ADR is recorded *only* there — the log is for what does not warrant one. An ADR that retires or edits another names it in its metadata block as `**Supersedes:**` / `**Amends:**`.
 
 ## Tech Stack
 
-SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · Web Crypto (AES-256-GCM, PBKDF2) for the encrypted export blob · no backend · deployed as a static bundle rsynced to a VPS, served by Caddy.
+SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · no application-level encryption (Web Crypto only for UUIDs) · no backend · deployed as a static bundle rsynced to a VPS, served by Caddy.
 
 ## Directory Layout
 
-`src/routes/` — SvelteKit pages + `/api/health`. `src/lib/` — `domain/` (pure logic + ports), `adapters/` (Dexie etc.), `data/` (seeds), `utils/`, `components/`, `crypto/`, `types/`, `strings/`+`config/` (presentation).
+`src/routes/` — SvelteKit pages + `/api/health`. `src/lib/` — `domain/` (pure logic + ports), `adapters/` (Dexie etc.), `data/` (seeds), `utils/`, `components/`, `types/`, `strings/`+`config/` (presentation).
 
 ## Architecture Intent
 

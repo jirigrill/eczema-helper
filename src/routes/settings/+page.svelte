@@ -15,8 +15,8 @@
   const feedingStage = $derived(settingsStore.feedingStage);
 
   // Reset is a factory wipe of every table — meals, observations and photos
-  // included — and there is no export yet (#438), so it is gated behind a
-  // destructive confirm rather than firing on a single tap.
+  // included — and there is no backup mechanism at all, so it is gated behind
+  // a destructive confirm rather than firing on a single tap.
   let resetConfirmOpen = $state(false);
 
   function selectFeedingStage(stage: FeedingStage) {

@@ -49,8 +49,8 @@ describe('settings/+page.svelte', () => {
     expect(getByText(/Restartování vymaže/)).toBeInTheDocument();
   });
 
-  // Reset wipes every table, photos included, and there is no export yet
-  // (#438) — so the destructive confirm is the last thing standing between one
+  // Reset wipes every table, photos included, and there is no backup mechanism
+  // at all — so the destructive confirm is the last thing standing between one
   // tap and the mother's only copy of her records.
   it('does not wipe anything until the confirm sheet is accepted', async () => {
     mockResetDatabase.mockResolvedValue(undefined);

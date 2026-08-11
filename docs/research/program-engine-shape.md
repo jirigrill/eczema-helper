@@ -8,6 +8,11 @@
 architecture; §6 holds the deep safety/operational decisions. Where a later round refined an earlier
 call, the earlier text is rewritten to the final decision (no evolution scaffolding).
 **ADR/PRD authors quote §3 and §6.**
+**Retired references:** this audit trail predates the descaling and cites ADR-0002
+(encrypted export) and ADR-0005 (photos plaintext, encryption-at-rest as a release
+gate). Both are retired — there is no export and no encryption, and none is planned
+([ADR-0029](../adr/0029-no-crypto-no-backup.md)). The reasoning below is preserved as
+written; read those two references as historical.
 
 ---
 

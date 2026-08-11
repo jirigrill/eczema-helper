@@ -13,7 +13,6 @@ Technologies currently in use. The app is single-device, client-only, with no ba
 | Runtime / PM | Bun 1.x                                   | Used for install, dev server, build                                  |
 | Styling      | Tailwind CSS 4                            | CSS-first config; tokens defined in `src/app.css`                    |
 | Local DB     | Dexie 4 / IndexedDB                       | Normalized tables, reactive `liveQuery` |
-| Crypto       | Web Crypto API (AES-256-GCM, PBKDF2)      | Backs the encrypted manual-export blob (not built yet, [#438](https://github.com/jirigrill/eczema-helper/issues/438)) |
 | PWA          | `@vite-pwa/sveltekit`                     | Installed; not yet wired for offline shell                           |
 | Testing      | Vitest + `@testing-library/svelte` + `fake-indexeddb`; Playwright | See [testing-strategy.md](testing-strategy.md) |
 | Deployment   | Static bundle, rsync to VPS, served by Caddy | No app server; no backend                                   |
@@ -40,7 +39,8 @@ The following lived in earlier iterations of this document and are **not** part 
 - **No auth.** No cookie sessions, no bcrypt, no passkeys. Single-device, no accounts.
 - **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine is not built ([#468](https://github.com/jirigrill/eczema-helper/issues/468); causation-derived rationale, ADR-0004, is parked with the protocol engine — see [parked features](../parked-features.md)).
 - **No push notifications.** No web-push, no VAPID.
-- **No photo upload.** Photos stay on-device; photos are stored unencrypted at rest; encryption-at-rest must land before any non-developer device (#467).
+- **No photo upload.** Photos stay on-device.
+- **No application-level encryption and no backup**, so every record including photos sits plaintext in IndexedDB — scope, rationale and the Web Crypto carve-out for UUIDs are in [ADR-0029](../adr/0029-no-crypto-no-backup.md).
 - **No charts / no PDF export.** No `uPlot`, no `pdfmake`.
 
 If any of these become relevant, add an ADR before reintroducing the dependency.

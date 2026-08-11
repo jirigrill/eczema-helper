@@ -105,7 +105,7 @@ liveQuery subscription. Routes reach the store; they never construct the adapter
 Clears **every** table by iterating `db.tables`, so the mother's meals, skin observations
 and photos go with the feeding stage, and a table added by a future migration is covered
 without editing this file. Gated behind a [ConfirmSheet](#confirmsheet): the wipe is
-irreversible and, with encrypted export unbuilt (#438), the device holds the only copy.
+irreversible and, with no backup mechanism of any kind, the device holds the only copy.
 A database-lifecycle concern, deliberately outside per-domain adapter ownership.
 
 ### skinObservationSession

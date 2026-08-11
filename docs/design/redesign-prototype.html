@@ -3885,7 +3885,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   <div class="section-eyebrow">C.5 — FAB Akce · Přidat fotku</div>
   <div class="section-heading">Přidat fotku</div>
   <div class="section-desc">
-    Placeholder pro šifrované ukládání fotek kůže (AES-256-GCM). Funkce se připravuje.
+    Historický placeholder pro ukládání fotek kůže. Fotky dnes fungují a ukládají se
+    nešifrovaně — šifrování se nechystá. Tato sekce zobrazuje stav před jejich dodáním.
   </div>
 
   <div class="flex flex-wrap gap-10 items-start">
@@ -3912,14 +3913,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7A6468" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </div>
             </div>
-            <div class="text-base font-semibold text-text mb-2">Šifrované ukládání fotek</div>
-            <div class="text-[13px] text-text-muted leading-relaxed mb-6" style="max-width:200px">Bezpečné snímky kůže miminka — tato funkce se připravuje.</div>
+            <div class="text-base font-semibold text-text mb-2">Ukládání fotek</div>
+            <div class="text-[13px] text-text-muted leading-relaxed mb-6" style="max-width:200px">Snímky kůže miminka — v aplikaci už fungují, ukládají se nešifrovaně.</div>
             <button class="px-5 py-2.5 rounded-xl border border-surface-dark text-text-muted text-[13px] opacity-50 cursor-not-allowed">Vybrat foto</button>
           </div>
         </div>
         <div class="home-indicator"></div>
       </div></div>
-      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Placeholder. SVG camera + lock ikony (DESIGN.md pravidlo). Funkce připravujeme.</div>
+      <div class="text-[11px] text-text-muted mt-3 max-w-[300px] leading-relaxed">Historický placeholder. Fotky už fungují; lock ikona je zbytek nedodaného šifrování — není to pravidlo z DESIGN.md a nekopíruj ji do nových obrazovek.</div>
     </div>
 
   </div>
