@@ -6,7 +6,7 @@ Guidance for AI agents working in this repository.
 
 Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimination diet. Single-device, the mother's phone, Czech UI. [ADR-0001](docs/adr/0001-single-device-v1.md)
 
-**Status:** The app is a Logging Tool — first run (feeding stage), day view, meal logging, skin observation with photos, settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. The elimination-protocol engine is parked at `parked/protocol-engine` (see `docs/parked-features.md`). `docs/design/redesign-prototype.html` is the design source of truth, but still depicts the pre-descaling screens where it shows protocol UI (onboarding questionnaire, program timeline, conflict detection), and its photo section is a historical placeholder — photos ship today and nothing is encrypted; SvelteKit routes are authored against it. No backend or auth. There is no backup: nothing is encrypted, and encrypted export/import is not planned (see `docs/decisions-log.md`). The derived-insight engine (#468) is not built yet.
+**Status:** The app is a Logging Tool — first run (feeding stage), day view, meal logging, skin observation with photos, settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. The elimination-protocol engine is parked at `parked/protocol-engine` (see `docs/parked-features.md`). `docs/design/redesign-prototype.html` is the design source of truth and SvelteKit routes are authored against it, but two parts of it are stale: it still depicts the pre-descaling protocol UI (onboarding questionnaire, program timeline, conflict detection), and its photo section is a historical placeholder — photos ship today and nothing is encrypted. No backend or auth. There is no backup: nothing is encrypted, and encrypted export/import is not planned ([ADR-0029](docs/adr/0029-no-crypto-no-backup.md)). The derived-insight engine (#468) is not built yet.
 
 ## Documentation
 
@@ -22,7 +22,7 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 
 ## Tech Stack
 
-SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · no crypto · no backend · deployed as a static bundle rsynced to a VPS, served by Caddy.
+SvelteKit 2 + TypeScript (strict) · Bun · Tailwind CSS 4 · @sveltejs/adapter-static · Dexie/IndexedDB with `liveQuery` · no application-level encryption (Web Crypto only for UUIDs) · no backend · deployed as a static bundle rsynced to a VPS, served by Caddy.
 
 ## Directory Layout
 

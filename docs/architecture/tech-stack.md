@@ -40,7 +40,7 @@ The following lived in earlier iterations of this document and are **not** part 
 - **No AI provider.** No Claude Vision proxy, no `/api/analyze` route. The derived-insight engine is not built ([#468](https://github.com/jirigrill/eczema-helper/issues/468); causation-derived rationale, ADR-0004, is parked with the protocol engine — see [parked features](../parked-features.md)).
 - **No push notifications.** No web-push, no VAPID.
 - **No photo upload.** Photos stay on-device.
-- **No crypto.** No Web Crypto usage, no AES-256-GCM, no PBKDF2, no `lib/crypto/`. Photos and every other record are stored unencrypted at rest, and there is no encrypted export. Encryption-at-rest would be a prerequisite before the app reaches any device other than the developer's own, but it is not being pursued — see the [decisions log](../decisions-log.md).
+- **No application-level encryption.** No AES-256-GCM, no PBKDF2, no key derivation, no `crypto.subtle`, no `lib/crypto/`. Photos and every other record are stored unencrypted at rest, and there is no encrypted export. Encryption-at-rest would be a prerequisite before the app reaches any device other than the developer's own, but it is not being pursued ([ADR-0029](../adr/0029-no-crypto-no-backup.md)). Web Crypto itself is not banned — `src/lib/utils/uuid.ts` uses `crypto.randomUUID()` / `crypto.getRandomValues()` for ID generation.
 - **No charts / no PDF export.** No `uPlot`, no `pdfmake`.
 
 If any of these become relevant, add an ADR before reintroducing the dependency.

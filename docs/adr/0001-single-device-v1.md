@@ -13,6 +13,14 @@ The one carefully-bounded exception: when the app later asks an AI to *suggest* 
 **Status:** Accepted
 **Date:** 2026-05-11
 
+> **Amendment (ADR-0029, 2026-08-11):** The Consequences below once said a backup
+> story "must be designed" before the first user, and that photos "can be
+> encrypted at rest". Both are settled the other way: no backup of any kind is
+> planned and no application-level encryption ships — see
+> [ADR-0029](0029-no-crypto-no-backup.md). The single-device decision itself is
+> unchanged; what changed is that device loss is now accepted as total data loss,
+> which is why the app stays on the developer's own phone.
+
 > **Amendment (ADR-0027, 2026-07-25):** The "single-**actor**" half of this ADR's
 > title is retired. Meals are now dual-actor (`mother` + `baby`) over a single
 > mirrored schedule — ADR-0027 is parked with the protocol engine, see
@@ -64,11 +72,11 @@ added later — also useful for the pediatrician.
   user database. The app is a local journal; the user holds the data.
 - Device loss = data loss unless a backup mechanism exists. No backup
   story was ever built, and none is planned — the encrypted-export floor
-  (former ADR-0002) was abandoned; see the [decisions log](../decisions-log.md).
+  (former ADR-0002) was abandoned; see [ADR-0029](0029-no-crypto-no-backup.md).
   This is why the app stays on the developer's own device.
 - Photos could be encrypted at rest with a passphrase-derived key without
   needing to design a multi-device key-distribution scheme — but they are
-  not: no crypto ships in the tree.
+  not: no application-level encryption ships in the tree (ADR-0029).
 - IDs in the schema can be locally-generated UUIDs without coordination.
   No vector clocks, no last-write-wins logic, no merge UI.
 - Retrofitting sync later means a real migration: stable IDs are fine,

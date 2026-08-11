@@ -92,7 +92,7 @@ type SkinPhotoStore = {
 };
 ```
 
-List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs are stored plaintext; encryption-at-rest is not planned (see the [decisions log](../decisions-log.md)).
+List-shaped port. Multiple photos may exist per calendar day. Live reactive reads are handled by `skinPhotoSession` in `src/lib/stores/`. Photo blobs are stored plaintext; encryption-at-rest is not planned ([ADR-0029](../adr/0029-no-crypto-no-backup.md)).
 
 ## Adapters
 
@@ -138,6 +138,8 @@ Cross-domain readers follow the same rule by importing from each owning store �
 Routes import the store, not the adapter.
 
 **Database lifecycle sits outside this rule.** `db/reset-database.ts` clears every table for the Settings factory reset. No domain owns a whole-database wipe, so it lives beside `atopic-db.ts` and reads `db.tables` rather than naming tables — a hand-written list is what previously let the reset spare the mother's meals, observations and photos while the UI promised to erase them.
+
+**There is no backup port.** An encrypted export/import port was once planned as the seam a backup would attach to; it was never authored and is not planned ([ADR-0029](../adr/0029-no-crypto-no-backup.md)), so the factory reset above is an unrecoverable wipe. A backup would be the same shape as the reset — a whole-database concern beside `atopic-db.ts`, not a per-domain port.
 
 ## Reactivity boundary
 
