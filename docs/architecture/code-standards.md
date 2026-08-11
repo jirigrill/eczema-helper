@@ -37,7 +37,7 @@ Formatting and code-quality rules are tooling-enforced, not eyeballed: **Prettie
 Two tiers, colocated `*.test.ts` (Tier 1) vs `tests/e2e/` (Tier 2). Full rules: `testing-strategy.md`.
 
 ## Security
-- Never log sensitive data (photos, notes, API keys)
+- Never log sensitive data (passwords, tokens, photos, notes, API keys)
 - Validate/sanitize external input at adapter boundaries
 - No application-level encryption exists and none is planned ([ADR-0029](../adr/0029-no-crypto-no-backup.md)) — every record is plaintext in IndexedDB. Web Crypto is used only for UUID generation (`src/lib/utils/uuid.ts`); reintroducing encryption means revising that ADR first.
 

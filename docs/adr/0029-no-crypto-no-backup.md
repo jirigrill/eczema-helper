@@ -33,8 +33,8 @@ is where their subject matter now lives.
 backup story "must be designed" and that photos "can be encrypted at rest". Both
 now read as the decisions recorded here.
 **Issues:** [#438](https://github.com/jirigrill/eczema-helper/issues/438) (export
-payload builder — to be closed as not planned when this lands), [#467](https://github.com/jirigrill/eczema-helper/issues/467)
-(photo encryption at rest — closed `wontfix`).
+payload builder), [#467](https://github.com/jirigrill/eczema-helper/issues/467)
+(photo encryption at rest). Both are `wontfix`.
 
 ## Context
 
@@ -103,7 +103,3 @@ Reintroducing either capability requires revising this ADR first.
   call. That is fine for a single export blob and wrong for at-rest use, which
   needs a cached `CryptoKey`. Restoring the file gets the algorithms back, not a
   usable at-rest design.
-- **A future backup need not be encrypted at all.** A plain unencrypted export to
-  the device's own file system would already remove the total-loss failure mode;
-  encryption was a property of the abandoned design, not a requirement that
-  outlived it.

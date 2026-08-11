@@ -646,7 +646,7 @@ The body of every insight card is the same: 14px text paragraph, then evidence r
 
 ### Photo Components
 
-> **Prototype-only since the crypto removal ([ADR-0029](docs/adr/0029-no-crypto-no-backup.md)).** `docs/design/redesign-prototype.html` § C.5 still renders the photo screen as a disabled placeholder behind a padlock, captioned as forthcoming encrypted storage. Photos ship today and nothing is encrypted, so that padlock is a leftover of a feature that was abandoned, not a spec. Don't carry a lock glyph into a photo surface from that section.
+> **Prototype-only since the crypto removal ([ADR-0029](docs/adr/0029-no-crypto-no-backup.md)).** `docs/design/redesign-prototype.html` § C.5 still renders the photo screen as a disabled placeholder behind a padlock; its captions now say so, but the padlock itself stays. Photos ship today and nothing is encrypted, so that glyph is a leftover of a feature that was abandoned, not a spec. Don't carry a lock glyph into a photo surface from that section.
 
 - `{components.photo-thumb}` — Generic full-bleed photo placeholder, 1:1 aspect, brand-tinted gradient until real photo loads. 8px corners.
 - `{components.photo-thumb-evidence}` — 28×28 inline thumb with 1px hairline border, sits at the end of an evidence row.

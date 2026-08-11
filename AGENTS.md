@@ -18,7 +18,7 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 - `docs/architecture/tech-stack.md` — framework/runtime rationale
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture detail
 
-**Recording a decision:** write a numbered ADR in `docs/adr/` only when the decision constrains not-yet-built work, or when reversing it would be catastrophic and non-obvious. Otherwise add a one-line entry to `docs/decisions-log.md`. `docs/` describes what exists today — anything forward-looking lives in the issue tracker, not here. Every ADR and reference doc leads with a plain-language `## Overview`; ADRs then split at a `---` into the precise detail below.
+**Recording a decision:** write a numbered ADR in `docs/adr/` only when the decision constrains not-yet-built work, or when reversing it would be catastrophic and non-obvious. Otherwise add a one-line entry to `docs/decisions-log.md`. `docs/` describes what exists today — anything forward-looking lives in the issue tracker, not here. Every ADR and reference doc leads with a plain-language `## Overview`; ADRs then split at a `---` into the precise detail below. A decision recorded as an ADR is recorded *only* there — the log is for what does not warrant one. An ADR that retires or edits another names it in its metadata block as `**Supersedes:**` / `**Amends:**`.
 
 ## Tech Stack
 
