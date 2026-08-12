@@ -17,6 +17,22 @@ test('family grid: shows 13 family tiles on meal page', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Mléko/ }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /Ovoce/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Zelenina/ })).toBeVisible();
+
+  // Exactly the 13 clinical families — the `custom` family went with
+  // custom-food entry (issue #662).
+  // FamilyGrid is the only grid-cols-4 container on the page.
+  await expect(page.locator('.grid.grid-cols-4 > button')).toHaveCount(13);
+});
+
+// Issue #662: custom food is removed, so the grid must not offer the free-text
+// entry path. Real-browser confirmation that the tile is absent from the render.
+test('family grid: has no Vlastní tile', async ({ page }) => {
+  const today = new Date().toISOString().split('T')[0];
+  await startLogging(page);
+  await page.goto(`/meal?type=lunch&returnTo=/day/${today}`);
+  await expect(page.getByRole('heading', { name: 'Oběd' })).toBeVisible();
+
+  await expect(page.getByRole('button', { name: /Vlastní/ })).toHaveCount(0);
 });
 
 // Issue #297 follow-up: the family grid carries no elimination/active

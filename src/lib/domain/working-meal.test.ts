@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
+
 import type { Meal, MealItem } from './models';
 import {
   allConfirmedFoods,
@@ -26,14 +28,14 @@ import type { WorkingMeal } from './working-meal';
 // ── Helpers ──────────────────────────────────────────────────
 
 const FAM = 'dairy' as const;
-const FOOD_A = 'kravske-mleko';
-const FOOD_B = 'tvaroh';
+const FOOD_A: FoodId = 'kravske-mleko';
+const FOOD_B: FoodId = 'tvaroh';
 
-function mealWithFood(foodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
+function mealWithFood(foodId: FoodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
   return startEditing(emptyWorkingMeal(), FAM, foodId, name);
 }
 
-function mealWithConfirmed(foodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
+function mealWithConfirmed(foodId: FoodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
   return confirmFood(mealWithFood(foodId, name), FAM, foodId);
 }
 
@@ -320,6 +322,27 @@ describe('toMealItems / fromMealItems round-trip', () => {
     const restoredFood = foodsForFamily(restored, FAM).find((f) => f.foodId === FOOD_A);
     expect(restoredFood?.state).toMatchObject({ preparation: undefined });
   });
+
+  // Issue #662: `FoodId` is the catalog's own id union, so a food id absent
+  // from FOODS is a stale persisted row. It used to be bucketed into a `custom`
+  // family; there is no such family to invent one from any more, and quietly
+  // dropping it would shrink a logged meal without saying so.
+  it('throws on an item whose foodId is absent from the catalog', () => {
+    expect(() =>
+      fromMealItems([
+        { id: 'i1', name: 'Kravské mléko', foodId: FOOD_A, amount: 'spoon' },
+        // Cast past the narrowed FoodId — any non-catalog id reaches here only
+        // from disk. A retired catalog slug, not an `other:` one: the guard is
+        // about the id being unknown, not about the removed custom-food prefix.
+        {
+          id: 'i2',
+          name: 'Kokos',
+          foodId: 'zrusena-potravina' as MealItem['foodId'],
+          amount: 'portion',
+        },
+      ]),
+    ).toThrow(/zrusena-potravina/);
+  });
 });
 
 // ── Active edit slot invariant ────────────────────────────────
@@ -353,7 +376,9 @@ describe('removeFood', () => {
 
   it('is a no-op when the foodId is not present', () => {
     const meal = mealWithConfirmed();
-    const after = removeFood(meal, FAM, 'nonexistent-food');
+    // Cast past the narrowed FoodId: exercises the miss branch on an id no
+    // valid caller could produce.
+    const after = removeFood(meal, FAM, 'nonexistent-food' as FoodId);
     expect(foodsForFamily(after, FAM)).toEqual(foodsForFamily(meal, FAM));
   });
 

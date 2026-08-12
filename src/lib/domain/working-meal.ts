@@ -1,5 +1,5 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
-import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { Meal, MealItem, MealSlot, PortionKind, PreparationMethod } from '$lib/domain/models';
 import { mealId } from '$lib/domain/models';
 import { randomUUID } from '$lib/utils/uuid';
@@ -11,7 +11,7 @@ export type FoodEditState =
   | { status: 'locked'; prior: 'idle' | 'confirmed' };
 
 export type WorkingFood = {
-  foodId: string;
+  foodId: FoodId;
   name: string;
   state: FoodEditState;
   /** Last-confirmed amount — restored when a confirmed food is re-selected. */
@@ -39,7 +39,7 @@ export function emptyWorkingMeal(): WorkingMeal {
 function mapFood(
   meal: WorkingMeal,
   familyId: FamilyId,
-  foodId: string,
+  foodId: FoodId,
   fn: (f: WorkingFood) => WorkingFood,
 ): WorkingMeal {
   return {
@@ -77,7 +77,7 @@ function ensureFamily(meal: WorkingMeal, familyId: FamilyId): WorkingMeal {
 function ensureFood(
   meal: WorkingMeal,
   familyId: FamilyId,
-  foodId: string,
+  foodId: FoodId,
   name: string,
 ): WorkingMeal {
   const fam = familyFor(meal, familyId);
@@ -102,7 +102,7 @@ function isActive(state: FoodEditState): boolean {
 export function startEditing(
   meal: WorkingMeal,
   familyId: FamilyId,
-  foodId: string,
+  foodId: FoodId,
   name: string,
 ): WorkingMeal {
   const withFood = ensureFood(meal, familyId, foodId, name);
@@ -132,7 +132,7 @@ export function startEditing(
  * "Uložit {Food}": confirm the editing food, unlock everything else.
  * Locked foods are restored to their prior state (confirmed or idle).
  */
-export function confirmFood(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+export function confirmFood(meal: WorkingMeal, familyId: FamilyId, foodId: FoodId): WorkingMeal {
   return mapFamily(meal, familyId, (fam) => ({
     ...fam,
     foods: fam.foods.map((f) => {
@@ -166,7 +166,7 @@ export function confirmFood(meal: WorkingMeal, familyId: FamilyId, foodId: strin
  * Tap the editing food again (or tap outside): cancel back to idle, cache nothing.
  * Locked foods are restored to their prior state (confirmed or idle).
  */
-export function cancelEditing(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+export function cancelEditing(meal: WorkingMeal, familyId: FamilyId, foodId: FoodId): WorkingMeal {
   return mapFamily(meal, familyId, (fam) => ({
     ...fam,
     foods: fam.foods.map((f) => {
@@ -193,7 +193,7 @@ export function cancelEditing(meal: WorkingMeal, familyId: FamilyId, foodId: str
 /**
  * Tap a confirmed food: deselect it back to idle. Cache is preserved for re-select.
  */
-export function deselectFood(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+export function deselectFood(meal: WorkingMeal, familyId: FamilyId, foodId: FoodId): WorkingMeal {
   return mapFood(meal, familyId, foodId, (f) => {
     if (f.state.status !== 'confirmed') return f;
     return { ...f, state: { status: 'idle' } };
@@ -206,7 +206,7 @@ export function deselectFood(meal: WorkingMeal, familyId: FamilyId, foodId: stri
 export function updateEditingAmount(
   meal: WorkingMeal,
   familyId: FamilyId,
-  foodId: string,
+  foodId: FoodId,
   amount: PortionKind,
 ): WorkingMeal {
   return mapFood(meal, familyId, foodId, (f) => {
@@ -221,7 +221,7 @@ export function updateEditingAmount(
 export function updateEditingPreparation(
   meal: WorkingMeal,
   familyId: FamilyId,
-  foodId: string,
+  foodId: FoodId,
   preparation: PreparationMethod | undefined,
 ): WorkingMeal {
   return mapFood(meal, familyId, foodId, (f) => {
@@ -234,7 +234,7 @@ export function updateEditingPreparation(
  * Remove a food from the working list entirely (the ✕ action on a grid row).
  * If the removed food was editing, locked siblings are restored to their prior state.
  */
-export function removeFood(meal: WorkingMeal, familyId: FamilyId, foodId: string): WorkingMeal {
+export function removeFood(meal: WorkingMeal, familyId: FamilyId, foodId: FoodId): WorkingMeal {
   return mapFamily(meal, familyId, (fam) => {
     const target = fam.foods.find((f) => f.foodId === foodId);
     const wasEditing = target?.state.status === 'editing';
@@ -299,7 +299,7 @@ export function toMealItems(meal: WorkingMeal): MealItem[] {
     return {
       id: randomUUID(),
       name: f.name,
-      foodId: f.foodId as MealItem['foodId'],
+      foodId: f.foodId,
       amount: f.state.amount,
       preparationMethod: f.state.preparation,
     };
@@ -319,14 +319,37 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
 /**
  * Reconstruct a WorkingMeal from a persisted Meal's items, with all foods in
  * confirmed state. Used when loading an existing meal slot for editing.
- * Custom foods (foodId starting with "other:") are placed under the "custom" family.
+ *
+ * Every `FoodId` is a catalog id (issue #662), so an item whose food is absent
+ * from `FOODS` is a stale persisted row, not a custom food — there is no family
+ * to put it in, and no honest way to render it.
+ *
+ * It **throws**, mirroring `toMealItems` above: both guard an invariant nothing
+ * on disk can currently violate, and both would otherwise lose the mother's data
+ * quietly. Two things close the gap, not one: Dexie v12 deletes every stored meal
+ * carrying an `other:` id, and every food id ever retired from the catalog
+ * (`voda`, `ovesne-vlocky`, `sunka`, …) was retired before v10 cleared `meals`
+ * outright — so no surviving row holds a non-catalog id of either kind. The
+ * narrowed `FoodId` stops new ones being written. Retiring a catalog id *from
+ * now on* would reopen it: such a rename needs its own migration, since this
+ * throw is what a stale row would hit. Dropping the item would
+ * silently shrink a meal she logged, which is the one outcome worse than
+ * failing to open it. If this ever fires, something upstream is writing
+ * unvalidated ids and the throw is how that becomes visible.
+ *
+ * Downstream renderers can therefore stay total: `preparationsForFood` returns
+ * `[]` for an unknown id rather than throwing, because rehydration has already
+ * rejected any meal that could carry one.
  */
 export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
   const familyMap = new Map<FamilyId, WorkingFood[]>();
 
   for (const item of items) {
     const catalogFood = FOODS.find((f) => f.id === item.foodId);
-    const familyId: FamilyId = catalogFood?.familyId ?? ('custom' as FamilyId);
+    if (!catalogFood) {
+      throw new Error(`fromMealItems: food ${item.foodId} is not in the catalog`);
+    }
+    const familyId: FamilyId = catalogFood.familyId;
 
     const food: WorkingFood = {
       foodId: item.foodId,

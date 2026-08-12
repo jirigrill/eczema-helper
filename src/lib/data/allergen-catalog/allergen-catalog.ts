@@ -19,7 +19,6 @@ export const FAMILIES = [
   { id: 'sweet', icon: '🍯' },
   { id: 'spices-condiments', icon: '🌿' },
   { id: 'drinks', icon: '☕' },
-  { id: 'custom', icon: '➕' },
 ] as const;
 
 export type FamilyId = (typeof FAMILIES)[number]['id'];
@@ -1988,8 +1987,14 @@ export const ALLERGENS = [
 ] as const satisfies readonly AllergenRecord[];
 
 export type CatalogAllergenId = (typeof ALLERGENS)[number]['id'];
-/** Re-export as AllergenId for consumer convenience */
-export type AllergenId = CatalogAllergenId | `other:${string}`;
+/**
+ * Since #662 removed the `other:` arm there is one tier of allergen id, so this
+ * is a plain synonym. `AllergenId` is the spelling for domain and UI code;
+ * `CatalogAllergenId` is reserved for the sites that key a table *off the
+ * catalog* (`satisfies Record<CatalogAllergenId, …>` in `strings/`), where the
+ * name says the exhaustiveness check is the point.
+ */
+export type AllergenId = CatalogAllergenId;
 /** Allergens with a reintroduction ladder */
 export type LadderAllergenId = Extract<(typeof ALLERGENS)[number], { ladder: object }>['id'];
 
@@ -3229,9 +3234,12 @@ export const FOODS = [
 ] as const satisfies readonly FoodRecord[];
 
 export type CatalogFoodId = (typeof FOODS)[number]['id'];
-/** CustomFoodId = `other:${string}` — user-typed foods, never a protocol phase */
-export type CustomFoodId = `other:${string}`;
-export type FoodId = CatalogFoodId | CustomFoodId;
-
-/** User-defined custom allergens (e.g. `'other:Paprika'`); never enter a protocol phase. */
-export type CustomAllergenId = `other:${string}`;
+/**
+ * The catalog is the whole set of loggable food identities (issue #662). There
+ * is no free-text tier: a food the app cannot resolve to a catalog record is a
+ * food it cannot reason about, so it is not representable. It is therefore a
+ * plain synonym of `CatalogFoodId`, and the same spelling rule applies as for
+ * `AllergenId`: use `FoodId` in domain and UI code, `CatalogFoodId` only where a
+ * table is keyed off the catalog for exhaustiveness (`satisfies Record<…>`).
+ */
+export type FoodId = CatalogFoodId;

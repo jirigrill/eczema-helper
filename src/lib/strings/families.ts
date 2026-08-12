@@ -18,7 +18,6 @@ export const familyStrings = {
   sweet: { name: 'Sladké' },
   'spices-condiments': { name: 'Koření, omáčky a droždí' },
   drinks: { name: 'Nápoje a čaje' },
-  custom: { name: 'Vlastní' },
 } as const satisfies Record<FamilyId, FamilyStrings>;
 
 export type FoodStrings = {

@@ -6,7 +6,6 @@ import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { db } from '$lib/db/atopic-db';
-import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { Meal } from '$lib/domain/models';
 import { clearBuffer, writeBuffer } from '$lib/stores/discard-buffer';
 import { mealSession } from '$lib/stores/meal-session';
@@ -46,24 +45,6 @@ const mockPage: { url: URL; state: Record<string, unknown> } = {
 };
 vi.mock('$app/state', () => ({ page: mockPage }));
 
-const mockHarvestStore = writable<HarvestCandidate[]>([]);
-vi.mock('$lib/stores/harvest-candidate-session', () => ({
-  harvestCandidateSession: {
-    subscribe: mockHarvestStore.subscribe,
-    readByKey: vi.fn().mockResolvedValue({ ok: true, data: null }),
-    // The real session optimistically upserts into its in-memory store, so
-    // newly-typed custom foods render immediately. The stub mirrors that
-    // shape so the editing-after-Přidat rendering tests stay realistic.
-    upsert: (candidate: HarvestCandidate) => {
-      mockHarvestStore.update((list) => {
-        const idx = list.findIndex((c) => c.normalizedKey === candidate.normalizedKey);
-        return idx >= 0 ? list.map((c, i) => (i === idx ? candidate : c)) : [...list, candidate];
-      });
-      return Promise.resolve({ ok: true, data: undefined });
-    },
-  },
-}));
-
 const today = new Date().toISOString().split('T')[0]!;
 const future = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]!;
 
@@ -75,7 +56,6 @@ beforeEach(async () => {
   await db.skin_observations.clear();
   mockPage.url = new URL(`http://localhost/meal?type=lunch&date=${today}&returnTo=/day/${today}`);
   mockPage.state = {};
-  mockHarvestStore.set([]);
   mockDiscardBuffer.set(null);
 });
 
@@ -137,6 +117,39 @@ describe('meal/+page.svelte', () => {
     await tick();
     expect(getByText('Všechny kategorie')).toBeInTheDocument();
   });
+
+  // ── No custom-food entry path (issue #662) ────────────────
+  // Custom food is removed: the catalog is the whole set of loggable foods.
+  // These are the guards that stop the capability returning by accident. They
+  // assert the user's reality — "there is no way to type a food" — at the
+  // highest seam where that is assertable without a browser.
+
+  it('the family grid offers no Vlastní tile', async () => {
+    const { default: MealPage } = await import('./+page.svelte');
+    const { queryByRole } = render(MealPage);
+    await tick();
+    expect(queryByRole('button', { name: /Vlastní/ })).toBeNull();
+  });
+
+  it('the grid screen has no free-text food input', async () => {
+    const { default: MealPage } = await import('./+page.svelte');
+    const { container } = render(MealPage);
+    await tick();
+    // The meal-notes textarea is legitimate; a text/search `input` is not.
+    expect(container.querySelectorAll('input[type="text"], input:not([type])')).toHaveLength(0);
+  });
+
+  it.each(['Mléko', 'Ovoce', 'Nápoje a čaje'])(
+    'the %s drill-in has no free-text food input',
+    async (familyName) => {
+      const { default: MealPage } = await import('./+page.svelte');
+      const { getByRole, container } = render(MealPage);
+      await tick();
+      await fireEvent.click(getByRole('button', { name: new RegExp(familyName) }));
+      await tick();
+      expect(container.querySelectorAll('input[type="text"], input:not([type])')).toHaveLength(0);
+    },
+  );
 
   // ── Drill-in navigation ───────────────────────────────────
 
@@ -249,11 +262,6 @@ describe('meal/+page.svelte', () => {
   });
 
   // ── Schedule banners (preserved) ─────────────────────────
-
-  // Vlastní drill-in behavior (list previously-typed customs, new-food →
-  // editing, re-tap harvest chip → editing, grid has no standalone
-  // custom-food input) is covered end-to-end by
-  // `tests/e2e/meal-custom-food.test.ts`.
 
   // ── Grid working-list: tap-to-edit ───────────────────────
   // Row-tap opens the inline editor, ✕ removes the row, outside-click confirms
@@ -372,7 +380,7 @@ describe('meal/+page.svelte', () => {
       date: today,
       mealType: 'lunch',
       actor: 'baby',
-      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
       createdAt: new Date().toISOString(),
     });
     const { default: MealPage } = await import('./+page.svelte');
@@ -431,7 +439,7 @@ describe('meal/+page.svelte', () => {
       date: today,
       mealType: 'lunch',
       actor: 'baby',
-      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
       createdAt: new Date().toISOString(),
     });
     const { default: MealPage } = await import('./+page.svelte');
@@ -468,7 +476,7 @@ describe('meal/+page.svelte', () => {
       date: today,
       mealType: 'lunch',
       actor: 'baby',
-      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
       createdAt: new Date().toISOString(),
     });
     const { default: MealPage } = await import('./+page.svelte');
@@ -513,7 +521,7 @@ describe('meal/+page.svelte', () => {
       date: today,
       mealType: 'lunch',
       actor: 'baby',
-      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
       createdAt: new Date().toISOString(),
     });
     const { default: MealPage } = await import('./+page.svelte');
@@ -532,7 +540,7 @@ describe('meal/+page.svelte', () => {
       date: today,
       mealType: 'lunch',
       actor: 'baby',
-      items: [{ id: 'b1', name: 'Rýže', foodId: 'other:rice', amount: 'portion' }],
+      items: [{ id: 'b1', name: 'Rýže', foodId: 'ryze', amount: 'portion' }],
       createdAt: new Date().toISOString(),
     });
     const { default: MealPage } = await import('./+page.svelte');

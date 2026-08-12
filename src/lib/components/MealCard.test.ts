@@ -413,7 +413,7 @@ describe('MealCard', () => {
       id: '2026-05-31:breakfast:mother',
       mealType: 'breakfast',
       actor: 'mother',
-      items: [{ id: 'm1', name: 'Káva', foodId: 'other:kava', amount: 'portion' }],
+      items: [{ id: 'm1', name: 'Káva', foodId: 'kava', amount: 'portion' }],
     });
     const baby = makeMeal({
       id: '2026-05-31:breakfast:baby',

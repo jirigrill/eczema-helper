@@ -53,7 +53,14 @@ The mechanical procedure, once, for every entry below:
 ```
 
 `daily-completeness` is **not** on this graph: it hangs off no base, was parked after the
-protocol strip, and revives on its own.
+protocol strip, and revives on its own. Nor are `custom-food` and `harvest-candidate` (#662):
+both hang off no protocol base and were parked well after the strip. They do depend on each
+other, one-way — `custom-food` needed `harvest-candidate` for its `Dříve zadané` recall list,
+though not for its entry path:
+
+```
+  harvest-candidate ──> custom-food  (recall list only)
+```
 
 Solid edges are value-level: the target does not compile without the source. The dashed edge
 is type-level — `ladder.ts` type-imports two `models.ts` fragments that
@@ -123,8 +130,12 @@ input to catalog allergens and flagging items that violate the day's eliminated 
 `components/FoodEditor.svelte § eliminatedVariant`,
 `strings/common.ts § meal.eliminatedChipLabel`, `strings/common.ts § meal.eliminatedTodayWarning`
 **Docs:** `CONTEXT.md § "CanonicalAllergen"`
-**Revive note:** `normalizeKey` was moved into the live `harvest-candidate.ts` before
-parking — restore the matcher without it. The three `§` component fragments are the
+**Revive note:** `normalizeKey` was deleted along with the rest of the harvest module
+(#662) — it had no live caller once `normalize-key.ts` outlived `harvest-candidate.ts`
+by one PR, and was removed rather than kept as dead code. Restoring this matcher needs
+a normalizer rewritten from scratch (lowercase + trim + collapse whitespace + strip
+surrounding non-letters, diacritics preserved, no stemming — see git history for the
+original at `domain/normalize-key.ts`). The three `§` component fragments are the
 red "Vyloučeno" treatment on a logged food: the `eliminatedAllergenIds` prop
 `FamilyDrillIn` threaded down (plus its eliminated-group sink ordering), the `danger`
 branches in `FoodTile`, and the red-eyebrow variant in `FoodEditor`. They outlived the
@@ -235,6 +246,71 @@ tag's `isToday && …` shape is a bug (the dot went hollow whenever the mother b
 day), so restore the signal, not that gate. `docs/design/components-showcase.html`'s DayStrip
 section documents the visual-only ring and needs updating in the same pass.
 
+### custom-food
+
+**Purpose:** Free-text food entry. A `➕ Vlastní` tile in the family grid opened a drill-in
+with a text input and a `Přidat` button; a submitted name became a `CustomFoodId`
+(`other:${normalizedKey}`) with an empty allergen set, bucketed under the `custom` family,
+and was logged like any other food. The mother was deliberately never asked to categorise it
+— the record asserted no trigger it was not sure of. Previously-typed names came back as a
+`Dříve zadané` chip list for re-logging (that list was derived from harvest-candidate, below).
+**Depends on:** harvest-candidate (for the `Dříve zadané` recall list only; the entry path
+itself is independent)
+**Code:** `data/allergen-catalog.ts § FAMILIES custom entry`,
+`data/allergen-catalog.ts § CustomFoodId` / `§ CustomAllergenId` / `§ FoodId custom arm` /
+`§ AllergenId other: arm`, `strings/families.ts § custom`,
+`strings/common.ts § meal.customFoodPlaceholder` / `§ meal.customFoodsLabel` /
+`§ meal.customFamilyEmptyHint`, `components/FamilyDrillIn.svelte § custom branch`
+(text input, `Přidat` button, `Dříve zadané` chip list, empty-state hint, and the
+`onNewCustomFood` / `customFoods` props), `routes/meal/+page.svelte § customFoods` /
+`§ handleNewCustomFood`, `domain/working-meal.ts § fromMealItems custom-family fallback`,
+`tests/e2e/meal-custom-food.test.ts`
+**Docs:** `CONTEXT.md § "Custom foods are the honest unknown state"`,
+`UBIQUITOUS_LANGUAGE.md § Food custom tier` / `§ Family Vlastní example`
+**Revive note:** The linchpin is `FAMILIES` — re-adding the `custom` record widens `FamilyId`
+by derivation, and `FoodId` must be widened back by hand (`CatalogFoodId | \`other:${string}\``).
+Everything else then follows as type errors. Two things do **not** come back for free.
+(1) The `Dříve zadané`list needs a source: harvest-candidate is also parked, so either revive
+it too or — better — derive the recall list from the`meals`table, which is what the removal
+analysis concluded should have happened. (2)`preparationsForFood`'s `DEFAULT_PREPARATIONS`was **deleted**, not re-documented — it existed only for custom foods, and the function now
+returns`[]` for an id absent from the catalog. A revival needs it back (or an equivalent
+chip set for an unresolvable food) and should say why guessing is acceptable again. The bigger question is upstream of the code: custom
+food was removed because an un-analysable record cannot feed the derived-insight engine
+(#468). Reviving it needs an answer for how such a record participates in analysis, or an
+explicit decision that it does not.
+
+### harvest-candidate
+
+**Purpose:** The _collection_ stage of a `record → review → promote` pipeline that was meant
+to mint new catalog foods from what users actually typed. Every free-text food name was
+silently upserted as a `HarvestCandidate` — a `normalizedKey`, deduped `rawForms`, occurrence
+stats (`count`, `firstSeen`, `lastSeen`) and a `pending | ingested` status — for a future
+server-side curation act. The review and promote stages were never built, nothing ever moved
+a row out of `pending`, and no code consumed the statistics: the only user-visible artefact
+was the `Dříve zadané` re-log list, a side effect of the table rather than its purpose.
+**Depends on:** —
+**Code:** `domain/harvest-candidate.ts` (`HarvestCandidate`, `HarvestCandidateStatus`,
+`mergeCandidate`, `normalizeKey` — the last was briefly rehomed to
+`domain/normalize-key.ts` as a live export, then deleted with it once no caller
+appeared), `adapters/dexie-harvest-candidate-repository.ts`,
+`stores/harvest-candidate-session.ts`, and their three test files.
+`db/atopic-db.ts § harvest_candidates` is **not** parked — the store declaration stays as a
+dormant table so existing rows survive on disk, reduced to a key-path-only row type with its
+`status` index dropped at v12.
+**Docs:** `CONTEXT.md § "HarvestCandidate"`, `CONTEXT.md § catalog invariant (harvest clause)`,
+`docs/architecture/ports-and-adapters.md § singleton examples`
+**Revive note:** Do not revive the collection stage alone — that is exactly the state it was
+removed from. Build review and promote first, or at minimum have an issue for them; a table
+nobody reads is what made this dead weight. Two known defects to fix on revival rather than
+restore. (1) The capture path was specified to skip names matching a catalog food via
+`matchAllergen()`, but that function no longer exists, so the live behaviour captured _every_
+typed name including exact catalog duplicates — any surviving rows on disk are noisier than
+the original design intended. (2) `status: 'ingested'` was never written by production code
+and the repository's `listAll` / `listByStatus` had zero production callers. ADR-0017, which
+specified graduation, has been dissolved; `CONTEXT.md`'s two graduation passages contradicted
+each other (one said it minted a food, the other a `CanonicalAllergen`) and were deleted
+rather than carried forward, so a revival decides afresh what promotion produces.
+
 ## Index
 
 <!-- Reverse view of the entries above, derived from them; on a discrepancy the entries win. -->
@@ -331,3 +407,20 @@ section documents the visual-only ring and needs updating in the same pass.
 | `components/DayStrip/DayStrip.svelte § todayRecorded`           | daily-completeness        |
 | `strings/common.ts § today.counterHint`                         | daily-completeness        |
 | `UBIQUITOUS_LANGUAGE.md § "Daily Completeness"`                 | daily-completeness        |
+| `data/allergen-catalog.ts § FAMILIES custom entry`              | custom-food               |
+| `data/allergen-catalog.ts § CustomFoodId`                       | custom-food               |
+| `data/allergen-catalog.ts § CustomAllergenId`                   | custom-food               |
+| `strings/families.ts § custom`                                  | custom-food               |
+| `strings/common.ts § meal.customFoodPlaceholder`                | custom-food               |
+| `strings/common.ts § meal.customFoodsLabel`                     | custom-food               |
+| `strings/common.ts § meal.customFamilyEmptyHint`                | custom-food               |
+| `components/FamilyDrillIn.svelte § custom branch`               | custom-food               |
+| `routes/meal/+page.svelte § customFoods`                        | custom-food               |
+| `routes/meal/+page.svelte § handleNewCustomFood`                | custom-food               |
+| `domain/working-meal.ts § fromMealItems custom fallback`        | custom-food               |
+| `tests/e2e/meal-custom-food.test.ts`                            | custom-food               |
+| `CONTEXT.md § "Custom foods are the honest unknown state"`      | custom-food               |
+| `domain/harvest-candidate.ts`                                   | harvest-candidate         |
+| `adapters/dexie-harvest-candidate-repository.ts`                | harvest-candidate         |
+| `stores/harvest-candidate-session.ts`                           | harvest-candidate         |
+| `CONTEXT.md § "HarvestCandidate"`                               | harvest-candidate         |

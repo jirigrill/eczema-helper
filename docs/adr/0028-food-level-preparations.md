@@ -2,7 +2,7 @@
 
 ## Overview
 
-Every food in the catalog now says *exactly* which ways it can be prepared. A
+Every food in the catalog now says _exactly_ which ways it can be prepared. A
 banana offers "syrové / pečené / vařené / sušené"; a salmon offers "syrové /
 vařené / pečené / uzené / smažené"; milk offers "syrové / vařené / pečené". The
 list is per food, hand-authored alongside the food's other data.
@@ -28,6 +28,17 @@ find the base food and pick how it was prepared.
 **Status:** Accepted
 **Date:** 2026-08-10
 **Issue:** [#356](https://github.com/jirigrill/eczema-helper/issues/356)
+**Amended by:** the custom-food and harvest-candidate removal
+([#662](https://github.com/jirigrill/eczema-helper/issues/662), recorded in
+[decisions-log](../decisions-log.md)) — two passages that describe the `other:*`
+path no longer hold: the Decision bullet on custom user-typed foods and the
+Consequences bullet saying "custom-food harvest is **unchanged**". There is no
+free-text food entry and no `other:*` food id. The decision recorded here stands —
+preparation applicability still lives on the food record — and its permissive
+fallback is gone with the surface that needed it: `DEFAULT_PREPARATIONS` is
+deleted, and `preparationsForFood` returns `[]` for an id absent from the catalog.
+Guessing a chip set for a food nobody has identified is this ADR's own complaint
+about the bucket scheme, one step further on.
 
 ## Context
 
@@ -59,7 +70,7 @@ Auditing the catalog (163 foods) showed the bucket model failing on both edges:
 Two options survived scrutiny:
 
 - **Keep `FoodForm`, add a specialty-prep field.** Rejected: the union of
-  `formPreparations[form]` + specialty preps can only *add* chips, so it cannot
+  `formPreparations[form]` + specialty preps can only _add_ chips, so it cannot
   remove the wrong `fried` from fruit without a second subtract-list — at which
   point it is strictly more complex than authoring the list directly.
 - **Collapse to a per-food list.** Chosen.
@@ -86,10 +97,11 @@ make sense for it, in chip-display order.
 - The meal-log UI reads `food.preparations` directly instead of resolving a form
   to a chip subset. Custom user-typed foods (`other:*`, never in `FOODS`) keep
   their current permissive default — the full everyday set
-  `['raw', 'boiled', 'baked', 'fried']`.
+  `['raw', 'boiled', 'baked', 'fried']`. _(Amended by #662 — see the metadata
+  block above.)_
 - The stored `MealItem.preparationMethod` remains a single optional
   `PreparationMethod` and remains unconstrained at write time (#314 unchanged) —
-  this decision governs *which chips the UI offers per food*, not what a stored
+  this decision governs _which chips the UI offers per food_, not what a stored
   meal may hold.
 
 **Variants are not separate records.** A smoked salmon is `losos` with `smoked`
@@ -110,7 +122,7 @@ corrected to the real method set. (The lone `cabbage-brassica:cooked-cabbage` �
 
 - Each food's chips are exactly right: no `fried` on bananas, `dried`/`smoked`/
   `cured` available precisely where they belong, and cooking fats/oils carry an
-  empty list — like drinks and condiments, they are staples you cook *with*, not
+  empty list — like drinks and condiments, they are staples you cook _with_, not
   foods logged by preparation.
 - The migration is mechanical and lossless: every current `form` expands to its
   `formPreparations` array as the food's starting `preparations`, then the
@@ -122,7 +134,8 @@ corrected to the real method set. (The lone `cabbage-brassica:cooked-cabbage` �
 - Custom-food harvest is **unchanged** — free text (e.g. "sušené švestky") still
   mints an `other:*` custom food with the permissive default chip set. Steering
   free text toward canonical catalog entries is a separate search/UX concern and
-  is explicitly **not** opened by this decision.
+  is explicitly **not** opened by this decision. _(Amended by #662 — see the
+  metadata block above.)_
 - Preparation still feeds nothing downstream (matcher parked). If
   `allergen-matching` is later revived, it reads the new shape; the
   `docs/parked-features.md` revive note for it should be checked at that time.

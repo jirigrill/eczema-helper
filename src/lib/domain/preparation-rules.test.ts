@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
+
 import { preparationsForFood } from './preparation-rules';
 
 describe('preparationsForFood', () => {
@@ -21,8 +23,12 @@ describe('preparationsForFood', () => {
     expect(preparationsForFood('sul')).toEqual([]);
   });
 
-  it('defaults custom (other:*) and unknown foods to the permissive everyday set', () => {
-    expect(preparationsForFood('other:moje-jidlo')).toEqual(['raw', 'boiled', 'baked', 'fried']);
-    expect(preparationsForFood('totally-unknown-id')).toEqual(['raw', 'boiled', 'baked', 'fried']);
+  it('offers nothing, rather than a guessed set, for a food id absent from the catalog', () => {
+    // A stale persisted row, not an entry path. This stays total because
+    // `fromMealItems` throws on such an id, so no meal reaching the editor
+    // holds one — the two compose rather than each guessing a fallback.
+    // Cast past the narrowed `FoodId`: this exercises the runtime `Array.find`
+    // miss the type system can no longer produce from a valid caller.
+    expect(preparationsForFood('totally-unknown-id' as FoodId)).toEqual([]);
   });
 });

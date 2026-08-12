@@ -123,8 +123,8 @@ describe('required fields', () => {
 // ── Count sanity ──────────────────────────────────────────────
 
 describe('collection counts', () => {
-  it('14 families (13 clinical + custom)', () => {
-    expect(FAMILIES).toHaveLength(14);
+  it('13 clinical families', () => {
+    expect(FAMILIES).toHaveLength(13);
   });
 
   it('at least 32 allergens (all records from the previous catalog)', () => {
@@ -274,8 +274,7 @@ describe('spec spot checks', () => {
 describe('FoodId type', () => {
   it('all FOODS ids are valid FoodIds at runtime', () => {
     for (const food of FOODS) {
-      // FoodId = typeof FOODS[number]['id'] | `other:${string}`
-      // A valid food id is either a catalog id (string) or other:X
+      // FoodId = typeof FOODS[number]['id'] — the catalog is the whole set.
       expect(typeof food.id).toBe('string');
     }
   });

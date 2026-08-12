@@ -3,9 +3,7 @@
   import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
   import { foodStrings } from '$lib/strings/families';
   import { familySources, ostatniLabel } from '$lib/strings/family-sources';
-  import { commonStrings } from '$lib/strings/common';
-  import { actionStrings } from '$lib/strings/actions';
-  import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import type { FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
   import type { WorkingFood } from '$lib/domain/working-meal';
   import FoodTile from '$lib/components/FoodTile.svelte';
@@ -23,30 +21,16 @@
     onAmountChange,
     onPreparationChange,
     onCancelEdit,
-    onNewCustomFood,
-    customFoods = [],
   }: {
     familyId: FamilyId;
     /** Current working-meal state for this family's foods. */
     foods: WorkingFood[];
-    onFoodTap: (foodId: string, name: string) => void;
-    onAmountChange: (foodId: string, amount: PortionKind) => void;
-    onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
+    onFoodTap: (foodId: FoodId, name: string) => void;
+    onAmountChange: (foodId: FoodId, amount: PortionKind) => void;
+    onPreparationChange: (foodId: FoodId, prep: PreparationMethod | undefined) => void;
     /** Called when the user clicks outside any FoodTile while one is editing. */
     onCancelEdit?: () => void;
-    /** Called when the user submits a new custom food name (Vlastní family only). */
-    onNewCustomFood?: (name: string) => void;
-    customFoods?: { foodId: string; name: string }[];
   } = $props();
-
-  let customInputValue = $state('');
-
-  function handleAddCustomFood(): void {
-    const trimmed = customInputValue.trim();
-    if (!trimmed || !onNewCustomFood) return;
-    onNewCustomFood(trimmed);
-    customInputValue = '';
-  }
 
   const catalogFoods: CatalogFood[] = $derived(FOODS.filter((f) => f.familyId === familyId));
   const sources = $derived(
@@ -105,8 +89,6 @@
       );
     }
   });
-
-  const isEmpty = $derived(catalogFoods.length === 0 && customFoods.length === 0);
 
   function nameFor(foodId: string): string {
     return (foodStrings as Record<string, { name: string }>)[foodId]?.name ?? foodId;
@@ -196,69 +178,6 @@
             </FoodTile>
           </div>
         {/each}
-      </div>
-    </div>
-  {/if}
-
-  <!-- Previously-typed custom foods (Vlastní family) -->
-  {#if familyId === 'custom'}
-    <div class="space-y-2 px-4">
-      <div class="flex gap-2">
-        <input
-          type="text"
-          bind:value={customInputValue}
-          placeholder={commonStrings.meal.customFoodPlaceholder}
-          class="input-base flex-1 bg-white px-3 py-2 text-sm"
-        />
-        <button
-          type="button"
-          disabled={customInputValue.trim().length === 0}
-          onclick={handleAddCustomFood}
-          class="bg-primary disabled:bg-surface-dark disabled:text-text-muted rounded-xl px-4 py-2 text-sm font-medium text-white"
-          >{actionStrings.add}</button
-        >
-      </div>
-    </div>
-  {/if}
-
-  {#if customFoods.length > 0}
-    <div class="space-y-2 px-4">
-      <span class="text-text-muted text-xs font-semibold tracking-wide uppercase"
-        >{commonStrings.meal.customFoodsLabel}</span
-      >
-      <div class="flex flex-col gap-2">
-        {#each customFoods as food (food.foodId)}
-          {@const st = stateFor(food.foodId)}
-          <div data-food-tile>
-            <FoodTile
-              name={food.name}
-              state={st.status}
-              lockedPrior={st.status === 'locked' ? st.prior : undefined}
-              onclick={() => onFoodTap(food.foodId, food.name)}
-            >
-              {#snippet editor()}
-                {#if st.status === 'editing'}
-                  <FoodEditor
-                    amount={st.amount}
-                    preparation={st.preparation}
-                    preparations={preparationsForFood(food.foodId)}
-                    onAmountChange={(a) => onAmountChange(food.foodId, a)}
-                    onPreparationChange={(p) => onPreparationChange(food.foodId, p)}
-                  />
-                {/if}
-              {/snippet}
-            </FoodTile>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  <!-- Empty state -->
-  {#if isEmpty}
-    <div class="px-4">
-      <div class="border-surface-dark rounded-xl border border-dashed px-4 py-5 text-center">
-        <p class="text-text-muted text-xs">{commonStrings.meal.customFamilyEmptyHint}</p>
       </div>
     </div>
   {/if}

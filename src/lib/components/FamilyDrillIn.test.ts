@@ -3,19 +3,21 @@ import { tick } from 'svelte';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
+import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { WorkingFood } from '$lib/domain/working-meal';
 
 import FamilyDrillIn from './FamilyDrillIn.svelte';
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function idleFood(foodId: string, name: string): WorkingFood {
+function idleFood(foodId: FoodId, name: string): WorkingFood {
   return { foodId, name, state: { status: 'idle' } };
 }
-function editingFood(foodId: string, name: string): WorkingFood {
+function editingFood(foodId: FoodId, name: string): WorkingFood {
   return { foodId, name, state: { status: 'editing', amount: 'portion' } };
 }
-function confirmedFood(foodId: string, name: string): WorkingFood {
+function confirmedFood(foodId: FoodId, name: string): WorkingFood {
   return {
     foodId,
     name,
@@ -23,7 +25,7 @@ function confirmedFood(foodId: string, name: string): WorkingFood {
     cachedAmount: 'portion',
   };
 }
-function lockedFood(foodId: string, name: string): WorkingFood {
+function lockedFood(foodId: FoodId, name: string): WorkingFood {
   return { foodId, name, state: { status: 'locked', prior: 'idle' } };
 }
 
@@ -266,82 +268,17 @@ describe('FamilyDrillIn — working-food state rendering', () => {
   });
 });
 
-// ── Custom (Vlastní) family ───────────────────────────────────
+// ── No free-text entry (issue #662) ───────────────────────────
 
-describe('FamilyDrillIn — custom family', () => {
-  const customBase = { ...baseProps, familyId: 'custom' as const };
-
-  it('lists previously-typed custom foods', () => {
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...customBase, customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
-    });
-    expect(getByRole('button', { name: /Kokos/ })).toBeInTheDocument();
-  });
-
-  it('calls onFoodTap with other: foodId when custom food tapped', async () => {
-    const onFoodTap = vi.fn();
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...customBase, onFoodTap, customFoods: [{ foodId: 'other:kokos', name: 'Kokos' }] },
-    });
-    await fireEvent.click(getByRole('button', { name: /Kokos/ }));
-    await tick();
-    expect(onFoodTap).toHaveBeenCalledWith('other:kokos', 'Kokos');
-  });
-
-  it('shows empty hint when no custom foods exist', () => {
-    const { getByText } = render(FamilyDrillIn, {
-      props: { ...customBase, customFoods: [] },
-    });
-    expect(getByText(/Zatím žádné vlastní potraviny/)).toBeInTheDocument();
-  });
-
-  // ── AC1: text input + Přidat button ──────────────────────────
-
-  it('shows a text input in the Vlastní drill-in', () => {
-    const { getByRole } = render(FamilyDrillIn, { props: customBase });
-    expect(getByRole('textbox')).toBeInTheDocument();
-  });
-
-  it('shows a "Přidat" button in the Vlastní drill-in', () => {
-    const { getByRole } = render(FamilyDrillIn, { props: customBase });
-    expect(getByRole('button', { name: /Přidat/ })).toBeInTheDocument();
-  });
-
-  it('does NOT show a text input in a non-custom family', () => {
+describe('FamilyDrillIn — no free-text food entry', () => {
+  // Custom food was removed: the catalog is the whole set of loggable foods, so
+  // no drill-in may offer a way to type one. Asserted per family rather than for
+  // one sample, since the removed branch was family-conditional.
+  it.each(FAMILIES.map((f) => f.id))('%s drill-in offers no text input', (familyId) => {
     const { queryByRole } = render(FamilyDrillIn, {
-      props: { ...baseProps, familyId: 'fruit' as const },
+      props: { ...baseProps, familyId },
     });
     expect(queryByRole('textbox')).not.toBeInTheDocument();
-  });
-
-  // ── AC2: new custom food → calls onNewCustomFood ──────────────
-
-  it('typing a name and clicking Přidat calls onNewCustomFood with the typed text', async () => {
-    const onNewCustomFood = vi.fn();
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...customBase, onNewCustomFood },
-    });
-    await fireEvent.input(getByRole('textbox'), { target: { value: 'Špenát' } });
-    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
-    await tick();
-    expect(onNewCustomFood).toHaveBeenCalledWith('Špenát');
-  });
-
-  it('Přidat button is disabled when the text input is empty', () => {
-    const { getByRole } = render(FamilyDrillIn, { props: customBase });
-    expect(getByRole('button', { name: /Přidat/ })).toBeDisabled();
-  });
-
-  it('clears the text input after Přidat is clicked', async () => {
-    const onNewCustomFood = vi.fn();
-    const { getByRole } = render(FamilyDrillIn, {
-      props: { ...customBase, onNewCustomFood },
-    });
-    const input = getByRole('textbox');
-    await fireEvent.input(input, { target: { value: 'Špenát' } });
-    await fireEvent.click(getByRole('button', { name: /Přidat/ }));
-    await tick();
-    expect((input as HTMLInputElement).value).toBe('');
   });
 });
 

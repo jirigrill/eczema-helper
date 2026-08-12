@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { tick } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import type {
     Actor,
@@ -10,7 +9,7 @@
   } from '$lib/domain/models';
   import { getEligibleActors } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
-  import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import type { FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { get } from 'svelte/store';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
@@ -40,9 +39,7 @@
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
   import { mealSession } from '$lib/stores/meal-session';
-  import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
-  import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
   import { copyMealInto } from '$lib/domain/working-meal';
 
   import {
@@ -241,7 +238,7 @@
   // the in-memory working meal already being lost on reload.)
   let drilledFamily = $state<FamilyId | null>(null);
   /** Working-list row currently open for inline editing (grid view only). */
-  let gridEditingFoodId = $state<string | null>(null);
+  let gridEditingFoodId = $state<FoodId | null>(null);
 
   // ── Derived working-meal helpers ──────────────────────────
   const confirmedFoods = $derived(editor.confirmedFoods);
@@ -271,15 +268,6 @@
       ),
     );
   });
-
-  const customFoods = $derived(
-    [...$harvestCandidateSession]
-      .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
-      .map((c) => ({
-        foodId: `other:${c.normalizedKey}`,
-        name: c.rawForms[c.rawForms.length - 1] ?? c.normalizedKey,
-      })),
-  );
 
   // ── CTA label ─────────────────────────────────────────────
   // The screen reads as one consistent "Uložit {what}" ladder (issue #277,
@@ -319,7 +307,7 @@
   });
 
   // ── Food tap handler ─────────────────────────────────────
-  function handleFoodTap(foodId: string, name: string): void {
+  function handleFoodTap(foodId: FoodId, name: string): void {
     if (!drilledFamily) return;
     const foods = foodsForFamily(workingMeal, drilledFamily);
     const existing = foods.find((f) => f.foodId === foodId);
@@ -334,12 +322,12 @@
     }
   }
 
-  function handleAmountChange(foodId: string, amount: PortionKind): void {
+  function handleAmountChange(foodId: FoodId, amount: PortionKind): void {
     if (!drilledFamily) return;
     editor.update((m) => updateEditingAmount(m, drilledFamily!, foodId, amount));
   }
 
-  function handlePreparationChange(foodId: string, prep: PreparationMethod | undefined): void {
+  function handlePreparationChange(foodId: FoodId, prep: PreparationMethod | undefined): void {
     if (!drilledFamily) return;
     editor.update((m) => updateEditingPreparation(m, drilledFamily!, foodId, prep));
   }
@@ -408,7 +396,7 @@
     void saveMeal();
   }
 
-  function handleGridRowTap(foodId: string, name: string, familyId: FamilyId): void {
+  function handleGridRowTap(foodId: FoodId, name: string, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) {
       // Re-tap: confirm back (collapses editor, food stays in list)
       editor.update((m) => confirmFood(m, familyId, foodId));
@@ -425,7 +413,7 @@
   }
 
   function handleGridRowAmountChange(
-    foodId: string,
+    foodId: FoodId,
     familyId: FamilyId,
     amount: PortionKind,
   ): void {
@@ -433,14 +421,14 @@
   }
 
   function handleGridRowPreparationChange(
-    foodId: string,
+    foodId: FoodId,
     familyId: FamilyId,
     prep: PreparationMethod | undefined,
   ): void {
     editor.update((m) => updateEditingPreparation(m, familyId, foodId, prep));
   }
 
-  function handleGridRowRemove(foodId: string, familyId: FamilyId): void {
+  function handleGridRowRemove(foodId: FoodId, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) gridEditingFoodId = null;
     editor.update((m) => removeFood(m, familyId, foodId));
   }
@@ -646,23 +634,6 @@
     }
   }
 
-  async function handleNewCustomFood(rawName: string): Promise<void> {
-    if (!drilledFamily) return;
-    const key = normalizeKey(rawName);
-    if (!key) return;
-    const foodId = `other:${key}`;
-    const existing = await harvestCandidateSession.readByKey(key);
-    const candidate = mergeCandidate(
-      existing.ok ? existing.data : null,
-      rawName,
-      key,
-      new Date().toISOString(),
-    );
-    await harvestCandidateSession.upsert(candidate);
-    await tick();
-    handleFoodTap(foodId, rawName);
-  }
-
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
 
@@ -832,12 +803,10 @@
         <FamilyDrillIn
           familyId={drilledFamily}
           foods={foodsForFamily(workingMeal, drilledFamily)}
-          customFoods={drilledFamily === 'custom' ? customFoods : []}
           onFoodTap={handleFoodTap}
           onAmountChange={handleAmountChange}
           onPreparationChange={handlePreparationChange}
           onCancelEdit={handleCancelEdit}
-          onNewCustomFood={handleNewCustomFood}
         />
       {:else}
         <div role="presentation" onclick={handleGridContainerClick}>
