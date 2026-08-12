@@ -325,7 +325,7 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
  * than bucketed into an invented family — there is no family to put it in.
  *
  * The drop is silent because it is unreachable, not because the case is benign:
- * Dexie v12 cleared the only rows that could carry a non-catalog id, and the
+ * Dexie v12 deleted every stored meal carrying a non-catalog id, and the
  * narrowed `FoodId` stops new ones being written. If this ever drops an item in
  * practice, something upstream is writing unvalidated ids and *that* is the bug —
  * this function is the wrong place to raise it (pure domain, no logging surface).
