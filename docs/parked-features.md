@@ -130,10 +130,12 @@ input to catalog allergens and flagging items that violate the day's eliminated 
 `components/FoodEditor.svelte § eliminatedVariant`,
 `strings/common.ts § meal.eliminatedChipLabel`, `strings/common.ts § meal.eliminatedTodayWarning`
 **Docs:** `CONTEXT.md § "CanonicalAllergen"`
-**Revive note:** `normalizeKey` lives in `domain/normalize-key.ts` and is **not** parked —
-restore the matcher on top of it. (It was briefly inside `harvest-candidate.ts`; that module
-went with the harvest parking (#662) and `normalizeKey` was rehomed rather than deleted,
-precisely so this revival still has it.) The three `§` component fragments are the
+**Revive note:** `normalizeKey` was deleted along with the rest of the harvest module
+(#662) — it had no live caller once `normalize-key.ts` outlived `harvest-candidate.ts`
+by one PR, and was removed rather than kept as dead code. Restoring this matcher needs
+a normalizer rewritten from scratch (lowercase + trim + collapse whitespace + strip
+surrounding non-letters, diacritics preserved, no stemming — see git history for the
+original at `domain/normalize-key.ts`). The three `§` component fragments are the
 red "Vyloučeno" treatment on a logged food: the `eliminatedAllergenIds` prop
 `FamilyDrillIn` threaded down (plus its eliminated-group sink ordering), the `danger`
 branches in `FoodTile`, and the red-eyebrow variant in `FoodEditor`. They outlived the
@@ -288,8 +290,9 @@ a row out of `pending`, and no code consumed the statistics: the only user-visib
 was the `Dříve zadané` re-log list, a side effect of the table rather than its purpose.
 **Depends on:** —
 **Code:** `domain/harvest-candidate.ts` (`HarvestCandidate`, `HarvestCandidateStatus`,
-`mergeCandidate` — but **not** `normalizeKey`, which stayed live in
-`domain/normalize-key.ts`), `adapters/dexie-harvest-candidate-repository.ts`,
+`mergeCandidate`, `normalizeKey` — the last was briefly rehomed to
+`domain/normalize-key.ts` as a live export, then deleted with it once no caller
+appeared), `adapters/dexie-harvest-candidate-repository.ts`,
 `stores/harvest-candidate-session.ts`, and their three test files.
 `db/atopic-db.ts § harvest_candidates` is **not** parked — the store declaration stays as a
 dormant table so existing rows survive on disk, reduced to a key-path-only row type with its

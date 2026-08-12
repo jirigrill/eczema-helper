@@ -224,23 +224,6 @@ food**, never persisted on a `MealItem` — the stored `preparationMethod` stays
 unconstrained. This replaces the retired `FoodForm` bucket scheme (ADR-0028 /
 [#356](https://github.com/jirigrill/eczema-helper/issues/356)).
 
-### normalizeKey
-
-The precision-biased normalizer for a free-text food name
-(`domain/normalize-key.ts`): lowercase + trim + collapse whitespace + strip
-surrounding non-letters, **keeping** diacritics and applying **no** stemming — a
-false merge is worse than a missed merge. It has **no live caller**. It survives
-the custom-food/harvest removal
-([#662](https://github.com/jirigrill/eczema-helper/issues/662)) because the parked
-`allergen-matching` matcher normalizes both sides of a comparison with exactly
-this function; deleting it would strand that revival (#662 story 15). See
-[parked features](docs/parked-features.md).
-
-It is listed here **because** it has no caller: an uncalled export in `domain/`
-reads as dead code, and this entry is the only thing standing between it and the
-next person tidying up. That is a different job from the term-ownership rule's
-usual "used in more than one file" trigger, which this term does not meet.
-
 ### PortionKind
 
 _Czech: Velikost porce_
