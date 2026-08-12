@@ -216,8 +216,10 @@ exactly the ways that food can be prepared — a banana offers Syrové · Pečen
 Sušené, a salmon Syrové · Vařené · Pečené · Uzené, salt an empty list (no
 preparation row). Read straight off the catalog record by
 `preparationsForFood` (`domain/preparation-rules.ts`); a food id absent from the
-catalog falls back defensively to the everyday set
-`['raw', 'boiled', 'baked', 'fried']`. Governs **which chips the UI offers per
+catalog yields an empty list rather than a guessed set — there is no
+`DEFAULT_PREPARATIONS` fallback ([#662](https://github.com/jirigrill/eczema-helper/issues/662)),
+since guessing chips for a food the app could not identify invites a preparation
+to be recorded against a broken item. Governs **which chips the UI offers per
 food**, never persisted on a `MealItem` — the stored `preparationMethod` stays
 unconstrained. This replaces the retired `FoodForm` bucket scheme (ADR-0028 /
 [#356](https://github.com/jirigrill/eczema-helper/issues/356)).

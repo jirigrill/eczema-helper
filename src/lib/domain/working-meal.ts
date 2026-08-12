@@ -324,10 +324,15 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
  * from `FOODS` is a stale persisted row, not a custom food — there is no family
  * to put it in, and no honest way to render it.
  *
- * It **throws**, mirroring `toMealItems` above: both guard an invariant that the
- * types make unreachable (Dexie v12 deleted every stored meal carrying a
- * non-catalog id, and the narrowed `FoodId` stops new ones being written), and
- * both would otherwise lose the mother's data quietly. Dropping the item would
+ * It **throws**, mirroring `toMealItems` above: both guard an invariant nothing
+ * on disk can currently violate, and both would otherwise lose the mother's data
+ * quietly. Two things close the gap, not one: Dexie v12 deletes every stored meal
+ * carrying an `other:` id, and every food id ever retired from the catalog
+ * (`voda`, `ovesne-vlocky`, `sunka`, …) was retired before v10 cleared `meals`
+ * outright — so no surviving row holds a non-catalog id of either kind. The
+ * narrowed `FoodId` stops new ones being written. Retiring a catalog id *from
+ * now on* would reopen it: such a rename needs its own migration, since this
+ * throw is what a stale row would hit. Dropping the item would
  * silently shrink a meal she logged, which is the one outcome worse than
  * failing to open it. If this ever fires, something upstream is writing
  * unvalidated ids and the throw is how that becomes visible.

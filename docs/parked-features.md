@@ -268,18 +268,18 @@ itself is independent)
 **Revive note:** The linchpin is `FAMILIES` — re-adding the `custom` record widens `FamilyId`
 by derivation, and `FoodId` must be widened back by hand (`CatalogFoodId | \`other:${string}\``).
 Everything else then follows as type errors. Two things do **not** come back for free.
-(1) The `Dříve zadané` list needs a source: harvest-candidate is also parked, so either revive
-it too or — better — derive the recall list from the `meals` table, which is what the removal
-analysis concluded should have happened. (2) `preparationsForFood`'s `DEFAULT_PREPARATIONS`
-was re-documented as a defensive fallback for an unknown id; a revival makes it the
-custom-food path again and should say so. The bigger question is upstream of the code: custom
+(1) The `Dříve zadané`list needs a source: harvest-candidate is also parked, so either revive
+it too or — better — derive the recall list from the`meals`table, which is what the removal
+analysis concluded should have happened. (2)`preparationsForFood`'s `DEFAULT_PREPARATIONS`was **deleted**, not re-documented — it existed only for custom foods, and the function now
+returns`[]` for an id absent from the catalog. A revival needs it back (or an equivalent
+chip set for an unresolvable food) and should say why guessing is acceptable again. The bigger question is upstream of the code: custom
 food was removed because an un-analysable record cannot feed the derived-insight engine
 (#468). Reviving it needs an answer for how such a record participates in analysis, or an
 explicit decision that it does not.
 
 ### harvest-candidate
 
-**Purpose:** The *collection* stage of a `record → review → promote` pipeline that was meant
+**Purpose:** The _collection_ stage of a `record → review → promote` pipeline that was meant
 to mint new catalog foods from what users actually typed. Every free-text food name was
 silently upserted as a `HarvestCandidate` — a `normalizedKey`, deduped `rawForms`, occurrence
 stats (`count`, `firstSeen`, `lastSeen`) and a `pending | ingested` status — for a future
@@ -300,7 +300,7 @@ dormant table so existing rows survive on disk, reduced to a key-path-only row t
 removed from. Build review and promote first, or at minimum have an issue for them; a table
 nobody reads is what made this dead weight. Two known defects to fix on revival rather than
 restore. (1) The capture path was specified to skip names matching a catalog food via
-`matchAllergen()`, but that function no longer exists, so the live behaviour captured *every*
+`matchAllergen()`, but that function no longer exists, so the live behaviour captured _every_
 typed name including exact catalog duplicates — any surviving rows on disk are noisier than
 the original design intended. (2) `status: 'ingested'` was never written by production code
 and the repository's `listAll` / `listByStatus` had zero production callers. ADR-0017, which
@@ -416,7 +416,7 @@ rather than carried forward, so a revival decides afresh what promotion produces
 | `routes/meal/+page.svelte § handleNewCustomFood`                | custom-food               |
 | `domain/working-meal.ts § fromMealItems custom fallback`        | custom-food               |
 | `tests/e2e/meal-custom-food.test.ts`                            | custom-food               |
-| `CONTEXT.md § "Custom foods are the honest unknown state"`       | custom-food               |
+| `CONTEXT.md § "Custom foods are the honest unknown state"`      | custom-food               |
 | `domain/harvest-candidate.ts`                                   | harvest-candidate         |
 | `adapters/dexie-harvest-candidate-repository.ts`                | harvest-candidate         |
 | `stores/harvest-candidate-session.ts`                           | harvest-candidate         |

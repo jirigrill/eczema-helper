@@ -22,8 +22,9 @@ describe('preparationsForFood', () => {
   });
 
   it('offers nothing, rather than a guessed set, for a food id absent from the catalog', () => {
-    // A stale persisted row, not an entry path. Declining to guess matches
-    // `fromMealItems`, which drops such an item rather than inventing a family.
+    // A stale persisted row, not an entry path. This stays total because
+    // `fromMealItems` throws on such an id, so no meal reaching the editor
+    // holds one — the two compose rather than each guessing a fallback.
     expect(preparationsForFood('totally-unknown-id')).toEqual([]);
   });
 });

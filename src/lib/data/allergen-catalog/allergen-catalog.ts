@@ -1987,7 +1987,13 @@ export const ALLERGENS = [
 ] as const satisfies readonly AllergenRecord[];
 
 export type CatalogAllergenId = (typeof ALLERGENS)[number]['id'];
-/** Re-export as AllergenId for consumer convenience */
+/**
+ * Since #662 removed the `other:` arm there is one tier of allergen id, so this
+ * is a plain synonym. `AllergenId` is the spelling for domain and UI code;
+ * `CatalogAllergenId` is reserved for the sites that key a table *off the
+ * catalog* (`satisfies Record<CatalogAllergenId, …>` in `strings/`), where the
+ * name says the exhaustiveness check is the point.
+ */
 export type AllergenId = CatalogAllergenId;
 /** Allergens with a reintroduction ladder */
 export type LadderAllergenId = Extract<(typeof ALLERGENS)[number], { ladder: object }>['id'];
@@ -3231,6 +3237,9 @@ export type CatalogFoodId = (typeof FOODS)[number]['id'];
 /**
  * The catalog is the whole set of loggable food identities (issue #662). There
  * is no free-text tier: a food the app cannot resolve to a catalog record is a
- * food it cannot reason about, so it is not representable.
+ * food it cannot reason about, so it is not representable. It is therefore a
+ * plain synonym of `CatalogFoodId`, and the same spelling rule applies as for
+ * `AllergenId`: use `FoodId` in domain and UI code, `CatalogFoodId` only where a
+ * table is keyed off the catalog for exhaustiveness (`satisfies Record<…>`).
  */
 export type FoodId = CatalogFoodId;
