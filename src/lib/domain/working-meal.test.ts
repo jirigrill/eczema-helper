@@ -323,23 +323,23 @@ describe('toMealItems / fromMealItems round-trip', () => {
 
   // Issue #662: `FoodId` is the catalog's own id union, so a food id absent
   // from FOODS is a stale persisted row. It used to be bucketed into a `custom`
-  // family; there is no such family to invent one from any more, so it is dropped.
-  it('drops an item whose foodId is absent from the catalog rather than inventing a family', () => {
-    const restored = fromMealItems([
-      { id: 'i1', name: 'Kravské mléko', foodId: FOOD_A, amount: 'spoon' },
-      // Cast past the narrowed FoodId — any non-catalog id reaches here only from
-      // disk. A retired catalog slug, not an `other:` one: the drop is about the
-      // id being unknown, not about the removed custom-food prefix.
-      {
-        id: 'i2',
-        name: 'Kokos',
-        foodId: 'zrusena-potravina' as MealItem['foodId'],
-        amount: 'portion',
-      },
-    ]);
-
-    expect(restored.families.map((f) => f.familyId)).toEqual([FAM]);
-    expect(restored.families.flatMap((f) => f.foods).map((f) => f.foodId)).toEqual([FOOD_A]);
+  // family; there is no such family to invent one from any more, and quietly
+  // dropping it would shrink a logged meal without saying so.
+  it('throws on an item whose foodId is absent from the catalog', () => {
+    expect(() =>
+      fromMealItems([
+        { id: 'i1', name: 'Kravské mléko', foodId: FOOD_A, amount: 'spoon' },
+        // Cast past the narrowed FoodId — any non-catalog id reaches here only
+        // from disk. A retired catalog slug, not an `other:` one: the guard is
+        // about the id being unknown, not about the removed custom-food prefix.
+        {
+          id: 'i2',
+          name: 'Kokos',
+          foodId: 'zrusena-potravina' as MealItem['foodId'],
+          amount: 'portion',
+        },
+      ]),
+    ).toThrow(/zrusena-potravina/);
   });
 });
 

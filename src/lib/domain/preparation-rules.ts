@@ -14,8 +14,9 @@ import type { PreparationMethod } from './models';
  * nothing rather than a guessed chip set: an empty list is an ordinary authored
  * state (37 foods carry one — salt, oils, drinks) that `FoodEditor` renders as
  * no chip row, whereas guessing would invite a preparation to be recorded
- * against a food we could not identify. It also matches `fromMealItems`, which
- * drops an unknown id rather than inventing a family for it.
+ * against a food we could not identify. This renderer can stay total because
+ * `fromMealItems` throws on an unknown id, so no meal reaching the editor holds
+ * one.
  *
  * Catalog `preparations` gates *which chips the UI offers*; the stored
  * `preparationMethod` on a logged meal item is unconstrained (issue #314).

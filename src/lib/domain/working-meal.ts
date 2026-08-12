@@ -321,21 +321,29 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
  * confirmed state. Used when loading an existing meal slot for editing.
  *
  * Every `FoodId` is a catalog id (issue #662), so an item whose food is absent
- * from `FOODS` is a stale persisted row, not a custom food. It is dropped rather
- * than bucketed into an invented family — there is no family to put it in.
+ * from `FOODS` is a stale persisted row, not a custom food — there is no family
+ * to put it in, and no honest way to render it.
  *
- * The drop is silent because it is unreachable, not because the case is benign:
- * Dexie v12 deleted every stored meal carrying a non-catalog id, and the
- * narrowed `FoodId` stops new ones being written. If this ever drops an item in
- * practice, something upstream is writing unvalidated ids and *that* is the bug —
- * this function is the wrong place to raise it (pure domain, no logging surface).
+ * It **throws**, mirroring `toMealItems` above: both guard an invariant that the
+ * types make unreachable (Dexie v12 deleted every stored meal carrying a
+ * non-catalog id, and the narrowed `FoodId` stops new ones being written), and
+ * both would otherwise lose the mother's data quietly. Dropping the item would
+ * silently shrink a meal she logged, which is the one outcome worse than
+ * failing to open it. If this ever fires, something upstream is writing
+ * unvalidated ids and the throw is how that becomes visible.
+ *
+ * Downstream renderers can therefore stay total: `preparationsForFood` returns
+ * `[]` for an unknown id rather than throwing, because rehydration has already
+ * rejected any meal that could carry one.
  */
 export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
   const familyMap = new Map<FamilyId, WorkingFood[]>();
 
   for (const item of items) {
     const catalogFood = FOODS.find((f) => f.id === item.foodId);
-    if (!catalogFood) continue;
+    if (!catalogFood) {
+      throw new Error(`fromMealItems: food ${item.foodId} is not in the catalog`);
+    }
     const familyId: FamilyId = catalogFood.familyId;
 
     const food: WorkingFood = {
