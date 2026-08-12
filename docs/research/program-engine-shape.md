@@ -13,6 +13,16 @@ call, the earlier text is rewritten to the final decision (no evolution scaffold
 gate). Both are retired — there is no export and no encryption, and none is planned
 ([ADR-0029](../adr/0029-no-crypto-no-backup.md)). The reasoning below is preserved as
 written; read those two references as historical.
+It also predates [#662](https://github.com/jirigrill/eczema-helper/issues/662), which
+removed custom food and the harvest-candidate pipeline: there is no `other:*` food id,
+no `HarvestCandidate` and no graduation mechanism, and ADR-0017 (which specified
+graduation) was already dissolved. Four passages cite them — §3's projection note
+(`other:*` foods dropping out), the §4 Events row and summary line, and §6 #2's
+**Structure (decided)** call, which reuses `CanonicalAllergen` + `HarvestCandidate`
+*verbatim* for the `Event` model's free-text escape. The decision stands (curated kinds
+plus an escape hatch for unknown-unknowns); the mechanism it planned to borrow does not,
+so an implementer needs a new one and cannot lift it from the parked tag — see
+[parked features](../parked-features.md) § custom-food / § harvest-candidate.
 
 ---
 
