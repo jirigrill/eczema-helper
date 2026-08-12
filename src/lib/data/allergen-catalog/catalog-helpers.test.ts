@@ -16,11 +16,6 @@ describe('allergensByFamily', () => {
     expect(result[0]!.id).toBe('eggs');
   });
 
-  it('returns empty array for custom family (no allergens)', () => {
-    const result = allergensByFamily('custom');
-    expect(result).toHaveLength(0);
-  });
-
   it('soy allergen appears under legumes, not dairy', () => {
     const legumes = allergensByFamily('legumes').map((a) => a.id);
     const dairy = allergensByFamily('dairy').map((a) => a.id);
@@ -48,9 +43,5 @@ describe('singleAllergenFamily', () => {
 
   it('returns null for grains (wheat + corn + grains)', () => {
     expect(singleAllergenFamily('grains')).toBeNull();
-  });
-
-  it('returns null for custom family (zero allergens)', () => {
-    expect(singleAllergenFamily('custom')).toBeNull();
   });
 });

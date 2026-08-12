@@ -123,6 +123,11 @@ corrected to the real method set. (The lone `cabbage-brassica:cooked-cabbage` �
   mints an `other:*` custom food with the permissive default chip set. Steering
   free text toward canonical catalog entries is a separate search/UX concern and
   is explicitly **not** opened by this decision.
+  > **No longer true as of [#662](https://github.com/jirigrill/eczema-helper/issues/662).**
+  > Custom food and harvest were removed; there is no free-text food entry. The
+  > decision this ADR records is untouched — preparation applicability still lives
+  > on the food record — and `DEFAULT_PREPARATIONS` survives only as a defensive
+  > fallback for a food id absent from the catalog, no longer as the custom-food path.
 - Preparation still feeds nothing downstream (matcher parked). If
   `allergen-matching` is later revived, it reads the new shape; the
   `docs/parked-features.md` revive note for it should be checked at that time.

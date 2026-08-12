@@ -320,6 +320,20 @@ describe('toMealItems / fromMealItems round-trip', () => {
     const restoredFood = foodsForFamily(restored, FAM).find((f) => f.foodId === FOOD_A);
     expect(restoredFood?.state).toMatchObject({ preparation: undefined });
   });
+
+  // Issue #662: `FoodId` is the catalog's own id union, so a food id absent
+  // from FOODS is a stale persisted row. It used to be bucketed into a `custom`
+  // family; there is no such family to invent one from any more, so it is dropped.
+  it('drops an item whose foodId is absent from the catalog rather than inventing a family', () => {
+    const restored = fromMealItems([
+      { id: 'i1', name: 'Kravské mléko', foodId: FOOD_A, amount: 'spoon' },
+      // Cast past the narrowed FoodId — this shape only reaches here from disk.
+      { id: 'i2', name: 'Kokos', foodId: 'other:kokos' as MealItem['foodId'], amount: 'portion' },
+    ]);
+
+    expect(restored.families.map((f) => f.familyId)).toEqual([FAM]);
+    expect(restored.families.flatMap((f) => f.foods).map((f) => f.foodId)).toEqual([FOOD_A]);
+  });
 });
 
 // ── Active edit slot invariant ────────────────────────────────

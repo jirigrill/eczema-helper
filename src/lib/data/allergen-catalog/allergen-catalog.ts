@@ -19,7 +19,6 @@ export const FAMILIES = [
   { id: 'sweet', icon: '🍯' },
   { id: 'spices-condiments', icon: '🌿' },
   { id: 'drinks', icon: '☕' },
-  { id: 'custom', icon: '➕' },
 ] as const;
 
 export type FamilyId = (typeof FAMILIES)[number]['id'];
@@ -1989,7 +1988,7 @@ export const ALLERGENS = [
 
 export type CatalogAllergenId = (typeof ALLERGENS)[number]['id'];
 /** Re-export as AllergenId for consumer convenience */
-export type AllergenId = CatalogAllergenId | `other:${string}`;
+export type AllergenId = CatalogAllergenId;
 /** Allergens with a reintroduction ladder */
 export type LadderAllergenId = Extract<(typeof ALLERGENS)[number], { ladder: object }>['id'];
 
@@ -3229,9 +3228,9 @@ export const FOODS = [
 ] as const satisfies readonly FoodRecord[];
 
 export type CatalogFoodId = (typeof FOODS)[number]['id'];
-/** CustomFoodId = `other:${string}` — user-typed foods, never a protocol phase */
-export type CustomFoodId = `other:${string}`;
-export type FoodId = CatalogFoodId | CustomFoodId;
-
-/** User-defined custom allergens (e.g. `'other:Paprika'`); never enter a protocol phase. */
-export type CustomAllergenId = `other:${string}`;
+/**
+ * The catalog is the whole set of loggable food identities (issue #662). There
+ * is no free-text tier: a food the app cannot resolve to a catalog record is a
+ * food it cannot reason about, so it is not representable.
+ */
+export type FoodId = CatalogFoodId;

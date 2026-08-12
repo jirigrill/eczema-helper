@@ -85,10 +85,7 @@ export const commonStrings = {
   meal: {
     heading: 'Přidat jídlo',
     allCategoriesLabel: 'Všechny kategorie',
-    customFoodPlaceholder: 'Název potraviny…',
     notesPlaceholder: 'Poznámka (volitelné, např. u babičky)',
-    customFoodsLabel: 'Dříve zadané',
-    customFamilyEmptyHint: 'Zatím žádné vlastní potraviny. Napište potravinu výše.',
     // ── Issue #244: modal-edit flow ────────────────────────
     confirmedFoodsLabel: 'Přidané potraviny',
     mealNotesLabel: 'Poznámka k jídlu',

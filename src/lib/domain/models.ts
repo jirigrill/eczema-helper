@@ -3,10 +3,10 @@
 // Derived from the data-first catalog (ADR-0017) and re-exported here so
 // existing `$lib/domain/models` import sites are unchanged. The catalog is the
 // single source of truth — these are no longer hand-written unions.
-import type { AllergenId, CatalogAllergenId, CustomAllergenId } from '$lib/data/allergen-catalog';
+import type { AllergenId, CatalogAllergenId } from '$lib/data/allergen-catalog';
 import type { CatalogFoodId, FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 
-export type { AllergenId, CatalogAllergenId, CustomAllergenId, FamilyId, FoodId, CatalogFoodId };
+export type { AllergenId, CatalogAllergenId, FamilyId, FoodId, CatalogFoodId };
 
 /**
  * The live master switch(es) the user controls, held in the dedicated `settings`
@@ -41,7 +41,7 @@ export type PreparationMethod = (typeof PREPARATION_METHODS)[number];
 export type MealItem = {
   id: string;
   name: string; // Czech display name
-  foodId: FoodId; // identifies the specific food; custom foods use `other:${string}`
+  foodId: FoodId; // identifies the specific catalog food
   amount: PortionKind;
   preparationMethod?: PreparationMethod;
 };

@@ -172,12 +172,12 @@ describe('DexieMealRepository', () => {
     if (result.ok) expect(result.data?.items[0]!.foodId).toBe('kravske-mleko');
   });
 
-  it('MealItem with custom foodId persists correctly', async () => {
-    const item = makeItem('item-1', { foodId: 'other:vlastni-jidlo' });
+  it('MealItem foodId round-trips unchanged', async () => {
+    const item = makeItem('item-1', { foodId: 'brambory' });
     await repo.save(makeMeal('2026-05-27', 'lunch', { items: [item] }));
     const result = await repo.loadBySlot('2026-05-27', 'lunch', 'mother');
     expect(result).toMatchObject({ ok: true });
-    if (result.ok) expect(result.data?.items[0]!.foodId).toBe('other:vlastni-jidlo');
+    if (result.ok) expect(result.data?.items[0]!.foodId).toBe('brambory');
   });
 
   it('multiple items in a meal all persist', async () => {
@@ -483,7 +483,7 @@ describe('DexieMealRepository', () => {
       // BABY's meal; the source is a MOTHER meal being copied here.
       const babyDinner = makeMeal('2026-05-20', 'dinner', {
         actor: 'baby',
-        items: [makeItem('baby-1', { name: 'Miminkovo', foodId: 'other:baby-food' })],
+        items: [makeItem('baby-1', { name: 'Miminkovo', foodId: 'mrkev' })],
         createdAt: '2026-05-20T18:00:00.000Z',
       });
       await repo.save(babyDinner);
@@ -582,6 +582,78 @@ describe('DexieMealRepository', () => {
         data: null,
       });
       upgraded.close();
+    });
+  });
+
+  // ── Dexie v12 migration: wipe the meals table on the FoodId narrowing ────
+  //
+  // Custom food is removed (issue #662), so `FoodId` narrows to catalog ids
+  // and a stored item carrying an `other:` id is a shape the live readers can
+  // no longer represent. v12 clears the table on upgrade (v7/v8/v10 precedent).
+  describe('v12 migration wipe', () => {
+    const DB_NAME = 'atopic-helper';
+
+    // The v11 schema verbatim — the last version that still had custom food, and
+    // the shape a client upgrading to v12 arrives with. `harvest_candidates`
+    // still carries its `status` index here; v12 drops it.
+    const V11_STORES = {
+      answers: '&id',
+      schedule: '&id',
+      meals: '&id, date',
+      skin_observations: '&id, date',
+      photos: '&id, observationId',
+      harvest_candidates: '&normalizedKey, status',
+      evaluations: '&phaseId, date',
+      ladder_overrides: '&allergenId',
+      settings: '&id',
+    };
+
+    // Seed through a bare Dexie declaring only up to v11 — mirrors a client that
+    // last wrote while custom food still existed — then close it so the real
+    // AtopicDb reopens the same store and runs the v12 upgrade.
+    async function seedV11(indexedDB: IDBFactory): Promise<void> {
+      const legacy = new Dexie(DB_NAME, { indexedDB, IDBKeyRange });
+      legacy.version(11).stores(V11_STORES);
+      await legacy.open();
+      await legacy.table('meals').put({
+        id: '2026-05-27:lunch:mother',
+        date: '2026-05-27',
+        mealType: 'lunch',
+        actor: 'mother',
+        // The now-unrepresentable shape the wipe exists to remove.
+        items: [
+          { id: 'i1', name: 'Kokos', foodId: 'other:kokos', amount: 'portion' },
+          { id: 'i2', name: 'Brambory', foodId: 'brambory', amount: 'portion' },
+        ],
+        createdAt: '2026-05-27T08:00:00.000Z',
+      });
+      // A candidate row, so the dormant-table assertion has something to preserve.
+      await legacy.table('harvest_candidates').put({ normalizedKey: 'kokos', status: 'pending' });
+      legacy.close();
+    }
+
+    it('clears pre-existing meal rows when upgrading to v12', async () => {
+      const indexedDB = new IDBFactory();
+      await seedV11(indexedDB);
+
+      const upgraded = new AtopicDb({ indexedDB, IDBKeyRange });
+      await upgraded.open();
+      const count = await upgraded.meals.count();
+      upgraded.close();
+
+      expect(count).toBe(0);
+    });
+
+    it('leaves the dormant harvest_candidates rows on disk', async () => {
+      const indexedDB = new IDBFactory();
+      await seedV11(indexedDB);
+
+      const upgraded = new AtopicDb({ indexedDB, IDBKeyRange });
+      await upgraded.open();
+      const count = await upgraded.harvest_candidates.count();
+      upgraded.close();
+
+      expect(count).toBe(1);
     });
   });
 });

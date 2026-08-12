@@ -21,8 +21,7 @@ describe('preparationsForFood', () => {
     expect(preparationsForFood('sul')).toEqual([]);
   });
 
-  it('defaults custom (other:*) and unknown foods to the permissive everyday set', () => {
-    expect(preparationsForFood('other:moje-jidlo')).toEqual(['raw', 'boiled', 'baked', 'fried']);
+  it('falls back to the permissive everyday set for a food id absent from the catalog', () => {
     expect(preparationsForFood('totally-unknown-id')).toEqual(['raw', 'boiled', 'baked', 'fried']);
   });
 });

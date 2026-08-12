@@ -22,7 +22,7 @@ async function seedLunchWithBrambory(page: Page) {
       date,
       mealType: 'lunch',
       actor: 'mother',
-      items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+      items: [{ id: 'i1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
       createdAt: '2025-06-13T08:00:00.000Z',
     });
   }, today);
@@ -158,7 +158,7 @@ test('delete-undo on a past day restores the meal to that day, not today', async
       date,
       mealType: 'breakfast',
       actor: 'mother',
-      items: [{ id: 'i1', name: 'Brambory', foodId: 'potato', amount: 'portion' }],
+      items: [{ id: 'i1', name: 'Brambory', foodId: 'brambory', amount: 'portion' }],
       createdAt: '2025-06-13T08:00:00.000Z',
     });
   }, yesterday);

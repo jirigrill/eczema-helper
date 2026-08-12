@@ -3,10 +3,10 @@ import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { PreparationMethod } from './models';
 
 /**
- * The permissive fallback chip set for foods the catalog doesn't know —
- * custom user-typed foods (`other:*` ids, never in FOODS) and any unknown id.
- * The everyday set a mother would reach for; the food editor shows all four so
- * the user can pick freely (ADR-0028).
+ * Defensive fallback for a food id absent from the catalog. Since `FoodId` is
+ * the catalog's own id union (issue #662), reaching this means a stale
+ * persisted row, not a supported entry path — the everyday chip set keeps the
+ * editor usable rather than blank while the caller is fixed.
  */
 const DEFAULT_PREPARATIONS: readonly PreparationMethod[] = ['raw', 'boiled', 'baked', 'fried'];
 
@@ -14,7 +14,7 @@ const DEFAULT_PREPARATIONS: readonly PreparationMethod[] = ['raw', 'boiled', 'ba
  * The preparation chips that make sense for a food, in chip-display order.
  * Read straight off the catalog record's hand-authored `preparations` list
  * (ADR-0028 — preparation applicability lives on the food, not on a coarse
- * form bucket). Custom/unknown foods fall back to the permissive default.
+ * form bucket). An unknown id falls back to the defensive default above.
  *
  * Catalog `preparations` gates *which chips the UI offers*; the stored
  * `preparationMethod` on a logged meal item is unconstrained (issue #314).

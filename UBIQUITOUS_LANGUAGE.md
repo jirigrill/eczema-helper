@@ -27,14 +27,16 @@ invariants.*
 
 The catalog has three levels, each with a derived id:
 
-- **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`,
-  `Vlastní`). Presentation only; no protocol, no clinical meaning.
+- **Family** (`FamilyId`) — broad grid tile / log bucket (`Ovoce`, `Mléko`).
+  Thirteen clinical families. Presentation only; no protocol, no clinical meaning.
 - **Allergen** (`AllergenId`, with `LadderAllergenId` its `ladder`-bearing
   subset) — the trigger unit. The `ladder` field is dormant data read only by
   parked protocol code; `LadderAllergenId` is still derived live to type it.
-- **Food** (`FoodId`, with `CustomFoodId = other:${string}` its free-text tier) —
-  first-class loggable entity carrying `familyId` (presentation) and
-  `allergenIds` (its trigger set, many-to-many).
+- **Food** (`FoodId`) — first-class loggable entity carrying `familyId`
+  (presentation) and `allergenIds` (its trigger set, many-to-many). `FoodId` is
+  the catalog's own id union: there is no free-text tier, so the catalog is the
+  whole set of loggable foods
+  ([#662](https://github.com/jirigrill/eczema-helper/issues/662)).
 
 Two invariants (full text in CONTEXT.md): a food's **family is presentation, its
 allergen is domain** (they may diverge — `sójové mléko` → family `Mléko`, allergen
@@ -204,12 +206,24 @@ A `PreparationMethod[]` on each `CatalogFood`, in chip-display order, listing
 exactly the ways that food can be prepared — a banana offers Syrové · Pečené ·
 Sušené, a salmon Syrové · Vařené · Pečené · Uzené, salt an empty list (no
 preparation row). Read straight off the catalog record by
-`preparationsForFood` (`domain/preparation-rules.ts`); custom user-typed
-(`other:*`) and unknown foods fall back to the permissive everyday set
+`preparationsForFood` (`domain/preparation-rules.ts`); a food id absent from the
+catalog falls back defensively to the everyday set
 `['raw', 'boiled', 'baked', 'fried']`. Governs **which chips the UI offers per
 food**, never persisted on a `MealItem` — the stored `preparationMethod` stays
 unconstrained. This replaces the retired `FoodForm` bucket scheme (ADR-0028 /
 [#356](https://github.com/jirigrill/eczema-helper/issues/356)).
+
+### normalizeKey
+
+The precision-biased normalizer for a free-text food name
+(`domain/normalize-key.ts`): lowercase + trim + collapse whitespace + strip
+surrounding non-letters, **keeping** diacritics and applying **no** stemming — a
+false merge is worse than a missed merge. It has **no live caller**. It survives
+the custom-food/harvest removal
+([#662](https://github.com/jirigrill/eczema-helper/issues/662)) because the parked
+`allergen-matching` matcher normalizes both sides of a comparison with exactly
+this function; deleting it would strand that revival. See
+[parked features](docs/parked-features.md).
 
 ### PortionKind
 *Czech: Velikost porce*

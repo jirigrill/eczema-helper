@@ -319,14 +319,24 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
 /**
  * Reconstruct a WorkingMeal from a persisted Meal's items, with all foods in
  * confirmed state. Used when loading an existing meal slot for editing.
- * Custom foods (foodId starting with "other:") are placed under the "custom" family.
+ *
+ * Every `FoodId` is a catalog id (issue #662), so an item whose food is absent
+ * from `FOODS` is a stale persisted row, not a custom food. It is dropped rather
+ * than bucketed into an invented family — there is no family to put it in.
+ *
+ * The drop is silent because it is unreachable, not because the case is benign:
+ * Dexie v12 cleared the only rows that could carry a non-catalog id, and the
+ * narrowed `FoodId` stops new ones being written. If this ever drops an item in
+ * practice, something upstream is writing unvalidated ids and *that* is the bug —
+ * this function is the wrong place to raise it (pure domain, no logging surface).
  */
 export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
   const familyMap = new Map<FamilyId, WorkingFood[]>();
 
   for (const item of items) {
     const catalogFood = FOODS.find((f) => f.id === item.foodId);
-    const familyId: FamilyId = catalogFood?.familyId ?? ('custom' as FamilyId);
+    if (!catalogFood) continue;
+    const familyId: FamilyId = catalogFood.familyId;
 
     const food: WorkingFood = {
       foodId: item.foodId,

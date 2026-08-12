@@ -232,12 +232,13 @@ cacao without the milk) **and** *fixed composition* (the allergen set does not
 vary instance to instance). A multi-ingredient **dish** assembled at eating time
 fails the second test even when eaten from one bowl — `guláš`, `pizza`,
 `polévka`, `sendvič` differ recipe to recipe, so no honest `allergenIds` exists.
-A dish is therefore **never** a catalog Food: the mother either **decomposes** it
-into its component Foods (`guláš` → `hovězí` + `cibule` + …) or logs it as a
-free-text **custom food** (`other:guláš`, empty `allergenIds`, the honest-unknown
-state below). A dish can never *graduate* into the catalog — there is no
-deterministic allergen set to curate; asserting one would lie about the next
-instance. The meal *is* the composition (`Meal.items` is a list); the Food is not.
+A dish is therefore **never** a catalog Food: the mother **decomposes** it into
+its component Foods (`guláš` → `hovězí` + `cibule` + …). There is no free-text
+tier to fall back to (#662) — the catalog is the whole set of loggable foods, so
+a dish has no identity of its own to log. Nor could a dish ever be curated *into*
+the catalog: there is no deterministic allergen set, and asserting one would lie
+about the next instance. The meal *is* the composition (`Meal.items` is a list);
+the Food is not.
 
 **Principle — food allergen-curation is precision-biased: characteristic
 ingredients only.** A Food's `allergenIds` are the **characteristic ingredients
@@ -248,15 +249,16 @@ emulsifiers/additives (soy lecithin in `mléčná čokoláda` → not asserted),
 brand-variable add-ins. A *reliably-present second characteristic ingredient*
 spawns a **separate named Food** (`oříšková čokoláda` → `[chocolate, dairy,
 nuts]`), never a widened allergen set on the plain tile. This is the same
-precision-bias ADR-0017 applies to harvest normalization and to the empty
-`allergenIds` of custom foods: **never assert a trigger we are not sure of.** The
+precision-bias the catalog applies throughout: **never assert a trigger we are
+not sure of.** The
 reason is diagnostic, not lazy — a substitute product's whole purpose is what it
 replaces (`ovesné mléko` is reached for *to avoid* dairy), so over-tagging turns
 the safe option red and trains the mother to ignore warnings (alarm fatigue),
 which is worse for diagnosis than a rare missed trace. The recall safety-net is
-the live-resolution + harvest machinery already described below: a genuinely
-missed *characteristic* trigger learned later retroactively enriches every past
-log; trace contaminants do not qualify, characteristic ingredients do.
+live resolution, described below: a genuinely missed *characteristic* trigger,
+added to the food's `allergenIds` by a later curation act, retroactively enriches
+every past log of that food; trace contaminants do not qualify, characteristic
+ingredients do.
 
 **Principle — food granularity is earned, not exhaustive: split only on a
 differential trigger or insight signal.** A distinct product earns its own Food
@@ -273,8 +275,10 @@ allergen with no neutral home still needs **≥1 representative food** (you log
 `pšeničný chleb`, never the allergen `wheat`). The bar is *one canonical food per
 (allergen × meaningful form/physiology)*, not one per culinary product — granularity
 serves insight resolution, not catalog completeness. The long tail of cosmetic
-products is absorbed by custom foods (`other:`) and harvest, not by pre-seeding
-every variant. (Dishes are excluded one level up by the atomicity + fixed-composition
+products is absorbed by the canonical tile it is a variant of (`rohlík` is logged
+as `pšeničný chleb`), not by pre-seeding every variant and not by a free-text
+escape hatch — there is none (#662). A genuine gap is fixed by adding the food to
+the catalog. (Dishes are excluded one level up by the atomicity + fixed-composition
 rule; this rule governs the *atomic products that remain*.)
 
 **A logged `MealItem` stores only its `foodId`; its triggers are resolved live
@@ -283,8 +287,8 @@ already a derived, recomputed view (it was never a stored audit fact — only
 `Meal` / `SkinObservation` / the verdict are), so resolving triggers live is
 consistent with how conflicts already work. It is also the *intended* behaviour:
 allergies here are **discovered, not acquired**, and a food's allergen content is
-a fact we *learn* by curation. When the catalog improves — by curation or by a
-`HarvestCandidate` graduating into a food — every past meal of that food
+a fact we *learn* by curation. When the catalog improves — a food's `allergenIds`
+corrected, or a missing food added — every past meal of that food
 retroactively gains its triggers, surfacing a trigger eaten unknowingly. That
 retroactive enrichment is a feature in a diagnostic elimination diet; a snapshot
 would freeze stale knowledge and hide exactly the pattern the app exists to find.
@@ -301,28 +305,14 @@ questionnaire is unambiguous — `soy` always appears under `Luštěniny` there,
 never under `Mléko`. Both surfaces resolve to the same allergen identity, which
 is what links a declared allergy to a later logged food.
 
-**Custom foods are the honest "unknown" state.** A free-text food with no
-catalog match becomes a `CustomFoodId` (`other:${normalizedKey}`) with family
-`Vlastní` and **empty** `allergenIds` — and the mother is **never** asked to
-categorise it or tag its allergens (on-device curation is exactly the false-merge
-risk ADR-0017 §5 pushed to the server). It asserts no trigger it isn't sure of.
-The empty triggers are safe under live resolution: when the matching
-`HarvestCandidate` graduates into a real food, past `other:…` logs retroactively
-gain triggers and migrate out of `Vlastní`. The `Vlastní` tile surfaces
-previously-typed customs for re-logging plus the free-text entry point.
-
-### HarvestCandidate
-A runtime record of a food the mother typed that is **not** in the canonical
-catalog: a `normalizedKey`, every deduped `rawForms` surface form seen,
-occurrence stats (`count`, `firstSeen`, `lastSeen`), and a `status`
-(`pending | ingested`). Stored in a dedicated Dexie table, reactive via
-`liveQuery`. The
-candidate is the harvest feed and the eventual cross-user sync payload; it
-*graduates* when a curation act mints a `CanonicalAllergen` whose `aliases`
-cover its key. Harvest stats live only here, never on a `CanonicalAllergen`.
-On-device normalization is deliberately minimal and precision-biased
-(lowercase + trim + collapse whitespace, **keep** diacritics, **no** stemming);
-authoritative cross-user clustering is out of scope for the on-device catalog.
+**Principle — the catalog is the whole set of loggable foods.** There is no
+free-text tier and no "unknown" food identity (#662). Every `MealItem.foodId` is
+a catalog id, so every logged item resolves to a real allergen set and can take
+part in later analysis. A food outside the catalog cannot be logged — an explicit
+loss of capability, accepted because a record that asserts nothing cannot be
+reasoned about, splits one real food across many spellings, and pushes the cost
+of the gap onto the analysis rather than onto the catalog. When a food is
+missing, the fix is to add it to the catalog.
 
 ### Actor
 The person whose food intake a `Meal` describes — `'mother' | 'baby'`. The
@@ -399,5 +389,5 @@ is a member of `getEligibleActors(feedingStage)` at log time.
 - **Food catalog is data-first and bundled.** Each entry is one curated
   JSON-serializable `CanonicalAllergen` record; `AllergenId` is *derived* from the
   records, not hand-written. Records retain dormant `protocol` and `ladder` fields,
-  read only by parked code. Unknown user input becomes a runtime `HarvestCandidate`
-  in Dexie, never mutates the bundled catalog.
+  read only by parked code. Nothing at runtime mutates or extends the bundled
+  catalog; it is the whole set of loggable foods (#662).

@@ -1252,7 +1252,7 @@
   <!-- sync with: src/lib/components/FamilyGrid.svelte -->
   <div class="component-section" id="family-grid">
     <p class="component-label">▸ <span>FamilyGrid</span> — onSelect: (familyId) => void, activeFamilyIds?: FamilyId[]</p>
-    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (14 total — 13 clinical + Vlastní). Two states: neutral (plain white) and active (white tile + small primary dot top-right — the family has a selection). The onboarding questionnaire passes activeFamilyIds to dot families with a chosen allergen; the meal grid leaves it empty, so its tiles are always plain — there the active/eliminated state is shown only on the food inside the drill-in (see FamilyDrillIn / FoodTile danger state), never on the family tile. There is no eliminated badge or danger tint on the grid anymore.</p>
+    <p class="component-desc">Flat 4-column grid of family tiles. One tile per FAMILIES entry (13 clinical families — the Vlastní tile went with custom-food entry, issue #662). Two states: neutral (plain white) and active (white tile + small primary dot top-right — the family has a selection). The onboarding questionnaire passes activeFamilyIds to dot families with a chosen allergen; the meal grid leaves it empty, so its tiles are always plain — there the active/eliminated state is shown only on the food inside the drill-in (see FamilyDrillIn / FoodTile danger state), never on the family tile. There is no eliminated badge or danger tint on the grid anymore.</p>
     <div class="variant-grid">
 
       <!-- Neutral grid -->
@@ -1283,8 +1283,8 @@
   <!-- ─── FamilyDrillIn ───────────────────────────────────────────────── -->
   <!-- sync with: src/lib/components/FamilyDrillIn.svelte -->
   <div class="component-section" id="family-drill-in">
-    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], customFoods?: {foodId, name}[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onCancelEdit?: () => void, onNewCustomFood?: (name) => void</p>
-    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodTile rows. When the family has ≥ 5 foods AND an authored entry in <code>familySources</code> (e.g. Mléko, Obiloviny), the foods are clustered under source-subgroup headers (Kravské / Ovčí / Kozí / Rostlinné, S lepkem / Bez lepku) in authored order, with any unsourced foods falling into a trailing <em>Ostatní</em> section. Otherwise the family renders flat (no headers). Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). The Vlastní family shows previously-typed custom foods via customFoods, or an empty hint. The back arrow and family name live in the page's PageHeader, not here.</p>
+    <p class="component-label">▸ <span>FamilyDrillIn</span> — familyId: FamilyId, foods: WorkingFood[], onFoodTap: (foodId, name) => void, onAmountChange: (foodId, amount) => void, onPreparationChange: (foodId, prep) => void, onCancelEdit?: () => void</p>
+    <p class="component-desc">Drill-in view for a single family. Foods rendered as FoodTile rows. When the family has ≥ 5 foods AND an authored entry in <code>familySources</code> (e.g. Mléko, Obiloviny), the foods are clustered under source-subgroup headers (Kravské / Ovčí / Kozí / Rostlinné, S lepkem / Bez lepku) in authored order, with any unsourced foods falling into a trailing <em>Ostatní</em> section. Otherwise the family renders flat (no headers). Each food reflects its WorkingMeal state: idle, editing (FoodEditor expanded beneath), confirmed (bordeaux fill), locked (dimmed). Catalog foods only — there is no free-text entry path (issue #662), so every family renders at least one food and there is no empty state. The back arrow and family name live in the page's PageHeader, not here.</p>
     <div class="variant-grid">
 
       <!-- Dairy family: editing state (one food editing, one locked) -->
@@ -1332,34 +1332,6 @@
           </div>
         </div>
         <p class="variant-name">foods=[{kravske-mleko: editing, portion}, {jogurt: locked}]</p>
-      </div>
-
-      <!-- Custom (Vlastní) family: previously-typed customs -->
-      <div class="variant-tile" style="max-width:320px">
-        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <span style="font-size:10px;font-weight:600;color:#7A6468;text-transform:uppercase;letter-spacing:0.6px">Dříve zadané</span>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="border-radius:12px;border:1px solid #EDE8E9;background:white">
-                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:#3D2B2F">Kokos</button>
-              </div>
-              <div style="border-radius:12px;background:#8B4557;border:1px solid #8B4557">
-                <button style="width:100%;text-align:left;padding:8px 12px;font-size:13px;color:white;font-weight:600">Quinoa</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="variant-name">familyId='custom', customFoods=[Kokos:idle, Quinoa:confirmed]</p>
-      </div>
-
-      <!-- Custom (Vlastní) family: empty -->
-      <div class="variant-tile" style="max-width:320px">
-        <div style="padding:16px;background:#FAF8F8;border-radius:16px;display:flex;flex-direction:column;gap:16px">
-          <div style="border:1px dashed #EDE8E9;border-radius:12px;padding:20px 16px;text-align:center">
-            <p style="font-size:12px;color:#7A6468">Zatím žádné vlastní potraviny. Napište potravinu výše.</p>
-          </div>
-        </div>
-        <p class="variant-name">familyId='custom', customFoods=[]</p>
       </div>
 
     </div>

@@ -10,9 +10,10 @@ describe('FamilyGrid', () => {
     const { getAllByRole } = render(FamilyGrid, {
       props: { onSelect: vi.fn() },
     });
-    // 14 FAMILIES defined in the catalog (13 clinical + custom)
+    // 13 clinical FAMILIES in the catalog — the `custom` family was removed
+    // with custom-food entry (issue #662).
     const tiles = getAllByRole('button');
-    expect(tiles.length).toBe(14);
+    expect(tiles.length).toBe(13);
   });
 
   it('shows Czech family name on each tile', () => {

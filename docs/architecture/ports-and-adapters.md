@@ -123,7 +123,7 @@ Each port has a single production adapter. Adapter tests run against `fake-index
 A store is a **date-scoped factory** (`create*(date)`) iff its value is scoped to a parameter — typically a date. Otherwise it is an **app-wide singleton** (`export const`), constructed once at module scope.
 
 - **Factories:** `createMealSession(date)`, `createSkinObservationSession(date)`, `createSkinPhotoSession(date)`, `createDayView(...)`, `createMealEditor()` — each call yields a store bound to its argument.
-- **Singletons:** `settingsContext`, `settingsStore`, `harvestCandidateSession`, `earliestLoggedStore`, `discardBuffer`, `dayStripRecentreSignal` — one instance, one subscription, shared by every consumer.
+- **Singletons:** `settingsContext`, `settingsStore`, `earliestLoggedStore`, `discardBuffer`, `dayStripRecentreSignal` — one instance, one subscription, shared by every consumer.
 
 Two stores keep a factory *and* export a fixed module-scope instance of it: `mealSession` and `skinObservationSession` are `create*(todayIso())` bound once, for mutation call sites (copy-undo, delete/copy) that act outside any one date's subscription. That is not an exception to the rule — the factory is still the date-scoped shape, and the shared instance is a singleton use of it; both are recorded where they live.
 
@@ -131,7 +131,7 @@ Two stores keep a factory *and* export a fixed module-scope instance of it: `mea
 
 If a future store's value is global but a factory shape is genuinely required, keep the factory and record the reason here rather than leaving the next author to guess.
 
-Each session store is the **only** place that constructs the adapter for its domain, and holds it as one module-scope instance — `mealRepository` in `stores/meal-session.ts`, `skinObservationRepository` in `stores/skin-observation-session.ts`, and the private equivalents in the settings and harvest-candidate stores. Anything else needing that domain's adapter imports the instance; nobody writes a second `new DexieXRepository(db)`. That single instance per domain is the seam a storage swap turns on, so scattering constructors quietly removes the reason the architecture exists.
+Each session store is the **only** place that constructs the adapter for its domain, and holds it as one module-scope instance — `mealRepository` in `stores/meal-session.ts`, `skinObservationRepository` in `stores/skin-observation-session.ts`, and the private equivalent in the settings store. Anything else needing that domain's adapter imports the instance; nobody writes a second `new DexieXRepository(db)`. That single instance per domain is the seam a storage swap turns on, so scattering constructors quietly removes the reason the architecture exists.
 
 Cross-domain readers follow the same rule by importing from each owning store — `stores/earliest-logged.ts` unions the meal and skin-observation ports that way rather than constructing either.
 

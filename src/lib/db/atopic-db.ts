@@ -1,6 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
 
-import type { HarvestCandidate } from '$lib/domain/harvest-candidate';
 import type { Meal, SettingsData, SkinObservation, SkinPhoto } from '$lib/domain/models';
 
 type SettingsRow = SettingsData & { id: string };
@@ -14,6 +13,10 @@ type AnswersRow = { id: string };
 type ScheduleRow = { id: string };
 type EvaluationRow = { phaseId: string };
 type LadderOverrideRow = { allergenId: string };
+// Same dormant-table treatment for the harvest-candidate pipeline, removed in
+// issue #662 (see docs/parked-features.md). Rows survive on disk; the
+// `HarvestCandidate` shape that typed them is gone with the feature.
+type HarvestCandidateRow = { normalizedKey: string };
 
 export const SINGLETON_ID = 'singleton';
 
@@ -23,7 +26,7 @@ export class AtopicDb extends Dexie {
   meals!: EntityTable<Meal, 'id'>;
   skin_observations!: EntityTable<SkinObservation, 'id'>;
   photos!: EntityTable<SkinPhoto, 'id'>;
-  harvest_candidates!: EntityTable<HarvestCandidate, 'normalizedKey'>;
+  harvest_candidates!: EntityTable<HarvestCandidateRow, 'normalizedKey'>;
   evaluations!: EntityTable<EvaluationRow, 'phaseId'>;
   ladder_overrides!: EntityTable<LadderOverrideRow, 'allergenId'>;
   settings!: EntityTable<SettingsRow, 'id'>;
@@ -158,6 +161,28 @@ export class AtopicDb extends Dexie {
       ladder_overrides: '&allergenId',
       settings: '&id',
     });
+    // v12: custom food (`other:` food ids) and the harvest-candidate pipeline
+    // are removed (issue #662). `FoodId` narrows to catalog ids, so any stored
+    // meal item carrying an `other:` id is a shape the live readers can no
+    // longer represent — the `meals` table is wiped on upgrade, following the
+    // v7/v8/v10 wipe-on-shape-change precedent (pre-launch, single user).
+    // `harvest_candidates` keeps its store declaration but drops its `status`
+    // index: it joins the dormant tables, so its rows survive unread on disk.
+    this.version(12)
+      .stores({
+        answers: '&id',
+        schedule: '&id',
+        meals: '&id, date',
+        skin_observations: '&id, date',
+        photos: '&id, observationId',
+        harvest_candidates: '&normalizedKey',
+        evaluations: '&phaseId, date',
+        ladder_overrides: '&allergenId',
+        settings: '&id',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('meals').clear();
+      });
   }
 }
 

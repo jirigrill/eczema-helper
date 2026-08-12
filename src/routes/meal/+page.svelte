@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { tick } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import type {
     Actor,
@@ -40,9 +39,7 @@
   import { goto, beforeNavigate, pushState } from '$app/navigation';
   import { page } from '$app/state';
   import { mealSession } from '$lib/stores/meal-session';
-  import { harvestCandidateSession } from '$lib/stores/harvest-candidate-session';
   import { createMealEditor } from '$lib/stores/meal-editor.svelte';
-  import { normalizeKey, mergeCandidate } from '$lib/domain/harvest-candidate';
   import { copyMealInto } from '$lib/domain/working-meal';
 
   import {
@@ -271,15 +268,6 @@
       ),
     );
   });
-
-  const customFoods = $derived(
-    [...$harvestCandidateSession]
-      .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
-      .map((c) => ({
-        foodId: `other:${c.normalizedKey}`,
-        name: c.rawForms[c.rawForms.length - 1] ?? c.normalizedKey,
-      })),
-  );
 
   // ── CTA label ─────────────────────────────────────────────
   // The screen reads as one consistent "Uložit {what}" ladder (issue #277,
@@ -646,23 +634,6 @@
     }
   }
 
-  async function handleNewCustomFood(rawName: string): Promise<void> {
-    if (!drilledFamily) return;
-    const key = normalizeKey(rawName);
-    if (!key) return;
-    const foodId = `other:${key}`;
-    const existing = await harvestCandidateSession.readByKey(key);
-    const candidate = mergeCandidate(
-      existing.ok ? existing.data : null,
-      rawName,
-      key,
-      new Date().toISOString(),
-    );
-    await harvestCandidateSession.upsert(candidate);
-    await tick();
-    handleFoodTap(foodId, rawName);
-  }
-
   // ── Save-failure toast ────────────────────────────────────
   let saveErrorMessage = $state<string | null>(null);
 
@@ -832,12 +803,10 @@
         <FamilyDrillIn
           familyId={drilledFamily}
           foods={foodsForFamily(workingMeal, drilledFamily)}
-          customFoods={drilledFamily === 'custom' ? customFoods : []}
           onFoodTap={handleFoodTap}
           onAmountChange={handleAmountChange}
           onPreparationChange={handlePreparationChange}
           onCancelEdit={handleCancelEdit}
-          onNewCustomFood={handleNewCustomFood}
         />
       {:else}
         <div role="presentation" onclick={handleGridContainerClick}>

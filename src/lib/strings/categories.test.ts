@@ -27,7 +27,7 @@ describe('subitemStrings', () => {
   it('every key is in allergenId:subitem format', () => {
     for (const key of Object.keys(subitemStrings)) {
       expect(
-        key.includes(':') && !key.startsWith('other:'),
+        key.includes(':'),
         `subitemStrings key '${key}' does not follow allergenId:subitem format`,
       ).toBe(true);
     }

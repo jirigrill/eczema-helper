@@ -96,6 +96,24 @@
   <div class="canvas-sub">
     Onboarding (6 kroků) → Dnes (s phase hero + dnešními úkoly z Programu) → Týden → Program (jedna obrazovka, bez tabů). Klikací prototyp dole. Sjednocený vizuální jazyk: černý telefon shell, tokeny <code>primary #8B4557</code> · <code>surface #FAF8F8</code> · <code>text #3D2B2F</code>, monospace anotace, SVG ikony.
   </div>
+  <!-- Stale-surface notice. Read this before rebuilding anything from the mockups below. -->
+  <div style="border-left:3px solid #B84444;background:#FDF6F6;padding:12px 14px;border-radius:8px;max-width:920px;font-size:12px;line-height:1.7;color:#3D2B2F;margin-bottom:36px">
+    <strong style="color:#B84444">Parts of this prototype no longer describe the app.</strong>
+    It is still the design source of truth for everything else, but do <em>not</em> rebuild
+    these surfaces from the mockups below — they were deliberately removed:
+    <ul style="margin:8px 0 0 18px;list-style:disc">
+      <li><strong>Pre-descaling protocol UI</strong> — the onboarding questionnaire, the program
+        timeline and conflict detection. Parked with the protocol engine
+        (PRD&nbsp;#623, see <code>docs/parked-features.md</code>).</li>
+      <li><strong>Custom food (<code>➕ Vlastní</code>)</strong> — the <code>Vlastní</code> family
+        tile in every family grid, the <em>Vlastní potravina</em> free-text input, the
+        <em>Dříve zadané</em> re-log list, and the <code>Vlastní · Porce · Vařené</code> meal-card
+        rows. There is no free-text food entry: the catalog is the whole set of loggable foods
+        (issue&nbsp;#662). The grid is <strong>13</strong> clinical family tiles.</li>
+      <li><strong>The photo section</strong> is a historical placeholder — photos ship today and
+        nothing is encrypted (ADR-0029).</li>
+    </ul>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
