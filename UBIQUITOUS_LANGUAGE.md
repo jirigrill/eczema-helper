@@ -595,6 +595,9 @@ removed bottom-nav `Dnes` tab.
 
 ### AllergenChip
 
+**Parked** — removed with the `allergen-matching` feature (see `docs/parked-features.md`).
+Not in `src/lib/components/`; the entry below describes the pre-parking component.
+
 A self-contained pill chip that renders a single allergen as icon + name with full
 pill chrome (rounded-full border, semantic background). Props: `slug`,
 `color?: 'neutral' | 'warning' | 'success'` (defaults to `'neutral'`). Color maps

@@ -133,6 +133,26 @@
         margin: 40px 0;
       }
 
+      /* Parked-component notice — same red accent as redesign-prototype.html's stale-surface banner */
+      .parked-notice {
+        border-left: 3px solid #b84444;
+        background: #fdf6f6;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        line-height: 1.6;
+        color: #3d2b2f;
+        margin-bottom: 14px;
+        max-width: 720px;
+      }
+      .parked-notice strong {
+        color: #b84444;
+      }
+      .parked-notice code {
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', monospace;
+        font-size: 10px;
+      }
+
       /* Sticky section nav */
       .toc {
         position: fixed;
@@ -191,25 +211,26 @@
       <div class="toc-title">Components</div>
       <a href="#button">Button</a>
       <a href="#chip">Chip</a>
-      <a href="#allergen-chip">AllergenChip</a>
-
       <a href="#error-alert">ErrorAlert</a>
       <a href="#form-input">FormInput</a>
       <a href="#info-banner">InfoBanner</a>
       <a href="#page-header">PageHeader</a>
-      <a href="#phase-badge">PhaseBadge</a>
-      <a href="#progress-bar">ProgressBar</a>
       <a href="#skin-observation-card">SkinObservationCard</a>
       <a href="#skin-photo-card">SkinPhotoCard</a>
       <a href="#skin-photo-gallery">SkinPhotoGallery</a>
       <a href="#photo-lightbox">PhotoLightbox</a>
-      <a href="#questionnaire-summary-row">QuestionnaireSummaryRow</a>
       <a href="#toast">Toast</a>
       <a href="#family-grid">FamilyGrid</a>
       <a href="#family-drill-in">FamilyDrillIn</a>
       <a href="#food-tile">FoodTile</a>
       <a href="#food-editor">FoodEditor</a>
       <a href="#meal-type-pills">MealTypePills (retired)</a>
+
+      <div class="toc-title" style="margin-top: 12px; color: #b84444">Parked</div>
+      <a href="#allergen-chip">AllergenChip</a>
+      <a href="#phase-badge">PhaseBadge</a>
+      <a href="#progress-bar">ProgressBar</a>
+      <a href="#questionnaire-summary-row">QuestionnaireSummaryRow</a>
       <a href="#allergen-drill-in">AllergenDrillIn</a>
     </nav>
 
@@ -356,11 +377,16 @@
       </div>
 
       <!-- ─── AllergenChip ─────────────────────────────────────────────────── -->
-      <!-- sync with: src/lib/components/AllergenChip.svelte -->
+      <!-- parked: component removed, see docs/parked-features.md § allergen-matching -->
       <div class="component-section" id="allergen-chip">
         <p class="component-label">
           ▸ <span>AllergenChip</span> — slug, color?: 'neutral' | 'warning' | 'success'
         </p>
+        <div class="parked-notice">
+          <strong>Parked</strong> — removed with the <code>allergen-matching</code> feature. Not
+          in <code>src/lib/components/</code>. Section kept for its rendered variants; see
+          <code>docs/parked-features.md</code> before building against it.
+        </div>
         <div class="variant-row">
           <div class="variant-tile">
             <span
@@ -593,12 +619,17 @@
       <hr class="section-hr" />
 
       <!-- ─── PhaseBadge ───────────────────────────────────────────────────── -->
-      <!-- sync with: src/lib/components/PhaseBadge.svelte, src/lib/utils/phase-display.ts -->
+      <!-- parked: component removed, see docs/parked-features.md § program-week-day-views -->
       <div class="component-section" id="phase-badge">
         <p class="component-label">
           ▸ <span>PhaseBadge</span> — type
           (reset|elimination|reintroduction|rest|tolerance-building)
         </p>
+        <div class="parked-notice">
+          <strong>Parked</strong> — removed with the <code>program-week-day-views</code> feature.
+          Not in <code>src/lib/components/</code>. Section kept for its rendered variants; see
+          <code>docs/parked-features.md</code> before building against it.
+        </div>
         <div class="variant-row">
           <div class="variant-tile">
             <span
@@ -645,9 +676,14 @@
       <hr class="section-hr" />
 
       <!-- ─── ProgressBar ──────────────────────────────────────────────────── -->
-      <!-- sync with: src/lib/components/ProgressBar.svelte -->
+      <!-- parked: component removed, see docs/parked-features.md § phases-schedule -->
       <div class="component-section" id="progress-bar">
         <p class="component-label">▸ <span>ProgressBar</span> — value (0–100), class?</p>
+        <div class="parked-notice">
+          <strong>Parked</strong> — removed with the <code>phases-schedule</code> feature. Not in
+          <code>src/lib/components/</code>. Section kept for its rendered variants; see
+          <code>docs/parked-features.md</code> before building against it.
+        </div>
         <div class="variant-row">
           <div class="variant-tile" style="width: 220px">
             <div class="bg-surface-dark h-1 overflow-hidden rounded-full">
@@ -1724,11 +1760,16 @@
       <hr class="section-hr" />
 
       <!-- ─── QuestionnaireSummaryRow ──────────────────────────────────────── -->
-      <!-- sync with: src/lib/components/QuestionnaireSummaryRow.svelte -->
+      <!-- parked: component removed, see docs/parked-features.md § program-week-day-views -->
       <div class="component-section" id="questionnaire-summary-row">
         <p class="component-label">
           ▸ <span>QuestionnaireSummaryRow</span> — label, value, onEdit?
         </p>
+        <div class="parked-notice">
+          <strong>Parked</strong> — removed with the <code>program-week-day-views</code> feature.
+          Not in <code>src/lib/components/</code>. Section kept for its rendered variants; see
+          <code>docs/parked-features.md</code> before building against it.
+        </div>
         <div class="variant-row">
           <div class="variant-tile w-card">
             <div
@@ -4197,12 +4238,17 @@
       <hr class="section-hr" />
 
       <!-- ─── AllergenDrillIn ─────────────────────────────────────────────── -->
-      <!-- sync with: src/lib/components/AllergenDrillIn.svelte -->
+      <!-- parked: component removed, see docs/parked-features.md § allergen-matching -->
       <div class="component-section" id="allergen-drill-in">
         <p class="component-label">
           ▸ <span>AllergenDrillIn</span> — familyId: FamilyId, selected?: string[] (bindable),
           variant?: 'primary' | 'danger', onBack: () => void
         </p>
+        <div class="parked-notice">
+          <strong>Parked</strong> — removed with the <code>allergen-matching</code> feature. Not
+          in <code>src/lib/components/</code>. Section kept for its rendered variants; see
+          <code>docs/parked-features.md</code> before building against it.
+        </div>
         <p class="component-desc">
           Questionnaire allergen selector — one level shallower than FamilyDrillIn. Shows allergen
           chips for the given family. Chips toggle allergen ids into/out of selected[]. Used in
