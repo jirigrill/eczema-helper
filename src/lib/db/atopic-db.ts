@@ -164,8 +164,11 @@ export class AtopicDb extends Dexie {
     // v12: custom food (`other:` food ids) and the harvest-candidate pipeline
     // are removed (issue #662). `FoodId` narrows to catalog ids, so any stored
     // meal item carrying an `other:` id is a shape the live readers can no
-    // longer represent — the `meals` table is wiped on upgrade, following the
-    // v7/v8/v10 wipe-on-shape-change precedent (pre-launch, single user).
+    // longer represent. Unlike the v7/v8/v10 wipe-on-shape-change precedent this
+    // upgrade deletes only the affected rows: a meal made entirely of catalog
+    // foods is still representable and is kept. A *mixed* meal is dropped whole
+    // rather than stripped of its custom items — a meal silently missing what
+    // she logged is a worse record than no meal at all.
     // `harvest_candidates` keeps its store declaration but drops its `status`
     // index: it joins the dormant tables, so its rows survive unread on disk.
     this.version(12)
@@ -181,7 +184,15 @@ export class AtopicDb extends Dexie {
         settings: '&id',
       })
       .upgrade(async (tx) => {
-        await tx.table('meals').clear();
+        const meals = tx.table('meals');
+        // Read `foodId` off the stored row, not `MealItem` — a persisted `other:`
+        // id is precisely what the live type can no longer express.
+        const doomed = await meals
+          .filter((meal: { items?: { foodId?: string }[] }) =>
+            (meal.items ?? []).some((item) => item.foodId?.startsWith('other:') === true),
+          )
+          .primaryKeys();
+        await meals.bulkDelete(doomed);
       });
   }
 }
