@@ -34,11 +34,11 @@ find the base food and pick how it was prepared.
 path no longer hold: the Decision bullet on custom user-typed foods and the
 Consequences bullet saying "custom-food harvest is **unchanged**". There is no
 free-text food entry and no `other:*` food id. The decision recorded here stands —
-preparation applicability still lives on the food record — but its fallback
-changed: `DEFAULT_PREPARATIONS` is now a defensive default for a food id absent
-from the catalog (a stale persisted row), not the custom-food chip set, and it
-drops `fried` to `['raw', 'boiled', 'baked']` — this ADR's own argument against
-offering "smažené" to a food nobody has identified.
+preparation applicability still lives on the food record — and its permissive
+fallback is gone with the surface that needed it: `DEFAULT_PREPARATIONS` is
+deleted, and `preparationsForFood` returns `[]` for an id absent from the catalog.
+Guessing a chip set for a food nobody has identified is this ADR's own complaint
+about the bucket scheme, one step further on.
 
 ## Context
 

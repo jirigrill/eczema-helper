@@ -3,29 +3,23 @@ import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { PreparationMethod } from './models';
 
 /**
- * Defensive fallback for a food id absent from the catalog. Since `FoodId` is
- * the catalog's own id union (issue #662), reaching this means a stale
- * persisted row, not a supported entry path — the chip set keeps the editor
- * usable rather than blank while the caller is fixed.
- *
- * `fried` is deliberately not in it. ADR-0028 exists because the old bucket
- * scheme offered "smažené" on foods nobody fries; a fallback that guesses for
- * an *unidentified* food should not reintroduce the one chip that decision
- * singles out as the wrong guess. The other three are safe to offer for
- * anything edible.
- */
-const DEFAULT_PREPARATIONS: readonly PreparationMethod[] = ['raw', 'boiled', 'baked'];
-
-/**
  * The preparation chips that make sense for a food, in chip-display order.
  * Read straight off the catalog record's hand-authored `preparations` list
  * (ADR-0028 — preparation applicability lives on the food, not on a coarse
- * form bucket). An unknown id falls back to the defensive default above.
+ * form bucket).
+ *
+ * Every caller passes a catalog id, so the lookup is total in fact — but the
+ * parameter is `string` because `WorkingFood.foodId` still is (see #666), and
+ * `Array.find` is not total in the type system regardless. The miss returns
+ * nothing rather than a guessed chip set: an empty list is an ordinary authored
+ * state (37 foods carry one — salt, oils, drinks) that `FoodEditor` renders as
+ * no chip row, whereas guessing would invite a preparation to be recorded
+ * against a food we could not identify. It also matches `fromMealItems`, which
+ * drops an unknown id rather than inventing a family for it.
  *
  * Catalog `preparations` gates *which chips the UI offers*; the stored
  * `preparationMethod` on a logged meal item is unconstrained (issue #314).
  */
 export function preparationsForFood(foodId: string): readonly PreparationMethod[] {
-  const record = FOODS.find((f) => f.id === foodId);
-  return record?.preparations ?? DEFAULT_PREPARATIONS;
+  return FOODS.find((f) => f.id === foodId)?.preparations ?? [];
 }

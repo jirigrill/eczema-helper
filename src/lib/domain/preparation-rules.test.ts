@@ -21,7 +21,9 @@ describe('preparationsForFood', () => {
     expect(preparationsForFood('sul')).toEqual([]);
   });
 
-  it('falls back to the defensive set, without fried, for a food id absent from the catalog', () => {
-    expect(preparationsForFood('totally-unknown-id')).toEqual(['raw', 'boiled', 'baked']);
+  it('offers nothing, rather than a guessed set, for a food id absent from the catalog', () => {
+    // A stale persisted row, not an entry path. Declining to guess matches
+    // `fromMealItems`, which drops such an item rather than inventing a family.
+    expect(preparationsForFood('totally-unknown-id')).toEqual([]);
   });
 });

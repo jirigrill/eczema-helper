@@ -329,10 +329,6 @@ export function isNonEmpty(meal: WorkingMeal): boolean {
  * narrowed `FoodId` stops new ones being written. If this ever drops an item in
  * practice, something upstream is writing unvalidated ids and *that* is the bug —
  * this function is the wrong place to raise it (pure domain, no logging surface).
- *
- * `preparationsForFood` meets the same unknown id and falls back instead of
- * dropping. The dispositions differ because the questions do: a chip set can have
- * a safe default, a family cannot be guessed. Deliberate, not an oversight.
  */
 export function fromMealItems(items: MealItem[], notes = ''): WorkingMeal {
   const familyMap = new Map<FamilyId, WorkingFood[]>();
