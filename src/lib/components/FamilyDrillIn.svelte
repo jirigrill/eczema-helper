@@ -3,7 +3,7 @@
   import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
   import { foodStrings } from '$lib/strings/families';
   import { familySources, ostatniLabel } from '$lib/strings/family-sources';
-  import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import type { FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
   import type { PortionKind, PreparationMethod } from '$lib/domain/models';
   import type { WorkingFood } from '$lib/domain/working-meal';
   import FoodTile from '$lib/components/FoodTile.svelte';
@@ -25,9 +25,9 @@
     familyId: FamilyId;
     /** Current working-meal state for this family's foods. */
     foods: WorkingFood[];
-    onFoodTap: (foodId: string, name: string) => void;
-    onAmountChange: (foodId: string, amount: PortionKind) => void;
-    onPreparationChange: (foodId: string, prep: PreparationMethod | undefined) => void;
+    onFoodTap: (foodId: FoodId, name: string) => void;
+    onAmountChange: (foodId: FoodId, amount: PortionKind) => void;
+    onPreparationChange: (foodId: FoodId, prep: PreparationMethod | undefined) => void;
     /** Called when the user clicks outside any FoodTile while one is editing. */
     onCancelEdit?: () => void;
   } = $props();

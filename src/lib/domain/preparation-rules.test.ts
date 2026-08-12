@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
+
 import { preparationsForFood } from './preparation-rules';
 
 describe('preparationsForFood', () => {
@@ -25,6 +27,8 @@ describe('preparationsForFood', () => {
     // A stale persisted row, not an entry path. This stays total because
     // `fromMealItems` throws on such an id, so no meal reaching the editor
     // holds one — the two compose rather than each guessing a fallback.
-    expect(preparationsForFood('totally-unknown-id')).toEqual([]);
+    // Cast past the narrowed `FoodId`: this exercises the runtime `Array.find`
+    // miss the type system can no longer produce from a valid caller.
+    expect(preparationsForFood('totally-unknown-id' as FoodId)).toEqual([]);
   });
 });

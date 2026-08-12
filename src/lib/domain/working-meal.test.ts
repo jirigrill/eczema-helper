@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
+
 import type { Meal, MealItem } from './models';
 import {
   allConfirmedFoods,
@@ -26,14 +28,14 @@ import type { WorkingMeal } from './working-meal';
 // ── Helpers ──────────────────────────────────────────────────
 
 const FAM = 'dairy' as const;
-const FOOD_A = 'kravske-mleko';
-const FOOD_B = 'tvaroh';
+const FOOD_A: FoodId = 'kravske-mleko';
+const FOOD_B: FoodId = 'tvaroh';
 
-function mealWithFood(foodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
+function mealWithFood(foodId: FoodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
   return startEditing(emptyWorkingMeal(), FAM, foodId, name);
 }
 
-function mealWithConfirmed(foodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
+function mealWithConfirmed(foodId: FoodId = FOOD_A, name = 'Kravské mléko'): WorkingMeal {
   return confirmFood(mealWithFood(foodId, name), FAM, foodId);
 }
 
@@ -374,7 +376,9 @@ describe('removeFood', () => {
 
   it('is a no-op when the foodId is not present', () => {
     const meal = mealWithConfirmed();
-    const after = removeFood(meal, FAM, 'nonexistent-food');
+    // Cast past the narrowed FoodId: exercises the miss branch on an id no
+    // valid caller could produce.
+    const after = removeFood(meal, FAM, 'nonexistent-food' as FoodId);
     expect(foodsForFamily(after, FAM)).toEqual(foodsForFamily(meal, FAM));
   });
 

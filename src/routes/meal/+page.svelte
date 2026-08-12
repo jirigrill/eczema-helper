@@ -9,7 +9,7 @@
   } from '$lib/domain/models';
   import { getEligibleActors } from '$lib/domain/models';
   import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
-  import type { FamilyId } from '$lib/data/allergen-catalog/allergen-catalog';
+  import type { FamilyId, FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
   import { get } from 'svelte/store';
   import { actionStrings } from '$lib/strings/actions';
   import { commonStrings } from '$lib/strings/common';
@@ -238,7 +238,7 @@
   // the in-memory working meal already being lost on reload.)
   let drilledFamily = $state<FamilyId | null>(null);
   /** Working-list row currently open for inline editing (grid view only). */
-  let gridEditingFoodId = $state<string | null>(null);
+  let gridEditingFoodId = $state<FoodId | null>(null);
 
   // ── Derived working-meal helpers ──────────────────────────
   const confirmedFoods = $derived(editor.confirmedFoods);
@@ -307,7 +307,7 @@
   });
 
   // ── Food tap handler ─────────────────────────────────────
-  function handleFoodTap(foodId: string, name: string): void {
+  function handleFoodTap(foodId: FoodId, name: string): void {
     if (!drilledFamily) return;
     const foods = foodsForFamily(workingMeal, drilledFamily);
     const existing = foods.find((f) => f.foodId === foodId);
@@ -322,12 +322,12 @@
     }
   }
 
-  function handleAmountChange(foodId: string, amount: PortionKind): void {
+  function handleAmountChange(foodId: FoodId, amount: PortionKind): void {
     if (!drilledFamily) return;
     editor.update((m) => updateEditingAmount(m, drilledFamily!, foodId, amount));
   }
 
-  function handlePreparationChange(foodId: string, prep: PreparationMethod | undefined): void {
+  function handlePreparationChange(foodId: FoodId, prep: PreparationMethod | undefined): void {
     if (!drilledFamily) return;
     editor.update((m) => updateEditingPreparation(m, drilledFamily!, foodId, prep));
   }
@@ -396,7 +396,7 @@
     void saveMeal();
   }
 
-  function handleGridRowTap(foodId: string, name: string, familyId: FamilyId): void {
+  function handleGridRowTap(foodId: FoodId, name: string, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) {
       // Re-tap: confirm back (collapses editor, food stays in list)
       editor.update((m) => confirmFood(m, familyId, foodId));
@@ -413,7 +413,7 @@
   }
 
   function handleGridRowAmountChange(
-    foodId: string,
+    foodId: FoodId,
     familyId: FamilyId,
     amount: PortionKind,
   ): void {
@@ -421,14 +421,14 @@
   }
 
   function handleGridRowPreparationChange(
-    foodId: string,
+    foodId: FoodId,
     familyId: FamilyId,
     prep: PreparationMethod | undefined,
   ): void {
     editor.update((m) => updateEditingPreparation(m, familyId, foodId, prep));
   }
 
-  function handleGridRowRemove(foodId: string, familyId: FamilyId): void {
+  function handleGridRowRemove(foodId: FoodId, familyId: FamilyId): void {
     if (gridEditingFoodId === foodId) gridEditingFoodId = null;
     editor.update((m) => removeFood(m, familyId, foodId));
   }

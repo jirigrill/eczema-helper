@@ -1,4 +1,5 @@
 import { FOODS } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 
 import type { PreparationMethod } from './models';
 
@@ -8,8 +9,7 @@ import type { PreparationMethod } from './models';
  * (ADR-0028 — preparation applicability lives on the food, not on a coarse
  * form bucket).
  *
- * Every caller passes a catalog id, so the lookup is total in fact — but the
- * parameter is `string` because `WorkingFood.foodId` still is (see #666), and
+ * Every caller passes a catalog id, so the lookup is total in fact — but
  * `Array.find` is not total in the type system regardless. The miss returns
  * nothing rather than a guessed chip set: an empty list is an ordinary authored
  * state (37 foods carry one — salt, oils, drinks) that `FoodEditor` renders as
@@ -21,6 +21,6 @@ import type { PreparationMethod } from './models';
  * Catalog `preparations` gates *which chips the UI offers*; the stored
  * `preparationMethod` on a logged meal item is unconstrained (issue #314).
  */
-export function preparationsForFood(foodId: string): readonly PreparationMethod[] {
+export function preparationsForFood(foodId: FoodId): readonly PreparationMethod[] {
   return FOODS.find((f) => f.id === foodId)?.preparations ?? [];
 }

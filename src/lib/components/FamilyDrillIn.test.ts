@@ -4,19 +4,20 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FAMILIES } from '$lib/data/allergen-catalog/allergen-catalog';
+import type { FoodId } from '$lib/data/allergen-catalog/allergen-catalog';
 import type { WorkingFood } from '$lib/domain/working-meal';
 
 import FamilyDrillIn from './FamilyDrillIn.svelte';
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function idleFood(foodId: string, name: string): WorkingFood {
+function idleFood(foodId: FoodId, name: string): WorkingFood {
   return { foodId, name, state: { status: 'idle' } };
 }
-function editingFood(foodId: string, name: string): WorkingFood {
+function editingFood(foodId: FoodId, name: string): WorkingFood {
   return { foodId, name, state: { status: 'editing', amount: 'portion' } };
 }
-function confirmedFood(foodId: string, name: string): WorkingFood {
+function confirmedFood(foodId: FoodId, name: string): WorkingFood {
   return {
     foodId,
     name,
@@ -24,7 +25,7 @@ function confirmedFood(foodId: string, name: string): WorkingFood {
     cachedAmount: 'portion',
   };
 }
-function lockedFood(foodId: string, name: string): WorkingFood {
+function lockedFood(foodId: FoodId, name: string): WorkingFood {
   return { foodId, name, state: { status: 'locked', prior: 'idle' } };
 }
 
