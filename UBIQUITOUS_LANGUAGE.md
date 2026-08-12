@@ -21,9 +21,10 @@ baby]`, `solids → [baby]`. Seeded at first run, editable in `/settings`, owned
 ## Food Catalog
 
 ### Family / Allergen / Food — three-level catalog
-*Czech: Rodina / Alergen / Potravina. See
+
+_Czech: Rodina / Alergen / Potravina. See
 the CONTEXT.md "Family / Allergen / Food" entry for full definitions and
-invariants.*
+invariants._
 
 The catalog has three levels, each with a derived id:
 
@@ -45,13 +46,14 @@ Triggers are **resolved live** from the catalog, never snapshotted onto a
 `MealItem`.
 
 ### Source Subgroup (`sourceGroup`) / Ostatní
-*Czech: Zdroj / podskupina. See the
+
+_Czech: Zdroj / podskupina. See the
 [decisions log](docs/decisions-log.md) (was ADR-0019) and the CONTEXT.md
-"food-source subgroup" principle.*
+"food-source subgroup" principle._
 
 A **second presentation axis** on a food, independent of `familyId` and
 `allergenIds`. Optional `sourceGroup` key (e.g. `cow`, `plant`, `gluten`) clusters
-foods *within a family* by the axis a mother thinks in (`Mléko` → Kravské · Ovčí ·
+foods _within a family_ by the axis a mother thinks in (`Mléko` → Kravské · Ovčí ·
 Kozí · Rostlinné). Labels are **per-family and ordered**, in `familySources`
 (`src/lib/strings/family-sources.ts`); array order = render order. A family renders
 **grouped only when it has ≥ 5 foods and an authored source structure**, else flat.
@@ -95,7 +97,7 @@ The live settings store (`src/lib/stores/settings.svelte.ts`) — the write seam
 seeded-signal source for `SettingsData`. `settingsStore.setFeedingStage(stage)` persists
 the feeding stage through `DexieSettingsRepository`; `settingsStore.status` is the tri-state
 (`'loading' | 'unset' | 'seeded'`, read off `settingsContext`'s `SettingsState`) the layout
-reads to decide first-run routing — it *holds at `loading`* until the settings `liveQuery`
+reads to decide first-run routing — it _holds at `loading`_ until the settings `liveQuery`
 first emits, so a seeded mother is never bounced from `/day/<today>` to `/`. Both
 `settingsStore.feedingStage` and `settingsStore.status` ride the same single `settingsContext`
 liveQuery subscription. Routes reach the store; they never construct the adapter. The
@@ -103,7 +105,7 @@ liveQuery subscription. Routes reach the store; they never construct the adapter
 
 ### Factory reset
 
-`resetDatabase()` (`src/lib/db/reset-database.ts`) — the Settings *Restartovat* action.
+`resetDatabase()` (`src/lib/db/reset-database.ts`) — the Settings _Restartovat_ action.
 Clears **every** table by iterating `db.tables`, so the mother's meals, skin observations
 and photos go with the feeding stage, and a table added by a future migration is covered
 without editing this file. Gated behind a [ConfirmSheet](#confirmsheet): the wipe is
@@ -144,7 +146,8 @@ instantiate adapters or query Dexie directly.
 ## Meals
 
 ### Meal
-*Czech: Jídlo*
+
+_Czech: Jídlo_
 
 A record of food intake for one date+mealType+actor slot. Fields: `id`
 (`MealId`), `date`, `mealType`, `items` (list of `MealItem`), `actor`
@@ -156,7 +159,8 @@ of day. Both actors ride one mirrored schedule (see [Actor](#actor),
 ADR-0027). → See ADR-0003.
 
 ### MealId
-*Czech: —* (internal key, not user-visible)
+
+_Czech: —_ (internal key, not user-visible)
 
 Deterministic composite key for a `Meal`: `` `${date}:${mealType}:${actor}` ``
 (e.g. `"2026-05-27:lunch:mother"`). Enforces the one-meal-per-slot-per-actor
@@ -164,7 +168,8 @@ invariant at both the type level and the Dexie unique index (`&id`): a
 `(date, mealType)` pair can hold up to one meal per actor. Never a random UUID.
 
 ### MealSlot
-*Czech: —* (internal address, not user-visible)
+
+_Czech: —_ (internal address, not user-visible)
 
 The addressable `(date, mealType, actor)` triple a `MealId` encodes — the
 identity of a meal's slot without its contents. Named type in `models.ts`;
@@ -173,7 +178,8 @@ identity of a meal's slot without its contents. Named type in `models.ts`;
 rather than re-inlining the three fields.
 
 ### MealType
-*Czech: Typ jídla*
+
+_Czech: Typ jídla_
 
 One of: `'breakfast'` (Snídaně) · `'lunch'` (Oběd) · `'snack'` (Svačina) ·
 `'dinner'` (Večeře). Named type exported from `models.ts`. Czech labels and
@@ -181,14 +187,16 @@ icons resolved from `$lib/config/meals` (`mealConfig[type].label` / `.icon`).
 See ADR-0014.
 
 ### MealItem
-*Czech: Položka jídla*
+
+_Czech: Položka jídla_
 
 A single food within a meal: `name`, `allergenId` (`AllergenId | null`),
 optional `subitemId`, `amount` (`PortionKind`), optional `preparationMethod`
 (`PreparationMethod`).
 
 ### PreparationMethod
-*Czech: Způsob přípravy*
+
+_Czech: Způsob přípravy_
 
 One of: `'raw'` (Syrové) · `'boiled'` (Vařené) · `'baked'` (Pečené) ·
 `'fried'` (Smažené) · `'dried'` (Sušené) · `'smoked'` (Uzené) ·
@@ -200,7 +208,8 @@ is the food's own `preparations` list, not a coarse form bucket (ADR-0028).
 implemented.)
 
 ### preparations (per-food)
-*Czech: Způsoby přípravy potraviny*
+
+_Czech: Způsoby přípravy potraviny_
 
 A `PreparationMethod[]` on each `CatalogFood`, in chip-display order, listing
 exactly the ways that food can be prepared — a banana offers Syrové · Pečené ·
@@ -226,13 +235,15 @@ this function; deleting it would strand that revival. See
 [parked features](docs/parked-features.md).
 
 ### PortionKind
-*Czech: Velikost porce*
+
+_Czech: Velikost porce_
 
 One of: `'pinch'` (Špetka) · `'teaspoon'` (Lžička) · `'spoon'` (Lžíce) ·
 `'portion'` (Porce) · `'package'` (Balení). The **meal-logging** portion size —
 what the mother recorded eating on a `MealItem`. See ADR-0014.
 
 ### Actor
+
 The person whose food intake a `Meal` describes — `'mother' | 'baby'`, a named
 type in `models.ts`. `getEligibleActors(stage)` gates who may log at the live
 [FeedingStage](#feedingstage): `breastfed → [mother]`,
@@ -240,6 +251,7 @@ type in `models.ts`. `getEligibleActors(stage)` gates who may log at the live
 in the composite `MealId` (`date:mealType:actor`).
 
 ### getEligibleActors
+
 `getEligibleActors(stage: FeedingStage): Actor[]` in `models.ts` — the single
 source for "who may log at this feeding stage". Returns `breastfed → [mother]`,
 `mixed → [mother, baby]`, `solids → [baby]`. Read by the `/meal` route (drives
@@ -249,7 +261,8 @@ rationale (one protocol, two permanent-elimination sets) is parked with the
 protocol engine (ADR-0027) — see the [revival catalog](#revival-catalog).
 
 ### Actor Picker
-*Czech labels: `Já` (mother) / `Miminko` (baby)*
+
+_Czech labels: `Já` (mother) / `Miminko` (baby)_
 
 The `/meal` control — a full-width `Chip.svelte` pill row pinned in the sticky
 header — by which the mother chooses whose meal she is logging. Shown **only**
@@ -262,7 +275,8 @@ confirmed foods before the switch (issue #571).
 and [issue #569](https://github.com/jirigrill/eczema-helper/issues/569).
 
 ### Working Meal / Working List
-*Czech: Rozdělané jídlo*
+
+_Czech: Rozdělané jídlo_
 
 The in-memory meal being built on `/meal` before it is finalized — the list of
 **confirmed** foods plus the current `MealType`. Not a persisted `Meal`: it exists
@@ -270,14 +284,16 @@ only in component/store state until the **finalize CTA** (`Uložit`) writes it t
 See the **commit-gate** and PRD [issue #242](https://github.com/jirigrill/eczema-helper/issues/242).
 
 ### Commit-Gate
+
 The persistence rule for `/meal`: **nothing is written to Dexie until the finalize CTA
 (`Uložit`).** Drill-in confirmations and family commits mutate only the working list;
 backing out discards it **only if it would lose unsaved work** — a non-empty draft, or a
-*dirty* edit — guarded by **optimistic discard + undo**. A clean edit-back is silent.
+_dirty_ edit — guarded by **optimistic discard + undo**. A clean edit-back is silent.
 → See ADR-0018.
 
 ### MealEditor
-*Czech: —* (internal module, not user-visible)
+
+_Czech: —_ (internal module, not user-visible)
 
 Runes module under `src/lib/stores/meal-editor.svelte.ts` that owns the meal
 editing lifecycle from `open` to `finalize`: hydrates a `WorkingMeal` from Dexie
@@ -292,6 +308,7 @@ lives in `src/lib/domain/meal-dirtiness.ts`; `MealEditor` imports it.
 → See PRD [issue #284](https://github.com/jirigrill/eczema-helper/issues/284) and ADR-0018.
 
 ### Active Edit Slot
+
 The invariant that **at most one food is in the `editing` state per screen.**
 Entering editing locks (greys, disables) every other food tile and the family
 grid; confirming or discarding releases the slot. Drives the save button's label, one
@@ -299,7 +316,8 @@ uniform `Uložit {what}` ladder (food editing → "Uložit {Food}"; family idle 
 {Family}"; meal finalize → "Uložit {MealType}" composing, "Uložit změny" editing).
 
 ### Confirm / Discard (a food)
-*Czech: Uložit / Zahodit*
+
+_Czech: Uložit / Zahodit_
 
 **Confirm** ("Uložit {Food}") moves a food `editing → confirmed` (bordeaux fill),
 collapsing its `FoodEditor`. **Discard** (re-tap the editing tile, or tap outside
@@ -308,14 +326,16 @@ the editor) returns it to `idle`, storing nothing. The working session caches
 cache for re-selection; discarding an unconfirmed edit does not.
 
 ### Fixed-at-Entry (meal type)
+
 Meal type is chosen **before any food is added** and is **fixed** for that composing
 session — `/meal` composes exactly one meal of one type. There is no mid-add type
 change and no in-`/meal` slot switching. Because type is bound at entry, a draft and a
-finalized meal can never contend for one slot, so slot collisions are impossible *by
-construction*. → See ADR-0018. (Supersedes the earlier *mutable-attribute* model with
+finalized meal can never contend for one slot, so slot collisions are impossible _by
+construction_. → See ADR-0018. (Supersedes the earlier _mutable-attribute_ model with
 **Move** / **Switch-Away** pill actions.)
 
 ### Meal-Type FAB Submenu / Meal Launcher
+
 The day-page entry into `/meal`. The **FAB** opens a submenu of the four `MealType`s;
 an already-logged type carries a ✓ and **edits** that meal, an unlogged type opens an
 **empty** compose session. **Tapping a finalized meal row** (`MealCard`) opens it for
@@ -324,6 +344,7 @@ The FAB is **day-scoped** (bound to the day page's `selectedDate`), so backfilli
 earlier day works. → See ADR-0018.
 
 ### Smazat jídlo (delete a meal)
+
 Explicit destructive action on `/meal` in **edit mode only**. Surfaced behind the ⋯
 overflow in the page header → confirm bottom sheet. Confirming calls
 `mealRepository.remove(date, mealType)`, snapshots the working meal into the
@@ -335,13 +356,15 @@ saving or backing out is an **equivalent delete path** (issue #588): it removes 
 row and shows the same `Jídlo smazáno` toast + undo. → See ADR-0018, issues #268, #588.
 
 ### Discard Toast
+
 The layout-level `Toast` (with `Zpět` undo) shown after the working meal is buffered to
 `discardBuffer`. Its wording is keyed by the buffer's `kind` so it stays accurate to what
 was actually lost: **`Jídlo neuloženo`** (compose-new draft), **`Změny neuloženy`** (dirty
-edit — the saved meal stays, only the edits drop), **`Jídlo smazáno`** (delete). A *clean*
+edit — the saved meal stays, only the edits drop), **`Jídlo smazáno`** (delete). A _clean_
 edit-back shows no toast. → See ADR-0018 "Discard guard".
 
 ### Empty-meal delete (issue #588)
+
 Emptying an existing meal deletes it. While editing a saved meal whose foods have been
 ✕'d to zero, the finalize CTA stays enabled and an inline hint near it warns that
 saving will delete the meal (`Jídlo je prázdné — uložením ho smažeš.`); saving or
@@ -353,7 +376,8 @@ Guard", which made empty-save a no-op and routed the user to Smazat instead; for
 "Empty-Hotovo Guard".) → See issues #268, #586, #588.
 
 ### Copy a meal / Merge (copy)
-*Czech: Kopírovat jídlo* (overflow action) / *Kam zkopírovat?* (picker heading) / *Kopírovat sem* (per-slot target)
+
+_Czech: Kopírovat jídlo_ (overflow action) / _Kam zkopírovat?_ (picker heading) / _Kopírovat sem_ (per-slot target)
 
 Copying a saved `Meal` into another slot (another day or meal type — the actor
 is always the source's; a copy is **same-actor**).
@@ -371,7 +395,7 @@ copying a meal onto its own slot — is a **no-op** (`meal: null`, `added: []`).
 The flow (spec #599, issue #606): the `⋯` overflow on the meal editor exposes
 **Kopírovat jídlo** (only when the source meal has ≥1 food) → a **destination
 picker** (reused `DayStrip` + `FabActionSheet` slot sheet, actor fixed to the
-source; out-of-window destination *dates* are pre-disabled). Confirm resolves the
+source; out-of-window destination _dates_ are pre-disabled). Confirm resolves the
 merge target actor-scoped via `loadBySlot(destDate, destSlot, source.actor)` —
 **actor-scoped occupancy**, so the other actor's meal in the same visual cell is
 untouched — calls `copyMealInto`, and on a
@@ -387,15 +411,17 @@ never chosen). → See CONTEXT.md "Copy Meal" for both flow-level invariants.
 ## Assessment & Observation
 
 ### SkinObservation
+
 → Defined in `CONTEXT.md`. The parent's observation of the baby's skin on a calendar
 day: `id`, `date`, `createdAt`, `regions: SkinRegionRecord[]`, optional `notes`.
 **`regions.length === 9` after every save** (ADR-0021, klidné amendment) — klidné regions persist as
 positive evidence, not absence. Multiple `SkinObservation` records may exist for
-the same day. `SkinPhoto` records FK *to* `SkinObservation` via `observationId`;
+the same day. `SkinPhoto` records FK _to_ `SkinObservation` via `observationId`;
 `SkinObservationRepository.save(observation, photos)` writes the observation and
 its photos atomically.
 
 ### SkinPhoto
+
 → Defined in `CONTEXT.md`. A photo of the baby's skin captured during a skin
 observation: `id`, `observationId` (required FK to `SkinObservation`), `region: RegionId`,
 `capturedAt`, `blob` (Blob stored in IndexedDB). Photos have no `date` field of their own
@@ -404,7 +430,8 @@ observation: `id`, `observationId` (required FK to `SkinObservation`), `region: 
 atomically; there is no standalone photo write path.
 
 ### Region / RegionId
-*Czech: Oblast*
+
+_Czech: Oblast_
 
 → Defined in `CONTEXT.md`. One of nine canonical body areas the parent can log on
 `/skin`: `face` (Tváře), `scalp` (Vlasová část), `neck` (Krk), `belly` (Břicho),
@@ -413,27 +440,32 @@ atomically; there is no standalone photo write path.
 display labels live in `src/lib/strings/skin-regions.ts`.
 
 ### RegionLevel
-*Czech: Míra*
+
+_Czech: Míra_
 
 → Defined in `CONTEXT.md`. Per-region severity on a four-step absolute scale:
 `0` klidné · `1` mírné · `2` střední · `3` silné. Klidné is the explicit default —
 a region the parent never touched is calm, not unknown. See ADR-0021.
 
 ### SkinRegionRecord
+
 The pair `{ id: RegionId; level: RegionLevel }` stored in `SkinObservation.regions`.
 
 ### Active region
+
 On `/skin`, the region currently selected for tap-to-cycle. Tapping an inactive
 region only activates it; tapping the active region cycles its severity 0 → 1 → 2
 → 3 → 0. UI-only — never persisted.
 
 ### Logged region
-*Historical term, retired by the klidné-as-positive-evidence amendment to ADR-0021 (originally filed as ADR-0022).* The Uložit gate on `/skin` no longer requires
+
+_Historical term, retired by the klidné-as-positive-evidence amendment to ADR-0021 (originally filed as ADR-0022)._ The Uložit gate on `/skin` no longer requires
 "at least one region with `level > 0`" — every page visit can save, and every save
-witnesses all nine regions. A region with `level > 0` is now called a *bumped region*;
+witnesses all nine regions. A region with `level > 0` is now called a _bumped region_;
 the term "logged region" is no longer used in code or copy.
 
 ### Day-overall severity
+
 The maximum `RegionLevel` across an observation's `regions`. Computed via
 `overallSeverity(observation)` from `$lib/domain/models`. Never persisted —
 the read-side derives it at any render site that needs a single-value
@@ -445,6 +477,7 @@ observation (zero bumped regions) renders a neutral "Vše klidné" chip — UI
 copy keyed at `commonStrings.today.eczemaAllCalmChip`.
 
 ### Insight
+
 → Defined in `CONTEXT.md`. A derived pattern card computed over `(Meal, SkinObservation)`
 pairs. Not user input. Not built (tracked in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
 
@@ -454,19 +487,20 @@ pairs. Not user input. Not built (tracked in [#468](https://github.com/jirigrill
 
 Route names and their Czech display labels:
 
-| Route | Czech label | Purpose |
-|-------|-------------|---------|
-| `/` | Vítejte | First-run screen: welcome + feeding-stage picker |
-| `/day/[date]` | Den / Dnes | Day View: the one day layout for any date (see below). Replaces the former `/today` route |
-| `/meal` | Přidat jídlo | Meal logging form |
-| `/settings` | Nastavení | App configuration |
+| Route         | Czech label  | Purpose                                                                                   |
+| ------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `/`           | Vítejte      | First-run screen: welcome + feeding-stage picker                                          |
+| `/day/[date]` | Den / Dnes   | Day View: the one day layout for any date (see below). Replaces the former `/today` route |
+| `/meal`       | Přidat jídlo | Meal logging form                                                                         |
+| `/settings`   | Nastavení    | App configuration                                                                         |
 
 ### Onboarding
-*Czech: Průvodce*
+
+_Czech: Průvodce_
 
 The single first-run screen: short welcome copy plus the feeding-stage picker, which
 writes `SettingsData.feedingStage` and lands on `/day/<today>`. `settings.feedingStage
-!= null` is the app's *seeded* signal — unset routes to `/`, set routes to the day view.
+!= null` is the app's _seeded_ signal — unset routes to `/`, set routes to the day view.
 The stage stays editable in `/settings`.
 
 ### Day View (Den / Dnes)
@@ -489,7 +523,7 @@ ADR-0009's Slice-4 amendment. The main screen a user opens each day.
 
 ### Snippet
 
-A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup scoped to a single file. Distinct from a *component* (its own `.svelte` file, importable, independently testable). Snippet props (`children`, `right`, `action`) are the mechanism for injecting varying markup into a component shell from the outside.
+A Svelte 5 `{#snippet}` block — a named, reusable chunk of template markup scoped to a single file. Distinct from a _component_ (its own `.svelte` file, importable, independently testable). Snippet props (`children`, `right`, `action`) are the mechanism for injecting varying markup into a component shell from the outside.
 
 ### ConfirmSheet
 
@@ -497,7 +531,8 @@ A bottom-sheet component (`src/lib/components/ConfirmSheet.svelte`) for destruct
 ([factory reset](#factory-reset)). Extracted from `/meal`'s previously-inline sheet per the CLAUDE.md "second use triggers extraction" rule when `/skin` edit/delete shipped (2026-06-30). Caller controls open/close state and supplies copy + handlers as props.
 
 ### DayStrip
-*Czech: Pásek dní*
+
+_Czech: Pásek dní_
 
 A horizontally scrollable, **continuous** strip of day cells spanning the mother's
 history rather than a plan: from her **earliest logged day** (the earlier of the first
@@ -505,7 +540,7 @@ meal and the first skin observation, live-subscribed) to a fixed week past today
 input is `{ selectedDate, earliestLogged, today }` and the range is
 `min(today − 7d, earliestLogged, selectedDate) … max(today + 7d, selectedDate)`
 (issue #654). A ±7-day window around today is always present as a **floor**, so logged
-data only ever *extends* the **past** edge outward; the future edge is **fixed at
+data only ever _extends_ the **past** edge outward; the future edge is **fixed at
 today + 7d** — future-dated entries never push it further. Clamping both ends to
 `selectedDate` keeps a directly-navigated out-of-range day (past or future) rendering its
 own cell. With nothing logged the strip is a symmetric **15-cell** window (today ± 7d),
@@ -513,7 +548,7 @@ and it grows the instant an earlier day is logged. **Future days are ordinary,
 fully-loggable days** — not read-only previews. Selecting a day flags it **in place** —
 the strip does not reshuffle around the selection. **Today** carries a permanent ring
 marker in its own slot when it is not the selected cell — a **purely visual** "this one is
-today", carrying no record state; when today *is* selected, the primary-filled cell marks
+today", carrying no record state; when today _is_ selected, the primary-filled cell marks
 it and the ring is not rendered. There is no "Dnes" pill, no in-strip return-to-today
 control, and no jump-to-start control — return-to-today is the `↩ Dnes` header chip
 (below). Each cell shows: uppercase 2-char day abbreviation (`Po`, `Út` …) and day number;
@@ -522,7 +557,8 @@ highlighted in the primary color. The strip renders no per-day logging state: it
 are `{ cells, today, onselectdate }`.
 
 ### earliest logged day
-*Czech: nejstarší zapsaný den*
+
+_Czech: nejstarší zapsaný den_
 
 The earliest date of the mother's logged history — the earlier of the first meal and the
 first skin observation across the two repositories, live-subscribed via `liveQuery`.
@@ -534,14 +570,16 @@ widen the boundary alone — a photo implies a parent skin observation on that d
 counted.
 
 ### SeverityDot
-*Czech: Puntík závažnosti*
+
+_Czech: Puntík závažnosti_
 
 A 6×6 px color-coded circle on a `DayStrip` cell indicating the baby's recorded skin
 state for that day. Color maps to the 5-point severity scale (`sev-1` green → `sev-5`
 red). Empty if no assessment recorded.
 
 ### ↩ Dnes chip
-*Czech: ↩ Dnes*
+
+_Czech: ↩ Dnes_
 
 The return-to-today control in the `/day/[date]` header, shown **only off today**
 (`!isToday`), rendered from `commonStrings.nav.backToToday`. Tapping it navigates to
@@ -553,8 +591,7 @@ removed bottom-nav `Dnes` tab.
 ### AllergenChip
 
 A self-contained pill chip that renders a single allergen as icon + name with full
-pill chrome (rounded-full border, semantic background). Resolves `other:` prefixed
-slugs (custom allergens) to a deterministic icon via hash. Props: `slug`,
+pill chrome (rounded-full border, semantic background). Props: `slug`,
 `color?: 'neutral' | 'warning' | 'success'` (defaults to `'neutral'`). Color maps
 to the DESIGN.md `chip-neutral` / `chip-warning` / `chip-success` tokens via
 `data-state` in `app.css`. To render a list of chips, inline a `flex flex-wrap gap-1.5`
@@ -581,7 +618,7 @@ unwraps beneath an `editing` food. One component mounted in two hosts: the drill
 `FoodTile` and the grid working-list row. Renders `Chip`s; emits amount/preparation
 changes. Carries no meal-level `Poznámka` (that lives on the grid only).
 
-### MealTypePills *(retired)*
+### MealTypePills _(retired)_
 
 The in-`/meal` meal-type pill row that owned the empty/current/filled visual state and
 the move / switch-away / load click logic. **Retired** when meal type became
@@ -656,11 +693,11 @@ descaling parked.
 
 ## Cross-References
 
-| For details on… | See… |
-|-----------------|------|
-| Deep domain invariants | `CONTEXT.md` |
-| Architectural decisions | `docs/adr/` |
-| Color tokens, typography, spacing | `DESIGN.md` |
-| Project status + directory layout | `docs/README.md` |
-| Component variants (visual) | `docs/design/components-showcase.html` |
-| All screens (interactive prototype) | `docs/design/redesign-prototype.html` |
+| For details on…                     | See…                                   |
+| ----------------------------------- | -------------------------------------- |
+| Deep domain invariants              | `CONTEXT.md`                           |
+| Architectural decisions             | `docs/adr/`                            |
+| Color tokens, typography, spacing   | `DESIGN.md`                            |
+| Project status + directory layout   | `docs/README.md`                       |
+| Component variants (visual)         | `docs/design/components-showcase.html` |
+| All screens (interactive prototype) | `docs/design/redesign-prototype.html`  |

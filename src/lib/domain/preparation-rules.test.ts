@@ -21,7 +21,7 @@ describe('preparationsForFood', () => {
     expect(preparationsForFood('sul')).toEqual([]);
   });
 
-  it('falls back to the permissive everyday set for a food id absent from the catalog', () => {
-    expect(preparationsForFood('totally-unknown-id')).toEqual(['raw', 'boiled', 'baked', 'fried']);
+  it('falls back to the defensive set, without fried, for a food id absent from the catalog', () => {
+    expect(preparationsForFood('totally-unknown-id')).toEqual(['raw', 'boiled', 'baked']);
   });
 });

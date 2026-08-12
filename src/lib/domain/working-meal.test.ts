@@ -327,8 +327,15 @@ describe('toMealItems / fromMealItems round-trip', () => {
   it('drops an item whose foodId is absent from the catalog rather than inventing a family', () => {
     const restored = fromMealItems([
       { id: 'i1', name: 'Kravské mléko', foodId: FOOD_A, amount: 'spoon' },
-      // Cast past the narrowed FoodId — this shape only reaches here from disk.
-      { id: 'i2', name: 'Kokos', foodId: 'other:kokos' as MealItem['foodId'], amount: 'portion' },
+      // Cast past the narrowed FoodId — any non-catalog id reaches here only from
+      // disk. A retired catalog slug, not an `other:` one: the drop is about the
+      // id being unknown, not about the removed custom-food prefix.
+      {
+        id: 'i2',
+        name: 'Kokos',
+        foodId: 'zrusena-potravina' as MealItem['foodId'],
+        amount: 'portion',
+      },
     ]);
 
     expect(restored.families.map((f) => f.familyId)).toEqual([FAM]);

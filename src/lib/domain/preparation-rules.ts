@@ -5,10 +5,16 @@ import type { PreparationMethod } from './models';
 /**
  * Defensive fallback for a food id absent from the catalog. Since `FoodId` is
  * the catalog's own id union (issue #662), reaching this means a stale
- * persisted row, not a supported entry path — the everyday chip set keeps the
- * editor usable rather than blank while the caller is fixed.
+ * persisted row, not a supported entry path — the chip set keeps the editor
+ * usable rather than blank while the caller is fixed.
+ *
+ * `fried` is deliberately not in it. ADR-0028 exists because the old bucket
+ * scheme offered "smažené" on foods nobody fries; a fallback that guesses for
+ * an *unidentified* food should not reintroduce the one chip that decision
+ * singles out as the wrong guess. The other three are safe to offer for
+ * anything edible.
  */
-const DEFAULT_PREPARATIONS: readonly PreparationMethod[] = ['raw', 'boiled', 'baked', 'fried'];
+const DEFAULT_PREPARATIONS: readonly PreparationMethod[] = ['raw', 'boiled', 'baked'];
 
 /**
  * The preparation chips that make sense for a food, in chip-display order.
