@@ -12,6 +12,8 @@
   }
 </script>
 
+<!-- z-[70] is the DESIGN.md §Stacking Scale modal-content layer, which
+     intentionally covers the FAB (z-50); a halfway value would sit under it. -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   role="dialog"
@@ -19,7 +21,7 @@
   aria-modal="true"
   aria-label="Náhled snímku"
   data-testid="skin-photo-lightbox"
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+  class="fixed inset-0 z-[70] flex items-center justify-center bg-black/90"
   onclick={handleBackdropClick}
 >
   <img {src} alt="Snímek kůže" class="max-h-full max-w-full rounded-xl object-contain" />
