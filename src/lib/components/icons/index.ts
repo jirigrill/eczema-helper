@@ -1,5 +1,4 @@
 export { default as FoodIcon } from './FoodIcon.svelte';
-export { default as CameraIcon } from './CameraIcon.svelte';
 export { default as PersonIcon } from './PersonIcon.svelte';
 export { default as MotherIcon } from './MotherIcon.svelte';
 export { default as BabyIcon } from './BabyIcon.svelte';
