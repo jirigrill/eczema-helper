@@ -116,6 +116,30 @@
   }
 </script>
 
+{#snippet foodRow(foodId: FoodId, name: string)}
+  {@const st = stateFor(foodId)}
+  <div data-food-tile>
+    <FoodTile
+      {name}
+      state={st.status}
+      lockedPrior={st.status === 'locked' ? st.prior : undefined}
+      onclick={() => onFoodTap(foodId, name)}
+    >
+      {#snippet editor()}
+        {#if st.status === 'editing'}
+          <FoodEditor
+            amount={st.amount}
+            preparation={st.preparation}
+            preparations={preparationsForFood(foodId)}
+            onAmountChange={(a) => onAmountChange(foodId, a)}
+            onPreparationChange={(p) => onPreparationChange(foodId, p)}
+          />
+        {/if}
+      {/snippet}
+    </FoodTile>
+  </div>
+{/snippet}
+
 <div class="space-y-4" onclick={handleContainerClick} role="presentation">
   {#if grouped}
     {#each renderGroups as group (group.key)}
@@ -125,28 +149,7 @@
         >
         <div class="flex flex-col gap-2">
           {#each group.foods as food (food.id)}
-            {@const name = nameFor(food.id)}
-            {@const st = stateFor(food.id)}
-            <div data-food-tile>
-              <FoodTile
-                {name}
-                state={st.status}
-                lockedPrior={st.status === 'locked' ? st.prior : undefined}
-                onclick={() => onFoodTap(food.id, name)}
-              >
-                {#snippet editor()}
-                  {#if st.status === 'editing'}
-                    <FoodEditor
-                      amount={st.amount}
-                      preparation={st.preparation}
-                      preparations={preparationsForFood(food.id)}
-                      onAmountChange={(a) => onAmountChange(food.id, a)}
-                      onPreparationChange={(p) => onPreparationChange(food.id, p)}
-                    />
-                  {/if}
-                {/snippet}
-              </FoodTile>
-            </div>
+            {@render foodRow(food.id, nameFor(food.id))}
           {/each}
         </div>
       </div>
@@ -155,28 +158,7 @@
     <div class="space-y-2 px-4">
       <div class="flex flex-col gap-2">
         {#each sortedCatalogFoods as food (food.id)}
-          {@const name = nameFor(food.id)}
-          {@const st = stateFor(food.id)}
-          <div data-food-tile>
-            <FoodTile
-              {name}
-              state={st.status}
-              lockedPrior={st.status === 'locked' ? st.prior : undefined}
-              onclick={() => onFoodTap(food.id, name)}
-            >
-              {#snippet editor()}
-                {#if st.status === 'editing'}
-                  <FoodEditor
-                    amount={st.amount}
-                    preparation={st.preparation}
-                    preparations={preparationsForFood(food.id)}
-                    onAmountChange={(a) => onAmountChange(food.id, a)}
-                    onPreparationChange={(p) => onPreparationChange(food.id, p)}
-                  />
-                {/if}
-              {/snippet}
-            </FoodTile>
-          </div>
+          {@render foodRow(food.id, nameFor(food.id))}
         {/each}
       </div>
     </div>
