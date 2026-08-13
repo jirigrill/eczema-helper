@@ -136,6 +136,14 @@ button, a, [role="button"] {
     @apply rounded-xl border border-surface-dark text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/40;
   }
 
+  /* Safari renders input[type="date"] as inline-flex, causing width:100% to be
+     ignored on iOS 17 and earlier. appearance:none resets it to a standard
+     box-model element so width and padding behave as expected. */
+  .input-base[type='date'] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
   /* ── Semantic color variants via data-state ───────────────────────── */
   /*
    * Components set data-state={variant} on their root element.
