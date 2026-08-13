@@ -16,6 +16,7 @@ A local-first SvelteKit PWA — no backend, no accounts. It is a logging tool: a
 - `architecture/` — tech stack, ports & adapters, testing, code standards
 - `design/` — the redesign prototype (design source of truth; still depicts pre-descaling protocol screens)
 - `research/` — forward-looking design research
+- `spec/` — platform-neutral behavior specifications extracted from the implementation
 
 ## Commands
 
