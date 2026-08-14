@@ -88,10 +88,16 @@ head2 "Step 0 / 7  -  Machine preflight"
 MACOS="$(sw_vers -productVersion)"
 say "  macOS $MACOS ($(sw_vers -buildVersion))"
 MACOS_MAJOR="${MACOS%%.*}"
-if (( MACOS_MAJOR >= 26 )); then
-  ok "supports the current Xcode"
+MACOS_MINOR="${MACOS#*.}"; MACOS_MINOR="${MACOS_MINOR%%.*}"
+[[ "$MACOS_MINOR" == "$MACOS" ]] && MACOS_MINOR=0
+# Xcode 27 requires macOS 26.4 or later (Apple release notes, verified 2026-08-14).
+if (( MACOS_MAJOR > 26 )) || { (( MACOS_MAJOR == 26 )) && (( MACOS_MINOR >= 4 )); }; then
+  ok "meets the macOS 26.4+ floor for Xcode 27"
 else
-  warn "Xcode version requirements may not be met - check the App Store page"
+  bad "Xcode 27 requires macOS 26.4 or later - you have $MACOS."
+  info "Update macOS before continuing, or install Xcode 26.6 instead (and see"
+  info "the note in step 1 about which Xcode this project targets)."
+  confirm "Continue anyway?" || exit 1
 fi
 
 ARCH="$(uname -m)"
@@ -109,22 +115,58 @@ fi
 
 # --- Step 1: Xcode ---------------------------------------------------------
 
-head2 "Step 1 / 7  -  Install Xcode"
+head2 "Step 1 / 7  -  Install Xcode 27"
 
-XCODE_APP="$(ls -d /Applications/Xcode*.app 2>/dev/null | head -1 || true)"
+# Decided in #699: Xcode 27.0 beta 5 now, upgrading to 27.0 stable at GM
+# (~2026-09-14), building against the iOS 27 SDK but deploying to iOS 26.
+#
+# Two consequences for this step:
+#   - A beta is NOT on the Mac App Store. It is a manual download from the
+#     developer portal, which needs a signed-in Apple Account (a free one is
+#     enough to download; the paid membership in step 3 is not required yet).
+#   - Only ONE Xcode may be installed. With 26 and 27 both present,
+#     XcodeBuildMCP 2.7.0 opens the beta-only Device Hub even when
+#     DEVELOPER_DIR selects the other one (getsentry/XcodeBuildMCP#513).
+
+# macOS ships bash 3.2, which has no mapfile/readarray - build the array by hand.
+XCODE_APPS=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && XCODE_APPS+=("$line")
+done < <(ls -d /Applications/Xcode*.app 2>/dev/null || true)
+
+if (( ${#XCODE_APPS[@]} > 1 )); then
+  bad "more than one Xcode is installed:"
+  for a in "${XCODE_APPS[@]}"; do info "$a"; done
+  say ""
+  bad "Keep exactly one. Delete the others before continuing - see the"
+  bad "Device Hub note above; the failure is silent and hard to diagnose."
+  confirm "Continue anyway?" || exit 1
+fi
+
+XCODE_APP="${XCODE_APPS[0]:-}"
 if [[ -n "$XCODE_APP" ]]; then
   ok "found $XCODE_APP"
 else
   bad "Xcode is not installed."
   say ""
-  say "  Install it from the Mac App Store. It is a ~10 GB download and can take"
-  say "  well over an hour; you can leave it running and come back."
+  say "  This project targets Xcode 27, which while in beta is a manual download"
+  say "  from the developer portal - NOT the Mac App Store (that ships 26.6)."
+  say ""
+  say "  On the page that opens: sign in, find the newest Xcode 27 release,"
+  say "  download the .xip, then double-click it to unpack (it is ~10 GB and"
+  say "  unpacking takes a while) and move Xcode.app to /Applications."
   say ""
   info "The Command Line Tools you already have can compile Swift but cannot"
   info "build an iOS app or run a simulator. Full Xcode is required."
-  open_url "macappstore://apps.apple.com/app/xcode/id497799835"
-  pause "Wait for Xcode to finish installing, then open it once so it can install its additional components."
-  XCODE_APP="$(ls -d /Applications/Xcode*.app 2>/dev/null | head -1 || true)"
+  info "Once 27.0 stable ships (~14 Sept 2026) the Mac App Store is the easier"
+  info "route: macappstore://apps.apple.com/app/xcode/id497799835"
+  open_url "https://developer.apple.com/download/applications/"
+  pause "Install Xcode into /Applications, then open it once so it can install its additional components."
+  XCODE_APPS=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && XCODE_APPS+=("$line")
+  done < <(ls -d /Applications/Xcode*.app 2>/dev/null || true)
+  XCODE_APP="${XCODE_APPS[0]:-}"
   if [[ -z "$XCODE_APP" ]]; then
     bad "Still no Xcode in /Applications. Stopping here - re-run this script when it has installed."
     exit 1
@@ -152,6 +194,15 @@ fi
 
 if XB="$(xcodebuild -version 2>/dev/null | head -1)"; then
   ok "$XB"
+  XCODE_VER="${XB##* }"
+  if [[ "${XCODE_VER%%.*}" == "27" ]]; then
+    ok "Xcode 27 as decided in #699"
+  else
+    warn "this is Xcode $XCODE_VER, but the project targets Xcode 27 (#699)"
+    info "26.x will build the app, but you would be on a different toolchain"
+    info "than CI and than the agents' instructions assume. Prefer 27."
+    confirm "Continue with Xcode $XCODE_VER anyway?" || exit 1
+  fi
 else
   bad "xcodebuild still not working. Open Xcode once, let it finish installing components, then re-run."
   exit 1
@@ -177,6 +228,11 @@ say "  the App Store listing, and it is painful to change later."
 say ""
 info "A personal iCloud account is fine. Using a shared or work account is not -"
 info "you would be shipping a product under an identity you do not control."
+say ""
+info "Note on ordering: step 1's beta download needed you signed in to the"
+info "developer portal. A free Apple Account is enough for that, so downloading"
+info "Xcode 27 does not require the paid membership below - but use the SAME"
+info "account for both, or the signing setup in step 4 will not see your team."
 
 ask APPLE_ID "  Apple Account email to enrol with"
 [[ -n "${APPLE_ID:-}" ]] && ok "using $APPLE_ID"
@@ -371,6 +427,8 @@ say "    became widespread on 1 Jan 2026. Check any quote for one before binding
 head2 "Where you got to"
 
 printf '  %-26s %s\n' "Xcode"              "${XCODE_PATH:-not installed}"
+printf '  %-26s %s\n' "Xcode version"      "${XCODE_VER:-unknown} (target: 27.x)"
+printf '  %-26s %s\n' "Deployment target"  "iOS 26 - set IPHONEOS_DEPLOYMENT_TARGET = 26.0"
 printf '  %-26s %s\n' "Apple Account"      "${APPLE_ID:-not recorded}"
 printf '  %-26s %s\n' "Membership"         "$([[ "${ENROLLED:-}" == yes ]] && echo active || echo "not active")"
 printf '  %-26s %s\n' "Team ID"            "${TEAM_ID:-not recorded}"
@@ -383,6 +441,24 @@ say ""
 info "saved to $STATE_FILE"
 warn "That file holds your Team ID and Apple Account - it is outside the repo on"
 warn "purpose. Do not commit it, and do not paste it into a public issue."
+
+head2 "Deployment target: iOS 26, not 27"
+
+say "  Building with Xcode 27 does NOT mean requiring iOS 27. Apple supports"
+say "  deployment targets iOS 15-27 from Xcode 27, and iOS 26 is on 79% of"
+say "  devices while iOS 27 is on roughly none yet. So the app targets iOS 26."
+say ""
+warn "The trap: the iOS 27 SDK exposes iOS 27 APIs. Calling one without an"
+warn "'if #available' guard is a compile error - or occasionally just a warning"
+warn "plus a crash at runtime. Set IPHONEOS_DEPLOYMENT_TARGET = 26.0 in the"
+warn "project from the first commit so the compiler enforces the boundary."
+
+head2 "Not in this wizard, by design"
+
+info "The toolchain gates (swiftlint, swiftformat, xcbeautify), XcodeBuildMCP"
+info "and its Sentry opt-out, the Justfile and CI all belong to the repo"
+info "scaffold in #696, not to this human-setup pass. Decided in #699."
+
 say ""
 say "  ${BOLD}Next:${RESET} paste the summary above into issue #676 to close it out."
 say "  With a membership active, issue #685 (the App Review query on 5.1.3(ii))"
