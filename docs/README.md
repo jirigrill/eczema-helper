@@ -8,7 +8,7 @@ A local-first SvelteKit PWA — no backend, no accounts. It is a logging tool: a
 
 ## Docs
 
-- `../CONTEXT.md` — domain vocabulary and invariants
+- `../CONTEXT.md` — domain vocabulary and invariants (numbered `INV-<n>`, stable under insertion)
 - `../UBIQUITOUS_LANGUAGE.md` — shared term glossary
 - `adr/` — architecture decision records
 - `decisions-log.md` — settled implemented decisions (one-liners)

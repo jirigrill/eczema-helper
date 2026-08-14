@@ -164,7 +164,7 @@ _Czech: —_ (internal key, not user-visible)
 
 Deterministic composite key for a `Meal`: `` `${date}:${mealType}:${actor}` ``
 (e.g. `"2026-05-27:lunch:mother"`). Enforces the one-meal-per-slot-per-actor
-invariant at both the type level and the Dexie unique index (`&id`): a
+invariant ([INV-4](CONTEXT.md#inv-4)) at both the type level and the Dexie unique index (`&id`): a
 `(date, mealType)` pair can hold up to one meal per actor. Never a random UUID.
 
 ### MealSlot
@@ -246,7 +246,7 @@ in the composite `MealId` (`date:mealType:actor`).
 source for "who may log at this feeding stage". Returns `breastfed → [mother]`,
 `mixed → [mother, baby]`, `solids → [baby]`. Read by the `/meal` route (drives
 the [Actor Picker](#actor-picker) visibility and the implicit-actor snap) and
-mirrored in prose by the [Actor](#actor) invariant. The mirrored-schedule
+mirrored in prose by the [Actor](#actor) invariant ([INV-14](CONTEXT.md#inv-14)). The mirrored-schedule
 rationale (one protocol, two permanent-elimination sets) is parked with the
 protocol engine (ADR-0027) — see the [revival catalog](#revival-catalog).
 
@@ -688,7 +688,7 @@ descaling parked.
 
 | For details on…                     | See…                                   |
 | ----------------------------------- | -------------------------------------- |
-| Deep domain invariants              | `CONTEXT.md`                           |
+| Deep domain invariants              | `CONTEXT.md` (cite as `INV-<n>`)       |
 | Architectural decisions             | `docs/adr/`                            |
 | Color tokens, typography, spacing   | `DESIGN.md`                            |
 | Project status + directory layout   | `docs/README.md`                       |

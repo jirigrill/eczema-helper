@@ -324,70 +324,86 @@ governed by the live `FeedingStage`: `getEligibleActors(stage)` returns
 `Meal` carries its `actor` in the composite `MealId` (`date:mealType:actor`),
 so a `(date, mealType)` slot holds up to one meal per actor.
 
-**Invariant:** every `Meal` has an `actor` in `{ mother, baby }`; the actor
-is a member of `getEligibleActors(feedingStage)` at log time.
+See [INV-14](#inv-14) for the actor invariant.
 
 ---
 
 ## Invariants
 
-- **Single device.** Runs on one phone (the mother's). No accounts, no sync,
+Each invariant carries a stable id, `INV-<n>`. **The ids are permanent
+identity, not position:** they are assigned once, never reused, and never
+renumbered. A new invariant appends the next unused number (it does not have to
+be last in the list); a retired one leaves its number retired rather than
+freeing it for reuse. Cite invariants as `INV-<n>` and link them as
+`CONTEXT.md#inv-<n>`. Guarded by `src/lib/test/invariant-ids.test.ts`.
+
+Only the numbered list below is citable. Invariant-shaped rules stated in the
+[Glossary](#glossary) prose — the `MealEditor` trio, the Copy Meal merge and
+flow rules, `SkinObservation` identity, and the catalog **Principles** — are
+deliberately *not* numbered; cite them by their glossary heading instead.
+
+- <a id="inv-1"></a>**INV-1 — Single device.** Runs on one phone (the mother's). No accounts, no sync,
   no server. See [ADR-0001](docs/adr/0001-single-device-v1.md). (The app is no
   longer single-*actor*: meals are logged for both `mother` and `baby` on one
   mirrored schedule — see the [Actor](#actor) entry; the mirrored-schedule
   rationale, ADR-0027, is parked with the protocol engine — see
   `docs/parked-features.md`.)
-- **No backup mechanism exists, and none is planned.** Data lives only in IndexedDB on the one device; losing or wiping the phone destroys the journal. An encrypted manual export/import was once the intended floor (former ADR-0002), but it was never built and is not being pursued — see [ADR-0029](docs/adr/0029-no-crypto-no-backup.md). Nothing in the tree encrypts anything.
-- **Meals are day-granular.** `Meal` carries `date` + `mealType` + `actor`.
+- <a id="inv-2"></a>**INV-2 — No backup mechanism exists, and none is planned.** Data lives only in IndexedDB on the one device; losing or wiping the phone destroys the journal. An encrypted manual export/import was once the intended floor (former ADR-0002), but it was never built and is not being pursued — see [ADR-0029](docs/adr/0029-no-crypto-no-backup.md). Nothing in the tree encrypts anything.
+- <a id="inv-3"></a>**INV-3 — Meals are day-granular.** `Meal` carries `date` + `mealType` + `actor`.
   No user-facing meal times. `createdAt` / `updatedAt` are system-stamped
   for audit. See the [decisions log](docs/decisions-log.md) (was ADR-0003).
-- **One `Meal` per date+mealType+actor slot.** A given `(date, mealType, actor)`
+- <a id="inv-4"></a>**INV-4 — One `Meal` per date+mealType+actor slot.** A given `(date, mealType, actor)`
   triple maps to exactly one `Meal` record — so a `(date, mealType)` pair can
   hold up to one meal per actor. The record is upserted (not appended)
   when the user finalizes the working meal (the `Uložit` CTA). `Meal.id` is the deterministic
   composite key `"${date}:${mealType}:${actor}"` (e.g. `"2026-05-27:lunch:mother"`).
-- **Causation is derived, not recorded.** The user logs only ground
+- <a id="inv-5"></a>**INV-5 — Causation is derived, not recorded.** The user logs only ground
   truth (meals, skin observations, end-of-phase reintro verdict). The
   app derives suspected patterns via a pattern detector over those
   logs. No `suspectedCause` field on `SkinObservation`.
   See ADR-0004 (parked with the protocol engine, see `docs/parked-features.md`).
-- **Skin observation is a per-region severity set, atomically saved
+- <a id="inv-6"></a>**INV-6 — Skin observation is a per-region severity set, atomically saved
   with photos.** `SkinObservation.regions` is a list of `{ id, level }`
   pairs over nine canonical regions and four absolute severity levels
   (klidné / mírné / střední / silné). Klidné is the explicit default.
   Day-overall severity is derived as `max(regions)` and never persisted.
   `SkinObservationRepository.save(observation, photos)` writes both in a
   single Dexie transaction.
-- **Klidné regions persist as positive evidence; every save witnesses
+- <a id="inv-7"></a>**INV-7 — Klidné regions persist as positive evidence; every save witnesses
   all nine regions.** Absence of an observation for the day means
   "didn't check"; an observation with every region at level 0 means
   "checked, all calm". The Uložit gate is removed — every `/skin` visit
   can save.
-- **Observation `id` and `createdAt` are immutable across edit, delete,
+- <a id="inv-8"></a>**INV-8 — Observation `id` and `createdAt` are immutable across edit, delete,
   and undo-after-delete.** `createdAt` represents the *witnessing
   moment*, not the row's last-write timestamp; an edit (typo in a note,
   bumped severity) does not retroactively change when the parent looked
   at the skin. Delete is a hard delete cascading to all `SkinPhoto` rows
   for that observation. The repository port exposes `save` (compose),
   `update` (edit), `remove` (delete), `listByDate` (read).
-- **Photos are stored unencrypted at rest**, as is every other record — there is no encryption anywhere in the tree. Encryption-at-rest would be a prerequisite before the app reaches any device other than the developer's own; it is deliberately not being pursued, so that prerequisite doubles as a constraint on who may use the app. See [ADR-0029](docs/adr/0029-no-crypto-no-backup.md).
-- **Persistence: Dexie/IndexedDB, normalized tables.** Photos in a
+- <a id="inv-9"></a>**INV-9 — Photos are stored unencrypted at rest**, as is every other record — there is no encryption anywhere in the tree. Encryption-at-rest would be a prerequisite before the app reaches any device other than the developer's own; it is deliberately not being pursued, so that prerequisite doubles as a constraint on who may use the app. See [ADR-0029](docs/adr/0029-no-crypto-no-backup.md).
+- <a id="inv-10"></a>**INV-10 — Persistence: Dexie/IndexedDB, normalized tables.** Photos in a
   dedicated table. Reactive UI via `liveQuery`. The insight engine
   receives plain arrays — it does not know Dexie exists.
-- **The app is a Logging Tool.** First run (feeding stage), day view, meal
+- <a id="inv-11"></a>**INV-11 — The app is a Logging Tool.** First run (feeding stage), day view, meal
   logging, skin observation with photos, settings. It records what was eaten
   and how the skin looked; it derives nothing and instructs nothing. The
   elimination-protocol engine is parked at `parked/protocol-engine` — see
   `docs/parked-features.md`. The derived-insight engine is not built (tracked
   in [#468](https://github.com/jirigrill/eczema-helper/issues/468)).
-- **Domain records carry types, not display strings.** Domain-emitted
+- <a id="inv-12"></a>**INV-12 — Domain records carry types, not display strings.** Domain-emitted
   records (`MealItem`, `SkinObservation`, etc.) carry stable type
   identifiers (e.g. `portionKind: 'spoon'`). Czech display text and visual
   tokens live in `src/lib/strings/` (pure text) and `src/lib/config/`
   (text + visual tokens combined), resolved at render time. Baking
   a display string onto a domain record violates this invariant.
-- **Food catalog is data-first and bundled.** Each entry is one curated
+- <a id="inv-13"></a>**INV-13 — Food catalog is data-first and bundled.** Each entry is one curated
   JSON-serializable `CanonicalAllergen` record; `AllergenId` is *derived* from the
   records, not hand-written. Records retain dormant `protocol` and `ladder` fields,
   read only by parked code. Nothing at runtime mutates or extends the bundled
   catalog; it is the whole set of loggable foods (#662).
+
+- <a id="inv-14"></a>**INV-14 — Every `Meal` has an eligible `actor`.** Every `Meal` has an `actor`
+  in `{ mother, baby }`, and that actor is a member of
+  `getEligibleActors(feedingStage)` at log time. See the [Actor](#actor) entry
+  for the stage → actors mapping.
