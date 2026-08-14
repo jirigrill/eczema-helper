@@ -15,7 +15,8 @@ A local-first SvelteKit PWA — no backend, no accounts. It is a logging tool: a
 - `parked-features.md` — the revival catalog for the parked protocol engine
 - `architecture/` — tech stack, ports & adapters, testing, code standards
 - `design/` — the redesign prototype (design source of truth; still depicts pre-descaling protocol screens)
-- `research/` — forward-looking design research
+- `research/` — forward-looking design research, plus the primary-source findings behind the native-iOS transition ([#672](https://github.com/jirigrill/eczema-helper/issues/672))
+- `spec/` — platform-neutral behavior specifications extracted from the implementation
 
 ## Commands
 
