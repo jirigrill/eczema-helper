@@ -28,6 +28,12 @@ const ASSIGNED: Record<number, string> = {
   14: 'Every `Meal` has an eligible `actor`',
 };
 
+// Bullets carry their anchor inline (`- <a id="inv-4"></a>**INV-4 — …`) rather
+// than in a preceding block: a standalone anchor between list items splits the
+// list into two `<ul>`s on GitHub.
+const BULLET = /^- (?:<a id="inv-\d+"><\/a>)?\*\*(.*?)(?:\.|\*\*| —)/gm;
+const NUMBERED_BULLET = /^- (?:<a id="inv-\d+"><\/a>)?\*\*INV-(\d+) —/gm;
+
 function readInvariantsSection(): string {
   const context = readFileSync(resolve(process.cwd(), 'CONTEXT.md'), 'utf-8');
   const start = context.indexOf('\n## Invariants\n');
@@ -41,14 +47,14 @@ describe('CONTEXT.md invariant ids', () => {
   it('numbers every bullet in the Invariants section', () => {
     const section = readInvariantsSection();
 
-    const bullets = [...section.matchAll(/^- \*\*(.*?)(?:\.|\*\*| —)/gm)].map((match) => match[1]!);
+    const bullets = [...section.matchAll(BULLET)].map((match) => match[1]!);
     const unnumbered = bullets.filter((bullet) => !/^INV-\d+$/.test(bullet));
 
     expect(unnumbered).toEqual([]);
   });
 
   it('assigns each id exactly once', () => {
-    const ids = [...readInvariantsSection().matchAll(/^- \*\*INV-(\d+) —/gm)].map((match) =>
+    const ids = [...readInvariantsSection().matchAll(NUMBERED_BULLET)].map((match) =>
       Number(match[1]),
     );
 
