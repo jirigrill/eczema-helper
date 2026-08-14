@@ -13,7 +13,7 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 **Before changing the domain or making architectural decisions**, read `CONTEXT.md` and `docs/adr/`. Don't introduce vocabulary or decisions that conflict with what's recorded there — revise the ADR instead.
 
 - `UBIQUITOUS_LANGUAGE.md` — shared vocabulary, first place to look up a term
-- `CONTEXT.md` — deep definitions and invariants
+- `CONTEXT.md` — deep definitions and invariants; the `## Invariants` list carries stable `INV-<n>` ids — cite them as `INV-4` / link as `CONTEXT.md#inv-4`, **append** a new one with the next unused number, and never renumber or reuse an id (guarded by `src/lib/test/invariant-ids.test.ts`). Glossary-prose rules are deliberately unnumbered; cite those by heading.
 - `docs/adr/` — numbered architecture decision records; `docs/decisions-log.md` — settled implemented decisions (one-liners)
 - `docs/architecture/tech-stack.md` — framework/runtime rationale
 - `docs/architecture/ports-and-adapters.md` — hexagonal architecture detail
