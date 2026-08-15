@@ -97,9 +97,11 @@ taken in the same session via
 `SkinObservation` records may exist for the same calendar day (e.g. a
 routine morning check and a later reaction log). The form shape is
 identical on ordinary days and reintro-test days. There is no
-`suspectedCause` field; attribution is not recorded here. Day-overall
-severity is derived as `max(regions)` via `overallSeverity()` and never
-persisted.
+`suspectedCause` field; attribution is not recorded here. A day-overall
+severity is defined as `max(regions)` via `overallSeverity()`, derived
+and never persisted — but **nothing calls it**: the day view renders
+per-region chips, and the function has no caller, no test and no render
+site anywhere in the app.
 
 **Identity and mutability.** `id` and `createdAt` are immutable across
 edit, delete, and undo-after-delete — `createdAt` represents the
@@ -366,14 +368,23 @@ deliberately *not* numbered; cite them by their glossary heading instead.
   with photos.** `SkinObservation.regions` is a list of `{ id, level }`
   pairs over nine canonical regions and four absolute severity levels
   (klidné / mírné / střední / silné). Klidné is the explicit default.
-  Day-overall severity is derived as `max(regions)` and never persisted.
+  A `max(regions)` day-overall severity is *defined* in the domain layer
+  but has **no caller, no test, and no render site** — the day view shows
+  per-region chips instead, so nothing in the shipped app displays it. It
+  is derived, never persisted. The iOS port drops the concept outright
+  (`SKIN-VIEW-5`, Divergence 13), because collapsing nine regional
+  observations into one figure is the app's regulatory surface — see the
+  skin-observation spec section.
   `SkinObservationRepository.save(observation, photos)` writes both in a
   single Dexie transaction.
 - <a id="inv-7"></a>**INV-7 — Klidné regions persist as positive evidence; every save witnesses
   all nine regions.** Absence of an observation for the day means
   "didn't check"; an observation with every region at level 0 means
   "checked, all calm". The Uložit gate is removed — every `/skin` visit
-  can save.
+  can save. "Every save witnesses all nine regions" constrains a single
+  record, **not the day**: a day holds as many observations as she
+  saves, each with its own `createdAt` and each witnessing all nine.
+  Nothing upserts a day.
 - <a id="inv-8"></a>**INV-8 — Observation `id` and `createdAt` are immutable across edit, delete,
   and undo-after-delete.** `createdAt` represents the *witnessing
   moment*, not the row's last-write timestamp; an edit (typo in a note,
