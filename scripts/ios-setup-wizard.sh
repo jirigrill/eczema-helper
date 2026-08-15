@@ -11,6 +11,17 @@
 #
 # Progress is saved, so you can quit at any prompt and resume later.
 
+# Run with `sh scripts/ios-setup-wizard.sh` and macOS gives you bash 3.2 in
+# POSIX mode, where `done < <(...)` is a syntax error. Re-exec under real bash
+# so the invocation does not matter. Must come before `set -u`, which would
+# trip over "$@" here when there are no arguments.
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+case "${SHELLOPTS:-}" in
+  *posix*) exec bash "$0" "$@" ;;
+esac
+
 set -uo pipefail
 
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/eczema-ios-setup"
