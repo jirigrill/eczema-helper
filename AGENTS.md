@@ -8,6 +8,14 @@ Eczema Tracker PWA — tracks a breastfed newborn's atopic eczema through elimin
 
 **Status:** The app is a Logging Tool — first run (feeding stage), day view, meal logging, skin observation with photos, settings. It records what was eaten and how the skin looked; it derives nothing and instructs nothing. The elimination-protocol engine is parked at `parked/protocol-engine` (see `docs/parked-features.md`). `docs/design/redesign-prototype.html` is the design source of truth and SvelteKit routes are authored against it, but three parts of it are stale: it still depicts the pre-descaling protocol UI (onboarding questionnaire, program timeline, conflict detection), it still shows the custom-food surfaces (`➕ Vlastní` tile, free-text entry, `Dříve zadané`) removed in #662, and its photo section is a historical placeholder — photos ship today and nothing is encrypted. No backend or auth. There is no backup: nothing is encrypted, and encrypted export/import is not planned ([ADR-0029](docs/adr/0029-no-crypto-no-backup.md)). The derived-insight engine (#468) is not built yet.
 
+## This repo is frozen — and must never be archived
+
+Development moved to a native iOS product in [`jirigrill/eczema-ios`](https://github.com/jirigrill/eczema-ios). **Frozen means no further code commits**; docs commits (ADR scope notes, `CONTEXT.md` fixes) stay permitted.
+
+**Do not archive this repository on GitHub.** Archiving makes issues read-only — GitHub: "To make changes in an archived repository, you must unarchive the repository first" — and the [wayfinder map](https://github.com/jirigrill/eczema-helper/issues/672) planning the iOS product lives here as an issue, deliberately, because GitHub transfers drop the parent/child and dependency wiring that gives the map its value. Archiving would freeze the map itself: no ticket could be closed and no decision recorded.
+
+**What is still authoritative here, and what is not.** `CONTEXT.md` (`INV-1..14`) and `docs/adr/0028` (food-level preparations) are domain material and carry across. `docs/adr/0001` (single-device) and `docs/adr/0029` (no crypto / no backup) are **PWA-scoped**: both stay true of this app, and both were decided the other way for iOS — read them for reasoning, never as iOS guidance. Each carries a `**Scope:**` line saying so.
+
 ## Documentation
 
 **Before changing the domain or making architectural decisions**, read `CONTEXT.md` and `docs/adr/`. Don't introduce vocabulary or decisions that conflict with what's recorded there — revise the ADR instead.
@@ -59,7 +67,7 @@ TypeScript, naming, imports, error handling, Svelte 5, testing, security rules: 
 
 - UI text is Czech, never inline on domain records: `src/lib/strings/` (pure text) → `src/lib/config/` (+ visual tokens). Full split, examples, `satisfies` rule: `docs/architecture/code-standards.md`.
 - Dates: Czech-style `5. 3.` (non-breaking space)
-- Food categories seeded in `src/lib/data/categories.ts`
+- Food catalog bundled in `src/lib/data/allergen-catalog/allergen-catalog.ts` (families, allergens, foods)
 
 ## Pull Request Workflow
 

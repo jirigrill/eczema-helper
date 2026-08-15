@@ -12,6 +12,13 @@ The one carefully-bounded exception: when the app later asks an AI to *suggest* 
 
 **Status:** Accepted
 **Date:** 2026-05-11
+**Scope:** the SvelteKit PWA in this repository. This repo is frozen — no further
+code commits — and this ADR stays accurate for the app it describes: that app
+runs on one phone, with no accounts, no sync and no server. The native iOS
+product decided otherwise, syncing through a CloudKit private database. Those
+decisions live on the [wayfinder map](https://github.com/jirigrill/eczema-helper/issues/672),
+not here. The Status above is unchanged: nothing recorded here was reversed, and
+this is not an amendment — a different product made a different call.
 
 > **Amendment (ADR-0029, 2026-08-11):** The Consequences below once said a backup
 > story "must be designed" before the first user, and that photos "can be
