@@ -25,6 +25,21 @@ with three months of observations means building a backup first.
 
 **Status:** Accepted
 **Date:** 2026-08-11
+**Scope:** the SvelteKit PWA in this repository. This repo is frozen — no further
+code commits — and this ADR stays accurate for the app it describes: nothing in
+that tree encrypts anything, and it has no backup. The native iOS product decided
+otherwise on both limbs. CloudKit sync carries durability there (sync, not
+backup — there is no rollback), and CloudKit field encryption turns out to be
+available and cheap: SwiftData expresses it directly as
+`@Attribute(.allowsCloudEncryption)`, so "no crypto" is a choice for that product
+rather than the constraint it was here
+([#693](https://github.com/jirigrill/eczema-helper/issues/693)). File export and
+import are still not built there either
+([#683](https://github.com/jirigrill/eczema-helper/issues/683)) — the same
+conclusion for a different reason. Those decisions live on the
+[wayfinder map](https://github.com/jirigrill/eczema-helper/issues/672), not here.
+The Status above is unchanged: nothing recorded here was reversed, and this is not
+an amendment — a different product made a different call.
 **Supersedes:** the former ADR-0002 (encrypted manual export as the v1 backup
 floor) and the former ADR-0005 (photos plaintext at rest, encryption-at-rest as a
 hard release gate). Both files were removed in an earlier docs reshape; this ADR
