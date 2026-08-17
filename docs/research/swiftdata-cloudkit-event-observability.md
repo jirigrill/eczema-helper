@@ -4,6 +4,8 @@ Spike findings. **Yes — route 1 works.** `NSPersistentCloudKitContainer.eventC
 
 Measured, not read: **Xcode 27.0 (build 27A5237l)**, iOS 26.0 simulator target (iPhone 17, iOS 26.5 runtime), Swift 6 language mode, on 2026-08-16. Every claim below is an observation from a run; where a question could not be reached, it is listed as an open gap rather than inferred.
 
+**Two sections are documentation, not measurement, and say so in place:** the `endDate != nil` rule is corroborated from Apple's WWDC22 session and sample code, and the delivery-queue question is answered from the iOS 27 SDK. They were added on 2026-08-17 after the entitlement ceiling below proved the remaining questions unmeasurable on this machine. Everything else is a run.
+
 **Method.** Xcode is installed but no Apple ID is signed into it, and `eczema-ios` is docs-only, so the probes are hand-assembled simulator app bundles: `swiftc` against the iPhoneSimulator SDK, an `Info.plist`, ad-hoc `codesign`, then `simctl install` / `launch`. Findings are written to a file in the app's Documents directory and read back from the host with `simctl get_app_container` — no pbxproj, no generator (XcodeGen cannot read Xcode 26+ projects per [#699](https://github.com/jirigrill/eczema-helper/issues/699)). Sources are in the ticket's working directory; the runner is `run.sh`, the per-case matrix `run_cases.sh`.
 
 ---
@@ -74,6 +76,31 @@ Also worth recording for the spec: `NSPersistentCloudKitContainerEvent` is spell
 
 **Rule for the spec:** treat an event as a verdict only when `endDate != nil`. Until then it is in progress.
 
+**This rule is Apple's own, not an inference from our one run.** Established after the fact from primary sources, which matters because the rule was originally derived from a single in-flight `.setup` event:
+
+- WWDC22 session 10119, "Optimize your use of Core Data and CloudKit", verbatim: *"In the notification handler block, I verify that the incoming event is of the correct type for the specific store this expectation is for, and that it's finished by checking `endDate` is not equal to `nil`."*
+- Apple's sample `SynchronizingALocalStoreToTheCloud` (`CoreDataCloudKitDemoUnitTests/Test Cases/TestLargeDataGenerator.swift`) filters on `(event.type == eventType) && (event.storeIdentifier == store.identifier) && (event.endDate != nil)`.
+
+Apple's predicate is three-part, and the two clauses beyond `endDate` are load-bearing for the same reason: **the notification fires for event types you did not ask for, and for every store**. A handler must match on `type` and `storeIdentifier` as well, or it will act on an unrelated operation. That the `endDate != nil` clause exists in Apple's own test code is independent proof that the notification is posted for events that have not finished — the start/end pair we observed is the designed behaviour, not an artefact of the aborted run.
+
+### The notification is posted from a background serial queue
+
+Gap 4 below is closed by Apple documentation rather than by measurement. The iOS 27 message-based restatement of the same notification, `NSPersistentCloudKitContainer.EventChangedMessage`, is documented as *"Posted when a CloudKit event occurs on the CloudKit private serial queue."* Its declaration in the shipped SDK (`iPhoneOS27.0.sdk/…/CoreData.swiftmodule/arm64e-apple-ios.swiftinterface`) reads:
+
+```swift
+@available(macOS 27.0, iOS 27.0, tvOS 27.0, watchOS 27.0, visionOS 27.0, *)
+extension NSPersistentCloudKitContainer {
+  public struct EventChangedMessage: NotificationCenter.AsyncMessage {
+    public typealias Subject = NSPersistentCloudKitContainer
+    public let event: NSPersistentCloudKitContainer.Event
+  }
+}
+```
+
+Two things follow. First, **`Subject = NSPersistentCloudKitContainer` is a type-level confirmation of the route-1 result above** — Apple's own model of this notification is that its subject *is* the container, which is why `note.object` yields one. Second, the handler runs off the main actor, so a sync-health indicator must hop to `@MainActor` before touching UI or observable state. Events are serialised on one queue, so concurrent delivery is not a concern, but main-thread delivery must not be assumed.
+
+`EventChangedMessage` is iOS 27+ and beta; the `NSNotification`-based channel this spike measured remains the one to build on for an iOS 26 deployment target.
+
 ---
 
 ## What could not be reached, and why
@@ -101,8 +128,22 @@ as `EXC_BREAKPOINT` in `-[PFCloudKitContainerProvider containerWithIdentifier:op
 
 1. **Which `CKError` codes actually arrive in `Event.error`.** No terminal event was ever produced, so no error was observed. `quotaExceeded` / `notAuthenticated` reaching the app remains **unverified** — exactly as the ticket framed it. Apple types the field only as `(any Error)?`.
 2. **Whether an observer registered *after* the container still receives events.** Probed directly (`probe_late.swift`, registering at t=0.5s); the process was already dead. **Unanswered, and it matters**: a real app builds its container in `@main`/`init` and typically subscribes from a view or service created later. If setup events are spent by then, the first and most diagnostic event is missed. Until measured, the spec should require registration **before** the `ModelContainer` is created.
-3. **Whether one logical initial sync emits one `.import` event or many** — #713 item 5. One `.setup` event was seen; no `.import` ever ran. **Unanswered.**
-4. **Whether the notification is posted on a background queue**, and whether it can arrive concurrently. The observer here was called on the CloudKit worker thread, but with only one event that is not a general result.
+3. **Whether one logical initial sync emits one `.import` event or many** — #713 item 5. One `.setup` event was seen; no `.import` ever ran. **Not measured here, and Apple never states it.** A documentation sweep of the reference pages, the WWDC20–24 Core Data/CloudKit sessions and Apple's sample code found no statement of import-event granularity and no "initial import finished" signal of any kind; every abstract is phrased per-operation ("the operation that the event represents"), and the container page's topic group is titled only "Monitoring Container Events". Two Apple statements bound the answer without settling it: a private-database import is *"a single request against the CloudKit server, which brings down all of the changed records"* (WWDC20 session 10650), which suggests few operations; but WWDC22 10119 describes a first-time import as something you *"watch the table view populate"* through, with attachments arriving *"incrementally"*, which implies several. **Design as if there are many:** an `.import` event with `endDate != nil` means one import operation finished, not that the initial sync is complete. Nothing in the documented surface can tell an app the latter, so the spec must not promise a "first sync done" state.
+4. ~~**Whether the notification is posted on a background queue**~~ — **closed from documentation**, see above: the CloudKit private serial queue. Serial, so not concurrent; not the main thread, so a `@MainActor` hop is required.
+
+**Where these answers came from.** Items 1–2 remain blocked on a provisioning profile. Item 3 was pursued as a documentation question after the entitlement ceiling made it unmeasurable, and is answered only as a design constraint. Item 4 is answered outright. The searches behind items 3–4 were exhaustive of Apple's public surface: reference docs carry abstracts only, with **zero** Discussion prose on any event symbol, so the substantive material exists solely in session transcripts, sample code and the SDK headers.
+
+**The ceiling is the signing identity, not the Simulator.** Worth stating plainly, because "CloudKit doesn't work in the Simulator" is a common belief and it is false — it would otherwise look as though gaps 1–2 could never be closed without a physical device. Verified on this machine, against the booted iOS 26.5 runtime:
+
+- `xcrun simctl icloud_sync <device>` is a shipping subcommand ("Trigger iCloud sync on a device").
+- The full iCloud daemon stack is running in the simulator: `com.apple.cloudd`, `bird`, `akd`, `accountsd`, `apsd`.
+- The runtime root ships the sign-in UI and prefs panes — `AppleIDSetupUIService.app`, `iCloud.app`, `PreferenceBundles/iCloudPreferences.bundle`, `AccountSettings/{AppleAccountSettings,CloudKitSettings}.bundle` — and `CloudKit.framework` itself.
+- `cloudd` and `CloudKit.framework` contain **no simulator gating** for account or sync paths. What simulator-specific degradations exist are narrow and unrelated: *"secureDeviceId not available on simulator"*, *"Piggybacking is not supported on Simulator"* (AuthKit), *"Not marking %@ as purgeable (not supported on simulator)"* (CloudKit).
+- A sibling probe measured `CKAccountStatus == .noAccount` **with no error** — CloudKit initialises correctly and is merely waiting for a sign-in.
+
+Apple's own release notes confirm signing in is a supported flow: the Xcode 11 notes carry a known issue scoped to iOS ≤13 runtimes on Catalina (*"Logging into iCloud on impacted simulators will result in `bird` terminating and relaunching in a cycle"*, workaround *"Log out of iCloud in impacted simulators"*) — a version-scoped bug, not a blanket absence. Xcode 14 closed the last real gap by adding APNs sandbox support (*"Simulator now supports remote notifications in iOS 16 when running in macOS 13 on Mac computers with Apple silicon or T2 processors"*), so CloudKit's silent-push change notifications now reach the Simulator. (No standalone Simulator release-notes document exists; these live inside the Xcode notes.)
+
+So the path to closing gaps 1–3 is: mint a signing identity, sign with a real profile, sign in to iCloud inside the simulator. No hardware needed. At the time of writing no account is signed in on either booted device (`Accounts3.sqlite` holds only `local` rows).
 
 **Neither the fallback nor route 3 is triggered.** #687's "no indicator, plus a spec note that sync health is undetectable" is not needed: sync health *is* observable. And route 3 (Core Data instead of SwiftData) never comes into play, so nothing goes back to the owner.
 
