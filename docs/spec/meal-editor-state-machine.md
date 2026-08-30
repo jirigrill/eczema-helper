@@ -4,6 +4,24 @@
 **Extracted from:** `main` @ `449019e`, 2026-08-13. Resolves research ticket
 [#674](https://github.com/jirigrill/eczema-helper/issues/674); charted on the transition map
 [#672](https://github.com/jirigrill/eczema-helper/issues/672).
+**Corrected:** 2026-08-26 for [#690](https://github.com/jirigrill/eczema-helper/issues/690)
+([#746](https://github.com/jirigrill/eczema-helper/issues/746)) — see _How to read this
+document_ below.
+
+## How to read this document
+
+This document was written **before** the behavior-spec format existed, so — unlike every
+section in `eczema-ios/docs/spec/` — it carries **no rule ids and no strength marks**. It is
+therefore primarily a **description of the PWA**, not a set of instructions to the port. Where
+the two differ, the difference is marked inline as a **Port rule** block. Read those as the
+requirement and the surrounding prose as the reference implementation's behavior.
+
+Six behaviors described here were **overturned** by
+[#690](https://github.com/jirigrill/eczema-helper/issues/690), which established the governing
+default: **the port picks the coherent rule, and _keeping_ a divergence is what needs a named
+reason.** Each is corrected in place at §3.3, §3.4, §4.4, §6.1, §9.3 and §9.5. Nothing else in
+this document has been adjudicated against that default — treat an unmarked wart as
+_undecided_, not as endorsed.
 
 ## Overview
 
@@ -26,19 +44,22 @@ Three separate state machines cooperate and are described separately below:
 
 Terminology follows `UBIQUITOUS_LANGUAGE.md` (Working Meal, MealEditor, Active Edit Slot,
 Commit-Gate, Discard Toast, Fixed-at-Entry). Domain rules that already have a home are
-referenced, not restated: see `CONTEXT.md` § _Invariants_, cited here as **INV-n** where
-_n_ is the ordinal of the bullet in that section, in file order (see §12 — they are not
-numbered in the source, which is a defect this document works around).
+referenced, not restated: see `CONTEXT.md` § _Invariants_, cited here as **INV-n**. Those
+ids are now **stable identity, not position** — assigned once, never reused, never
+renumbered ([#689](https://github.com/jirigrill/eczema-helper/issues/689)) — and each is
+individually anchored, so a citation links as
+[`CONTEXT.md#inv-4`](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-4).
 
 The invariants this specification depends on:
 
-| Ref    | Bullet (leading phrase)                            |
-| ------ | -------------------------------------------------- |
-| INV-3  | _Meals are day-granular._                          |
-| INV-4  | _One `Meal` per date+mealType+actor slot._         |
-| INV-11 | _The app is a Logging Tool._                       |
-| INV-12 | _Domain records carry types, not display strings._ |
-| INV-13 | _Food catalog is data-first and bundled._          |
+| Ref                                                                              | Bullet (leading phrase)                                  |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| [INV-3](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-3)   | _Meals are day-granular._                                |
+| [INV-4](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-4)   | _One `Meal` per date+mealType+actor slot._               |
+| [INV-8](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-8)   | _`id` and `createdAt` immutable across delete-and-undo._ |
+| [INV-11](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-11) | _The app is a Logging Tool._                             |
+| [INV-12](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-12) | _Domain records carry types, not display strings._       |
+| [INV-13](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-13) | _Food catalog is data-first and bundled._                |
 
 Czech user-interface strings appear in this document **only as illustrations** of a rule
 that is stated in English first. The Czech app is the reference implementation, not the
@@ -263,8 +284,26 @@ Consequences that a port must reproduce:
 - Whitespace-only changes to the note never make the editor dirty.
 - Adding a food and then removing it again returns the editor to clean.
 - Changing an amount or preparation makes it dirty; changing it back makes it clean again.
-- A food left in `editing` (never confirmed) does **not** contribute to the snapshot, so it
-  does not make an _edit session_ dirty. It does make a _compose_ session non-empty (§3.4).
+- A food left in `editing` (never confirmed) does **not** contribute to the snapshot. In the
+  PWA that means it does not make an _edit session_ dirty, while it does make a _compose_
+  session non-empty (§3.4) — the asymmetry #690 overturned. It stays true that an unconfirmed
+  food does not contribute to the **snapshot**; what changes is that the snapshot is no longer
+  the only question asked.
+
+> **Port rule — the snapshot answers one question, not two**
+> ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §2). The port asks **two
+> separate questions with two separate answers**:
+>
+> - **Can this be saved?** — confirmed foods only. This is the snapshot comparison above,
+>   unchanged.
+> - **Would leaving here lose something the mother did?** — counts in-progress work too,
+>   **identically in compose and edit**. This second predicate is named **pending work**
+>   ([#707](https://github.com/jirigrill/eczema-helper/issues/707)).
+>
+> The correction is to **split** the predicate, not to merge the two cases. "Make an editing
+> food dirty" is a trap: in an edit session the dirtiness test _also_ gates the save action,
+> and saving drops unconfirmed foods anyway (the snapshot is confirmed-only), so it would
+> offer a save that silently loses the very thing it claimed to be saving.
 
 ### 3.4 The two "is there anything here" tests
 
@@ -277,6 +316,14 @@ These are deliberately different and must not be merged:
 
 So: a compose session with one food mid-edit and nothing confirmed **is dirty** (backing out
 raises a discard toast) but **cannot be saved** (the save action is disabled).
+
+> **Port rule — the table stands; one leg of it changes**
+> ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §2). The two tests really are
+> distinct and are **not** merged — that holds for the **save** leg, which stays
+> confirmed-only in both session modes. What fails is the **dirtiness** leg: _Non-empty_ is
+> scoped to compose in the PWA, and in the port the "would leaving lose something she did"
+> question (**pending work**) is asked **identically in compose and edit**. So the compose
+> sentence above becomes the rule for both modes, and the save sentence is untouched.
 
 ---
 
@@ -360,11 +407,23 @@ lost).
   stays visible and filled; a locked-from-idle sibling is merely greyed. This is why the
   `prior` field must be modelled, not just a boolean lock.
 
-> **Outside-click asymmetry — deliberate, and a genuine usability wart.** Tapping outside the
-> editor **cancels** in the drill-in but **confirms** on the grid. The two views therefore
-> attach opposite meanings to the same gesture. This is what the implementation does and both
-> behaviors are pinned by tests, so it is specified, not a defect report — but a port should
-> decide consciously whether to keep it (see §12, open question 10).
+> **Outside-click asymmetry — a genuine usability wart, overturned by
+> [#690](https://github.com/jirigrill/eczema-helper/issues/690) §5.** In the PWA, tapping
+> outside the editor **cancels** in the drill-in but **confirms** on the grid; the two views
+> attach opposite meanings to the same gesture. Both behaviors are pinned by tests, so both
+> were _intended_ — this is an override under the coherence default, not the correction of a
+> mistake.
+>
+> **Port rule — confirm everywhere.** The drill-in's cancel-on-outside-tap goes; the grid's
+> confirm becomes the single meaning of the gesture. Two reasons, both worth carrying:
+> **destructive-by-default on an ambiguous gesture is the wrong side to err on**, especially
+> one-handed with a baby in the other arm; and **on iOS it is not even the same primitive** —
+> a tap outside a sheet or popover _dismisses_ it, so the drill-in's cancel would read as
+> "dismiss the family", not "throw away the amount I just set". If cancelling matters, it
+> earns a visible control, not the absence of one.
+>
+> This supersedes the drill-in bullet above ("**Drill-in, tap outside any food tile:**
+> CANCEL-EDITING"), which describes the PWA.
 
 ---
 
@@ -448,7 +507,20 @@ the loss the autosave exists to prevent.
 **The tracking is screen-local and in-memory.** It does not survive a remount. A user who
 reaches the "done" state, backs out, and undoes back into the editor arrives at a _fresh_
 screen with an empty autosaved-actor set, and the action silently reverts to a disabled
-save. See §12, open question 11.
+save.
+
+> **Port rule — the ephemerality is intended; the disabled action is the defect**
+> ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §6). "Done" **does not survive
+> a remount, and that is correct.** It is a statement about _this visit_ — you swapped actor
+> and it autosaved — not a property of the data, so recomputing it on mount would mean
+> inventing a persisted "was autosaved" fact purely to keep a label alive.
+>
+> What is wrong is the **silently disabled action** the remount leaves behind, and that is a
+> **presentation** problem: after a remount the screen shows the ordinary clean-edit state,
+> which is _truthful_ but reads as "your work didn't take" — the very confusion the "done"
+> state exists to prevent (§8.3). **No journal data is at risk either way**: the autosave
+> already happened. This is the one of #690's six that is _specified_ rather than repaired —
+> the behavior stays, the presentation of the post-remount state is the port's to solve.
 
 ---
 
@@ -658,7 +730,7 @@ The overlay rule is per kind:
 | Kind           | Effect on the restored session                                                                                                                                                                                                                                                                                                                                                 |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `meal-edit`    | Mode = `edit`. **Re-read the persisted meal and take the load snapshot from _it_, not from the buffer.** The restored working meal therefore reads as **dirty** — the save action is enabled and a second back-out re-buffers rather than silently dropping the restored work. If the persisted meal has meanwhile vanished, fall back to no snapshot and no loaded timestamp. |
-| `meal-delete`  | Mode = `compose`, no load snapshot, no loaded timestamp — the row is gone, so the next save mints a fresh record.                                                                                                                                                                                                                                                              |
+| `meal-delete`  | Mode = `compose`, no load snapshot, no loaded timestamp — the row is gone, so the next save mints a fresh record. **Corrected by [#690](https://github.com/jirigrill/eczema-helper/issues/690): the port carries the original creation timestamp through the undo and the re-save — see the Port rule below. The mode framing and the absent load snapshot are unchanged.**    |
 | `meal-compose` | Mode = `compose`, same as above — the slot was empty to begin with.                                                                                                                                                                                                                                                                                                            |
 
 Two consequences worth stating outright, because they surprise users and testers alike:
@@ -673,10 +745,28 @@ The `meal-edit` rule is the one that is easy to get wrong and easy to lose: taki
 own contents as the clean baseline would make the restored edit read as clean, disabling save
 and silently dropping the restored food on the next back-out.
 
-Note the consequence of the `meal-delete` rule: **an undone delete does not restore the
-original creation timestamp.** Re-saving mints a new one. This is a deliberate choice for
-meals and is the opposite of the rule INV-8 states for skin observations, where `id` and
-`createdAt` are immutable across delete-and-undo. See §12, open question 2.
+Note the consequence of the `meal-delete` rule **in the PWA**: an undone delete does not
+restore the original creation timestamp. Because the undo re-frames the restored session as
+**compose**, re-saving takes the compose branch and mints a fresh `createdAt` **with no
+`updatedAt` at all** — so both timestamps lose their meaning, not one. This is the opposite of
+the rule [INV-8](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-8) states
+for skin observations, where `id` and `createdAt` are immutable across delete-and-undo (and
+where the whole record genuinely is restored verbatim).
+
+> **Port rule — meals align with skin**
+> ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §1). An undone meal delete
+> **preserves the original creation timestamp**, and the re-save records **no update timestamp
+> either** — nothing was updated, the record was restored. `createdAt` is the _witnessing
+> moment_ for both entities
+> ([INV-8](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-8)), and a
+> meal's identity already survives an undo because the id _is_ the slot
+> ([INV-4](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-4)) — so a meal
+> is the same record after undo in every respect except this one field. Two rules for one
+> concept is what a fresh spec should refuse to inherit; the asymmetry had no defender.
+>
+> This is **only** about the audit fields. Undo still restores a **draft**, not a row: the row
+> really is gone from storage and the mother must still save. The overlay table's `meal-delete`
+> row stays as written except that the loaded timestamp is now carried, not dropped.
 
 ### 9.4 Buffer lifetime
 
@@ -698,7 +788,10 @@ it"_ is implemented across four sites, with no shared abstraction:
    baseline.
 4. **Skin screen mount** — its own independent copy of (2)+(3) for the skin kinds.
 
-Divergences worth recording, all of them real in `449019e`:
+Divergences worth recording, all of them real in `449019e`. **Two of them are no longer merely
+recorded**: buffer ownership and the failed-delete ordering were promoted to decided port rules
+by [#690](https://github.com/jirigrill/eczema-helper/issues/690) (§3 and §4), marked inline
+below.
 
 - **The meal screen's ownership test is weaker than the URL the shell builds.** The shell
   routes the undo using date, meal type **and** actor. The mount check accepts the buffer if
@@ -706,8 +799,16 @@ Divergences worth recording, all of them real in `449019e`:
   normal flow this is harmless, because the shell built the URL from the buffer, so they agree
   by construction. But it means _any_ other route into the editor that happens to match on
   meal type while a stale meal buffer exists will consume that buffer and overlay a foreign
-  slot's contents. The stated rule should be: **the buffer belongs to this screen only if
-  date, meal type and actor all match the slot being opened.**
+  slot's contents.
+
+  > **Port rule — buffer ownership is the full slot key**
+  > ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §3). **A buffered undo
+  > belongs to a screen only if date, meal type _and_ actor all match the slot being opened.**
+  > Matching the whole key is strictly _less_ code than matching part of it, and the slot key
+  > already exists as a concept
+  > ([INV-4](https://github.com/jirigrill/eczema-helper/blob/main/CONTEXT.md#inv-4)). This is
+  > no longer a recommendation: it is the rule.
+
 - **Clearing responsibility is split by kind.** For `meal-copy` the shell clears the buffer; for
   every other kind the destination screen clears it; for a dismissed-without-undo toast the
   shell clears it. Three owners for one lifetime.
@@ -721,8 +822,17 @@ Divergences worth recording, all of them real in `449019e`:
 - **A failed delete still destroys a pre-existing copy-undo.** The delete path invalidates a
   stale copy buffer for the slot _before_ attempting the removal. If the removal then fails,
   the user is left with no delete (correct) and also no copy-undo (not intended) — a no-op
-  action consumed someone else's undo affordance. The invalidation should run only after the
-  destructive write succeeds.
+  action consumed someone else's undo affordance.
+
+  > **Port rule — nothing invalidates an undo until the write it supersedes has landed**
+  > ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §4). Stated as a general
+  > rule rather than an ordering fix because **it applies to two paths, not one**. The delete
+  > path is the one described above. The **save** path has the same shape: it invalidates the
+  > copy buffer before calling finalize, and a failed finalize returns with the buffer already
+  > cleared. Same loss, same fix — invalidate only after the destructive write succeeds. §9.2's
+  > "Invalidate a stale copy-undo" steps on both the **Save action** and **Explicit delete
+  > action** rows therefore move _after_ the write in the port.
+
 - **A live copy buffer is half-visible to the editor.** The editor's mount hydration accepts
   only the three rehydratable meal kinds, so a `meal-copy` buffer is correctly ignored there —
   but it stays live for the shell's toast. Opening the editor while a copy toast is pending
@@ -737,9 +847,16 @@ Divergences worth recording, all of them real in `449019e`:
   toast. The end-to-end tests work around this with an explicit wait. A port that models the
   drill-in as view state rather than as a history entry avoids the hazard outright.
 
-**Recommendation for the port:** collapse (1)–(4) into a single _undoable action_ abstraction —
-each undoable action knows its own reversal and its own landing place — and make buffer
-ownership a single explicit match on the full slot key.
+> **Port rule — collapse the four sites into one undoable action**
+> ([#690](https://github.com/jirigrill/eczema-helper/issues/690) §3). Recorded here originally
+> as a recommendation; it is now decided. Collapse (1)–(4) into a single _undoable action_
+> abstraction — each undoable action knows its own reversal and its own landing place — and
+> make buffer ownership a single explicit match on the full slot key.
+>
+> The collapse is not cosmetic: **the duplication is what let the two ownership rules drift
+> apart**, so fixing the ownership test without collapsing the sites would leave the mechanism
+> that produced the bug in place. Note site (4), skin's own check, is already id-based — it
+> does not share the ownership defect, but it does share the duplication.
 
 ---
 
@@ -836,7 +953,10 @@ Coverage gaps found while writing this document, i.e. rules stated here that **n
 currently verifies: the copy-undo reversal contract (§10.3) beyond its happy path; the
 interaction between the "done" state and the discard buffer (§8.3); buffer ownership when the
 buffer's slot does not match the opened slot (§9.5); and whether an unconfirmed food should
-dirty an edit session (§3.4).
+dirty an edit session (§3.4). The last two are now **decided** by
+[#690](https://github.com/jirigrill/eczema-helper/issues/690) — so they are no longer open
+questions, but they remain unverified in the PWA and the port must write the tests rather than
+translate them.
 
 ---
 
@@ -844,22 +964,39 @@ dirty an edit session (§3.4).
 
 Recorded rather than guessed. Each is a candidate map ticket.
 
-1. **`CONTEXT.md` invariants are not numbered.** The handoff and the ticket both ask for
+**Seven of the sixteen are closed** — struck through below, with the ticket that answered them.
+Six were resolved by [#690](https://github.com/jirigrill/eczema-helper/issues/690) (questions 2,
+3, 9, 10, 11, 12) and one by [#689](https://github.com/jirigrill/eczema-helper/issues/689)
+(question 1). **The nine that remain are governed by #690's coherence default** — the port picks
+the coherent rule and _keeping_ a divergence needs a named reason — but none has been
+individually adjudicated. They do not each need a grilling ticket; they need that default
+applied, and a reason recorded only where the wart survives it.
+
+1. ~~**`CONTEXT.md` invariants are not numbered.** The handoff and the ticket both ask for
    reference "by number", but the `## Invariants` section is an unnumbered bullet list. This
    document cites them by file-order ordinal (INV-1 … INV-13), which will silently break the
-   moment a bullet is inserted. Numbering them stably in `CONTEXT.md` is cheap and unblocks every
-   downstream spec.
+   moment a bullet is inserted.~~ **Closed as resolved by
+   [#689](https://github.com/jirigrill/eczema-helper/issues/689):** the invariants carry stable,
+   individually anchored `INV-1..14` ids. **The hazard never fired** — all ten citations in this
+   document (INV-3, 4, 8, 11, 12, 13) still resolve to the invariant intended, because `INV-14`
+   was _appended_, not inserted. So this closes as resolved, not as repaired; the citations are
+   now `CONTEXT.md#inv-n` anchor links as they stand.
 
-2. **Undone deletes: meals and skin observations follow opposite rules.** INV-8 makes an
+2. ~~**Undone deletes: meals and skin observations follow opposite rules.** INV-8 makes an
    observation's `id` and `createdAt` immutable across delete-and-undo, on the grounds that
    `createdAt` records the _witnessing moment_. For meals, an undone delete re-frames the session
    as compose-new and mints a **fresh** creation timestamp. A meal's `id` is a deterministic slot
    key so identity survives, but the creation timestamp does not. Is that intended asymmetry, or
-   an oversight? A port must pick one.
+   an oversight? A port must pick one.~~ **Answered by
+   [#690](https://github.com/jirigrill/eczema-helper/issues/690) §1: meals align with skin** —
+   the port preserves the original `createdAt` and stamps no `updatedAt`. See §9.3's Port rule.
 
-3. **Buffer ownership is tested on meal type alone** (§9.5, first bullet). Should the rule be the
+3. ~~**Buffer ownership is tested on meal type alone** (§9.5, first bullet). Should the rule be the
    full slot key? The tests do not exercise the mismatching case, so this is currently unspecified
-   behavior rather than a known-good design.
+   behavior rather than a known-good design.~~ **Answered by
+   [#690](https://github.com/jirigrill/eczema-helper/issues/690) §3: yes, the full slot key** —
+   date, meal type _and_ actor — and the four duplicated undo sites collapse into a single
+   undoable action. See §9.5's two Port rules.
 
 4. **The `commitFamily` doc comment contradicts its code** (§2.1). Harmless today because nothing
    depends on the cache being reset — but a port that trusts the comment would behave differently
@@ -882,26 +1019,41 @@ Recorded rather than guessed. Each is a candidate map ticket.
 
 8. **There is no single "delete this meal" seam** (§9.5). Three call sites remove the row.
 
-9. **Whether an in-`editing` food should count as dirty in an `edit` session.** It does not
+9. ~~**Whether an in-`editing` food should count as dirty in an `edit` session.** It does not
    (§3.3) — so a user who opens a saved meal, taps a new food, adjusts its amount, and backs out
    without confirming loses that food **with no discard toast**, because the edit session reads
    as clean. In a `compose` session the same sequence _does_ raise a toast (non-empty). This
    asymmetry looks unintentional and is not covered by any test found. Flagged as a probable
-   defect rather than a rule. The same asymmetry is what makes the actor swap silently drop an
-   unconfirmed food (§6, step 2) — that one _is_ pinned by a test, so the behavior is
-   deliberate there and merely uncovered here.
+   defect rather than a rule.~~ **Answered by
+   [#690](https://github.com/jirigrill/eczema-helper/issues/690) §2 by splitting the predicate**
+   — "can this be saved" stays confirmed-only, while "would leaving lose something she did"
+   (**pending work**) counts in-progress work identically in compose and edit. Note two
+   corrections to the framing above: compose does not _warn_ — there is no confirm dialog
+   anywhere, it silently buffers and offers an undo toast **after the fact** — and the edit case
+   is **untested, not merely uncovered** (the compose case _is_ pinned), which is why "probable
+   defect" was the right call. See §3.3 and §3.4. The related asymmetry that makes the actor
+   swap silently drop an unconfirmed food (§6, step 2) _is_ pinned by a test and is untouched by
+   this resolution.
 
-10. **The outside-click asymmetry** (§4.4): cancel in the drill-in, confirm on the grid. Both
+10. ~~**The outside-click asymmetry** (§4.4): cancel in the drill-in, confirm on the grid. Both
     are pinned by tests, so both are intended, but nothing records _why_ they differ. A port
-    must decide whether to reproduce it.
+    must decide whether to reproduce it.~~ **Answered by
+    [#690](https://github.com/jirigrill/eczema-helper/issues/690) §5: confirm everywhere** — the
+    drill-in's cancel goes. See §4.4's Port rule for the two reasons.
 
-11. **The "done" state does not survive a remount** (§6.1). Reaching it, backing out, and
+11. ~~**The "done" state does not survive a remount** (§6.1). Reaching it, backing out, and
     undoing back into the editor silently returns a disabled save action, because the
-    autosaved-actor set is screen-local. Is the done state supposed to be recoverable? Nothing
-    tests the interaction between the done state and the discard buffer at all.
+    autosaved-actor set is screen-local. Is the done state supposed to be recoverable?~~
+    **Answered by [#690](https://github.com/jirigrill/eczema-helper/issues/690) §6: the
+    ephemerality is intended and specified as such; the silently disabled action it leaves behind
+    is the defect, and it is a presentation problem.** See §6.1's Port rule. The coverage gap
+    stands — nothing tests the interaction between the done state and the discard buffer.
 
-12. **A failed delete consumes a pre-existing copy-undo** (§9.5). Almost certainly an ordering
-    bug rather than a rule.
+12. ~~**A failed delete consumes a pre-existing copy-undo** (§9.5). Almost certainly an ordering
+    bug rather than a rule.~~ **Answered by
+    [#690](https://github.com/jirigrill/eczema-helper/issues/690) §4 as a general rule, not an
+    ordering patch: nothing invalidates an undo until the write it supersedes has landed** — and
+    it applies to the **save** path as well as the delete path. See §9.5's Port rule.
 
 13. **Copy-meal's undo contract is almost entirely untested.** Only the happy path is covered
     end-to-end. The merge-versus-create branch, added-items-only removal, prior-update-timestamp
