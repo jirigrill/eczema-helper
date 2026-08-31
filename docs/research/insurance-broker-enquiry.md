@@ -367,20 +367,43 @@ burn months before the first answer.
 A broker rather than an insurer direct: the eligibility question is exactly what a broker knows
 without asking, and one of the three target products (Colonnade PI-IT) is broker-distributed.
 
-These four were identified by #681 as Czech brokers placing this class. **Verify the current contact
-route on each site before sending — the URLs below are from #681's research, and no contact address
-in this pack has been confirmed by this session:**
+These brokers were verified for this pack: every legal name and IČO below is confirmed in
+[ARES](https://ares.gov.cz/), and every contact route and quoted line was read off the broker's own
+site. **Confirm the route still works before sending** — and see the caveat on ČNB registration
+below.
 
-| Broker | Evidence it places this class (per #681) |
-|---|---|
-| [Respect](https://www.respect.cz/cs/pojisteni-pro-firmy/tech) | A dedicated tech/IT liability page |
-| [Renomia](https://www.renomia.cz/) | The largest Czech broker |
-| [CEE Specialty](https://cee-specialty.eu/index.php/cs/odpovednost/pojisteni-profesni-odpovednosti-it) | A page specifically on IT professional liability |
-| [nablbost.cz](https://www.nablbost.cz/pojisteni-pro-podnikatelske-profese/pojisteni-pro-it-firmy-a-it-specialisty) | A page for IT firms and IT specialists |
+| Broker (IČO) | Contact | Evidence it places this class |
+|---|---|---|
+| **RENOMIA, a. s.** (48391301) | info@renomia.cz · +420 222 390 888 · [kontakty](https://www.renomia.cz/kontakty) | „pro IT společnosti stěžejním pojištěním **pojištění profesní odpovědnosti za škody**" ([IT page](https://www.renomia.cz/it-telekomunikace)). **The only genuine broker found that names sole traders:** „I menší společnost nebo **živnostník** mohou utrpět či způsobit škody za miliony" ([živnostníci](https://www.renomia.cz/zivnostnici)) |
+| **INSIA a.s.** (48034479) | insia@insia.com · 245 003 111 · [kontakt](https://www.insia.cz/kontakt/) | Audience stated as „IT firmy a **freelancery**"; covers „chybná doporučení" ([IT page](https://www.insia.cz/sluzby/pojisteni-pro-firmy/technicke-it-a-provozni-sluzby/)) |
+| **RESPECT, a.s.** (25146351) | respect@respect.cz · +420 227 200 111 · obchod@respect.cz | „Pojištění pro IT, TELCO, SaaS a PaaS", listing **profesní odpovědnost** and **kybernetická rizika** ([tech page](https://www.respect.cz/pojisteni-pro-firmy/tech)). Framed B2B; no OSVČ statement |
+| **SATUM CZECH s.r.o.** (25373951) | satum@satum.cz · +420 595 132 311 | „**Pojištění odpovědnosti IT služeb** — Kryje finanční škody z chyb či opomenutí při poskytování IT služeb"; „od **drobných podnikatelů**" ([page](https://www.satum.cz/oborova-reseni/sluzby-profesni-cinnosti/)) |
 
-Worth adding the international brokers present in CZ (Marsh, Aon, WTW, Gallagher) if the four above
-do not produce an answer — though a one-person OSVČ placement is small for them, which is itself a
-reason to lead with the Czech specialists.
+**Send to RENOMIA and INSIA first.** They are the two that say in their own words that they serve
+sole traders and freelancers — which is precisely the variable under test (§3.2 Q1). The other two
+are worth sending to in parallel; neither states a position on natural persons either way.
+
+**Two caveats on this table.** First, **ČNB registration could not be confirmed for any of them** —
+the [JERRS register](https://jerrs.cnb.cz/) is CAPTCHA-gated on every query path and its SOAP service
+needs a client TLS certificate. ARES confirms these are real companies, not that they are registered
+intermediaries; that is a one-minute manual browser check worth doing before engaging one. Second,
+**no broker uses the literal term "OSVČ"** on a business-insurance page — Renomia's „živnostník" and
+Insia's „freelancery" are the closest, and both are inclusive language rather than a stated
+eligibility rule.
+
+**Also checked and set aside:** #681 listed CEE Specialty and nablbost.cz. The latter's site
+(`pojisteni-osvc.cz`) is the strongest OSVČ signal found anywhere — it is titled „Pojištění
+podnikatelů a **OSVČ**" and has an [IT page](https://www.pojisteni-osvc.cz/pojisteni-pro-it-firmy/) —
+but it is operated by an individual self-described as „**finanční poradce**", not verified as a
+*makléř*, and publishes no IČO. Usable as a sounding board on the eligibility question; not the place
+to place the risk. FINPOINT was excluded (its PI page lists only lawyers, doctors, accountants,
+architects — no IT), and MAI CEE has been absorbed into GrECo.
+
+The international brokers present in CZ are a weaker fit than they look: Marsh publishes a
+[contact form](https://www.marsh.com/cs-cz/contact-us/contact-select/business-form.html) but no
+enquiry email and **no Czech-language IT-PI product page**; Aon publishes a phone number
+(+420 234 618 357) but no reachable Czech IT-liability page; WTW could not be read at all. A
+one-person OSVČ placement is also small for them. Lead with the Czech specialists.
 
 **On ČSOB specifically:** its VPP OIT 2020 is the one product where software is a *výrobek*, and
 ČSOB Pojišťovna can also be approached **direct**. If the brokers stall, ask ČSOB itself — the
