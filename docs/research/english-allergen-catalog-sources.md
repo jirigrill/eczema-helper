@@ -509,7 +509,7 @@ type FoodRecord = {
 
 No source field. No date. No reviewer. The rationale lives in **TypeScript comments and test
 titles** — prose that no tool can check, that does not travel to Swift, and that cannot be audited
-by a reviewer signing off on 198 rows. Where a source *is* named, it is named in a comment
+by a reviewer signing off on 160 rows. Where a source *is* named, it is named in a comment
 (`// ADR-0019 + #319 follow-up`) pointing at an internal issue, not at an authority.
 
 The ticket asks for "cited sources per mapping, not model recall." Under the current record shape
@@ -562,8 +562,9 @@ into.
 
 #678 describes the catalog as "13 families / 27 allergens / 198 foods". Measured in
 `allergen-catalog.ts` at this commit: **13 families, 38 allergen records (22 of them
-ladder-bearing, i.e. carrying `ladder` + `allergenOrder`), 198 foods.** The "27" figure does not
-correspond to either count. Worth reconciling before the scoping ticket sizes the work.
+ladder-bearing, i.e. carrying `ladder` + `allergenOrder`), 160 foods.** Neither the "27" nor the
+"198" figure corresponds to any count in the file. Worth reconciling before the scoping ticket
+sizes the work.
 
 ---
 
