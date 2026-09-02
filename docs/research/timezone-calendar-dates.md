@@ -80,7 +80,7 @@ including any DTS answer (gap 30).
 
 **Reproduction.** The measurement probes are Swift binaries built for the simulator and run via
 `simctl spawn`; the commands are in the Appendix. The spike they were written alongside lives
-outside this repo at `~/Developer/eczema-ios-spikes/timezone-728/` and is handed over by
+outside this repo at [`jirigrill/eczema-ios-spikes/timezone-728/`](https://github.com/jirigrill/eczema-ios-spikes/tree/main/timezone-728) and is handed over by
 [#742](https://github.com/jirigrill/eczema-helper/issues/742), which is where its fixture and
 computed numbers are recorded.
 
